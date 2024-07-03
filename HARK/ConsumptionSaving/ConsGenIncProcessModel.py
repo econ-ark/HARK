@@ -642,11 +642,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     passed to the constructor.
     """
 
-    _state_vars = ["pLvl", "mLvl", "aLvl"]
-    _default_params_ = init_general_inc
+    state_vars = ["pLvl", "mLvl", "aLvl"]
+    default_params_ = init_general_inc
 
     def __init__(self, **kwds):
-        params = self._default_params_.copy()
+        params = self.default_params_.copy()
         params.update(kwds)
 
         # Initialize a basic ConsumerType
@@ -873,7 +873,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     state variable during solution.  There is no real economic use for it.
     """
 
-    _default_params_ = init_explicit_perm_inc
+    default_params_ = init_explicit_perm_inc
 
 
 ###############################################################################
@@ -897,4 +897,4 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     coefficient for (log) persistent income.
     """
 
-    _default_params_ = init_persistent_shocks
+    default_params_ = init_persistent_shocks

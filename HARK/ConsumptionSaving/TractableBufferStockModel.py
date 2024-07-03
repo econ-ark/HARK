@@ -319,7 +319,7 @@ class TractableConsumerType(AgentType):
     Same as AgentType
     """
 
-    _state_vars = ["bLvl", "mLvl", "aLvl"]
+    state_vars = ["bLvl", "mLvl", "aLvl"]
 
     def __init__(self, **kwds):
         params = init_tractable.copy()
@@ -342,7 +342,7 @@ class TractableConsumerType(AgentType):
             "mUpperBnd",
         ]
         self.shock_vars = ["eStateNow"]
-        self.post_state_vars = ["aLvl", "eStateNow"]  # For simulation
+        self.poststate_vars = ["aLvl", "eStateNow"]  # For simulation
         self.solve_one_period = add_to_stable_arm_points  # set correct solver
 
     def pre_solve(self):

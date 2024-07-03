@@ -544,9 +544,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     passed to the constructor.
     """
 
-    _time_vary_ = copy(IndShockConsumerType._time_vary_)
-    _time_vary_ += ["WageRte"]
-    _time_inv_ = copy(IndShockConsumerType._time_inv_)
+    time_vary_ = copy(IndShockConsumerType.time_vary_)
+    time_vary_ += ["WageRte"]
+    time_inv_ = copy(IndShockConsumerType.time_inv_)
 
     def __init__(self, **kwds):
         params = init_labor_intensive.copy()

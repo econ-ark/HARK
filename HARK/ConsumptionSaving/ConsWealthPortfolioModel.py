@@ -101,8 +101,8 @@ class ChiFromOmegaFunction:
 
 
 class WealthPortfolioConsumerType(PortfolioConsumerType):
-    _time_inv_ = deepcopy(PortfolioConsumerType._time_inv_)
-    _time_inv_ = _time_inv_ + ["WealthShare", "WealthShift", "ChiFunc"]
+    time_inv_ = deepcopy(PortfolioConsumerType.time_inv_)
+    time_inv_ = time_inv_ + ["WealthShare", "WealthShift", "ChiFunc"]
 
     def __init__(self, **kwds):
         params = init_wealth_portfolio.copy()

@@ -537,7 +537,7 @@ class testPerfMITShk(unittest.TestCase):
         ss_dx.pseudo_terminal = False
         ss_dx.PerfMITShk = True
         ss_dx.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
-        ss_dx._cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
+        ss_dx.cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
         ss_dx.T_sim = params["T_cycle"]
         ss_dx.cycles = 1
         ss_dx.IncShkDstn = params["T_cycle"] * ss_dx.IncShkDstn
@@ -558,7 +558,7 @@ class testPerfMITShk(unittest.TestCase):
 
         example = Test_agent2(**params)
         example.pseudo_terminal = False
-        example._cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
+        example.cFunc_terminal_ = deepcopy(ss.solution[0].cFunc)
         example.T_sim = params["T_cycle"]
         example.cycles = 1
         example.PerfMITShk = True

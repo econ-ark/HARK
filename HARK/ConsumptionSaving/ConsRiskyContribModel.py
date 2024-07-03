@@ -79,8 +79,8 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     only in periods where he is able to move funds between accounts.
     """
 
-    _time_inv_ = deepcopy(RiskyAssetConsumerType._time_inv_)
-    _time_inv_ = _time_inv_ + ["DiscreteShareBool", "joint_dist_solver"]
+    time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
+    time_inv_ = time_inv_ + ["DiscreteShareBool", "joint_dist_solver"]
 
     # The new state variables (over those in ConsIndShock) are:
     # - nMrm: start-of-period risky resources.
@@ -89,14 +89,14 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
     # - Share: income-deduction share.
     # For details, see
     # https://github.com/Mv77/RiskyContrib/blob/main/RiskyContrib.pdf
-    _state_vars = RiskyAssetConsumerType._state_vars + [
+    state_vars = RiskyAssetConsumerType.state_vars + [
         "gNrm",
         "nNrm",
         "mNrmTilde",
         "nNrmTilde",
         "Share",
     ]
-    _shock_vars_ = RiskyAssetConsumerType._shock_vars_
+    shock_vars_ = RiskyAssetConsumerType.shock_vars_
 
     def __init__(self, verbose=False, quiet=False, joint_dist_solver=False, **kwds):
         params = init_risky_contrib.copy()

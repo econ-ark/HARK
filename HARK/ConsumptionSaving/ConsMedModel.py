@@ -835,18 +835,18 @@ class MedShockConsumerType(PersistentShockConsumerType):
         Number of times the sequence of periods should be solved.
     """
 
-    _default_params_ = init_medical_shocks
-    _shock_vars_ = PersistentShockConsumerType._shock_vars_ + ["MedShk"]
-    _state_vars = PersistentShockConsumerType._state_vars + ["mLvl"]
+    default_params_ = init_medical_shocks
+    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
+    state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
 
     def __init__(self, **kwds):
-        params = self._default_params_.copy()
+        params = self.default_params_.copy()
         params.update(kwds)
 
         AgentType.__init__(self, **params)
-        self.time_vary = deepcopy(self._time_vary_)
-        self.time_inv = deepcopy(self._time_inv_)
-        self.shock_vars = deepcopy(self._shock_vars_)
+        self.time_vary = deepcopy(self.time_vary_)
+        self.time_inv = deepcopy(self.time_inv_)
+        self.shock_vars = deepcopy(self.shock_vars_)
 
         self.solve_one_period = solve_one_period_ConsMedShock
         self.add_to_time_inv("CRRAmed")

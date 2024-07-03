@@ -153,7 +153,7 @@ init_preference_shocks = {
     "aNrmInitMean": 0.0,  # Mean of log initial assets
     "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 1.0,  # Standard deviation of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -181,153 +181,19 @@ del init_kinky_pref["Rfree"]
 
 
 class PrefShockConsumerType(IndShockConsumerType):
-    r"""
-    A consumer type based on IndShockConsumerType, with multiplicative shocks to utility each period.
+    """
+    A class for representing consumers who experience multiplicative shocks to
+    utility each period, specified as iid lognormal.
 
-    .. math::
-        \newcommand{\CRRA}{\rho}
-        \newcommand{\DiePrb}{\mathsf{D}}
-        \newcommand{\PermGroFac}{\Gamma}
-        \newcommand{\Rfree}{\mathsf{R}}
-        \newcommand{\DiscFac}{\beta}
-        \begin{align*}
-        v_t(m_t) &=\max_{c_t} \eta_{t} u(c_t) + \DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
-        & \text{s.t.}  \\
-        a_t &= m_t - c_t, \\
-        a_t &\geq \underline{a}, \\
-        m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
-        (\psi_{t+1},\theta_{t+1},\eta_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}
-        \end{align*}
+    See ConsumerParameters.init_pref_shock for a dictionary of
+    the keywords that should be passed to the constructor.
 
-    Default Shock Generator:
-    ------------------------
-    Created by :class:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
-
-    PermShkStd: list[float], default=[0.1]
-        Standard deviation of log permanent income shocks
-    PermShkCount: int, default=7
-        Number of points in discrete approximation to permanent income shocks (:math:`\psi`)
-    TranShkStd: list[float], default=[0.1]
-        Standard deviation of log transitory income shocks
-    TranShkCount: int, default=7
-        Number of points in discrete approximation to transitory income shocks (:math:`\theta`)
-    UnempPrb: float, default=0.05
-        Probability of unemployment while working
-    IncUnemp: float, default=0.3
-        Unemployement benefits replacement rate while working
-    T_retire: int, default=0
-        Period of retirement (0 --> no retirement)
-    UnempPrbRet: float, default=0.005
-        Probability of "unemployement" while retired
-    IncUnempRet: float, default=0.0
-        "Unemployment" benefits while retired.
-
-    Created by :class:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
-
-    PrefShkCount: int, default=12
-        Number of points in discrete approximation to preference shock dist
-    PrefShk_tail_N: int, default=4
-        Number of "tail points" on each end of pref shock dist
-    PerfShkStd: list[float], default=[0.3]
-        Standard deviation of log utility shocks (:math:`\eta`)
-
-    Solving Parameters:
-    -------------------
-
-    cycles: int, default=1
-        0 specifies an infinite horizon model, 1 specifies a finite model
-    T_cycle: int, default=1
-        Number of periods in the cycle for this agent type
-    CRRA: float, default=2.0, :math:`\rho`
-        Coefficient of Relative Risk Aversion
-    Rfree: float, default=1.03, time varying, :math:`\mathsf{R}`
-        Risk Free interest rate. Pass a list of floats to make Rfree time varying
-    DiscFac: float, default=.96, :math:`\beta`
-        Intertemporal discount factor
-    LibPrb: list[float], default=[.98], time varying, :math:`1-\mathsf{D}`
-        Survival probability after each period
-    PermGroFac: list[float], default=[1.01], time varying, :math:`\Gamma`
-        Permanent income growth factor
-    BoroCnstArt: float, default=0.0, :math:`\underline{a}`
-        The minimum Asset/Perminant Income ratio, None to ignore
-    vFuncBool: bool, default=False
-        Whether to calculate the value function during solution
-    CubicBool: bool, default=False,
-        Whether to use cubic spline interpolation when True
-    aXtraMin: float, default=.001
-        Minimum end-of-period "assets above minimum" value
-    aXtraMax: float, default=20
-        Maximum end-of-period "assets above minimum" value
-    aXtraNestFac, int, default=3
-        Exponential nesting factor for aXtraGrid. See :class:`HARK.utilities.make_assets_grid` for more information
-    aXtraCount, int, default=48
-        Number of points in the grid of "assets above minimum"
-    aXtraExtra: list, default=None
-        Additional values to add in grid, None to ignore
-
-
-    Simulation Parameters:
-    ----------------------
-
-    AgentCount: int, default=10000.
-        Number of agents of this kind that are created during simulations
-    T_age: int, default=None
-        Age after which to automatically kill agents, None to ignore
-    T_sim: int, required for simulation
-        Number of periods to simulate.
-    track_vars: list[strings]
-        List of variables that should be tracked when running the simulation.
-        For this agent, the options are 'mNrm', 'cNrm', 'aNrm', 'bNrm', 'aLvl', 'pLvl', and 'PlvlAgg'.
-
-        mNrm is the normalized market resources
-
-        cNrm is the normalized consumption
-
-        aNrm is the normalized assets
-
-        bNrm is the normalized resources without this period's labor income
-
-        PlvlAgg is 1
-
-        aLvl is the nominal asset level
-
-        pLvl is the permanent income level
-    aNrmInitMean: float, default=0.0
-        Mean of Log initial Normalized Assets
-    aNrmInitStd: float, default=1.0
-        Std of Log initial Normalized Assets
-    pLvlInitMean: float, default=0.0
-        Mean of Log initial permanent income
-    pLvlInitStd: float, default=1.0
-        Std of Log initial permanent income
-    PermGroFacAgg: float, default=1.0
-        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth)
-    PerfMITShk: boolean, default=False
-        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True)
-    neutral_measure: boolean, default=False
-        Whether to use permanent income neutral measure (see Harmenberg 2021)
-    NewbornTransShk: boolean, default=False
-        Whether Newborns have transitory shock
-
-    Attributes:
-    -----------
-
-    solution: list[Consumer solution object]
-        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
-        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
-
-        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
-
-    history: Dict[Array]
-        Created by running the :func:`.simulate()` method.
-        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
-        Visit :class:`HARK.core.AgentType.simulate` for more information.
+    Parameters
+    ----------
 
     """
 
-    _shock_vars_ = IndShockConsumerType._shock_vars_ + ["PrefShk"]
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
 
     def __init__(self, **kwds):
         params = init_preference_shocks.copy()
@@ -496,151 +362,18 @@ class PrefShockConsumerType(IndShockConsumerType):
 
 
 class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
-    r"""
-        A consumer type based on PrefShockConsumerType, with different
-        interest rates for saving (:math:`\mathsf{R}_{save}`) and borrowing
-        (:math:`\mathsf{R}_{boro}`).
+    """
+    A class for representing consumers who experience multiplicative shocks to
+    utility each period, specified as iid lognormal and different interest rates
+    on borrowing vs saving.
 
-        Solver for this class is currently only compatible with linear spline interpolation.
+    See init_kinky_pref for a dictionary of the keywords
+    that should be passed to the constructor.
 
-        .. math::
-            \newcommand{\CRRA}{\rho}
-            \newcommand{\DiePrb}{\mathsf{D}}
-            \newcommand{\PermGroFac}{\Gamma}
-            \newcommand{\Rfree}{\mathsf{R}}
-            \newcommand{\DiscFac}{\beta}
-            \begin{align*}
-            v_t(m_t) &= \max_{c_t} \eta_{t} u(c_t) + \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[(\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
-            a_t &= m_t - c_t, \\
-            a_t &\geq \underline{a}, \\
-            m_{t+1} &= \Rfree_t/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
-            \Rfree_t &= \begin{cases}
-            \Rfree_{boro} & \text{if } a_t < 0\\
-            \Rfree_{save} & \text{if } a_t \geq 0,
-            \end{cases}\\
-            \Rfree_{boro} &> \Rfree_{save}, \\
-            (\psi_{t+1},\theta_{t+1},\eta_{t+1}) &\sim F_{t+1}, \\
-            \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
-            \end{align*}
+    Parameters
+    ----------
 
-        Default Shock Generator:
-        ------------------------
-        Created by :class:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
-
-        PermShkStd: list[float], default=[0.1]
-            Standard deviation of log permanent income shocks
-        PermShkCount: int, default=7
-            Number of points in discrete approximation to permanent income shocks
-        TranShkStd: list[float], default=[0.1]
-            Standard deviation of log transitory income shocks
-        TranShkCount: int, default=7
-            Number of points in discrete approximation to transitory income shocks
-        UnempPrb: float, default=0.05
-            Probability of unemployment while working
-        IncUnemp: float, default=0.3
-            Unemployement benefits replacement rate while working
-        T_retire: int, default=0
-            Period of retirement (0 --> no retirement)
-        UnempPrbRet: float, default=0.005
-            Probability of "unemployement" while retired
-        IncUnempRet: float, default=0.0
-            "Unemployment" benefits while retired.
-
-        Solving Parameters:
-        -------------------
-
-        cycles: int, default=1
-            0 specifies an infinite horizon model, 1 specifies a finite model
-        T_cycle: int, default=1
-            Number of periods in the cycle for this agent type
-        CRRA: float, default=2.0, :math:`\rho`
-            Coefficient of Relative Risk Aversion
-        Rboro: float, default=1.2, time varying, :math:`\mathsf{R}_{boro}`
-            Risk Free interest rate. Pass a list of floats to make Rfree time varying
-        Rsave: float, default=1.02, time varying, :math:`\mathsf{R}_{save}`
-            Risk Free interest rate. Pass a list of floats to make Rfree time varying
-        DiscFac: float, default=.96, :math:`\beta`
-            Intertemporal discount factor
-        LibPrb: list[float], default=[.98], time varying, :math:`1-\mathsf{D}`
-            Survival probability after each period
-        PermGroFac: list[float], default=[1.01], time varying, :math:`\Gamma`
-            Permanent income growth factor
-        BoroCnstArt: float, default=0.0, :math:`\underline{a}`
-            The minimum Asset/Perminant Income ratio, None to ignore
-        vFuncBool: bool, default=False
-            Whether to calculate the value function during solution
-        CubicBool: bool, default=False,
-            Whether to use cubic spline interpolation when True
-        aXtraMin: float, default=.001
-            Minimum end-of-period "assets above minimum" value
-        aXtraMax: float, default=20
-            Maximum end-of-period "assets above minimum" value
-        aXtraNestFac, int, default=3
-            Exponential nesting factor for aXtraGrid. See :class:`HARK.utilities.make_assets_grid` for more information
-        aXtraCount, int, default=48
-            Number of points in the grid of "assets above minimum"
-        aXtraExtra: list, default=None
-            Additional values to add in grid, None to ignore
-
-
-        Simulation Parameters:
-        ----------------------
-
-        AgentCount: int, default=10000.
-            Number of agents of this kind that are created during simulations
-        T_age: int, default=None
-            Age after which to automatically kill agents, None to ignore
-        T_sim: int, required for simulation
-            Number of periods to simulate.
-        track_vars: list[strings]
-            List of variables that should be tracked when running the simulation.
-            For this agent, the options are 'mNrm', 'cNrm', 'aNrm', 'bNrm', 'aLvl', 'pLvl', and 'PlvlAgg'.
-
-            mNrm is the normalized market resources
-
-            cNrm is the normalized consumption
-
-            aNrm is the normalized assets
-
-            bNrm is the normalized resources without this period's labor income
-
-            PlvlAgg is 1
-
-            aLvl is the nominal asset level
-
-            pLvl is the permanent income level
-        aNrmInitMean: float, default=0.0
-            Mean of Log initial Normalized Assets
-        aNrmInitStd: float, default=1.0
-            Std of Log initial Normalized Assets
-        pLvlInitMean: float, default=0.0
-            Mean of Log initial permanent income
-        pLvlInitStd: float, default=1.0
-            Std of Log initial permanent income
-        PermGroFacAgg: float, default=1.0
-            Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth)
-        PerfMITShk: boolean, default=False
-            Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True)
-        neutral_measure: boolean, default=False
-            Whether to use permanent income neutral measure (see Harmenberg 2021)
-        NewbornTransShk: boolean, default=False
-            Whether Newborns have transitory shock
-
-        Attributes:
-        -----------
-
-        solution: list[Consumer solution object]
-            Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
-            Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
-
-            Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
-
-        history: Dict[Array]
-            Created by running the :func:`.simulate()` method.
-            Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
-            Visit :class:`HARK.core.AgentType.simulate` for more information.
-
-        """
+    """
 
     def __init__(self, **kwds):
         params = init_kinky_pref.copy()

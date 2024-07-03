@@ -306,7 +306,7 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     """
 
-    _time_inv_ = IndShockConsumerType._time_inv_ + ["CapShare", "DeprFac"]
+    time_inv_ = IndShockConsumerType.time_inv_ + ["CapShare", "DeprFac"]
 
     def __init__(self, **kwds):
         params = init_rep_agent.copy()
@@ -377,7 +377,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     ----------
     """
 
-    _time_inv_ = RepAgentConsumerType._time_inv_ + ["MrkvArray"]
+    time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
 
     def __init__(self, **kwds):
         params = init_markov_rep_agent.copy()
@@ -411,7 +411,7 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
 
         # Make replicated terminal period solution
         StateCount = self.MrkvArray.shape[0]
-        self.solution_terminal.cFunc = StateCount * [self._cFunc_terminal_]
+        self.solution_terminal.cFunc = StateCount * [self.cFunc_terminal_]
         self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
         self.solution_terminal.mNrmMin = StateCount * [self.solution_terminal.mNrmMin]
 

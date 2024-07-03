@@ -55,6 +55,9 @@ from HARK.numba_tools import (
 __all__ = [
     "PerfForesightSolution",
     "IndShockSolution",
+    "ConsPerfForesightSolverFast",
+    "ConsIndShockSolverBasicFast",
+    "ConsIndShockSolverFast",
     "PerfForesightConsumerTypeFast",
     "IndShockConsumerTypeFast",
 ]
@@ -1085,13 +1088,16 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 
 
 class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
-    r"""
-    A version of the perfect foresight consumer type speed up by numba.
+    """
+    A perfect foresight consumer type who has no uncertainty other than mortality.
+    His problem is defined by a coefficient of relative risk aversion, intertemporal
+    discount factor, interest factor, an artificial borrowing constraint (maybe)
+    and time sequences of the permanent income growth rate and survival probability.
     """
 
     # Define some universal values for all consumer types
-    _solution_terminal_ = PerfForesightSolution()
-    _solution_terminal_class = PerfForesightSolution
+    solution_terminal_ = PerfForesightSolution()
+    solution_terminal_class = PerfForesightSolution
 
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
@@ -1104,11 +1110,11 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         new AgentType is created or when CRRA changes.
         """
 
-        self._solution_terminal_cs = ConsumerSolution(
-            cFunc=self._cFunc_terminal_,
-            vFunc=ValueFuncCRRA(self._cFunc_terminal_, self.CRRA),
-            vPfunc=MargValueFuncCRRA(self._cFunc_terminal_, self.CRRA),
-            vPPfunc=MargMargValueFuncCRRA(self._cFunc_terminal_, self.CRRA),
+        self.solution_terminal_cs = ConsumerSolution(
+            cFunc=self.cFunc_terminal_,
+            vFunc=ValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPfunc=MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
+            vPPfunc=MargMargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
             mNrmMin=0.0,
             hNrm=0.0,
             MPCmin=1.0,
@@ -1116,7 +1122,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         )
 
         # TODO: Move this whole method to a constructor
-        solution_terminal = deepcopy(self._solution_terminal_)
+        solution_terminal = deepcopy(self.solution_terminal_)
         cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
         solution_terminal.cFunc = cFunc_terminal  # c=m at t=T
         solution_terminal.vFunc = ValueFuncCRRA(cFunc_terminal, self.CRRA)
@@ -1131,7 +1137,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             terminal = 1
         else:
             terminal = self.cycles
-            self.solution[terminal] = self._solution_terminal_cs
+            self.solution[terminal] = self.solution_terminal_cs
 
         for i in range(terminal):
             solution = self.solution[i]
@@ -1187,14 +1193,8 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
 
 class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFast):
-    r"""
-    A version of the idiosyncratic shock consumer type speed up by numba.
-
-    If CubicBool and vFuncBool are both set to false it's further optimized.
-    """
-
-    _solution_terminal_ = IndShockSolution()
-    _solution_terminal_class = IndShockSolution
+    solution_terminal_ = IndShockSolution()
+    solution_terminal_class = IndShockSolution
 
     def __init__(self, **kwargs):
         IndShockConsumerType.__init__(self, **kwargs)
@@ -1225,7 +1225,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             cycles = 1
         else:
             cycles = self.cycles
-            self.solution[-1] = self._solution_terminal_cs
+            self.solution[-1] = self.solution_terminal_cs
 
         for i in range(cycles):
             for j in range(self.T_cycle):

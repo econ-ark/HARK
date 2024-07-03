@@ -158,8 +158,8 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     The meaning of "adjusting his portfolio" depends on the particular model.
     """
 
-    _time_inv_ = IndShockConsumerType._time_inv_ + ["PortfolioBisect"]
-    _shock_vars_ = IndShockConsumerType._shock_vars_ + ["Adjust", "Risky"]
+    time_inv_ = IndShockConsumerType.time_inv_ + ["PortfolioBisect"]
+    shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_asset.copy()
@@ -440,7 +440,7 @@ init_risky_share_fixed["RiskyShareFixed"] = [
 
 
 class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
-    _time_vary_ = IndShockRiskyAssetConsumerType._time_vary_ + ["RiskyShareFixed"]
+    time_vary_ = IndShockRiskyAssetConsumerType.time_vary_ + ["RiskyShareFixed"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
         params = init_risky_share_fixed.copy()
