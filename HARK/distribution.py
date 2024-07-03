@@ -905,6 +905,196 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
         return np.exp(Z.rvs(size, random_state=random_state))
 
+    def _approx_equiprobable2(
+        self,
+        N: int,
+        tail_N: int = 0,
+        tail_bound: Union[float, list, tuple] = None,
+        tail_order: float = np.e,
+        endpoints: bool = False,
+    ):
+        """
+        Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
+
+        Parameters
+        ----------
+        N : int
+            The number of points in the discrete approximation.
+        endpoints : bool
+            To be added
+
+        Returns
+        -------
+        d : DiscreteDistribution
+            Probability associated with each point in array of discrete
+            points for discrete probability mass function.
+        """
+
+        if endpoints:
+            raise NotImplementedError("Endpoints have not yet been implemented")
+
+        if tail_N < 0:
+            raise ValueError("tail_N must be a non-negative integer")
+
+        if tail_order < 1:
+            raise ValueError("tail_order must be greater than or equal to 1")
+
+        if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
+            ind_atoms = np.empty((self.M, N))
+
+            for i in range(self.M):
+                if self.Sigma[i, i] == 0.0:
+                    x_atoms = np.repeat(np.exp(self.mu[i]), N)
+                    ind_atoms[i] = x_atoms
+                else:
+                    x_atoms = (
+                        Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                        ._approx_equiprobable(N)
+                        .atoms
+                    )
+                    ind_atoms[i] = x_atoms
+
+            atoms_list = [ind_atoms[i] for i in range(self.M)]
+            atoms = np.stack(
+                [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
+            ).T
+            pmv = np.repeat(1 / (N**self.M), N**self.M)
+        else:
+            if tail_bound is not None and tail_N > 0:
+                if type(tail_bound) is float:
+                    tail_bound = [tail_bound, 1 - tail_bound]
+
+                if tail_bound[0] < 0 or tail_bound[1] > 1:
+                    raise ValueError("Tail bounds must be between 0 and 1")
+
+                cdf_cuts = np.linspace(tail_bound[0], tail_bound[1], N + 1)
+                int_prob = tail_bound[1] - tail_bound[0]
+
+            else:
+                cdf_cuts = np.linspace(0, 1, N + 1)
+                int_prob = 1.0
+
+            Z = Normal()
+
+            z_cuts = np.empty(2 * tail_N + N + 1)
+            if tail_N > 0:
+                z_cuts[0:tail_N] = Z.ppf(cdf_cuts[0])
+                z_cuts[-tail_N:] = Z.ppf(cdf_cuts[-1])
+
+            z_cuts[tail_N : tail_N + N + 1] = Z.ppf(cdf_cuts)
+            z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N + 2 * tail_N)]
+
+            atoms = np.empty([self.M, (N + (2 * tail_N)) ** self.M])
+
+            interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
+
+            inners = np.zeros(N + 2 * tail_N)
+
+            if tail_N > 0:
+                inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
+                inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
+
+            L = np.linalg.cholesky(self.Sigma)
+
+            def eval(params, z):
+                inds = []
+                excl = []
+
+                for j in range(len(z)):
+                    if z[j, 0] != z[j, 1]:
+                        inds.append(j)
+                    else:
+                        excl.append(j)
+
+                dim = len(inds)
+
+                p = np.repeat(params[inds], 2).reshape(dim, 2)
+
+                Z = np.multiply(p, z[inds])
+
+                bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
+
+                if len(inds) > 0:
+                    x_exp = np.prod(
+                        -0.5
+                        * np.exp(np.square(params[inds]) / 2)
+                        * (special.erf(bounds[1]) - special.erf(bounds[0]))
+                    )
+                else:
+                    x_exp = 1
+
+                if len(excl) > 0:
+                    x_others = np.prod(np.exp(np.multiply(params[excl], z[excl, 1])))
+                else:
+                    x_others = 1
+
+                return x_exp * x_others * (N / int_prob) ** dim
+
+            for i in range(self.M):
+                mui = self.mu[i]
+                params = L[i, 0 : i + 1]
+
+                Z_list = [z_bins for _ in range(i + 1)]
+
+                Z_bins = [np.array(x) for x in list(product(*Z_list))]
+
+                xi_atoms = []
+
+                for z_bin in Z_bins:
+                    atom = np.exp(mui) * eval(params, z_bin)
+                    xi_atoms.append(atom)
+
+                xi_atoms_arr = np.repeat(
+                    xi_atoms, (N + 2 * tail_N) ** (self.M - (i + 1))
+                )
+
+                inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
+
+                interiors[i] = np.repeat(
+                    [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
+                )
+
+                atoms[i] = xi_atoms_arr
+
+            max_locs = np.argmax(np.abs(interiors), axis=0)
+
+            max_inds = np.stack([max_locs, np.arange(len(max_locs))], axis=1)
+
+            prob_locs = interiors[max_inds[:, 0], max_inds[:, 1]]
+
+            low_sum = np.sum(tail_order ** np.abs(prob_locs[prob_locs > 0]))
+
+            high_sum = np.sum(tail_order ** np.abs(prob_locs[prob_locs < 0]))
+
+            def prob_assign(x):
+                if x == 0:
+                    return (int_prob) / (N**self.M)
+                elif x < 0:
+                    return (1 - tail_bound[1]) * (tail_order ** (-x)) / high_sum
+                else:
+                    return tail_bound[0] * (tail_order**x) / low_sum
+
+            prob_vec = np.vectorize(prob_assign)
+
+            pmv = prob_vec(prob_locs)
+
+        limit = {
+            "dist": self,
+            "method": "equiprobable2",
+            "N": N,
+            "endpoints": endpoints,
+            "tail_N": tail_N,
+            "tail_bound": tail_bound,
+            "tail_order": tail_order,
+        }
+
+        return DiscreteDistribution(
+            pmv=pmv,
+            atoms=atoms,
+            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            limit=limit,
+        )
+
     def _approx_equiprobable(self, N, endpoints: bool = False):
         """
         Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
@@ -1004,7 +1194,7 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             limit=limit,
         )
 
-    def _approx_equiprobable_eig(self, N, endpoints: bool = False):
+    def _approx_equiprobable_eig(self, N, endpoints: bool = False, sqrt: bool = True):
         """
         Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
 
@@ -1076,6 +1266,9 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
             A = Q @ np.diag(np.sqrt(Λ))
 
+            if sqrt:
+                A = A @ Q.T
+
             for i in range(self.M):
                 mui = self.mu[i]
                 params = A[i]
@@ -1090,7 +1283,7 @@ class MVLogNormal(multi_rv_frozen, Distribution):
                     atom = np.exp(mui) * eval(params, z_bin)
                     xi_atoms.append(atom)
 
-                atoms[i] = np.array(xi_atoms)
+                atoms[i] = xi_atoms
 
             pmv = np.repeat(1 / (N**self.M), N**self.M)
 
