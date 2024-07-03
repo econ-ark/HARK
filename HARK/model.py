@@ -122,9 +122,6 @@ def construct_shocks(shock_data, scope):
 
                     dist_args[a] = arg_value
 
-            print(v)
-            print(dist_class)
-            print(dist_args)
             dist = dist_class(**dist_args)
 
             sd[v] = dist
