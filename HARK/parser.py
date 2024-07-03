@@ -46,7 +46,10 @@ def math_text_to_lambda(text):
 
 
 def harklang_loader():
-    """Add constructors to PyYAML loader."""
+    """
+    A PyYAML loader that supports tags for HARKLang,
+    such as random variables and model tags.
+    """
     loader = yaml.SafeLoader
     yaml.SafeLoader.add_constructor(
         "!Bernoulli", tuple_constructor_from_class(Bernoulli)
@@ -62,6 +65,3 @@ def harklang_loader():
     )
 
     return loader
-
-
-########################################################################
