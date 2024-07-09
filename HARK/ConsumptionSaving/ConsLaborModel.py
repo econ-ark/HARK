@@ -490,7 +490,7 @@ default_aXtraGrid_params = {
 }
 
 # Default parameter to make LbrCost using make_log_polynomial_LbrCost
-defualt_LbrCost_params = {
+default_LbrCost_params = {
     "LbrCostCoeffs": [
         -1.0
     ]  # Polynomial coefficients (for age) on log labor utility cost
@@ -530,7 +530,7 @@ init_labor_intensive = {
 }
 init_labor_intensive.update(default_IncShkDstn_params)
 init_labor_intensive.update(default_aXtraGrid_params)
-init_labor_intensive.update(defualt_LbrCost_params)
+init_labor_intensive.update(default_LbrCost_params)
 
 
 class LaborIntMargConsumerType(IndShockConsumerType):
