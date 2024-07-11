@@ -312,8 +312,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 	    Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
 
 	    If PortfolioBool is True, the solution also contains:
-	    ShareFunc:
-	        The asset share function for this period, defined over normalized market resources :math:`S`=ShareFunc(mNrm).
+	    ShareFunc - The asset share function for this period, defined over normalized market resources :math:`S=ShareFunc(mNrm)`.
 
 	    Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
 
