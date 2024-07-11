@@ -79,17 +79,17 @@ class PortfolioSolution(MetricObject):
         the agent is NOT able to adjust their portfolio shares, so they are fixed:
         :math:`v_t=\text{vFuncFxd}(m_t,S_t)`.
     dvdmFuncFxd : MargValueFuncCRRA
-        Marginal value of mNrm function over normalized market resources and risky
-        portfolio share when the agent is NOT able to adjust their portfolio shares,
-        so they are fixed.
+        The derivative of the value function with respect to normalized market
+        resources when the agent is Not able to adjust their portfolio shares,
+        so they are fixed: :math:`\frac{dv_t}{dm_t}=\text{vFuncFxd}(m_t,S_t)`.
     dvdsFuncFxd : MargValueFuncCRRA
-        Marginal value of Share function over normalized market resources and risky
-        portfolio share when the agent is NOT able to adjust their portfolio shares,
-        so they are fixed.
+        The derivative of the value function with respect to risky asset share
+        when the agent is Not able to adjust their portfolio shares,so they are
+        fixed: :math:`\frac{dv_t}{dS_t}=\text{vFuncFxd}(m_t,S_t)`.
     aGrid: np.array
         End-of-period-assets grid used to find the solution.
     Share_adj: np.array
-        Optimal portfolio share associated with each aGrid point.
+        Optimal portfolio share associated with each aGrid point: :math:`S^{*}_t=\text{vFuncFxd}(m_t)`.
     EndOfPrddvda_adj: np.array
         Marginal value of end-of-period resources associated with each aGrid
         point.
@@ -1090,15 +1090,6 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 	A consumer type based on IndShockRiskyAssetConsumerType, with portfolio optimization.
 	The agent is only able to change their risky asset share with a certain probability.
 
-	A consumer type with a portfolio choice. This agent type has log-normal return
-	factors. Their problem is defined by a coefficient of relative risk aversion,
-	intertemporal discount factor, risk-free interest factor, and time sequences of
-	permanent income growth rate, survival probability, and permanent and transitory
-	income shock standard deviations (in logs).  The agent may also invest in a risky
-	asset, which has a higher average return than the risk-free asset.  He *might*
-	have age-varying beliefs about the risky-return; if he does, then "true" values
-	of the risky asset's return distribution must also be specified.
-
 	.. math::
 	    \newcommand{\CRRA}{\rho}
 	    \newcommand{\DiePrb}{\mathsf{D}}
@@ -1106,14 +1097,14 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 	    \newcommand{\Rfree}{\mathsf{R}}
 	    \newcommand{\DiscFac}{\beta}
 	    \begin{align*}
-	    v_t(m_t,S_t) &= \max_{c_t,\mathbb{S}} u(c_t) + \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[(\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1},S_{t+1}) \right], \\
+	    v_t(m_t,S_t) &= \max_{c_t,S^{*}_t} u(c_t) + \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[(\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1},S_{t+1}) \right], \\
 	    & \text{s.t.}  \\
 	    a_t &= m_t - c_t, \\
 	    a_t &\geq \underline{a}, \\
 	    m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
-	    \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathsf{R}_{\text{risky},t+1}+ (1-S_t)\mathsf{R}_{\text{safe},t+1}, \\
+	    \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
 	    S_{t+1} &= \begin{cases}
-	    \mathbb{S}_t & \text{if } p_t < \wp\\
+	    S^{*}_t & \text{if } p_t < \wp\\
 	    S_t & \text{if } p_t \geq \wp,
 	    \end{cases}\\
 	    (\psi_{t+1},\theta_{t+1},\phi_{t+1},p_t) &\sim F_{t+1}, \\
@@ -1148,7 +1139,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
 	Created by :class:`Hark.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
 
-	RiskyAvg: float or list[float], default=1.08, time varying
+	RiskyAvg: float or list[float], default=1.08, time varying, :math:`\mathsbf{R}`
 	    Mean return factor of risky asset. Pass a list of floats to make RiskyAvg time varying.
 	RiskyStd: float or list[float], default=0.2, time varying
 	    Standard Deviation of log returns on risky assets. Pass a list of floats to make RiskyStd time varying.
@@ -1197,7 +1188,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 	    Whether to calculate the value function during solution.
 	CubicBool: bool, default=False
 	    Whether to use cubic spline interpoliation.
-	AdjustPrb: float or list[float], default=1.0
+	AdjustPrb: float or list[float], time varying, default=1.0
 	    Must be between 0 and 1. Probability that the agent can update their risky portfolio share each period. Pass a list of floats to make AdjustPrb time varying.
 
 	Simulation Parameters:
@@ -1258,10 +1249,12 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 	    Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
 	    Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
 
-	    Visit :class:`HARK.ConsumptionSaving.ConsPortfolioModel.PortfolioSolution` for more information about the solution.
+	    Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+
 	history: Dict[Array]
 	    Created by running the :func:`.simulate()` method.
 	    Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+	    Visit :class:`HARK.core.AgentType.simulate` for more information.
 
     """
 

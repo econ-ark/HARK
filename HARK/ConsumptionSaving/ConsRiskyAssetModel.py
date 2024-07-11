@@ -149,7 +149,7 @@ init_risky_asset.update(default_RiskyDstn_and_ShareGrid_params)
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     r"""
-	A consumer type that has access to a risky asset for their savings. The
+	A consumer type based on IndShockConsumerType, that has access to a risky asset for their savings. The
 	risky asset has lognormal returns that are possibly correlated with his
 	income shocks.
 
@@ -168,7 +168,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 	    a_t &= m_t - c_t, \\
 	    a_t &\geq \underline{a}, \\
 	    m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
-	    \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathsf{R}_{\text{risky},t+1}+ (1-S_t)\mathsf{R}_{\text{safe},t+1}, \\
+	    \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
 	    (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
 	    \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
 	    \end{align*}
@@ -201,7 +201,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
 	Created by :class:`Hark.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
 
-	RiskyAvg: float or list[float], default=1.080370891, time varying
+	RiskyAvg: float or list[float], default=1.080370891, time varying, :math:`\mathsbf{R}`
 	    Mean return factor of risky asset. Pass a list of floats to make RiskyAvg time varying.
 	RiskyStd: float or list[float], default=0.177196585, time varying
 	    Standard Deviation of log returns on risky assets. Pass a list of floats to make RiskyStd time varying.
@@ -245,13 +245,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 	PermGroFac: list[float], default=[1.01], time varying, :math:`\Gamma`
 	    Permanent income growth factor.
 	BoroCnstArt: float, default=0.0, :math:`\underline{a}`
-	    The minimum Asset/Perminant Income ratio, None to ignore.
+	    The minimum Asset/Perminant Income ratio. for this agent, BoroCnstArt must be 0.
 	vFuncBool: bool, default=False
 	    Whether to calculate the value function during solution.
 	CubicBool: bool, default=False
 	    Whether to use cubic spline interpoliation.
-	AdjustPrb: float or list[float], default=1.0
-	    Must be between 0 and 1. Probability that the agent can update their risky portfolio share each period. Pass a list of floats to make AdjustPrb time varying.
 	PortfolioBool: Boolean, default=False
 	    Determines whether agent will use portfolio optimization or they only have access to risky assets. If false, the risky share is always one.
 
@@ -314,12 +312,15 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 	    Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
 
 	    If PortfolioBool is True, the solution also contains:
-	    ShareFunc- The asset share function for this period, defined over normalized market resources :math:`S=ShareFunc(mNrm)`.
+	    ShareFunc:
+	        The asset share function for this period, defined over normalized market resources :math:`S`=ShareFunc(mNrm).
 
 	    Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+
 	history: Dict[Array]
 	    Created by running the :func:`.simulate()` method.
 	    Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+	    Visit :class:`HARK.core.AgentType.simulate` for more information.
 
     """
 
@@ -622,7 +623,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
 	    a_t &= m_t - c_t, \\
 	    a_t &\geq \underline{a}, \\
 	    m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
-	    \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathsf{R}_{\text{risky},t+1}+ (1-S_t)\mathsf{R}_{\text{safe},t+1}, \\
+	    \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
 	    (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
 	    \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
 	    \end{align*}
@@ -655,7 +656,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
 
 	Created by :class:`Hark.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
 
-	RiskyAvg: float or list[float], default=1.080370891, time varying
+	RiskyAvg: float or list[float], default=1.080370891, time varying, :math:`\mathsbf{R}`
 	    Mean return factor of risky asset. Pass a list of floats to make RiskyAvg time varying.
 	RiskyStd: float or list[float], default=0.177196585, time varying
 	    Standard Deviation of log returns on risky assets. Pass a list of floats to make RiskyStd time varying.
@@ -701,7 +702,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
 	PermGroFac: list[float], default=[1.01], time varying, :math:`\Gamma`
 	    Permanent income growth factor.
 	BoroCnstArt: float, default=0.0, :math:`\underline{a}`
-	    The minimum Asset/Perminant Income ratio, None to ignore.
+	    The minimum Asset/Perminant Income ratio. for this agent, BoroCnstArt must be 0.
 	vFuncBool: bool, default=False
 	    Whether to calculate the value function during solution.
 	CubicBool: bool, default=False
