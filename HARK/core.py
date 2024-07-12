@@ -1485,7 +1485,7 @@ def solve_one_cycle(agent, solution_last):
         if len(agent.time_vary) > 0:
             # name = agent.time_vary[0]
             # T = len(eval('agent.' + name))
-            T = agent.T_cycle  # len(agent.__dict__[agent.time_vary[0]])
+            T = len(agent.__dict__[agent.time_vary[0]])
         else:
             T = 1
 
