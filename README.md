@@ -57,7 +57,7 @@ We have a [Gitter](https://gitter.im) Econ-ARK [community](https://gitter.im/eco
 - [Citation](#citation)
 - [Support](#support)
 - [Release Types](#release-types)
-- [API Documentation](#api-documentation)
+- [Documentation](#Documentation)
 - [Introduction](#introduction)
   - [For Students: A Gentle Introduction to Hark](#for-students-a-gentle-introduction-to-hark)
   - [For Economists: Structural Modeling with Hark](#for-economists-structural-modeling-with-hark)
