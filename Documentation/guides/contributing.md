@@ -382,6 +382,43 @@ To test your changes to the documentation locally, you can render as follows:
 3. View the rendered HTML by opening the
    `./HARK-docs/html/index.html` file.
 
+#### Adding examples to the documentation
+
+HARK's example files are stored in the HARK/examples file.
+Every example notebook should be stored in the HARK/examples folder.
+Every pull request to HARK automatically reruns every example notebook
+to keep them up to date.
+
+To add a notebook from the examples folder to the documentation, create a
+new file in the Documentation/example_notebooks folder. This should be a text file
+with a symlink to the notebook you want to add. Your link must also be a relative path.
+
+Once you've made your text file, change it's extension to .ipynb, then add a link to it to
+`Documentation/overview/index.rst`.
+
+Sphinx requires it's example notebooks to have a title, and headings in order of
+decreasing size. Make sure the notebook you added has those qualities before you push.
+Otherwise sphinx will fail to build.
+
+:::{warning}
+[As of 07/14/2024, subject to change]
+
+Sphinx won't properly render symlinks locally. When testing changes locally,
+you need to replace the symlink with the original file. However, only include
+the symlinks in the pull request. Otherwise HARK won't automatically run it.
+Make sure not to include the HARK-docs folder in your pull request if you're
+testing locally. HARK will automatically build this file when the pull request
+is made. Including the HARK-docs folder may create unexpected conflicts.
+
+If you would like to build the documentation without warnings being treated as errors use the command:
+```bash
+   sphinx-build -M html Documentation HARK-docs -T
+```
+This lets you see every warning without sphinx quitting after the first issue it finds.
+If you're doing this, make sure to delete the HARK-docs folder before running it again.
+Otherwise it won't show the warnings again, and you won't be able to check if they've been fixed.
+:::
+
 ### Testing
 
 `HARK` has a test suite that ensures correct
