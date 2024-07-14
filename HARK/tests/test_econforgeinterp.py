@@ -9,7 +9,7 @@ from HARK.metric import distance_metric
 
 class CompareLinearInterp(unittest.TestCase):
     """
-    Compares output and properties with the basic linearinterp
+    Compares output and properties with the basic linearinterp.
     """
 
     def setUp(self):

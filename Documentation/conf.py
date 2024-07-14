@@ -98,8 +98,29 @@ html_theme_options = {
             "attributes": {"target": "_blank"},
         },
     ],
+    "secondary_sidebar_items": {
+        "**": ["page-toc", "sourcelink"],
+        "index": ["page-toc"],
+    },
 }
 
+nbsphinx_prolog = r"""
+{% set docname = 'Documentation/' + env.doc2path(env.docname, base=None) %}
+
+.. raw:: html
+
+    <div class="admonition note">
+      This page was generated from
+      <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/{{ docname|e }}">{{ docname|e }}</a>.
+      <br />
+      Interactive online version:
+      <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+      <a href="{{ env.docname.split('/')|last|e + '.ipynb' }}" class="reference download internal" download>Download notebook</a>.
+    </div>
+"""
+myst_enable_extensions = [
+    "colon_fence",
+]
 # Point to Econ-ARK repo for edit buttons
 html_context = {
     "github_url": "https://github.com",

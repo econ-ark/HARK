@@ -24,6 +24,10 @@ Overview
    ../example_notebooks/LifecycleModel.ipynb
    ../example_notebooks/HowWeSolveIndShockConsumerType.ipynb
    ../example_notebooks/Journey-PhD.ipynb
+   ../example_notebooks/Transition_Matrix_Example.ipynb
+   ../example_notebooks/Jacobian_Example.ipynb
+   ../example_notebooks/KS-HARK-presentation.ipynb
+   ../example_notebooks/SSJ_Example.ipynb
 
 .. toctree::
    :hidden:
