@@ -36,6 +36,7 @@ extensions = [
     "sphinx.ext.todo",
     # third-party extensions
     "nbsphinx",
+    "nbsphinx_link",
     "myst_parser",
     "sphinx_copybutton",
     "sphinx_design",
@@ -154,3 +155,5 @@ napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
+
+suppress_warnings = ["config.cache"]

@@ -3,7 +3,7 @@
 ipython  # for the Pygments lexer
 myst-parser>=2
 nbsphinx>=0.8
-
+nbsphinx-link
 # theme requirements
 pydata-sphinx-theme
 sphinx>=6.1
