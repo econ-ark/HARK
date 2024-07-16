@@ -170,7 +170,4 @@ napoleon_use_ivar = True  # solves duplicate object description warning
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
 
-suppress_warnings = [
-    "toc.excluded",  # Suppress warnings about documents not included in the toctree
-    "nbsphinx.notebooktitle",  # Suppress warnings about notebooks not having titles
-]
+suppress_warnings = []
