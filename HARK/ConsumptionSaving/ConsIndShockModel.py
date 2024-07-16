@@ -2273,8 +2273,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
             TranShkNow[newborn] = 1.0
 
         # Store the shocks in self
-        self.EmpNow = np.ones(self.AgentCount, dtype=bool)
-        self.EmpNow[TranShkNow == self.IncUnemp] = False
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
