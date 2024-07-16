@@ -375,12 +375,42 @@ To test your changes to the documentation locally, you can render as follows:
 
 2. Run `sphinx-build`:
 
-   ```bash
-   sphinx-build -M html Documentation HARK-docs -T -W
-   ```
+  ```bash
+  sphinx-build -M html . HARK-docs -T -c Documentation -W
+  ```
 
 3. View the rendered HTML by opening the
    `./HARK-docs/html/index.html` file.
+
+#### Adding examples to the documentation
+
+HARK's example notebooks are stored in the HARK/examples file.
+Every pull request to HARK automatically reruns every example notebook
+to keep them up to date.
+
+To add a notebook from the examples folder to the documentation, add a link
+to the notebook to the `Documentation/overview/index.rst` file. It should
+the format `../../examples/AAA/BBB.ipynb`. Then add a link to the notebook
+in the `Documentation/example_notebooks/Include_list.txt` file. It should have
+the format `examples/AAA/BBB.ipynb`.
+
+Sphinx requires it's example notebooks to have a title, and headings in order of
+decreasing size. Make sure the notebook you added has those qualities before you push.
+Otherwise sphinx will fail to build.
+
+:::{warning}
+Make sure not to include the HARK-docs folder in your pull request if you're
+testing locally. HARK will automatically build this file when the pull request
+is made. Including the HARK-docs folder may create unexpected conflicts.
+
+If you would like to build the documentation without warnings being treated as errors use the command:
+```bash
+   sphinx-build -M html . HARK-docs -T -c Documentation
+```
+This lets you see every warning without sphinx quitting after the first issue it finds.
+If you're doing this, make sure to delete the HARK-docs folder before running it again.
+Otherwise it won't show the warnings again, and you won't be able to check if they've been fixed.
+:::
 
 ### Testing
 
