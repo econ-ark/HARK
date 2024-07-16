@@ -1,5 +1,8 @@
 import warnings
 from datetime import date
+import os
+
+dir = os.path.dirname(__file__)
 
 try:
     import numba
@@ -46,7 +49,7 @@ include_patterns = [
     "Documentation**",
     "index.rst",
 ]  # Makes sure that only the file we want documented get documented
-with open("example_notebooks/include_list", "r") as file:
+with open(os.path.join(dir, "example_notebooks", "include_list"), "r") as file:
     include_patterns += file.readlines()
 include_patterns = [
     i.replace("\n", "") for i in include_patterns
