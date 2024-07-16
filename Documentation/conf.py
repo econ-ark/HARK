@@ -36,17 +36,28 @@ extensions = [
     "sphinx.ext.todo",
     # third-party extensions
     "nbsphinx",
-    "nbsphinx_link",
     "myst_parser",
     "sphinx_copybutton",
     "sphinx_design",
 ]
 
+
+include_patterns = [
+    "Documentation**",
+    "index.rst",
+]  # Makes sure that only the file we want documented get documented
+with open("example_notebooks//include_list", "r") as file:
+    include_patterns += file.readlines()
+include_patterns = [
+    i.replace("\n", "") for i in include_patterns
+]  # Adds example notebooks
+
 exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "NARK",
+    "Documentation/_build",
+    "Documentation/Thumbs.db",
+    "Documentation/.DS_Store",
+    "Documentation/NARK",
+    "Documentation/index_core.rst",  # Prevents sphinx from getting confused
 ]
 
 language = "en"
@@ -65,7 +76,7 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
-html_static_path = ["_static"]
+html_static_path = []
 html_css_files = [
     "override-nbsphinx-gallery.css",
 ]
@@ -156,4 +167,7 @@ napoleon_use_ivar = True  # solves duplicate object description warning
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
 
-suppress_warnings = ["config.cache"]
+suppress_warnings = [
+    "toc.excluded",  # Suppress warnings about documents not included in the toctree
+    "nbsphinx.notebooktitle",  # Suppress warnings about notebooks not having titles
+]

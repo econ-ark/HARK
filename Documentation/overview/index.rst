@@ -15,19 +15,19 @@ Overview
    :caption: Examples
    :maxdepth: 1
 
-   ../example_notebooks/Gentle-Intro-To-HARK
-   ../example_notebooks/PerfForesightConsumerType
-   ../example_notebooks/IndShockConsumerType
-   ../example_notebooks/KinkedRconsumerType
-   ../example_notebooks/ConsPortfolioModel
-   ../example_notebooks/GenIncProcessModel
-   ../example_notebooks/LifecycleModel
-   ../example_notebooks/HowWeSolveIndShockConsumerType
-   ../example_notebooks/Journey-PhD
-   ../example_notebooks/Transition_Matrix_Example
-   ../example_notebooks/Jacobian_Example
-   ../example_notebooks/KS-HARK-presentation
-   ../example_notebooks/SSJ_Example
+   ../../examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
+   ../../examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
+   ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
+   ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
+   ../../examples/ConsPortfolioModel/example_ConsPortfolioModel.ipynb
+   ../../examples/GenIncProcessModel/GenIncProcessModel.ipynb
+   ../../examples/LifecycleModel/LifecycleModel.ipynb
+   ../../examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.ipynb
+   ../../examples/Journeys/Journey-PhD.ipynb
+   ../../examples/ConsNewKeynesianModel/Transition_Matrix_Example.ipynb
+   ../../examples/ConsNewKeynesianModel/Jacobian_Example.ipynb
+   ../../examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb
+   ../../examples/ConsNewKeynesianModel/SSJ_example.ipynb
 
 .. toctree::
    :hidden:

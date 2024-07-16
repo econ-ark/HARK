@@ -49,8 +49,9 @@ jobs:
       - name: Run Sphinx
         run: >
           sphinx-build
-          -M html Documentation HARK-docs
+          -M html . HARK-docs
           -T
+          -c Documentation
           -W
           -j 1
 
