@@ -34,6 +34,7 @@ class test_DBlock(unittest.TestCase):
     def setUp(self):
         self.test_block_A = model.DBlock(**test_block_A_data)
         self.cblock = cons.consumption_block_normalized
+        self.cblock.construct_shocks(cons.calibration)
 
         # prior states relative to the decision, so with realized shocks.
         self.dpre = {"k": 2, "R": 1.05, "PermGroFac": 1.1, "theta": 1, "CRRA": 2}
@@ -98,6 +99,7 @@ class test_RBlock(unittest.TestCase):
         self.assertEqual(len(r_block_tree.get_shocks()), 3)
 
     def test_discretize(self):
+        self.cpp.construct_shocks(cons.calibration)
         cppd = self.cpp.discretize({"theta": {"N": 5}, "risky_return": {"N": 6}})
 
         self.assertEqual(len(cppd.get_shocks()["theta"].pmv), 5)
