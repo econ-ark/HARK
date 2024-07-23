@@ -640,15 +640,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
 	.. math::
 	    \begin{eqnarray*}
-	    v_t(M_t,p_t) &=& \max_{c_t} U(c_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [v_{t+1}(M_{t+1}, p_{t+1}) ], \\
-	    a_t &=& M_t - c_t, \\
-        a_t & \geq & \underline{a}, \\
-	    M_{t+1} &=& R a_t + \theta_{t+1}, \\
-	    p_{t+1} &=& G_{t+1}(p_t)\psi_{t+1}, \\
+	    V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+	    C_t &=& M_t - C_t, \\
+	    A_t/P_t &\geq& \underline{a}, \\
+	    M_{t+1} &=& R A_t + \theta_{t+1}, \\
+	    P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
 	    (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
 	    \mathbb{E} [F_{t+1}] &=& 1, \\
-	    U(c) &=& \frac{c^{1-\rho}}{1-\rho}. \\
-	    G_{t+1} (x) &=&\Gamma_{t+1} x
+	    U(C) &=& \frac{C^{1-\rho}}{1-\rho}. \\
 	    \end{eqnarray*}
 
 
@@ -715,7 +714,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 	Function Parameters:
 	--------------------
 	pLvlNextFunc: Constructor, default=HARK.Calibration.IncomeProcesses.make_trivial_pLvlNextFunc
-	    An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
+		An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
 	Created by :class:`HARK.Calibration.IncomeProcesses.make_trivial_pLvlNextFunc`
 	    Returns the identity function.
@@ -1031,14 +1030,14 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
 
 	.. math::
 	    \begin{eqnarray*}
-	    v_t(M_t,p_t) &=& \max_{c_t} U(c_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [v_{t+1}(M_{t+1}, p_{t+1}) ], \\
-	    a_t &=& M_t - c_t, \\
-	    a_t &\geq& \underline{a}, \\
-	    M_{t+1} &=& R a_t + \theta_{t+1}, \\
-	    p_{t+1} &=& G_{t+1}(p_t)\psi_{t+1}, \\
+	    V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+	    A_t &=& M_t - C_t, \\
+	    A_t/P_t &\geq& \underline{a}, \\
+	    M_{t+1} &=& R A_t + \theta_{t+1}, \\
+	    P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
 	    (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
 	    \mathbb{E} [F_{t+1}] &=& 1, \\
-	    U(c) &=& \frac{c^{1-\rho}}{1-\rho}. \\
+	    U(C) &=& \frac{C^{1-\rho}}{1-\rho}. \\
 	    G_{t+1} (x) &=&\Gamma_{t+1} x
 	    \end{eqnarray*}
 
@@ -1210,16 +1209,16 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
 	.. math::
 	    \begin{eqnarray*}
-	    v_t(M_t,p_t) &=& \max_{c_t} U(c_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [v_{t+1}(M_{t+1}, p_{t+1}) ], \\
-	    a_t &=& M_t - c_t, \\
-	    a_t &\geq& \underline{a}, \\
-	    M_{t+1} &=& R a_t + \theta_{t+1}, \\
-	    p_{t+1} &=& G_{t+1}(p_t)\psi_{t+1}, \\
+	    V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+	    A_t &=& M_t - C_t, \\
+	    A_t/P_t &\geq& \underline{a}, \\
+	    M_{t+1} &=& R A_t + \theta_{t+1}, \\
+	    p_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
 	    (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
 	    \mathbb{E} [F_{t+1}] &=& 1, \\
-	    U(c) &=& \frac{c^{1-\rho}}{1-\rho}, \\
-	    log(G_{t+1} (x)) &=&\varphi log(x) + (1-\varphi) log(\overline{p}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
-	    \overline{p}_{t+1} &=& \overline{p}_{t} \Gamma_{t+1} \\
+	    U(C) &=& \frac{C^{1-\rho}}{1-\rho}, \\
+	    log(G_{t+1} (x)) &=&\varphi log(x) + (1-\varphi) log(\overline{P}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
+	    \overline{P}_{t+1} &=& \overline{P}_{t} \Gamma_{t+1} \\
 	    \end{eqnarray*}
 
 
@@ -1290,11 +1289,6 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 	    A function that creates permanent income dynamics as a sequence of AR1-style
 	    functions.
 	    :math:`\log p_{t+1} = \varphi \log p_{t} + (1-\varphi) \log \overline{p}_{t} \log \psi_{t+1} + \log \Gamma_{t+1}`.
-
-	    :math:`\log \overline{p}_{t+1}=\Gamma_{t+1} \overline{p}_{t}`
-
-	    If cycles=0, the product of PermGroFac across all periods must be
-	    1.0, otherwise this method is invalid.
 
 	PrstIncCorr: float, default=0.98, :math:`\varphi`
 	    Correlation coefficient on log permanent income today on log permanent income in the succeeding period.
