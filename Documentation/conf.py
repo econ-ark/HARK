@@ -120,7 +120,7 @@ html_theme_options = {
 }
 
 nbsphinx_prolog = r"""
-{% set docname = 'Documentation/' + env.doc2path(env.docname, base=None) %}
+{% set docname = env.doc2path(env.docname, base=None) %}
 
 .. raw:: html
 
