@@ -57,7 +57,7 @@ We have a [Gitter](https://gitter.im) Econ-ARK [community](https://gitter.im/eco
 - [Citation](#citation)
 - [Support](#support)
 - [Release Types](#release-types)
-- [API Documentation](#api-documentation)
+- [Documentation](#Documentation)
 - [Introduction](#introduction)
   - [For Students: A Gentle Introduction to Hark](#for-students-a-gentle-introduction-to-hark)
   - [For Economists: Structural Modeling with Hark](#for-economists-structural-modeling-with-hark)
@@ -138,9 +138,9 @@ Or you can retrieve the solved value for human wealth normalized by permanent in
 PFexample.solution[0].hNrm
 ```
 
-For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb).
+For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
-For more examples please visit the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+For more examples please visit the [examples](https://docs.econ-ark.org/Documentation/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
 ## Citation
 
@@ -209,7 +209,7 @@ HARK provides a modular and extensible open-source toolkit for solving heterogen
 
 HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
 
-For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
+For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/Documentation/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
 
 ### Contributing to HARK
 
@@ -230,9 +230,9 @@ Contributions go far beyond pull requests and commits. Although we love giving y
 
 If you are worried or don’t know how to start, you can always reach out to us through the gitter [community](https://gitter.im/econ-ark/community)(#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
 
-To install for development see the [Quickstart Guide](https://docs.econ-ark.org/guides/installation.html).
+To install for development see the [Quickstart Guide](https://docs.econ-ark.org/Documentation/guides/installation.html).
 
-For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/guides/contributing.html).
+For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/Documentation/guides/contributing.html).
 This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
 ## Disclaimer
