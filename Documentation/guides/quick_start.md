@@ -2,7 +2,7 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with Python 3. Currently, we recommend using version 3.10 or higher.
+HARK is an open source project that is compatible with Python 3. Currently, HARK is supported for python versions 3.10 or higher.
 
 The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/) by running `pip install econ-ark` in your command line.
 
@@ -11,7 +11,7 @@ Before installing HARK, we recommend creating a new virtual environment, which i
 The easiest way to get started with managing environments is to use `conda`, which is packaged with either the [Anaconda](https://anaconda.com/) distribution or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/). To create a new virtual environment and install `econ-ark`, enter this in your command line:
 
 ```
-conda create -n econ-ark python=3.10
+conda create -n econ-ark
 conda activate econ-ark
 pip install econ-ark
 ```
@@ -20,12 +20,14 @@ pip install econ-ark
 
 We've prepared a set of 30-second Elevator Spiels describing the project, tailored to people with several different kinds of background.
 
-To start learning HARK we recommend working through the [Overview and Examples](https://docs.econ-ark.org/overview/index.html) section starting with [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html).
+To start learning HARK we recommend working through the [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html) section starting with [A Gentle Introduction to HARK](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
 :::{dropdown} For people without a technical/scientific/computing background
 :color: secondary
 :icon: info
 Recent years have seen major advances in the ability of computational tools to explain the economic behavior of households, firms, and whole economies. But a major impediment to the widespread adoption of these techniques among economists has been the extent to which the advances are the culmination of years of development of intricate and hand-crafted (but mutually incomprehensible) computational tools by a few pioneering scholars and their students. The aim of the Econ-ARK project is to make it much easier for new scholars to begin using these techniques, by providing a modern, robust, open-source set of high-quality computational tools with components that can be mixed, matched, and extended to address the wide variety of problems across all fields of economics that can be effectively studied using such tools.
+
+For users unfamiliar with programming, we strongly encourage you to review the background material on python provided by the good people at [QuantEcon](https://python-programming.quantecon.org/intro.html) including the material on NumPy.
 :::
 
 :::{dropdown} For people with a technical/scientific/computing background but little economics background
@@ -41,7 +43,7 @@ Most of what economists have done so far with 'big data' has been like what Kepl
 
 The Econ-ARK project is motivated by a sense that quantitative structural modeling of economic agents' behavior (consumers; firms), at present, is roughly like econometric modeling in the 1960s: Lots of theoretical results are available and a great deal can be done in principle, but actually using such tools for any specific research question requires an enormous investment of a scholar's time and attention to learn techniques that are fundamentally not related to economics but instead are algorithmic/computational (in the 1960s, e.g., inverting matrices; now, e.g., solving dynamic stochastic optimization problems). The toolkit is built using the suite of open source, transparent tools for collaborative software development that have become ubiquitous in other fields in the last few years: Github, object-oriented coding, and methods that make it much easier to produce plug-and-play software modules that can be (relatively) easily combined, enhanced and adapted to address new problems.
 
-After working through the [Overview and Examples](https://docs.econ-ark.org/overview/index.html) section:
+After working through the [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html) section:
 - A full replication of the [Iskhakov, Jørgensen, Rust, and Schjerning](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) paper for solving the discrete-continuous retirement saving problem
 
   - An informal discussion of the issues involved is [here](https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb) (part of the [DemARK](https://github.com/econ-ark/DemARK) repo)
@@ -55,7 +57,7 @@ After working through the [Overview and Examples](https://docs.econ-ark.org/over
 
 Dissatisfaction with the ability of Representative Agent models to answer important questions raised by the Great Recession has led to a strong movement in the macroeconomics literature toward 'Heterogeneous Agent' models, in which microeconomic agents (consumers; firms) solve a structural problem calibrated to match microeconomic data; aggregate outcomes are derived by explicitly simulating the equilibrium behavior of populations solving such models. The same kinds of modeling techniques are also gaining popularity among microeconomists, in areas ranging from labor economics to industrial organization. In both macroeconomics and structural micro, the chief barrier to the wide adoption of these techniques has been that programming a structural model has, until now, required a great deal of specialized knowledge and custom software development. The aim of the Econ-ARK project is to provide a robust, well-designed, open-source infrastructure for building such models much more efficiently than has been possible in the past.
 
-After working through the [Overview and Examples](https://docs.econ-ark.org/overview/index.html) section:
+After working through the [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html) section:
 - A simple indirect inference/simulated method of moments structural estimation along the lines of Gourinchas and Parker's 2002 Econometrica paper or Cagetti's 2003 paper is performed by the [SolvingMicroDSOPs](https://github.com/econ-ark/SolvingMicroDSOPs/) [REMARK](https://github.com/econ-ark/REMARK); this code implements the solution methods described in the corresponding section of [these lecture notes](https://llorracc.github.io/SolvingMicroDSOPs/).
 :::
 
@@ -68,7 +70,7 @@ The Econ-ARK project's aim is to create a modular and extensible open-source too
 
 ### Demonstrations on using HARK
 
-Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
+Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/Documentation/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
 
 - [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
 - [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
@@ -89,4 +91,4 @@ jupyter notebook
 
 ## Next steps
 
-To learn more about how to use HARK, check the next sections in this documentation, in particular the example notebooks. For instructions on making changes to HARK, refer to our [contributing guide](https://docs.econ-ark.org/guides/contributing.html).
+To learn more about how to use HARK, check the next sections in this documentation, in particular the example notebooks. For instructions on making changes to HARK, refer to our [contributing guide](https://docs.econ-ark.org/Documentation/guides/contributing.html).
