@@ -820,19 +820,201 @@ init_medical_shocks.update(default_pLvlNextFunc_params)
 
 
 class MedShockConsumerType(PersistentShockConsumerType):
-    """
-    A class to represent agents who consume two goods: ordinary composite consumption
-    and medical care; both goods yield CRRAutility, and the coefficients on the
-    goods might be different.  Agents expect to receive shocks to permanent and
-    transitory income as well as multiplicative shocks to utility from medical care.
+    r"""
+	A consumer type based on GenIncShockConsumerType, with two types of consumption goods (medical and nonmedical) and random shocks to medical utility.
 
-    See init_med_shock for a dictionary of the keywords
-    that should be passed to the constructor.
+	.. math::
+	    \begin{eqnarray*}
+	    V_t(M_t,P_t, \text{medShk}_t) &=& \max_{C_t, med_t} U_t(C_t, med_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \text{medShk}_{t+1})], \\
+	    A_t &=& M_t - X_t, \\
+	    X_t &=& C_t +\text{med}_t \text{ medPrice}_t,\\
+	    A_t/P_t &\geq& \underline{a}, \\
+	    M_{t+1} &=& R A_t + \theta_{t+1}, \\
+	    P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
+	    (\psi_{t+1},\theta_{t+1},\text{medShk}_{t+1}) &\sim& F_{t+1}\\
+	    \mathbb{E} [F_{t+1}] &=& 1, \\
+	    U_t(C, med) &=& \frac{C^{1-\rho}}{1-\rho}+medShk_t \frac{med^{1-\rho_{med}}}{1-\rho_{med}}.
+	    \end{eqnarray*}
 
-    Parameters
-    ----------
-    cycles : int
-        Number of times the sequence of periods should be solved.
+
+	Default Shock Generator:
+	------------------------
+	Created by :class:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+
+	PermShkStd: list[float], default=[0.1], time varying
+	    Standard deviation of log permanent income shocks.
+	PermShkCount: int, default=7
+	    Number of points in discrete approximation to permanent income shocks.
+	TranShkStd: list[float], default=[0.1], time varying
+	    Standard deviation of log transitory income shocks.
+	TranShkCount: int, default=7
+	    Number of points in discrete approximation to transitory income shocks.
+	UnempPrb: float or list[float], default=0.05, time varying
+	    Probability of unemployment while working. Pass a list of floats to make UnempPrb time varying.
+	IncUnemp: float or list[float], default=0.3, time varying
+	    Unemployement benefits replacement rate while working. Pass a list of floats to make IncUnemp time varying.
+	T_retire: int, default=0
+	    Period of retirement (0 --> no retirement).
+	UnempPrbRet: float or None, default=0.005
+	    Probability of "unemployement" while retired.
+	IncUnempRet: float, default=0.0
+	    "Unemployment" benefits while retired.
+	neutral_measure: boolean, default=False
+	    Whether to use permanent income neutral measure (see Harmenberg 2021).
+
+	Created by :class:`HARK.MedShockConsumerType:make_lognormal_MedShkDstn`
+
+	MedShkAvg: list[float], default=[0.001], time varying
+	    Average of Medical Need shock
+	MedShkStd: list[float], default=[5.0], time varying
+	    Standard deviation of (log) medical need shocks
+	MedShkCount: int, default=5
+	    Number of points in discrete approximation to the middle of the medical shock dist
+	MedShkCountTail: int, default=15
+	    Number of points in the discrete approximation of the upper tail of the medical shock dist
+	MedPrice: list[float], default=[1.5]
+	    Relative price of a unit of medical care
+
+	Grid Parameters:
+	----------------
+	Created by :class:`HARK.utilities.make_assets_grid`
+
+	aXtraMin: float, default=0.001
+	    Minimum end-of-period "assets above minimum" value.
+	aXtraMax: float, default=30
+	    Maximum end-of-period "assets above minimum" value.
+	aXtraNestFac: int, default=3
+	    Exponential nesting factor for aXtraGrid.
+	aXtraCount: int, default=32
+	    Number of points in the grid of "assets above minimum".
+	aXtraExtra: list, default=[0.005, 0.01]
+	    Additional values to add in grid, None to ignore.
+
+	Created by :class:`HARK.Calibration.IncomeProcesses.make_pLvlGrid_by_simulation`
+	    Also relies on the parameters: pLvlInitMean, and pLvlInitStd. These are explained elsewhere.
+
+	pLvlExtra: None or list[float], default=[0.0001], time varying
+	    Additional permanent income points to automatically add to the grid. optional.
+
+	Created by :class:`HARK.Calibration.IncomeProcesses.make_basic_pLvlPctiles`
+
+	pLvlPctiles_count: int, default=19
+	    Number of points in the "body" of the grid.
+
+	pLvlPctiles_bound: list[float,float], default=[0.05, 0.95]
+	    Percentile bounds of the "body".
+
+	pLvlPctiles_tail_count: int, default=4
+	    Number of points in each tail of the grid.
+
+	pLvlPctiles_tail_order: float, default=2.718281828459045
+	    Scaling factor for points in each tail.
+
+	Function Parameters:
+	--------------------
+	pLvlNextFunc: Constructor, default=HARK.Calibration.IncomeProcesses.make_trivial_pLvlNextFunc
+		An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
+
+	Created by :class:`HARK.Calibration.IncomeProcesses.make_AR1_style_pLvlNextFunc`
+	    Also relies on PermGroFac, and pLvlInitMean.
+	    A function that creates permanent income dynamics as a sequence of AR1-style
+	    functions.
+	    :math:`\log p_{t+1} = \varphi \log p_{t} + (1-\varphi) \log \overline{p}_{t} \log \psi_{t+1} + \log \Gamma_{t+1}`.
+
+	PrstIncCorr: float, default=0.98, :math:`\varphi`
+	    Correlation coefficient on log permanent income today on log permanent income in the succeeding period.
+
+	Solving Parameters:
+	-------------------
+	cycles: int, default=1
+	    0 specifies an infinite horizon model, 1 specifies a finite model.
+	T_cycle: int, default=1
+	    Number of periods in the cycle for this agent type.
+	CRRA: float, default=2.0, :math:`\rho`
+	    Coefficient of Relative Risk Aversion.
+	CRRAmed: float, default=3.0, :math:`\rho_{med}`
+	    Coefficient of Relative Risk Aversion on Medical Care
+	Rfree: float or list[float], default=1.03, time varying, :math:`\mathsf{R}`
+	    Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+	DiscFac: float, default=0.96, :math:`\beta`
+	    Intertemporal discount factor.
+	LivPrb: list[float], default=[0.98], time varying, :math:`1-\mathsf{D}`
+	    Survival probability after each period.
+	PermGroFac: list[float], default=[1.0], time varying, :math:`\Gamma`
+	    Permanent income growth factor.
+	BoroCnstArt: float, default=0.0, :math:`\underline{a}`
+	    The minimum Asset/Perminant Income ratio, None to ignore.
+	vFuncBool: bool, default=False
+	    Whether to calculate the value function during solution.
+	CubicBool: bool, default=False
+	    Whether to use cubic spline interpoliation.
+
+	Simulation Parameters:
+	----------------------
+	AgentCount: int, default=10000
+	    Number of agents of this kind that are created during simulations.
+	T_age: int, default=None
+	    Age after which to automatically kill agents, None to ignore.
+	T_sim: int, required for simulation
+	    Number of periods to simulate.
+	track_vars: list[strings]
+	    List of variables that should be tracked when running the simulation.
+		For this agent, the options are 'Med', 'MedShk', 'PermShk', 'TranShk', 'aLvl', 'cLvl', 'mLvl', 'pLvl', and 'who_dies'.
+
+	    PermShk is the agent's permanent income shock
+
+	    MedShk is the agent's medical utility shock
+
+	    TranShk is the agent's transitory income shock
+
+	    aLvl is the nominal asset level
+
+	    cLvl is the nominal consumption level
+
+	    Med is the nominal medical spending level
+
+	    mLvl is the nominal market resources
+
+	    pLvl is the permanent income level
+
+	    who_dies is the array of which agents died
+	aNrmInitMean: float, default=0.0
+	    Mean of Log initial Normalized Assets.
+	aNrmInitStd: float, default=1.0
+	    Std of Log initial Normalized Assets.
+	pLvlInitMean: float, default=0.0
+	    Mean of Log initial permanent income.
+	pLvlInitStd: float, default=0.4
+	    Std of Log initial permanent income.
+	PermGroFacAgg: float, default=1.0
+	    Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+	PerfMITShk: boolean, default=False
+	    Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+	NewbornTransShk: boolean, default=False
+	    Whether Newborns have transitory shock.
+
+	Attributes:
+	-----------
+	solution: list[Consumer solution object]
+	    Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+	    Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+	    Unlike other models with this solution type, this model's variables are NOT normalized.
+	    The solution functions additionally depend on the permanent income level and the medical shock.
+	    For example, :math:`C=\text{cFunc}(M,P,MedShk)`.
+	    hNrm has been replaced by hLvl which is a function of permanent income.
+	    MPC max has not yet been implemented for this class. It will be a function of permanent income.
+
+	    This solution has two additional functions
+	    :math:`\text{Med}=\text{MedFunc}(M,P,\text{MedShk})`: returns the agent's spending on Medical care
+	    :math:`[C,Med]=\text{policyFunc}(M,P,\text{MedShk})`: returns the agent's spending on consumption and Medical care as numpy arrays
+
+	    Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+
+	history: Dict[Array]
+	    Created by running the :func:`.simulate()` method.
+	    Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+	    Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
     default_params_ = init_medical_shocks
