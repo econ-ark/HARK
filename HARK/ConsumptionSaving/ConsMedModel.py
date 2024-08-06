@@ -827,13 +827,13 @@ class MedShockConsumerType(PersistentShockConsumerType):
 	    \begin{eqnarray*}
 	    V_t(M_t,P_t, \text{medShk}_t) &=& \max_{C_t, med_t} U_t(C_t, med_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \text{medShk}_{t+1})], \\
 	    A_t &=& M_t - X_t, \\
-	    X_t &=& C_t +\text{med}_t \text{ medPrice}_t,\\
+	    X_t &=& C_t +\text{med}_t \mathtt{ medPrice}_t,\\
 	    A_t/P_t &\geq& \underline{a}, \\
 	    M_{t+1} &=& R A_t + \theta_{t+1}, \\
 	    P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
-	    (\psi_{t+1},\theta_{t+1},\text{medShk}_{t+1}) &\sim& F_{t+1}\\
-	    \mathbb{E} [F_{t+1}] &=& 1, \\
-	    U_t(C, med) &=& \frac{C^{1-\rho}}{1-\rho}+medShk_t \frac{med^{1-\rho_{med}}}{1-\rho_{med}}.
+	    (\psi_{t+1},\theta_{t+1},\text{medShk}_{t+1}) &\sim& F_{t+1},\\
+	    \mathbb{E} [\psi] &=& \mathbb{E} [\theta] = 1, \\
+	    U_t(C, med) &=& \frac{C^{1-\rho}}{1-\rho}+\mathtt{MedShkAvg} \text{ medShk}_t \frac{med^{1-\rho_{med}}}{1-\rho_{med}}.
 	    \end{eqnarray*}
 
 
