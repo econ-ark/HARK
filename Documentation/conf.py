@@ -17,7 +17,10 @@ else:
     warnings.filterwarnings(
         "ignore", message=".* 'nopython' .*", category=numba.NumbaDeprecationWarning
     )
-
+latex_engine = "xelatex"
+latex_elements = {
+    "preamble": r""" """  # To be filled in
+}
 # Project information
 project = "HARK"
 copyright = f"{date.today().year}, Econ-ARK team"
