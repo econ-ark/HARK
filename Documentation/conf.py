@@ -17,10 +17,10 @@ else:
     warnings.filterwarnings(
         "ignore", message=".* 'nopython' .*", category=numba.NumbaDeprecationWarning
     )
-latex_additional_files = ["NARK/@resources/textlive/texmf-local/tex/latex/econark.sty"]
+latex_additional_files = ["style.tex.txt"]
 latex_engine = "xelatex"
 latex_elements = {
-    "preamble": r""" \usepackage{NARK/@resources/textlive/texmf-local/tex/latex/econark}"""  # To be filled in
+    "preamble": r"""\input{style.tex.txt}"""  # To be filled in
 }
 # Project information
 project = "HARK"
