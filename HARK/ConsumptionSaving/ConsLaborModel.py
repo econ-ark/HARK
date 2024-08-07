@@ -556,7 +556,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 	    m_{t+1} &= b_{t+1} + L_{t}\theta_{t} \text{WageRte}_{t}, \\
 	    b_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}), \\
 	    (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
-	    \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
+	    \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1\zLvl, \\
 	    u_{t}(c,L) &= \frac{(c (1-L)^{\alpha_t})^{1-\CRRA}}{1-\CRRA}
 	    \end{align*}
 
