@@ -55,9 +55,6 @@ from HARK.numba_tools import (
 __all__ = [
     "PerfForesightSolution",
     "IndShockSolution",
-    "ConsPerfForesightSolverFast",
-    "ConsIndShockSolverBasicFast",
-    "ConsIndShockSolverFast",
     "PerfForesightConsumerTypeFast",
     "IndShockConsumerTypeFast",
 ]
@@ -77,7 +74,7 @@ utilityP_invP = CRRAutilityP_invP
 
 
 class PerfForesightSolution(MetricObject):
-    """
+    r"""
     A class representing the solution of a single period of a consumption-saving
     perfect foresight problem.
 
@@ -943,7 +940,7 @@ def _find_mNrmStECubic(
 
 
 class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
-    """
+    r"""
     This class solves a single period of a standard consumption-saving problem.
     It inherits from ConsIndShockSolverBasic, adding the ability to perform cubic
     interpolation and to calculate the value function.
@@ -1088,11 +1085,8 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 
 
 class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
-    """
-    A perfect foresight consumer type who has no uncertainty other than mortality.
-    His problem is defined by a coefficient of relative risk aversion, intertemporal
-    discount factor, interest factor, an artificial borrowing constraint (maybe)
-    and time sequences of the permanent income growth rate and survival probability.
+    r"""
+    A version of the perfect foresight consumer type speed up by numba.
     """
 
     # Define some universal values for all consumer types
@@ -1193,6 +1187,12 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
 
 class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFast):
+    r"""
+    A version of the idiosyncratic shock consumer type speed up by numba.
+
+    If CubicBool and vFuncBool are both set to false it's further optimized.
+    """
+
     solution_terminal_ = IndShockSolution()
     solution_terminal_class = IndShockSolution
 

@@ -182,10 +182,10 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
     paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
+    - Lognormal, discretized permanent income shocks.
+    - Transitory shocks that are a mixture of:
+    - A lognormal distribution in normal times.
+    - An "unemployment" shock.
 
     Parameters
     ----------
@@ -249,10 +249,10 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
     paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
+    - Lognormal, discretized permanent income shocks.
+    - Transitory shocks that are a mixture of:
+    - A lognormal distribution in normal times.
+    - An "unemployment" shock.
 
     This version has additional features that make it particularly useful for HANK models.
 
@@ -476,7 +476,7 @@ def construct_HANK_lognormal_income_process_unemployment(
     Note 2: All parameters are passed as attributes of the input parameters.
 
     Parameters (passed as attributes of the input parameters)
-    ----------
+    ---------------------------------------------------------
     PermShkStd : [float]
         List of standard deviations in log permanent income uncertainty during
         the agent's life.
