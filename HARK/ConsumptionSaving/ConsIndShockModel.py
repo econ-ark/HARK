@@ -404,7 +404,10 @@ def calc_worst_inc_prob(inc_shk_dstn):
     probs = inc_shk_dstn.pmv
     perm, tran = inc_shk_dstn.atoms
     income = perm * tran
-    worst_inc = np.min(income)
+    try:
+        worst_inc = np.prod(inc_shk_dstn.limit['infimum'])
+    except:
+        worst_inc = np.min(income)
     return np.sum(probs[income == worst_inc])
 
 
@@ -417,9 +420,16 @@ def calc_boro_const_nat(m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac):
         rfree (float): Risk free interest factor.
         perm_gro_fac (float): Permanent income growth factor.
     """
-    perm, tran = inc_shk_dstn.atoms
-    temp_fac = (perm_gro_fac * np.min(perm)) / rfree
-    return (m_nrm_min_next - np.min(tran)) * temp_fac
+    try:
+        perm_min, tran_min = inc_shk_dstn.limit['infimum']
+    except:
+        perm, tran = inc_shk_dstn.atoms
+        perm_min = np.min(perm)
+        tran_min = np.min(tran)
+        
+    temp_fac = (perm_gro_fac * perm_min) / rfree
+    boro_cnst_nat = (m_nrm_min_next - tran_min) * temp_fac
+    return boro_cnst_nat
 
 
 def calc_m_nrm_min(boro_const_art, boro_const_nat):
