@@ -257,6 +257,10 @@ class DBlock(Block):
             if isinstance(self.dynamics[v], str):
                 self.dynamics[v] = math_text_to_lambda(self.dynamics[v])
 
+        for r in self.reward:
+            if isinstance(self.reward[r], str):
+                self.reward[r] = math_text_to_lambda(self.reward[r])
+
     def get_shocks(self):
         return self.shocks
 
