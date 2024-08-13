@@ -194,7 +194,12 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         # Rescale the transitory shock values to account for new features
         TranShkMean_temp = (1.0 - tax_rate) * labor * wage
         dstn_approx.atoms *= TranShkMean_temp
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class BufferStockIncShkDstn(DiscreteDistributionLabeled):
@@ -340,6 +345,7 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 
