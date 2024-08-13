@@ -603,8 +603,8 @@ class Uniform(ContinuousFrozenDistribution):
             stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
         )
 
-        self.infimum = self.bot
-        self.supremum = self.top
+        self.infimum = np.array([self.bot])
+        self.supremum = np.array([self.top])
 
     def _approx_equiprobable(self, N, endpoints=False):
         """
@@ -635,7 +635,12 @@ class Uniform(ContinuousFrozenDistribution):
             atoms = np.concatenate(([self.bot], atoms, [self.top]))
             pmv = np.concatenate(([0.0], pmv, [0.0]))
 
-        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+        limit = {
+            "dist": self,
+            "method": "equiprobable",
+            "N": N,
+            "endpoints": endpoints,
+        }
 
         return DiscreteDistribution(
             pmv,
@@ -841,6 +846,11 @@ class DiscreteDistribution(Distribution):
 
         self.pmv = np.asarray(pmv)
         self.atoms = np.atleast_2d(atoms)
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1, keepdims=True),
+                "supremum": np.max(self.atoms, axis=-1, keepdims=True),
+            }
         self.limit = limit
 
         # Check that pmv and atoms have compatible dimensions.
@@ -1120,7 +1130,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             )
 
         attrs = {} if attrs is None else attrs
-        limit = {} if limit is None else limit
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1, keepdims=True),
+                "supremum": np.max(self.atoms, axis=-1, keepdims=True),
+            }
+            self.limit = limit
         attrs.update(limit)
         attrs["name"] = name
 
