@@ -395,23 +395,26 @@ def solve_one_period_ConsPF(
     return solution_now
 
 
-def calc_worst_inc_prob(inc_shk_dstn):
+def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
     """Calculate the probability of the worst income shock.
 
     Args:
         inc_shk_dstn (DiscreteDistribution): Distribution of shocks to income.
+        use_infimum (bool): Indicator for whether to try to use the infimum of the limiting (true) income distribution.
     """
     probs = inc_shk_dstn.pmv
     perm, tran = inc_shk_dstn.atoms
     income = perm * tran
-    try:
+    if use_infimum:
         worst_inc = np.prod(inc_shk_dstn.limit["infimum"])
-    except:
+    else:
         worst_inc = np.min(income)
     return np.sum(probs[income == worst_inc])
 
 
-def calc_boro_const_nat(m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac):
+def calc_boro_const_nat(
+    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=True
+):
     """Calculate the natural borrowing constraint.
 
     Args:
@@ -419,10 +422,11 @@ def calc_boro_const_nat(m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac):
         inc_shk_dstn (DiscreteDstn): Distribution of shocks to income.
         rfree (float): Risk free interest factor.
         perm_gro_fac (float): Permanent income growth factor.
+        use_infimum (bool): Indicator for whether to use the infimum of the limiting (true) income distribution
     """
-    try:
+    if use_infimum:
         perm_min, tran_min = inc_shk_dstn.limit["infimum"]
-    except:
+    else:
         perm, tran = inc_shk_dstn.atoms
         perm_min = np.min(perm)
         tran_min = np.min(tran)
@@ -833,7 +837,7 @@ def solve_one_period_ConsKinkedR(
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
 
     # Calculate the probability that we get the worst possible income draw
-    WorstIncPrb = calc_worst_inc_prob(IncShkDstn)
+    WorstIncPrb = calc_worst_inc_prob(IncShkDstn, use_infimum=False)
     # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
     Ex_IncNext = expected(lambda x: x["PermShk"] * x["TranShk"], IncShkDstn)
     hNrmNow = calc_human_wealth(solution_next.hNrm, PermGroFac, Rsave, Ex_IncNext)
@@ -845,7 +849,11 @@ def solve_one_period_ConsKinkedR(
 
     # Calculate the minimum allowable value of money resources in this period
     BoroCnstNat = calc_boro_const_nat(
-        solution_next.mNrmMin, IncShkDstn, Rboro, PermGroFac
+        solution_next.mNrmMin,
+        IncShkDstn,
+        Rboro,
+        PermGroFac,
+        use_infimum=False,
     )
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
