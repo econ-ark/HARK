@@ -848,8 +848,8 @@ class DiscreteDistribution(Distribution):
         self.atoms = np.atleast_2d(atoms)
         if limit is None:
             limit = {
-                "infimum": np.min(self.atoms, axis=-1, keepdims=True),
-                "supremum": np.max(self.atoms, axis=-1, keepdims=True),
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
             }
         self.limit = limit
 
@@ -1132,8 +1132,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         attrs = {} if attrs is None else attrs
         if limit is None:
             limit = {
-                "infimum": np.min(self.atoms, axis=-1, keepdims=True),
-                "supremum": np.max(self.atoms, axis=-1, keepdims=True),
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
             }
             self.limit = limit
         attrs.update(limit)
