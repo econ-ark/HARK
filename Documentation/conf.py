@@ -67,6 +67,14 @@ exclude_patterns = [
     "Documentation/index_core.rst",  # Prevents sphinx from getting confused
 ]
 
+napoleon_custom_sections = [
+    ("Variables associated with the default constuctor", "params_style"),
+    ("Grid Parameters", "params_style"),
+    ("Solving Parameters", "params_style"),
+    ("Simulation Parameters", "params_style"),
+    ("Constructors", "params_style"),
+    ("Attributes", "returns_style"),
+]
 language = "en"
 
 master_doc = "index"
