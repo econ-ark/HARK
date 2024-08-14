@@ -146,7 +146,7 @@ This procedure is conducted by the **_make\_history_** method of **_Market_** as
 
 #### Attributes of a Market
 
-To specify a complete instance of **_Market_**, the user should give it the following attributes: [^8]
+To specify a complete instance of **_Market_**, the user should give it the following attributes:
 
 - **_agents_**: A list of **_AgentType_**s, representing the agents in the market. Each element in **_agents_** represents an _ex-ante_ heterogeneous type; each type could have many _ex-post_ heterogeneous agents.
 
