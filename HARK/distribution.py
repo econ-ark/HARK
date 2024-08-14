@@ -728,7 +728,7 @@ class MVNormal(multivariate_normal_frozen, Distribution):
 
 class MVLogNormal(multi_rv_frozen, Distribution):
     """
-    A Bivariate Lognormal distribution.
+    A Multivariate Lognormal distribution.
 
     Parameters
     ----------
@@ -922,8 +922,8 @@ class MVLogNormal(multi_rv_frozen, Distribution):
         tail_bound : Union[float, list, tuple], optional
             The values of the CDF according to which the distribution is truncated. If only a single number is specified, it is the lower tail bound and a symmetric upper bound is chosen. Can make one-tailed approximations with 0.0 or 1.0 as the lower and upper bound respectively. By default the distribution is not truncated.
         endpoints : bool
-            To be added
-        decomp : str, optional
+            If endpoints is True, then atoms at the corner points of the truncated region are included. By default, endpoints is False, which is when only the interior points are included.
+        decomp : str in ["cholesky", "sqrt", "eig"], optional
             The method of decomposing the covariance matrix. Available options are the Cholesky decomposition, the positive-definite square root, and the eigendecomposition. By default the Cholesky decomposition is used. NOTE: The method of decomposition might affect the expectations of the discretized distribution along each dimension dfferently.
 
         Returns
@@ -934,7 +934,9 @@ class MVLogNormal(multi_rv_frozen, Distribution):
         """
 
         if endpoints:
-            raise NotImplementedError("Endpoints have not yet been implemented")
+            tail_N = 1
+        else:
+            tail_N = 0
 
         if decomp not in ["cholesky", "sqrt", "eig"]:
             raise NotImplementedError(
@@ -951,7 +953,7 @@ class MVLogNormal(multi_rv_frozen, Distribution):
                 else:
                     x_atoms = (
                         Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
-                        ._approx_equiprobable(N)
+                        ._approx_equiprobable(N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints)
                         .atoms
                     )
                     ind_atoms[i] = x_atoms
@@ -971,12 +973,10 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
                 cdf_cuts = np.linspace(tail_bound[0], tail_bound[1], N + 1)
                 int_prob = tail_bound[1] - tail_bound[0]
-                tail_N = 1
 
             else:
                 cdf_cuts = np.linspace(0, 1, N + 1)
                 int_prob = 1.0
-                tail_N = 0
 
             Z = Normal()
 
