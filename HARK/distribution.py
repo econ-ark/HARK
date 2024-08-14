@@ -953,7 +953,9 @@ class MVLogNormal(multi_rv_frozen, Distribution):
                 else:
                     x_atoms = (
                         Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
-                        ._approx_equiprobable(N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints)
+                        ._approx_equiprobable(
+                            N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints
+                        )
                         .atoms
                     )
                     ind_atoms[i] = x_atoms
