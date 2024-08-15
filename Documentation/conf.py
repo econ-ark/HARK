@@ -44,7 +44,6 @@ extensions = [
     "sphinx_design",
 ]
 
-
 include_patterns = [
     "Documentation**",
     "index.rst",
@@ -88,10 +87,7 @@ source_suffix = [
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
 html_static_path = []
-html_css_files = [
-    "override-nbsphinx-gallery.css",
-]
-
+html_css_files = ["override-nbsphinx-gallery.css"]
 html_theme_options = {
     "use_edit_page_button": True,
     "icon_links": [

@@ -340,32 +340,55 @@ def construct_lognormal_income_process_unemployment(
     RNG,
     neutral_measure=False,
 ):
-    """
+    r"""
     Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  Permanent shocks are mean
+    life period, from end of life to beginning of life.  Permanent shocks (:math:`\psi`) are mean
     one lognormally distributed with standard deviation PermShkStd[t] during the
-    working life, and degenerate at 1 in the retirement period.  Transitory shocks
+    working life, and degenerate at 1 in the retirement period. Transitory shocks (:math:`\theta`)
     are mean one lognormally distributed with a point mass at IncUnemp with
     probability UnempPrb while working; they are mean one with a point mass at
     IncUnempRet with probability UnempPrbRet.  Retirement occurs
     after t=T_retire periods of working.
 
-    Note 1: All time in this function runs forward, from t=0 to t=T
+    .. math::
+        \begin{align*}
+        \psi_t &\sim \begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2,\textbf{PermShkStd}_{t}^{2})) & \text{if } t \leq t_{\text{retire}}\\
+        1 & \text{if } t > t_{\text{retire}}
+        \end{cases}\\
+        p_{\text{unemp}} & = \begin{cases}
+        \textbf{UnempPrb} & \text{if } t \leq t_{\text{retire}} \\
+        \textbf{UnempPrbRet} & \text{if } t > t_{\text{retire}} \\
+        \end{cases}\\
+        &\text{if } p > p_{\text{unemp}} \\
+        \theta_t &\sim\begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2-\ln(\frac{1-\textbf{IncUnemp }\textbf{UnempPrb}}{1-\textbf{UnempPrb}}),\textbf{PermShkStd}_{t}^{2})) & \text{if } t\leq t_{\text{retire}}\\
+        \frac{1-\textbf{UnempPrbRet }\textbf{IncUnempRet}}{1-\textbf{UnempPrbRet}} & \text{if } t > t_{\text{retire}} \\
+        \end{cases}\\
+        &\text{otherwise}\\
+        \theta_t &\sim\begin{cases}
+        \textbf{IncUnemp} & \text{if } t\leq t_{\text{retire}}\\
+        \textbf{IncUnempRet} & \text{if } t\leq t_{\text{retire}}\\
+        \end{cases}\\
+        \mathbb{E}[\psi]&=\mathbb{E}[\theta] = 1.\\
+        \end{align*}
 
-    Parameters (passed as attributes of the input parameters)
-    ---------------------------------------------------------
+    All time in this function runs forward, from t=0 to t=T
+
+    Parameters
+    ----------
     PermShkStd : [float]
         List of standard deviations in log permanent income uncertainty during
         the agent's life.
     PermShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
     TranShkStd : [float]
         List of standard deviations in log transitory income uncertainty during
         the agent's life.
     TranShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
     UnempPrb : float or [float]
         The probability of becoming unemployed during the working period.
     UnempPrbRet : float or None
