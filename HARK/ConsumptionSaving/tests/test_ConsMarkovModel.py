@@ -58,7 +58,9 @@ class test_ConsMarkovSolver(unittest.TestCase):
 
         init_serial_unemployment = copy(init_indshk_markov)
         init_serial_unemployment["MrkvArray"] = [MrkvArray]
-        init_serial_unemployment["UnempPrb"] = 0.0
+        init_serial_unemployment["UnempPrb"] = np.zeros(
+            2
+        )  # Income process is overwritten below
         # to make income distribution when employed
         init_serial_unemployment["global_markov"] = False
         init_serial_unemployment["Rfree"] = np.array([1.03, 1.03, 1.03, 1.03])
