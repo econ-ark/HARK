@@ -58,10 +58,8 @@ class test_ConsMarkovSolver(unittest.TestCase):
 
         init_serial_unemployment = copy(init_indshk_markov)
         init_serial_unemployment["MrkvArray"] = [MrkvArray]
-        init_serial_unemployment["UnempPrb"] = np.zeros(
-            2
-        )  # Income process is overwritten below
-        # to make income distribution when employed
+        init_serial_unemployment["UnempPrb"] = np.zeros(2)
+        # Income process is overwritten below to make income distribution when employed
         init_serial_unemployment["global_markov"] = False
         init_serial_unemployment["Rfree"] = np.array([1.03, 1.03, 1.03, 1.03])
         init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
@@ -70,7 +68,6 @@ class test_ConsMarkovSolver(unittest.TestCase):
         self.model = MarkovConsumerType(**init_serial_unemployment)
         self.model.cycles = 0
         self.model.vFuncBool = False  # for easy toggling here
-        self.model.MrkvArray = [MrkvArray]
 
         # Replace the default (lognormal) income distribution with a custom one
         employed_income_dist = DiscreteDistributionLabeled(
