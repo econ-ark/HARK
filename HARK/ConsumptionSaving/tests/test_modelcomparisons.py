@@ -149,7 +149,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "vFuncBool": False,
             "CubicBool": True,
             "T_cycle": 1,
-            "MrkvArray": np.eye(2),
+            "MrkvArray": [np.eye(2)],
             # Will be overwritten, might prevent glitch in Ubuntu
         }
 
