@@ -1068,9 +1068,10 @@ PerfForesightConsumerType_simulation_defaults = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
 }
-init_perfect_foresight = {}
-init_perfect_foresight.update(PerfForesightConsumerType_solving_defaults)
-init_perfect_foresight.update(PerfForesightConsumerType_simulation_defaults)
+PerfForesightConsumerType_defaults = {}
+PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_solving_defaults)
+PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_simulation_defaults)
+init_perfect_foresight = PerfForesightConsumerType_defaults
 
 
 class PerfForesightConsumerType(AgentType):
@@ -1171,8 +1172,8 @@ class PerfForesightConsumerType(AgentType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    default_solving = PerfForesightConsumerType_solving_defaults
-    default_simulation = PerfForesightConsumerType_simulation_defaults
+    solving_defaults = PerfForesightConsumerType_solving_defaults
+    simulation_defaults = PerfForesightConsumerType_simulation_defaults
 
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
@@ -1191,9 +1192,7 @@ class PerfForesightConsumerType(AgentType):
     shock_vars_ = []
 
     def __init__(self, verbose=1, quiet=False, **kwds):
-        self._default_params_.update(self.default_solving)
-        self._default_params_.update(self.default_simulation)
-        params = self._default_params_.copy()
+        params = PerfForesightConsumerType_defaults.copy()
         params.update(kwds)
         kwds = params
 
@@ -1978,13 +1977,12 @@ IndShockConsumerType_simulation_default = {
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
 }
 
-init_idiosyncratic_shocks = {}
-init_idiosyncratic_shocks.update(IndShockConsumerType_IncShkDstn_default)
-init_idiosyncratic_shocks.update(IndShockConsumerType_aXtraGrid_default)
-init_idiosyncratic_shocks.update(IndShockConsumerType_solving_default)
-init_idiosyncratic_shocks.update(
-    IndShockConsumerType_simulation_default
-)  # Here so that other models which use the old convention don't break
+IndShockConsumerType_defaults = {}
+IndShockConsumerType_defaults.update(IndShockConsumerType_IncShkDstn_default)
+IndShockConsumerType_defaults.update(IndShockConsumerType_aXtraGrid_default)
+IndShockConsumerType_defaults.update(IndShockConsumerType_solving_default)
+IndShockConsumerType_defaults.update(IndShockConsumerType_simulation_default)
+init_idiosyncratic_shocks = IndShockConsumerType_defaults  # Here so that other models which use the old convention don't break
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -2107,10 +2105,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    default_IncShkDstn = IndShockConsumerType_IncShkDstn_default
-    default_aXtraGrid = IndShockConsumerType_aXtraGrid_default
-    default_solving = IndShockConsumerType_solving_default
-    default_simulation = IndShockConsumerType_simulation_default
+    IncShkDstn_defaults = IndShockConsumerType_IncShkDstn_default
+    aXtraGrid_defaults = IndShockConsumerType_aXtraGrid_default
+    solving_defaults = IndShockConsumerType_solving_default
+    simulation_defaults = IndShockConsumerType_simulation_default
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
         "BoroCnstArt",
@@ -2122,11 +2120,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     shock_vars_ = ["PermShk", "TranShk"]
 
     def __init__(self, verbose=1, quiet=False, **kwds):
-        self._default_params_.update(self.default_IncShkDstn)
-        self._default_params_.update(self.default_aXtraGrid)
-        self._default_params_.update(self.default_solving)
-        self._default_params_.update(self.default_simulation)
-        params = self._default_params_.copy()
+        params = IndShockConsumerType_defaults.copy()
         params.update(kwds)
 
         # Initialize a basic PerfForesightConsumerType
@@ -2772,13 +2766,14 @@ del KinkedRconsumerType_solving_default["Rfree"]
 
 KinkedRconsumerType_simulation_default = IndShockConsumerType_simulation_default.copy()
 
-init_kinked_R = {}
-init_kinked_R.update(
+KinkedRconsumerType_defaults = {}
+KinkedRconsumerType_defaults.update(
     KinkedRconsumerType_IncShkDstn_default
 )  # Fill with some parameters
-init_kinked_R.update(KinkedRconsumerType_aXtraGrid_default)
-init_kinked_R.update(KinkedRconsumerType_solving_default)
-init_kinked_R.update(KinkedRconsumerType_simulation_default)
+KinkedRconsumerType_defaults.update(KinkedRconsumerType_aXtraGrid_default)
+KinkedRconsumerType_defaults.update(KinkedRconsumerType_solving_default)
+KinkedRconsumerType_defaults.update(KinkedRconsumerType_simulation_default)
+init_kinked_R = KinkedRconsumerType_defaults
 
 
 class KinkedRconsumerType(IndShockConsumerType):
@@ -2905,22 +2900,16 @@ class KinkedRconsumerType(IndShockConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    default_IncShkDstn = KinkedRconsumerType_IncShkDstn_default
-    default_aXtraGrid = KinkedRconsumerType_aXtraGrid_default
-    default_solving = KinkedRconsumerType_solving_default
-    default_simulation = KinkedRconsumerType_simulation_default
+    IncShkDstn_defaults = KinkedRconsumerType_IncShkDstn_default
+    aXtraGrid_defualts = KinkedRconsumerType_aXtraGrid_default
+    solving_defaults = KinkedRconsumerType_solving_default
+    simulation_defualts = KinkedRconsumerType_simulation_default
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
 
     def __init__(self, **kwds):
-        self._default_params_.update(
-            self.default_IncShkDstn
-        )  # Fill with some parameters
-        self._default_params_.update(self.default_aXtraGrid)
-        self._default_params_.update(self.default_solving)
-        self._default_params_.update(self.default_simulation)
-        params = self._default_params_.copy()
+        params = KinkedRconsumerType_defaults.copy()
         params.update(kwds)
 
         # Initialize a basic AgentType
