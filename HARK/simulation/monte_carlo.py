@@ -16,6 +16,8 @@ from HARK.model import Aggregate
 from HARK.model import DBlock
 from HARK.model import construct_shocks, simulate_dynamics
 
+from HARK.utilities import apply_fun_to_vals
+
 
 def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
     """
@@ -541,13 +543,16 @@ class MonteCarloSimulator(Simulator):
 
         pre.update(self.vars_prev)
         pre.update(shocks_now)
-        # Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
 
+        # Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
         
         dr = self.dr # AgentTypeMC chooses rule by age;
                      # that generalizes to age as a DR argument?
 
         post = simulate_dynamics(self.dynamics, pre, dr)
+
+        for r in self.block.reward:
+            post[r] = apply_fun_to_vals(self.block.reward[r], post)
 
         self.vars_now = post
 

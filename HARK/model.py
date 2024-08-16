@@ -15,7 +15,6 @@ import numpy as np
 from HARK.parser import math_text_to_lambda
 from typing import Any, Callable, Mapping, List, Union
 
-
 class Aggregate:
     """
     Used to designate a shock as an aggregate shock.
@@ -268,7 +267,7 @@ class DBlock(Block):
         return self.dynamics
 
     def get_vars(self):
-        return list(self.shocks.keys()) + list(self.dynamics.keys())
+        return list(self.shocks.keys()) + list(self.dynamics.keys()) + list(self.reward.keys())
 
     def transition(self, pre, dr):
         """

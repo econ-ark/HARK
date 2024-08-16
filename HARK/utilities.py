@@ -14,6 +14,8 @@ import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
 from scipy.interpolate import interp1d
 
+from inspect import signature
+
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
 # except ImportError:
@@ -111,6 +113,21 @@ class NullFunc:
         except:
             return 10000.0
 
+
+def apply_fun_to_vals(fun, vals):
+    """
+    Applies a function to the arguments defined in `vals`.
+    This is equivalent to `fun(**vals)`, except
+    that `vals` may contain keys that are not named arguments
+    of `fun`.
+
+    Parameters
+    ----------
+    fun: callable
+
+    vals: dict
+    """
+    return fun(*[vals[var] for var in signature(fun).parameters])
 
 # =======================================================
 # ================ Other useful functions ===============
