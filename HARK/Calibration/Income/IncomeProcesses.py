@@ -727,6 +727,41 @@ class pLvlFuncAR1(MetricObject):
         return pLvlNext
 
 
+def make_PermGroFac_from_ind_and_agg(PermGroFacInd, PermGroFacAgg):
+    """
+    A very simple function that constructs *overall* permanent income growth over
+    the lifecycle as the sum of idiosyncratic productivity growth PermGroFacInd and
+    aggregate productivity growth PermGroFacAgg. In most HARK models, PermGroFac
+    is treated as the overall permanent income growth factor, regardless of source.
+    In applications in which the user has estimated permanent income growth from
+    *cross sectional* data, or wants to investigate how a change in aggregate
+    productivity growth affects behavior or outcomes, this function can be used
+    as the constructor for PermGroFac.
+
+    To use this function, specify idiosyncratic productivity growth in the attribute
+    PermGroFacInd (or construct it), and put this function as the entry for PermGroFac
+    in the constructors dictionary of your AgentType subclass instances.
+
+    Parameters
+    ----------
+    PermGroFacInd : [float] or np.array
+        Lifecycle sequence of idiosyncratic permanent productivity growth factors.
+        These represent individual-based productivity factors, like experience.
+    PermGroFacAgg : float
+        Constant aggregate permanent growth factor, representing (e.g.) TFP.
+
+    Returns
+    -------
+    PermGroFac : [float] or np.array
+        Lifecycle sequence of overall permanent productivity growth factors.
+        Returns same type as PermGroFacInd.
+    """
+    PermGroFac = [PermGroFacAgg * G for G in PermGroFacInd]
+    if type(PermGroFacInd) is np.array:
+        PermGroFac = np.array(PermGroFac)
+    return PermGroFac
+
+
 ###############################################################################
 
 # Define income processes that can be used in the ConsGenIncProcess model
