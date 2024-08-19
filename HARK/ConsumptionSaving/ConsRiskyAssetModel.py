@@ -100,8 +100,8 @@ IndShockRiskyAssetConsumerType_aXtraGrid_default = {
 
 # Default parameters to make RiskyDstn with make_lognormal_RiskyDstn
 IndShockRiskyAssetConsumerType_RiskyDstn_default = {
-    "RiskyAvg": 1.080370891,  # Mean return factor of risky asset
-    "RiskyStd": 0.177196585,  # Stdev of log returns on risky asset
+    "RiskyAvg": 0.065308,  # Mean return factor of risky asset
+    "RiskyStd": 0.170914,  # Stdev of log returns on risky asset
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
 }
 # Risky return factor moments are based on SP500 real returns from Shiller's

@@ -54,7 +54,6 @@ class BinaryIncShkDstn(DiscreteDistribution):
 class LognormPermIncShk(DiscreteDistribution):
     """
     A one-period distribution of a multiplicative lognormal permanent income shock.
-
     Parameters
     ----------
     sigma : float
