@@ -25,6 +25,7 @@ class testTractableBufferStock(unittest.TestCase):
             self.tct.history["aLvl"][15][0],
         )
 
+
 if __name__ == "__main__":
     # Run all the tests
     unittest.main()

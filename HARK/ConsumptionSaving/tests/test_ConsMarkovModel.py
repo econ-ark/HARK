@@ -224,7 +224,8 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
         self.assertAlmostEqual(
             Markov_vFuncBool_example.solution[0].vFunc[1](0.4), -4.12794
         )
-        
+
+
 if __name__ == "__main__":
     # Run all the tests
     unittest.main()
