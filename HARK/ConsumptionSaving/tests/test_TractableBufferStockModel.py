@@ -24,3 +24,7 @@ class testTractableBufferStock(unittest.TestCase):
             self.tct.history["mLvl"][15][0] - self.tct.history["cLvlNow"][15][0],
             self.tct.history["aLvl"][15][0],
         )
+
+if __name__ == "__main__":
+    # Run all the tests
+    unittest.main()
