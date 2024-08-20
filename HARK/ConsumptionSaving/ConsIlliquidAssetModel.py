@@ -11,8 +11,7 @@ from scipy.optimize import brentq
 
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
-
-# from HARK.distribution import expected
+from HARK.distribution import expected
 from HARK.interpolation import (
     LinearInterp,
     LinearInterpOnInterp1D,
@@ -309,16 +308,19 @@ def solve_one_period_basic_illiquid(
         aNrmNow[:, j] = temp_grid
 
     # Compute end-of-period marginal value of liquid and illiquid assets
-    EndOfPrd_dvda, EndOfPrd_dvdb = calc_marg_values_next(
+    EndOfPrd_dvda, EndOfPrd_dvdb = expected(
+        calc_marg_values_next,
         IncShkDstn,
-        aNrmNow,
-        bNrmNow,
-        CRRA,
-        Rboro,
-        Rsave,
-        Rilqd,
-        PermGroFac,
-        MargValueFuncNext,
+        args=(
+            aNrmNow,
+            bNrmNow,
+            CRRA,
+            Rboro,
+            Rsave,
+            Rilqd,
+            PermGroFac,
+            MargValueFuncNext,
+        ),
     )
     Rliqd = Rsave * np.ones_like(EndOfPrd_dvda)
     # Rescale expected marginal value by discount factor and return factor
