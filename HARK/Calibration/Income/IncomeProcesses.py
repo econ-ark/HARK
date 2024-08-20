@@ -755,9 +755,12 @@ class pLvlFuncAR1(MetricObject):
 
 
 def make_trivial_pLvlNextFunc(T_cycle):
-    """
+    r"""
     A dummy function that creates default trivial permanent income dynamics:
     none at all! Simply returns a list of IdentityFunctions, one for each period.
+
+    .. math::
+        G_{t}(x) = x
 
     Parameters
     ----------
@@ -775,10 +778,13 @@ def make_trivial_pLvlNextFunc(T_cycle):
 
 
 def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
-    """
+    r"""
     A function that creates permanent income dynamics as a sequence of linear
     functions, indicating constant expected permanent income growth across
     permanent income levels.
+
+    .. math::
+        G_{t+1} (x) = \Gamma_{t+1} x
 
     Parameters
     ----------
@@ -802,10 +808,16 @@ def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
 
 
 def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
-    """
+    r"""
     A function that creates permanent income dynamics as a sequence of AR1-style
     functions. If cycles=0, the product of PermGroFac across all periods must be
     1.0, otherwise this method is invalid.
+
+    .. math::
+        \begin{align}
+        log(G_{t+1} (x)) &=\varphi log(x) + (1-\varphi) log(\overline{P}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
+        \overline{P}_{t+1} &= \overline{P}_{t} \Gamma_{t+1} \\
+        \end{align}
 
     Parameters
     ----------

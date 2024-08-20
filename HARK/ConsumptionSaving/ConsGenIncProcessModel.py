@@ -647,16 +647,17 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     end-of-period assets, and an artificial borrowing constraint.
 
     .. math::
-	    \begin{eqnarray*}
-	    V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
-	    A_t &=& M_t - C_t, \\
-	    A_t/P_t &\geq& \underline{a}, \\
-	    M_{t+1} &=& R A_t + \theta_{t+1}, \\
-	    P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
-	    (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
-	    \mathbb{E} [F_{t+1}] &=& 1, \\
-	    U(C) &=& \frac{C^{1-\rho}}{1-\rho}. \\
-	    \end{eqnarray*}
+        \begin{eqnarray*}
+        V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+        A_t &=& M_t - C_t, \\
+        A_t/P_t &\geq& \underline{a}, \\
+        M_{t+1} &=& R A_t + \theta_{t+1}, \\
+        P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
+        \mathbb{E} [F_{t+1}] &=& 1, \\
+        U(C) &=& \frac{C^{1-\rho}}{1-\rho}. \\
+        \end{eqnarray*}
+
 
     Constructors
     ------------
@@ -668,13 +669,14 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    pLvlNextFunc: Constructor, default=HARK.Calibration.IncomeProcesses.make_trivial_pLvlNextFunc
-    	An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
+    pLvlNextFunc: Constructor
+        An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
 
-        It's default constructor is :func:`HARK.Calibration.IncomeProcesses.make_pLvlGrid_by_simulation`
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
 
@@ -1044,8 +1046,10 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     describing the path of permanent income multiplies the current permanent
     income by the PermGroFac (:math:`\Gamma`). It's behavior is the same as
     :class:`HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType`, except
-    that the variables aren't normalized. This makes the result somewhat less
-    accurate.
+    that the variables aren't normalized. This makes the result less
+    accurate. This Model uses a lognormal random walk income process.
+    If you would like to use a different income process, use
+    :class:`HARK.ConsumptionSaving.ConsGenIncProcessModel.GenIncProcessConsumerType`
 
     .. math::
         \begin{eqnarray*}
@@ -1074,11 +1078,11 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     pLvlNextFunc: Constructor
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
-        It's default constructor is :func:`make_explicit_perminc_pLvlNextFunc`
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_explicit_perminc_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
 
-        It's default constructor is :func:`HARK.Calibration.IncomeProcesses.make_pLvlGrid_by_simulation`
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
 
@@ -1236,7 +1240,9 @@ init_persistent_shocks = PersistentShockConsumerType_default
 
 class PersistentShockConsumerType(GenIncProcessConsumerType):
     r"""
-    A consumer type based on GenIncProcessModel, where the log permanent follows an AR1 process.
+    A consumer type based on GenIncProcessModel, where the log permanent income follows an AR1 process.
+    If you would like to use a different income process, use
+    :class:`HARK.ConsumptionSaving.ConsGenIncProcessModel.GenIncProcessConsumerType`
 
     .. math::
         \begin{eqnarray*}
@@ -1266,11 +1272,11 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     pLvlNextFunc: Constructor
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
-        It's default constructor is :func:`make_AR1_style_pLvlNextFunc`
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_AR1_style_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
 
-        It's default constructor is :func:`HARK.Calibration.IncomeProcesses.make_pLvlGrid_by_simulation`
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
 
