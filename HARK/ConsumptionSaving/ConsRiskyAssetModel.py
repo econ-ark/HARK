@@ -200,7 +200,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -212,7 +212,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         The agent's risky asset share grid
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
-    RiskyDstn:
+    RiskyDstn: Constructor, (:math:`\phi`)
         The agent's asset shock distribution for risky assets.
 
         It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
@@ -254,13 +254,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'Adjust', 'PermShk', 'PlvlAgg', 'Risky', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'Adjust', 'PermShk', 'Risky', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         Adjust is the array of which agents can adjust
 
         PermShk is the agent's permanent income shock
-
-        PlvlAgg is 1
 
         Risky is the agent's risky asset shock
 
@@ -667,7 +665,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -679,7 +677,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
         The agent's risky asset share grid
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
-    RiskyDstn:
+    RiskyDstn: Constructor, (:math:`\phi`)
         The agent's asset shock distribution for risky assets.
 
         It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
@@ -723,13 +721,11 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'Adjust', 'PermShk', 'PlvlAgg', 'Risky', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'Adjust', 'PermShk', 'Risky', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         Adjust is the array of which agents can adjust
 
         PermShk is the agent's permanent income shock
-
-        PlvlAgg is 1
 
         Risky is the agent's risky asset shock
 

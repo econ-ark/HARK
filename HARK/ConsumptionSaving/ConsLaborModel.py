@@ -569,7 +569,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -577,7 +577,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    LbrCost: Constructor
+    LbrCost: Constructor, (:math:`\alpha`)
         The agent's labor cost function.
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`

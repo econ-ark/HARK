@@ -241,7 +241,7 @@ class PrefShockConsumerType(IndShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -249,7 +249,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    PrefShkDstn: Constructor
+    PrefShkDstn: Constructor, (:math:`\eta`)
         The agent's preference shock distributions.
 
         It's default constuctor is :func:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
@@ -287,11 +287,9 @@ class PrefShockConsumerType(IndShockConsumerType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'PermShk', 'PlvlAgg', 'PrefShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'PermShk', 'PrefShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         PermShk is the agent's permanent income shock
-
-        PlvlAgg is 1
 
         PrefShk is the agent's preference shock
 
@@ -545,7 +543,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -553,7 +551,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    PrefShkDstn: Constructor
+    PrefShkDstn: Constructor, (:math:`\eta`)
         The agent's preference shock distributions.
 
         It's default constuctor is :func:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
@@ -566,6 +564,8 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
     Rboro: float, :math:`\mathsf{R}_{boro}`
         Risk Free interest rate when assets are negative.
     Rsave: float, :math:`\mathsf{R}_{save}`
@@ -593,11 +593,9 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'PermShk', 'PlvlAgg', 'PrefShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'PermShk', 'PrefShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         PermShk is the agent's permanent income shock
-
-        PlvlAgg is 1
 
         PrefShk is the agent's preference shock
 

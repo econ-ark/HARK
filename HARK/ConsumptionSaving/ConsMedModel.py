@@ -844,7 +844,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -863,7 +863,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         The agents income level percentile grid
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
-    MedShkDstn:
+    MedShkDstn: Constructor, (:math:`\text{medShk}`)
         The agent's Medical utility shock distribution.
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`

@@ -661,7 +661,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -1067,7 +1067,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -1075,7 +1075,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    pLvlNextFunc: Constructor
+    pLvlNextFunc: Constructor, (:math:`\Gamma`)
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_explicit_perminc_pLvlNextFunc`
@@ -1261,7 +1261,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -1269,7 +1269,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    pLvlNextFunc: Constructor
+    pLvlNextFunc: Constructor, (:math:`\Gamma`, :math:`\varphi`, :math:`\Gamma`)
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_AR1_style_pLvlNextFunc`

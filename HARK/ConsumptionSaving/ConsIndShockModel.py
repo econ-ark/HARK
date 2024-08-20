@@ -1129,9 +1129,7 @@ class PerfForesightConsumerType(AgentType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'PlvlAgg', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
-
-        PlvlAgg is 1
+        For this agent, the options are 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         aLvl is the nominal asset level
 
@@ -2014,7 +2012,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -2056,11 +2054,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'PermShk', 'PlvlAgg', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'PermShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         PermShk is the agent's permanent income shock
-
-        PlvlAgg is 1
 
         TranShk is the agent's transitory income shock
 
@@ -2802,19 +2798,20 @@ class KinkedRconsumerType(IndShockConsumerType):
         \end{cases}\\
         \Rfree_{boro} &> \Rfree_{save}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
         \end{align*}
 
 
     Constructors
     ------------
-    IncShkDstn: Constructor
+    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
         The agent's income shock distributions.
 
-        It's default constructor is :class:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :class:`HARK.utilities.make_assets_grid`
+        It's default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
@@ -2851,11 +2848,9 @@ class KinkedRconsumerType(IndShockConsumerType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-    	For this agent, the options are 'PermShk', 'PlvlAgg', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'PermShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
 
         PermShk is the agent's permanent income shock
-
-        PlvlAgg is 1
 
         TranShk is the agent's transitory income shock
 
