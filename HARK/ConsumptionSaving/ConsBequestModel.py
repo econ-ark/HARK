@@ -1091,7 +1091,7 @@ default_aXtraGrid_params = {
 # Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
 default_RiskyDstn_and_ShareGrid_params = {
     "RiskyAvg": 1.08,  # Mean return factor of risky asset
-    "RiskyStd": 0.20,  # Stdev of log returns on risky asset
+    "RiskyStd": 0.18362634887,  # Stdev of log returns on risky asset
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
     "ShareCount": 25,  # Number of discrete points in the risky share approximation
 }

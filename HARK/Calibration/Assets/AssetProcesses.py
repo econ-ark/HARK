@@ -73,7 +73,7 @@ def make_lognormal_RiskyDstn(T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG):
     # Generate a discrete approximation to the risky return distribution if
     # its parameters are constant
     else:
-        RiskyDstn = Lognormal.from_mean_std(RiskyAvg, RiskyStd).discretize(
+        RiskyDstn = Lognormal(mean=RiskyAvg, sigma=RiskyStd).discretize(
             RiskyCount, method="equiprobable"
         )
 
