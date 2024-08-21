@@ -546,7 +546,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     r"""
     A class representing agents who make a decision each period about how much
     to consume vs save and how much labor to supply (as a fraction of their time).
-    They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
+    They get CRRA utility from a composite good :math:`x_t = c_t*z_t^alpha`, and discount
     future utility flows at a constant factor.
 
     .. math::

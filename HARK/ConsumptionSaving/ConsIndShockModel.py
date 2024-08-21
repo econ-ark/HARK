@@ -2799,6 +2799,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         \Rfree_{boro} &> \Rfree_{save}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
 

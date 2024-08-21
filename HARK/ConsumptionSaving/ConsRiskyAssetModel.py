@@ -195,6 +195,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
         (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
 
@@ -660,6 +661,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
         \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
         (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
 

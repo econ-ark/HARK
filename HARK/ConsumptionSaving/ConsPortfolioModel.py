@@ -1117,7 +1117,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         S_t & \text{if } p_t \geq \wp,
         \end{cases}\\
         (\psi_{t+1},\theta_{t+1},\phi_{t+1},p_t) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.\\
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
 
