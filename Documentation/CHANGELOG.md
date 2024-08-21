@@ -25,6 +25,7 @@ Release Date: TBD
 - Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
 - Adds support for distributions, booleans, and callables as parameters in the `Parameters` class. [1387](https://github.com/econ-ark/HARK/pull/1387)
 - Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [1473](https://github.com/econ-ark/HARK/pull/1473)
+- Adds income process constructor for the discrete Markov state consumption-saving model. [1484](https://github.com/econ-ark/HARK/pull/1484)
 
 ### 0.15.1
 

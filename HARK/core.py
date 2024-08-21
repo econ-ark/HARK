@@ -417,6 +417,12 @@ class Model:
                     else:
                         raise ValueError("No constructor found for " + key) from None
 
+                # If this constructor is None, do nothing and mark it as completed
+                if constructor is None:
+                    keys_complete[i] = True
+                    anything_accomplished_this_pass = True  # We did something!
+                    continue
+
                 # Get the names of arguments for this constructor and try to gather them
                 args_needed = get_arg_names(constructor)
                 has_no_default = {
