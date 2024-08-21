@@ -15,13 +15,11 @@ from collections import namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from warnings import warn
 
 import numpy as np
 import pandas as pd
-from xarray import DataArray
-
 from HARK.distribution import (
     Distribution,
     IndexDistribution,
@@ -30,6 +28,7 @@ from HARK.distribution import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+from xarray import DataArray
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -104,11 +103,11 @@ class Parameters:
         """
         Infers the age-varying dimensions of a parameter.
 
-        If the parameter is a scalar, numpy array, or None, it is assumed to be
-        invariant over time. If the parameter is a list or tuple, it is assumed
-        to be varying over time. If the parameter is a list or tuple of length
-        greater than 1, the length of the list or tuple must match the
-        `_term_age` attribute of the Parameters object.
+        If the parameter is a scalar, numpy array, boolean, distribution, callable or None,
+        it is assumed to be invariant over time. If the parameter is a list or
+        tuple, it is assumed to be varying over time. If the parameter is a list
+        or tuple of length greater than 1, the length of the list or tuple must match
+        the `_term_age` attribute of the Parameters object.
 
         Parameters
         ----------
@@ -118,7 +117,9 @@ class Parameters:
             value of parameter
 
         """
-        if isinstance(value, (int, float, np.ndarray, type(None))):
+        if isinstance(
+            value, (int, float, np.ndarray, type(None), Distribution, bool, Callable)
+        ):
             self.__add_to_invariant__(key)
             return value
         if isinstance(value, (list, tuple)):
@@ -1444,47 +1445,85 @@ def solve_one_cycle(agent, solution_last):
         A list of one period solutions for one "cycle" of the AgentType's
         microeconomic model.
     """
-    # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
-    if len(agent.time_vary) > 0:
-        # name = agent.time_vary[0]
-        # T = len(eval('agent.' + name))
-        T = len(agent.__dict__[agent.time_vary[0]])
+
+    # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
+    # if so, take advantage of it. Else, use the old method
+    if hasattr(agent, "params") and isinstance(agent.params, Parameters):
+        T = agent.params._length
+
+        # Initialize the solution for this cycle, then iterate on periods
+        solution_cycle = []
+        solution_next = solution_last
+
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
+            # Update which single period solver to use (if it depends on time)
+            if hasattr(agent.solve_one_period, "__getitem__"):
+                solve_one_period = agent.solve_one_period[k]
+            else:
+                solve_one_period = agent.solve_one_period
+
+            if hasattr(solve_one_period, "solver_args"):
+                these_args = solve_one_period.solver_args
+            else:
+                these_args = get_arg_names(solve_one_period)
+
+            # Make a temporary dictionary for this period
+            temp_pars = agent.params[k]
+            temp_dict = {
+                name: solution_next if name == "solution_next" else temp_pars[name]
+                for name in these_args
+            }
+
+            # Solve one period, add it to the solution, and move to the next period
+            solution_t = solve_one_period(**temp_dict)
+            solution_cycle.insert(0, solution_t)
+            solution_next = solution_t
+
     else:
-        T = 1
-
-    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    solve_dict.update({parameter: None for parameter in agent.time_vary})
-
-    # Initialize the solution for this cycle, then iterate on periods
-    solution_cycle = []
-    solution_next = solution_last
-
-    cycles_range = [0] + list(range(T - 1, 0, -1))
-    for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-        # Update which single period solver to use (if it depends on time)
-        if hasattr(agent.solve_one_period, "__getitem__"):
-            solve_one_period = agent.solve_one_period[k]
+        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        if len(agent.time_vary) > 0:
+            # name = agent.time_vary[0]
+            # T = len(eval('agent.' + name))
+            T = len(agent.__dict__[agent.time_vary[0]])
         else:
-            solve_one_period = agent.solve_one_period
+            T = 1
 
-        if hasattr(solve_one_period, "solver_args"):
-            these_args = solve_one_period.solver_args
-        else:
-            these_args = get_arg_names(solve_one_period)
+        solve_dict = {
+            parameter: agent.__dict__[parameter] for parameter in agent.time_inv
+        }
+        solve_dict.update({parameter: None for parameter in agent.time_vary})
 
-        # Update time-varying single period inputs
-        for name in agent.time_vary:
-            if name in these_args:
-                solve_dict[name] = agent.__dict__[name][k]
-        solve_dict["solution_next"] = solution_next
+        # Initialize the solution for this cycle, then iterate on periods
+        solution_cycle = []
+        solution_next = solution_last
 
-        # Make a temporary dictionary for this period
-        temp_dict = {name: solve_dict[name] for name in these_args}
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
+            # Update which single period solver to use (if it depends on time)
+            if hasattr(agent.solve_one_period, "__getitem__"):
+                solve_one_period = agent.solve_one_period[k]
+            else:
+                solve_one_period = agent.solve_one_period
 
-        # Solve one period, add it to the solution, and move to the next period
-        solution_t = solve_one_period(**temp_dict)
-        solution_cycle.insert(0, solution_t)
-        solution_next = solution_t
+            if hasattr(solve_one_period, "solver_args"):
+                these_args = solve_one_period.solver_args
+            else:
+                these_args = get_arg_names(solve_one_period)
+
+            # Update time-varying single period inputs
+            for name in agent.time_vary:
+                if name in these_args:
+                    solve_dict[name] = agent.__dict__[name][k]
+            solve_dict["solution_next"] = solution_next
+
+            # Make a temporary dictionary for this period
+            temp_dict = {name: solve_dict[name] for name in these_args}
+
+            # Solve one period, add it to the solution, and move to the next period
+            solution_t = solve_one_period(**temp_dict)
+            solution_cycle.insert(0, solution_t)
+            solution_next = solution_t
 
     # Return the list of per-period solutions
     return solution_cycle
@@ -2005,11 +2044,11 @@ class AgentPopulation:
         self.continuous_distributions = {}
         self.discrete_distributions = {}
 
-        for key, points in approx_params.items():
+        for key, args in approx_params.items():
             param = self.parameters[key]
             if key in self.distributed_params and isinstance(param, Distribution):
                 self.continuous_distributions[key] = param
-                self.discrete_distributions[key] = param.discretize(points)
+                self.discrete_distributions[key] = param.discretize(**args)
             else:
                 raise ValueError(
                     f"Warning: parameter {key} is not a Distribution found "

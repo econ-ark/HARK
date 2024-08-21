@@ -1,6 +1,6 @@
 import unittest
 
-from HARK.distribution import Bernoulli
+from HARK.distribution import Bernoulli, DiscreteDistribution
 import HARK.model as model
 from HARK.model import Control
 import HARK.models.consumer as cons
@@ -34,6 +34,7 @@ class test_DBlock(unittest.TestCase):
     def setUp(self):
         self.test_block_A = model.DBlock(**test_block_A_data)
         self.cblock = cons.consumption_block_normalized
+        self.cblock.construct_shocks(cons.calibration)
 
         # prior states relative to the decision, so with realized shocks.
         self.dpre = {"k": 2, "R": 1.05, "PermGroFac": 1.1, "theta": 1, "CRRA": 2}
@@ -43,6 +44,11 @@ class test_DBlock(unittest.TestCase):
 
     def test_init(self):
         self.assertEqual(self.test_block_A.name, "test block A")
+
+    def test_discretize(self):
+        dbl = self.cblock.discretize({"theta": {"N": 5}})
+
+        self.assertEqual(len(dbl.shocks["theta"].pmv), 5)
 
     def test_transition(self):
         post = self.cblock.transition(self.dpre, self.dr)
@@ -79,6 +85,8 @@ class test_RBlock(unittest.TestCase):
         self.test_block_C = model.DBlock(**test_block_C_data)
         self.test_block_D = model.DBlock(**test_block_D_data)
 
+        self.cpp = cons.cons_portfolio_problem
+
     def test_init(self):
         r_block_tree = model.RBlock(
             blocks=[
@@ -89,3 +97,14 @@ class test_RBlock(unittest.TestCase):
 
         r_block_tree.get_shocks()
         self.assertEqual(len(r_block_tree.get_shocks()), 3)
+
+    def test_discretize(self):
+        self.cpp.construct_shocks(cons.calibration)
+        cppd = self.cpp.discretize({"theta": {"N": 5}, "risky_return": {"N": 6}})
+
+        self.assertEqual(len(cppd.get_shocks()["theta"].pmv), 5)
+        self.assertEqual(len(cppd.get_shocks()["risky_return"].pmv), 6)
+
+        self.assertFalse(
+            isinstance(self.cpp.get_shocks()["theta"], DiscreteDistribution)
+        )

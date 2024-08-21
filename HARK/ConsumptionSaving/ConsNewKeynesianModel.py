@@ -59,16 +59,16 @@ default_IncShkDstn_params = {
 # Default parameters to make aXtraGrid using make_assets_grid
 default_aXtraGrid_params = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 50,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraCount": 100,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
 # Make a dictionary to specify an idiosyncratic income shocks consumer type
 init_newkeynesian = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "cycles": 1,  # Finite, non-cyclic model
+    "cycles": 0,  # Infinite horizon model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": newkeynesian_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
@@ -76,7 +76,7 @@ init_newkeynesian = {
     "Rfree": 1.03,  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
-    "PermGroFac": [1.01],  # Permanent income growth factor
+    "PermGroFac": [1.0],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
@@ -95,6 +95,11 @@ init_newkeynesian = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    # ADDITIONAL PARAMETERS FOR GRID-BASED TRANSITION SIMULATION
+    "mMin": 0.001,
+    "mMax": 50,
+    "mCount": 200,
+    "mFac": 3,
 }
 init_newkeynesian.update(default_IncShkDstn_params)
 init_newkeynesian.update(default_aXtraGrid_params)

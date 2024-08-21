@@ -1,5 +1,8 @@
 import warnings
 from datetime import date
+import os
+
+dir = os.path.dirname(__file__)
 
 try:
     import numba
@@ -41,11 +44,23 @@ extensions = [
     "sphinx_design",
 ]
 
+
+include_patterns = [
+    "Documentation**",
+    "index.rst",
+]  # Makes sure that only the file we want documented get documented
+with open(os.path.join(dir, "example_notebooks", "Include_list.txt"), "r") as file:
+    include_patterns += file.readlines()
+include_patterns = [
+    i.replace("\n", "") for i in include_patterns
+]  # Adds example notebooks
+
 exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "NARK",
+    "Documentation/_build",
+    "Documentation/Thumbs.db",
+    "Documentation/.DS_Store",
+    "Documentation/NARK",
+    "Documentation/index_core.rst",  # Prevents sphinx from getting confused
 ]
 
 language = "en"
@@ -64,7 +79,7 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
-html_static_path = ["_static"]
+html_static_path = []
 html_css_files = [
     "override-nbsphinx-gallery.css",
 ]
@@ -98,8 +113,29 @@ html_theme_options = {
             "attributes": {"target": "_blank"},
         },
     ],
+    "secondary_sidebar_items": {
+        "**": ["page-toc", "sourcelink"],
+        "index": ["page-toc"],
+    },
 }
 
+nbsphinx_prolog = r"""
+{% set docname = env.doc2path(env.docname, base=None) %}
+
+.. raw:: html
+
+    <div class="admonition note">
+      This page was generated from
+      <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/{{ docname|e }}">{{ docname|e }}</a>.
+      <br />
+      Interactive online version:
+      <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+      <a href="{{ env.docname.split('/')|last|e + '.ipynb' }}" class="reference download internal" download>Download notebook</a>.
+    </div>
+"""
+myst_enable_extensions = [
+    "colon_fence",
+]
 # Point to Econ-ARK repo for edit buttons
 html_context = {
     "github_url": "https://github.com",
@@ -128,8 +164,13 @@ autodoc_default_flags = ["members"]  # must add outside ']' bracket
 # sphinx.ext.autosummary configuration
 autosummary_generate = True
 
+# Orders functions by the source order
+autodoc_member_order = "bysource"
+
 # sphinx.ext.napoleon configuration
 napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
+
+suppress_warnings = []
