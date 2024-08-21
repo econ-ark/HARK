@@ -106,6 +106,8 @@ IndShockRiskyAssetConsumerType_RiskyDstn_default = {
 }
 # Risky return factor moments are based on SP500 real returns from Shiller's
 # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
+# Access it through the internet archive
+# We've (will) rounded them to the nearest .01
 
 # Default parameters to make RiskyDstn with make_simple_ShareGrid
 IndShockRiskyAssetConsumerType_ShareGrid_default = {
@@ -194,7 +196,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
         \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
         (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1. \\
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
@@ -660,7 +662,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
         m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
         \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
         (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1. \\
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 

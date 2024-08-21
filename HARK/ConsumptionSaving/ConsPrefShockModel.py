@@ -235,7 +235,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         (\psi_{t+1},\theta_{t+1},\eta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
 
@@ -537,7 +537,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
         \end{cases}\\
         \Rfree_{boro} &> \Rfree_{save}, \\
         (\psi_{t+1},\theta_{t+1},\eta_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1. \\
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
