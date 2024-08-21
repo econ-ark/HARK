@@ -244,8 +244,8 @@ def solve_ConsLaborIntMarg(
     WageRte: float
         Wage rate per unit of labor supplied.
     LbrCost: float
-        Cost parameter for supplying labor: u_t = U(x_t), x_t = c_t*z_t^LbrCost,
-        where z_t is leisure = 1 - Lbr_t.
+        Cost parameter for supplying labor: :math:`u_t = U(x_t)`, :math:`x_t = c_t z_t^{LbrCost}`,
+        where :math:`z_t` is leisure :math:`= 1 - Lbr_t`.
 
     Returns
     -------
@@ -569,7 +569,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -577,7 +577,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    LbrCost: Constructor, (:math:`\alpha`)
+    LbrCost: Constructor, :math:`\alpha`
         The agent's labor cost function.
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`

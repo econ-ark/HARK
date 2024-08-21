@@ -1123,7 +1123,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -1135,7 +1135,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         The agent's risky asset share grid
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
-    RiskyDstn: Constructor, (:math:`\phi`)
+    RiskyDstn: Constructor, :math:`\phi`
         The agent's asset shock distribution for risky assets.
 
         It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`

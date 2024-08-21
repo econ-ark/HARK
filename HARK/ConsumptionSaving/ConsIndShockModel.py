@@ -2012,7 +2012,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -2804,7 +2804,7 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`

@@ -844,7 +844,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
     Constructors
     ------------
-    IncShkDstn: Constructor, (:math:`\psi`,:math:`\theta`)
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
@@ -852,9 +852,10 @@ class MedShockConsumerType(PersistentShockConsumerType):
         The agent's asset grid.
 
         It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    pLvlNextFunc: Constructor, default=HARK.Calibration.IncomeProcesses.make_trivial_pLvlNextFunc
-    	An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
+    pLvlNextFunc: Constructor
+        An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
 
@@ -863,7 +864,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         The agents income level percentile grid
 
         It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
-    MedShkDstn: Constructor, (:math:`\text{medShk}`)
+    MedShkDstn: Constructor, :math:`\text{medShk}`
         The agent's Medical utility shock distribution.
 
         It's default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`
@@ -955,7 +956,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
         :math:`[C,Med]=\text{policyFunc}(M,P,\text{MedShk})`: returns the agent's spending on consumption and Medical care as numpy arrays
 
         Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
-
     history: Dict[Array]
         Created by running the :func:`.simulate()` method.
         Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
