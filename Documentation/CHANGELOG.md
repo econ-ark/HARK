@@ -25,6 +25,7 @@ Release Date: TBD
 - Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
 - Adds support for distributions, booleans, and callables as parameters in the `Parameters` class. [1387](https://github.com/econ-ark/HARK/pull/1387)
 - Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [1473](https://github.com/econ-ark/HARK/pull/1473)
+- Improved tracking of the bounds of support for distributions, and (some) solvers now respect those bounds when computing the "worst outcome". [1479](https://github.com/econ-ark/HARK/pull/1479)
 
 ### 0.15.1
 

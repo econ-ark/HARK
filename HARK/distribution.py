@@ -54,6 +54,10 @@ class Distribution:
         self._seed: int = _seed
         self._rng: random.Generator = random.default_rng(self._seed)
 
+        # Bounds of distribution support should be overwritten by subclasses
+        self.infimum = np.array([])
+        self.supremum = np.array([])
+
     @property
     def seed(self) -> int:
         """
@@ -140,7 +144,7 @@ class Distribution:
 
         Returns
         -------
-        DiscreteDistribution
+        discretized_dstn : DiscreteDistribution
             Discretized distribution.
 
         Raises
@@ -159,7 +163,10 @@ class Distribution:
             )
 
         approx = getattr(self, approx_method)
-        return approx(N, endpoints, **kwds)
+        discretized_dstn = approx(N, endpoints, **kwds)
+        discretized_dstn.limit["infimum"] = self.infimum.copy()
+        discretized_dstn.limit["supremum"] = self.supremum.copy()
+        return discretized_dstn
 
 
 # CONTINUOUS DISTRIBUTIONS
@@ -215,6 +222,9 @@ class Normal(ContinuousFrozenDistribution):
 
         super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
 
+        self.infimum = -np.inf * np.ones(self.mu.size)
+        self.supremum = np.inf * np.ones(self.mu.size)
+
     def discretize(self, N, method="hermite", endpoints=False):
         """
         For normal distributions, the Gauss-Hermite quadrature rule is
@@ -227,8 +237,6 @@ class Normal(ContinuousFrozenDistribution):
         """
         Returns a discrete approximation of this distribution
         using the Gauss-Hermite quadrature rule.
-
-        TODO: add endpoints option
 
         Parameters
         ----------
@@ -259,8 +267,6 @@ class Normal(ContinuousFrozenDistribution):
     def _approx_equiprobable(self, N, endpoints=False):
         """
         Returns a discrete equiprobable approximation of this distribution.
-
-        TODO: add endpoints option
 
         Parameters
         ----------
@@ -371,6 +377,9 @@ class Lognormal(ContinuousFrozenDistribution):
         super().__init__(
             stats.lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed
         )
+
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([np.inf])
 
     def _approx_equiprobable(
         self, N, endpoints=False, tail_N=0, tail_bound=None, tail_order=np.e
@@ -595,6 +604,9 @@ class Uniform(ContinuousFrozenDistribution):
             stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
         )
 
+        self.infimum = np.array([self.bot])
+        self.supremum = np.array([self.top])
+
     def _approx_equiprobable(self, N, endpoints=False):
         """
         Makes a discrete approximation to this uniform distribution.
@@ -624,7 +636,12 @@ class Uniform(ContinuousFrozenDistribution):
             atoms = np.concatenate(([self.bot], atoms, [self.top]))
             pmv = np.concatenate(([0.0], pmv, [0.0]))
 
-        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+        limit = {
+            "dist": self,
+            "method": "equiprobable",
+            "N": N,
+            "endpoints": endpoints,
+        }
 
         return DiscreteDistribution(
             pmv,
@@ -654,8 +671,12 @@ class Weibull(ContinuousFrozenDistribution):
     def __init__(self, scale=1.0, shape=1.0, seed=0):
         self.scale = np.asarray(scale)
         self.shape = np.asarray(shape)
+
         # Set up the RNG
         super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
+
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([np.inf])
 
 
 # MULTIVARIATE DISTRIBUTIONS
@@ -682,6 +703,9 @@ class MVNormal(multivariate_normal_frozen, Distribution):
         self.M = self.mu.size
         multivariate_normal_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
         Distribution.__init__(self, seed=seed)
+
+        self.infimum = -np.inf * np.ones(self.M)
+        self.supremum = np.inf * np.ones(self.M)
 
     def discretize(self, N, method="hermite", endpoints=False):
         """
@@ -1186,6 +1210,8 @@ class Bernoulli(DiscreteFrozenDistribution):
         self.pmv = [1 - self.p, self.p]
         self.atoms = [0, 1]
         self.limit = {"dist": self}
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([1.0])
 
 
 class DiscreteDistribution(Distribution):
@@ -1201,6 +1227,10 @@ class DiscreteDistribution(Distribution):
         For multivariate distributions, the last dimension of atoms must index
         "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
         the random variable has 4 possible realizations and each of them has shape (2,6).
+    limit : dict
+        Dictionary with information about the continuous distribution from which
+        this distribution was generated. The reference distribution is in the entry
+        called 'dist'.
     seed : int
         Seed for random number generator.
     """
@@ -1216,6 +1246,11 @@ class DiscreteDistribution(Distribution):
 
         self.pmv = np.asarray(pmv)
         self.atoms = np.atleast_2d(atoms)
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
+            }
         self.limit = limit
 
         # Check that pmv and atoms have compatible dimensions.
@@ -1495,7 +1530,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             )
 
         attrs = {} if attrs is None else attrs
-        limit = {} if limit is None else limit
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
+            }
+            self.limit = limit
         attrs.update(limit)
         attrs["name"] = name
 
@@ -1926,6 +1966,7 @@ class TimeVaryingDiscreteDistribution(Distribution):
         return draws
 
 
+# TODO: This function does not generate the limit attribute
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).discretize(N, method="hermite")
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
@@ -2163,18 +2204,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-
-    if type(distribution) != TimeVaryingDiscreteDistribution:
-        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
-        pmv = np.append(p, distribution.pmv * (1 - p))
-
-        if sort:
-            indices = np.argsort(atoms)
-            atoms = atoms[indices]
-            pmv = pmv[indices]
-
-        return DiscreteDistribution(pmv, atoms)
-    elif type(distribution) == TimeVaryingDiscreteDistribution:
+    if type(distribution) == TimeVaryingDiscreteDistribution:
         # apply recursively on all the internal distributions
         return TimeVaryingDiscreteDistribution(
             [
@@ -2183,6 +2213,47 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
             ],
             seed=distribution.seed,
         )
+
+    else:
+        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+        pmv = np.append(p, distribution.pmv * (1 - p))
+
+        if sort:
+            indices = np.argsort(atoms)
+            atoms = atoms[indices]
+            pmv = pmv[indices]
+
+        # Update infimum and supremum
+        temp_x = np.array(x, ndmin=1)
+        try:
+            infimum = np.array(
+                [
+                    np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                    for i in range(temp_x.size)
+                ]
+            )
+        except:
+            infimum = np.min(atoms, axis=-1, keepdims=True)
+        try:
+            supremum = np.array(
+                [
+                    np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                    for i in range(temp_x.size)
+                ]
+            )
+        except:
+            supremum = np.max(atoms, axis=-1, keepdims=True)
+
+        limit = {
+            "dist": distribution,
+            "method": "add_discrete_outcome_constant_mean",
+            "x": x,
+            "p": p,
+            "infimum": infimum,
+            "supremum": supremum,
+        }
+
+        return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -2214,7 +2285,38 @@ def add_discrete_outcome(distribution, x, p, sort=False):
         atoms = atoms[indices]
         pmv = pmv[indices]
 
-    return DiscreteDistribution(pmv, atoms)
+    # Update infimum and supremum
+    # Update infimum and supremum
+    temp_x = np.array(x, ndmin=1)
+    try:
+        infimum = np.array(
+            [
+                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except:
+        infimum = np.min(atoms, axis=-1, keepdims=True)
+    try:
+        supremum = np.array(
+            [
+                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except:
+        supremum = np.max(atoms, axis=-1, keepdims=True)
+
+    limit = {
+        "dist": distribution,
+        "method": "add_discrete_outcome",
+        "x": x,
+        "p": p,
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+
+    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
 
 
 def combine_indep_dstns(*distributions, seed=0):
@@ -2227,6 +2329,8 @@ def combine_indep_dstns(*distributions, seed=0):
     distributions : DiscreteDistribution
         Arbitrary number of discrete distributionss to combine. Their realizations must be
         vector-valued (for each D in distributions, it must be the case that len(D.dim())==1).
+    seed : int, optional
+        Value to use as the RNG seed for the combined distribution, default is 0.
 
     Returns
     -------
@@ -2254,7 +2358,7 @@ def combine_indep_dstns(*distributions, seed=0):
         else:
             var_labels += tuple([""] * dist.dim()[0])
 
-    number_of_distributions = len(distributions)
+    dstn_count = len(distributions)
 
     all_labeled = all(dist_is_labeled)
     labels_are_unique = len(var_labels) == len(set(var_labels))
@@ -2278,11 +2382,28 @@ def combine_indep_dstns(*distributions, seed=0):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
 
+    # Make the limit dictionary
+    infimum = np.concatenate(
+        [distributions[i].limit["infimum"] for i in range(dstn_count)]
+    )
+    supremum = np.concatenate(
+        [distributions[i].limit["supremum"] for i in range(dstn_count)]
+    )
+    limit = {
+        "dist": distributions,
+        "method": "combine_indep_dstns",
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+    # except:
+    #    limit=None
+
     if all_labeled and labels_are_unique:
         combined_dstn = DiscreteDistributionLabeled(
             pmv=P_out,
             atoms=atoms_out,
             var_names=var_labels,
+            limit=limit,
             seed=seed,
         )
     else:
@@ -2290,7 +2411,7 @@ def combine_indep_dstns(*distributions, seed=0):
             warn(
                 "There are duplicated labels in the provided distributions. Returning a non-labeled combination"
             )
-        combined_dstn = DiscreteDistribution(P_out, atoms_out, seed=seed)
+        combined_dstn = DiscreteDistribution(P_out, atoms_out, limit=limit, seed=seed)
 
     return combined_dstn
 
