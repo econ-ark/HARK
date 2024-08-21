@@ -27,6 +27,7 @@ API Reference
    :maxdepth: 1
 
    ConsumptionSaving/ConsAggShockModel
+   ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
    ConsumptionSaving/ConsIndShockModel
    ConsumptionSaving/ConsIndShockModelFast
