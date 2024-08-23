@@ -18,6 +18,7 @@ Release Date: TBD
 - Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Allows construction of shocks with arguments based on mathematical expressions [#1464](https://github.com/econ-ark/HARK/pull/1464)
+- YAML configuration file for the normalized consumption and portolio choice [#1465](https://github.com/econ-ark/HARK/pull/1465)
 
 #### Minor Changes
 
@@ -26,6 +27,7 @@ Release Date: TBD
 - Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [1473](https://github.com/econ-ark/HARK/pull/1473)
 - Changes the behavior of make_lognormal_RiskyDstn so that the standard deviation represents the standard deviation of log(returns)
 - Adds detailed parameter and latex documentation to most models.
+- Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [1489](https://github.com/econ-ark/HARK/pull/1489)
 
 ### 0.15.1
 
