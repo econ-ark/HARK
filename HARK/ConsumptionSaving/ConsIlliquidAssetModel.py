@@ -5,9 +5,10 @@ in some sense. In the basic model, withdrawals from the illiquid asset incur a
 proportional penalty.
 """
 
-# from copy import copy, deepcopy
+from copy import copy
 import numpy as np
-from scipy.optimize import brentq
+from scipy.optimize import root_scalar
+import matplotlib.pyplot as plt
 
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
@@ -19,8 +20,18 @@ from HARK.interpolation import (
     VariableLowerBoundFunc2D,
     IdentityFunction,
     LowerEnvelope2D,
+    UpperEnvelope,
 )
-# from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+from HARK.utilities import make_assets_grid
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    KinkedRconsumerType,
+    PerfForesightConsumerType,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 
 ###############################################################################
 
@@ -44,6 +55,9 @@ class DepositFunction(MetricObject):
     CashWithdraw : function
         Function that yields the optimal kNrm to hold as a function of adjusted
         total wealth when making a withdrawal.
+    Bottom : float
+        Lowest value of total adjusted wealth for which CashWithdraw is defined.
+        Below this, the agent should withdraw all of his illiquid wealth.
     Penalty : float
         Scaling penalty on making withdrawals from the illiquid asset.
 
@@ -57,25 +71,34 @@ class DepositFunction(MetricObject):
         "UpperBound",
         "CashDeposit",
         "CashWithdraw",
+        "Bottom",
         "Penalty",
     ]
 
-    def __init__(self, LowerBound, UpperBound, CashDeposit, CashWithdraw, Penalty):
+    def __init__(
+        self, LowerBound, UpperBound, CashDeposit, CashWithdraw, Bottom, Penalty
+    ):
         self.LowerBound = LowerBound
         self.UpperBound = UpperBound
         self.CashDeposit = CashDeposit
         self.CashWithdraw = CashWithdraw
+        self.Bottom = Bottom
         self.Penalty = Penalty
 
     def __call__(self, mNrm, nNrm):
-        kNrm = mNrm.copy()
-        deposit = mNrm > self.UpperBound(mNrm)
-        withdraw = mNrm < self.LowerBound(nNrm)
-        oNrm = mNrm[deposit] + nNrm[deposit]
+        mNrmX = np.array(mNrm)
+        nNrmX = np.array(nNrm)
+        kNrm = mNrmX.copy()
+        deposit = mNrmX > self.UpperBound(nNrmX)
+        withdraw = mNrmX < self.LowerBound(nNrmX)
+        oNrm = mNrmX[deposit] + nNrmX[deposit]
         kNrm[deposit] = self.CashDeposit(oNrm)
-        oNrmAdj = mNrm[withdraw] + nNrm[withdraw] / (1.0 + self.Penalty)
-        kNrm[withdraw] = self.CashWithDraw(oNrmAdj)
-        dNrm = mNrm - kNrm  # Will be zero for "do nothing"
+        oNrmAdj = mNrmX[withdraw] + nNrmX[withdraw] / (1.0 + self.Penalty)
+        kNrm_temp = self.CashWithdraw(oNrmAdj)
+        below_bottom = oNrmAdj <= self.Bottom
+        kNrm_temp[below_bottom] = oNrmAdj[below_bottom]  # withdraw everything
+        kNrm[withdraw] = kNrm_temp
+        dNrm = mNrmX - kNrm  # Will be zero for "do nothing"
         return dNrm
 
 
@@ -117,7 +140,7 @@ class SpecialMargValueFunction(MetricObject):
         """
         dNrm = self.dFunc(mNrm, nNrm)
         withdraw = dNrm < 0.0
-        dNrmAdj = dNrm + self.Penalty * withdraw
+        dNrmAdj = dNrm * (1.0 + self.Penalty * withdraw)
         kNrm = mNrm - dNrm
         bNrm = nNrm + dNrmAdj
         dvdm = self.dvdk(kNrm, bNrm)
@@ -148,40 +171,136 @@ class IlliquidConsumerSolution(MetricObject):
 
     distance_criteria = ["cFunc", "dFunc"]
 
-    def __init__(self, MargValueFunc, cFunc, dFunc):
+    def __init__(self, MargValueFunc, cFunc, dFunc, mNrmMin):
         self.MargValueFunc = MargValueFunc
         self.cFunc = cFunc
         self.dFunc = dFunc
+        self.mNrmMin = mNrmMin
+
+
+def make_basic_illiquid_solution_terminal(CRRA):
+    """
+    Function that makes a trivial terminal period in which liquid and illiquid
+    assets are summed together, then consumed. Need to improve later.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+
+    Returns
+    -------
+    solution_terminal : IlliquidConsumerSolution
+        A trivial terminal period solution.
+    """
+    rho = CRRA
+    MargValueFunc_terminal = lambda m, n: ((m + n) ** -rho, (m + n) ** -rho)
+    cFunc_terminal = lambda k, b: k + b
+    dFunc_terminal = lambda m, n: -n
+    mNrmMin_terminal = LinearInterp(np.array([0.0, 1.0]), np.array([0.0, -1.0]))
+    solution_terminal = IlliquidConsumerSolution(
+        MargValueFunc=MargValueFunc_terminal,
+        cFunc=cFunc_terminal,
+        dFunc=dFunc_terminal,
+        mNrmMin=mNrmMin_terminal,
+    )
+    return solution_terminal
+
+
+def make_PF_illiquid_solution_terminal(CRRA, DiscFac):
+    """
+    Function that makes a trivial terminal period in which liquid and illiquid
+    assets are summed together, then passed to an infinite horizon PF problem.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+
+    Returns
+    -------
+    solution_terminal : IlliquidConsumerSolution
+        A trivial terminal period solution.
+    """
+    rho = CRRA
+    LivPrbPF = 0.95
+    PermGroFacPF = 1.0
+
+    PF_dict = {
+        "cycles": 0,
+        "BoroCnstArt": 0.0,
+        "CRRA": rho,
+        "DiscFac": DiscFac,
+        "LivPrb": [LivPrbPF],
+        "PermGroFac": [PermGroFacPF],
+    }
+    PFtype = PerfForesightConsumerType(**PF_dict)
+    PFtype.solve()
+    vPfunc_terminal = PFtype.solution[0].vPfunc
+    mNrmMin_terminal = PFtype.solution[0].mNrmMin
+
+    MargValueFunc_terminal = lambda m, n: (
+        vPfunc_terminal(m + n),
+        vPfunc_terminal(m + n),
+    )
+    cFunc_terminal = lambda k, b: k + b
+    dFunc_terminal = lambda m, n: -n
+    mNrmMin_terminal = LinearInterp(
+        np.array([0.0, 1.0]), np.array([mNrmMin_terminal, mNrmMin_terminal - 1.0])
+    )
+    solution_terminal = IlliquidConsumerSolution(
+        MargValueFunc=MargValueFunc_terminal,
+        cFunc=cFunc_terminal,
+        dFunc=dFunc_terminal,
+        mNrmMin=mNrmMin_terminal,
+    )
+    return solution_terminal
+
+
+def make_illiquid_assets_grid(bNrmMin, bNrmMax, bNrmCount, bNrmExtra, bNrmNestFac):
+    """
+    Simple constructor that wraps make_assets_grid, applying it to illiquid assets.
+    """
+    bNrmGrid = make_assets_grid(bNrmMin, bNrmMax, bNrmCount, bNrmExtra, bNrmNestFac)
+    return bNrmGrid
 
 
 ###############################################################################
 
 
-def calc_boro_const_nat(mNrmLowerBoundNext, bGrid, mMinFunc, Y, R, Gamma):
+def calc_boro_const_nat(mNrmLowerBoundNext, bGrid, Y, R0, R1, Gamma):
     """Calculate the natural borrowing constraint on an array of bNrm values.
 
     Args:
         mNrmLowerBoundNext (float): Minimum normalized market resources next period.
+        bGrid (array): Values of illiquid assets at which to calculate the natural borrowing constraint.
         Y (DiscreteDstn): Distribution of shocks to income.
-        R (float): Risk free interest factor.
+        R0 (float): Risk free interest factor on liquid assets.
+        R1 (float): Risk free interest factor on illiquid assets.
         Gamma (float): Permanent income growth factor.
     """
     perm, tran = Y.atoms
-    temp_fac = (Gamma * np.min(perm)) / R
-    return (mMinFunc(bGrid) - np.min(tran)) * temp_fac
+    perm = np.reshape(perm, (perm.size, 1))
+    tran = np.reshape(tran, (tran.size, 1))
+    bGridX = np.reshape(bGrid, (1, bGrid.size))
+    G = Gamma * perm
+    n_next = R1 * bGridX / G
+    m_min_next = mNrmLowerBoundNext(n_next)
+    a_now = G * (m_min_next - tran) / R0
+    return np.max(a_now, axis=0)
 
 
 def calc_next_period_state(Y, a, b, Rboro, Rsave, Rilqd, Gamma):
     """
     Calculate the distribution of next period's (m,n) states.
     """
-    psi = Y["Perm"]
-    theta = Y["Tran"]
+    psi = Y["PermShk"]
+    theta = Y["TranShk"]
     G = Gamma * psi
     R = Rsave * np.ones_like(a)
     R[a < 0] = Rboro
     m = R / G * a + theta
-    n = Rilqd * b
+    n = Rilqd * b / G + 0.0 * theta
     return m, n
 
 
@@ -191,13 +310,13 @@ def calc_marg_values_next(
     """
     Calculate next period's marginal values of liquid and illiquid market resources.
     """
-    psi = Y["Perm"]
-    theta = Y["Tran"]
+    psi = Y["PermShk"]
+    theta = Y["TranShk"]
     G = Gamma * psi
     R = Rsave * np.ones_like(a)
     R[a < 0] = Rboro
     m = R / G * a + theta
-    n = Rilqd * b
+    n = Rilqd / G * b + 0.0 * theta
     fac = G**-rho
     dvdm, dvdn = marg_value_func_next(m, n)
     dvdm *= fac
@@ -291,20 +410,29 @@ def solve_one_period_basic_illiquid(
 
     # Calculate the natural borrowing constraint by illiquid assets
     BoroCnstNat = calc_boro_const_nat(
-        solution_next.mNrmMin, bNrmGrid, IncShkDstn, Rboro, PermGroFac
+        solution_next.mNrmMin, bNrmGrid, IncShkDstn, Rboro, Rilqd, PermGroFac
     )
     BoroCnstNatFunc = LinearInterp(bNrmGrid, BoroCnstNat)
+
+    plt.plot(bNrmGrid, BoroCnstNat, "-b")
+    plt.show()
+
+    # Determine whether the natural borrowing constraint or the tradeoff is steeper
+    tradeoff_slope = -1.0 / (1.0 + IlqdPenalty)
+    tradeoff_func = LinearInterp(
+        [0.0, 1.0], [BoroCnstNat[0], BoroCnstNat[0] + tradeoff_slope]
+    )
 
     # Make the cross product of the liquid asset grid and illiquid asset grid
     aCount = aXtraGrid.size
     bCount = bNrmGrid.size
     aNrmNow = np.zeros((aCount + 2, bCount))
-    bNrmNow = np.tile(np.reshape(bNrmGrid, (1, bCount)), (aCount, 1))
+    bNrmNow = np.tile(np.reshape(bNrmGrid, (1, bCount)), (aCount + 2, 1))
     for j in range(bCount):
         temp_grid = BoroCnstNat[j] + aXtraGrid
         i = np.searchsorted(temp_grid, 0.0)
-        temp_grid = np.insert(temp_grid, 0.0, i)
-        temp_grid = np.insert(temp_grid, -1e16, i)
+        temp_grid = np.insert(temp_grid, i, 0.0)
+        temp_grid = np.insert(temp_grid, i, -1e-16)
         aNrmNow[:, j] = temp_grid
 
     # Compute end-of-period marginal value of liquid and illiquid assets
@@ -322,9 +450,10 @@ def solve_one_period_basic_illiquid(
             MargValueFuncNext,
         ),
     )
-    Rliqd = Rsave * np.ones_like(EndOfPrd_dvda)
+
     # Rescale expected marginal value by discount factor and return factor
-    Rilqd[aNrmNow < 0] = Rboro
+    Rliqd = Rsave * np.ones_like(EndOfPrd_dvda)
+    Rliqd[aNrmNow < 0] = Rboro
     EndOfPrd_dvda *= DiscFacEff * Rliqd
     EndOfPrd_dvdb *= DiscFacEff * Rilqd
 
@@ -332,6 +461,14 @@ def solve_one_period_basic_illiquid(
     # inverting the first order condition, as well as endogenous gridpoints in k.
     cNrmNow = uFunc.derinv(EndOfPrd_dvda, order=(1, 0))
     kNrmNow = cNrmNow + aNrmNow  # Endogenous kNrm gridpoints
+
+    # print(cNrmNow[:10,:].transpose())
+
+    print("cNrm", np.sum(np.isnan(cNrmNow)), np.sum(np.isinf(cNrmNow)))
+
+    for j in range(bCount):
+        plt.plot(kNrmNow[:, j], cNrmNow[:, j])
+    plt.show()
 
     # Construct consumption function and pseudo-inverse marginal value of illiquid
     # market resources functions
@@ -345,15 +482,26 @@ def solve_one_period_basic_illiquid(
         cFunc_by_bNrm_list.append(LinearInterp(kNrm_temp, cNrm_temp))
         dvdbNvrsFunc_by_bNrm_list.append(LinearInterp(kNrm_temp, dvdbNvrs_temp))
     cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_bNrm_list, bNrmGrid)
+    cFuncUnc = VariableLowerBoundFunc2D(cFuncUncBase, BoroCnstNatFunc)
     cFuncCnstBase = IdentityFunction(i_dim=0, n_dims=2)
-    cFuncBase = LowerEnvelope2D(cFuncUncBase, cFuncCnstBase)
-    cFuncNow = VariableLowerBoundFunc2D(cFuncBase, BoroCnstNatFunc)
+    if (BoroCnstArt is not None) and (BoroCnstArt > -np.inf):
+        borrowing_constraint = LinearInterp(
+            [0.0, 1.0], [BoroCnstArt, BoroCnstArt - 1 / (1.0 + IlqdPenalty)]
+        )
+    else:
+        borrowing_constraint = BoroCnstNatFunc
+    cFuncCnst = VariableLowerBoundFunc2D(cFuncCnstBase, borrowing_constraint)
+    cFuncNow = LowerEnvelope2D(cFuncUnc, cFuncCnst, nan_bool=False)
     dvdbNvrsFuncBase = LinearInterpOnInterp1D(dvdbNvrsFunc_by_bNrm_list, bNrmGrid)
     dvdbNvrsFunc = VariableLowerBoundFunc2D(dvdbNvrsFuncBase, BoroCnstNatFunc)
 
+    # Make the lower bound of mNrm as a function of nNrm
+    mNrmMinNow = UpperEnvelope(BoroCnstNatFunc, tradeoff_func)
+    mNrmMinNow = tradeoff_func
+
     # Construct the marginal value functions for middle-of-period liquid and illiquid resource
-    dvdkFunc = MargValueFuncCRRA(cFuncNow)
-    dvdbFunc = MargValueFuncCRRA(dvdbNvrsFunc)
+    dvdkFunc = MargValueFuncCRRA(cFuncNow, CRRA)
+    dvdbFunc = MargValueFuncCRRA(dvdbNvrsFunc, CRRA)
 
     # The consumption stage has now been solved, and we can begin work on the deposit stage.
 
@@ -372,16 +520,50 @@ def solve_one_period_basic_illiquid(
         LogRatioFuncAlt = lambda x: LogRatioFunc(x) - RatioTarg
 
         # Define the bounds of the search in k
-        kBot = kNrmNow[0, j] - BoroCnstNat[j]
-        kTop = kNrmNow[-1, j] - BoroCnstNat[j]
+        if j == 0:
+            kBotD = kNrmNow[0, j] - BoroCnstNat[j]
+            kTopD = kNrmNow[-1, j] - BoroCnstNat[j]
+            kBotW = kNrmNow[0, j] - BoroCnstNat[j]
+            kTopW = kNrmNow[-1, j] - BoroCnstNat[j]
+        else:
+            kBotD = OptZeroDeposit[j - 1] - BoroCnstNat[j - 1]
+            kTopD = kBotD + 3.0
+            kBotW = OptZeroWithdraw[j - 1] - BoroCnstNat[j - 1]
 
         # Perform a bounded search for optimal zero withdrawal and deposit
+        # print(kBotD, kTopD, LogRatioFunc(kBotD), LogRatioFunc(kTopD))
+        # plot_funcs(LogRatioFunc, kBot, kTop)
         OptZeroDeposit[j] = (
-            brentq(LogRatioFunc, kBot, kTop, xtol=1e-8, rtol=1e-8) + BoroCnstNat[j]
+            root_scalar(
+                LogRatioFunc,
+                bracket=(kBotD, kTopD),
+                xtol=1e-8,
+                rtol=1e-8,
+                method="brentq",
+            ).root
+            + BoroCnstNat[j]
         )
-        OptZeroWithdraw[j] = (
-            brentq(LogRatioFuncAlt, kBot, kTop, xtol=1e-8, rtol=1e-8) + BoroCnstNat[j]
-        )
+        # print(bNrmGrid[j], 'deposit', OptZeroDeposit[j])
+        if j > 1:
+            kTopW = OptZeroDeposit[j] - BoroCnstNat[j]
+        try:
+            OptZeroWithdraw[j] = (
+                root_scalar(
+                    LogRatioFuncAlt,
+                    bracket=(kBotW, kTopW),
+                    xtol=1e-8,
+                    rtol=1e-8,
+                    method="brentq",
+                ).root
+                + BoroCnstNat[j]
+            )
+        except:
+            OptZeroWithdraw[j] = BoroCnstNat[j]
+        print(bNrmGrid[j], "deposit", OptZeroDeposit[j], "withdraw", OptZeroWithdraw[j])
+
+    plt.plot(bNrmGrid, OptZeroDeposit, "-b")
+    plt.plot(bNrmGrid, OptZeroWithdraw, "-r")
+    plt.show()
 
     # Construct linear interpolations of the boundaries of the region of inaction
     InactionUpperBoundFunc = LinearInterp(bNrmGrid, OptZeroDeposit)
@@ -401,6 +583,7 @@ def solve_one_period_basic_illiquid(
         InactionUpperBoundFunc,
         CashFunc_Deposit,
         CashFunc_Withdraw,
+        TotalWealthAdj[0],
         IlqdPenalty,
     )
 
@@ -411,6 +594,137 @@ def solve_one_period_basic_illiquid(
 
     # Package and return the solution object
     solution_now = IlliquidConsumerSolution(
-        MargValueFunc=MargValueFuncNow, cFunc=cFuncNow, dFunc=dFuncNow
+        MargValueFunc=MargValueFuncNow,
+        cFunc=cFuncNow,
+        dFunc=dFuncNow,
+        mNrmMin=mNrmMinNow,
     )
     return solution_now
+
+
+###############################################################################
+
+# Make a dictionary of constructors for the idiosyncratic income shocks model
+basic_illiquid_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "bNrmGrid": make_illiquid_assets_grid,
+    "solution_terminal": make_PF_illiquid_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 1e-3,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 48,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 1,  # Linear spacing for aXtraGrid
+    "aXtraCount": 96,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [5e-3, 1e-2],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make bNrmGrid using make_illiquid_assets_grid
+default_bNrmGrid_params = {
+    "bNrmMin": 0.0,  # Minimum end-of-period "assets above minimum" value
+    "bNrmMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "bNrmNestFac": 1,  # Exponential spacing for bNrmGrid
+    "bNrmCount": 96,  # Number of points in the grid of "assets above minimum"
+    "bNrmExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Make a dictionary to specify an idiosyncratic income shocks consumer type
+init_basic_illiquid = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": basic_illiquid_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rboro": 1.20,  # Interest factor on liquid assets when borrowing, a < 0
+    "Rsave": 1.00,  # Interest factor on liquid assets when saving, a > 0
+    "Rilqd": 1.03,  # Interest factor on illiquid assets b
+    "IlqdPenalty": 0.15,  # Proportional penalty on withdrawing from illiquid asset
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": None,  # Artificial borrowing constraint
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_basic_illiquid.update(default_IncShkDstn_params)
+init_basic_illiquid.update(default_aXtraGrid_params)
+init_basic_illiquid.update(default_bNrmGrid_params)
+
+
+class BasicIlliquidConsumerType(KinkedRconsumerType):
+    """
+    A consumer type that faces idiosyncratic shocks to income and has a different
+    interest factor on saving vs borrowing.  Extends IndShockConsumerType, with
+    very small changes.  Solver for this class is currently only compatible with
+    linear spline interpolation.
+
+    Same parameters as AgentType.
+
+
+    Parameters
+    ----------
+    """
+
+    time_inv_ = copy(KinkedRconsumerType.time_inv_)
+    time_inv_ += ["Rilqd", "bNrmGrid", "IlqdPenalty"]
+
+    def __init__(self, **kwds):
+        params = init_basic_illiquid.copy()
+        params.update(kwds)
+
+        # Initialize a basic AgentType
+        super().__init__(**params)
+
+        # Add consumer-type specific objects, copying to create independent versions
+        self.solve_one_period = solve_one_period_basic_illiquid
+
+    def update(self):
+        super().update()
+        self.construct("bNrmGrid")
+
+    def cFuncSimple(self, t, mNrm, nNrm):
+        dFunc = self.solution[t].dFunc
+        cFunc = self.solution[t].cFunc
+        dNrm = dFunc(mNrm, nNrm)
+        kNrm = mNrm - dNrm
+        temp = 1.0 + self.IlqdPenalty * (dNrm < 0.0)
+        bNrm = nNrm + temp * dNrm
+        cNrm = cFunc(kNrm, bNrm)
+        return cNrm
+
+
+if __name__ == "__main__":
+    MyType = BasicIlliquidConsumerType()
+    MyType.cycles = 2
+    MyType.solve()
