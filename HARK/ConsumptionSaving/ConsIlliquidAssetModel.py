@@ -7,7 +7,6 @@ proportional penalty.
 
 from copy import copy
 import numpy as np
-from scipy.optimize import root_scalar
 import matplotlib.pyplot as plt
 
 from HARK.metric import MetricObject
@@ -22,7 +21,7 @@ from HARK.interpolation import (
     LowerEnvelope2D,
     UpperEnvelope,
 )
-from HARK.utilities import make_assets_grid
+from HARK.utilities import make_assets_grid, plot_funcs
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     KinkedRconsumerType,
     PerfForesightConsumerType,
@@ -101,6 +100,16 @@ class DepositFunction(MetricObject):
         dNrm = mNrmX - kNrm  # Will be zero for "do nothing"
         return dNrm
 
+    def derivativeX(self, mNrm, nNrm, eps=1e-8):
+        dLo = self.__call__(mNrm - eps, nNrm)
+        dHi = self.__call__(mNrm + eps, nNrm)
+        return (dHi - dLo) / (2 * eps)
+
+    def derivativeY(self, mNrm, nNrm, eps=1e-8):
+        dLo = self.__call__(mNrm, nNrm - eps)
+        dHi = self.__call__(mNrm, nNrm + eps)
+        return (dHi - dLo) / (2 * eps)
+
 
 class SpecialMargValueFunction(MetricObject):
     """
@@ -142,7 +151,7 @@ class SpecialMargValueFunction(MetricObject):
         withdraw = dNrm < 0.0
         dNrmAdj = dNrm * (1.0 + self.Penalty * withdraw)
         kNrm = mNrm - dNrm
-        bNrm = nNrm + dNrmAdj
+        bNrm = np.maximum(nNrm + dNrmAdj, 0.0)
         dvdm = self.dvdk(kNrm, bNrm)
         dvdn = self.dvdb(kNrm, bNrm)
         return dvdm, dvdn
@@ -171,11 +180,13 @@ class IlliquidConsumerSolution(MetricObject):
 
     distance_criteria = ["cFunc", "dFunc"]
 
-    def __init__(self, MargValueFunc, cFunc, dFunc, mNrmMin):
+    def __init__(self, MargValueFunc, cFunc, dFunc, mNrmMin, MPCmin=None, hNrm=None):
         self.MargValueFunc = MargValueFunc
         self.cFunc = cFunc
         self.dFunc = dFunc
         self.mNrmMin = mNrmMin
+        self.MPCmin = MPCmin
+        self.hNrm = hNrm
 
 
 def make_basic_illiquid_solution_terminal(CRRA):
@@ -207,7 +218,7 @@ def make_basic_illiquid_solution_terminal(CRRA):
     return solution_terminal
 
 
-def make_PF_illiquid_solution_terminal(CRRA, DiscFac):
+def make_PF_illiquid_solution_terminal(CRRA, DiscFac, Rilqd):
     """
     Function that makes a trivial terminal period in which liquid and illiquid
     assets are summed together, then passed to an infinite horizon PF problem.
@@ -216,6 +227,10 @@ def make_PF_illiquid_solution_terminal(CRRA, DiscFac):
     ----------
     CRRA : float
         Coefficient of relative risk aversion.
+    DiscFac : float
+        Intertemporal discount factor.
+    Rilqd : float
+        Rate of return on illiquid asset holdings.
 
     Returns
     -------
@@ -229,6 +244,7 @@ def make_PF_illiquid_solution_terminal(CRRA, DiscFac):
     PF_dict = {
         "cycles": 0,
         "BoroCnstArt": 0.0,
+        "Rfree": Rilqd,
         "CRRA": rho,
         "DiscFac": DiscFac,
         "LivPrb": [LivPrbPF],
@@ -253,6 +269,8 @@ def make_PF_illiquid_solution_terminal(CRRA, DiscFac):
         cFunc=cFunc_terminal,
         dFunc=dFunc_terminal,
         mNrmMin=mNrmMin_terminal,
+        MPCmin=PFtype.solution[0].MPCmin,
+        hNrm=PFtype.solution[0].hNrm,
     )
     return solution_terminal
 
@@ -405,6 +423,14 @@ def solve_one_period_basic_illiquid(
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
 
+    # Calculate patience factor and lower bound of MPC
+    PatFac = ((Rilqd * DiscFacEff) ** (1.0 / CRRA)) / Rilqd
+    MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
+
+    # Calculate updated human wealth
+    Ex_IncNext = expected(lambda x: x["PermShk"] * x["TranShk"], IncShkDstn)
+    hNrmNow = (PermGroFac / Rilqd) * (solution_next.hNrm + Ex_IncNext)
+
     # Unpack next period's marginal value function
     MargValueFuncNext = solution_next.MargValueFunc
 
@@ -436,20 +462,41 @@ def solve_one_period_basic_illiquid(
         aNrmNow[:, j] = temp_grid
 
     # Compute end-of-period marginal value of liquid and illiquid assets
-    EndOfPrd_dvda, EndOfPrd_dvdb = expected(
-        calc_marg_values_next,
-        IncShkDstn,
-        args=(
-            aNrmNow,
-            bNrmNow,
-            CRRA,
-            Rboro,
-            Rsave,
-            Rilqd,
-            PermGroFac,
-            MargValueFuncNext,
-        ),
+    # EndOfPrd_dvda, EndOfPrd_dvdb = expected(
+    #     calc_marg_values_next,
+    #     IncShkDstn,
+    #     args=(
+    #         aNrmNow,
+    #         bNrmNow,
+    #         CRRA,
+    #         Rboro,
+    #         Rsave,
+    #         Rilqd,
+    #         PermGroFac,
+    #         MargValueFuncNext,
+    #     ),
+    # )
+    aNrm_temp = np.reshape(aNrmNow, (aCount + 2, bCount, 1))
+    bNrm_temp = np.reshape(bNrmNow, (aCount + 2, bCount, 1))
+    ShkCount = IncShkDstn.atoms.shape[-1]
+    PermShk = np.reshape(IncShkDstn.atoms[0,], (1, 1, ShkCount))
+    TranShk = np.reshape(IncShkDstn.atoms[1,], (1, 1, ShkCount))
+    ShkPrbs = np.tile(
+        np.reshape(IncShkDstn.pmv, (1, 1, ShkCount)), (aCount + 2, bCount, 1)
     )
+
+    GroFac = PermGroFac * PermShk
+    Rliqd = Rsave * np.ones_like(aNrm_temp)
+    Rliqd[aNrm_temp < 0] = Rboro
+    mNrm_temp = Rliqd / GroFac * aNrm_temp + TranShk
+    nNrm_temp = Rilqd / GroFac * bNrm_temp + 0.0 * TranShk
+    temp_fac = GroFac**-CRRA
+    dvdm, dvdn = MargValueFuncNext(mNrm_temp, nNrm_temp)
+    dvdm *= temp_fac
+    dvdn *= temp_fac
+
+    EndOfPrd_dvda = np.sum(dvdm * ShkPrbs, axis=2)
+    EndOfPrd_dvdb = np.sum(dvdn * ShkPrbs, axis=2)
 
     # Rescale expected marginal value by discount factor and return factor
     Rliqd = Rsave * np.ones_like(EndOfPrd_dvda)
@@ -462,9 +509,23 @@ def solve_one_period_basic_illiquid(
     cNrmNow = uFunc.derinv(EndOfPrd_dvda, order=(1, 0))
     kNrmNow = cNrmNow + aNrmNow  # Endogenous kNrm gridpoints
 
-    # print(cNrmNow[:10,:].transpose())
+    LB_next = solution_next.mNrmMin(nNrm_temp)
+    violations = mNrm_temp < LB_next
+
+    bad = np.argwhere(np.isnan(dvdm))
+    if np.any(bad):
+        J = 10
+        for j in range(J):
+            print(
+                "m=",
+                mNrm_temp[bad[j, 0], bad[j, 1], bad[j, 2]],
+                "n=",
+                nNrm_temp[bad[j, 0], bad[j, 1], bad[j, 2]],
+            )
 
     print("cNrm", np.sum(np.isnan(cNrmNow)), np.sum(np.isinf(cNrmNow)))
+    print("dvdm", np.sum(np.isnan(dvdm)), np.sum(np.isinf(dvdm)))
+    print("violations", np.sum(violations))
 
     for j in range(bCount):
         plt.plot(kNrmNow[:, j], cNrmNow[:, j])
@@ -479,7 +540,10 @@ def solve_one_period_basic_illiquid(
         kNrm_temp = np.insert(kNrmNow[:, j] - BoroCnstNat[j], 0, 0.0)
         cNrm_temp = np.insert(cNrmNow[:, j], 0, 0.0)
         dvdbNvrs_temp = np.insert(dvdbNvrs[:, j], 0, 0.0)
-        cFunc_by_bNrm_list.append(LinearInterp(kNrm_temp, cNrm_temp))
+        intercept_temp = MPCminNow * (hNrmNow + bNrmGrid[j] + BoroCnstNat[j])
+        cFunc_by_bNrm_list.append(
+            LinearInterp(kNrm_temp, cNrm_temp, intercept_temp, MPCminNow)
+        )
         dvdbNvrsFunc_by_bNrm_list.append(LinearInterp(kNrm_temp, dvdbNvrs_temp))
     cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_bNrm_list, bNrmGrid)
     cFuncUnc = VariableLowerBoundFunc2D(cFuncUncBase, BoroCnstNatFunc)
@@ -511,55 +575,88 @@ def solve_one_period_basic_illiquid(
 
     # Loop over bNrm values and find places where the FOC holds with equality.
     # The version here will be *very* slow, can improve later once it works.
-    RatioTarg = np.log(1.0 + IlqdPenalty)
+    RatioTarg = -1.0 / CRRA * np.log(1.0 + IlqdPenalty)
+    LogNvrsRatio = np.log(cNrmNow / dvdbNvrs)
     for j in range(bCount):
-        # Define the functions to be searched for FOC solutions
-        dvdkFunc_temp = MargValueFuncCRRA(cFunc_by_bNrm_list[j], CRRA)
-        dvdbFunc_temp = MargValueFuncCRRA(dvdbNvrsFunc_by_bNrm_list[j], CRRA)
-        LogRatioFunc = lambda x: np.log(dvdkFunc_temp(x) / dvdbFunc_temp(x))
-        LogRatioFuncAlt = lambda x: LogRatioFunc(x) - RatioTarg
-
-        # Define the bounds of the search in k
-        if j == 0:
-            kBotD = kNrmNow[0, j] - BoroCnstNat[j]
-            kTopD = kNrmNow[-1, j] - BoroCnstNat[j]
-            kBotW = kNrmNow[0, j] - BoroCnstNat[j]
-            kTopW = kNrmNow[-1, j] - BoroCnstNat[j]
-        else:
-            kBotD = OptZeroDeposit[j - 1] - BoroCnstNat[j - 1]
-            kTopD = kBotD + 3.0
-            kBotW = OptZeroWithdraw[j - 1] - BoroCnstNat[j - 1]
-
-        # Perform a bounded search for optimal zero withdrawal and deposit
-        # print(kBotD, kTopD, LogRatioFunc(kBotD), LogRatioFunc(kTopD))
-        # plot_funcs(LogRatioFunc, kBot, kTop)
-        OptZeroDeposit[j] = (
-            root_scalar(
-                LogRatioFunc,
-                bracket=(kBotD, kTopD),
-                xtol=1e-8,
-                rtol=1e-8,
-                method="brentq",
-            ).root
-            + BoroCnstNat[j]
-        )
-        # print(bNrmGrid[j], 'deposit', OptZeroDeposit[j])
-        if j > 1:
-            kTopW = OptZeroDeposit[j] - BoroCnstNat[j]
+        LogNvrsRatio_temp = LogNvrsRatio[:, j]
+        kNrm_temp = kNrmNow[:, j]
+        descending = LogNvrsRatio_temp[1:] - LogNvrsRatio_temp[:-1] < -0.001
         try:
-            OptZeroWithdraw[j] = (
-                root_scalar(
-                    LogRatioFuncAlt,
-                    bracket=(kBotW, kTopW),
-                    xtol=1e-8,
-                    rtol=1e-8,
-                    method="brentq",
-                ).root
-                + BoroCnstNat[j]
-            )
+            crash
+            cut = np.argwhere(descending)[0][0]
         except:
-            OptZeroWithdraw[j] = BoroCnstNat[j]
-        print(bNrmGrid[j], "deposit", OptZeroDeposit[j], "withdraw", OptZeroWithdraw[j])
+            cut = -1
+
+        # plt.plot(kNrm_temp, LogNvrsRatio_temp, '-b')
+        # plt.plot(kNrm_temp, np.zeros_like(kNrm_temp), '--k')
+        # plt.plot(kNrm_temp, RatioTarg * np.ones_like(kNrm_temp), '--k')
+        # plt.show()
+
+        idx = np.searchsorted(LogNvrsRatio_temp[:cut], 0.0)
+        k0 = kNrm_temp[idx - 1]
+        k1 = kNrm_temp[idx]
+        x0 = LogNvrsRatio_temp[idx - 1]
+        x1 = LogNvrsRatio_temp[idx]
+        # print(cut,x0,x1,k0,k1)
+        alpha = (0.0 - x0) / (x1 - x0)
+        OptZeroDeposit[j] = (1.0 - alpha) * k0 + alpha * k1
+
+        idx = np.searchsorted(LogNvrsRatio_temp[:cut], RatioTarg)
+        k0 = kNrm_temp[idx - 1]
+        k1 = kNrm_temp[idx]
+        x0 = LogNvrsRatio_temp[idx - 1]
+        x1 = LogNvrsRatio_temp[idx]
+        # print(cut,x0,x1,k0,k1)
+        alpha = (RatioTarg - x0) / (x1 - x0)
+        OptZeroWithdraw[j] = (1.0 - alpha) * k0 + alpha * k1
+
+        # Define the functions to be searched for FOC solutions
+        # dvdkFunc_temp = MargValueFuncCRRA(cFunc_by_bNrm_list[j], CRRA)
+        # dvdbFunc_temp = MargValueFuncCRRA(dvdbNvrsFunc_by_bNrm_list[j], CRRA)
+        # LogRatioFunc = lambda x: np.log(dvdkFunc_temp(x) / dvdbFunc_temp(x))
+        # LogRatioFuncAlt = lambda x: LogRatioFunc(x) - RatioTarg
+
+        # # Define the bounds of the search in k
+        # if j < 10:
+        #     kBotD = kNrmNow[0, j] - BoroCnstNat[j]
+        #     kTopD = kBotD + 3.0 #kNrmNow[-1, j] - BoroCnstNat[j]
+        #     kBotW = kNrmNow[0, j] - BoroCnstNat[j]
+        #     kTopW = kNrmNow[-1, j] - BoroCnstNat[j]
+        # else:
+        #     kBotD = OptZeroDeposit[j - 1] - BoroCnstNat[j - 1]
+        #     kTopD = kBotD + 1.0
+        #     kBotW = OptZeroWithdraw[j - 1] - BoroCnstNat[j - 1]
+
+        # # Perform a bounded search for optimal zero withdrawal and deposit
+        # print(kBotD, kTopD, LogRatioFunc(kBotD), LogRatioFunc(kTopD))
+        # #plot_funcs(LogRatioFunc, kNrmNow[0, j] - BoroCnstNat[j], kNrmNow[-1, j] - BoroCnstNat[j])
+        # OptZeroDeposit[j] = (
+        #     root_scalar(
+        #         LogRatioFunc,
+        #         bracket=(kBotD, kTopD),
+        #         xtol=1e-8,
+        #         rtol=1e-8,
+        #         method="brentq",
+        #     ).root
+        #     + BoroCnstNat[j]
+        # )
+        # # print(bNrmGrid[j], 'deposit', OptZeroDeposit[j])
+        # if j > 1:
+        #     kTopW = OptZeroDeposit[j] - BoroCnstNat[j]
+        # try:
+        #     OptZeroWithdraw[j] = (
+        #         root_scalar(
+        #             LogRatioFuncAlt,
+        #             bracket=(kBotW, kTopW),
+        #             xtol=1e-8,
+        #             rtol=1e-8,
+        #             method="brentq",
+        #         ).root
+        #         + BoroCnstNat[j]
+        #     )
+        # except:
+        #     OptZeroWithdraw[j] = BoroCnstNat[j]
+        # print(bNrmGrid[j], "deposit", OptZeroDeposit[j], "withdraw", OptZeroWithdraw[j])
 
     plt.plot(bNrmGrid, OptZeroDeposit, "-b")
     plt.plot(bNrmGrid, OptZeroWithdraw, "-r")
@@ -598,6 +695,8 @@ def solve_one_period_basic_illiquid(
         cFunc=cFuncNow,
         dFunc=dFuncNow,
         mNrmMin=mNrmMinNow,
+        MPCmin=MPCminNow,
+        hNrm=hNrmNow,
     )
     return solution_now
 
@@ -630,18 +729,18 @@ default_IncShkDstn_params = {
 # Default parameters to make aXtraGrid using make_assets_grid
 default_aXtraGrid_params = {
     "aXtraMin": 1e-3,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 48,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 24,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 1,  # Linear spacing for aXtraGrid
-    "aXtraCount": 96,  # Number of points in the grid of "assets above minimum"
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": [5e-3, 1e-2],  # Additional other values to add in grid (optional)
 }
 
 # Default parameters to make bNrmGrid using make_illiquid_assets_grid
 default_bNrmGrid_params = {
     "bNrmMin": 0.0,  # Minimum end-of-period "assets above minimum" value
-    "bNrmMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "bNrmMax": 16,  # Maximum end-of-period "assets above minimum" value
     "bNrmNestFac": 1,  # Exponential spacing for bNrmGrid
-    "bNrmCount": 96,  # Number of points in the grid of "assets above minimum"
+    "bNrmCount": 300,  # Number of points in the grid of "assets above minimum"
     "bNrmExtra": None,  # Additional other values to add in grid (optional)
 }
 
@@ -719,12 +818,52 @@ class BasicIlliquidConsumerType(KinkedRconsumerType):
         dNrm = dFunc(mNrm, nNrm)
         kNrm = mNrm - dNrm
         temp = 1.0 + self.IlqdPenalty * (dNrm < 0.0)
-        bNrm = nNrm + temp * dNrm
+        bNrm = np.maximum(nNrm + temp * dNrm, 0.0)
+        # shift = cFunc.functions[0].lowerBound(bNrm)
+        # cNrm = cFunc.functions[0].func._secret(kNrm-shift,bNrm)
         cNrm = cFunc(kNrm, bNrm)
         return cNrm
+
+    def MPCfuncSimple(self, t, mNrm, nNrm):
+        dFunc = self.solution[t].dFunc
+        cFunc = self.solution[t].cFunc
+        dNrm = dFunc(mNrm, nNrm)
+        kNrm = mNrm - dNrm
+        temp = 1.0 + self.IlqdPenalty * (dNrm < 0.0)
+        bNrm = np.maximum(nNrm + temp * dNrm, 0.0)
+
+        dcdk = cFunc.derivativeX(kNrm, bNrm)
+        dcdb = cFunc.derivativeY(kNrm, bNrm)
+        dDdm = dFunc.derivativeX(mNrm, nNrm)
+        dkdm = 1.0 - dDdm
+        dbdm = temp * dDdm
+        dcdm = dcdk * dkdm + dcdb * dbdm
+        MPC = dcdm
+
+        return MPC
 
 
 if __name__ == "__main__":
     MyType = BasicIlliquidConsumerType()
     MyType.cycles = 2
     MyType.solve()
+
+    B = 8.0
+    f = lambda x: MyType.MPCfuncSimple(0, x, B * np.ones_like(x))
+    g = lambda x: MyType.cFuncSimple(0, x, B * np.ones_like(x))
+    h = lambda x: MyType.solution[0].dFunc(x, B * np.ones_like(x))
+    z = lambda x: (x + MyType.solution[0].hNrm + B) * MyType.solution[0].MPCmin
+    c = lambda x: MyType.solution[0].cFunc(x, B * np.ones_like(x))
+
+    plot_funcs([c, z], 0, 80)
+
+    # m= 0.33446644398923286 n= 0.0390526406103266
+    # m= 0.4051718438763465 n= 0.0390526406103266
+    # m= 0.44712405210883144 n= 0.0390526406103266
+    # m= 0.4844309585942469 n= 0.0390526406103266
+    # m= 0.5231544276029979 n= 0.0390526406103266
+    # m= 0.5703958661408141 n= 0.0390526406103266
+    # m= 0.6620836699431031 n= 0.0390526406103266
+    # m= -0.1852923544627234 n= 0.03462837348818072
+    # m= 0.5091270511584698 n= 0.03462837348818072
+    # m= 0.5464339576438852 n= 0.03462837348818072

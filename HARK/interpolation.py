@@ -625,9 +625,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 0
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeY(self, *args):
         """
@@ -639,9 +639,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 1
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeZ(self, *args):
         """
@@ -2716,6 +2716,37 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
                         f[c] = (1 - alpha) * self.xInterpolators[i - 1](
                             x[c]
                         ) + alpha * self.xInterpolators[i](x[c])
+        return f
+
+    def _secret(self, x, y):
+        """
+        IT'S A SECRET TO EVERYBODY
+        """
+        if _isscalar(x):
+            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
+            alpha = (y - self.y_list[y_pos - 1]) / (
+                self.y_list[y_pos] - self.y_list[y_pos - 1]
+            )
+            f = (1 - alpha) * self.xInterpolators[y_pos - 1](
+                x
+            ) + alpha * self.xInterpolators[y_pos](x)
+        else:
+            m = len(x)
+            y_pos = np.searchsorted(self.y_list, y)
+            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+            y_pos[y_pos < 1] = 1
+            f = np.zeros(m) + np.nan
+            if y.size > 0:
+                for i in range(1, self.y_n):
+                    c = y_pos == i
+                    if np.any(c):
+                        alpha = (y[c] - self.y_list[i - 1]) / (
+                            self.y_list[i] - self.y_list[i - 1]
+                        )
+                        # f[c] = i
+                        f[c] = self.xInterpolators[i](x[c])
+                        # f[c] = self.xInterpolators[i - 1](x[c])
+                        # f[c] = self.xInterpolators[i](x[c]) - self.xInterpolators[i - 1](x[c])
         return f
 
     def _derX(self, x, y):
