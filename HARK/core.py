@@ -597,6 +597,7 @@ class AgentType(Model):
     """
 
     state_vars = []
+    _default_params_ = {}
 
     def __init__(
         self,

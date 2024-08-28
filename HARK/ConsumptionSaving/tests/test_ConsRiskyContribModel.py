@@ -37,7 +37,7 @@ class test_(unittest.TestCase):
         self.par_finite["DiscFac"] = 0.95**15
         self.par_finite["Rfree"] = 1.03**15
         self.par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
-        self.par_finite["RiskyStd"] = 0.20 * np.sqrt(
+        self.par_finite["RiskyStd"] = 0.0621376926532 * np.sqrt(
             15
         )  # Standard deviation of (log) risky returns
 

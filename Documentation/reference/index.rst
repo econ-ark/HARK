@@ -13,6 +13,7 @@ API Reference
    tools/frame
    tools/helpers
    tools/interpolation
+   tools/incomeprocess
    tools/model
    tools/numba_tools
    tools/parallel
@@ -26,6 +27,7 @@ API Reference
    :maxdepth: 1
 
    ConsumptionSaving/ConsAggShockModel
+   ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
    ConsumptionSaving/ConsIndShockModel
    ConsumptionSaving/ConsIndShockModelFast

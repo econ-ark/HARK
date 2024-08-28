@@ -64,7 +64,7 @@ def make_simple_ShareGrid(ShareCount):
 ###############################################################################
 
 # Make a dictionary of constructors for the risky asset model
-risky_constructor_dict = {
+IndShockRiskyAssetConsumerType_constructor_default = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
@@ -77,7 +77,7 @@ risky_constructor_dict = {
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
-default_IncShkDstn_params = {
+IndShockRiskyAssetConsumerType_IncShkDstn_default = {
     "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
     "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
@@ -90,7 +90,7 @@ default_IncShkDstn_params = {
 }
 
 # Default parameters to make aXtraGrid using make_assets_grid
-default_aXtraGrid_params = {
+IndShockRiskyAssetConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
@@ -98,22 +98,29 @@ default_aXtraGrid_params = {
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
-# Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
-default_RiskyDstn_and_ShareGrid_params = {
-    "RiskyAvg": 1.080370891,  # Mean return factor of risky asset
-    "RiskyStd": 0.177196585,  # Stdev of log returns on risky asset
+# Default parameters to make RiskyDstn with make_lognormal_RiskyDstn
+IndShockRiskyAssetConsumerType_RiskyDstn_default = {
+    "RiskyAvg": 1.0803701891,  # Mean return factor of risky asset
+    "RiskyStd": 0.162927447983,  # Stdev of log returns on risky asset
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
-    "ShareCount": 25,  # Number of discrete points in the risky share approximation
 }
 # Risky return factor moments are based on SP500 real returns from Shiller's
 # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
+# Access it through the internet archive
+# We've (will) rounded them to the nearest .01
+
+# Default parameters to make RiskyDstn with make_simple_ShareGrid
+IndShockRiskyAssetConsumerType_ShareGrid_default = {
+    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+}
+
 
 # Make a dictionary to specify a risky asset consumer type
-init_risky_asset = {
+IndShockRiskyAssetConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "constructors": risky_constructor_dict,  # See dictionary above
+    "constructors": IndShockRiskyAssetConsumerType_constructor_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": 1.03,  # Return factor on risk free asset (not used by this type)
@@ -127,6 +134,8 @@ init_risky_asset = {
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     # TODO: This is not used in this file and should be moved to ConsPortfolioModel.py
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
+}
+IndShockRiskyAssetConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
@@ -142,27 +151,178 @@ init_risky_asset = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
 }
-init_risky_asset.update(default_IncShkDstn_params)
-init_risky_asset.update(default_aXtraGrid_params)
-init_risky_asset.update(default_RiskyDstn_and_ShareGrid_params)
+IndShockRiskyAssetConsumerType_default = {}
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_IncShkDstn_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_RiskyDstn_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_aXtraGrid_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_ShareGrid_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_solving_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_simulation_default
+)
+init_risky_asset = IndShockRiskyAssetConsumerType_default
 
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
-    """
-    A consumer type that has access to a risky asset for his savings. The
+    r"""
+    A consumer type based on IndShockConsumerType, that has access to a risky asset for their savings. The
     risky asset has lognormal returns that are possibly correlated with his
     income shocks.
 
-    There is a friction that prevents the agent from adjusting his portfolio
-    at any given period with an exogenously given probability.
-    The meaning of "adjusting his portfolio" depends on the particular model.
+    If PortfolioBool is False, then the risky asset share is always one.
+    Otherwise the agent can optimize their risky asset share.
+
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \begin{align*}
+        v_t(m_t) &= \max_{c_t,S_t} u(c_t) + \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[(\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        & \text{s.t.}  \\
+        a_t &= m_t - c_t, \\
+        a_t &\geq \underline{a}, \\
+        m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
+        \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1. \\
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
+        \end{align*}
+
+
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+
+        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+    ShareGrid: Constructor
+        The agent's risky asset share grid
+
+        It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
+    RiskyDstn: Constructor, :math:`\phi`
+        The agent's asset shock distribution for risky assets.
+
+        It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+    BoroCnstArt: float, default=0.0, :math:`\underline{a}`
+        The minimum Asset/Perminant Income ratio. for this agent, BoroCnstArt must be 0.
+    vFuncBool: bool
+        Whether to calculate the value function during solution.
+    CubicBool: bool
+        Whether to use cubic spline interpoliation.
+    PortfolioBool: Boolean
+        Determines whether agent will use portfolio optimization or they only have access to risky assets. If false, the risky share is always one.
+
+    Simulation Parameters
+    ---------------------
+    sim_common_Rrisky: Boolean
+        Whether risky returns have a shared/common value across agents. If True, Risky return's can't be time varying.
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'Adjust', 'PermShk', 'Risky', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+
+        Adjust is the array of which agents can adjust
+
+        PermShk is the agent's permanent income shock
+
+        Risky is the agent's risky asset shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        aNrm is the normalized assets
+
+        bNrm is the normalized resources without this period's labor income
+
+        cNrm is the normalized consumption
+
+        mNrm is the normalized market resources
+
+        pLvl is the permanent income level
+
+        who_dies is the array of which agents died
+    aNrmInitMean: float
+        Mean of Log initial Normalized Assets.
+    aNrmInitStd: float
+        Std of Log initial Normalized Assets.
+    pLvlInitMean: float
+        Mean of Log initial permanent income.
+    pLvlInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle. If PortfolioBool is True, the solution also contains ShareFunc.
+
+        If PortfolioBool is True, the solution also contains:
+        ShareFunc - The asset share function for this period, defined over normalized market resources :math:`S=ShareFunc(mNrm)`.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
+
+    IncShkDstn_default = IndShockRiskyAssetConsumerType_IncShkDstn_default
+    RiskyDstn_default = IndShockRiskyAssetConsumerType_RiskyDstn_default
+    aXtraGrid_default = IndShockRiskyAssetConsumerType_aXtraGrid_default
+    ShareGrid_default = IndShockRiskyAssetConsumerType_ShareGrid_default
+    solving_default = IndShockRiskyAssetConsumerType_solving_default
+    simulation_default = IndShockRiskyAssetConsumerType_simulation_default  # So sphinx documents defaults
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["PortfolioBisect"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
-        params = init_risky_asset.copy()
+        params = IndShockRiskyAssetConsumerType_default.copy()
         params.update(kwds)
         kwds = params
 
@@ -434,16 +594,199 @@ RiskyAssetConsumerType = IndShockRiskyAssetConsumerType
 
 # Make a dictionary to specify a consumer type with a fixed risky asset share
 init_risky_share_fixed = init_risky_asset.copy()
-init_risky_share_fixed["RiskyShareFixed"] = [
+
+FixedPortfolioShareRiskyAssetConsumerType_constructor_default = (
+    IndShockRiskyAssetConsumerType_constructor_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_IncShkDstn_default = (
+    IndShockRiskyAssetConsumerType_IncShkDstn_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_aXtraGrid_default = (
+    IndShockRiskyAssetConsumerType_aXtraGrid_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_RiskyDstn_default = (
+    IndShockRiskyAssetConsumerType_RiskyDstn_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_ShareGrid_default = (
+    IndShockRiskyAssetConsumerType_ShareGrid_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_solving_default = (
+    IndShockRiskyAssetConsumerType_solving_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_simulation_default = (
+    IndShockRiskyAssetConsumerType_simulation_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_solving_default["RiskyShareFixed"] = [
     0.0
 ]  # Fixed share of assets in the risky asset
 
+FixedPortfolioShareRiskyAssetConsumerType_default = {}
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_IncShkDstn_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_RiskyDstn_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_aXtraGrid_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_ShareGrid_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_solving_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_simulation_default
+)
+init_risky_share_fixed = FixedPortfolioShareRiskyAssetConsumerType_default
+
 
 class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
+    r"""
+    A consumer type that has access to a risky asset for their savings. The
+    risky asset has lognormal returns that are possibly correlated with their
+    income shocks. A fixed portion of their savings are invested in those risky assets.
+
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \begin{align*}
+        v_t(m_t) &= \max_{c_t} u(c_t) + \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[(\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        & \text{s.t.}  \\
+        a_t &= m_t - c_t, \\
+        a_t &\geq \underline{a}, \\
+        m_{t+1} &= \mathsf{R}_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
+        \mathsf{R}_{t+1} &=S_t\phi_{t+1}\mathbf{R}_{t+1}+ (1-S_t)\mathsf{R}_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1},\phi_{t+1}) &\sim F_{t+1}, \\
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1. \\
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
+        \end{align*}
+
+
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+
+        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+    ShareGrid: Constructor
+        The agent's risky asset share grid
+
+        It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
+    RiskyDstn: Constructor, :math:`\phi`
+        The agent's asset shock distribution for risky assets.
+
+        It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    RiskyShareFixed: list[float], :math:`S`
+        Fixed share of assets in the risky asset.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+    BoroCnstArt: float, default=0.0, :math:`\underline{a}`
+        The minimum Asset/Perminant Income ratio. for this agent, BoroCnstArt must be 0.
+    vFuncBool: bool
+        Whether to calculate the value function during solution.
+    CubicBool: bool
+        Whether to use cubic spline interpoliation.
+    PortfolioBool: Boolean
+        Determines whether agent will use portfolio optimization or they only have access to risky assets. If false, the risky share is always one.
+
+    Simulation Parameters
+    ---------------------
+    sim_common_Rrisky: Boolean
+        Whether risky returns have a shared/common value across agents. If True, Risky return's can't be time varying.
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'Adjust', 'PermShk', 'Risky', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+
+        Adjust is the array of which agents can adjust
+
+        PermShk is the agent's permanent income shock
+
+        Risky is the agent's risky asset shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        aNrm is the normalized assets
+
+        bNrm is the normalized resources without this period's labor income
+
+        cNrm is the normalized consumption
+
+        mNrm is the normalized market resources
+
+        pLvl is the permanent income level
+
+        who_dies is the array of which agents died
+    aNrmInitMean: float
+        Mean of Log initial Normalized Assets.
+    aNrmInitStd: float
+        Std of Log initial Normalized Assets.
+    pLvlInitMean: float
+        Mean of Log initial permanent income.
+    pLvlInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
+    """
+
+    IncShkDstn_default = FixedPortfolioShareRiskyAssetConsumerType_IncShkDstn_default
+    RiskyDstn_default = FixedPortfolioShareRiskyAssetConsumerType_RiskyDstn_default
+    aXtraGrid_default = FixedPortfolioShareRiskyAssetConsumerType_aXtraGrid_default
+    ShareGrid_default = FixedPortfolioShareRiskyAssetConsumerType_ShareGrid_default
+    solving_default = FixedPortfolioShareRiskyAssetConsumerType_solving_default
+    simulation_default = FixedPortfolioShareRiskyAssetConsumerType_simulation_default  # So sphinx documents defaults
+
     time_vary_ = IndShockRiskyAssetConsumerType.time_vary_ + ["RiskyShareFixed"]
 
     def __init__(self, verbose=False, quiet=False, **kwds):
-        params = init_risky_share_fixed.copy()
+        params = FixedPortfolioShareRiskyAssetConsumerType_default.copy()
         params.update(kwds)
         kwds = params
 
@@ -525,6 +868,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
     -------
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem with income risk.
+
+    :meta private:
     """
     # Do a quick validity check; don't want to allow borrowing with risky returns
     if BoroCnstArt != 0.0:
@@ -984,6 +1329,8 @@ def solve_one_period_ConsPortChoice(
     -------
     solution_now : PortfolioSolution
         Solution to this period's problem.
+
+    :meta private:
     """
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
@@ -1485,6 +1832,8 @@ def solve_one_period_FixedShareRiskyAsset(
     -------
     solution_now : ConsumerSolution
         Solution to this period's consumption-saving problem with income risk.
+
+    :meta private:
     """
     # Do a quick validity check; don't want to allow borrowing with risky returns
     if BoroCnstArt != 0.0:
