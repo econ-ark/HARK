@@ -611,9 +611,9 @@ class IdentityFunction(MetricObject):
         Returns the derivative of the function with respect to the first dimension.
         """
         if self.i_dim == 0:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeX(self, *args):
         """
@@ -625,9 +625,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 0
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeY(self, *args):
         """
@@ -639,9 +639,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 1
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeZ(self, *args):
         """
@@ -653,9 +653,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 2
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeW(self, *args):
         """
@@ -669,9 +669,9 @@ class IdentityFunction(MetricObject):
                 False
             ), "Derivative with respect to W can't be called when n_dims < 4!"
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
 
 class ConstantFunction(MetricObject):
