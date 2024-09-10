@@ -30,7 +30,7 @@ from HARK.Calibration.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
-from HARK.distribution import (
+from HARK.distributions import (
     Lognormal,
     MeanOneLogNormal,
     Uniform,

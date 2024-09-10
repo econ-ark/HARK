@@ -13,7 +13,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
     init_portfolio,
 )
-from HARK.distribution import (
+from HARK.distributions import (
     Bernoulli,
     IndexDistribution,
     Lognormal,

@@ -45,7 +45,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     risky_constructor_dict,
 )
-from HARK.distribution import calc_expectation
+from HARK.distributions import calc_expectation
 from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
     ConstantFunction,  # Interpolator-like class that returns constant value

@@ -6,7 +6,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
     PortfolioSolution,
 )
-from HARK.distribution import expected
+from HARK.distributions import expected
 from HARK.interpolation import (
     BilinearInterp,
     CubicInterp,

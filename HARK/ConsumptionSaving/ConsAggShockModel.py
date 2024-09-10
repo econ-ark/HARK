@@ -23,7 +23,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     indshk_constructor_dict,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.distribution import (
+from HARK.distributions import (
     MarkovProcess,
     MeanOneLogNormal,
     Uniform,

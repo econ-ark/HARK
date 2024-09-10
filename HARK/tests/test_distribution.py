@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from HARK.distribution import (
+from HARK.distributions import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
@@ -11,8 +11,8 @@ from HARK.distribution import (
     Lognormal,
     MarkovProcess,
     MeanOneLogNormal,
-    MVNormal,
     MVLogNormal,
+    MVNormal,
     Normal,
     Uniform,
     Weibull,
