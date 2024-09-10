@@ -44,7 +44,6 @@ extensions = [
     "sphinx_design",
 ]
 
-
 include_patterns = [
     "Documentation**",
     "index.rst",
@@ -63,6 +62,14 @@ exclude_patterns = [
     "Documentation/index_core.rst",  # Prevents sphinx from getting confused
 ]
 
+napoleon_custom_sections = [
+    ("Variables associated with the default constuctor", "params_style"),
+    ("Grid Parameters", "params_style"),
+    ("Solving Parameters", "params_style"),
+    ("Simulation Parameters", "params_style"),
+    ("Constructors", "params_style"),
+    ("Attributes", "returns_style"),
+]
 language = "en"
 
 master_doc = "index"
@@ -80,10 +87,7 @@ source_suffix = [
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
 html_static_path = []
-html_css_files = [
-    "override-nbsphinx-gallery.css",
-]
-
+html_css_files = ["override-nbsphinx-gallery.css"]
 html_theme_options = {
     "use_edit_page_button": True,
     "icon_links": [
