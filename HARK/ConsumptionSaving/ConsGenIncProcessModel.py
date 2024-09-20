@@ -23,7 +23,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
 )
-from HARK.distribution import Lognormal, expected
+from HARK.distributions import Lognormal, expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,

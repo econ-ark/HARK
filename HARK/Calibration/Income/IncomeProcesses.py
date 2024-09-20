@@ -4,7 +4,7 @@ This file has various classes and functions for constructing income processes.
 
 import numpy as np
 from HARK.metric import MetricObject
-from HARK.distribution import (
+from HARK.distributions import (
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
     DiscreteDistribution,
