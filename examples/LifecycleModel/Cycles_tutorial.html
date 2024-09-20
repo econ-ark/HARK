@@ -1,0 +1,959 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>A number of Life-Cycle Examples in HARK &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="../../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/LifecycleModel/Cycles_tutorial';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/LifecycleModel/Cycles_tutorial.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Perfect foresight consumption-saving" href="../ConsIndShockModel/PerfForesightConsumerType.html" />
+    <link rel="prev" title="A Gentle Introduction to HARK" href="../Gentle-Intro/Gentle-Intro-To-HARK.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <script>document.write(`<img src="../../_static/econ-ark-logo.png" class="logo__image only-dark" alt="HARK latest documentation - Home"/>`);</script>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../Documentation/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../Documentation/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">A number of Life-Cycle Examples in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect foresight consumption-saving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Consumption-Saving model with Idiosyncratic Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Consumption-Saving model with Idiosyncratic Income Shocks and Different Interest Rates on Borrowing and Saving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/example_ConsPortfolioModel.html">Portfolio Models in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GenIncProcessModel/GenIncProcessModel.html">Permanent versus Persistent Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.html">How we solve a model defined by <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/Jacobian_Example.html">Computing Heterogenous Agent Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+
+
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/SSJ_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../Documentation/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">A number of...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/examples/LifecycleModel/Cycles_tutorial.ipynb">examples/LifecycleModel/Cycles_tutorial.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples/LifecycleModel/Cycles_tutorial.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Cycles_tutorial.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="A-number-of-Life-Cycle-Examples-in-HARK">
+<h1>A number of Life-Cycle Examples in HARK<a class="headerlink" href="#A-number-of-Life-Cycle-Examples-in-HARK" title="Link to this heading">#</a></h1>
+<p>This notebook will offer a number of examples of solving and simulating life-cycle models using the HARK toolkit. Although it is named as a tutorial, this note should be used more as a reference for the original models that the user would like to build using the toolkit (for example, if you are interested in modeling agents who experience seasonal shocks over an infinite horizon, you should adapt the final exercise to your own setting).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Attempt at combining the imports from both notebooks -- it works!</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">HARK.utilities</span> <span class="kn">import</span> <span class="n">plot_funcs</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+<section id="1.-The-model-with-age-dependent-parameters">
+<h2>1. The model with age-dependent parameters<a class="headerlink" href="#1.-The-model-with-age-dependent-parameters" title="Link to this heading">#</a></h2>
+<p>Recall the deterministic, life-cycle version of the perfect foresight model such that it accomodates age-dependent survival probability and/or income growth.</p>
+<p><span class="math">\begin{align}
+V_t(M_t,Y_t) &= \max_{C_t}~U(C_t) + \beta \pi_t V_{t+1}(M_{t+1},Y_{t+1}), \\
+& s.t.  \\
+%A_t &= M_t - C_t, \\
+M_{t+1} &= R (M_{t}-C_{t}) + Y_{t+1}, \\
+Y_{t+1} &= \Gamma_{t+1} Y_t, \\
+\end{align}</span></p>
+<p>Where <span class="math notranslate nohighlight">\(Y_t\)</span> is an age-dependent income, <span class="math notranslate nohighlight">\(\pi_t\)</span> is a survival probability and <span class="math notranslate nohighlight">\(\Gamma_{t+1}\)</span> is an income growth rate. Also <span class="math notranslate nohighlight">\(\pi_{T+1} =0\)</span>.</p>
+</section>
+<section id="2.-Introducing-the-cycles-attribute">
+<h2>2. Introducing the <code class="docutils literal notranslate"><span class="pre">cycles</span></code> attribute<a class="headerlink" href="#2.-Introducing-the-cycles-attribute" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">cycles</span></code> parameter has a more general use than was presented in the <a class="reference external" href="https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html">Gentle Introduction to HARK</a> notebook. In general, it tells HARK <strong>how many times the one period consumer’s problem needs to be solved with the given set of time-changing parameters.</strong> In our microeconomic case, these parameters are LivPrb and PermGroFac (as the discount factor, the CRRA parameter and risk free interest rate are assumed to be
+stable).</p>
+<p>For both the finite and infinite-horizon settings, <strong>the survival probabilities and income growth rates are different in each period</strong> and consumer <strong>never faces the same parameter’s combination.</strong></p>
+<p>So, after specifying the lists of survival probabilities and income growth vectors with T+1 non-zero values, one needs only to set the cycles attribute to match the time horizon of interest (finite or infinite).</p>
+<p>The cycles parameter can be used by itself in the solution of the one period consumer’s problem with time-changing parameters, or it can be used in conjuction with the <code class="docutils literal notranslate"><span class="pre">T_cycle</span></code> attribute, given an interest in simulating the model. As you will see in the examples towards the end of this notebook, the use of the T_cycle parameter is more straightforward.</p>
+</section>
+<section id="3.-Examples-(solution-only)">
+<h2>3. Examples (solution only)<a class="headerlink" href="#3.-Examples-(solution-only)" title="Link to this heading">#</a></h2>
+<section id="3.1-Finite-horizon,-life-cycle-problem">
+<h3>3.1 Finite horizon, life-cycle problem<a class="headerlink" href="#3.1-Finite-horizon,-life-cycle-problem" title="Link to this heading">#</a></h3>
+<p>First, consider a finite-horizon life cycle example. We create an agent-type object with maximal lifespan set to 11, and decreasing survival probability and inverse u-shape income dynamics up to period 6 (the consumer retired). Notice that this is acheived by the list of parameters in the code block below.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LifeCycle_dictionary</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="mf">1.04</span><span class="p">,</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.98</span><span class="p">,</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.99</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span> <span class="mf">0.96</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.94</span><span class="p">,</span> <span class="mf">0.93</span><span class="p">,</span> <span class="mf">0.92</span><span class="p">,</span> <span class="mf">0.91</span><span class="p">,</span> <span class="mf">0.90</span><span class="p">],</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># Our time varying parameters are a list with 10 elements</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Repeats once</span>
+<span class="p">}</span>
+
+<span class="n">LC_agent</span> <span class="o">=</span> <span class="n">PerfForesightConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">LifeCycle_dictionary</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>To solve the model, we use the <span class="math notranslate nohighlight">\(\texttt{solve}\)</span> method method finds value and consumption function. In case of <span class="math notranslate nohighlight">\(\Gamma_t \neq 1.0\)</span>, these functions are defined on the <strong>normalized by :math:`Y_t`</strong> space of the cash-in hands arguments. It is important to remember that, when you will plot them.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LC_agent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LC_agent</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+
+<span class="n">min_v</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">LC_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">))</span>
+<span class="n">max_v</span> <span class="o">=</span> <span class="o">-</span><span class="n">min_v</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption functions&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">LC_agent</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[:],</span> <span class="n">min_v</span><span class="p">,</span> <span class="n">max_v</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption functions
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_LifecycleModel_Cycles_tutorial_8_1.png" src="../../_images/examples_LifecycleModel_Cycles_tutorial_8_1.png" />
+</div>
+</div>
+</section>
+<section id="3.2-Infinite-horizon,-cyclical-problem">
+<h3>3.2 Infinite horizon, cyclical problem<a class="headerlink" href="#3.2-Infinite-horizon,-cyclical-problem" title="Link to this heading">#</a></h3>
+<p>Next, consider an infinite horizon, life-cycle problem in the following setting: the consumer lives with certainty but, her income perform cycles. During each cycles she experience two periods of the income increase and two of the decrease.</p>
+<p>We assume that for each cycle the income growth factors are: [1.05,1.1, 0.95, 0.92]. In each of the periods, we also assume that survival probability is 1. The rest of the parameters is the same as in the previous example.</p>
+<p>Below, we create a HARK agent-type object with the described above income cycles and solve the model. Notice that the cycles parameter is set to <span class="math notranslate nohighlight">\(0\)</span> in this case.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Cyc_dictionary</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="mf">1.03</span><span class="p">,</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.05</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.92</span><span class="p">],</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># 0 for infinite horizon</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">Cyc_agent</span> <span class="o">=</span> <span class="n">PerfForesightConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">Cyc_dictionary</span><span class="p">)</span>
+<span class="n">Cyc_agent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="4.-Examples-(simulation-and-solution)">
+<h2>4. Examples (simulation and solution)<a class="headerlink" href="#4.-Examples-(simulation-and-solution)" title="Link to this heading">#</a></h2>
+<section id="4.-1-An-aside-on-the-T_cycles-attribute">
+<h3>4. 1 An aside on the <code class="docutils literal notranslate"><span class="pre">T_cycles</span></code> attribute<a class="headerlink" href="#4.-1-An-aside-on-the-T_cycles-attribute" title="Link to this heading">#</a></h3>
+<p>When moving on to the simulation step in the model, the <code class="docutils literal notranslate"><span class="pre">T_cycles</span></code> parameter will need to be defined appropraitely. The best way to understand and implement this, again, is through adapting the following examples to your own liking.</p>
+<p>However, as a general rule of thumb: <em>the value of the ``T_cycles`` parameter should match the number of periods to be solved in the agent’s life-cycle problem.</em></p>
+</section>
+<section id="4.2-Finite-horizon,-life-cycle-problem">
+<h3>4.2 Finite horizon, life-cycle problem<a class="headerlink" href="#4.2-Finite-horizon,-life-cycle-problem" title="Link to this heading">#</a></h3>
+<p>Here, we consider a more advanced example using the ConsIndConsumerType class of the toolkit. Suppose again that we want to represent consumers of this class with a <em>lifecycle</em>– parameter values that differ by age, with a finite end point beyond which the individual cannot surive. This can be done very easily by simply specifying the time-varying attributes <span class="math notranslate nohighlight">\(\texttt{PermGroFac}\)</span>, <span class="math notranslate nohighlight">\(\texttt{LivPrb}\)</span>, <span class="math notranslate nohighlight">\(\texttt{PermShkStd}\)</span>, and <span class="math notranslate nohighlight">\(\texttt{TranShkStd}\)</span> as Python <em>lists</em>
+specifying the sequence of periods these agents will experience, from beginning to end.</p>
+<p>In the cell below, we define a parameter dictionary for a rather short ten period lifecycle, with arbitrarily chosen parameters. For a more realistically calibrated (and much longer) lifecycle model, see the <a class="reference external" href="https://github.com/econ-ark/REMARK/blob/master/REMARKs/SolvingMicroDSOPs.md">SolvingMicroDSOPs REMARK</a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LifecycleDict</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># Click arrow to expand this fairly large parameter dictionary</span>
+    <span class="c1"># Parameters shared with the perfect foresight model</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># Coefficient of relative risk aversion</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="mf">1.03</span><span class="p">,</span>  <span class="c1"># Interest factor on assets</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>  <span class="c1"># Intertemporal discount factor</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.99</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+    <span class="c1"># Parameters that specify the income distribution over the lifecycle</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="s2">&quot;PermShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Number of points in discrete approximation to permanent income shocks</span>
+    <span class="s2">&quot;TranShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="s2">&quot;TranShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Number of points in discrete approximation to transitory income shocks</span>
+    <span class="s2">&quot;UnempPrb&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>  <span class="c1"># Probability of unemployment while working</span>
+    <span class="s2">&quot;IncUnemp&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>  <span class="c1"># Unemployment benefits replacement rate</span>
+    <span class="s2">&quot;UnempPrbRet&quot;</span><span class="p">:</span> <span class="mf">0.0005</span><span class="p">,</span>  <span class="c1"># Probability of &quot;unemployment&quot; while retired</span>
+    <span class="s2">&quot;IncUnempRet&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># &quot;Unemployment&quot; benefits when retired</span>
+    <span class="s2">&quot;T_retire&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Period of retirement (0 --&gt; no retirement)</span>
+    <span class="s2">&quot;tax_rate&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Flat income tax rate (legacy parameter, will be removed in future)</span>
+    <span class="c1"># Parameters for constructing the &quot;assets above minimum&quot; grid</span>
+    <span class="s2">&quot;aXtraMin&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># Minimum end-of-period &quot;assets above minimum&quot; value</span>
+    <span class="s2">&quot;aXtraMax&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>  <span class="c1"># Maximum end-of-period &quot;assets above minimum&quot; value</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>  <span class="c1"># Number of points in the base grid of &quot;assets above minimum&quot;</span>
+    <span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># Exponential nesting factor when constructing &quot;assets above minimum&quot; grid</span>
+    <span class="s2">&quot;aXtraExtra&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Additional values to add to aXtraGrid</span>
+    <span class="c1"># A few other paramaters</span>
+    <span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Artificial borrowing constraint; imposed minimum level of end-of period assets</span>
+    <span class="s2">&quot;vFuncBool&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Whether to calculate the value function during solution</span>
+    <span class="s2">&quot;CubicBool&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Preference shocks currently only compatible with linear cFunc</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># Number of periods in the cycle for this agent type</span>
+    <span class="c1"># Parameters only used in simulation</span>
+    <span class="s2">&quot;AgentCount&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># Number of agents of this type</span>
+    <span class="s2">&quot;T_sim&quot;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>  <span class="c1"># Number of periods to simulate</span>
+    <span class="s2">&quot;aNrmInitMean&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">6.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial assets</span>
+    <span class="s2">&quot;aNrmInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial assets</span>
+    <span class="s2">&quot;pLvlInitMean&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial permanent income</span>
+    <span class="s2">&quot;pLvlInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial permanent income</span>
+    <span class="s2">&quot;PermGroFacAgg&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Aggregate permanent income growth factor</span>
+    <span class="s2">&quot;T_age&quot;</span><span class="p">:</span> <span class="mi">11</span><span class="p">,</span>  <span class="c1"># Age after which simulated agents are automatically killed</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>In this case, we have specified a ten period model in which retirement happens in period <span class="math notranslate nohighlight">\(t=7\)</span>. Agents in this model are more likely to die as they age, and their permanent income drops by 30% at retirement. Let’s make and solve this lifecycle example, then look at the <span class="math notranslate nohighlight">\(\texttt{solution}\)</span> attribute.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LifecycleExample</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">LifecycleDict</span><span class="p">)</span>
+<span class="n">LifecycleExample</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="mi">0</span>  <span class="c1"># Make this consumer live a sequence of periods -- a lifetime -- exactly once</span>
+<span class="p">)</span>
+<span class="n">LifecycleExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First element of solution is&quot;</span><span class="p">,</span> <span class="n">LifecycleExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Solution has&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">LifecycleExample</span><span class="o">.</span><span class="n">solution</span><span class="p">),</span> <span class="s2">&quot;elements.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+First element of solution is &lt;HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution object at 0x00000276E87A8D40&gt;
+Solution has 10 elements.
+</pre></div></div>
+</div>
+<p>This was supposed to be a <em>ten</em> period lifecycle model– why does our consumer type have <em>eleven</em> elements in its <span class="math notranslate nohighlight">\(\texttt{solution}\)</span>? It would be more precise to say that this specification has ten <em>non-terminal</em> periods. The solution to the 11th and final period in the model would be the same for every set of parameters: consume <span class="math notranslate nohighlight">\(c_t = m_t\)</span>, because there is no future. In a lifecycle model, the terminal period is assumed to exist; the <span class="math notranslate nohighlight">\(\texttt{LivPrb}\)</span> parameter does not need
+to end with a <span class="math notranslate nohighlight">\(0.0\)</span> in order to guarantee that survivors die.</p>
+<p>We can quickly plot the consumption functions in each period of the model:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption functions across the lifecycle:&quot;</span><span class="p">)</span>
+<span class="n">mMin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">LifecycleExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">LifecycleExample</span><span class="o">.</span><span class="n">T_cycle</span><span class="p">)],</span>
+<span class="p">)</span>
+<span class="n">LifecycleExample</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span>
+    <span class="s2">&quot;cFunc&quot;</span><span class="p">,</span>
+<span class="p">)</span>  <span class="c1"># This makes all of the cFuncs accessible in the attribute cFunc</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">LifecycleExample</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">mMin</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption functions across the lifecycle:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_LifecycleModel_Cycles_tutorial_17_1.png" src="../../_images/examples_LifecycleModel_Cycles_tutorial_17_1.png" />
+</div>
+</div>
+</section>
+<section id="4.3-Infinite-horizon,-cyclical-problem">
+<h3>4.3 Infinite horizon, cyclical problem<a class="headerlink" href="#4.3-Infinite-horizon,-cyclical-problem" title="Link to this heading">#</a></h3>
+<p>As a final example, we model consumers who face an infinite horizon, but who do <em>not</em> face the same problem in every period. Consider someone who works as a ski instructor: they make most of their income for the year in the winter, and make very little money in the other three seasons.</p>
+<p>We can represent this type of individual as a four period, infinite horizon model in which expected “permanent” income growth varies greatly across seasons.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CyclicalDict</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># Click the arrow to expand this parameter dictionary</span>
+    <span class="c1"># Parameters shared with the perfect foresight model</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># Coefficient of relative risk aversion</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="mf">1.03</span><span class="p">,</span>  <span class="c1"># Interest factor on assets</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>  <span class="c1"># Intertemporal discount factor</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">[</span><span class="mf">0.98</span><span class="p">],</span>  <span class="c1"># Survival probability</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.082251</span><span class="p">,</span> <span class="mf">2.8</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">],</span>
+    <span class="c1"># Parameters that specify the income distribution over the lifecycle</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+    <span class="s2">&quot;PermShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Number of points in discrete approximation to permanent income shocks</span>
+    <span class="s2">&quot;TranShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
+    <span class="s2">&quot;TranShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Number of points in discrete approximation to transitory income shocks</span>
+    <span class="s2">&quot;UnempPrb&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>  <span class="c1"># Probability of unemployment while working</span>
+    <span class="s2">&quot;IncUnemp&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>  <span class="c1"># Unemployment benefits replacement rate</span>
+    <span class="s2">&quot;UnempPrbRet&quot;</span><span class="p">:</span> <span class="mf">0.0005</span><span class="p">,</span>  <span class="c1"># Probability of &quot;unemployment&quot; while retired</span>
+    <span class="s2">&quot;IncUnempRet&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># &quot;Unemployment&quot; benefits when retired</span>
+    <span class="s2">&quot;T_retire&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># Period of retirement (0 --&gt; no retirement)</span>
+    <span class="s2">&quot;tax_rate&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Flat income tax rate (legacy parameter, will be removed in future)</span>
+    <span class="c1"># Parameters for constructing the &quot;assets above minimum&quot; grid</span>
+    <span class="s2">&quot;aXtraMin&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># Minimum end-of-period &quot;assets above minimum&quot; value</span>
+    <span class="s2">&quot;aXtraMax&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>  <span class="c1"># Maximum end-of-period &quot;assets above minimum&quot; value</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>  <span class="c1"># Number of points in the base grid of &quot;assets above minimum&quot;</span>
+    <span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># Exponential nesting factor when constructing &quot;assets above minimum&quot; grid</span>
+    <span class="s2">&quot;aXtraExtra&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Additional values to add to aXtraGrid</span>
+    <span class="c1"># A few other paramaters</span>
+    <span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Artificial borrowing constraint; imposed minimum level of end-of period assets</span>
+    <span class="s2">&quot;vFuncBool&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Whether to calculate the value function during solution</span>
+    <span class="s2">&quot;CubicBool&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Preference shocks currently only compatible with linear cFunc</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># Number of periods in the cycle for this agent type</span>
+    <span class="c1"># Parameters only used in simulation</span>
+    <span class="s2">&quot;AgentCount&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Number of agents of this type</span>
+    <span class="s2">&quot;T_sim&quot;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>  <span class="c1"># Number of periods to simulate</span>
+    <span class="s2">&quot;aNrmInitMean&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">6.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial assets</span>
+    <span class="s2">&quot;aNrmInitStd&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial assets</span>
+    <span class="s2">&quot;pLvlInitMean&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial permanent income</span>
+    <span class="s2">&quot;pLvlInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial permanent income</span>
+    <span class="s2">&quot;PermGroFacAgg&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Aggregate permanent income growth factor</span>
+    <span class="s2">&quot;T_age&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Age after which simulated agents are automatically killed</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>This consumer type’s parameter dictionary is nearly identical to the original infinite horizon type we made, except that each of the time-varying parameters now have <em>four</em> values, rather than just one. Most of these have the same value in each period <em>except</em> for <span class="math notranslate nohighlight">\(\texttt{PermGroFac}\)</span>, which varies greatly over the four seasons. Note that the product of the four “permanent” income growth factors is almost exactly 1.0– this type’s income does not grow on average in the long run!</p>
+<p>Let’s make and solve this consumer type, then plot his quarterly consumption functions:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">CyclicalExample</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">CyclicalDict</span><span class="p">)</span>
+<span class="n">CyclicalExample</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Make this consumer type have an infinite horizon</span>
+<span class="n">CyclicalExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+<span class="n">CyclicalExample</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Quarterly consumption functions:&quot;</span><span class="p">)</span>
+<span class="n">mMin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">X</span><span class="o">.</span><span class="n">mNrmMin</span> <span class="k">for</span> <span class="n">X</span> <span class="ow">in</span> <span class="n">CyclicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">])</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">CyclicalExample</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">mMin</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Quarterly consumption functions:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_LifecycleModel_Cycles_tutorial_21_1.png" src="../../_images/examples_LifecycleModel_Cycles_tutorial_21_1.png" />
+</div>
+</div>
+<p>The very low orange consumption function corresponds to the quarter in which the ski instructors make most of their income. They know that they are about to experience a 70% drop in “permanent” income, so they do not consume much <em>relative to their income this quarter</em>. In the other three quarters, <em>normalized</em> consumption is much higher, as current “permanent” income is low relative to future expectations. In <em>level</em>, the consumption chosen in each quarter is much more similar.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../Gentle-Intro/Gentle-Intro-To-HARK.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">A Gentle Introduction to HARK</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsIndShockModel/PerfForesightConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Perfect foresight consumption-saving</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#1.-The-model-with-age-dependent-parameters">1. The model with age-dependent parameters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#2.-Introducing-the-cycles-attribute">2. Introducing the <code class="docutils literal notranslate"><span class="pre">cycles</span></code> attribute</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#3.-Examples-(solution-only)">3. Examples (solution only)</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#3.1-Finite-horizon,-life-cycle-problem">3.1 Finite horizon, life-cycle problem</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#3.2-Infinite-horizon,-cyclical-problem">3.2 Infinite horizon, cyclical problem</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#4.-Examples-(simulation-and-solution)">4. Examples (simulation and solution)</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.-1-An-aside-on-the-T_cycles-attribute">4. 1 An aside on the <code class="docutils literal notranslate"><span class="pre">T_cycles</span></code> attribute</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.2-Finite-horizon,-life-cycle-problem">4.2 Finite horizon, life-cycle problem</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.3-Infinite-horizon,-cyclical-problem">4.3 Infinite horizon, cyclical problem</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.0.2.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.4.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
