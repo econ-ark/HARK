@@ -28,6 +28,7 @@ Release Date: TBD
 - Changes the behavior of make_lognormal_RiskyDstn so that the standard deviation represents the standard deviation of log(returns)
 - Adds detailed parameter and latex documentation to most models.
 - Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [1489](https://github.com/econ-ark/HARK/pull/1489)
+- Suppress warning from calc_stable_points when it would be raised by inapplicable AgentType subclasses. [1493](https://github.com/econ-ark/HARK/pull/1493)
 
 ### 0.15.1
 
