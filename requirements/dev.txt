@@ -1,4 +1,3 @@
-estimagic
 nbval
 pre-commit
 pytest
