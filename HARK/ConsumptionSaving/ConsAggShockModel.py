@@ -20,7 +20,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     init_idiosyncratic_shocks,
-    indshk_constructor_dict,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distribution import (
@@ -103,8 +102,6 @@ def make_aggshock_solution_terminal(CRRA):
 
 # Make a dictionary to specify an aggregate shocks consumer
 init_agg_shocks = init_idiosyncratic_shocks.copy()
-aggshock_constructor_dict = indshk_constructor_dict.copy()
-aggshock_constructor_dict["solution_terminal"] = make_aggshock_solution_terminal
 
 # Make a dictionary of constructors for the aggregate income shocks model
 aggshock_constructor_dict = {
