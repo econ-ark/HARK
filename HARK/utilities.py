@@ -129,6 +129,7 @@ def apply_fun_to_vals(fun, vals):
     """
     return fun(*[vals[var] for var in signature(fun).parameters])
 
+
 # =======================================================
 # ================ Other useful functions ===============
 # =======================================================

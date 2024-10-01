@@ -456,7 +456,7 @@ class MonteCarloSimulator(Simulator):
         self.initial = initial
 
         self.seed = seed  # NOQA
-        self.agent_count = agent_count # TODO: pass this in at block level
+        self.agent_count = agent_count  # TODO: pass this in at block level
         self.T_sim = T_sim
 
         # changes here from HARK.core.AgentType
@@ -534,20 +534,20 @@ class MonteCarloSimulator(Simulator):
 
         shocks_now = draw_shocks(
             self.shocks,
-            np.zeros(self.agent_count) # TODO: stupid hack to remove age calculations.
-                                       # this needs a little more thought
-            )
+            np.zeros(self.agent_count),  # TODO: stupid hack to remove age calculations.
+            # this needs a little more thought
+        )
 
-        pre = self.calibration # for AgentTypeMC, this is conditional on age
-                               # TODO: generalize indexing into calibration. 
+        pre = self.calibration  # for AgentTypeMC, this is conditional on age
+        # TODO: generalize indexing into calibration.
 
         pre.update(self.vars_prev)
         pre.update(shocks_now)
 
         # Won't work for 3.8: self.parameters | self.vars_prev | shocks_now
-        
-        dr = self.dr # AgentTypeMC chooses rule by age;
-                     # that generalizes to age as a DR argument?
+
+        dr = self.dr  # AgentTypeMC chooses rule by age;
+        # that generalizes to age as a DR argument?
 
         post = simulate_dynamics(self.dynamics, pre, dr)
 
@@ -570,7 +570,7 @@ class MonteCarloSimulator(Simulator):
         -------
         None
         """
-        
+
         initial_vals = draw_shocks(self.initial, np.zeros(which_agents.sum()))
 
         if np.sum(which_agents) > 0:
