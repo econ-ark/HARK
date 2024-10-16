@@ -1,1 +1,2 @@
 git+https://github.com/econ-ark/hark@master
+sequence_jacobian # required for KS-HARK-presentation example
