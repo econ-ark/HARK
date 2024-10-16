@@ -1,4 +1,4 @@
-from HARK.distribution import Bernoulli, Lognormal, MeanOneLogNormal
+from HARK.distributions import Bernoulli, Lognormal, MeanOneLogNormal
 from HARK.model import Control, DBlock, RBlock
 
 """

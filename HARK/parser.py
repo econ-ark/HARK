@@ -1,4 +1,4 @@
-from HARK.distribution import Bernoulli, Lognormal, MeanOneLogNormal
+from HARK.distributions import Bernoulli, Lognormal, MeanOneLogNormal
 from sympy.utilities.lambdify import lambdify
 from sympy.parsing.sympy_parser import parse_expr
 import yaml

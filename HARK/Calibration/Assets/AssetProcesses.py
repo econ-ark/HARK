@@ -5,7 +5,7 @@ as inputs to several consumption-saving model solvers.
 
 import numpy as np
 from scipy.optimize import minimize_scalar
-from HARK.distribution import (
+from HARK.distributions import (
     combine_indep_dstns,
     DiscreteDistributionLabeled,
     IndexDistribution,

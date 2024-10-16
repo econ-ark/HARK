@@ -21,7 +21,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     VariableLowerBoundFunc2D,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
-from HARK.distribution import Lognormal, add_discrete_outcome_constant_mean, expected
+from HARK.distributions import Lognormal, add_discrete_outcome_constant_mean, expected
 from HARK.interpolation import (
     BilinearInterp,
     BilinearInterpOnInterp1D,

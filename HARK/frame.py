@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 
 from HARK import AgentType, Model
-from HARK.distribution import Distribution
+from HARK.distributions import Distribution
 
 
 class Frame:

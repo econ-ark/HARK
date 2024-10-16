@@ -11,7 +11,7 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     KrusellSmithEconomy,
     KrusellSmithType,
 )
-from HARK.distribution import Uniform
+from HARK.distributions import Uniform
 from HARK.tests import HARK_PRECISION
 
 
