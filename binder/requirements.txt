@@ -1,8 +1,1 @@
-cite2c
 git+https://github.com/econ-ark/hark@master
-ipywidgets
-jupyter_contrib_nbextensions
-matplotlib
-numpy
-scipy
-seaborn
