@@ -187,3 +187,13 @@ If you want to run the notebooks on your own machine make sure to install the ne
 HARK can be used to replicate papers as well. For this purpose the _R_[eplications/eproductions] and *E*xplorations *M*ade using _ARK_ (REMARK) [repository](https://github.com/econ-ark/REMARK) was created.
 
 Each replication consists of a _metadata file_ (.md) with an overview, a _notebook_ which replicates the paper, and a _requirement.txt_ file with the necessary packages to run the notebooks on your local mashine.
+
+### Additional Examples and Tutorials
+
+To help users understand the structure and organization of the repository, we have added more detailed explanations and examples in the following sections:
+
+- [HARK](https://github.com/econ-ark/HARK): Includes the source code as well as some example notebooks.
+- [DemARK](https://github.com/econ-ark/DemARK): Here you can find *Dem*onstrations of tools, AgentTypes, and ModelClasses.
+- [REMARK](https://github.com/econ-ark/REMARK): Here you can find _R_[eplications/eproductions] and *E*xplorations *M*ade using _ARK_.
+
+For more detailed explanations and examples, please refer to the [HARK documentation](https://docs.econ-ark.org/).
