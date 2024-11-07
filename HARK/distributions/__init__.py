@@ -25,8 +25,6 @@ __all__ = [
 ]
 
 from HARK.distributions.base import (
-    DiscreteDistribution,
-    DiscreteDistributionLabeled,
     Distribution,
     IndexDistribution,
     MarkovProcess,
@@ -39,7 +37,11 @@ from HARK.distributions.continuous import (
     Uniform,
     Weibull,
 )
-from HARK.distributions.discrete import Bernoulli
+from HARK.distributions.discrete import (
+    Bernoulli,
+    DiscreteDistribution,
+    DiscreteDistributionLabeled,
+)
 from HARK.distributions.multivariate import MVLogNormal, MVNormal
 from HARK.distributions.utils import (
     add_discrete_outcome_constant_mean,
