@@ -1,2 +1,8 @@
+cite2c
 git+https://github.com/econ-ark/hark@master
-sequence_jacobian # required for KS-HARK-presentation example
+ipywidgets
+jupyter_contrib_nbextensions
+matplotlib
+numpy
+scipy
+seaborn

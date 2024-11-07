@@ -20,7 +20,7 @@ from warnings import warn
 
 import numpy as np
 import pandas as pd
-from HARK.distributions import (
+from HARK.distribution import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,

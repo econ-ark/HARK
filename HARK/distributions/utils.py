@@ -311,7 +311,7 @@ def combine_indep_dstns(*distributions, seed=0):
     Parameters
     ----------
     distributions : DiscreteDistribution
-        Arbitrary number of discrete distributionss to combine. Their realizations must be
+        Arbitrary number of discrete distributions to combine. Their realizations must be
         vector-valued (for each D in distributions, it must be the case that len(D.dim())==1).
 
     Returns

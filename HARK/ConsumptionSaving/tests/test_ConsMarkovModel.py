@@ -7,7 +7,7 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
 )
-from HARK.distributions import (
+from HARK.distribution import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     MeanOneLogNormal,

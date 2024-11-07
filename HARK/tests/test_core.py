@@ -12,7 +12,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
 )
 from HARK.core import AgentPopulation, AgentType, Parameters, distribute_params
-from HARK.distributions import Uniform
+from HARK.distribution import Uniform
 from HARK.metric import MetricObject, distance_metric
 
 

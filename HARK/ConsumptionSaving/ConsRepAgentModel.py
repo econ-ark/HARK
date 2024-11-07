@@ -17,7 +17,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_basic_CRRA_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.distributions import MarkovProcess
+from HARK.distribution import MarkovProcess
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 from HARK.utilities import make_assets_grid
 

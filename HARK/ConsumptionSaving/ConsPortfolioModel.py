@@ -26,7 +26,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     make_simple_ShareGrid,
 )
-from HARK.distributions import expected
+from HARK.distribution import expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,

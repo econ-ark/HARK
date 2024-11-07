@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.distributions import (
+from HARK.distribution import (
     MarkovProcess,
     MeanOneLogNormal,
     Uniform,

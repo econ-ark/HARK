@@ -22,7 +22,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     get_PermShkDstn_from_IncShkDstn,
     get_TranShkDstn_from_IncShkDstn,
 )
-from HARK.distributions import (
+from HARK.distribution import (
     Bernoulli,
     expected,
     IndexDistribution,

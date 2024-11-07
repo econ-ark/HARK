@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.distributions import MarkovProcess, Uniform, expected
+from HARK.distribution import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,

@@ -1,6 +1,6 @@
 import unittest
 
-from HARK.distributions import Bernoulli, DiscreteDistribution
+from HARK.distribution import Bernoulli, DiscreteDistribution
 import HARK.model as model
 from HARK.model import Control
 import HARK.models.consumer as cons

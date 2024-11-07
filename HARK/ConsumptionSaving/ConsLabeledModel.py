@@ -22,7 +22,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
 )
 from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSetup
 from HARK.core import make_one_period_oo_solver
-from HARK.distributions import DiscreteDistributionLabeled
+from HARK.distribution import DiscreteDistributionLabeled
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
 

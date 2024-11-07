@@ -4,7 +4,7 @@ This file implements unit tests for the Monte Carlo simulation module
 
 import unittest
 
-from HARK.distributions import Bernoulli, IndexDistribution, MeanOneLogNormal
+from HARK.distribution import Bernoulli, IndexDistribution, MeanOneLogNormal
 from HARK.model import Aggregate, Control, DBlock
 from HARK.simulation.monte_carlo import *
 

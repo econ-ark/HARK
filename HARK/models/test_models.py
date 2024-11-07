@@ -1,4 +1,4 @@
-from HARK.distributions import Lognormal
+from HARK.distribution import Lognormal
 import HARK.models.consumer as cons
 import HARK.models.perfect_foresight as pfm
 import HARK.models.perfect_foresight_normalized as pfnm

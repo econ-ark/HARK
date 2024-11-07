@@ -186,6 +186,8 @@ class Lognormal(ContinuousFrozenDistribution):
 
         if sigma == 0:
             # If sigma is zero, return a DiscreteDistribution with a single atom
+            if mean is not None:
+                return DiscreteDistribution([1.0], mean, seed=seed)
             return DiscreteDistribution([1.0], [np.exp(mu)], seed=seed)
 
         return super().__new__(cls)
@@ -198,11 +200,14 @@ class Lognormal(ContinuousFrozenDistribution):
         mean=None,
         std=None,
     ):
-        if mean is not None and sigma is not None:
+        if mean is not None and std is not None:
             mean_squared = mean**2
             variance = std**2
             mu = np.log(mean / (np.sqrt(1.0 + variance / mean_squared)))
             sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
+
+        if mean is not None and std is None:
+            mu = np.log(mean) - sigma**2 / 2
 
         self.mu = np.asarray(mu)
         self.sigma = np.asarray(sigma)

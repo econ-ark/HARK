@@ -27,7 +27,7 @@ import numpy as np
 from scipy.optimize import brentq, newton
 
 from HARK import AgentType, NullFunc
-from HARK.distributions import Bernoulli, Lognormal
+from HARK.distribution import Bernoulli, Lognormal
 from HARK.interpolation import CubicInterp
 
 # Import the HARK library.

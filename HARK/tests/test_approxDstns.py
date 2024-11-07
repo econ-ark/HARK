@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 
 # Bring in modules we need
-import HARK.distributions as distribution
+import HARK.distribution as distribution
 
 
 class testsForDCEGM(unittest.TestCase):

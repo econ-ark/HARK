@@ -7,7 +7,7 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
-from HARK.distributions import (
+from HARK.distribution import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
