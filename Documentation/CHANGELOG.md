@@ -14,11 +14,12 @@ Release Date: TBD
 
 ### Major Changes
 
-- Adds a discretize method to DBlocks and RBlocks (#1460)[https://github.com/econ-ark/HARK/pull/1460]
+- Adds a discretize method to DBlocks and RBlocks [#1460](https://github.com/econ-ark/HARK/pull/1460)
 - Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Allows construction of shocks with arguments based on mathematical expressions [#1464](https://github.com/econ-ark/HARK/pull/1464)
 - YAML configuration file for the normalized consumption and portolio choice [#1465](https://github.com/econ-ark/HARK/pull/1465)
+- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
 
 #### Minor Changes
 
@@ -66,7 +67,6 @@ This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and a
 
 #### Minor Changes
 
-
 - Add option to pass pre-built grid to `LinearFast`. [1388](https://github.com/econ-ark/HARK/pull/1388)
 - Moves calculation of stable points out of ConsIndShock solver, into method called by post_solve [#1349](https://github.com/econ-ark/HARK/pull/1349)
 - Adds cubic spline interpolation and value function construction to "warm glow bequest" models.
@@ -78,7 +78,6 @@ This release drops support for Python 3.8 and 3.9, consistent with SPEC 0, and a
 - Re-work WealthPortfolioSolver to use approximate EGM method [#1404](https://github.com/econ-ark/HARK/pull/1404)
 - Default parameter dictionaries for AgentType subclasses have been "flattened": all parameters appear in one place for each model, rather than inheriting from parent models' dictionaries. The only exception is submodels *within* a file when only 1 or 2 parameters are added or changed. [#1425](https://github.com/econ-ark/HARK/pull/1425)
 - Fix minor bug in `HARK.distribution.Bernoulli` to allow conversion into `DiscreteDistributionLabeled`. [#1432](https://github.com/econ-ark/HARK/pull/1432)
-
 
 ### 0.14.1
 
@@ -206,7 +205,7 @@ Release Date: March 4, 2021
 - Converts non-mathematical code to PEP8 compliant form [#953](https://github.com/econ-ark/HARK/pull/953)
 - Adds a constructor for LogNormal distributions from mean and standard deviation [#891](https://github.com/econ-ark/HARK/pull/891/)
 - Uses new LogNormal constructor in ConsPortfolioModel [#891](https://github.com/econ-ark/HARK/pull/891/)
-- calcExpectations method for taking the expectation of a distribution over a function [#884](https://github.com/econ-ark/HARK/pull/884/] (#897)[https://github.com/econ-ark/HARK/pull/897/)
+- calcExpectations method for taking the expectation of a distribution over a function [#884](<https://github.com/econ-ark/HARK/pull/884/>] (#897)[https://github.com/econ-ark/HARK/pull/897/)
 - Implements the multivariate normal as a supported distribution, with a discretization method. See [#948](https://github.com/econ-ark/HARK/pull/948).
 - Centralizes the definition of value, marginal value, and marginal marginal value functions that use inverse-space
   interpolation for problems with CRRA utility. See [#888](https://github.com/econ-ark/HARK/pull/888).
