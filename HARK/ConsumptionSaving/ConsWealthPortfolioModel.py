@@ -3,8 +3,8 @@ from copy import deepcopy
 import numpy as np
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
-    init_portfolio,
     PortfolioSolution,
+    make_portfolio_solution_terminal,
 )
 from HARK.distributions import expected
 from HARK.interpolation import (
@@ -14,11 +14,22 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.Calibration.Assets.AssetProcesses import (
+    make_lognormal_RiskyDstn,
+    combine_IncShkDstn_and_RiskyDstn,
+    calc_ShareLimit_for_CRRA,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
+    make_simple_ShareGrid,
+)
 from HARK.rewards import UtilityFuncCRRA
-from HARK.utilities import NullFunc
+from HARK.utilities import NullFunc, make_assets_grid
 
-
-import numpy as np
 from HARK.interpolation import LinearInterp
 
 
@@ -100,6 +111,129 @@ class ChiFromOmegaFunction:
         return np.nan_to_num(chi)
 
 
+# Trivial constructor function
+def make_ChiFromOmega_function(CRRA, WealthShare, ChiFromOmega_N, ChiFromOmega_bound):
+    return ChiFromOmegaFunction(
+        CRRA, WealthShare, N=ChiFromOmega_N, z_bound=ChiFromOmega_bound
+    )
+
+
+###############################################################################
+
+# Make a dictionary of constructors for the wealth-in-utility portfolio choice consumer type
+WealthPortfolioConsumerType_constructors_default = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "RiskyDstn": make_lognormal_RiskyDstn,
+    "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
+    "ShareLimit": calc_ShareLimit_for_CRRA,
+    "ShareGrid": make_simple_ShareGrid,
+    "ChiFunc": make_ChiFromOmega_function,
+    "solution_terminal": make_portfolio_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+WealthPortfolioConsumerType_IncShkDstn_default = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+WealthPortfolioConsumerType_aXtraGrid_default = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 100,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 1,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
+WealthPortfolioConsumerType_RiskyDstn_default = {
+    "RiskyAvg": 1.08,  # Mean return factor of risky asset
+    "RiskyStd": 0.18362634887,  # Stdev of log returns on risky asset
+    "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
+}
+
+WealthPortfolioConsumerType_ShareGrid_default = {
+    "ShareCount": 25  # Number of discrete points in the risky share approximation
+}
+
+# Default parameters to make ChiFunc with make_ChiFromOmega_function
+WealthPortfolioConsumerType_ChiFunc_default = {
+    "ChiFromOmega_N": 501,  # Number of gridpoints in chi-from-omega function
+    "ChiFromOmega_bound": 15,  # Highest gridpoint to use for it
+}
+
+# Make a dictionary to specify a risky asset consumer type
+WealthPortfolioConsumerType_solving_default = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": WealthPortfolioConsumerType_constructors_default,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 5.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Return factor on risk free asset
+    "DiscFac": 0.90,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "WealthShare": 0.5,  # Share of wealth in Cobb-Douglas aggregator in utility function
+    "WealthShift": 0.1,  # Shifter for wealth in utility function
+    "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
+}
+WealthPortfolioConsumerType_simulation_default = {
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+
+# Assemble the default dictionary
+WealthPortfolioConsumerType_default = {}
+WealthPortfolioConsumerType_default.update(WealthPortfolioConsumerType_solving_default)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_simulation_default
+)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_aXtraGrid_default
+)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_ShareGrid_default
+)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_IncShkDstn_default
+)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_RiskyDstn_default
+)
+WealthPortfolioConsumerType_default.update(WealthPortfolioConsumerType_ChiFunc_default)
+init_wealth_portfolio = WealthPortfolioConsumerType_default
+
+
 class WealthPortfolioConsumerType(PortfolioConsumerType):
     time_inv_ = deepcopy(PortfolioConsumerType.time_inv_)
     time_inv_ = time_inv_ + ["WealthShare", "WealthShift", "ChiFunc"]
@@ -114,10 +248,18 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
 
         self.solve_one_period = solve_one_period_WealthPortfolio
 
+    def update(self):
+        super().update()
+        self.update_ChiFunc()
+
+    def update_ChiFunc(self):
         if self.WealthShare == 0.0:
             self.ChiFunc = None
         else:
-            self.ChiFunc = ChiFromOmegaFunction(self.CRRA, self.WealthShare)
+            self.construct("ChiFunc")
+
+
+###############################################################################
 
 
 def utility(c, a, CRRA, share=0.0, intercept=0.0):
@@ -502,8 +644,3 @@ def solve_one_period_WealthPortfolio(
         vFuncAdj=vFuncNow,
     )
     return solution_now
-
-
-init_wealth_portfolio = init_portfolio.copy()
-init_wealth_portfolio["WealthShare"] = 0.5
-init_wealth_portfolio["WealthShift"] = 0.1

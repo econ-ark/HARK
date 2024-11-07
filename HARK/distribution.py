@@ -963,11 +963,11 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             )
 
         if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
-            ind_atoms = np.empty((self.M, N))
+            ind_atoms = np.empty((self.M, N + 2 * tail_N))
 
             for i in range(self.M):
                 if self.Sigma[i, i] == 0.0:
-                    x_atoms = np.repeat(np.exp(self.mu[i]), N)
+                    x_atoms = np.repeat(np.exp(self.mu[i]), N + 2 * tail_N)
                     ind_atoms[i] = x_atoms
                 else:
                     x_atoms = (
@@ -983,7 +983,22 @@ class MVLogNormal(multi_rv_frozen, Distribution):
             atoms = np.stack(
                 [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
             ).T
-            pmv = np.repeat(1 / (N**self.M), N**self.M)
+
+            interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
+
+            inners = np.zeros(N + 2 * tail_N)
+
+            if tail_N > 0:
+                inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
+                inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
+
+            for i in range(self.M):
+                inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
+
+                interiors[i] = np.repeat(
+                    [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
+                )
+
         else:
             if tail_bound is not None:
                 if type(tail_bound) is float:
@@ -1024,10 +1039,10 @@ class MVLogNormal(multi_rv_frozen, Distribution):
                 excl = []
 
                 for j in range(len(z)):
-                    if z[j, 0] != z[j, 1]:
-                        inds.append(j)
-                    else:
+                    if z[j, 0] == z[j, 1]:
                         excl.append(j)
+                    elif params[j] != 0.0:
+                        inds.append(j)
 
                 dim = len(inds)
 
@@ -1111,21 +1126,21 @@ class MVLogNormal(multi_rv_frozen, Distribution):
 
                     atoms[i] = xi_atoms
 
-            max_locs = np.argmax(np.abs(interiors), axis=0)
+        max_locs = np.argmax(np.abs(interiors), axis=0)
 
-            max_inds = np.stack([max_locs, np.arange(len(max_locs))], axis=1)
+        max_inds = np.stack([max_locs, np.arange(len(max_locs))], axis=1)
 
-            prob_locs = interiors[max_inds[:, 0], max_inds[:, 1]]
+        prob_locs = interiors[max_inds[:, 0], max_inds[:, 1]]
 
-            def prob_assign(x):
-                if x == 0:
-                    return 1 / (N**self.M)
-                else:
-                    return 0.0
+        def prob_assign(x):
+            if x == 0:
+                return 1 / (N**self.M)
+            else:
+                return 0.0
 
-            prob_vec = np.vectorize(prob_assign)
+        prob_vec = np.vectorize(prob_assign)
 
-            pmv = prob_vec(prob_locs)
+        pmv = prob_vec(prob_locs)
 
         limit = {
             "dist": self,
