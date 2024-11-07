@@ -6,7 +6,8 @@ from scipy import stats
 from scipy.stats import rv_continuous
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
 
-from HARK.distributions.base import DiscreteDistribution, Distribution
+from HARK.distributions.base import Distribution
+from HARK.distributions.discrete import DiscreteDistribution
 
 # CONTINUOUS DISTRIBUTIONS
 

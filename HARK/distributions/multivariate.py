@@ -6,8 +6,9 @@ from numpy import linalg
 from scipy import special
 from scipy.stats._multivariate import multi_rv_frozen, multivariate_normal_frozen
 
-from HARK.distributions.base import DiscreteDistribution, Distribution
+from HARK.distributions.base import Distribution
 from HARK.distributions.continuous import Lognormal, Normal
+from HARK.distributions.discrete import DiscreteDistribution
 
 # MULTIVARIATE DISTRIBUTIONS
 

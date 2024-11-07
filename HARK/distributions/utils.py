@@ -4,10 +4,10 @@ from warnings import warn
 import numpy as np
 from scipy import stats
 
-from HARK.distributions.base import (
+from HARK.distributions.base import TimeVaryingDiscreteDistribution
+from HARK.distributions.discrete import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
-    TimeVaryingDiscreteDistribution,
 )
 from HARK.distributions.continuous import Normal
 
