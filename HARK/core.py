@@ -460,7 +460,8 @@ class Model:
         """
         Assign an arbitrary number of attributes to this agent.
 
-        Args:
+        Parameters
+        ----------
         **kwds : keyword arguments
             Any number of keyword arguments of the form key=value.
             Each value will be assigned to the attribute named in self.
@@ -482,8 +483,9 @@ class Model:
         name : str
             The name of the parameter to get
 
-        Returns:
-            value: The value of the parameter
+        Returns
+        -------
+        value : The value of the parameter
         """
         return self.parameters[name]
 
