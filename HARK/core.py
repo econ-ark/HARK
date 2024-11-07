@@ -20,6 +20,8 @@ from warnings import warn
 
 import numpy as np
 import pandas as pd
+from xarray import DataArray
+
 from HARK.distribution import (
     Distribution,
     IndexDistribution,
@@ -28,7 +30,6 @@ from HARK.distribution import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
-from xarray import DataArray
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -64,14 +65,20 @@ class Parameters:
     A smart container for model parameters that handles age-varying dynamics.
 
     This class stores parameters as an internal dictionary and manages their
-    age-varying properties. It provides both attribute-style and dictionary-style
-    access to parameters.
+    age-varying properties, providing both attribute-style and dictionary-style
+    access. It is designed to handle the time-varying dynamics of parameters
+    in economic models.
 
-    Attributes:
-        _length (int): The terminal age of the agents in the model.
-        _invariant_params (Set[str]): A set of parameter names that are invariant over time.
-        _varying_params (Set[str]): A set of parameter names that vary over time.
-        _parameters (Dict[str, Any]): The internal dictionary storing all parameters.
+    Attributes
+    ----------
+    _length : int
+        The terminal age of the agents in the model.
+    _invariant_params : Set[str]
+        A set of parameter names that are invariant over time.
+    _varying_params : Set[str]
+        A set of parameter names that vary over time.
+    _parameters : Dict[str, Any]
+        The internal dictionary storing all parameters.
     """
 
     __slots__ = ("_length", "_invariant_params", "_varying_params", "_parameters")
@@ -80,8 +87,10 @@ class Parameters:
         """
         Initialize a Parameters object and parse the age-varying dynamics of parameters.
 
-        Args:
-            **parameters (Any): Any number of parameters in the form key=value.
+        Parameters
+        ----------
+        **parameters : Any
+            Any number of parameters in the form key=value.
         """
         self._length: int = parameters.pop("T_cycle", 1)
         self._invariant_params: Set[str] = set()
@@ -95,17 +104,30 @@ class Parameters:
         """
         Access parameters by age index or parameter name.
 
-        Args:
-            item_or_key (Union[int, str]): Age index or parameter name.
+        If item_or_key is an integer, returns a Parameters object with the parameters
+        that apply to that age. This includes all invariant parameters and the
+        `item_or_key`th element of all age-varying parameters. If item_or_key is a
+        string, it returns the value of the parameter with that name.
 
-        Returns:
-            Union[Parameters, Any]: A new Parameters object for the specified age,
-                                    or the value of the specified parameter.
+        Parameters
+        ----------
+        item_or_key : Union[int, str]
+            Age index or parameter name.
 
-        Raises:
-            ValueError: If the age index is out of bounds.
-            KeyError: If the parameter name is not found.
-            TypeError: If the key is neither an integer nor a string.
+        Returns
+        -------
+        Union[Parameters, Any]
+            A new Parameters object for the specified age, or the value of the
+            specified parameter.
+
+        Raises
+        ------
+        ValueError:
+            If the age index is out of bounds.
+        KeyError:
+            If the parameter name is not found.
+        TypeError:
+            If the key is neither an integer nor a string.
         """
         if isinstance(item_or_key, int):
             if item_or_key >= self._length:
@@ -132,13 +154,24 @@ class Parameters:
         """
         Set parameter values, automatically inferring time variance.
 
-        Args:
-            key (str): Name of the parameter.
-            value (Any): Value of the parameter.
+        If the parameter is a scalar, numpy array, boolean, distribution, callable
+        or None, it is assumed to be invariant over time. If the parameter is a
+        list or tuple, it is assumed to be varying over time. If the parameter
+        is a list or tuple of length greater than 1, the length of the list or
+        tuple must match the `_length` attribute of the Parameters object.
 
-        Raises:
-            ValueError: If the parameter name is not a string or if the value type is unsupported.
-            ValueError: If the parameter value is inconsistent with the current model length.
+        Parameters
+        ----------
+        key : str
+            Name of the parameter.
+        value : Any
+            Value of the parameter.
+
+        Raises
+        ------
+        ValueError:
+            If the parameter name is not a string or if the value type is unsupported.
+            If the parameter value is inconsistent with the current model length.
         """
         if not isinstance(key, str):
             raise ValueError(f"Parameter name must be a string, got {type(key)}")
@@ -193,8 +226,10 @@ class Parameters:
         """
         Convert parameters to a plain dictionary.
 
-        Returns:
-            Dict[str, Any]: A dictionary containing all parameters.
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary containing all parameters.
         """
         return dict(self._parameters)
 
@@ -202,8 +237,10 @@ class Parameters:
         """
         Convert parameters to a namedtuple.
 
-        Returns:
-            namedtuple: A namedtuple containing all parameters.
+        Returns
+        -------
+        namedtuple
+            A namedtuple containing all parameters.
         """
         return namedtuple("Parameters", self.keys())(**self.to_dict())
 
@@ -211,11 +248,15 @@ class Parameters:
         """
         Update parameters from another Parameters object or dictionary.
 
-        Args:
-            other (Union[Parameters, Dict[str, Any]]): The source of parameters to update from.
+        Parameters
+        ----------
+        other : Union[Parameters, Dict[str, Any]]
+            The source of parameters to update from.
 
-        Raises:
-            TypeError: If the input is neither a Parameters object nor a dictionary.
+        Raises
+        ------
+        TypeError
+            If the input is neither a Parameters object nor a dictionary.
         """
         if isinstance(other, Parameters):
             for key, value in other._parameters.items():
@@ -245,14 +286,20 @@ class Parameters:
         """
         Allow attribute-style access to parameters.
 
-        Args:
-            name (str): Name of the parameter to access.
+        Parameters
+        ----------
+        name : str
+            Name of the parameter to access.
 
-        Returns:
-            Any: The value of the specified parameter.
+        Returns
+        -------
+        Any
+            The value of the specified parameter.
 
-        Raises:
-            AttributeError: If the parameter name is not found.
+        Raises
+        ------
+        AttributeError:
+            If the parameter name is not found.
         """
         if name.startswith("_"):
             return super().__getattribute__(name)
@@ -265,9 +312,12 @@ class Parameters:
         """
         Allow attribute-style setting of parameters.
 
-        Args:
-            name (str): Name of the parameter to set.
-            value (Any): Value to set for the parameter.
+        Parameters
+        ----------
+        name : str
+            Name of the parameter to set.
+        value : Any
+            Value to set for the parameter.
         """
         if name.startswith("_"):
             super().__setattr__(name, value)
@@ -282,8 +332,10 @@ class Parameters:
         """
         Create a deep copy of the Parameters object.
 
-        Returns:
-            Parameters: A new Parameters object with the same contents.
+        Returns
+        -------
+        Parameters
+            A new Parameters object with the same contents.
         """
         return deepcopy(self)
 
@@ -291,8 +343,10 @@ class Parameters:
         """
         Adds any number of parameters to the time-varying set.
 
-        Args:
-            *params (str): Any number of strings naming parameters to be added to time_vary.
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be added to time_vary.
         """
         for param in params:
             if param in self._parameters:
@@ -307,8 +361,10 @@ class Parameters:
         """
         Adds any number of parameters to the time-invariant set.
 
-        Args:
-            *params (str): Any number of strings naming parameters to be added to time_inv.
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be added to time_inv.
         """
         for param in params:
             if param in self._parameters:
@@ -323,8 +379,10 @@ class Parameters:
         """
         Removes any number of parameters from the time-varying set.
 
-        Args:
-            *params (str): Any number of strings naming parameters to be removed from time_vary.
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be removed from time_vary.
         """
         for param in params:
             self._varying_params.discard(param)
@@ -333,8 +391,10 @@ class Parameters:
         """
         Removes any number of parameters from the time-invariant set.
 
-        Args:
-            *params (str): Any number of strings naming parameters to be removed from time_inv.
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be removed from time_inv.
         """
         for param in params:
             self._invariant_params.discard(param)
@@ -343,12 +403,17 @@ class Parameters:
         """
         Get a parameter value, returning a default if not found.
 
-        Args:
-            key (str): The parameter name.
-            default (Any, optional): The default value to return if the key is not found.
+        Parameters
+        ----------
+        key : str
+            The parameter name.
+        default : Any, optional
+            The default value to return if the key is not found.
 
-        Returns:
-            Any: The parameter value or the default.
+        Returns
+        -------
+        Any
+            The parameter value or the default.
         """
         return self._parameters.get(key, default)
 
@@ -356,8 +421,9 @@ class Parameters:
         """
         Set multiple parameters at once.
 
-        Args:
-            **kwargs: Keyword arguments representing parameter names and values.
+        Parameters
+        ----------
+        **kwargs : Keyword arguments representing parameter names and values.
         """
         for key, value in kwargs.items():
             self[key] = value
@@ -366,11 +432,15 @@ class Parameters:
         """
         Check if a parameter is time-varying.
 
-        Args:
-            key (str): The parameter name.
+        Parameters
+        ----------
+        key : str
+            The parameter name.
 
-        Returns:
-            bool: True if the parameter is time-varying, False otherwise.
+        Returns
+        -------
+        bool
+            True if the parameter is time-varying, False otherwise.
         """
         return key in self._varying_params
 
@@ -391,10 +461,12 @@ class Model:
         Assign an arbitrary number of attributes to this agent.
 
         Args:
-            **kwds (keyword arguments): Any number of keyword arguments of the form key=value.
-                                        Each value will be assigned to the attribute named in self.
+        **kwds : keyword arguments
+            Any number of keyword arguments of the form key=value.
+            Each value will be assigned to the attribute named in self.
 
-        Returns:
+        Returns
+        -------
             None
         """
         self.parameters.update(kwds)
@@ -405,8 +477,10 @@ class Model:
         """
         Returns a parameter of this model
 
-        Args:
-            name (str): The name of the parameter to get
+        Parameters
+        ----------
+        name : str
+            The name of the parameter to get
 
         Returns:
             value: The value of the parameter
@@ -441,12 +515,15 @@ class Model:
         Deletes a parameter from this instance, removing it both from the object's
         namespace (if it's there) and the parameters dictionary (likewise).
 
-        Args:
-            param_name (str): A string naming a parameter or data to be deleted from this instance.
-                              Removes information from self.parameters dictionary and own namespace.
+        Parameters
+        ----------
+        param_name : str
+            A string naming a parameter or data to be deleted from this instance.
+            Removes information from self.parameters dictionary and own namespace.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
         """
         if param_name in self.parameters:
             del self.parameters[param_name]
@@ -466,17 +543,21 @@ class Model:
         missing data) will be named in self._missing_key_data. Other errors are
         recorded in the dictionary attribute _constructor_errors.
 
-        Args:
-            *args (str, optional): Keys of self.constructors that are requested to be constructed.
-                                   If no arguments are passed, *all* elements of the dictionary are implied.
-            force (bool, optional): When True, the method will force its way past any errors, including
-                                    missing constructors, missing arguments for constructors, and errors
-                                    raised during execution of constructors. Information about all such
-                                    errors is stored in the dictionary attributes described above. When
-                                    False (default), any errors or exception will be raised.
+        Parameters
+        ----------
+        *args : str, optional
+            Keys of self.constructors that are requested to be constructed.
+            If no arguments are passed, *all* elements of the dictionary are implied.
+        force : bool, optional
+            When True, the method will force its way past any errors, including
+            missing constructors, missing arguments for constructors, and errors
+            raised during execution of constructors. Information about all such
+            errors is stored in the dictionary attributes described above. When
+            False (default), any errors or exception will be raised.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
         """
         # Set up the requested work
         if len(args) > 0:
@@ -589,12 +670,15 @@ class Model:
         including their names, the function that constructs them, the names of
         those functions inputs, and whether those inputs are present.
 
-        Args:
-            *args (str): Optional list of strings naming constructed inputs to be described.
-                         If none are passed, all constructors are described.
+        Parameters
+        ----------
+        *args : str, optional
+            Optional list of strings naming constructed inputs to be described.
+            If none are passed, all constructors are described.
 
-        Returns:
-            None
+        Returns
+        -------
+        None
         """
         if len(args) > 0:
             keys = args
@@ -645,9 +729,6 @@ class Model:
         # Print the string to screen
         print(out)
         return
-
-
-from typing import Any, Dict, Iterator, List, Set, Tuple, Union
 
 
 class AgentType(Model):
