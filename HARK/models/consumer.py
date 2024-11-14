@@ -7,9 +7,6 @@ in the style of Carroll's "Solution Methods for Solving
 Microeconomic Dynamic Stochastic Optimization Problems"
 """
 
-# TODO: Include these in calibration, then construct shocks
-
-
 calibration = {
     "DiscFac": 0.96,
     "CRRA": 2.0,
@@ -20,16 +17,15 @@ calibration = {
     "PermGroFac": 1.01,
     "BoroCnstArt": None,
     "TranShkStd": 0.1,
+    "RiskyStd": 0.1,
 }
 
 consumption_block = DBlock(
     **{
         "name": "consumption",
         "shocks": {
-            "live": Bernoulli(
-                p=calibration["LivPrb"]
-            ),  # Move to tick or mortality block?
-            "theta": MeanOneLogNormal(sigma=calibration["TranShkStd"]),
+            "live": (Bernoulli, {"p": "LivPrb"}),  # Move to tick or mortality block?
+            "theta": (MeanOneLogNormal, {"sigma": "TranShkStd"}),
         },
         "dynamics": {
             "b": lambda k, R: k * R,
@@ -47,10 +43,8 @@ consumption_block_normalized = DBlock(
     **{
         "name": "consumption normalized",
         "shocks": {
-            "live": Bernoulli(
-                p=calibration["LivPrb"]
-            ),  # Move to tick or mortality block?
-            "theta": MeanOneLogNormal(sigma=calibration["TranShkStd"]),
+            "live": (Bernoulli, {"p": "LivPrb"}),  # Move to tick or mortality block?
+            "theta": (MeanOneLogNormal, {"sigma": "TranShkStd"}),
         },
         "dynamics": {
             "b": lambda k, R, PermGroFac: k * R / PermGroFac,
@@ -66,10 +60,7 @@ portfolio_block = DBlock(
     **{
         "name": "portfolio",
         "shocks": {
-            "risky_return": Lognormal.from_mean_std(
-                calibration["Rfree"] + calibration["EqP"],
-                0.1,  # RiskyStd
-            )
+            "risky_return": (Lognormal, {"mean": "Rfree + EqP", "std": "RiskyStd"})
         },
         "dynamics": {
             "stigma": Control(["a"]),

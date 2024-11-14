@@ -184,12 +184,20 @@ class test_agent_population(unittest.TestCase):
 
 class test_parameters(unittest.TestCase):
     def setUp(self):
-        self.params = Parameters(T_cycle=3, a=1, b=[2, 3, 4], c=np.array([5, 6, 7]))
+        self.params = Parameters(
+            T_cycle=3,
+            a=1,
+            b=[2, 3, 4],
+            c=np.array([5, 6, 7]),
+            d=[lambda x: x, lambda x: x**2, lambda x: x**3],
+            e=Uniform(),
+            f=[True, False, True],
+        )
 
     def test_init(self):
         self.assertEqual(self.params._length, 3)
-        self.assertEqual(self.params._invariant_params, {"a", "c"})
-        self.assertEqual(self.params._varying_params, {"b"})
+        self.assertEqual(self.params._invariant_params, {"a", "c", "e"})
+        self.assertEqual(self.params._varying_params, {"b", "d", "f"})
 
     def test_getitem(self):
         self.assertEqual(self.params["a"], 1)

@@ -5,13 +5,13 @@ Econ-ARK documentation -- HARK
    :maxdepth: 1
    :hidden:
 
-   Guides <guides/index>
-   Overview & Examples <overview/index>
-   Reference <reference/index>
+   Guides <Documentation/guides/index>
+   Overview & Examples <Documentation/overview/index>
+   Reference <Documentation/reference/index>
 
 
 **Useful links**:
-:doc:`Install HARK <guides/installation>` |
+:doc:`Install HARK <Documentation/guides/installation>` |
 `Source Repository <https://github.com/Econ-ARK/HARK>`__ |
 `Issues & Ideas <https://github.com/Econ-ARK/HARK/issues>`__
 
@@ -44,7 +44,7 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: guides/quick_start
+      .. button-ref:: Documentation/guides/quick_start
          :ref-type: doc
          :color: info
          :click-parent:
@@ -63,7 +63,7 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: overview/index
+      .. button-ref:: Documentation/overview/index
          :ref-type: doc
          :color: info
          :click-parent:
@@ -83,7 +83,7 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: reference/index
+      .. button-ref:: Documentation/reference/index
          :ref-type: doc
          :color: info
          :click-parent:
@@ -105,7 +105,7 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: guides/contributing
+      .. button-ref:: Documentation/guides/contributing
          :ref-type: doc
          :color: info
          :click-parent:

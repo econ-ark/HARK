@@ -2,7 +2,8 @@
 Tools for crafting models.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from copy import copy, deepcopy
 from HARK.distribution import (
     Distribution,
     DiscreteDistributionLabeled,
@@ -77,6 +78,57 @@ def discretized_shock_dstn(shocks, disc_params):
     return all_shock_dstn
 
 
+def construct_shocks(shock_data, scope):
+    """
+    Returns a dictionary from shock labels to Distributions.
+
+    When the corresponding value in shock_data contains
+    a distribution constructor and input information,
+    any symbolic expressions used in the inputs are
+    evaluated in the provided scope.
+
+    Parameters
+    ------------
+
+     shock_data: Mapping(str, Distribution or tuple)
+        A mapping from variable names to Distribution objects,
+        representing exogenous shocks.
+
+        Optionally, the mapping can be to tuples of Distribution
+        constructors and dictionary of input arguments.
+        In this case, the dictionary can map argument names to
+        numbers, or to strings. The strings are parsed as
+        mathematical expressions and evaluated in the scope
+        of a calibration dictionary.
+
+    scope: dict(str, values)
+        Variables assigned to numerical values.
+        The scope in which expressions will be evaluated
+    """
+    sd = deepcopy(shock_data)
+
+    for v in sd:
+        if isinstance(sd[v], tuple):
+            dist_class = sd[v][0]
+
+            dist_args = sd[v][1]  # should be a dictionary
+
+            for a in dist_args:
+                if isinstance(dist_args[a], str):
+                    arg_lambda = math_text_to_lambda(dist_args[a])
+                    arg_value = arg_lambda(
+                        *[scope[var] for var in signature(arg_lambda).parameters]
+                    )
+
+                    dist_args[a] = arg_value
+
+            dist = dist_class(**dist_args)
+
+            sd[v] = dist
+
+    return sd
+
+
 def simulate_dynamics(
     dynamics: Mapping[str, Union[Callable, Control]],
     pre: Mapping[str, Any],
@@ -135,8 +187,12 @@ def simulate_dynamics(
     return vals
 
 
+class Block:
+    pass
+
+
 @dataclass
-class DBlock:
+class DBlock(Block):
     """
     Represents a 'block' of model behavior.
     It prioritizes a representation of the dynamics of the block.
@@ -144,9 +200,16 @@ class DBlock:
 
     Parameters
     ----------
-    shocks: Mapping(str, Distribution)
+    shocks: Mapping(str, Distribution or tuple)
         A mapping from variable names to Distribution objects,
         representing exogenous shocks.
+
+        Optionally, the mapping can be to tuples of Distribution
+        constructors and dictionary of input arguments.
+        In this case, the dictionary can map argument names to
+        numbers, or to strings. The strings are parsed as
+        mathematical expressions and evaluated in the scope
+        of a calibration dictionary.
 
     dynamics: Mapping(str, str or callable)
         A dictionary mapping variable names to mathematical expressions.
@@ -162,10 +225,41 @@ class DBlock:
     dynamics: dict = field(default_factory=dict)
     reward: dict = field(default_factory=dict)
 
+    def construct_shocks(self, calibration):
+        """
+        Constructs all shocks given calibration.
+        This method mutates the DBlock.
+        """
+        self.shocks = construct_shocks(self.shocks, calibration)
+
+    def discretize(self, disc_params):
+        """
+        Returns a new DBlock which is a copy of this one, but with shock discretized.
+        """
+
+        disc_shocks = {}
+
+        for shockn in self.shocks:
+            if shockn in disc_params:
+                disc_shocks[shockn] = self.shocks[shockn].discretize(
+                    **disc_params[shockn]
+                )
+            else:
+                disc_shocks[shockn] = deepcopy(self.shocks[shockn])
+
+        # replace returns a modified copy
+        new_dblock = replace(self, shocks=disc_shocks)
+
+        return new_dblock
+
     def __post_init__(self):
         for v in self.dynamics:
             if isinstance(self.dynamics[v], str):
                 self.dynamics[v] = math_text_to_lambda(self.dynamics[v])
+
+        for r in self.reward:
+            if isinstance(self.reward[r], str):
+                self.reward[r] = math_text_to_lambda(self.reward[r])
 
     def get_shocks(self):
         return self.shocks
@@ -261,7 +355,7 @@ class DBlock:
 
 
 @dataclass
-class RBlock:
+class RBlock(Block):
     """
     A recursive block.
 
@@ -272,7 +366,31 @@ class RBlock:
 
     name: str = ""
     description: str = ""
-    blocks: List[DBlock] = field(default_factory=list)
+    blocks: List[Block] = field(default_factory=list)
+
+    def construct_shocks(self, calibration):
+        """
+        Construct all shocks given a calibration dictionary.
+        """
+        for b in self.blocks:
+            b.construct_shocks(calibration)
+
+    def discretize(self, disc_params):
+        """
+        Recursively discretizes all the blocks.
+        It replaces any DBlocks with new blocks with discretized shocks.
+        """
+        cbs = copy(self.blocks)
+
+        for i, b in list(enumerate(cbs)):
+            if isinstance(b, DBlock):
+                nb = b.discretize(disc_params)
+                cbs[i] = nb
+            elif isinstance(b, RBlock):
+                b.discretize(disc_params)
+
+        # returns a copy of the RBlock with the blocks replaced
+        return replace(self, blocks=cbs)
 
     def get_shocks(self):
         ### TODO: Bug in here is causing AttributeError: 'set' object has no attribute 'draw'

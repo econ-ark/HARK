@@ -1,5 +1,8 @@
 import warnings
 from datetime import date
+import os
+
+dir = os.path.dirname(__file__)
 
 try:
     import numba
@@ -41,13 +44,32 @@ extensions = [
     "sphinx_design",
 ]
 
+include_patterns = [
+    "Documentation**",
+    "index.rst",
+]  # Makes sure that only the file we want documented get documented
+with open(os.path.join(dir, "example_notebooks", "Include_list.txt"), "r") as file:
+    include_patterns += file.readlines()
+include_patterns = [
+    i.replace("\n", "") for i in include_patterns
+]  # Adds example notebooks
+
 exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "NARK",
+    "Documentation/_build",
+    "Documentation/Thumbs.db",
+    "Documentation/.DS_Store",
+    "Documentation/NARK",
+    "Documentation/index_core.rst",  # Prevents sphinx from getting confused
 ]
 
+napoleon_custom_sections = [
+    ("Variables associated with the default constuctor", "params_style"),
+    ("Grid Parameters", "params_style"),
+    ("Solving Parameters", "params_style"),
+    ("Simulation Parameters", "params_style"),
+    ("Constructors", "params_style"),
+    ("Attributes", "returns_style"),
+]
 language = "en"
 
 master_doc = "index"
@@ -64,11 +86,8 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
-html_static_path = ["_static"]
-html_css_files = [
-    "override-nbsphinx-gallery.css",
-]
-
+html_static_path = []
+html_css_files = ["override-nbsphinx-gallery.css"]
 html_theme_options = {
     "use_edit_page_button": True,
     "icon_links": [
@@ -105,7 +124,7 @@ html_theme_options = {
 }
 
 nbsphinx_prolog = r"""
-{% set docname = 'Documentation/' + env.doc2path(env.docname, base=None) %}
+{% set docname = env.doc2path(env.docname, base=None) %}
 
 .. raw:: html
 
@@ -149,8 +168,13 @@ autodoc_default_flags = ["members"]  # must add outside ']' bracket
 # sphinx.ext.autosummary configuration
 autosummary_generate = True
 
+# Orders functions by the source order
+autodoc_member_order = "bysource"
+
 # sphinx.ext.napoleon configuration
 napoleon_use_ivar = True  # solves duplicate object description warning
 
 # nbsphinx configuration
 nbsphinx_execute = "never"  # notebooks are executed via ``nb_exec.py``
+
+suppress_warnings = []
