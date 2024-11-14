@@ -1,19 +1,51 @@
 # HARK installation guide
 
-HARK is an open source project written in Python. It's compatible with both Python
-2 and 3, and with the Anaconda distributions of python 2 and 3.
+HARK is an open source project written in Python. It's supported for Python versions 3.10 and up.
 
 ## Instructions for a new user
 
-In order to use HARK, you firstly need to download Python and add Python to the PATH. We recommend to install python 3, as eventually support for python 2 will end. If you are not confident about the installation process you can use this step-by-step guide https://realpython.com/installing-python/ .
+In order to use HARK, you firstly need to download Python and add Python to the PATH. If you are not confident about the installation process you can use [this step-by-step guide](https://realpython.com/installing-python/). You can also install the Anaconda Python distribution by following [this](https://docs.anaconda.com/free/anaconda/install/) guide. Anaconda comes bundled with most commonly used mathematical and scientific Python packages. We recommend using Conda to all HARK users.
 
-Next, install a text editor for Python. If you do not use the Anaconda Python distribution (see below), we recommend [Atom](https://atom.io/). To use Atom for Python, first install it (you can use this [manual](https://flight-manual.atom.io/getting-started/sections/installing-atom/)). Next, install the [packages](https://flight-manual.atom.io/using-atom/sections/atom-packages/) for Python, we recommend to install at least [autocomplete-python](https://atom.io/packages/autocomplete-python) and [atom-ide-debugger-python](https://flight-manual.atom.io/using-atom/sections/atom-packages/). The last enables debugging the Python scripts, that is to set breakpoints and call variables in certain spot of your code (with increase in your codes' sophistication you will find this tools very helpful in finding bugs).
+:::{note}
 
-After installing Python and the text editor, you can install HARK package. The simplest way is to use [pip](https://pip.pypa.io/en/stable/installing/).
+You can have the default Python distribution from python.org and from Anaconda, as they do not interfere. However, be careful with setting the PATH. To avoid problems you can set the environment variables path to the default distribution and access Anaconda distribution via Anaconda prompt.
+:::
 
-To install HARK with pip, at a command line type `pip install econ-ark`.
+Next, you'll want a text editor for Python. We recommend using [VSCode](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/). If you're using Anaconda, we'd also recommend using Spyder which comes bundled.
 
-If you prefer to isolate the installation of `econ-ark` from the installations of any other python tools and packages, use a virtual environment such as [virtualenv](https://virtualenv.pypa.io/en/latest/).
+``````{tab-set}
+`````{tab-item} VScode
+To install VScode visit:
+[https://code.visualstudio.com/docs](https://code.visualstudio.com/docs)
+`````
+`````{tab-item} Pycharm
+To install Pycharm visit:
+[https://www.jetbrains.com/help/pycharm/installation-guide.html](https://www.jetbrains.com/help/pycharm/installation-guide.html)
+`````
+`````{tab-item} Anaconda-Spyder
+
+To install Anaconda, follow the guide [here](https://docs.anaconda.com/free/anaconda/install/).
+
+They may ask you to give them your email to install Anaconda. If they do you can click the skip registration button and it will take you directly to the installation window.
+
+Once Anaconda is installed visit the [Sypder installation guide](https://docs.spyder-ide.org/current/installation.html#conda-based-distributions) to set up Spyder.
+
+Sypder can be opened through the Anaconda navigator, or by typing `spyder` into the command line.
+
+`````
+`````{tab-item} Other Options
+
+If you're looking for more options or these recommendations aren't working for you, don't worry, there are plenty of others. You can start with [This](https://wiki.python.org/moin/PythonEditors) list or just type 'Python IDE' into your prefered search engine.
+
+`````
+``````
+
+After installing Python and the text editor, you can install the HARK package. The simplest way is to use [pip](https://pip.pypa.io/en/stable/installing/) by running the command `pip install econ-ark`.
+
+If you prefer to isolate your installation of `econ-ark` from the installations of any other python tools and packages, use a virtual environment such as [virtualenv](https://virtualenv.pypa.io/en/latest/).
+
+``````{tab-set}
+`````{tab-item} Using virtualenv
 
 To install `virtualenv`, then to create an environment named `econ-ark`, and finally to activate that environment, at a command line type:
 
@@ -26,7 +58,7 @@ virtualenv econ-ark
 Then for Windows, type:
 
 ```
-econ-ark\Scripts\activate.bat
+.\econ-ark\Scripts\activate.bat
 
 ```
 
@@ -38,6 +70,44 @@ source econ-ark/bin/activate
 
 In the both cases, you may see (econ-ark) in your command prompt.
 
+If you want to leave your environment, type:
+```
+deactivate
+```
+:::{note}
+
+If you install econ-ark into a virtual environment, your HARK scripts will not compile unless the virtual environment is activated.
+
+If you're using an IDE, you also need to configure the environment.
+
+check out the virtual env [documentation](https://virtualenv.pypa.io/en/latest/user_guide.html) for more information about virtual environments.
+:::
+`````
+`````{tab-item} Using Conda
+Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create your econ-ark virtual environment type:
+
+```
+conda create -n econ-ark anaconda
+```
+Then you can activate it by typing:
+```
+conda activate econ-ark
+```
+If you want to leave your environment, type:
+```
+deactivate
+```
+:::{note}
+
+If you install econ-ark into a virtual environment, your HARK scripts will not compile unless the virtual environment is activated.
+
+If you're using an IDE, you also need to configure the environment.
+
+check out the conda [documentation](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) for more information about virtual environments.
+:::
+`````
+``````
+
 Next, install `econ-ark` into your new virtual environment via pip:
 
 ```
@@ -45,84 +115,39 @@ pip install econ-ark
 ```
 
 ---
+## Instructions for an advanced user/developer
 
-**!NOTE**
+If you want to make changes or contributions (yay!) to HARK, you'll need to have access to the source files. Installing HARK via pip (either at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made). If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo. If you are less experienced, you should download a personal copy of HARK again using `git clone` (see part for a new user) or the [GitHub Desktop app](https://desktop.github.com/).
 
-If you install econ-ark into the virtual environment, your HARK scripts will not compile unless it is activated.
+1.  Create and activate a virtual environment.
 
-To do so, type for Windows:
+2.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`. If you're using the desktop app, go to file->Clone Repository->url, and use `https://github.com/econ-ark/HARK.git` as the Repository url.
 
-```
-cd [directory where you want to store the econ-ark virtual environment]
-econ-ark\Scripts\activate.bat
-```
+3.  Make sure to navigate to the HARK directory, and install HARK's requirements into the virtual environment with `pip install -r ./requirements/base.txt`. The requirements folder also contains `dev.txt` and `doc.txt` which install packages relevant to develoment and the documentation respectively.
 
-While for Mac or Linux:
+4.  Install econ-ark locally: navigate to your local repository and then type:
 
 ```
-cd [directory where you want to store the econ-ark virtual environment]
-source econ-ark/bin/activate
+pip install -e .
 ```
-
-Next, run your script
-
-```
-cd [directory where you located your script]
-python YourScript.py
-```
-
-For using the text editor, you also need to configure the environment. If you use [Atom](https://atom.io/), simply type `atom` at a command prompt after activating the environment. Atom text editor will open and you will be able to compile your codes which use HARK.
+5.  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
 
 ---
 
-### Using HARK with Anaconda
-
-Installing HARK with pip does not give you full access to HARK's many graphical capabilities. One way to access these capabilities is by using [Anaconda](https://anaconda.com/why-anaconda), which is a distribution of python along with many packages that are frequently used in scientific computing.
-
-1. Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/distribution/#download-section).
-
----
-
-**!NOTE**
-
-You can have the default python distribution from python.org and from anaconda, as they do not interfere. However, be careful with setting the PATH. To avoid problems you can eg. set the environment variables path to the default distribution and access anaconda distribution via anaconda prompt.
-
----
-
-2. Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create and activate an econ-ark virtual environment:
+:::{note}
+To check the package performance with your local changes, use the same command from the command line (after navigating to your HARK directory):
 
 ```
-conda create -n econ-ark anaconda
-conda activate econ-ark
+pip install -e .
 ```
 
-If you want to install `econ-ark` only into this environment, you need to firstly activate the environment and then install econ-ark via pip or conda. In the second case type:
+If for some reason you want to switch back to the PyPI version:
 
 ```
-conda install econ-ark::econ-ark
+pip uninstall econ-ark
+pip install econ-ark (options)
 ```
-
-About the differences between conda and pip check https://www.anaconda.com/understanding-conda-and-pip/ .
-
-3. Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython). You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt. To do so, simply open a command line/prompt and type `spyder`. If `econ-ark` is installed into the particular environment, you firstly need activate it and then type `spyder`.
-
-`spyder` enables debugging the Python scripts, that is to set breakpoints and call variables in certain spot of your code, in order to find bugs (with increase in your codes' sophistication you will find this tools very helpful).
-
-4. To verify that `spyder` has access to HARK try typing `pip install econ-ark` into the iPython shell within Spyder. If you have successfully installed HARK as above, you should see a lot of messages saying 'Requirement satisfied'.
-
-   - If that doesn't work, you will need to manually add HARK to your Spyder environment. To do this, you'll need to get the code from Github and import it into Spyder. To get the code from Github, you can either clone it or download a zipped file.
-
-   - If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
-
-     - If you do not have `git` available on your computer, you can download the [GitHub Desktop app](https://desktop.github.com/) and use it to make a local clone.
-
-   - If you don't want to clone HARK, but just to download it, go to [the HARK repository on GitHub](https://github.com/econ-ark/HARK). In the upper righthand corner is a button that says "clone or download". Click the "Download Zip" option and then unzip the contents into your chosen directory.
-
-     Once you've got a copy of HARK in a directory, return to Spyder and navigate to that directory where you put HARK. This can be done within Spyder by doing `import os` and then using `os.chdir()` to change directories. `chdir` works just like cd at a command prompt on most operating systems, except that it takes a string as input: `os.chdir('Music')` moves to the Music subdirectory of the current working directory. Alternatively, you can install `econ-ark` from the local repository by navigating to that directory where you put HARK and then typing at the command line:
-
-     ```
-     pip install -e .
-     ```
+:::
 
 ## Content Aside from the Toolkit
 
@@ -140,7 +165,7 @@ You will want to obtain your own local copy of these repos using:
 git clone https://github.com/econ-ark/DemARK.git
 ```
 
-Once you have downloaded them, you will find that the repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). If you have the jupyter notebook tool installed (it is installed as part of Anaconda), you should be able to launch the jupyter notebook app from the command line with the command:
+Once you have downloaded them, you will find that the repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). If you have the jupyter notebook tool installed (it is installed as part of Anaconda), you should be able to launch the jupyter notebook app from the command line with the command: `jupyter notebook`.
 
 ### [REMARK](https://github.com/econ-ark/REMARK/#readme): Replications and Examples Made Using the ARK
 
@@ -163,55 +188,4 @@ Once you have downloaded them, you will find that the repo contains a `notebooks
 
 ```
 jupyter notebook
-```
-
-If you installed the econ-ark into the particular environment, activate it first and then type `jupyter notebook`.
-
-## Instructions for an advanced user/developer
-
-If you want to make changes or contributions (yay!) to HARK, you'll need to have access to the source files. Installing HARK via pip (either at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made). If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo. If you are less experienced, you should download a personal copy of HARK again using `git clone` (see part for a new user) or the GitHub Desktop app.
-
-1.  Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: 'git clone https://github.com/econ-ark/HARK.git'.
-
-2.  Then, create and activate a [virtual environment](https://virtualenv.pypa.io/en/latest/).
-
-Install virtualenv if you need to and then type:
-
-```
-virtualenv econ-ark
-source econ-ark/bin/activate
-```
-
-For Windows:
-
-```
-virtualenv econ-ark
-econ-ark\Scripts\activate.bat
-```
-
-4.  Make sure to change to HARK directory, and install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
-
-5.  Install locally the econ-ark: navigate to your local repository and then type:
-
-```
-pip install -e .
-```
-
-5.  To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
-
----
-
-**!NOTE**
-
-To check the package performance with your local changes, use the same command from the command line (after navigating to your HARK directory):
-
-```
-pip install -e .
-```
-
-If for some reason you want to switch back to the PyPI version:
-
-```
-pip uninstall econ-ark
-pip install econ-ark (options)
 ```

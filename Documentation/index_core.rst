@@ -5,13 +5,13 @@ Econ-ARK documentation -- HARK
    :maxdepth: 1
    :hidden:
 
-   Overview & Examples <overview/index>
-   Reference <reference/index>
-   Guides <guides/index>
+   Guides <Documentation/guides/index>
+   Overview & Examples <Documentation/overview/index>
+   Reference <Documentation/reference/index>
 
 
 **Useful links**:
-:doc:`Install HARK <guides/installation>` |
+:doc:`Install HARK <Documentation/guides/installation>` |
 `Source Repository <https://github.com/Econ-ARK/HARK>`__ |
 `Issues & Ideas <https://github.com/Econ-ARK/HARK/issues>`__
 
@@ -44,13 +44,32 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: guides/quick_start
+      .. button-ref:: Documentation/guides/quick_start
          :ref-type: doc
          :color: info
          :click-parent:
          :expand:
 
          Quick Start Guide
+
+   .. grid-item-card::
+      :padding: 2
+      :text-align: center
+
+      **Overview and Examples**
+      ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+      To learn how HARK works and what it's capable of, see the Overview and Examples.
+
+      +++
+
+      .. button-ref:: Documentation/overview/index
+         :ref-type: doc
+         :color: info
+         :click-parent:
+         :expand:
+
+         Overview and Examples
 
    .. grid-item-card::
       :padding: 2
@@ -64,32 +83,13 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: reference/index
+      .. button-ref:: Documentation/reference/index
          :ref-type: doc
          :color: info
          :click-parent:
          :expand:
 
          Tools & Models Reference Guide
-
-   .. grid-item-card::
-      :padding: 2
-      :text-align: center
-
-      **ARKitecture**
-      ^^^^^^^^^^^^^^^
-
-      For a high-level overview of Econ-ARK's structure and design, see the ARKitecture.
-
-      +++
-
-      .. button-ref:: overview/ARKitecture
-         :ref-type: doc
-         :color: info
-         :click-parent:
-         :expand:
-
-         The ARKitecture
 
    .. grid-item-card::
       :padding: 2
@@ -105,7 +105,7 @@ you might want to look at the `DemARK
 
       +++
 
-      .. button-ref:: guides/contributing
+      .. button-ref:: Documentation/guides/contributing
          :ref-type: doc
          :color: info
          :click-parent:

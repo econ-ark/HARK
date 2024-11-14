@@ -126,17 +126,19 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     aXtraNestFac = 0  : Ordinary exponentially spaced grid.
     aXtraNestFac >= 1 : Multi-exponentially nested grid.
 
+    See :func:`HARK.utilities.make_grid_exp_mult` for more info
+
     Parameters
     ----------
-    aXtraMin:                  float
+    aXtraMin: float
         Minimum value for the assets-above-minimum grid.
-    aXtraMax:                  float
+    aXtraMax: float
         Maximum value for the assets-above-minimum grid.
-    aXtraCount:                 int
+    aXtraCount: int
         Number of nodes in the assets-above-minimum grid, not counting extra values.
-    aXtraExtra:                [float]
+    aXtraExtra: [float]
         Additional values to insert in the assets-above-minimum grid.
-    aXtraNestFac:               int
+    aXtraNestFac: int
         Level of exponential nesting for grid. If -1, the grid is linearly spaced.
 
     Returns
@@ -173,8 +175,12 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
 
 
 def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
-    """
-    Make a multi-exponentially spaced grid.
+    r"""
+    Makes a multi-exponentially spaced grid.
+    If the function :math:`\ln(1+x)` were applied timestonest times,
+    the grid would become linearly spaced.
+    If timestonest is 0, the grid is exponentially spaced.
+
 
     Parameters
     ----------
@@ -192,6 +198,8 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     points : np.array
         A multi-exponentially spaced grid
 
+    Notes
+    -----
     Original Matab code can be found in Chris Carroll's
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
@@ -210,8 +218,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     else:
         Lming = np.log(ming)
         Lmaxg = np.log(maxg)
-        Lstep = (Lmaxg - Lming) / (ng - 1)
-        Lgrid = np.arange(Lming, Lmaxg + 0.000001, Lstep)
+        Lstep = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
     return grid
 
