@@ -19,6 +19,7 @@ Release Date: TBD
 - Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Allows construction of shocks with arguments based on mathematical expressions [#1464](https://github.com/econ-ark/HARK/pull/1464)
 - YAML configuration file for the normalized consumption and portolio choice [#1465](https://github.com/econ-ark/HARK/pull/1465)
+- Remove the FrameAgentType [#1510](https://github.com/econ-ark/HARK/pull/1510)
 
 #### Minor Changes
 
