@@ -33,7 +33,6 @@ API Reference
    ConsumptionSaving/ConsLaborModel
    ConsumptionSaving/ConsMarkovModel
    ConsumptionSaving/ConsMedModel
-   ConsumptionSaving/ConsPortfolioFrameModel
    ConsumptionSaving/ConsPortfolioModel
    ConsumptionSaving/ConsPrefShochModel
    ConsumptionSaving/ConsRepAgentModel
