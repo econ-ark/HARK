@@ -28,6 +28,7 @@ Release Date: TBD
 - Changes the behavior of make_lognormal_RiskyDstn so that the standard deviation represents the standard deviation of log(returns)
 - Adds detailed parameter and latex documentation to most models.
 - Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [1489](https://github.com/econ-ark/HARK/pull/1489)
+- Adds an example, ModelConfiguration, which demonstrates how a consumption saving "true" model, approximations, solution paramaters, and simulation parameters can be defined in one YAML file. [1463](https://github.com/econ-ark/HARK/pull/1463)
 
 ### 0.15.1
 
