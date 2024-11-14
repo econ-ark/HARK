@@ -13,7 +13,7 @@ model: &consumer_portfolio
     - TranShkStd: 0.1
 
   blocks:
-    - &cons # block definition begins with name of the block. Alias 
+    - &cons # block definition begins with name of the block. Alias
       name: consumption_normalized
       agent: consumer
       shocks:
@@ -30,7 +30,7 @@ model: &consumer_portfolio
         a: m - c
       reward:
         u: c ** (1 - CRRA) / (1 - CRRA)}
-    
+
     - &port
       name: portfolio
       agent: consumer
@@ -42,7 +42,7 @@ model: &consumer_portfolio
       dynamics:
         stigma: Control(["a"]),
         R: Rfree + (risky_return - Rfree) * stigma
-  
+
   structure: # the sequence of blocks
     - *cons
     - *port
@@ -55,15 +55,15 @@ approximation: &approx # right syntax?
   theta: # to discretize a continuous probability distribution
     N : 5
     method: equiprobable
-  risky_return: 
+  risky_return:
     N: 5
     method: gauss-hermite
   m: !Linspace # grid over continuous state space
     start: 0
     stop: 10
     num: 25
-  
-        
+
+
 strategy: # these configure constructors/solvers of decision rules
           # for model control variables
   - &test_policy_profile

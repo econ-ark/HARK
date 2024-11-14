@@ -17,9 +17,7 @@ a data structure much like this one.
 """
 
 model_config = {
-    "agents": {
-        "consumer" : {"count" : 10}
-    },
+    "agents": {"consumer": {"count": 10}},
     "calibration": {
         "DiscFac": 0.96,
         "CRRA": 2.0,
@@ -35,15 +33,15 @@ model_config = {
         {
             "name": "consumption normalized",
             "shocks": {
-            "live": [Bernoulli, {"p": "LivPrb"}],
-            "theta": [MeanOneLogNormal, {"sigma": "TranShkStd"}],
-        },
-        "dynamics": {
-            "b": lambda k, R, PermGroFac: k * R / PermGroFac,
-            "m": lambda b, theta: b + theta,
-            "c": Control(["m"]),
-            "a": lambda m, c: m - c,
-        },
+                "live": [Bernoulli, {"p": "LivPrb"}],
+                "theta": [MeanOneLogNormal, {"sigma": "TranShkStd"}],
+            },
+            "dynamics": {
+                "b": lambda k, R, PermGroFac: k * R / PermGroFac,
+                "m": lambda b, theta: b + theta,
+                "c": Control(["m"]),
+                "a": lambda m, c: m - c,
+            },
             "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
         },
         {
@@ -58,7 +56,7 @@ model_config = {
                 "stigma": Control(["a"]),
                 "R": lambda stigma, Rfree, risky_return: Rfree
                 + (risky_return - Rfree) * stigma,
-                },
+            },
         },
         {
             "name": "tick",
@@ -71,7 +69,7 @@ model_config = {
         "theta": {"N": 5},
         "risky_return": {"N": 5},
     },
-    #"workflows": [
+    # "workflows": [
     #    {"action": "solve", "algorithm": "vbi"},
     #    {
     #        "action": "simulate",
@@ -82,5 +80,5 @@ model_config = {
     #        "population": 10,  # ten agents
     #        "T": 20,  # total number of simulated periods
     #    },
-    #],
+    # ],
 }
