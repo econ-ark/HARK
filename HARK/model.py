@@ -343,6 +343,7 @@ class DBlock(Block):
         def state_rule_value_function(pre, dr):
             vals = self.transition(pre, dr, screen=screen)
             r = list(self.calc_reward(vals).values())[0]  # a hack; to be improved
+            # this assumes a single reward variable; instead, a named could be passed in.
             cv = continuation(
                 *[vals[var] for var in signature(continuation).parameters]
             )

@@ -21,6 +21,21 @@ block_1 = DBlock(
     }
 )
 
+block_2 = DBlock( # has no control variable
+    **{
+        "name": "vbi_test_1",
+        "shocks": {
+            "coin": Bernoulli(p=0.5),
+        },
+        "dynamics": {
+            "m": lambda y, coin: y + coin,
+            "a": lambda m: m - 1,
+        },
+        "reward": {"u": lambda m: 0},
+    }
+)
+
+
 
 class test_vbi(unittest.TestCase):
     # def setUp(self):
@@ -32,6 +47,15 @@ class test_vbi(unittest.TestCase):
         dr, dec_vf, arr_vf = vbi.solve(block_1, lambda a: a, state_grid)
 
         self.assertAlmostEqual(dr["c"](**{"m": 1}), 0.5)
+
+    def test_solve_block_2(self):
+        # no control variable case.
+        state_grid = {"m": np.linspace(0, 2, 10)}
+
+        dr, dec_vf, arr_vf = vbi.solve(block_2, lambda a: a, state_grid)
+
+        # arrival value function gives the correct expect value of continuation
+        self.assertAlmostEqual(arr_vf({"y": 10}), 9.5)
 
     def test_solve_consumption_problem(self):
         state_grid = {"m": np.linspace(0, 5, 10)}
