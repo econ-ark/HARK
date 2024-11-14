@@ -21,7 +21,7 @@ block_1 = DBlock(
     }
 )
 
-block_2 = DBlock( # has no control variable
+block_2 = DBlock(  # has no control variable
     **{
         "name": "vbi_test_1",
         "shocks": {
@@ -34,7 +34,6 @@ block_2 = DBlock( # has no control variable
         "reward": {"u": lambda m: 0},
     }
 )
-
 
 
 class test_vbi(unittest.TestCase):

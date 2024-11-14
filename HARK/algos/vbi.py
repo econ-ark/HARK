@@ -114,7 +114,7 @@ def solve(
             # negative, for minimization later
             return -srv_function(pre_states, dr)
 
-        if len(controls) == 0: 
+        if len(controls) == 0:
             # if no controls, no optimization is necessary
             pass
         elif len(controls) == 1:
@@ -123,14 +123,18 @@ def solve(
             lower_bound = -1e-6  ## a really low number!
             feq = block.dynamics[controls[0]].lower_bound
             if feq is not None:
-                lower_bound = feq(*[pre_states[var] for var in signature(feq).parameters])
+                lower_bound = feq(
+                    *[pre_states[var] for var in signature(feq).parameters]
+                )
 
             ## get upper bound
             ## assumes only one control currently
             upper_bound = 1e-12  # a very high number
             feq = block.dynamics[controls[0]].upper_bound
             if feq is not None:
-                upper_bound = feq(*[pre_states[var] for var in signature(feq).parameters])
+                upper_bound = feq(
+                    *[pre_states[var] for var in signature(feq).parameters]
+                )
 
             bounds = ((lower_bound, upper_bound),)
 
@@ -160,7 +164,9 @@ def solve(
                     0, srv_function(pre_states, dr_best)
                 )
         elif len(controls) > 1:
-            raise Exception(f"Value backup iteration is not yet implemented for stages with {len(controls)} > 1 control variables.")
+            raise Exception(
+                f"Value backup iteration is not yet implemented for stages with {len(controls)} > 1 control variables."
+            )
 
     # use the xarray interpolator to create a decision rule.
     dr_from_data = {
