@@ -1,10 +1,10 @@
-estimagic>=0.4.6
 interpolation>=2.2.3
 joblib>=1.2
 matplotlib>=3.6
 networkx>=3
 numba<0.60.0
-numpy>=1.23
+numpy<=1.26
+optimagic
 pandas>=1.5
 pyyaml>=6.0
 quantecon
