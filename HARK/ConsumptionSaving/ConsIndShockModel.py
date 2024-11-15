@@ -2083,19 +2083,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstn = self.IncShkDstn[0]
         else:
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
-                N=200,
+                N=100,
                 method="equiprobable",
-                tail_N=50,
+                tail_N=25,
                 tail_order=1.3,
                 tail_bound=[0.05, 0.95],
             )
             TranShkDstn = add_discrete_outcome_constant_mean(
-                TranShkDstn, self.UnempPrb, self.IncUnemp
+                TranShkDstn, p=self.UnempPrb, x=self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
-                N=200,
+                N=100,
                 method="equiprobable",
-                tail_N=50,
+                tail_N=25,
                 tail_order=1.3,
                 tail_bound=[0.05, 0.95],
             )
@@ -2118,12 +2118,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aNowGrid = mNowGrid - cNowGrid
 
         # Tile the grids for fast computation
-        ShkCount = IncShkDstn[0].size
+        ShkCount = IncShkDstn.pmv.size
         aCount = aNowGrid.size
         aNowGrid_tiled = np.tile(aNowGrid, (ShkCount, 1))
-        PermShkVals_tiled = (np.tile(IncShkDstn[1], (aCount, 1))).transpose()
-        TranShkVals_tiled = (np.tile(IncShkDstn[2], (aCount, 1))).transpose()
-        ShkPrbs_tiled = (np.tile(IncShkDstn[0], (aCount, 1))).transpose()
+        PermShkVals_tiled = (np.tile(IncShkDstn.atoms[0], (aCount, 1))).transpose()
+        TranShkVals_tiled = (np.tile(IncShkDstn.atoms[1], (aCount, 1))).transpose()
+        ShkPrbs_tiled = (np.tile(IncShkDstn.pmv, (aCount, 1))).transpose()
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (
