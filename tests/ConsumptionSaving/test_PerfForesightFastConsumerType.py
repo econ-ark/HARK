@@ -1,6 +1,6 @@
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
 from HARK.ConsumptionSaving.ConsIndShockModelFast import PerfForesightConsumerTypeFast
-from HARK.ConsumptionSaving.tests.test_PerfForesightConsumerType import (
+from tests.ConsumptionSaving.test_PerfForesightConsumerType import (
     testPerfForesightConsumerType,
 )
 

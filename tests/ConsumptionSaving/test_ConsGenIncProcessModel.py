@@ -7,7 +7,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     IndShockExplicitPermIncConsumerType,
     PersistentShockConsumerType,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 GenIncDictionary = {
     "CRRA": 2.0,  # Coefficient of relative risk aversion

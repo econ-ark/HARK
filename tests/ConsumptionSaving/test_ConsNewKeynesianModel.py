@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsNewKeynesianModel import NewKeynesianConsumerType
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 # %% Test Transition Matrix Methods

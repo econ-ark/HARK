@@ -1,5 +1,5 @@
 import unittest
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 from HARK.ConsumptionSaving.ConsMedModel import MedShockConsumerType
 
 

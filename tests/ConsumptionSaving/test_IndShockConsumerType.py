@@ -8,7 +8,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testIndShockConsumerType(unittest.TestCase):
