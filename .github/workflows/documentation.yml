@@ -35,7 +35,7 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements/base.txt
-            requirements/doc.txt
+            requirements/docs.txt
 
       - name: Install Pandoc
         run: sudo apt-get install --yes pandoc
@@ -44,7 +44,7 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install HARK
-        run: python -m pip install .[doc]
+        run: python -m pip install .[docs]
 
       - name: Run Sphinx
         run: >

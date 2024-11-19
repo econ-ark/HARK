@@ -38,7 +38,7 @@ dynamic = ["version", "dependencies", "optional-dependencies"]
 files = ["requirements/base.txt"]
 
 [tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
-docs = ["requirements/doc.txt"]
+docs = ["requirements/docs.txt"]
 test = ["requirements/dev.txt"]
 dev = ["requirements/dev.txt"]
 
