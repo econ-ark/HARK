@@ -12,7 +12,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
 )
 from HARK.core import AgentPopulation, AgentType, Parameters, distribute_params
-from HARK.distribution import Uniform
+from HARK.distributions import Uniform
 from HARK.metric import MetricObject, distance_metric
 
 
@@ -184,7 +184,7 @@ class test_agent_population(unittest.TestCase):
 
 import pytest
 import numpy as np
-from HARK.distribution import Uniform
+from HARK.distributions import Uniform
 from HARK.core import Parameters
 
 

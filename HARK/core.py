@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 from xarray import DataArray
 
-from HARK.distribution import (
+from HARK.distributions import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
@@ -138,9 +138,11 @@ class Parameters:
             params = {key: self._parameters[key] for key in self._invariant_params}
             params.update(
                 {
-                    key: self._parameters[key][item_or_key]
-                    if isinstance(self._parameters[key], (list, tuple, np.ndarray))
-                    else self._parameters[key]
+                    key: (
+                        self._parameters[key][item_or_key]
+                        if isinstance(self._parameters[key], (list, tuple, np.ndarray))
+                        else self._parameters[key]
+                    )
                     for key in self._varying_params
                 }
             )
