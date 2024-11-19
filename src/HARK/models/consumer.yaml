@@ -3,41 +3,41 @@
 #
 
 calibration:
-    DiscFac: 0.96
-    CRRA: 2.0
-    R: 1.03 # can be overriden by portfolio dynamics
-    Rfree: 1.03
-    EqP: 0.02
-    LivPrb: 0.98
-    PermGroFac: 1.01
-    BoroCnstArt: None
-    TranShkStd: 0.1
-    RiskyStd: 0.1
+  DiscFac: 0.96
+  CRRA: 2.0
+  R: 1.03 # can be overriden by portfolio dynamics
+  Rfree: 1.03
+  EqP: 0.02
+  LivPrb: 0.98
+  PermGroFac: 1.01
+  BoroCnstArt: None
+  TranShkStd: 0.1
+  RiskyStd: 0.1
 
 blocks:
-    - &cons_normalized
-        name: consumption normalized
-        shocks:
-            live: !Bernoulli
-                p: LivPrb
-            theta: !MeanOneLogNormal
-                sigma: TranShkStd
-        dynamics:
-            b: k * R / PermGroFac
-            m: b + theta
-            c: !Control
-                info: m
-            a: m - c
+  - &cons_normalized
+    name: consumption normalized
+    shocks:
+      live: !Bernoulli
+        p: LivPrb
+      theta: !MeanOneLogNormal
+        sigma: TranShkStd
+    dynamics:
+      b: k * R / PermGroFac
+      m: b + theta
+      c: !Control
+        info: m
+      a: m - c
 
-        reward:
-            u: c ** (1 - CRRA) / (1 - CRRA)
-    - &portfolio_choice
-        name: portfolio choice
-        shocks:
-            risky_return: !Lognormal
-                mean: Rfree + EqP
-                std: RiskyStd
-            dynamics:
-                stigma: !Control
-                    info: a
-                R: Rfree + (risky_return - Rfree) * stigma
+    reward:
+      u: c ** (1 - CRRA) / (1 - CRRA)
+  - &portfolio_choice
+    name: portfolio choice
+    shocks:
+      risky_return: !Lognormal
+        mean: Rfree + EqP
+        std: RiskyStd
+      dynamics:
+        stigma: !Control
+          info: a
+        R: Rfree + (risky_return - Rfree) * stigma

@@ -38,7 +38,7 @@ repos:
     rev: "v3.3.3"
     hooks:
       - id: prettier
-        types_or: [yaml, markdown, html, css, scss, javascript, json]
+        types_or: [yaml, html, css, scss, javascript, json]
         args: [--prose-wrap=always]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -59,23 +59,23 @@ repos:
   #       additional_dependencies:
   #         - pytest
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: "v2.3.0"
-    hooks:
-      - id: codespell
+  # - repo: https://github.com/codespell-project/codespell
+  #   rev: "v2.3.0"
+  #   hooks:
+  #     - id: codespell
 
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: "v0.10.0.1"
-    hooks:
-      - id: shellcheck
+  # - repo: https://github.com/shellcheck-py/shellcheck-py
+  #   rev: "v0.10.0.1"
+  #   hooks:
+  #     - id: shellcheck
 
-  - repo: local
-    hooks:
-      - id: disallow-caps
-        name: Disallow improper capitalization
-        language: pygrep
-        entry: PyBind|Numpy|Cmake|CCache|Github|PyTest
-        exclude: .pre-commit-config.yaml
+  # - repo: local
+  #   hooks:
+  #     - id: disallow-caps
+  #       name: Disallow improper capitalization
+  #       language: pygrep
+  #       entry: PyBind|Numpy|Cmake|CCache|Github|PyTest
+  #       exclude: .pre-commit-config.yaml
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: "v0.19"

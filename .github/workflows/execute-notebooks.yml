@@ -67,7 +67,8 @@ jobs:
           title: "[bot] Execute example notebooks"
           # language=Markdown
           body: >
-            This PR was [automatically generated] to re-execute
-            the example notebooks for use in the documentation.
+            This PR was [automatically generated] to re-execute the example
+            notebooks for use in the documentation.
 
-            [automatically generated]: https://github.com/Econ-ARK/HARK/actions/workflows/execute-notebooks.yml
+            [automatically generated]:
+            https://github.com/Econ-ARK/HARK/actions/workflows/execute-notebooks.yml
