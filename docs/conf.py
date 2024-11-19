@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import importlib.metadata
 import warnings
 from datetime import date
 import os
@@ -20,9 +23,9 @@ else:
 
 # Project information
 project = "HARK"
-copyright = f"{date.today().year}, Econ-ARK team"
-author = "Econ-ARK team"
-version = release = "latest"
+copyright = f"{date.today().year}, Econ-ARK Team"
+author = "Econ-ARK Team"
+version = release = importlib.metadata.version("hark")
 
 # General configuration
 extensions = [
@@ -42,24 +45,25 @@ extensions = [
     "myst_parser",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_autodoc_typehints",
 ]
 
-include_patterns = [
-    "docs**",
-    "index.rst",
-]  # Makes sure that only the file we want documented get documented
+source_suffix = [".rst", ".md"]
+# Makes sure that only the file we want documented get documented
+include_patterns = ["**", "index.rst"]
+# Adds example notebooks
 with open(os.path.join(dir, "example_notebooks", "Include_list.txt"), "r") as file:
     include_patterns += file.readlines()
-include_patterns = [
-    i.replace("\n", "") for i in include_patterns
-]  # Adds example notebooks
-
+include_patterns = [i.replace("\n", "") for i in include_patterns]
+# Prevents sphinx from getting confused
 exclude_patterns = [
-    "docs/_build",
-    "docs/Thumbs.db",
-    "docs/.DS_Store",
-    "docs/NARK",
-    "docs/index_core.rst",  # Prevents sphinx from getting confused
+    "_build",
+    "**.ipynb_checkpoints",
+    "Thumbs.db",
+    ".DS_Store",
+    ".env",
+    ".venv",
+    "NARK",
 ]
 
 napoleon_custom_sections = [
@@ -78,11 +82,6 @@ master_doc = "index"
 needs_sphinx = "6.1"
 
 pygments_style = "sphinx"
-
-source_suffix = [
-    ".rst",
-    ".md",
-]
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
@@ -137,9 +136,9 @@ nbsphinx_prolog = r"""
       <a href="{{ env.docname.split('/')|last|e + '.ipynb' }}" class="reference download internal" download>Download notebook</a>.
     </div>
 """
-myst_enable_extensions = [
-    "colon_fence",
-]
+
+myst_enable_extensions = ["colon_fence"]
+
 # Point to Econ-ARK repo for edit buttons
 html_context = {
     "github_url": "https://github.com",
@@ -159,8 +158,15 @@ html_copy_source = False
 
 # sphinx.ext.intersphinx configuration
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3/", None),
+    "python": ("https://docs.python.org/3", None),
 }
+
+nitpick_ignore = [
+    ("py:class", "_io.StringIO"),
+    ("py:class", "_io.BytesIO"),
+]
+
+always_document_param_types = True
 
 # sphinx.ext.autodoc configuration
 autodoc_default_flags = ["members"]  # must add outside ']' bracket
