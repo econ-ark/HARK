@@ -169,9 +169,11 @@ def simulate_dynamics(
                 ## This is quite slow.
                 for i in range(dr[varn].size):
                     vals_i = {
-                        var: vals[var][i]
-                        if isinstance(vals[var], np.ndarray)
-                        else vals[var]
+                        var: (
+                            vals[var][i]
+                            if isinstance(vals[var], np.ndarray)
+                            else vals[var]
+                        )
                         for var in vals
                     }
                     vals[varn][i] = dr[varn][i](

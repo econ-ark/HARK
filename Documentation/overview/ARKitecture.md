@@ -33,6 +33,7 @@ Python modules in HARK can generally be categorized into two types: tools and mo
 
 **Model modules** specify particular economic models, including classes to represent agents in the model (and the ''market structure'' in which they interact) and functions for solving the ''one period problem'' of those models. For example, **ConsIndShockModel.py** concerns consumption-saving models in which agents have CRRA utility over consumption and face idiosyncratic shocks to permanent and transitory income. The module includes classes for representing ''types'' of consumers, along with functions for solving (several flavors of) the one period consumption-saving problem. Model modules generally have **_Model_** in their name, and the classes for representing agents all have **_Type_** at the end of their name (as instances represent a collection of ex ante homogeneous agents who share common model and parameters-- a "type"). For example, **_HARK.ConsumptionSaving.ConsIndShockModel_** includes the class **_IndShockConsumerType_**.
 
+
 ## HARK
 
 After you [installed](https://docs.econ-ark.org/Documentation/guides/installation.html) or [cloned the repository of](https://github.com/econ-ark/HARK) HARK, you can explore the content of it. In the subfolder HARK, you can find a range of [general purpose tools](#general-purpose-tools), as well as the next subfolder ConsumptionSaving which has [AgentType subclasses](#agenttype-class) and [Market subclasses](#market-class).
@@ -105,6 +106,7 @@ A discrete time model in our framework is characterized by a sequence of ''perio
 - **_tolerance_**: A positive real number indicating convergence tolerance, representing the maximum acceptable ''distance'' between successive cycle solutions in an infinite horizon model; it is irrelevant when **_cycles > 0_**. As the distance metric on the space of solutions is model-specific, the value of **_tolerance_** is generally dimensionless.
 
 An instance of **_AgentType_** also has the attributes named in **_time_vary_** and **_time_inv_**, and may have other attributes that are not included in either (e.g. values not used in the model solution, but instead to construct objects used in the solution). Note that **_time_vary_** may include attributes that are never used by a function in **_solveOnePeriod_**. Most saliently, the attribute **_solution_** is time-varying but is not used to solve individual periods.
+
 
 #### A Universal Solver
 
