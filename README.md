@@ -80,7 +80,7 @@ Install from [PyPi](https://pypi.org/) by running:
 We start with almost the simplest possible consumption model: A consumer with CRRA utility
 
 <div align="center">
-  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-crra-utility-function.png">
+  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/docs/images/usage-crra-utility-function.png">
 </div>
 
 has perfect foresight about everything except the (stochastic) date of death.
@@ -88,7 +88,7 @@ has perfect foresight about everything except the (stochastic) date of death.
 The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
-  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-agent-problem-bellman-form.png">
+  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/docs/images/usage-agent-problem-bellman-form.png">
 </div>
 
 <br>
@@ -140,7 +140,7 @@ PFexample.solution[0].hNrm
 
 For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
-For more examples please visit the [examples](https://docs.econ-ark.org/Documentation/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+For more examples please visit the [examples](https://docs.econ-ark.org/docs/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
 
 ## Citation
 
@@ -209,7 +209,7 @@ HARK provides a modular and extensible open-source toolkit for solving heterogen
 
 HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
 
-For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/Documentation/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
+For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/docs/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
 
 ### Contributing to HARK
 
@@ -230,9 +230,9 @@ Contributions go far beyond pull requests and commits. Although we love giving y
 
 If you are worried or don’t know how to start, you can always reach out to us through the gitter [community](https://gitter.im/econ-ark/community)(#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
 
-To install for development see the [Quickstart Guide](https://docs.econ-ark.org/Documentation/guides/installation.html).
+To install for development see the [Quickstart Guide](https://docs.econ-ark.org/docs/guides/installation.html).
 
-For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/Documentation/guides/contributing.html).
+For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/docs/guides/contributing.html).
 This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
 ## Disclaimer

@@ -51,7 +51,7 @@ jobs:
           sphinx-build
           -M html . HARK-docs
           -T
-          -c Documentation
+          -c docs
           -W
           -j 1
 
@@ -92,8 +92,8 @@ jobs:
       - name: Lint documentation with sphinx-lint
         run: >
           sphinx-lint
-          --ignore Documentation/example_notebooks/GenIncProcessModel.py
+          --ignore docs/example_notebooks/GenIncProcessModel.py
           --enable all
           --max-line-length 85
           README.md
-          Documentation/
+          docs/

@@ -258,7 +258,7 @@ When naming variables in model modules,
 the HARK team strongly discourages using single letter names, like **_c_** for consumption.
 Instead, we encourage contributors to use longer,
 more descriptive variable names using additional words and common abbreviations to specify the variable more precisely.
-In [NARK](https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf),
+In [NARK](https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf),
 we list standard single letter variable ''bases'' and an array of prefixes and suffixes to adjust them.
 Economic variables in model modules should (usually) not use underscores,
 instead using camel case to the greatest extent possible.
@@ -351,7 +351,7 @@ the HARK team asks that you also provide a short mathematical writeup of the mod
 This document does not need
 to go into great detail about the solution method for the model or the functions and classes included in the module,
 merely specify the economic model and provide a summary of how it is solved.
-See [ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/Documentation/ConsumptionSavingModels.pdf) for an example of this.
+See [ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/docs/ConsumptionSavingModels.pdf) for an example of this.
 
 #### Contributing to documentation
 
@@ -376,7 +376,7 @@ To test your changes to the documentation locally, you can render as follows:
 2. Run `sphinx-build`:
 
   ```bash
-  sphinx-build -M html . HARK-docs -T -c Documentation -W
+  sphinx-build -M html . HARK-docs -T -c docs -W
   ```
 
 3. View the rendered HTML by opening the
@@ -389,9 +389,9 @@ Every pull request to HARK automatically reruns every example notebook
 to keep them up to date.
 
 To add a notebook from the examples folder to the documentation, add a link
-to the notebook to the `Documentation/overview/index.rst` file. It should
+to the notebook to the `docs/overview/index.rst` file. It should
 the format `../../examples/AAA/BBB.ipynb`. Then add a link to the notebook
-in the `Documentation/example_notebooks/Include_list.txt` file. It should have
+in the `docs/example_notebooks/Include_list.txt` file. It should have
 the format `examples/AAA/BBB.ipynb`.
 
 Sphinx requires it's example notebooks to have a title, and headings in order of
@@ -405,7 +405,7 @@ is made. Including the HARK-docs folder may create unexpected conflicts.
 
 If you would like to build the documentation without warnings being treated as errors use the command:
 ```bash
-   sphinx-build -M html . HARK-docs -T -c Documentation
+   sphinx-build -M html . HARK-docs -T -c docs
 ```
 This lets you see every warning without sphinx quitting after the first issue it finds.
 If you're doing this, make sure to delete the HARK-docs folder before running it again.

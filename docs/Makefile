@@ -111,7 +111,7 @@ applehelp:
 	@echo
 	@echo "Build finished. The help book is in $(BUILDDIR)/applehelp."
 	@echo "N.B. You won't be able to view it unless you put it in" \
-	      "~/Library/Documentation/Help or install it in your application" \
+	      "~/Library/docs/Help or install it in your application" \
 	      "bundle."
 
 .PHONY: devhelp
