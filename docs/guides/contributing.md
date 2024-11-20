@@ -376,7 +376,7 @@ To test your changes to the documentation locally, you can render as follows:
 2. Run `sphinx-build`:
 
   ```bash
-  sphinx-build -M html . HARK-docs -T -c docs -W
+  sphinx-build -M html . HARK-docs -T -c docs
   ```
 
 3. View the rendered HTML by opening the
