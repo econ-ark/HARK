@@ -49,12 +49,7 @@ extensions = [
 ]
 
 source_suffix = [".rst", ".md"]
-# Makes sure that only the file we want documented get documented
-include_patterns = ["**", "index.rst"]
-# Adds example notebooks
-with open(os.path.join(dir, "example_notebooks", "Include_list.txt"), "r") as file:
-    include_patterns += file.readlines()
-include_patterns = [i.replace("\n", "") for i in include_patterns]
+
 # Prevents sphinx from getting confused
 exclude_patterns = [
     "_build",
