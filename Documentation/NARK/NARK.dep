@@ -67,10 +67,11 @@
   *{package}{perpage}     {2014/10/25 v2.0}
   *{package}{setspace}    {2022/12/04 v6.7b}
   *{package}{@resources/texlive/texmf-local/tex/latex//econark-multibib}{2024/06/08 v0.0}
-  *{package}{wasysym}     {2020/01/19 v2.4}
   *{package}{@resources/texlive/texmf-local/tex/latex//econark}{0000/00/00 v0.0}
+  *{package}{wasysym}     {2020/01/19 v2.4}
   *{package}{subfiles}    {2020/11/14 v2.2}
   *{package}{import}      {2020/04/01 v6.2}
+  *{package}{moreverb}    {2008/06/03 v2.3a}
   *{package}{hyperref}    {2024-01-20 v7.01h}
   *{package}{iftex}       {2022/02/03 v1.0f}
   *{package}{kvdefinekeys}{2019-12-19 v1.6}

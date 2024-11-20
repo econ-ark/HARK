@@ -1,0 +1,11 @@
+\ProvidesPackage{onlyinsubfilenamed}
+
+\newcomm\onlyinsubfilenamed[1]{% https://tex.stackexchange.com/questions/463699/proper-reference-numbers-with-subfiles
+    \csname @ifpackageloaded\endcsname{xr-hyper}{%
+      \externaldocument{#1}% xr-hyper in use; optional argument for url of main.pdf for hyperlinks
+    }{%
+      \externaldocument{#1}% xr in use
+    }%
+    \renewcommand\labelprefix{}%
+    % Initialize the counters via the labels belonging to the main document:
+}

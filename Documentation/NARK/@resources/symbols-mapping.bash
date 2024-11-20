@@ -35,7 +35,7 @@ unicode_rules=(
     "\\PermGroFac:𝒢"
     "\\PermGroFacAdj: "
     "\\PermGroFacAdj: "
-    "\\RNrm:ℛ"
+    "\\RNrmByG:ℛ"
     "\\vFunc:𝚟"
     "\\uFunc:𝚞"
     "\\cFunc:𝚌"
