@@ -25,7 +25,7 @@ else:
 project = "HARK"
 copyright = f"{date.today().year}, Econ-ARK Team"
 author = "Econ-ARK Team"
-version = release = importlib.metadata.version("hark")
+version = release = importlib.metadata.version("HARK")
 
 # General configuration
 extensions = [
@@ -143,7 +143,7 @@ myst_enable_extensions = ["colon_fence"]
 html_context = {
     "github_url": "https://github.com",
     "github_user": "econ-ark",
-    "github_repo": "hark",
+    "github_repo": "HARK",
     "github_version": "master",
     "doc_path": "docs/",
 }

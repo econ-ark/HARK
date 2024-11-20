@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import importlib.metadata
 
-import hark as m
+import HARK as m
 
 
 def test_version():
-    assert importlib.metadata.version("hark") == m.__version__
+    assert importlib.metadata.version("HARK") == m.__version__
