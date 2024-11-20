@@ -49,11 +49,11 @@ jobs:
           python -m pip install ipykernel nbclient nbformat
 
       - name: Strip output
-        run: nbstripout examples/**/*.ipynb
+        run: nbstripout docs/examples/**/*.ipynb
 
       # This step takes c. 20 minutes
       - name: Execute notebooks
-        run: python tools/nb_exec.py examples/**/*.ipynb
+        run: python tools/nb_exec.py docs/examples/**/*.ipynb
         env:
           PYTHONUNBUFFERED: "1"
 
