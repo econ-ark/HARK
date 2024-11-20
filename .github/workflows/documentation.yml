@@ -48,7 +48,7 @@ jobs:
 
       - name: Run Sphinx
         run: >
-          sphinx-build -M html . HARK-docs -T -c docs -W -j 1
+          sphinx-build -M html docs HARK-docs -T -c docs -W -j 1
 
       - name: Set up git for deployment
         run: |
