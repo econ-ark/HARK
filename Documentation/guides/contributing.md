@@ -108,7 +108,7 @@ Thanks again! We're so glad to have you in our community.
      git remote add upstream git@github.com:econ-ark/HARK
      ```
 
-   - Now, you have remote repositories named:
+   - Now, have remote repositories named:
 
      - `upstream`, which refers to the `HARK` repository
      - `origin`, which refers to your personal fork of `HARK`.
