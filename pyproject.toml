@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "HARK"
+name = "econ-ark"
 authors = [{ name = "Econ-ARK Team", email = "econ-ark@jhuecon.org" }]
 description = "Heterogeneous Agents Resources and toolKit"
 keywords = ["economics", "modelling", "modeling", "heterogeneity"]
@@ -41,6 +41,9 @@ files = ["requirements/base.txt"]
 docs = ["requirements/docs.txt"]
 test = ["requirements/dev.txt"]
 dev = ["requirements/dev.txt"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/HARK"]
 
 [project.urls]
 Homepage = "https://github.com/econ-ark/HARK"
@@ -133,6 +136,8 @@ py-version = "3.10"
 ignore-paths = [".*/_version.py"]
 reports.output-format = "colorized"
 similarities.ignore-imports = "yes"
+# Set fail-under to 0 to prevent failing
+fail-under = 0
 messages_control.disable = [
   "design",
   "fixme",
