@@ -6,4 +6,4 @@ import HARK as m
 
 
 def test_version():
-    assert importlib.metadata.version("HARK") == m.__version__
+    assert importlib.metadata.version("econ-ark") == m.__version__
