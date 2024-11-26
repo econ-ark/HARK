@@ -25,7 +25,7 @@ else:
 project = "HARK"
 copyright = f"{date.today().year}, Econ-ARK Team"
 author = "Econ-ARK Team"
-version = release = importlib.metadata.version("HARK")
+version = release = importlib.metadata.version("econ-ark")
 
 # General configuration
 extensions = [

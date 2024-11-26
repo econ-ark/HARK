@@ -137,4 +137,5 @@ messages_control.disable = [
     "missing-module-docstring",
     "missing-function-docstring",
     "wrong-import-position",
+    "invalid-name",
 ]
