@@ -35,7 +35,7 @@ jobs:
           cache: "pip"
           cache-dependency-path: |
             requirements/base.txt
-            requirements/doc.txt
+            requirements/docs.txt
 
       - name: Install Pandoc
         run: sudo apt-get install --yes pandoc
@@ -44,16 +44,11 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install HARK
-        run: python -m pip install .[doc]
+        run: python -m pip install .[docs]
 
       - name: Run Sphinx
         run: >
-          sphinx-build
-          -M html . HARK-docs
-          -T
-          -c Documentation
-          -W
-          -j 1
+          sphinx-build -M html docs HARK-docs -T -c docs -j 1
 
       - name: Set up git for deployment
         run: |
@@ -69,12 +64,13 @@ jobs:
 
       - name: Deploy to GitHub Pages
         # Only deploy to Pages on pushes to HEAD
-        if: (github.repository_owner == 'Econ-ARK') && (github.event_name == 'push') && (github.ref_name == 'master')
+        if:
+          (github.repository_owner == 'Econ-ARK') && (github.event_name ==
+          'push') && (github.ref_name == 'master')
         run: >
-          git push
-          --force
-          https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}
-          `git subtree split --prefix HARK-docs/html gh-pages`:refs/heads/gh-pages
+          git push --force https://x-access-token:${{ github.token
+          }}@github.com/${{ github.repository }} `git subtree split --prefix
+          HARK-docs/html gh-pages`:refs/heads/gh-pages
 
   lint:
     runs-on: ubuntu-latest
@@ -91,9 +87,5 @@ jobs:
           python -m pip install --upgrade sphinx-lint
       - name: Lint documentation with sphinx-lint
         run: >
-          sphinx-lint
-          --ignore Documentation/example_notebooks/GenIncProcessModel.py
-          --enable all
-          --max-line-length 85
-          README.md
-          Documentation/
+          sphinx-lint --ignore docs/example_notebooks/GenIncProcessModel.py
+          --enable all --max-line-length 85 README.md docs/

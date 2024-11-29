@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2024.08.19
+_src_path: gh:scientific-python/cookie
+backend: hatch
+email: econ-ark@jhuecon.org
+full_name: Econ-ARK Team
+license: MIT
+org: econ-ark
+project_name: HARK
+project_short_description: Heterogeneous Agents Resources and toolKit
+url: https://github.com/econ-ark/HARK
+vcs: true
