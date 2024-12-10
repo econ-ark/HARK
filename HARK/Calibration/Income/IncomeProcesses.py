@@ -4,7 +4,7 @@ This file has various classes and functions for constructing income processes.
 
 import numpy as np
 from HARK.metric import MetricObject
-from HARK.distribution import (
+from HARK.distributions import (
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
     DiscreteDistribution,
@@ -54,7 +54,6 @@ class BinaryIncShkDstn(DiscreteDistribution):
 class LognormPermIncShk(DiscreteDistribution):
     """
     A one-period distribution of a multiplicative lognormal permanent income shock.
-
     Parameters
     ----------
     sigma : float
@@ -182,10 +181,10 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
     paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
+    - Lognormal, discretized permanent income shocks.
+    - Transitory shocks that are a mixture of:
+    - A lognormal distribution in normal times.
+    - An "unemployment" shock.
 
     Parameters
     ----------
@@ -249,10 +248,10 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
     paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
+    - Lognormal, discretized permanent income shocks.
+    - Transitory shocks that are a mixture of:
+    - A lognormal distribution in normal times.
+    - An "unemployment" shock.
 
     This version has additional features that make it particularly useful for HANK models.
 
@@ -340,17 +339,40 @@ def construct_lognormal_income_process_unemployment(
     RNG,
     neutral_measure=False,
 ):
-    """
+    r"""
     Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  Permanent shocks are mean
+    life period, from end of life to beginning of life.  Permanent shocks (:math:`\psi`) are mean
     one lognormally distributed with standard deviation PermShkStd[t] during the
-    working life, and degenerate at 1 in the retirement period.  Transitory shocks
+    working life, and degenerate at 1 in the retirement period. Transitory shocks (:math:`\theta`)
     are mean one lognormally distributed with a point mass at IncUnemp with
     probability UnempPrb while working; they are mean one with a point mass at
     IncUnempRet with probability UnempPrbRet.  Retirement occurs
     after t=T_retire periods of working.
 
-    Note 1: All time in this function runs forward, from t=0 to t=T
+    .. math::
+        \begin{align*}
+        \psi_t &\sim \begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2,\textbf{PermShkStd}_{t}^{2})) & \text{if } t \leq t_{\text{retire}}\\
+        1 & \text{if } t > t_{\text{retire}}
+        \end{cases}\\
+        p_{\text{unemp}} & = \begin{cases}
+        \textbf{UnempPrb} & \text{if } t \leq t_{\text{retire}} \\
+        \textbf{UnempPrbRet} & \text{if } t > t_{\text{retire}} \\
+        \end{cases}\\
+        &\text{if } p > p_{\text{unemp}} \\
+        \theta_t &\sim\begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2-\ln(\frac{1-\textbf{IncUnemp }\textbf{UnempPrb}}{1-\textbf{UnempPrb}}),\textbf{PermShkStd}_{t}^{2})) & \text{if } t\leq t_{\text{retire}}\\
+        \frac{1-\textbf{UnempPrbRet }\textbf{IncUnempRet}}{1-\textbf{UnempPrbRet}} & \text{if } t > t_{\text{retire}} \\
+        \end{cases}\\
+        &\text{otherwise}\\
+        \theta_t &\sim\begin{cases}
+        \textbf{IncUnemp} & \text{if } t\leq t_{\text{retire}}\\
+        \textbf{IncUnempRet} & \text{if } t\leq t_{\text{retire}}\\
+        \end{cases}\\
+        \mathbb{E}[\psi]&=\mathbb{E}[\theta] = 1.\\
+        \end{align*}
+
+    All time in this function runs forward, from t=0 to t=T
 
     Parameters
     ----------
@@ -358,14 +380,14 @@ def construct_lognormal_income_process_unemployment(
         List of standard deviations in log permanent income uncertainty during
         the agent's life.
     PermShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
     TranShkStd : [float]
         List of standard deviations in log transitory income uncertainty during
         the agent's life.
     TranShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
     UnempPrb : float or [float]
         The probability of becoming unemployed during the working period.
     UnempPrbRet : float or None
@@ -659,7 +681,7 @@ def construct_HANK_lognormal_income_process_unemployment(
     Note 2: All parameters are passed as attributes of the input parameters.
 
     Parameters (passed as attributes of the input parameters)
-    ----------
+    ---------------------------------------------------------
     PermShkStd : [float]
         List of standard deviations in log permanent income uncertainty during
         the agent's life.
@@ -932,15 +954,53 @@ class pLvlFuncAR1(MetricObject):
         return pLvlNext
 
 
+def make_PermGroFac_from_ind_and_agg(PermGroFacInd, PermGroFacAgg):
+    """
+    A very simple function that constructs *overall* permanent income growth over
+    the lifecycle as the sum of idiosyncratic productivity growth PermGroFacInd and
+    aggregate productivity growth PermGroFacAgg. In most HARK models, PermGroFac
+    is treated as the overall permanent income growth factor, regardless of source.
+    In applications in which the user has estimated permanent income growth from
+    *cross sectional* data, or wants to investigate how a change in aggregate
+    productivity growth affects behavior or outcomes, this function can be used
+    as the constructor for PermGroFac.
+
+    To use this function, specify idiosyncratic productivity growth in the attribute
+    PermGroFacInd (or construct it), and put this function as the entry for PermGroFac
+    in the constructors dictionary of your AgentType subclass instances.
+
+    Parameters
+    ----------
+    PermGroFacInd : [float] or np.array
+        Lifecycle sequence of idiosyncratic permanent productivity growth factors.
+        These represent individual-based productivity factors, like experience.
+    PermGroFacAgg : float
+        Constant aggregate permanent growth factor, representing (e.g.) TFP.
+
+    Returns
+    -------
+    PermGroFac : [float] or np.array
+        Lifecycle sequence of overall permanent productivity growth factors.
+        Returns same type as PermGroFacInd.
+    """
+    PermGroFac = [PermGroFacAgg * G for G in PermGroFacInd]
+    if type(PermGroFacInd) is np.array:
+        PermGroFac = np.array(PermGroFac)
+    return PermGroFac
+
+
 ###############################################################################
 
 # Define income processes that can be used in the ConsGenIncProcess model
 
 
 def make_trivial_pLvlNextFunc(T_cycle):
-    """
+    r"""
     A dummy function that creates default trivial permanent income dynamics:
     none at all! Simply returns a list of IdentityFunctions, one for each period.
+
+    .. math::
+        G_{t}(x) = x
 
     Parameters
     ----------
@@ -958,10 +1018,13 @@ def make_trivial_pLvlNextFunc(T_cycle):
 
 
 def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
-    """
+    r"""
     A function that creates permanent income dynamics as a sequence of linear
     functions, indicating constant expected permanent income growth across
     permanent income levels.
+
+    .. math::
+        G_{t+1} (x) = \Gamma_{t+1} x
 
     Parameters
     ----------
@@ -985,10 +1048,16 @@ def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
 
 
 def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
-    """
+    r"""
     A function that creates permanent income dynamics as a sequence of AR1-style
     functions. If cycles=0, the product of PermGroFac across all periods must be
     1.0, otherwise this method is invalid.
+
+    .. math::
+        \begin{align}
+        log(G_{t+1} (x)) &=\varphi log(x) + (1-\varphi) log(\overline{P}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
+        \overline{P}_{t+1} &= \overline{P}_{t} \Gamma_{t+1} \\
+        \end{align}
 
     Parameters
     ----------

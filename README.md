@@ -238,3 +238,13 @@ This is the guide that collaborators follow in maintaining the Econ-ARK project.
 ## Disclaimer
 
 This is a beta version of HARK. The code has not been extensively tested as it should be. We hope it is useful, but there are absolutely no guarantees (expressed or implied) that it works or will do what you want. Use at your own risk. And please, let us know if you find bugs by posting an issue to [the GitHub page](https://github.com/econ-ark/HARK)!
+
+## Detailed Explanations and Examples
+
+To help users understand the purpose and features of the repository, we have provided detailed explanations and examples in various sections of the documentation. Here are some key resources:
+
+- [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
+- [Guides](https://docs.econ-ark.org/Documentation/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
+- [Reference](https://docs.econ-ark.org/Documentation/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
+
+For more information and resources, please visit the [Econ-ARK documentation](https://docs.econ-ark.org/).

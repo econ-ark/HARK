@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.distribution import MarkovProcess, Uniform, expected
+from HARK.distributions import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -803,7 +803,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 StateCount,
             ):
                 raise ValueError(
-                    "MrkvArray not the right shape, it should be of the size states*statres."
+                    "MrkvArray not the right shape, it should be of the size states*states."
                 )
         for LivPrb_t in self.LivPrb:
             if not isinstance(LivPrb_t, np.ndarray) or LivPrb_t.shape != (StateCount,):

@@ -43,9 +43,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
-    risky_constructor_dict,
+    IndShockRiskyAssetConsumerType_constructor_default,
 )
-from HARK.distribution import calc_expectation
+from HARK.distributions import calc_expectation
 from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
     ConstantFunction,  # Interpolator-like class that returns constant value
@@ -2038,7 +2038,7 @@ risky_asset_params = {
     # When simulating the model, should all agents get the same risky return in
     # a given period?
     "sim_common_Rrisky": True,
-    "constructors": risky_constructor_dict,
+    "constructors": IndShockRiskyAssetConsumerType_constructor_default,
 }
 
 # Infinite horizon version

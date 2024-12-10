@@ -5,7 +5,7 @@ as inputs to several consumption-saving model solvers.
 
 import numpy as np
 from scipy.optimize import minimize_scalar
-from HARK.distribution import (
+from HARK.distributions import (
     combine_indep_dstns,
     DiscreteDistributionLabeled,
     IndexDistribution,
@@ -14,16 +14,22 @@ from HARK.distribution import (
 
 
 def make_lognormal_RiskyDstn(T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG):
-    """
+    r"""
     Creates a discrete approximation of lognormal risky asset returns, either
     as a single distribution or as a lifecycle sequence.
+
+    .. math::
+        \begin{align}
+        \phi_t &\sim \exp(\mathcal{N}(\textbf{RiskyStd}_{t}^2)) \\
+        \mathbb{E}_{t} \left[ \phi_t \right] &= \textbf{RiskyAvg}_{t}\\
+        \end{align}
 
     Parameters
     ----------
     T_cycle : int
         Number of non-terminal periods in this agent's cycle.
     RiskyAvg : float or [float]
-        Mean return of the risky asset. If a single number, it is used for all
+        Mean return factor of risky asset. If a single number, it is used for all
         periods. If it is a list, then it represents lifecycle returns (or
         perceptions thereof).
     RiskyStd : float or [float]
@@ -59,15 +65,15 @@ def make_lognormal_RiskyDstn(T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG):
     # if its parameters are time-varying
     if time_varying_RiskyDstn:
         RiskyDstn = IndexDistribution(
-            Lognormal.from_mean_std,
-            {"mean": RiskyAvg, "std": RiskyStd},
+            Lognormal,
+            {"mean": RiskyAvg, "sigma": RiskyStd},
             seed=RNG.integers(0, 2**31 - 1),
         ).discretize(RiskyCount, method="equiprobable")
 
     # Generate a discrete approximation to the risky return distribution if
     # its parameters are constant
     else:
-        RiskyDstn = Lognormal.from_mean_std(RiskyAvg, RiskyStd).discretize(
+        RiskyDstn = Lognormal(mean=RiskyAvg, sigma=RiskyStd).discretize(
             RiskyCount, method="equiprobable"
         )
 
