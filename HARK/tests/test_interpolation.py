@@ -221,25 +221,25 @@ class test_IdentityFunction(unittest.TestCase):
         self.one = np.ones(100)
 
     def test_eval(self):
-        self.assertEqual(self.X, self.IF1D(self.X))
-        self.assertEqual(self.X, self.IF2Da(self.X, self.Y))
-        self.assertEqual(self.Y, self.IF2Db(self.X, self.Y))
-        self.assertEqual(self.X, self.IF3Da(self.X, self.Y, self.Z))
-        self.assertEqual(self.Z, self.IF3Db(self.X, self.Y, self.Z))
+        assert np.all(self.X == self.IF1D(self.X))
+        assert np.all(self.X == self.IF2Da(self.X, self.Y))
+        assert np.all(self.Y == self.IF2Db(self.X, self.Y))
+        assert np.all(self.X == self.IF3Da(self.X, self.Y, self.Z))
+        assert np.all(self.Z == self.IF3Db(self.X, self.Y, self.Z))
 
     def test_der(self):
-        self.assertEqual(self.one, self.IF1D.der(self.X))
+        assert np.all(self.one == self.IF1D.derivative(self.X))
 
-        self.assertEqual(self.one, self.IF2Da.derX(self.X, self.Y))
-        self.assertEqual(self.zero, self.IF2Da.derY(self.X, self.Y))
+        assert np.all(self.one == self.IF2Da.derivativeX(self.X, self.Y))
+        assert np.all(self.zero == self.IF2Da.derivativeY(self.X, self.Y))
 
-        self.assertEqual(self.zero, self.IF2Db.derX(self.X, self.Y))
-        self.assertEqual(self.one, self.IF2Db.derY(self.X, self.Y))
+        assert np.all(self.zero == self.IF2Db.derivativeX(self.X, self.Y))
+        assert np.all(self.one == self.IF2Db.derivativeY(self.X, self.Y))
 
-        self.assertEqual(self.one, self.IF3Da.derX(self.X, self.Y, self.Z))
-        self.assertEqual(self.zero, self.IF3Da.derY(self.X, self.Y, self.Z))
-        self.assertEqual(self.zero, self.IF3Da.derZ(self.X, self.Y, self.Z))
+        assert np.all(self.one == self.IF3Da.derivativeX(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Da.derivativeY(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Da.derivativeZ(self.X, self.Y, self.Z))
 
-        self.assertEqual(self.zero, self.IF3Db.derX(self.X, self.Y, self.Z))
-        self.assertEqual(self.zero, self.IF3Db.derY(self.X, self.Y, self.Z))
-        self.assertEqual(self.one, self.IF3Db.derZ(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Db.derivativeX(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Db.derivativeY(self.X, self.Y, self.Z))
+        assert np.all(self.one == self.IF3Db.derivativeZ(self.X, self.Y, self.Z))
