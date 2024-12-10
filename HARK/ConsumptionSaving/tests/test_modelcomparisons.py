@@ -123,14 +123,14 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "Mrkv_p11": [1.0 - base_primitives["UnempPrb"]],
             "Mrkv_p22": [1.0],
             "BoroCnstArt": None,
-            "PermShkStd": [0.0],
+            "PermShkStd": np.array([[0.0, 0.0]]),
             "PermShkCount": 1,
-            "TranShkStd": [0.0],
+            "TranShkStd": np.array([[0.0, 0.0]]),
             "TranShkCount": 1,
-            "UnempPrb": 0.0,
+            "UnempPrb": np.array([[0.0, 0.0]]),  # This will be overwritten
             "UnempPrbRet": 0.0,
             "T_retire": 0,
-            "IncUnemp": 0.0,
+            "IncUnemp": np.array([[0.0, 0.0]]),  # This will be overwritten
             "IncUnempRet": 0.0,
             "aXtraMin": 0.001,
             "aXtraMax": TBSType.mUpperBnd,
@@ -149,6 +149,8 @@ class Compare_TBS_and_Markov(unittest.TestCase):
             "vFuncBool": False,
             "CubicBool": True,
             "T_cycle": 1,
+            "MrkvArray": [np.eye(2)],
+            # Will be overwritten, might prevent glitch in Ubuntu
         }
 
         MarkovType = MarkovConsumerType(**Markov_primitives)

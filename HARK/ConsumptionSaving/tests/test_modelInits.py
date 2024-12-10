@@ -88,10 +88,14 @@ class testInitialization(unittest.TestCase):
             # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
             init_serial_unemployment = {}
             init_serial_unemployment["MrkvArray"] = [MrkvArray]
-            init_serial_unemployment["UnempPrb"] = (
-                0.0  # to make income distribution when employed
-            )
+            init_serial_unemployment["UnempPrb"] = np.zeros(2)
+            # Income process is overwritten below to make income distribution when employed
             init_serial_unemployment["global_markov"] = False
+            init_serial_unemployment["Rfree"] = np.array([1.03, 1.03, 1.03, 1.03])
+            init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
+            init_serial_unemployment["PermGroFac"] = [
+                np.array([1.01, 1.01, 1.01, 1.01])
+            ]
             SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
         except:
             self.fail(
