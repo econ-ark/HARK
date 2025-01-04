@@ -189,3 +189,109 @@ Once you have downloaded them, you will find that the repo contains a `notebooks
 ```
 jupyter notebook
 ```
+
+## Example: Installing HARK and Running a Simple Model
+
+To help new users get started with HARK, let's walk through an example of installing HARK and running a simple model.
+
+### Step 1: Install Python and a Text Editor
+
+First, make sure you have Python installed on your computer. You can download Python from the official [Python website](https://www.python.org/downloads/). Follow the installation instructions for your operating system.
+
+Next, install a text editor for writing and running Python code. We recommend using [VSCode](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/). If you're using Anaconda, you can also use Spyder, which comes bundled with Anaconda.
+
+### Step 2: Create a Virtual Environment
+
+To keep your HARK installation isolated from other Python packages, create a virtual environment. You can use either `virtualenv` or `conda` for this purpose.
+
+#### Using virtualenv
+
+1. Open a terminal or command prompt.
+2. Navigate to the directory where you want to store the virtual environment.
+3. Run the following commands:
+
+```
+pip install virtualenv
+virtualenv econ-ark
+```
+
+4. Activate the virtual environment:
+
+- For Windows:
+
+```
+.\econ-ark\Scripts\activate.bat
+```
+
+- For Mac or Linux:
+
+```
+source econ-ark/bin/activate
+```
+
+#### Using Conda
+
+1. Open a terminal or command prompt.
+2. Run the following commands:
+
+```
+conda create -n econ-ark anaconda
+conda activate econ-ark
+```
+
+### Step 3: Install HARK
+
+With the virtual environment activated, install HARK using `pip`:
+
+```
+pip install econ-ark
+```
+
+### Step 4: Run a Simple Model
+
+Now that HARK is installed, let's run a simple model. Create a new Python file (e.g., `simple_model.py`) and add the following code:
+
+```python
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+
+# Define the parameters for the model
+params = {
+    "CRRA": 2.5,  # Relative risk aversion
+    "DiscFac": 0.96,  # Discount factor
+    "Rfree": 1.03,  # Risk-free interest factor
+    "LivPrb": [0.98],  # Survival probability
+    "PermGroFac": [1.01],  # Income growth factor
+    "T_cycle": 1,
+    "cycles": 0,
+    "AgentCount": 10000,
+}
+
+# Create an instance of the model
+model = PerfForesightConsumerType(**params)
+
+# Solve the model
+model.solve()
+
+# Print the consumption function
+print(model.solution[0].cFunc)
+```
+
+Save the file and run it from the terminal or command prompt:
+
+```
+python simple_model.py
+```
+
+You should see the consumption function printed in the output.
+
+Congratulations! You've successfully installed HARK and run a simple model. For more examples and detailed explanations, refer to the [HARK documentation](https://docs.econ-ark.org/).
+
+## Additional Examples and Tutorials
+
+To help new users get started with the repository more easily, we have added more detailed explanations and examples in the following sections:
+
+- [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
+- [Guides](https://docs.econ-ark.org/Documentation/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
+- [Reference](https://docs.econ-ark.org/Documentation/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
+
+For more information and resources, please visit the [Econ-ARK documentation](https://docs.econ-ark.org/).
