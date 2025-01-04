@@ -215,11 +215,15 @@ IdiosyncDict = {
 
 
 class testIndShockConsumerTypeExample(unittest.TestCase):
-    def test_infinite_horizon(self):
+    def setUp(self):
         IndShockExample = IndShockConsumerType(**IdiosyncDict)
         IndShockExample.assign_parameters(
             cycles=0
         )  # Make this type have an infinite horizon
+        self.IndShockExample = IndShockExample
+
+    def test_infinite_horizon(self):
+        IndShockExample = self.IndShockExample
         IndShockExample.solve()
 
         self.assertAlmostEqual(
@@ -237,6 +241,14 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(        #    IndShockExample.history["mNrm"][0][0], 1.01702, place = HARK_PRECISION        # )
+
+    def test_euler_error_function(self):
+        IndShockExample = self.IndShockExample
+        IndShockExample.solve()
+        IndShockExample.make_euler_error_func()
+        self.assertAlmostEqual(
+            IndShockExample.eulerErrorFunc(5.0), -5.9e-5, places=HARK_PRECISION
+        )
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
