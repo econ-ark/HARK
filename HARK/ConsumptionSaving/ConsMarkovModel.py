@@ -9,9 +9,9 @@ import numpy as np
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
-    construct_lognormal_income_process_unemployment,
-    get_PermShkDstn_from_IncShkDstn,
-    get_TranShkDstn_from_IncShkDstn,
+    construct_markov_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn_markov,
+    get_TranShkDstn_from_IncShkDstn_markov,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.distribution import MarkovProcess, Uniform, expected
+from HARK.distributions import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -657,9 +657,9 @@ def solve_one_period_ConsMarkov(
 
 # Make a dictionary of constructors for the markov consumption-saving model
 markov_constructor_dict = {
-    "IncShkDstn": construct_lognormal_income_process_unemployment,
-    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
-    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "IncShkDstn": construct_markov_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn_markov,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn_markov,
     "aXtraGrid": make_assets_grid,
     "MrkvArray": make_simple_binary_markov,
     "solution_terminal": make_markov_solution_terminal,
@@ -667,15 +667,21 @@ markov_constructor_dict = {
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
 default_IncShkDstn_params = {
-    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log permanent income shocks
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log transitory income shocks
     "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb": 0.05,  # Probability of unemployment while working
-    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "UnempPrb": np.array([0.05, 0.05]),  # Probability of unemployment while working
+    "IncUnemp": np.array(
+        [0.3, 0.3]
+    ),  # Unemployment benefits replacement rate while working
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
-    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "UnempPrbRet": None,  # Probability of "unemployment" while retired
+    "IncUnempRet": None,  # "Unemployment" benefits when retired
 }
 
 # Default parameters to make aXtraGrid using make_assets_grid

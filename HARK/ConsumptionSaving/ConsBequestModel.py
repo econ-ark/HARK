@@ -36,7 +36,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     make_portfolio_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
-from HARK.distribution import expected
+from HARK.distributions import expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,
@@ -273,12 +273,8 @@ init_warm_glow_terminal_only["BeqShift"] = 0.0
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
     r"""
-    A consumer type with idiosyncratic shocks to permanent and transitory income.
-    Their problem is defined by a sequence of income distributions, survival probabilities
-    (:math:`1-\mathsf{D}`), and permanent income growth rates (:math:`\Gamma`), as well
-    as time invariant values for risk aversion (:math:`\rho`), discount factor (:math:`\beta`),
-    the interest rate (:math:`\mathsf{R}`), the grid of end-of-period assets, and an artificial
-    borrowing constraint (:math:`\underline{a}`).
+    A consumer type with based on IndShockConsumerType, with an additional bequest motive.
+    They gain utility for any wealth they leave when they die, according to a Stone-Geary utility.
 
     .. math::
         \newcommand{\CRRA}{\rho}
@@ -295,7 +291,7 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
-        u_{Beq} (a) = \textbf{BeqFac} \frac{(a+\textbf{BeqShift})^{1-\CRRA_{Beq}}}{1-\CRRA_{Beq}}
+        u_{Beq} (a) &= \textbf{BeqFac} \frac{(a+\textbf{BeqShift})^{1-\CRRA_{Beq}}}{1-\CRRA_{Beq}} \\
         \end{align*}
 
 
@@ -1277,7 +1273,7 @@ init_portfolio_bequest.update(default_RiskyDstn_and_ShareGrid_params)
 
 class BequestWarmGlowPortfolioType(PortfolioConsumerType):
     r"""
-    A consumer type with based on IndShockConsumerType, with an additional bequest motive.
+    A consumer type with based on PortfolioConsumerType, with an additional bequest motive.
     They gain utility for any wealth they leave when they die, according to a Stone-Geary utility.
 
     .. math::
@@ -1300,7 +1296,7 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
         (\psi_{t+1},\theta_{t+1},\phi_{t+1},p_t) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1. \\
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
-        u_{Beq} (a) = \textbf{BeqFac} \frac{(a+\textbf{BeqShift})^{1-\CRRA_{Beq}}}{1-\CRRA_{Beq}}
+        u_{Beq} (a) &= \textbf{BeqFac} \frac{(a+\textbf{BeqShift})^{1-\CRRA_{Beq}}}{1-\CRRA_{Beq}} \\
         \end{align*}
 
 

@@ -30,7 +30,7 @@ from HARK.Calibration.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
-from HARK.distribution import (
+from HARK.distributions import (
     Lognormal,
     MeanOneLogNormal,
     Uniform,
@@ -2798,7 +2798,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         \end{cases}\\
         \Rfree_{boro} &> \Rfree_{save}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1.\\
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 

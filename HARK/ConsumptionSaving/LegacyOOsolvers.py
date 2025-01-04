@@ -10,7 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import numpy as np
 from HARK import NullFunc
-from HARK.distribution import expected, calc_expectation, DiscreteDistribution
+from HARK.distributions import expected, calc_expectation, DiscreteDistribution
 from HARK.interpolation import (
     BilinearInterp,
     BilinearInterpOnInterp1D,

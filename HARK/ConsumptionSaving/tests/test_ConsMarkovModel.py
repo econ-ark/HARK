@@ -1,5 +1,5 @@
 import unittest
-from copy import copy
+from copy import deepcopy
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
 )
-from HARK.distribution import (
+from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     MeanOneLogNormal,
@@ -56,19 +56,19 @@ class test_ConsMarkovSolver(unittest.TestCase):
             ]
         )
 
-        init_serial_unemployment = copy(init_indshk_markov)
+        init_serial_unemployment = deepcopy(init_indshk_markov)
         init_serial_unemployment["MrkvArray"] = [MrkvArray]
-        init_serial_unemployment["UnempPrb"] = 0.0
-        # to make income distribution when employed
+        init_serial_unemployment["UnempPrb"] = np.zeros(2)
+        # Income process is overwritten below to make income distribution when employed
         init_serial_unemployment["global_markov"] = False
         init_serial_unemployment["Rfree"] = np.array([1.03, 1.03, 1.03, 1.03])
         init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
         init_serial_unemployment["PermGroFac"] = [np.array([1.01, 1.01, 1.01, 1.01])]
+        init_serial_unemployment["constructors"]["MrkvArray"] = None
 
         self.model = MarkovConsumerType(**init_serial_unemployment)
         self.model.cycles = 0
         self.model.vFuncBool = False  # for easy toggling here
-        self.model.MrkvArray = [MrkvArray]
 
         # Replace the default (lognormal) income distribution with a custom one
         employed_income_dist = DiscreteDistributionLabeled(
@@ -224,3 +224,8 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
         self.assertAlmostEqual(
             Markov_vFuncBool_example.solution[0].vFunc[1](0.4), -4.12794
         )
+
+
+if __name__ == "__main__":
+    # Run all the tests
+    unittest.main()

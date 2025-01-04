@@ -8,7 +8,7 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     SmallOpenEconomy,
     init_cobb_douglas,
 )
-from HARK.distribution import Uniform
+from HARK.distributions import Uniform
 
 
 class testSmallOpenEconomy(unittest.TestCase):

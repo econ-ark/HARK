@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from HARK.distribution import (
+from HARK.distributions import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
