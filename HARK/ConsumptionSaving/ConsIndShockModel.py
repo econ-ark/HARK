@@ -1854,6 +1854,12 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
+        # Child classes should not run this method
+        is_perf_foresight = type(self) is PerfForesightConsumerType
+        is_ind_shock = type(self) is IndShockConsumerType
+        if not (is_perf_foresight or is_ind_shock):
+            return
+
         infinite_horizon = self.cycles == 0
         single_period = self.T_cycle = 1
         if not infinite_horizon:
