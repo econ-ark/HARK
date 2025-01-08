@@ -6,8 +6,8 @@ import numpy as np
 import xarray as xr
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSetup,
     IndShockConsumerType,
+    init_idiosyncratic_shocks,
     init_perfect_foresight,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
@@ -20,8 +20,9 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     init_risky_share_fixed,
 )
+from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSetup
 from HARK.core import make_one_period_oo_solver
-from HARK.distribution import DiscreteDistributionLabeled
+from HARK.distributions import DiscreteDistributionLabeled
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
 
@@ -230,9 +231,9 @@ class PerfForesightLabeledType(IndShockConsumerType):
         """
         Initialize a new instance of a perfect foresight consumer type.
         """
-
         params = init_perfect_foresight.copy()
         params.update(kwds)
+        params["constructors"] = init_idiosyncratic_shocks["constructors"]
 
         # Initialize a basic AgentType
         IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
@@ -303,6 +304,9 @@ class PerfForesightLabeledType(IndShockConsumerType):
             continuation=None,
             attrs={"m_nrm_min": 0.0},  # minimum normalized market resources
         )
+
+    def post_solve(self):
+        pass  # Do nothing, rather than try to run calc_stable_points
 
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
@@ -894,7 +898,9 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
     """
 
     solution_next: ConsumerSolutionLabeled  # solution to next period's problem
-    ShockDstn: DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    ShockDstn: (
+        DiscreteDistributionLabeled  #  distribution of shocks to income and returns
+    )
     LivPrb: float  # survival probability
     DiscFac: float  # intertemporal discount factor
     CRRA: float  # coefficient of relative risk aversion

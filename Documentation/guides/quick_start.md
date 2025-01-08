@@ -2,145 +2,199 @@
 
 ## Installing HARK
 
-HARK is an open source project that is compatible with Python 3.
+HARK is an open source project that is compatible with Python 3. Currently, HARK is supported for python versions 3.10 or higher.
 
-### Installing HARK with pip
+The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/) by running `pip install econ-ark` in your command line.
 
-The simplest way to install HARK is to use [pip](https://pip.pypa.io/en/stable/installation/).
+Before installing HARK, we recommend creating a new virtual environment, which isolates the installation of `econ-ark` from the installations of any other Python tools and packages, thus avoiding conflicts.
 
-To install HARK with pip, at a command line type `pip install econ-ark`.
-
-(If you want to install a release that is not the default stable release, for instance if you want to install a development release, you'll need to use a "pinned" release number: `pip install econ-ark==0.10.1.dev1`, substituting "0.10.1.dev1" for your desired release number.)
-
-If you are installing via pip, we recommend using a virtual environment such as [virtualenv](https://virtualenv.pypa.io/en/latest/). Creation of a virtual environment isolates the installation of `econ-ark` from the installations of any other python tools and packages.
-
-To install `virtualenv`, then to create an environment named `econ-ark`, and finally to activate that environment:
+The easiest way to get started with managing environments is to use `conda`, which is packaged with either the [Anaconda](https://anaconda.com/) distribution or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/). To create a new virtual environment and install `econ-ark`, enter this in your command line:
 
 ```
-cd [directory where you want to store the econ-ark virtual environment]
-pip install virtualenv
-virtualenv econ-ark
-source econ-ark/bin/activate
-```
-
----
-
-### Using HARK with Anaconda
-
-If you intend ever to use the toolkit for anything other than running the precooked material we have provided, you should probably install [Anaconda](https://anaconda.com/), which will install python along with many packages that are frequently used in scientific computing.
-
-1. Download Anaconda for your operating system and follow the installation instructions [at Anaconda.com](https://www.anaconda.com/distribution/#download-section).
-
-1. Anaconda includes its own virtual environment system called `conda` which stores environments in a preset location (so you don't have to choose). So in order to create and activate an econ-ark virtual environment:
-
-```
-conda create -n econ-ark anaconda
+conda create -n econ-ark
 conda activate econ-ark
-conda install -c conda-forge econ-ark
+pip install econ-ark
 ```
-
-1. Open Spyder, an interactive development environment (IDE) for Python (specifically, iPython). You may be able to do this through Anaconda's graphical interface, or you can do so from the command line/prompt. To do so, simply open a command line/prompt and type `spyder`.
-
-1. To verify that spyder has access to HARK try typing `pip install econ-ark` into the iPython shell within Spyder. If you have successfully installed HARK as above, you should see a lot of messages saying 'Requirement satisfied'.
-
-   - If that doesn't work, you will need to manually add HARK to your Spyder environment. To do this, you'll need to get the code from Github and import it into Spyder. To get the code from Github, you can either clone it or download a zipped file.
-
-   - If you have `git` installed on the command line, type `git clone git@github.com:econ-ark/HARK.git` in your chosen directory ([more details here](https://git-scm.com/doc)).
-
-     - If you do not have `git` available on your computer, you can download the [GitHub Desktop app](https://desktop.github.com/) and use it to make a local clone
-
-   - If you don't want to clone HARK, but just to download it, go to [the HARK repository on GitHub](https://github.com/econ-ark/HARK). In the upper righthand corner is a button that says "clone or download". Click the "Download Zip" option and then unzip the contents into your chosen directory.
-
-   Once you've got a copy of HARK in a directory, return to Spyder and navigate to that directory where you put HARK. This can be done within Spyder by doing `import os` and then using `os.chdir()` to change directories. `chdir` works just like cd at a command prompt on most operating systems, except that it takes a string as input: `os.chdir('Music')` moves to the Music subdirectory of the current working directory.
-
-6) Most of the modules in HARK are just collections of tools. There are a few demonstration
-   applications that use the tools that you automatically get when you install HARK -- they are listed in the sidebar at the left. A much larger set of uses of HARK can be found at two repositories:
-   _ [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
-   _ [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
-
-You will want to obtain your own local copy of these repos using:
-
-```
-git clone https://github.com/econ-ark/DemARK.git
-```
-
-and similarly for the REMARK repo. Once you have downloaded them, you will find that each repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). If you have the jupyter notebook tool installed (it is installed as part of Anaconda), you should be able to launch the
-jupyter notebook app from the command line with the command:
-
-```
-jupyter notebook
-```
-
-and from there you can open the notebooks and execute them.
 
 ## Learning HARK
 
-We have a set of 30-second [Elevator Spiels](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#capsule-summaries-of-what-the-econ-ark-project-is) describing the project, tailored to people with several different kinds of background.
+We've prepared a set of 30-second Elevator Spiels describing the project, tailored to people with several different kinds of background.
 
-The most broadly applicable advice is to go to [Econ-ARK](https://econ-ark.org) and click on "Notebooks", and choose [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) which will launch as a [jupyter notebook](https://jupyter.org/).
+To start learning HARK we recommend working through the [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html) section starting with [A Gentle Introduction to HARK](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
-### [For people with a technical/scientific/computing background but little economics background](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-people-with-a-technicalscientificcomputing-background-but-no-economics-background)
+:::{dropdown} For people without a technical/scientific/computing background
+:color: secondary
+:icon: info
+Recent years have seen major advances in the ability of computational tools to explain the economic behavior of households, firms, and whole economies. But a major impediment to the widespread adoption of these techniques among economists has been the extent to which the advances are the culmination of years of development of intricate and hand-crafted (but mutually incomprehensible) computational tools by a few pioneering scholars and their students. The aim of the Econ-ARK project is to make it much easier for new scholars to begin using these techniques, by providing a modern, robust, open-source set of high-quality computational tools with components that can be mixed, matched, and extended to address the wide variety of problems across all fields of economics that can be effectively studied using such tools.
 
-- A good starting point is [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) which provides a light economic intuition.
+For users unfamiliar with programming, we strongly encourage you to review the background material on python provided by the good people at [QuantEcon](https://python-programming.quantecon.org/intro.html) including the material on NumPy.
+:::
 
-### [For economists who have done some structural modeling](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-done-some-structural-modeling)
+:::{dropdown} For people with a technical/scientific/computing background but little economics background
+:color: secondary
+:icon: info
 
+Most of what economists have done so far with 'big data' has been like what Kepler did with astronomical data: Organizing the data, and finding patterns and regularities and interconnections. An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.' But structural techniques are so novel and computationally difficult that few economists have mastered them. The aim of the Econ-ARK project is to make it much, much easier for new scholars to do structural modeling, by providing a well-documented, open source codebase that contains the core techniques and can be relatively easily adapted to address many different questions.
+:::
+
+:::{dropdown} For economists who have done some structural modeling
+:color: secondary
+:icon: info
+
+The Econ-ARK project is motivated by a sense that quantitative structural modeling of economic agents' behavior (consumers; firms), at present, is roughly like econometric modeling in the 1960s: Lots of theoretical results are available and a great deal can be done in principle, but actually using such tools for any specific research question requires an enormous investment of a scholar's time and attention to learn techniques that are fundamentally not related to economics but instead are algorithmic/computational (in the 1960s, e.g., inverting matrices; now, e.g., solving dynamic stochastic optimization problems). The toolkit is built using the suite of open source, transparent tools for collaborative software development that have become ubiquitous in other fields in the last few years: Github, object-oriented coding, and methods that make it much easier to produce plug-and-play software modules that can be (relatively) easily combined, enhanced and adapted to address new problems.
+
+After working through the [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html) section:
 - A full replication of the [Iskhakov, Jørgensen, Rust, and Schjerning](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) paper for solving the discrete-continuous retirement saving problem
 
   - An informal discussion of the issues involved is [here](https://github.com/econ-ark/DemARK/blob/master/notebooks/DCEGM-Upper-Envelope.ipynb) (part of the [DemARK](https://github.com/econ-ark/DemARK) repo)
 
 - [Structural-Estimates-From-Empirical-MPCs](https://github.com/econ-ark/DemARK/blob/master/notebooks/Structural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is an example of the use of the toolkit in a discussion of a well known paper. (Yes, it is easy enough to use that you can estimate a structural model on somebody else's data in the limited time available for writing a discussion)
+:::
 
-### [For economists who have not yet done any structural modeling but might be persuadable to start](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-economists-who-have-not-yet-done-any-structural-modeling-but-might-be-persuadable-to-start)
+:::{dropdown} For economists who have not yet done any structural modeling but might be persuadable to start
+:color: secondary
+:icon: info
 
-- Start with [A Gentle Introduction to HARK](https://docs.econ-ark.org/example_notebooks/Gentle-Intro-To-HARK.html) to get your feet wet
+Dissatisfaction with the ability of Representative Agent models to answer important questions raised by the Great Recession has led to a strong movement in the macroeconomics literature toward 'Heterogeneous Agent' models, in which microeconomic agents (consumers; firms) solve a structural problem calibrated to match microeconomic data; aggregate outcomes are derived by explicitly simulating the equilibrium behavior of populations solving such models. The same kinds of modeling techniques are also gaining popularity among microeconomists, in areas ranging from labor economics to industrial organization. In both macroeconomics and structural micro, the chief barrier to the wide adoption of these techniques has been that programming a structural model has, until now, required a great deal of specialized knowledge and custom software development. The aim of the Econ-ARK project is to provide a robust, well-designed, open-source infrastructure for building such models much more efficiently than has been possible in the past.
 
+After working through the [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html) section:
 - A simple indirect inference/simulated method of moments structural estimation along the lines of Gourinchas and Parker's 2002 Econometrica paper or Cagetti's 2003 paper is performed by the [SolvingMicroDSOPs](https://github.com/econ-ark/SolvingMicroDSOPs/) [REMARK](https://github.com/econ-ark/REMARK); this code implements the solution methods described in the corresponding section of [these lecture notes](https://llorracc.github.io/SolvingMicroDSOPs/).
+:::
 
-### [For Other Developers of Software for Computational Economics](https://github.com/econ-ark/PARK/blob/master/Elevator-Spiels.md#for-other-developers-of-software-for-computational-economics)
+:::{dropdown} For Other Developers of Software for Computational Economics
+:icon: info
+:color: secondary
 
-- Our workhorse module is [ConsIndShockModel.py](https://github.com/econ-ark/HARK/blob/master/HARK/ConsumptionSaving/ConsIndShockModel.py) which includes the IndShockConsumerType. A short explanation about the Agent Type can be found [here](https://docs.econ-ark.org/example_notebooks/IndShockConsumerType.html) and an introduction how it is solved [here](https://docs.econ-ark.org/example_notebooks/HowWeSolveIndShockConsumerType.html).
+The Econ-ARK project's aim is to create a modular and extensible open-source toolkit for solving heterogeneous-agent partial-and general-equilibrium structural models. The code for such models has always been handcrafted, idiosyncratic, poorly documented, and sometimes not generously shared from leading researchers to outsiders. The result that it can take years for a new researcher to become proficient. Building an integrated system from the bottom up using object-oriented programming techniques and other tools (GitHub, open source licensing, unit testing, etc), we aim to provide a platform that will become a focal point for people using such models. At present, the project contains: A set of general purpose tools for solving such models; a number of tutorials and examples of how to use the tools; and complete archives of several papers whose main contribution is structural modeling results, and whose modeling work has been done using the toolkit.
+:::
 
-## Making changes to HARK
+### Demonstrations on using HARK
 
-If you want to make changes or contributions to HARK, you'll need to have access to the source files. Installing HARK via `pip install econ-ark` (at the command line, or inside Spyder) makes it hard to access those files (and it's a bad idea to mess with the original code anyway because you'll likely forget what changes you made). If you are adept at GitHub, you can [fork](https://help.github.com/en/articles/fork-a-repo) the repo. If you are less experienced, you should download a personal copy of HARK again using `git clone` (see above) or the GitHub Desktop app.
+Most of the modules in HARK are just collections of tools. There are a few demonstrations/applications that use the tools that you automatically get when you install HARK -- they are available in [Overview & Examples](https://docs.econ-ark.org/Documentation/overview/index.html). A much larger set of uses of HARK can be found at two repositories:
 
-### Clone HARK
+- [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
+- [REMARK](https://github.com/econ-ark/REMARK): Replications of existing papers made using HARK
 
-Navigate to wherever you want to put the repository and type `git clone git@github.com:econ-ark/HARK.git` ([more details here](https://git-scm.com/doc)). If you get a permission denied error, you may need to setup SSH for GitHub, or you can clone using HTTPS: `git clone https://github.com/econ-ark/HARK.git`.
-
-### (Optionally) Create a virtual environment
-
-If you are familiar with [virtual environments](https://virtualenv.pypa.io/en/latest/), you can optionally create and activate a virtual environment which will isolate the econ-ark specific tools from the rest of your computer.
-
-For Mac or Linux:
-
-- Install virtualenv if you need to and then type:
+You will want to obtain your own local copy of these repos using:
 
 ```
+git clone https://github.com/econ-ark/DemARK.git
+git clone https://github.com/econ-ark/REMARK.git
+```
+
+Once you have downloaded them, you will find that each repo contains a `notebooks` directory that contains a number of [jupyter notebooks](https://jupyter.org/). You can either view them in your integrated development environment (IDE) -- such as [VS Code](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/) -- or if you have `jupyter` installed, launch the Jupyter notebook tool using the command line:
+
+```
+cd [directory containing the repository]
+jupyter notebook
+```
+
+## Next steps
+
+To learn more about how to use HARK, check the next sections in this documentation, in particular the example notebooks. For instructions on making changes to HARK, refer to our [contributing guide](https://docs.econ-ark.org/Documentation/guides/contributing.html).
+
+## Example: Installing HARK and Running a Simple Model
+
+To help new users get started with HARK, let's walk through an example of installing HARK and running a simple model.
+
+### Step 1: Install Python and a Text Editor
+
+First, make sure you have Python installed on your computer. You can download Python from the official [Python website](https://www.python.org/downloads/). Follow the installation instructions for your operating system.
+
+Next, install a text editor for writing and running Python code. We recommend using [VSCode](https://code.visualstudio.com/) or [PyCharm](https://www.jetbrains.com/pycharm/). If you're using Anaconda, you can also use Spyder, which comes bundled with Anaconda.
+
+### Step 2: Create a Virtual Environment
+
+To keep your HARK installation isolated from other Python packages, create a virtual environment. You can use either `virtualenv` or `conda` for this purpose.
+
+#### Using virtualenv
+
+1. Open a terminal or command prompt.
+2. Navigate to the directory where you want to store the virtual environment.
+3. Run the following commands:
+
+```
+pip install virtualenv
 virtualenv econ-ark
-source econ-ark/bin/activate
 ```
+
+4. Activate the virtual environment:
 
 - For Windows:
 
 ```
-virtualenv econ-ark
-econ-ark\\Scripts\\activate.bat
+.\econ-ark\Scripts\activate.bat
 ```
 
-Once the virtualenv is activated, you may see `(econ-ark)` in your command prompt (depending on how your machine is configured)
+- For Mac or Linux:
 
-### Install requirements
+```
+source econ-ark/bin/activate
+```
 
-Make sure to change to HARK directory, and install HARK's requirements into the virtual environment with `pip install -r requirements.txt`.
+#### Using Conda
 
-### Test your installation
+1. Open a terminal or command prompt.
+2. Run the following commands:
 
-To check that everything has been set up correctly, run HARK's tests with `python -m unittest`.
+```
+conda create -n econ-ark anaconda
+conda activate econ-ark
+```
 
-## Next steps
+### Step 3: Install HARK
 
-To learn more about how to use HARK, check the next sections in this documentation, in particular the jupyter notebooks.
+With the virtual environment activated, install HARK using `pip`:
 
-For help making changes to HARK, check out our [contributing guide](contributing.md).
+```
+pip install econ-ark
+```
+
+### Step 4: Run a Simple Model
+
+Now that HARK is installed, let's run a simple model. Create a new Python file (e.g., `simple_model.py`) and add the following code:
+
+```python
+from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
+
+# Define the parameters for the model
+params = {
+    "CRRA": 2.5,  # Relative risk aversion
+    "DiscFac": 0.96,  # Discount factor
+    "Rfree": 1.03,  # Risk-free interest factor
+    "LivPrb": [0.98],  # Survival probability
+    "PermGroFac": [1.01],  # Income growth factor
+    "T_cycle": 1,
+    "cycles": 0,
+    "AgentCount": 10000,
+}
+
+# Create an instance of the model
+model = PerfForesightConsumerType(**params)
+
+# Solve the model
+model.solve()
+
+# Print the consumption function
+print(model.solution[0].cFunc)
+```
+
+Save the file and run it from the terminal or command prompt:
+
+```
+python simple_model.py
+```
+
+You should see the consumption function printed in the output.
+
+Congratulations! You've successfully installed HARK and run a simple model. For more examples and detailed explanations, refer to the [HARK documentation](https://docs.econ-ark.org/).
+
+## Additional Examples and Tutorials
+
+To help new users get started with the repository more easily, we have added more detailed explanations and examples in the following sections:
+
+- [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
+- [Guides](https://docs.econ-ark.org/Documentation/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
+- [Reference](https://docs.econ-ark.org/Documentation/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
+
+For more information and resources, please visit the [Econ-ARK documentation](https://docs.econ-ark.org/).

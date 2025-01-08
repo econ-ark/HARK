@@ -3,6 +3,7 @@ General purpose  / miscellaneous functions.  Includes functions to approximate
 continuous distributions with discrete ones, utility functions (and their
 derivatives), manipulation of discrete distributions, and basic plotting tools.
 """
+
 import cProfile
 import functools
 import os
@@ -116,59 +117,54 @@ class NullFunc:
 # =======================================================
 
 
-def construct_assets_grid(parameters):
+def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     """
     Constructs the base grid of post-decision states, representing end-of-period
-    assets above the absolute minimum.
+    assets above the absolute minimum. Has three modes, depending on aXtraNestFac:
 
-    All parameters are passed as attributes of the single input parameters.  The
-    input can be an instance of a ConsumerType, or a custom Parameters class.
+    aXtraNestFac = -1 : Uniformly spaced grid.
+    aXtraNestFac = 0  : Ordinary exponentially spaced grid.
+    aXtraNestFac >= 1 : Multi-exponentially nested grid.
+
+    See :func:`HARK.utilities.make_grid_exp_mult` for more info
 
     Parameters
     ----------
-    aXtraMin:                  float
-        Minimum value for the a-grid
-    aXtraMax:                  float
-        Maximum value for the a-grid
-    aXtraCount:                 int
-        Size of the a-grid
-    aXtraExtra:                [float]
-        Extra values for the a-grid.
-    exp_nest:               int
-        Level of nesting for the exponentially spaced grid.
-        If -1, the grid is linearly spaced.
+    aXtraMin: float
+        Minimum value for the assets-above-minimum grid.
+    aXtraMax: float
+        Maximum value for the assets-above-minimum grid.
+    aXtraCount: int
+        Number of nodes in the assets-above-minimum grid, not counting extra values.
+    aXtraExtra: [float]
+        Additional values to insert in the assets-above-minimum grid.
+    aXtraNestFac: int
+        Level of exponential nesting for grid. If -1, the grid is linearly spaced.
 
     Returns
     -------
     aXtraGrid:     np.ndarray
         Base array of values for the post-decision-state grid.
     """
-    # Unpack the parameters
-    aXtraMin = parameters.aXtraMin
-    aXtraMax = parameters.aXtraMax
-    aXtraCount = parameters.aXtraCount
-    aXtraExtra = parameters.aXtraExtra
-    exp_nest = parameters.aXtraNestFac
-
     # Set up post decision state grid:
-    if exp_nest == -1:
+    if aXtraNestFac == -1:
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif exp_nest >= 0:
+    elif aXtraNestFac >= 0:
         aXtraGrid = make_grid_exp_mult(
-            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=exp_nest
+            ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=aXtraNestFac
         )
     else:
         raise ValueError(
-            "aXtraNestFac not recognized in __init__."
-            + "Please ensure aXtraNestFac is either -1 or a positive integer."
+            "Please ensure aXtraNestFac is either -1 or a positive integer."
         )
 
     # Add in additional points for the grid:
     if aXtraExtra is not None:
-        for a in aXtraExtra:
-            if a is not None and a not in aXtraGrid:
-                j = aXtraGrid.searchsorted(a)
-                aXtraGrid = np.insert(aXtraGrid, j, a)
+        temp_list = []
+        for i in aXtraExtra:
+            if i is not None:
+                temp_list.append(i)
+        aXtraGrid = np.sort(np.unique(np.concatenate((aXtraGrid, temp_list))))
 
     return aXtraGrid
 
@@ -179,8 +175,12 @@ def construct_assets_grid(parameters):
 
 
 def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
-    """
-    Make a multi-exponentially spaced grid.
+    r"""
+    Makes a multi-exponentially spaced grid.
+    If the function :math:`\ln(1+x)` were applied timestonest times,
+    the grid would become linearly spaced.
+    If timestonest is 0, the grid is exponentially spaced.
+
 
     Parameters
     ----------
@@ -198,6 +198,8 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     points : np.array
         A multi-exponentially spaced grid
 
+    Notes
+    -----
     Original Matab code can be found in Chris Carroll's
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
@@ -216,8 +218,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     else:
         Lming = np.log(ming)
         Lmaxg = np.log(maxg)
-        Lstep = (Lmaxg - Lming) / (ng - 1)
-        Lgrid = np.arange(Lming, Lmaxg + 0.000001, Lstep)
+        Lstep = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
     return grid
 
@@ -479,6 +480,34 @@ def epanechnikov_kernel(x, ref_x, h=1.0):
     return out
 
 
+def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
+    """
+    Make a T-length array of parameters using polynomial coefficients.
+
+    Parameters
+    ----------
+    coeffs : [float]
+        Arbitrary length list of polynomial coefficients.
+    T : int
+        Number of elements in the output.
+    offset : float, optional
+        Value at which the X values should start. The default is 0.0.
+    step : float, optional
+        Increment of the X values. The default is 1.0.
+
+    Returns
+    -------
+    param_vals : np.array
+        T-length array of parameter values calculated using the polynomial coefficients.
+    """
+    N = len(coeffs)
+    X = offset + step * np.arange(T)
+    param_vals = np.zeros_like(X)
+    for n in range(N):
+        param_vals += coeffs[n] * X**n
+    return param_vals
+
+
 @numba.njit
 def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
     """
@@ -574,9 +603,7 @@ def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
     # For instance, if mval lies between dist_mGrid[4] and dist_mGrid[5] it is in bin 4 (would be 5 if 1 was not subtracted in the previous line).
     mIndex[
         m_vals <= dist_mGrid[0]
-    ] = (
-        -1
-    )  # if the value is less than the smallest value on dist_mGrid assign it an index of -1
+    ] = -1  # if the value is less than the smallest value on dist_mGrid assign it an index of -1
     mIndex[m_vals >= dist_mGrid[-1]] = (
         len(dist_mGrid) - 1
     )  # if value if greater than largest value on dist_mGrid assign it an index of the length of the grid minus 1
@@ -606,8 +633,9 @@ def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
             mlowerIndex = mIndex[i]
             mupperIndex = mIndex[i] + 1
             # Assign weight to the indices that bound the m_vals point. Intuitively, an mval perfectly between two points on the mgrid will assign a weight of .5 to the gridpoint above and below
-            mlowerWeight = (dist_mGrid[mupperIndex] - m_vals[i]) / (
-                dist_mGrid[mupperIndex] - dist_mGrid[mlowerIndex]
+            mlowerWeight = (
+                (dist_mGrid[mupperIndex] - m_vals[i])
+                / (dist_mGrid[mupperIndex] - dist_mGrid[mlowerIndex])
             )  # Metric to determine weight of gridpoint/index below. Intuitively, mvals that are close to gridpoint/index above are assigned a smaller mlowerweight.
             mupperWeight = 1.0 - mlowerWeight  # weight of gridpoint/ index above
 
@@ -843,8 +871,12 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     plt.show()
 
 
+###############################################################################
+
+
 def determine_platform():
-    """Untility function to return the platform currenlty in use.
+    """
+    Utility function to return the platform currenlty in use.
 
     Returns
     ---------
@@ -1006,7 +1038,7 @@ def make_figs(figure_name, saveFigs, drawFigs, target_dir="Figures"):
         print(f"Saving figure {figure_name} in {target_dir}")
         plt.savefig(
             os.path.join(target_dir, f"{figure_name}.jpg"),
-            metadata={"CreationDate": None},
+            # metadata is not supported for jpg
         )  # For web/html
         plt.savefig(
             os.path.join(target_dir, f"{figure_name}.png"),
@@ -1074,7 +1106,6 @@ def benchmark(
     stats: Stats (optional)
           Profiling object with call statistics.
     """
-
     agent = agent_type
     cProfile.run("agent.solve()", filename)
     stats = pstats.Stats(filename)

@@ -10,9 +10,10 @@ API Reference
    tools/distribution
    tools/econforgeinterp
    tools/estimation
-   tools/frame
    tools/helpers
    tools/interpolation
+   tools/incomeprocess
+   tools/model
    tools/numba_tools
    tools/parallel
    tools/rewards
@@ -25,13 +26,13 @@ API Reference
    :maxdepth: 1
 
    ConsumptionSaving/ConsAggShockModel
+   ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
    ConsumptionSaving/ConsIndShockModel
    ConsumptionSaving/ConsIndShockModelFast
    ConsumptionSaving/ConsLaborModel
    ConsumptionSaving/ConsMarkovModel
    ConsumptionSaving/ConsMedModel
-   ConsumptionSaving/ConsPortfolioFrameModel
    ConsumptionSaving/ConsPortfolioModel
    ConsumptionSaving/ConsPrefShochModel
    ConsumptionSaving/ConsRepAgentModel

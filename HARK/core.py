@@ -6,21 +6,23 @@ of agents, where agents take the inputs to their problem as exogenous.  A macro
 model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
+
 # Set logging and define basic functions
+import inspect
 import logging
 import sys
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from time import time
-from typing import Any, Dict, List, NewType, Optional, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 from warnings import warn
 
 import numpy as np
 import pandas as pd
 from xarray import DataArray
 
-from HARK.distribution import (
+from HARK.distributions import (
     Distribution,
     IndexDistribution,
     TimeVaryingDiscreteDistribution,
@@ -60,203 +62,389 @@ def set_verbosity_level(level):
 
 class Parameters:
     """
-    This class defines an object that stores all of the parameters for a model
-    as an internal dictionary. It is designed to also handle the age-varying
-    dynamics of parameters.
+    A smart container for model parameters that handles age-varying dynamics.
+
+    This class stores parameters as an internal dictionary and manages their
+    age-varying properties, providing both attribute-style and dictionary-style
+    access. It is designed to handle the time-varying dynamics of parameters
+    in economic models.
 
     Attributes
     ----------
-
     _length : int
         The terminal age of the agents in the model.
-    _invariant_params : list
-        A list of the names of the parameters that are invariant over time.
-    _varying_params : list
-        A list of the names of the parameters that vary over time.
+    _invariant_params : Set[str]
+        A set of parameter names that are invariant over time.
+    _varying_params : Set[str]
+        A set of parameter names that vary over time.
+    _parameters : Dict[str, Any]
+        The internal dictionary storing all parameters.
     """
 
-    def __init__(self, **parameters: Any):
+    __slots__ = ("_length", "_invariant_params", "_varying_params", "_parameters")
+
+    def __init__(self, **parameters: Any) -> None:
         """
-        Initializes a Parameters object and parses the age-varying
-        dynamics of the parameters.
+        Initialize a Parameters object and parse the age-varying dynamics of parameters.
 
         Parameters
         ----------
-
-        parameters : keyword arguments
-            Any number of keyword arguments of the form key=value.
-            To parse a dictionary of parameters, use the ** operator.
+        **parameters : Any
+            Any number of parameters in the form key=value.
         """
-        params = parameters.copy()
-        self._length = params.pop("T_cycle", None)
-        self._invariant_params = set()
-        self._varying_params = set()
-        self._parameters: Dict[str, Union[int, float, np.ndarray, list, tuple]] = {}
+        self._length: int = parameters.pop("T_cycle", 1)
+        self._invariant_params: Set[str] = set()
+        self._varying_params: Set[str] = set()
+        self._parameters: Dict[str, Any] = {"T_cycle": self._length}
 
-        for key, value in params.items():
-            self._parameters[key] = self.__infer_dims__(key, value)
+        for key, value in parameters.items():
+            self[key] = value
 
-    def __infer_dims__(
-        self, key: str, value: Union[int, float, np.ndarray, list, tuple, None]
-    ) -> Union[int, float, np.ndarray, list, tuple]:
+    def __getitem__(self, item_or_key: Union[int, str]) -> Union["Parameters", Any]:
         """
-        Infers the age-varying dimensions of a parameter.
+        Access parameters by age index or parameter name.
 
-        If the parameter is a scalar, numpy array, or None, it is assumed to be
-        invariant over time. If the parameter is a list or tuple, it is assumed
-        to be varying over time. If the parameter is a list or tuple of length
-        greater than 1, the length of the list or tuple must match the
-        `_term_age` attribute of the Parameters object.
-
-        Parameters
-        ----------
-        key : str
-            name of parameter
-        value : Any
-            value of parameter
-
-        """
-        if isinstance(value, (int, float, np.ndarray, type(None))):
-            self.__add_to_invariant__(key)
-            return value
-        if isinstance(value, (list, tuple)):
-            if len(value) == 1:
-                self.__add_to_invariant__(key)
-                return value[0]
-            if self._length is None or self._length == 1:
-                self._length = len(value)
-            if len(value) == self._length:
-                self.__add_to_varying__(key)
-                return value
-            raise ValueError(
-                f"Parameter {key} must be of length 1 or {self._length}, not {len(value)}"
-            )
-        raise ValueError(f"Parameter {key} has unsupported type {type(value)}")
-
-    def __add_to_invariant__(self, key: str):
-        """
-        Adds parameter name to invariant set and removes from varying set.
-        """
-        self._varying_params.discard(key)
-        self._invariant_params.add(key)
-
-    def __add_to_varying__(self, key: str):
-        """
-        Adds parameter name to varying set and removes from invariant set.
-        """
-        self._invariant_params.discard(key)
-        self._varying_params.add(key)
-
-    def __getitem__(self, item_or_key: Union[int, str]):
-        """
         If item_or_key is an integer, returns a Parameters object with the parameters
         that apply to that age. This includes all invariant parameters and the
-        `item_or_key`th element of all age-varying parameters. If item_or_key is a string,
-        it returns the value of the parameter with that name.
+        `item_or_key`th element of all age-varying parameters. If item_or_key is a
+        string, it returns the value of the parameter with that name.
+
+        Parameters
+        ----------
+        item_or_key : Union[int, str]
+            Age index or parameter name.
+
+        Returns
+        -------
+        Union[Parameters, Any]
+            A new Parameters object for the specified age, or the value of the
+            specified parameter.
+
+        Raises
+        ------
+        ValueError:
+            If the age index is out of bounds.
+        KeyError:
+            If the parameter name is not found.
+        TypeError:
+            If the key is neither an integer nor a string.
         """
         if isinstance(item_or_key, int):
             if item_or_key >= self._length:
                 raise ValueError(
-                    f"Age {item_or_key} is greater than or equal to terminal age {self._length}."
+                    f"Age {item_or_key} is out of bounds (max: {self._length - 1})."
                 )
 
             params = {key: self._parameters[key] for key in self._invariant_params}
             params.update(
                 {
-                    key: self._parameters[key][item_or_key]
+                    key: (
+                        self._parameters[key][item_or_key]
+                        if isinstance(self._parameters[key], (list, tuple, np.ndarray))
+                        else self._parameters[key]
+                    )
                     for key in self._varying_params
                 }
             )
             return Parameters(**params)
         elif isinstance(item_or_key, str):
             return self._parameters[item_or_key]
+        else:
+            raise TypeError("Key must be an integer (age) or string (parameter name).")
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value: Any) -> None:
         """
-        Sets the value of a parameter.
+        Set parameter values, automatically inferring time variance.
+
+        If the parameter is a scalar, numpy array, boolean, distribution, callable
+        or None, it is assumed to be invariant over time. If the parameter is a
+        list or tuple, it is assumed to be varying over time. If the parameter
+        is a list or tuple of length greater than 1, the length of the list or
+        tuple must match the `_length` attribute of the Parameters object.
 
         Parameters
         ----------
         key : str
-            name of parameter
+            Name of the parameter.
         value : Any
-            value of parameter
+            Value of the parameter.
 
+        Raises
+        ------
+        ValueError:
+            If the parameter name is not a string or if the value type is unsupported.
+            If the parameter value is inconsistent with the current model length.
         """
         if not isinstance(key, str):
-            raise ValueError("Parameters must be set with a string key")
-        self._parameters[key] = self.__infer_dims__(key, value)
+            raise ValueError(f"Parameter name must be a string, got {type(key)}")
 
-    def keys(self):
-        """
-        Returns a list of the names of the parameters.
-        """
-        return self._invariant_params | self._varying_params
+        if isinstance(
+            value, (int, float, np.ndarray, type(None), Distribution, bool, Callable)
+        ):
+            self._invariant_params.add(key)
+            self._varying_params.discard(key)
+        elif isinstance(value, (list, tuple)):
+            if len(value) == 1:
+                value = value[0]
+                self._invariant_params.add(key)
+                self._varying_params.discard(key)
+            elif self._length is None or self._length == 1:
+                self._length = len(value)
+                self._varying_params.add(key)
+                self._invariant_params.discard(key)
+            elif len(value) == self._length:
+                self._varying_params.add(key)
+                self._invariant_params.discard(key)
+            else:
+                raise ValueError(
+                    f"Parameter {key} must have length 1 or {self._length}, not {len(value)}"
+                )
+        else:
+            raise ValueError(f"Unsupported type for parameter {key}: {type(value)}")
 
-    def values(self):
-        """
-        Returns a list of the values of the parameters.
-        """
-        return list(self._parameters.values())
+        self._parameters[key] = value
 
-    def items(self):
-        """
-        Returns a list of tuples of the form (name, value) for each parameter.
-        """
-        return list(self._parameters.items())
+    def __iter__(self) -> Iterator[str]:
+        """Allow iteration over parameter names."""
+        return iter(self._parameters)
 
-    def __iter__(self):
-        """
-        Allows for iterating over the parameter names.
-        """
-        return iter(self.keys())
+    def __len__(self) -> int:
+        """Return the number of parameters."""
+        return len(self._parameters)
 
-    def __deepcopy__(self, memo):
-        """
-        Returns a deep copy of the Parameters object.
-        """
-        return Parameters(**deepcopy(self.to_dict(), memo))
+    def keys(self) -> Iterator[str]:
+        """Return a view of parameter names."""
+        return self._parameters.keys()
 
-    def to_dict(self):
-        """
-        Returns a dictionary of the parameters.
-        """
-        return {key: self._parameters[key] for key in self.keys()}
+    def values(self) -> Iterator[Any]:
+        """Return a view of parameter values."""
+        return self._parameters.values()
 
-    def to_namedtuple(self):
+    def items(self) -> Iterator[Tuple[str, Any]]:
+        """Return a view of parameter (name, value) pairs."""
+        return self._parameters.items()
+
+    def to_dict(self) -> Dict[str, Any]:
         """
-        Returns a namedtuple of the parameters.
+        Convert parameters to a plain dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            A dictionary containing all parameters.
+        """
+        return dict(self._parameters)
+
+    def to_namedtuple(self) -> namedtuple:
+        """
+        Convert parameters to a namedtuple.
+
+        Returns
+        -------
+        namedtuple
+            A namedtuple containing all parameters.
         """
         return namedtuple("Parameters", self.keys())(**self.to_dict())
 
-    def update(self, other_params):
+    def update(self, other: Union["Parameters", Dict[str, Any]]) -> None:
         """
-        Updates the parameters with the values from another
-        Parameters object or a dictionary.
+        Update parameters from another Parameters object or dictionary.
 
         Parameters
         ----------
-        other_params : Parameters or dict
-            Parameters object or dictionary of parameters to update with.
+        other : Union[Parameters, Dict[str, Any]]
+            The source of parameters to update from.
+
+        Raises
+        ------
+        TypeError
+            If the input is neither a Parameters object nor a dictionary.
         """
-        if isinstance(other_params, Parameters):
-            self._parameters.update(other_params.to_dict())
-        elif isinstance(other_params, dict):
-            self._parameters.update(other_params)
+        if isinstance(other, Parameters):
+            for key, value in other._parameters.items():
+                self[key] = value
+        elif isinstance(other, dict):
+            for key, value in other.items():
+                self[key] = value
         else:
-            raise ValueError("Parameters must be a dict or a Parameters object")
+            raise TypeError(
+                "Update source must be a Parameters object or a dictionary."
+            )
 
-    def __str__(self):
-        """
-        Returns a simple string representation of the Parameters object.
-        """
-        return f"Parameters({str(self.to_dict())})"
+    def __repr__(self) -> str:
+        """Return a detailed string representation of the Parameters object."""
+        return (
+            f"Parameters(_length={self._length}, "
+            f"_invariant_params={self._invariant_params}, "
+            f"_varying_params={self._varying_params}, "
+            f"_parameters={self._parameters})"
+        )
 
-    def __repr__(self):
+    def __str__(self) -> str:
+        """Return a simple string representation of the Parameters object."""
+        return f"Parameters({str(self._parameters)})"
+
+    def __getattr__(self, name: str) -> Any:
         """
-        Returns a detailed string representation of the Parameters object.
+        Allow attribute-style access to parameters.
+
+        Parameters
+        ----------
+        name : str
+            Name of the parameter to access.
+
+        Returns
+        -------
+        Any
+            The value of the specified parameter.
+
+        Raises
+        ------
+        AttributeError:
+            If the parameter name is not found.
         """
-        return f"Parameters( _age_inv = {self._invariant_params}, _age_var = {self._varying_params}, | {self.to_dict()})"
+        if name.startswith("_"):
+            return super().__getattribute__(name)
+        try:
+            return self._parameters[name]
+        except KeyError:
+            raise AttributeError(f"'Parameters' object has no attribute '{name}'")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Allow attribute-style setting of parameters.
+
+        Parameters
+        ----------
+        name : str
+            Name of the parameter to set.
+        value : Any
+            Value to set for the parameter.
+        """
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+        else:
+            self[name] = value
+
+    def __contains__(self, item: str) -> bool:
+        """Check if a parameter exists in the Parameters object."""
+        return item in self._parameters
+
+    def copy(self) -> "Parameters":
+        """
+        Create a deep copy of the Parameters object.
+
+        Returns
+        -------
+        Parameters
+            A new Parameters object with the same contents.
+        """
+        return deepcopy(self)
+
+    def add_to_time_vary(self, *params: str) -> None:
+        """
+        Adds any number of parameters to the time-varying set.
+
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be added to time_vary.
+        """
+        for param in params:
+            if param in self._parameters:
+                self._varying_params.add(param)
+                self._invariant_params.discard(param)
+            else:
+                warn(
+                    f"Parameter '{param}' does not exist and cannot be added to time_vary."
+                )
+
+    def add_to_time_inv(self, *params: str) -> None:
+        """
+        Adds any number of parameters to the time-invariant set.
+
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be added to time_inv.
+        """
+        for param in params:
+            if param in self._parameters:
+                self._invariant_params.add(param)
+                self._varying_params.discard(param)
+            else:
+                warn(
+                    f"Parameter '{param}' does not exist and cannot be added to time_inv."
+                )
+
+    def del_from_time_vary(self, *params: str) -> None:
+        """
+        Removes any number of parameters from the time-varying set.
+
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be removed from time_vary.
+        """
+        for param in params:
+            self._varying_params.discard(param)
+
+    def del_from_time_inv(self, *params: str) -> None:
+        """
+        Removes any number of parameters from the time-invariant set.
+
+        Parameters
+        ----------
+        *params : str
+            Any number of strings naming parameters to be removed from time_inv.
+        """
+        for param in params:
+            self._invariant_params.discard(param)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get a parameter value, returning a default if not found.
+
+        Parameters
+        ----------
+        key : str
+            The parameter name.
+        default : Any, optional
+            The default value to return if the key is not found.
+
+        Returns
+        -------
+        Any
+            The parameter value or the default.
+        """
+        return self._parameters.get(key, default)
+
+    def set_many(self, **kwargs: Any) -> None:
+        """
+        Set multiple parameters at once.
+
+        Parameters
+        ----------
+        **kwargs : Keyword arguments representing parameter names and values.
+        """
+        for key, value in kwargs.items():
+            self[key] = value
+
+    def is_time_varying(self, key: str) -> bool:
+        """
+        Check if a parameter is time-varying.
+
+        Parameters
+        ----------
+        key : str
+            The parameter name.
+
+        Returns
+        -------
+        bool
+            True if the parameter is time-varying, False otherwise.
+        """
+        return key in self._varying_params
 
 
 class Model:
@@ -267,6 +455,8 @@ class Model:
     def __init__(self):
         if not hasattr(self, "parameters"):
             self.parameters = {}
+        if not hasattr(self, "constructors"):
+            self.constructors = {}
 
     def assign_parameters(self, **kwds):
         """
@@ -275,12 +465,12 @@ class Model:
         Parameters
         ----------
         **kwds : keyword arguments
-            Any number of keyword arguments of the form key=value.  Each value
-            will be assigned to the attribute named in self.
+            Any number of keyword arguments of the form key=value.
+            Each value will be assigned to the attribute named in self.
 
         Returns
         -------
-        none
+            None
         """
         self.parameters.update(kwds)
         for key in kwds:
@@ -292,13 +482,12 @@ class Model:
 
         Parameters
         ----------
-        name : string
+        name : str
             The name of the parameter to get
 
         Returns
         -------
-        value :
-            The value of the parameter
+        value : The value of the parameter
         """
         return self.parameters[name]
 
@@ -322,8 +511,234 @@ class Model:
         s += ">"
         return s
 
-    def __repr__(self):
+    def describe(self):
         return self.__str__()
+
+    def del_param(self, param_name):
+        """
+        Deletes a parameter from this instance, removing it both from the object's
+        namespace (if it's there) and the parameters dictionary (likewise).
+
+        Parameters
+        ----------
+        param_name : str
+            A string naming a parameter or data to be deleted from this instance.
+            Removes information from self.parameters dictionary and own namespace.
+
+        Returns
+        -------
+        None
+        """
+        if param_name in self.parameters:
+            del self.parameters[param_name]
+        if hasattr(self, param_name):
+            delattr(self, param_name)
+
+    def construct(self, *args, force=False):
+        """
+        Top-level method for building constructed inputs. If called without any
+        inputs, construct builds each of the objects named in the keys of the
+        constructors dictionary; it draws inputs for the constructors from the
+        parameters dictionary and adds its results to the same. If passed one or
+        more strings as arguments, the method builds only the named keys. The
+        method will do multiple "passes" over the requested keys, as some cons-
+        tructors require inputs built by other constructors. If any requested
+        constructors failed to build due to missing data, those keys (and the
+        missing data) will be named in self._missing_key_data. Other errors are
+        recorded in the dictionary attribute _constructor_errors.
+
+        Parameters
+        ----------
+        *args : str, optional
+            Keys of self.constructors that are requested to be constructed.
+            If no arguments are passed, *all* elements of the dictionary are implied.
+        force : bool, optional
+            When True, the method will force its way past any errors, including
+            missing constructors, missing arguments for constructors, and errors
+            raised during execution of constructors. Information about all such
+            errors is stored in the dictionary attributes described above. When
+            False (default), any errors or exception will be raised.
+
+        Returns
+        -------
+        None
+        """
+        # Set up the requested work
+        if len(args) > 0:
+            keys = args
+        else:
+            keys = list(self.constructors.keys())
+        N_keys = len(keys)
+        keys_complete = np.zeros(N_keys, dtype=bool)
+
+        # Get the dictionary of constructor errors
+        if not hasattr(self, "_constructor_errors"):
+            self._constructor_errors = {}
+        errors = self._constructor_errors
+
+        # As long as the work isn't complete and we made some progress on the last
+        # pass, repeatedly perform passes of trying to construct objects
+        any_keys_incomplete = np.any(np.logical_not(keys_complete))
+        go = any_keys_incomplete
+        while go:
+            anything_accomplished_this_pass = False  # Nothing done yet!
+            missing_key_data = []  # Keep this up-to-date on each pass
+
+            # Loop over keys to be constructed
+            for i in range(N_keys):
+                if keys_complete[i]:
+                    continue  # This key has already been built
+
+                # Get this key and its constructor function
+                key = keys[i]
+                try:
+                    constructor = self.constructors[key]
+                except Exception as not_found:
+                    errors[key] = "No constructor found for " + str(not_found)
+                    self.del_param(key)
+                    if force:
+                        continue
+                    else:
+                        raise ValueError("No constructor found for " + key) from None
+
+                # If this constructor is None, do nothing and mark it as completed
+                if constructor is None:
+                    keys_complete[i] = True
+                    anything_accomplished_this_pass = True  # We did something!
+                    continue
+
+                # Get the names of arguments for this constructor and try to gather them
+                args_needed = get_arg_names(constructor)
+                has_no_default = {
+                    k: v.default is inspect.Parameter.empty
+                    for k, v in inspect.signature(constructor).parameters.items()
+                }
+                temp_dict = {}
+                any_missing = False
+                missing_args = []
+                for j in range(len(args_needed)):
+                    this_arg = args_needed[j]
+                    if hasattr(self, this_arg):
+                        temp_dict[this_arg] = getattr(self, this_arg)
+                    else:
+                        try:
+                            temp_dict[this_arg] = self.parameters[this_arg]
+                        except:
+                            if has_no_default[this_arg]:
+                                # Record missing key-data pair
+                                any_missing = True
+                                missing_key_data.append((key, this_arg))
+                                missing_args.append(this_arg)
+
+                # If all of the required data was found, run the constructor and
+                # store the result in parameters (and on self)
+                if not any_missing:
+                    try:
+                        temp = constructor(**temp_dict)
+                    except Exception as problem:
+                        errors[key] = str(type(problem)) + ": " + str(problem)
+                        self.del_param(key)
+                        if force:
+                            continue
+                        else:
+                            raise
+                    setattr(self, key, temp)
+                    self.parameters[key] = temp
+                    if key in errors:
+                        del errors[key]
+                    keys_complete[i] = True
+                    anything_accomplished_this_pass = True  # We did something!
+                else:
+                    msg = "Missing required arguments:"
+                    for arg in missing_args:
+                        msg += " " + arg + ","
+                    msg = msg[:-1]
+                    errors[key] = msg
+                    self.del_param(key)
+                    # Never raise exceptions here, as the arguments might be filled in later
+
+            # Check whether another pass should be performed
+            any_keys_incomplete = np.any(np.logical_not(keys_complete))
+            go = any_keys_incomplete and anything_accomplished_this_pass
+
+        # Store missing key-data pairs and exit
+        self._missing_key_data = missing_key_data
+        if any_keys_incomplete:
+            msg = "Did not construct these objects:"
+            for i in range(N_keys):
+                if keys_complete[i]:
+                    continue
+                msg += " " + keys[i] + ","
+            msg = msg[:-1]
+            if not force:
+                raise ValueError(msg)
+        return
+
+    def describe_constructors(self, *args):
+        """
+        Prints to screen a string describing this instance's constructed objects,
+        including their names, the function that constructs them, the names of
+        those functions inputs, and whether those inputs are present.
+
+        Parameters
+        ----------
+        *args : str, optional
+            Optional list of strings naming constructed inputs to be described.
+            If none are passed, all constructors are described.
+
+        Returns
+        -------
+        None
+        """
+        if len(args) > 0:
+            keys = args
+        else:
+            keys = list(self.constructors.keys())
+        yes = "\u2713"
+        no = "X"
+        maybe = "*"
+        noyes = [no, yes]
+
+        out = ""
+        for key in keys:
+            has_val = hasattr(self, key) or (key in self.parameters)
+
+            # Get the constructor function if possible
+            try:
+                constructor = self.constructors[key]
+                out += (
+                    noyes[int(has_val)]
+                    + " "
+                    + key
+                    + " : "
+                    + constructor.__name__
+                    + "\n"
+                )
+            except:
+                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
+                continue
+
+            # Get constructor argument names
+            arg_names = get_arg_names(constructor)
+            has_no_default = {
+                k: v.default is inspect.Parameter.empty
+                for k, v in inspect.signature(constructor).parameters.items()
+            }
+
+            # Check whether each argument existd
+            for j in range(len(arg_names)):
+                this_arg = arg_names[j]
+                if hasattr(self, this_arg) or this_arg in self.parameters:
+                    symb = yes
+                elif not has_no_default[this_arg]:
+                    symb = maybe
+                else:
+                    symb = no
+                out += "    " + symb + " " + this_arg + "\n"
+
+        # Print the string to screen
+        print(out)
+        return
 
 
 class AgentType(Model):
@@ -372,6 +787,7 @@ class AgentType(Model):
     """
 
     state_vars = []
+    _default_params_ = {}
 
     def __init__(
         self,
@@ -475,8 +891,7 @@ class AgentType(Model):
         """
         Unpacks a parameter from a solution object for easier access.
         After the model has been solved, the parameters (like consumption function)
-        reside in the attributes of each element of `ConsumerType.solution`
-        (e.g. `cFunc`).  This method creates a (time varying) attribute of the given
+        reside in the attributes of each element of `ConsumerType.solution` (e.g. `cFunc`).  This method creates a (time varying) attribute of the given
         parameter name that contains a list of functions accessible by `ConsumerType.parameter`.
 
         Parameters
@@ -493,7 +908,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False):
+    def solve(self, verbose=False, presolve=True):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -501,8 +916,10 @@ class AgentType(Model):
 
         Parameters
         ----------
-        verbose : boolean
-            If True, solution progress is printed to screen.
+        verbose : bool, optional
+            If True, solution progress is printed to screen. Default False.
+        presolve : bool, optional
+            If True (default), the pre_solve method is run before solving.
 
         Returns
         -------
@@ -515,7 +932,8 @@ class AgentType(Model):
         with np.errstate(
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
-            self.pre_solve()  # Do pre-solution stuff
+            if presolve:
+                self.pre_solve()  # Do pre-solution stuff
             self.solution = solve_agent(
                 self, verbose
             )  # Solve the model by backward induction
@@ -706,9 +1124,9 @@ class AgentType(Model):
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
         self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[
-            self.t_cycle == self.T_cycle
-        ] = 0  # Resetting to zero for those who have reached the end
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
 
     def make_shock_history(self):
         """
@@ -778,13 +1196,13 @@ class AgentType(Model):
                         and len(self.state_now[var_name]) == self.AgentCount
                     )
                     if idio:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name][self.who_dies]
+                        self.newborn_init_history[var_name][t, self.who_dies] = (
+                            self.state_now[var_name][self.who_dies]
+                        )
                     else:
-                        self.newborn_init_history[var_name][
-                            t, self.who_dies
-                        ] = self.state_now[var_name]
+                        self.newborn_init_history[var_name][t, self.who_dies] = (
+                            self.state_now[var_name]
+                        )
 
             # Other Shocks
             self.get_shocks()
@@ -794,9 +1212,9 @@ class AgentType(Model):
             self.t_sim += 1
             self.t_age = self.t_age + 1  # Age all consumers by one period
             self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[
-                self.t_cycle == self.T_cycle
-            ] = 0  # Resetting to zero for those who have reached the end
+            self.t_cycle[self.t_cycle == self.T_cycle] = (
+                0  # Resetting to zero for those who have reached the end
+            )
 
         # Flag that shocks can be read rather than simulated
         self.read_shocks = True
@@ -830,11 +1248,11 @@ class AgentType(Model):
                             and len(self.state_now[var_name]) == self.AgentCount
                         )
                         if idio:
-                            self.state_now[var_name][
-                                who_dies
-                            ] = self.newborn_init_history[var_name][
-                                self.t_sim, who_dies
-                            ]
+                            self.state_now[var_name][who_dies] = (
+                                self.newborn_init_history[
+                                    var_name
+                                ][self.t_sim, who_dies]
+                            )
 
                     else:
                         warn(
@@ -1061,7 +1479,14 @@ class AgentType(Model):
                     elif var_name in self.controls:
                         self.history[var_name][self.t_sim, :] = self.controls[var_name]
                     else:
-                        self.history[var_name][self.t_sim, :] = getattr(self, var_name)
+                        if var_name == "who_dies" and self.t_sim > 1:
+                            self.history[var_name][self.t_sim - 1, :] = getattr(
+                                self, var_name
+                            )
+                        else:
+                            self.history[var_name][self.t_sim, :] = getattr(
+                                self, var_name
+                            )
                 self.t_sim += 1
 
             return self.history
@@ -1210,47 +1635,85 @@ def solve_one_cycle(agent, solution_last):
         A list of one period solutions for one "cycle" of the AgentType's
         microeconomic model.
     """
-    # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
-    if len(agent.time_vary) > 0:
-        # name = agent.time_vary[0]
-        # T = len(eval('agent.' + name))
-        T = len(agent.__dict__[agent.time_vary[0]])
+
+    # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
+    # if so, take advantage of it. Else, use the old method
+    if hasattr(agent, "params") and isinstance(agent.params, Parameters):
+        T = agent.params._length
+
+        # Initialize the solution for this cycle, then iterate on periods
+        solution_cycle = []
+        solution_next = solution_last
+
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
+            # Update which single period solver to use (if it depends on time)
+            if hasattr(agent.solve_one_period, "__getitem__"):
+                solve_one_period = agent.solve_one_period[k]
+            else:
+                solve_one_period = agent.solve_one_period
+
+            if hasattr(solve_one_period, "solver_args"):
+                these_args = solve_one_period.solver_args
+            else:
+                these_args = get_arg_names(solve_one_period)
+
+            # Make a temporary dictionary for this period
+            temp_pars = agent.params[k]
+            temp_dict = {
+                name: solution_next if name == "solution_next" else temp_pars[name]
+                for name in these_args
+            }
+
+            # Solve one period, add it to the solution, and move to the next period
+            solution_t = solve_one_period(**temp_dict)
+            solution_cycle.insert(0, solution_t)
+            solution_next = solution_t
+
     else:
-        T = 1
-
-    solve_dict = {parameter: agent.__dict__[parameter] for parameter in agent.time_inv}
-    solve_dict.update({parameter: None for parameter in agent.time_vary})
-
-    # Initialize the solution for this cycle, then iterate on periods
-    solution_cycle = []
-    solution_next = solution_last
-
-    cycles_range = [0] + list(range(T - 1, 0, -1))
-    for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-        # Update which single period solver to use (if it depends on time)
-        if hasattr(agent.solve_one_period, "__getitem__"):
-            solve_one_period = agent.solve_one_period[k]
+        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        if len(agent.time_vary) > 0:
+            # name = agent.time_vary[0]
+            # T = len(eval('agent.' + name))
+            T = len(agent.__dict__[agent.time_vary[0]])
         else:
-            solve_one_period = agent.solve_one_period
+            T = 1
 
-        if hasattr(solve_one_period, "solver_args"):
-            these_args = solve_one_period.solver_args
-        else:
-            these_args = get_arg_names(solve_one_period)
+        solve_dict = {
+            parameter: agent.__dict__[parameter] for parameter in agent.time_inv
+        }
+        solve_dict.update({parameter: None for parameter in agent.time_vary})
 
-        # Update time-varying single period inputs
-        for name in agent.time_vary:
-            if name in these_args:
-                solve_dict[name] = agent.__dict__[name][k]
-        solve_dict["solution_next"] = solution_next
+        # Initialize the solution for this cycle, then iterate on periods
+        solution_cycle = []
+        solution_next = solution_last
 
-        # Make a temporary dictionary for this period
-        temp_dict = {name: solve_dict[name] for name in these_args}
+        cycles_range = [0] + list(range(T - 1, 0, -1))
+        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
+            # Update which single period solver to use (if it depends on time)
+            if hasattr(agent.solve_one_period, "__getitem__"):
+                solve_one_period = agent.solve_one_period[k]
+            else:
+                solve_one_period = agent.solve_one_period
 
-        # Solve one period, add it to the solution, and move to the next period
-        solution_t = solve_one_period(**temp_dict)
-        solution_cycle.insert(0, solution_t)
-        solution_next = solution_t
+            if hasattr(solve_one_period, "solver_args"):
+                these_args = solve_one_period.solver_args
+            else:
+                these_args = get_arg_names(solve_one_period)
+
+            # Update time-varying single period inputs
+            for name in agent.time_vary:
+                if name in these_args:
+                    solve_dict[name] = agent.__dict__[name][k]
+            solve_dict["solution_next"] = solution_next
+
+            # Make a temporary dictionary for this period
+            temp_dict = {name: solve_dict[name] for name in these_args}
+
+            # Solve one period, add it to the solution, and move to the next period
+            solution_t = solve_one_period(**temp_dict)
+            solution_cycle.insert(0, solution_t)
+            solution_next = solution_t
 
     # Return the list of per-period solutions
     return solution_cycle
@@ -1302,7 +1765,7 @@ class Market(Model):
         A list of all the AgentTypes in this market.
     sow_vars : [string]
         Names of variables generated by the "aggregate market process" that should
-        be "sown" to the agents in the market.  Aggregate state, etc.
+        "sown" to the agents in the market.  Aggregate state, etc.
     reap_vars : [string]
         Names of variables to be collected ("reaped") from agents in the market
         to be used in the "aggregate market process".
@@ -1771,11 +2234,11 @@ class AgentPopulation:
         self.continuous_distributions = {}
         self.discrete_distributions = {}
 
-        for key, points in approx_params.items():
+        for key, args in approx_params.items():
             param = self.parameters[key]
             if key in self.distributed_params and isinstance(param, Distribution):
                 self.continuous_distributions[key] = param
-                self.discrete_distributions[key] = param.discretize(points)
+                self.discrete_distributions[key] = param.discretize(**args)
             else:
                 raise ValueError(
                     f"Warning: parameter {key} is not a Distribution found "

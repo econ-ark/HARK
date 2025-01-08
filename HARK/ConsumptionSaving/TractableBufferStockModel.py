@@ -20,13 +20,14 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 """
+
 from copy import copy
 
 import numpy as np
 from scipy.optimize import brentq, newton
 
 from HARK import AgentType, NullFunc
-from HARK.distribution import Bernoulli, Lognormal
+from HARK.distributions import Bernoulli, Lognormal
 from HARK.interpolation import CubicInterp
 
 # Import the HARK library.
@@ -296,6 +297,19 @@ def add_to_stable_arm_points(
     )
     solution_now.PointCount = len(mNrm_list)
     return solution_now
+
+
+###############################################################################
+
+# Define a dictionary for the tractable buffer stock model
+init_tractable = {
+    "cycles": 0,  # infinite horizon
+    "UnempPrb": 0.00625,  # Probability of becoming permanently unemployed
+    "DiscFac": 0.975,  # Intertemporal discount factor
+    "Rfree": 1.01,  # Risk-free interest factor on assets
+    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
+    "CRRA": 1.0,  # Coefficient of relative risk aversion
+}
 
 
 class TractableConsumerType(AgentType):
@@ -621,9 +635,9 @@ class TractableConsumerType(AgentType):
         self.shocks["eStateNow"][which_agents] = 1.0
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        self.t_cycle[which_agents] = (
+            0  # Which period of the cycle each agent is currently in
+        )
         return None
 
     def sim_death(self):
@@ -715,13 +729,3 @@ class TractableConsumerType(AgentType):
         """
         self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvlNow"]
         return None
-
-
-init_tractable = {
-    "cycles": 0,  # infinite horizon
-    "UnempPrb": 0.00625,  # Probability of becoming unemployed
-    "DiscFac": 0.975,  # Intertemporal discount factor
-    "Rfree": 1.01,  # Risk-free interest factor on assets
-    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
-    "CRRA": 1.0,  # Coefficient of relative risk aversion
-}

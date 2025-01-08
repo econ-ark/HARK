@@ -271,7 +271,7 @@ def StoneGearyCRRAutility(c, rho, shifter, factor=1.0):
 def StoneGearyCRRAutilityP(c, rho, shifter, factor=1.0):
     """
     Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
-    utility of consumption c wiht given risk aversion parameter rho and
+    utility of consumption c with a given risk aversion parameter rho and
     Stone-Geary intercept parameter shifter
 
     Parameters

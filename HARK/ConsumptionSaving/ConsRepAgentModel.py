@@ -4,16 +4,22 @@ This stands in contrast to all other model modules in HARK, which (unsurprisingl
 take a heterogeneous agents approach.  In RA models, all attributes are either
 time invariant or exist on a short cycle; models must be infinite horizon.
 """
-import numpy as np
 
+import numpy as np
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
+    make_basic_CRRA_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.distribution import MarkovProcess, Uniform
+from HARK.distributions import MarkovProcess
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
+from HARK.utilities import make_assets_grid
 
 __all__ = ["RepAgentConsumerType", "RepAgentMarkovConsumerType"]
 
@@ -33,14 +39,13 @@ def solve_ConsRepAgent(
     CRRA : float
         Coefficient of relative risk aversion.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order:
+        A discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next). Order:
         permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
     DeprFac : float
-        Depreciation rate of capital.
+        Depreciation rate for capital.
     PermGroFac : float
         Expected permanent income growth factor at the end of this period.
     aXtraGrid : np.array
@@ -133,10 +138,9 @@ def solve_ConsRepAgentMarkov(
     CRRA : float
         Coefficient of relative risk aversion.
     IncShkDstn : [distribution.Distribution]
-        A list of discrete
-        approximations to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, permanent shocks, transitory shocks.
+        A list of discrete approximations to the income process between the
+        period being solved and the one immediately following (in solution_next).
+        Order: event probabilities, permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
     DeprFac : float
@@ -223,6 +227,76 @@ def solve_ConsRepAgentMarkov(
     return solution_now
 
 
+###############################################################################
+
+# Make a dictionary of constructors for the representative agent model
+repagent_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "solution_terminal": make_basic_CRRA_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.00,  # Probability of unemployment while working
+    "IncUnemp": 0.0,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Make a dictionary to specify a representative agent consumer type
+init_rep_agent = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 0,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": repagent_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [1.0],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "DeprFac": 0.05,  # Depreciation rate for capital
+    "CapShare": 0.36,  # Capital's share in Cobb-Douglas production function
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 1,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_rep_agent.update(default_IncShkDstn_params)
+init_rep_agent.update(default_aXtraGrid_params)
+
+
 class RepAgentConsumerType(IndShockConsumerType):
     """
     A class for representing representative agents with inelastic labor supply.
@@ -283,6 +357,15 @@ class RepAgentConsumerType(IndShockConsumerType):
             * self.shocks["TranShk"] ** (-self.CapShare)
         )
         self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks["TranShk"]
+
+
+###############################################################################
+
+# Define the default dictionary for a markov representative agent type
+init_markov_rep_agent = init_rep_agent.copy()
+init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
+init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
+init_markov_rep_agent["Mrkv"] = 0
 
 
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
@@ -379,18 +462,3 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         t = self.t_cycle[0]
         i = self.shocks["Mrkv"]
         self.controls["cNrm"] = self.solution[t].cFunc[i](self.mNrmNow)
-
-
-# Define the default dictionary for a representative agent type
-init_rep_agent = init_idiosyncratic_shocks.copy()
-init_rep_agent["cycles"] = 0
-init_rep_agent["DeprFac"] = 0.05
-init_rep_agent["CapShare"] = 0.36
-init_rep_agent["UnempPrb"] = 0.0
-init_rep_agent["LivPrb"] = [1.0]
-
-# Define the default dictionary for a markov representative agent type
-init_markov_rep_agent = init_rep_agent.copy()
-init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
-init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
-init_markov_rep_agent["Mrkv"] = 0

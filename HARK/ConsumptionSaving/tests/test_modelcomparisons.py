@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.ConsumptionSaving.TractableBufferStockModel import TractableConsumerType
-from HARK.distribution import DiscreteDistribution, DiscreteDistributionLabeled
+from HARK.distributions import DiscreteDistributionLabeled
 
 
 class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
@@ -108,55 +108,49 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         TBSType.solve()
 
         # Set up and solve Markov
-        MrkvArray = [
-            np.array(
-                [
-                    [1.0 - base_primitives["UnempPrb"], base_primitives["UnempPrb"]],
-                    [0.0, 1.0],
-                ]
-            )
-        ]
         Markov_primitives = {
             "CRRA": base_primitives["CRRA"],
             "Rfree": np.array(2 * [base_primitives["Rfree"]]),
             "PermGroFac": [
                 np.array(
-                    2
-                    * [
+                    [
                         base_primitives["PermGroFac"]
-                        / (1.0 - base_primitives["UnempPrb"])
+                        / (1.0 - base_primitives["UnempPrb"]),
+                        1.0,
                     ]
                 )
             ],
+            "Mrkv_p11": [1.0 - base_primitives["UnempPrb"]],
+            "Mrkv_p22": [1.0],
             "BoroCnstArt": None,
-            "PermShkStd": [0.0],
+            "PermShkStd": np.array([[0.0, 0.0]]),
             "PermShkCount": 1,
-            "TranShkStd": [0.0],
+            "TranShkStd": np.array([[0.0, 0.0]]),
             "TranShkCount": 1,
-            "T_total": 1,
-            "UnempPrb": 0.0,
+            "UnempPrb": np.array([[0.0, 0.0]]),  # This will be overwritten
             "UnempPrbRet": 0.0,
             "T_retire": 0,
-            "IncUnemp": 0.0,
+            "IncUnemp": np.array([[0.0, 0.0]]),  # This will be overwritten
             "IncUnempRet": 0.0,
             "aXtraMin": 0.001,
             "aXtraMax": TBSType.mUpperBnd,
             "aXtraCount": 48,
-            "aXtraExtra": [None],
+            "aXtraExtra": None,
             "aXtraNestFac": 3,
             "LivPrb": [
                 np.array([1.0, 1.0]),
             ],
             "DiscFac": base_primitives["DiscFac"],
-            "Nagents": 1,
+            "AgentCount": 1,
             "psi_seed": 0,
             "xi_seed": 0,
             "unemp_seed": 0,
             "tax_rate": 0.0,
             "vFuncBool": False,
             "CubicBool": True,
-            "MrkvArray": MrkvArray,
             "T_cycle": 1,
+            "MrkvArray": [np.eye(2)],
+            # Will be overwritten, might prevent glitch in Ubuntu
         }
 
         MarkovType = MarkovConsumerType(**Markov_primitives)
