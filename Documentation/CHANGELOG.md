@@ -48,6 +48,7 @@ none
 
 - Adds example of integration of HARK with SSJ toolkit. [#1447](https://github.com/econ-ark/HARK/pull/1447)
 - Maintains compatibility between EconForge interpolation and numba [#1457](https://github.com/econ-ark/HARK/pull/1457)
+- Renanmes 'SSJ_example' to 'HANKFiscal_example' so that it is more informative. [#1509](https://github.com/econ-ark/HARK/pull/1509)
 
 ### 0.15.0
 
