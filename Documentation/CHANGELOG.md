@@ -33,6 +33,7 @@ Release Date: TBD
 - Suppress warning from calc_stable_points when it would be raised by inapplicable AgentType subclasses. [1493](https://github.com/econ-ark/HARK/pull/1493)
 - Fixes notation errors in IndShockConsumerType.make_euler_error_func from prior changes. [1495](https://github.com/econ-ark/HARK/pull/1495)
 - Fixes typos in IdentityFunction interpolator class. [1492](https://github.com/econ-ark/HARK/pull/1492)
+- Expands functionality of Cobb-Douglas aggregator for CRRA utility. [1363](https://github.com/econ-ark/HARK/pull/1363)
 
 ### 0.15.1
 
