@@ -270,7 +270,11 @@ class DBlock(Block):
         return self.dynamics
 
     def get_vars(self):
-        return list(self.shocks.keys()) + list(self.dynamics.keys())
+        return (
+            list(self.shocks.keys())
+            + list(self.dynamics.keys())
+            + list(self.reward.keys())
+        )
 
     def transition(self, pre, dr):
         """
@@ -314,6 +318,9 @@ class DBlock(Block):
         Given a decision rule and a continuation value function,
         return a function for the value at the decision step/tac,
         after the shock have been realized.
+
+        ## TODO: it would be better to systematize these value functions per block
+        ## better, then construct them with 'partial' methods
         """
         srvf = self.get_state_rule_value_function_from_continuation(continuation)
 
