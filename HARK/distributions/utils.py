@@ -180,10 +180,10 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
     return p_vec
 
 
-def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
+def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
     """
     Function to return a discretized version of an AR1 process.
-    See https://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
+    See http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf for details
 
     Parameters
     ----------
@@ -196,6 +196,12 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     bound: float
         The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
         standard deviation of the process
+    inflendpoint: Bool
+        If True: implement the standard method as in Tauchen (1986): 
+            assign the probability of jumping to a point outside the grid to the closest endpoint
+        If False: implement an alternative method:
+            discard the probability of jumping to a point outside the grid, effectively 
+            reassigning it to the remaining points in proportion to their probability of being reached
 
     Returns
     -------
@@ -208,16 +214,26 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0):
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
     trans_matrix = np.ones((N, N))
-    for j in range(N):
-        for k_1 in range(N - 2):
-            k = k_1 + 1
-            trans_matrix[j, k] = stats.norm.cdf(
-                (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-            ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-        trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
-        trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-            (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
-        )
+    if inflendpoint:
+        for j in range(N):
+            for k_1 in range(N - 2):
+                k = k_1 + 1
+                trans_matrix[j, k] = stats.norm.cdf(
+                    (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
+                ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
+            trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
+            trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
+                (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
+            )
+    else:
+        for j in range(N):
+            for k in range(N):
+                trans_matrix[j, k] = stats.norm.cdf(
+                    (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
+                ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
+        ## normalize: each row sums to 1
+        trans_matrix = trans_matrix / trans_matrix.sum(axis=1)[:, np.newaxis]
+
 
     return y, trans_matrix
 
