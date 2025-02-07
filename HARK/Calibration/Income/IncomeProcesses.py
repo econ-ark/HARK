@@ -344,6 +344,7 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 

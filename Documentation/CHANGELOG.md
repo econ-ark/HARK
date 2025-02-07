@@ -34,7 +34,7 @@ Release Date: TBD
 - Fixes notation errors in IndShockConsumerType.make_euler_error_func from prior changes. [1495](https://github.com/econ-ark/HARK/pull/1495)
 - Fixes typos in IdentityFunction interpolator class. [1492](https://github.com/econ-ark/HARK/pull/1492)
 - Expands functionality of Cobb-Douglas aggregator for CRRA utility. [1363](https://github.com/econ-ark/HARK/pull/1363)
-- Improved tracking of the bounds of support for distributions, and (some) solvers now respect those bounds when computing the "worst outcome". [XXXX](https://github.com/econ-ark/HARK/pull/1479)
+- Improved tracking of the bounds of support for distributions, and (some) solvers now respect those bounds when computing the "worst outcome". [1524](https://github.com/econ-ark/HARK/pull/1524)
 
 ### 0.15.1
 
