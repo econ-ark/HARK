@@ -78,7 +78,7 @@ class LognormPermIncShk(DiscreteDistribution):
         logn_approx = lognormal_dstn.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
-        
+
         limit = {
             "dist": lognormal_dstn,
             "method": "equiprobable",
@@ -87,7 +87,7 @@ class LognormPermIncShk(DiscreteDistribution):
             "infimum": logn_approx.limit["infimum"],
             "supremum": logn_approx.limit["supremum"],
         }
-        
+
         # Change the pmv if necessary
         if neutral_measure:
             logn_approx.pmv = (logn_approx.atoms * logn_approx.pmv).flatten()
@@ -127,7 +127,7 @@ class MixtureTranIncShk(DiscreteDistribution):
         dstn_approx = dstn_orig.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
-        
+
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp

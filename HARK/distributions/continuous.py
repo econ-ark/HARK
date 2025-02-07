@@ -511,7 +511,7 @@ class Weibull(ContinuousFrozenDistribution):
     def __init__(self, scale=1.0, shape=1.0, seed=0):
         self.scale = np.asarray(scale)
         self.shape = np.asarray(shape)
-        
+
         # Set up the RNG
         super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
         self.infimum = np.array([0.0])

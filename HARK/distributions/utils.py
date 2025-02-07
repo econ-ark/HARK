@@ -11,6 +11,7 @@ from HARK.distributions.discrete import (
 )
 from HARK.distributions.continuous import Normal
 
+
 # TODO: This function does not generate the limit attribute
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).discretize(N, method="hermite")
@@ -258,7 +259,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
             ],
             seed=distribution.seed,
         )
-    
+
     else:
         atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
         pmv = np.append(p, distribution.pmv * (1 - p))
@@ -299,7 +300,6 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         }
 
         return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
-
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -426,7 +426,7 @@ def combine_indep_dstns(*distributions, seed=0):
     P_out = np.prod(P_temp, axis=0)
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
-    
+
     # Make the limit dictionary
     infimum = np.concatenate(
         [distributions[i].limit["infimum"] for i in range(dstn_count)]

@@ -43,7 +43,7 @@ class Distribution:
 
         self._seed: int = _seed
         self._rng: random.Generator = random.default_rng(self._seed)
-        
+
         # Bounds of distribution support should be overwritten by subclasses
         self.infimum = np.array([])
         self.supremum = np.array([])
