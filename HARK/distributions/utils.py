@@ -197,10 +197,10 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
         The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
         standard deviation of the process
     inflendpoint: Bool
-        If True: implement the standard method as in Tauchen (1986): 
+        If True: implement the standard method as in Tauchen (1986):
             assign the probability of jumping to a point outside the grid to the closest endpoint
         If False: implement an alternative method:
-            discard the probability of jumping to a point outside the grid, effectively 
+            discard the probability of jumping to a point outside the grid, effectively
             reassigning it to the remaining points in proportion to their probability of being reached
 
     Returns
@@ -233,7 +233,6 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
                 ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
         ## normalize: each row sums to 1
         trans_matrix = trans_matrix / trans_matrix.sum(axis=1)[:, np.newaxis]
-
 
     return y, trans_matrix
 
