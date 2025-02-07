@@ -54,6 +54,8 @@ class Bernoulli(DiscreteFrozenDistribution):
         self.pmv = [1 - self.p, self.p]
         self.atoms = [0, 1]
         self.limit = {"dist": self}
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([1.0])
 
 
 class DiscreteDistribution(Distribution):
@@ -69,6 +71,10 @@ class DiscreteDistribution(Distribution):
         For multivariate distributions, the last dimension of atoms must index
         "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
         the random variable has 4 possible realizations and each of them has shape (2,6).
+    limit : dict
+        Dictionary with information about the continuous distribution from which
+        this distribution was generated. The reference distribution is in the entry
+        called 'dist'.
     seed : int
         Seed for random number generator.
     """
@@ -84,6 +90,11 @@ class DiscreteDistribution(Distribution):
 
         self.pmv = np.asarray(pmv)
         self.atoms = np.atleast_2d(atoms)
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
+            }
         self.limit = limit
 
         # Check that pmv and atoms have compatible dimensions.
@@ -363,7 +374,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             )
 
         attrs = {} if attrs is None else attrs
-        limit = {} if limit is None else limit
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
+            }
+            self.limit = limit
         attrs.update(limit)
         attrs["name"] = name
 
