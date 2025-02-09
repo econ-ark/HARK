@@ -659,6 +659,7 @@ class labeled_transition_tests(unittest.TestCase):
         assert np.all(exp1["m"] == exp2["m"]).item()
         assert np.all(exp1["n"] == exp2["n"]).item()
 
+
 class TestTauchenAR1(unittest.TestCase):
     def test_tauchen(self):
         # Test with a simple AR(1) process
@@ -685,7 +686,7 @@ class TestTauchenAR1(unittest.TestCase):
         # Check that [k]-th column ./ [k-1]-th column are identical (k = 3, ..., N-1)
         # Note: the first and the last column of the 'standard' transition matrix are inflated
         if N > 3:
-            for i in range(2, N-1):
+            for i in range(2, N - 1):
                 self.assertTrue(
                     np.allclose(
                         standard[1][:, i] * alternative[1][:, i - 1],
