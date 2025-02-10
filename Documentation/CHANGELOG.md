@@ -14,12 +14,12 @@ Release Date: TBD
 
 ### Major Changes
 
+- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
 - Adds a discretize method to DBlocks and RBlocks [#1460](https://github.com/econ-ark/HARK/pull/1460)
 - Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Allows construction of shocks with arguments based on mathematical expressions [#1464](https://github.com/econ-ark/HARK/pull/1464)
 - YAML configuration file for the normalized consumption and portolio choice [#1465](https://github.com/econ-ark/HARK/pull/1465)
-- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
 
 #### Minor Changes
 
