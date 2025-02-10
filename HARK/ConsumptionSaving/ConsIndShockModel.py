@@ -63,7 +63,6 @@ from scipy.optimize import newton
 from HARK import (
     AgentType,
     NullFunc,
-    MetricObject,
     _log,
     set_verbosity_level,
 )
