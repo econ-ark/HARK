@@ -1239,21 +1239,21 @@ class CubicHermiteInterp(HARKinterpolator1D):
 
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
-            temp = np.array([y_list[0], dydx_list[0], 0, 0])
+            temp = np.array([self.y_list[0], self.dydx_list[0], 0, 0])
         else:
             temp = np.array([np.nan, np.nan, np.nan, np.nan])
 
         self.coeffs = np.vstack((temp, self.coeffs))
 
-        x1 = x_list[self.n - 1]
-        y1 = y_list[self.n - 1]
+        x1 = self.x_list[self.n - 1]
+        y1 = self.y_list[self.n - 1]
 
         # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
         if slope_limit is None and intercept_limit is None:
-            slope_limit = dydx_list[-1]
-            intercept_limit = y_list[-1] - slope_limit * x_list[-1]
+            slope_limit = self.dydx_list[-1]
+            intercept_limit = self.y_list[-1] - slope_limit * self.x_list[-1]
         gap = slope_limit * x1 + intercept_limit - y1
-        slope = slope_limit - dydx_list[self.n - 1]
+        slope = slope_limit - self.dydx_list[self.n - 1]
         if (gap != 0) and (slope <= 0):
             temp = np.array([intercept_limit, slope_limit, gap, slope / gap])
         elif slope > 0:
