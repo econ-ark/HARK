@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
+from HARK.tests import HARK_PRECISION
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
@@ -19,88 +20,72 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_RiskyShareFunc(self):
         self.assertAlmostEqual(
-            self.pcct.solution[0].ShareFuncAdj(8).tolist(), 0.9507419932531964
+            self.pcct.solution[0].ShareFuncAdj(8).tolist(),
+            0.95074,
+            places=HARK_PRECISION,
         )
 
         self.assertAlmostEqual(
-            self.pcct.solution[0].ShareFuncAdj(16).tolist(), 0.6815883614201397
+            self.pcct.solution[0].ShareFuncAdj(16).tolist(),
+            0.68159,
+            places=HARK_PRECISION,
         )
 
     def test_solution(self):
         self.assertAlmostEqual(
-            self.pcct.solution[0].cFuncAdj(10).tolist(), 1.6996557721625785
+            self.pcct.solution[0].cFuncAdj(10).tolist(), 1.69966, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            self.pcct.solution[0].ShareFuncAdj(10).tolist(), 0.8498496999408691
+            self.pcct.solution[0].ShareFuncAdj(10).tolist(),
+            0.84985,
+            places=HARK_PRECISION,
         )
 
     def test_sim_one_period(self):
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
-        self.pcct.track_vars += ["aNrm"]
+        self.pcct.track_vars += ["aNrm", "mNrm", "bNrm", "TranShk", "cNrm"]
         self.pcct.initialize_sim()
 
         self.assertFalse(np.any(self.pcct.shocks["Adjust"]))
 
-        self.assertAlmostEqual(
-            self.pcct.state_now['pLvl'][0],
-            1.0
-        )
+        # simulation test -- seed/generator specific
+        # self.assertAlmostEqual(self.pcct.state_now["pLvl"][0], 1.0)
 
-        self.assertAlmostEqual(
-            self.pcct.state_now['aNrm'][0],
-            7.257027956
-        )
+        # simulation test -- seed/generator specific
+        # self.assertAlmostEqual(self.pcct.state_now["aNrm"][0], 7.25703, place = HARK_PRECISION)
 
-        self.assertAlmostEqual(
-            self.pcct.Rfree,
-            1.03
-        )
+        # simulation test -- seed/generator specific
+        # self.assertAlmostEqual(self.pcct.Rfree[0], 1.03)
 
-        self.assertAlmostEqual(
-            self.pcct.state_now['PlvlAgg'],
-            1.0
-        )
+        # simulation test -- seed/generator specific
+        # self.assertAlmostEqual(self.pcct.state_now["PlvlAgg"], 1.0)
 
         self.pcct.sim_one_period()
 
         self.assertAlmostEqual(
-            self.pcct.state_now['pLvl'][0],
-            0.858934461
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.state_now['aNrm'][0],
-            8.02359093
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.shocks['PermShk'][0],
-            0.85893446
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.shocks['TranShk'][0],
-            1.0
-        )
-
-        self.assertAlmostEqual(
-            self.pcct.shocks['Risky'][0],
-            0.92405816
-        )
-
-        self.assertTrue(
-            np.any(self.pcct.shocks['Adjust'][0])
-        )
-
-        self.assertAlmostEqual(
             self.pcct.state_now["mNrm"][0],
-            9.70233892039
+            self.pcct.state_now["bNrm"][0] + self.pcct.shocks["TranShk"][0],
         )
 
-        self.assertAlmostEqual(self.pcct.controls["Share"][0], 0.8627164488246847)
-        self.assertAlmostEqual(self.pcct.controls["cNrm"][0], 1.67874799)
+        self.assertAlmostEqual(
+            self.pcct.controls["cNrm"][0],
+            self.pcct.solution[0].cFuncAdj(self.pcct.state_now["mNrm"][0]),
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.controls["Share"][0],
+            self.pcct.solution[0].ShareFuncAdj(self.pcct.state_now["mNrm"][0]),
+        )
+
+        self.assertAlmostEqual(
+            self.pcct.state_now["aNrm"][0],
+            self.pcct.state_now["mNrm"][0] - self.pcct.controls["cNrm"][0],
+        )
+
+        # a drawn shock ; may not be robust to RNG/disitrubition implementations
+        # self.assertAlmostEqual(self.pcct.shocks["Adjust"][0], 1.0)
 
 
 class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
@@ -117,41 +102,60 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             "Adjust",
             "PermShk",
             "bNrm",
+            "TranShk",
         ]
         self.pcct.initialize_sim()
 
         self.pcct.simulate()
 
-        self.assertAlmostEqual(self.pcct.history["mNrm"][0][0], 9.70233892)
+        self.assertAlmostEqual(
+            self.pcct.history["mNrm"][0][0],
+            self.pcct.history["bNrm"][0][0] + self.pcct.history["TranShk"][0][0],
+        )
 
-        self.assertAlmostEqual(self.pcct.history["cNrm"][0][0], 1.6787479894848298)
+        self.assertAlmostEqual(
+            self.pcct.history["cNrm"][0][0],
+            self.pcct.solution[0].cFuncAdj(self.pcct.history["mNrm"][0][0]),
+        )
 
-        self.assertAlmostEqual(self.pcct.history["Share"][0][0], 0.8627164488246847)
+        self.assertAlmostEqual(
+            self.pcct.history["Share"][0][0],
+            self.pcct.solution[0].ShareFuncAdj(self.pcct.history["mNrm"][0][0]),
+        )
 
-        self.assertAlmostEqual(self.pcct.history["aNrm"][0][0], 8.023590930905383)
+        self.assertAlmostEqual(
+            self.pcct.history["aNrm"][0][0],
+            self.pcct.history["mNrm"][0][0] - self.pcct.history["cNrm"][0][0],
+        )
 
         self.assertAlmostEqual(self.pcct.history["Adjust"][0][0], 1.0)
 
         # the next period
-        self.assertAlmostEqual(self.pcct.history["Risky"][1][0], 0.8950304697526602)
 
-        self.assertAlmostEqual(self.pcct.history["Rport"][1][0], 0.9135595661654792)
+        self.assertAlmostEqual(
+            self.pcct.history["mNrm"][1][0],
+            self.pcct.history["bNrm"][1][0] + self.pcct.history["TranShk"][1][0],
+        )
 
-        self.assertAlmostEqual(self.pcct.history["Adjust"][1][0], 1.0)
+        self.assertAlmostEqual(
+            self.pcct.history["cNrm"][1][0],
+            self.pcct.solution[0].cFuncAdj(self.pcct.history["mNrm"][1][0]),
+        )
 
-        self.assertAlmostEqual(self.pcct.history["PermShk"][1][0], 1.0050166461586711)
+        self.assertAlmostEqual(
+            self.pcct.history["Share"][1][0],
+            self.pcct.solution[0].ShareFuncAdj(self.pcct.history["mNrm"][1][0]),
+        )
 
-        self.assertAlmostEqual(self.pcct.history["bNrm"][1][0], 7.293439643953855)
+        self.assertAlmostEqual(
+            self.pcct.history["aNrm"][1][0],
+            self.pcct.history["mNrm"][1][0] - self.pcct.history["cNrm"][1][0],
+        )
 
-        self.assertAlmostEqual(self.pcct.history["mNrm"][1][0], 8.287859049575047)
-
-        self.assertAlmostEqual(self.pcct.history["cNrm"][1][0], 1.5773607434989751)
-
-        self.assertAlmostEqual(self.pcct.history["Share"][1][0], 0.9337608822146805)
-
-        self.assertAlmostEqual(self.pcct.history["aNrm"][1][0], 6.710498306076072)
-
-        self.assertAlmostEqual(self.pcct.history["aNrm"][15][0], 5.304746367434934)
+        self.assertAlmostEqual(
+            self.pcct.history["aNrm"][15][0],
+            self.pcct.history["mNrm"][15][0] - self.pcct.history["cNrm"][15][0],
+        )
 
 
 class testPortfolioConsumerTypeSticky(unittest.TestCase):
@@ -163,8 +167,133 @@ class testPortfolioConsumerTypeSticky(unittest.TestCase):
 
         # Create portfolio choice consumer type
         self.sticky = cpm.PortfolioConsumerType(**init_sticky_share)
-        self.sticky.cycles = 0
 
         # Solve the model under the given parameters
 
         self.sticky.solve()
+
+
+class testPortfolioConsumerTypeDiscrete(unittest.TestCase):
+    def test_discrete(self):
+        # Make example type of agent who can only choose risky share along discrete grid
+        init_discrete_share = cpm.init_portfolio.copy()
+        # PortfolioConsumerType requires vFuncBool to be True when DiscreteShareBool is True
+        init_discrete_share["DiscreteShareBool"] = True
+        init_discrete_share["vFuncBool"] = True
+
+        # Create portfolio choice consumer type
+        self.discrete = cpm.PortfolioConsumerType(**init_discrete_share)
+
+        # Solve model under given parameters
+        self.discrete.solve()
+
+
+class testPortfolioConsumerTypeJointDist(unittest.TestCase):
+    def test_joint_dist(self):
+        # Create portfolio choice consumer type
+        self.joint_dist = cpm.PortfolioConsumerType()
+        self.joint_dist.IndepDstnBool = False
+
+        # Solve model under given parameters
+        self.joint_dist.solve()
+
+
+class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
+    def test_discrete_and_joint(self):
+        # Make example type of agent who can only choose risky share along
+        # discrete grid and income dist is correlated with risky dist
+        init_discrete_and_joint_share = cpm.init_portfolio.copy()
+        # PortfolioConsumerType requires vFuncBool to be True when DiscreteShareBool is True
+        init_discrete_and_joint_share["DiscreteShareBool"] = True
+        init_discrete_and_joint_share["vFuncBool"] = True
+
+        # Create portfolio choice consumer type
+        self.discrete_and_joint = cpm.PortfolioConsumerType(
+            **init_discrete_and_joint_share
+        )
+        self.discrete_and_joint.IndepDstnBool = False
+
+        # Solve model under given parameters
+        self.discrete_and_joint.solve()
+
+
+class testRiskyReturnDim(PortfolioConsumerTypeTestCase):
+    def test_simulation(self):
+        # Setup
+        self.pcct.T_sim = 30
+        self.pcct.AgentCount = 10
+        self.pcct.track_vars += [
+            "mNrm",
+            "cNrm",
+            "Risky",
+        ]
+        # Common (default) simulation
+        self.pcct.initialize_sim()
+        self.pcct.simulate()
+        # Assety that all columns of Risky are the same
+        self.assertTrue(
+            np.all(
+                self.pcct.history["Risky"]
+                == self.pcct.history["Risky"][:, 0][:, np.newaxis]
+            )
+        )
+        # Agent specific simulation
+        self.pcct.sim_common_Rrisky = False
+        self.pcct.initialize_sim()
+        self.pcct.simulate()
+        # Assety that all columns of Risky are not the same
+        self.assertFalse(
+            np.all(
+                self.pcct.history["Risky"]
+                == self.pcct.history["Risky"][:, 0][:, np.newaxis]
+            )
+        )
+
+
+class test_time_varying_Risky_Rfree_and_Adj(unittest.TestCase):
+    def setUp(self):
+        # Create a parameter dictionary for a three period problem
+        self.params = cpm.init_portfolio.copy()
+        # Update time varying parameters
+        self.params.update(
+            {
+                "cycles": 1,
+                "T_cycle": 3,
+                "T_age": 3,
+                "Rfree": [1.0, 0.99, 0.98],
+                "RiskyAvg": [1.01, 1.02, 1.03],
+                "RiskyStd": [0.0, 0.0, 0.0],
+                "RiskyCount": 1,
+                "AdjustPrb": [0.0, 1.0, 0.0],
+                "PermGroFac": [1.0, 1.0, 1.0],
+                "LivPrb": [0.5, 0.5, 0.5],
+                "PermShkStd": [0.0, 0.0, 0.0],
+                "TranShkStd": [0.0, 0.0, 0.0],
+                "T_sim": 50,
+                "sim_common_Rrisky": False,
+                "AgentCount": 10,
+            }
+        )
+
+        # Create and solve agent
+        self.agent = cpm.PortfolioConsumerType(**self.params)
+        self.agent.solve()
+
+    def test_draws(self):
+        # Simulate the agent
+        self.agent.track_vars = ["t_age", "t_cycle", "Adjust", "Risky"]
+        self.agent.initialize_sim()
+        self.agent.simulate()
+
+        # Check that returns and adjustment draws are correct
+        Rrisky_draws = self.agent.history["Risky"]
+        Adjust_draws = self.agent.history["Adjust"]
+        # t_age is increased before being recorded
+        t_age = self.agent.history["t_age"] - 1
+
+        # Check that the draws are correct
+        self.assertTrue(np.all(Rrisky_draws[t_age == 1] == 1.01))
+        self.assertTrue(np.all(Rrisky_draws[t_age == 2] == 1.02))
+        # Adjust
+        self.assertTrue(np.all(Adjust_draws[t_age == 1] == 0))
+        self.assertTrue(np.all(Adjust_draws[t_age == 2] == 1))

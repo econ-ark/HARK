@@ -1,18 +1,41 @@
-API Documentation
-==================
-
-Tools
---------
+API Reference
+=============
 
 .. toctree::
-   :maxdepth: 3
+   :caption: Tools
+   :maxdepth: 1
 
-   tools/index
-
-Models
---------
+   tools/core
+   tools/dcegm
+   tools/distribution
+   tools/econforgeinterp
+   tools/estimation
+   tools/helpers
+   tools/interpolation
+   tools/incomeprocess
+   tools/model
+   tools/numba_tools
+   tools/parallel
+   tools/rewards
+   tools/simulation
+   tools/utilities
+   tools/validators
 
 .. toctree::
-   :maxdepth: 3
+   :caption: Models
+   :maxdepth: 1
 
-   ConsumptionSaving/index
+   ConsumptionSaving/ConsAggShockModel
+   ConsumptionSaving/ConsBequestModel
+   ConsumptionSaving/ConsGenIncProcessModel
+   ConsumptionSaving/ConsIndShockModel
+   ConsumptionSaving/ConsIndShockModelFast
+   ConsumptionSaving/ConsLaborModel
+   ConsumptionSaving/ConsMarkovModel
+   ConsumptionSaving/ConsMedModel
+   ConsumptionSaving/ConsPortfolioModel
+   ConsumptionSaving/ConsPrefShochModel
+   ConsumptionSaving/ConsRepAgentModel
+   ConsumptionSaving/ConsRiskyAssetModel
+   ConsumptionSaving/ConsRiskyContribModel
+   ConsumptionSaving/TractableBufferStockModel

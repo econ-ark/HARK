@@ -20,25 +20,28 @@ bounds are exceeded.
 Despite the non-standard solution method, the iterative process can be embedded
 in the HARK framework, as shown below.
 """
+
+from copy import copy
+
 import numpy as np
+from scipy.optimize import brentq, newton
+
+from HARK import AgentType, NullFunc
+from HARK.distributions import Bernoulli, Lognormal
+from HARK.interpolation import CubicInterp
 
 # Import the HARK library.
-from HARK import AgentType, NullFunc, MetricObject
-from HARK.utilities import warnings  # Because of "patch" to warnings modules
-from HARK.utilities import (
+from HARK.metric import MetricObject
+from HARK.rewards import (
     CRRAutility,
+    CRRAutility_inv,
+    CRRAutility_invP,
     CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityPP,
     CRRAutilityPPP,
     CRRAutilityPPPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
-    CRRAutility_inv,
 )
-from HARK.interpolation import CubicInterp
-from HARK.distribution import Lognormal, Bernoulli
-from copy import copy
-from scipy.optimize import newton, brentq
 
 __all__ = ["TractableConsumerSolution", "TractableConsumerType"]
 
@@ -151,7 +154,10 @@ def find_next_point(
     MPCnow : float
         Marginal propensity to consume this period.
     """
-    uPP = lambda x: utilityPP(x, gam=CRRA)
+
+    def uPP(x):
+        return utilityPP(x, rho=CRRA)
+
     cNow = (
         PermGroFacCmp
         * (DiscFac * Rfree) ** (-1.0 / CRRA)
@@ -293,6 +299,19 @@ def add_to_stable_arm_points(
     return solution_now
 
 
+###############################################################################
+
+# Define a dictionary for the tractable buffer stock model
+init_tractable = {
+    "cycles": 0,  # infinite horizon
+    "UnempPrb": 0.00625,  # Probability of becoming permanently unemployed
+    "DiscFac": 0.975,  # Intertemporal discount factor
+    "Rfree": 1.01,  # Risk-free interest factor on assets
+    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
+    "CRRA": 1.0,  # Coefficient of relative risk aversion
+}
+
+
 class TractableConsumerType(AgentType):
     """
     Parameters
@@ -300,7 +319,7 @@ class TractableConsumerType(AgentType):
     Same as AgentType
     """
 
-    state_vars = ['bLvl', 'mLvl', 'aLvl']
+    state_vars = ["bLvl", "mLvl", "aLvl"]
 
     def __init__(self, **kwds):
         params = init_tractable.copy()
@@ -323,7 +342,7 @@ class TractableConsumerType(AgentType):
             "mUpperBnd",
         ]
         self.shock_vars = ["eStateNow"]
-        self.poststate_vars = ['aLvl', "eStateNow"]  # For simulation
+        self.poststate_vars = ["aLvl", "eStateNow"]  # For simulation
         self.solve_one_period = add_to_stable_arm_points  # set correct solver
 
     def pre_solve(self):
@@ -341,10 +360,16 @@ class TractableConsumerType(AgentType):
         -------
         none
         """
+
         # Define utility functions
-        uPP = lambda x: utilityPP(x, gam=self.CRRA)
-        uPPP = lambda x: utilityPPP(x, gam=self.CRRA)
-        uPPPP = lambda x: utilityPPPP(x, gam=self.CRRA)
+        def uPP(x):
+            return utilityPP(x, rho=self.CRRA)
+
+        def uPPP(x):
+            return utilityPPP(x, rho=self.CRRA)
+
+        def uPPPP(x):
+            return utilityPPPP(x, rho=self.CRRA)
 
         # Define some useful constants from model primitives
         self.PermGroFacCmp = self.PermGroFac / (
@@ -386,99 +411,119 @@ class TractableConsumerType(AgentType):
         self.SSperturbance = self.mTarg * 0.1
 
         # Find the MPC, MMPC, and MMMPC at the target
-        mpcTargFixedPointFunc = lambda k: k * uPP(self.cTarg) - self.Beth * (
-            (1.0 - self.UnempPrb) * (1.0 - k) * k * self.Rnrm * uPP(self.cTarg)
-            + self.PFMPC * self.UnempPrb * (1.0 - k) * self.Rnrm * uPP(cTargU)
-        )
+        def mpcTargFixedPointFunc(k):
+            return k * uPP(self.cTarg) - self.Beth * (
+                (1.0 - self.UnempPrb) * (1.0 - k) * k * self.Rnrm * uPP(self.cTarg)
+                + self.PFMPC * self.UnempPrb * (1.0 - k) * self.Rnrm * uPP(cTargU)
+            )
+
         self.MPCtarg = newton(mpcTargFixedPointFunc, 0)
-        mmpcTargFixedPointFunc = (
-            lambda kk: kk * uPP(self.cTarg)
-            + self.MPCtarg ** 2.0 * uPPP(self.cTarg)
-            - self.Beth
-            * (
-                -(1.0 - self.UnempPrb) * self.MPCtarg * kk * self.Rnrm * uPP(self.cTarg)
-                + (1.0 - self.UnempPrb)
-                * (1.0 - self.MPCtarg) ** 2.0
-                * kk
-                * self.Rnrm ** 2.0
-                * uPP(self.cTarg)
-                - self.PFMPC * self.UnempPrb * kk * self.Rnrm * uPP(cTargU)
-                + (1.0 - self.UnempPrb)
-                * (1.0 - self.MPCtarg) ** 2.0
-                * self.MPCtarg ** 2.0
-                * self.Rnrm ** 2.0
-                * uPPP(self.cTarg)
-                + self.PFMPC ** 2.0
-                * self.UnempPrb
-                * (1.0 - self.MPCtarg) ** 2.0
-                * self.Rnrm ** 2.0
-                * uPPP(cTargU)
+
+        def mmpcTargFixedPointFunc(kk):
+            return (
+                kk * uPP(self.cTarg)
+                + self.MPCtarg**2.0 * uPPP(self.cTarg)
+                - self.Beth
+                * (
+                    -(1.0 - self.UnempPrb)
+                    * self.MPCtarg
+                    * kk
+                    * self.Rnrm
+                    * uPP(self.cTarg)
+                    + (1.0 - self.UnempPrb)
+                    * (1.0 - self.MPCtarg) ** 2.0
+                    * kk
+                    * self.Rnrm**2.0
+                    * uPP(self.cTarg)
+                    - self.PFMPC * self.UnempPrb * kk * self.Rnrm * uPP(cTargU)
+                    + (1.0 - self.UnempPrb)
+                    * (1.0 - self.MPCtarg) ** 2.0
+                    * self.MPCtarg**2.0
+                    * self.Rnrm**2.0
+                    * uPPP(self.cTarg)
+                    + self.PFMPC**2.0
+                    * self.UnempPrb
+                    * (1.0 - self.MPCtarg) ** 2.0
+                    * self.Rnrm**2.0
+                    * uPPP(cTargU)
+                )
             )
-        )
+
         self.MMPCtarg = newton(mmpcTargFixedPointFunc, 0)
-        mmmpcTargFixedPointFunc = (
-            lambda kkk: kkk * uPP(self.cTarg)
-            + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg)
-            + self.MPCtarg ** 3 * uPPPP(self.cTarg)
-            - self.Beth
-            * (
-                -(1 - self.UnempPrb) * self.MPCtarg * kkk * self.Rnrm * uPP(self.cTarg)
-                - 3
-                * (1 - self.UnempPrb)
-                * (1 - self.MPCtarg)
-                * self.MMPCtarg ** 2
-                * self.Rnrm ** 2
-                * uPP(self.cTarg)
-                + (1 - self.UnempPrb)
-                * (1 - self.MPCtarg) ** 3
-                * kkk
-                * self.Rnrm ** 3
-                * uPP(self.cTarg)
-                - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU)
-                - 3
-                * (1 - self.UnempPrb)
-                * (1 - self.MPCtarg)
-                * self.MPCtarg ** 2
-                * self.MMPCtarg
-                * self.Rnrm ** 2
-                * uPPP(self.cTarg)
-                + 3
-                * (1 - self.UnempPrb)
-                * (1 - self.MPCtarg) ** 3
-                * self.MPCtarg
-                * self.MMPCtarg
-                * self.Rnrm ** 3
-                * uPPP(self.cTarg)
-                - 3
-                * self.PFMPC ** 2
-                * self.UnempPrb
-                * (1 - self.MPCtarg)
-                * self.MMPCtarg
-                * self.Rnrm ** 2
-                * uPPP(cTargU)
-                + (1 - self.UnempPrb)
-                * (1 - self.MPCtarg) ** 3
-                * self.MPCtarg ** 3
-                * self.Rnrm ** 3
-                * uPPPP(self.cTarg)
-                + self.PFMPC ** 3
-                * self.UnempPrb
-                * (1 - self.MPCtarg) ** 3
-                * self.Rnrm ** 3
-                * uPPPP(cTargU)
+
+        def mmmpcTargFixedPointFunc(kkk):
+            return (
+                kkk * uPP(self.cTarg)
+                + 3 * self.MPCtarg * self.MMPCtarg * uPPP(self.cTarg)
+                + self.MPCtarg**3 * uPPPP(self.cTarg)
+                - self.Beth
+                * (
+                    -(1 - self.UnempPrb)
+                    * self.MPCtarg
+                    * kkk
+                    * self.Rnrm
+                    * uPP(self.cTarg)
+                    - 3
+                    * (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg)
+                    * self.MMPCtarg**2
+                    * self.Rnrm**2
+                    * uPP(self.cTarg)
+                    + (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg) ** 3
+                    * kkk
+                    * self.Rnrm**3
+                    * uPP(self.cTarg)
+                    - self.PFMPC * self.UnempPrb * kkk * self.Rnrm * uPP(cTargU)
+                    - 3
+                    * (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg)
+                    * self.MPCtarg**2
+                    * self.MMPCtarg
+                    * self.Rnrm**2
+                    * uPPP(self.cTarg)
+                    + 3
+                    * (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg) ** 3
+                    * self.MPCtarg
+                    * self.MMPCtarg
+                    * self.Rnrm**3
+                    * uPPP(self.cTarg)
+                    - 3
+                    * self.PFMPC**2
+                    * self.UnempPrb
+                    * (1 - self.MPCtarg)
+                    * self.MMPCtarg
+                    * self.Rnrm**2
+                    * uPPP(cTargU)
+                    + (1 - self.UnempPrb)
+                    * (1 - self.MPCtarg) ** 3
+                    * self.MPCtarg**3
+                    * self.Rnrm**3
+                    * uPPPP(self.cTarg)
+                    + self.PFMPC**3
+                    * self.UnempPrb
+                    * (1 - self.MPCtarg) ** 3
+                    * self.Rnrm**3
+                    * uPPPP(cTargU)
+                )
             )
-        )
+
         self.MMMPCtarg = newton(mmmpcTargFixedPointFunc, 0)
 
         # Find the MPC at m=0
-        f_temp = (
-            lambda k: self.Beth
-            * self.Rnrm
-            * self.UnempPrb
-            * (self.PFMPC * self.Rnrm * ((1.0 - k) / k)) ** (-self.CRRA - 1.0)
-            * self.PFMPC
-        )
-        mpcAtZeroFixedPointFunc = lambda k: k - f_temp(k) / (1 + f_temp(k))
+        def f_temp(k):
+            return (
+                self.Beth
+                * self.Rnrm
+                * self.UnempPrb
+                * (self.PFMPC * self.Rnrm * ((1.0 - k) / k)) ** (-self.CRRA - 1.0)
+                * self.PFMPC
+            )
+
+        def mpcAtZeroFixedPointFunc(k):
+            return k - f_temp(k) / (1 + f_temp(k))
+
         # self.MPCmax = newton(mpcAtZeroFixedPointFunc,0.5)
         self.MPCmax = brentq(
             mpcAtZeroFixedPointFunc, self.PFMPC, 0.99, xtol=0.00000001, rtol=0.00000001
@@ -493,25 +538,25 @@ class TractableConsumerType(AgentType):
         c_perturb_lo = (
             self.cTarg
             - self.SSperturbance * self.MPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMPCtarg
-            - (1.0 / 6.0) * self.SSperturbance ** 3.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMPCtarg
+            - (1.0 / 6.0) * self.SSperturbance**3.0 * self.MMMPCtarg
         )
         c_perturb_hi = (
             self.cTarg
             + self.SSperturbance * self.MPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMPCtarg
-            + (1.0 / 6.0) * self.SSperturbance ** 3.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMPCtarg
+            + (1.0 / 6.0) * self.SSperturbance**3.0 * self.MMMPCtarg
         )
         cNrm_list = [c_perturb_lo, self.cTarg, c_perturb_hi]
         MPC_perturb_lo = (
             self.MPCtarg
             - self.SSperturbance * self.MMPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMMPCtarg
         )
         MPC_perturb_hi = (
             self.MPCtarg
             + self.SSperturbance * self.MMPCtarg
-            + 0.5 * self.SSperturbance ** 2.0 * self.MMMPCtarg
+            + 0.5 * self.SSperturbance**2.0 * self.MMMPCtarg
         )
         MPC_list = [MPC_perturb_lo, self.MPCtarg, MPC_perturb_hi]
 
@@ -580,17 +625,19 @@ class TractableConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now['aLvl'][which_agents] = Lognormal(
+        self.state_now["aLvl"][which_agents] = Lognormal(
             self.aLvlInitMean,
             sigma=self.aLvlInitStd,
-            seed=self.RNG.randint(0, 2 ** 31 - 1),
+            seed=self.RNG.integers(0, 2**31 - 1),
         ).draw(N)
-        self.shocks["eStateNow"] = np.zeros(self.AgentCount) # Initialize shock array
-        self.shocks["eStateNow"][which_agents] = 1.0  # Agents are born employed
-        self.t_age[which_agents] = 0  # How many periods since each agent was born
-        self.t_cycle[
-            which_agents
-        ] = 0  # Which period of the cycle each agent is currently in
+        self.shocks["eStateNow"] = np.zeros(self.AgentCount)  # Initialize shock array
+        # Agents are born employed
+        self.shocks["eStateNow"][which_agents] = 1.0
+        # How many periods since each agent was born
+        self.t_age[which_agents] = 0
+        self.t_cycle[which_agents] = (
+            0  # Which period of the cycle each agent is currently in
+        )
         return None
 
     def sim_death(self):
@@ -626,7 +673,7 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         N = int(np.sum(employed))
         newly_unemployed = Bernoulli(
-            self.UnempPrb, seed=self.RNG.randint(0, 2 ** 31 - 1)
+            self.UnempPrb, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
         self.shocks["eStateNow"][employed] = 1.0 - newly_unemployed
 
@@ -642,7 +689,7 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        bLvlNow = self.Rfree * self.state_prev['aLvl']
+        bLvlNow = self.Rfree * self.state_prev["aLvl"]
         mLvlNow = bLvlNow + self.shocks["eStateNow"]
 
         return bLvlNow, mLvlNow
@@ -662,8 +709,10 @@ class TractableConsumerType(AgentType):
         employed = self.shocks["eStateNow"] == 1.0
         unemployed = np.logical_not(employed)
         cLvlNow = np.zeros(self.AgentCount)
-        cLvlNow[employed] = self.solution[0].cFunc(self.state_now['mLvl'][employed])
-        cLvlNow[unemployed] = self.solution[0].cFunc_U(self.state_now['mLvl'][unemployed])
+        cLvlNow[employed] = self.solution[0].cFunc(self.state_now["mLvl"][employed])
+        cLvlNow[unemployed] = self.solution[0].cFunc_U(
+            self.state_now["mLvl"][unemployed]
+        )
         self.controls["cLvlNow"] = cLvlNow
 
     def get_poststates(self):
@@ -678,15 +727,5 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.state_now['aLvl'] = self.state_now['mLvl'] - self.controls["cLvlNow"]
+        self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvlNow"]
         return None
-
-
-init_tractable = {
-    "cycles" : 0, # infinite horizon
-    "UnempPrb": 0.00625,  # Probability of becoming unemployed
-    "DiscFac": 0.975,  # Intertemporal discount factor
-    "Rfree": 1.01,  # Risk-free interest factor on assets
-    "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
-    "CRRA": 1.0,  # Coefficient of relative risk aversion
-}

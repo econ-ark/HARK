@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Jan 21 15:04:24 2021
 
@@ -7,19 +6,21 @@ Created on Thu Jan 21 15:04:24 2021
 
 # Bring in modules we need
 import unittest
+
 import numpy as np
+
 from HARK.Calibration.Income.IncomeTools import (
-    sabelhaus_song_var_profile,
-    parse_income_spec,
-    find_profile,
-    CGM_income,
     Cagetti_income,
+    CGM_income,
+    find_profile,
+    parse_income_spec,
+    sabelhaus_song_var_profile,
 )
+
 
 # %% Mean income profile tests
 class test_income_paths(unittest.TestCase):
     def setUp(self):
-
         # Assign a result from Cocco, Gomes, Maenhout
         self.cgm_hs_mean_p = np.array(
             [
@@ -180,7 +181,6 @@ class test_income_paths(unittest.TestCase):
         )
 
     def test_CGM(self):
-
         adjust_infl_to = 1992
         age_min = 21
         age_max = 100
@@ -193,7 +193,6 @@ class test_income_paths(unittest.TestCase):
         self.assertTrue(np.allclose(self.cgm_hs_mean_p, MeanP, atol=1e-03))
 
     def test_Cagetti(self):
-
         adjust_infl_to = 1992
         age_min = 25
         age_max = 91
@@ -204,7 +203,7 @@ class test_income_paths(unittest.TestCase):
             age_max=age_max,
             adjust_infl_to=adjust_infl_to,
             start_year=start_year,
-            **spec
+            **spec,
         )
         MeanP = find_profile(params["PermGroFac"], params["P0"])
 
@@ -214,7 +213,6 @@ class test_income_paths(unittest.TestCase):
 # %% Volatility profile tests
 class test_SabelhausSongProfiles(unittest.TestCase):
     def setUp(self):
-
         # Write results from Figure 6 in the original paper
         self.Fig6Coh1940Tran = np.array(
             [
@@ -423,13 +421,13 @@ class test_SabelhausSongProfiles(unittest.TestCase):
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1940Tran, np.array(stds1940["TranShkStd"])**2, atol=1e-03
+                self.Fig6Coh1940Tran, np.array(stds1940["TranShkStd"]) ** 2, atol=1e-03
             )
         )
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1940Perm, np.array(stds1940["PermShkStd"])**2, atol=1e-03
+                self.Fig6Coh1940Perm, np.array(stds1940["PermShkStd"]) ** 2, atol=1e-03
             )
         )
 
@@ -440,13 +438,13 @@ class test_SabelhausSongProfiles(unittest.TestCase):
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1965Tran, np.array(stds1965["TranShkStd"])**2, atol=1e-03
+                self.Fig6Coh1965Tran, np.array(stds1965["TranShkStd"]) ** 2, atol=1e-03
             )
         )
 
         self.assertTrue(
             np.allclose(
-                self.Fig6Coh1965Perm, np.array(stds1965["PermShkStd"])**2, atol=1e-03
+                self.Fig6Coh1965Perm, np.array(stds1965["PermShkStd"]) ** 2, atol=1e-03
             )
         )
 
@@ -457,11 +455,11 @@ class test_SabelhausSongProfiles(unittest.TestCase):
         )
 
         self.assertTrue(
-            np.allclose(self.AggTran, np.array(stds_agg["TranShkStd"])**2, atol=1e-03)
+            np.allclose(self.AggTran, np.array(stds_agg["TranShkStd"]) ** 2, atol=1e-03)
         )
 
         self.assertTrue(
-            np.allclose(self.AggPerm, np.array(stds_agg["PermShkStd"])**2, atol=1e-03)
+            np.allclose(self.AggPerm, np.array(stds_agg["PermShkStd"]) ** 2, atol=1e-03)
         )
 
     def test_smoothing(self):
@@ -484,34 +482,34 @@ class test_SabelhausSongProfiles(unittest.TestCase):
         # 1940
         self.assertTrue(
             np.allclose(
-                np.array(smooth1940["TranShkStd"])**2, self.Fig6Coh1940Tran, rtol=rtol
+                np.array(smooth1940["TranShkStd"]) ** 2, self.Fig6Coh1940Tran, rtol=rtol
             )
         )
 
         self.assertTrue(
             np.allclose(
-                np.array(smooth1940["PermShkStd"])**2, self.Fig6Coh1940Perm, atol=rtol
+                np.array(smooth1940["PermShkStd"]) ** 2, self.Fig6Coh1940Perm, atol=rtol
             )
         )
 
         # 1965
         self.assertTrue(
             np.allclose(
-                np.array(smooth1965["TranShkStd"])**2, self.Fig6Coh1965Tran, rtol=rtol
+                np.array(smooth1965["TranShkStd"]) ** 2, self.Fig6Coh1965Tran, rtol=rtol
             )
         )
 
         self.assertTrue(
             np.allclose(
-                np.array(smooth1965["PermShkStd"])**2, self.Fig6Coh1965Perm, atol=rtol
+                np.array(smooth1965["PermShkStd"]) ** 2, self.Fig6Coh1965Perm, atol=rtol
             )
         )
 
         # Aggregate
         self.assertTrue(
-            np.allclose(np.array(smoothAgg["TranShkStd"])**2, self.AggTran, rtol=rtol)
+            np.allclose(np.array(smoothAgg["TranShkStd"]) ** 2, self.AggTran, rtol=rtol)
         )
 
         self.assertTrue(
-            np.allclose(np.array(smoothAgg["PermShkStd"])**2, self.AggPerm, atol=rtol)
+            np.allclose(np.array(smoothAgg["PermShkStd"]) ** 2, self.AggPerm, atol=rtol)
         )

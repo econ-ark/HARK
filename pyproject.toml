@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=61.2", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "econ-ark"
+version = "0.15.1"
+authors = [{name = "Econ-ARK team", email = "econ-ark@jhuecon.org"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Other/Nonlisted Topic",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+description = "Heterogenous Agents Resources & toolKit"
+keywords = ["economics", "modelling", "modeling", "heterogeneity"]
+requires-python = ">=3.10"
+dynamic = ["dependencies", "optional-dependencies"]
+
+
+[tool.setuptools.dynamic.dependencies]
+file = "requirements/base.txt"
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev.file = "requirements/dev.txt"
+doc.file = "requirements/doc.txt"
+
+[project.urls]
+Homepage = "https://github.com/econ-ark/HARK"
+"Bug Reports" = "https://github.com/econ-ark/HARK/issues"
+Documentation = "https://econ-ark.github.io/HARK"
+
+[project.license]
+file = "LICENSE"
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools.packages.find]
+# All the following settings are optional:
+exclude = ["binder", "Documentation", "examples"]
+namespaces = false
+
+[tool.setuptools.package-data]
+"*" = ["*.csv", "*.txt"]
+
+[tool.distutils.bdist_wheel]
+universal = 1

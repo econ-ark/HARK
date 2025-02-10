@@ -4,40 +4,43 @@ stochastic Markov state.  The only solver here extends ConsIndShockModel to
 include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
-from copy import deepcopy
+
 import numpy as np
-from HARK import AgentType
+
+from HARK import AgentType, NullFunc
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_markov_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn_markov,
+    get_TranShkDstn_from_IncShkDstn_markov,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    ConsIndShockSolver,
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
+    make_basic_CRRA_solution_terminal,
 )
-
-from HARK.distribution import (
-    DiscreteDistribution,
-    MarkovProcess,
-    Uniform,
-    calc_expectation
-)
+from HARK.distributions import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
-    LowerEnvelope,
     LinearInterp,
-    ValueFuncCRRA,MargValueFuncCRRA
+    LowerEnvelope,
+    MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
-
-from HARK.utilities import (
+from HARK.rewards import (
+    UtilityFuncCRRA,
     CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
     CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityP_invP,
+    CRRAutilityPP,
 )
+from HARK.utilities import make_assets_grid
 
-__all__ = ["ConsMarkovSolver", "MarkovConsumerType"]
+__all__ = ["MarkovConsumerType"]
 
 utility = CRRAutility
 utilityP = CRRAutilityP
@@ -48,689 +51,141 @@ utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
 
 
-class ConsMarkovSolver(ConsIndShockSolver):
+###############################################################################
+
+# Define some functions that can be used as constructors for MrkvArray
+
+
+def make_simple_binary_markov(T_cycle, Mrkv_p11, Mrkv_p22):
     """
-    A class to solve a single period consumption-saving problem with risky income
-    and stochastic transitions between discrete states, in a Markov fashion.
-    Extends ConsIndShockSolver, with identical inputs but for a discrete
-    Markov state, whose transition rule is summarized in MrkvArray.  Markov
-    states can differ in their interest factor, permanent growth factor, live probability, and
-    income distribution, so the inputs Rfree, PermGroFac, IncShkDstn, and LivPrb are
-    now arrays or lists specifying those values in each (succeeding) Markov state.
+    Make a list of very simple Markov arrays between two binary states by specifying
+    diagonal elements in each period (probability of remaining in that state).
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    Mrkv_p11 : [float]
+        List or array of probabilities of remaining in the first state between periods.
+    Mrkv_p22 : [float]
+        List or array of probabilities of remaining in the second state between periods.
+
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of 2x2 Markov transition arrays, one for each non-terminal period.
     """
+    p11 = np.array(Mrkv_p11)
+    p22 = np.array(Mrkv_p22)
 
-    def __init__(
-        self,
-        solution_next,
-        IncShkDstn_list,
-        LivPrb,
-        DiscFac,
-        CRRA,
-        Rfree_list,
-        PermGroFac_list,
-        MrkvArray,
-        BoroCnstArt,
-        aXtraGrid,
-        vFuncBool,
-        CubicBool,
-    ):
-        """
-        Constructor for a new solver for a one period problem with risky income
-        and transitions between discrete Markov states.  In the descriptions below,
-        N is the number of discrete states.
+    if len(p11) != T_cycle or len(p22) != T_cycle:
+        raise ValueError("Length of p11 and p22 probabilities must equal T_cycle!")
+    if np.any(p11 > 1.0) or np.any(p22 > 1.0):
+        raise ValueError("The p11 and p22 probabilities must not exceed 1!")
+    if np.any(p11 < 0.0) or np.any(p22 < 0.0):
+        raise ValueError("The p11 and p22 probabilities must not be less than 0!")
 
-        Parameters
-        ----------
-        solution_next : ConsumerSolution
-            The solution to next period's one period problem.
-        IncShkDstn_list : [distribution.Distribution]
-            A length N list of income distributions in each succeeding Markov
-            state.  Each income distribution is a
-            discrete approximation to the income process at the
-            beginning of the succeeding period.
-        LivPrb : np.array
-            Survival probability; likelihood of being alive at the beginning of
-            the succeeding period for each Markov state.
-        DiscFac : float
-            Intertemporal discount factor for future utility.
-        CRRA : float
-            Coefficient of relative risk aversion.
-        Rfree_list : np.array
-            Risk free interest factor on end-of-period assets for each Markov
-            state in the succeeding period.
-        PermGroFac_list : np.array
-            Expected permanent income growth factor at the end of this period
-            for each Markov state in the succeeding period.
-        MrkvArray : np.array
-            An NxN array representing a Markov transition matrix between discrete
-            states.  The i,j-th element of MrkvArray is the probability of
-            moving from state i in period t to state j in period t+1.
-        BoroCnstArt: float or None
-            Borrowing constraint for the minimum allowable assets to end the
-            period with.  If it is less than the natural borrowing constraint,
-            then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
-            rowing constraint.
-        aXtraGrid: np.array
-            Array of "extra" end-of-period asset values-- assets above the
-            absolute minimum acceptable level.
-        vFuncBool: boolean
-            An indicator for whether the value function should be computed and
-            included in the reported solution.
-        CubicBool: boolean
-            An indicator for whether the solver should use cubic or linear inter-
-            polation.
+    MrkvArray = [
+        np.array([[p11[t], 1.0 - p11[t]], [1.0 - p22[t], p22[t]]])
+        for t in range(T_cycle)
+    ]
+    return MrkvArray
 
-        Returns
-        -------
-        None
-        """
-        # Set basic attributes of the problem
 
-        self.solution_next = solution_next
-        self.IncShkDstn_list = IncShkDstn_list
-        self.LivPrb = LivPrb
-        self.DiscFac = DiscFac
-        self.CRRA = CRRA
-        self.BoroCnstArt = BoroCnstArt
-        self.aXtraGrid = aXtraGrid
-        self.vFuncBool = vFuncBool
-        self.CubicBool = CubicBool
-        self.Rfree_list=Rfree_list
-        self.PermGroFac_list=PermGroFac_list
-        self.MrkvArray=MrkvArray
-        self.StateCount=MrkvArray.shape[0]
+def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
+    """
+    Make a list of "ratchet-style" Markov transition arrays, in which transitions
+    are strictly *one way* and only by one step. Each element of the ratchet_probs
+    list is a size-N vector giving the probability of progressing from state i to
+    state to state i+1 in that period; progress from the topmost state reverts the
+    agent to the 0th state. Set ratchet_probs[t][-1] to zero to make absorbing state.
 
-        self.def_utility_funcs()
+    Parameters
+    ----------
+    T_cycle : int
+        Number of non-terminal periods in this instance's sequential problem.
+    Mrkv_ratchet_probs : [np.array]
+        List of vectors of "ratchet probabilities" for each period.
 
-    def solve(self):
-        """
-        Solve the one period problem of the consumption-saving model with a Markov state.
+    Returns
+    -------
+    MrkvArray : [np.array]
+        List of NxN Markov transition arrays, one for each non-terminal period.
+    """
+    if len(Mrkv_ratchet_probs) != T_cycle:
+        raise ValueError("Length of Mrkv_ratchet_probs must equal T_cycle!")
 
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        solution : ConsumerSolution
-            The solution to the single period consumption-saving problem. Includes
-            a consumption function cFunc (using cubic or linear splines), a marg-
-            inal value function vPfunc, a minimum acceptable level of normalized
-            market resources mNrmMin, normalized human wealth hNrm, and bounding
-            MPCs MPCmin and MPCmax.  It might also have a value function vFunc
-            and marginal marginal value function vPPfunc.  All of these attributes
-            are lists or arrays, with elements corresponding to the current
-            Markov state.  E.g. solution.cFunc[0] is the consumption function
-            when in the i=0 Markov state this period.
-        """
-        # Find the natural borrowing constraint in each current state
-        self.def_boundary()
-
-        # Initialize end-of-period (marginal) value functions
-        self.EndOfPrdvFunc_list = []
-        self.EndOfPrdvPfunc_list = []
-        self.Ex_IncNextAll = (
-            np.zeros(self.StateCount) + np.nan
-        )  # expected income conditional on the next state
-        self.WorstIncPrbAll = (
-            np.zeros(self.StateCount) + np.nan
-        )  # probability of getting the worst income shock in each next period state
-
-        # Loop through each next-period-state and calculate the end-of-period
-        # (marginal) value function
-        for j in range(self.StateCount):
-            # Condition values on next period's state (and record a couple for later use)
-            self.condition_on_state(j)
-            self.Ex_IncNextAll[j] = np.dot(
-                self.ShkPrbsNext, self.PermShkValsNext * self.TranShkValsNext
-            )
-            self.WorstIncPrbAll[j] = self.WorstIncPrb
-
-            # Construct the end-of-period marginal value function conditional
-            # on next period's state and add it to the list of value functions
-            EndOfPrdvPfunc_cond = self.make_EndOfPrdvPfuncCond()
-            self.EndOfPrdvPfunc_list.append(EndOfPrdvPfunc_cond)
-
-            # Construct the end-of-period value functional conditional on next
-            # period's state and add it to the list of value functions
-            if self.vFuncBool:
-                EndOfPrdvFunc_cond = self.make_EndOfPrdvFuncCond()
-                self.EndOfPrdvFunc_list.append(EndOfPrdvFunc_cond)
-
-        # EndOfPrdvP_cond is EndOfPrdvP conditional on *next* period's state.
-        # Take expectations to get EndOfPrdvP conditional on *this* period's state.
-        self.calc_EndOfPrdvP()
-
-        # Calculate the bounding MPCs and PDV of human wealth for each state
-        self.calc_HumWealth_and_BoundingMPCs()
-
-        # Find consumption and market resources corresponding to each end-of-period
-        # assets point for each state (and add an additional point at the lower bound)
-        aNrm = (
-            np.asarray(self.aXtraGrid)[np.newaxis, :]
-            + np.array(self.BoroCnstNat_list)[:, np.newaxis]
-        )
-        self.get_points_for_interpolation(self.EndOfPrdvP, aNrm)
-        cNrm = np.hstack((np.zeros((self.StateCount, 1)), self.cNrmNow))
-        mNrm = np.hstack(
-            (np.reshape(self.mNrmMin_list, (self.StateCount, 1)), self.mNrmNow)
+    N = Mrkv_ratchet_probs[0].size  # number of discrete states
+    StateCount = np.array([Mrkv_ratchet_probs[t].size for t in range(T_cycle)])
+    if np.any(StateCount != N):
+        raise ValueError(
+            "All periods of the problem must have the same number of discrete states!"
         )
 
-        # Package and return the solution for this period
-        self.BoroCnstNat = self.BoroCnstNat_list
-        solution = self.make_solution(cNrm, mNrm)
-        return solution
+    MrkvArray = []
+    for t in range(T_cycle):
+        if np.any(Mrkv_ratchet_probs[t] > 1.0):
+            raise ValueError("Ratchet probabilities cannot exceed 1!")
+        if np.any(Mrkv_ratchet_probs[t] < 0.0):
+            raise ValueError("Ratchet probabilities cannot be below 0!")
 
-    def def_boundary(self):
-        """
-        Find the borrowing constraint for each current state and save it as an
-        attribute of self for use by other methods.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        self.BoroCnstNatAll = np.zeros(self.StateCount) + np.nan
-        # Find the natural borrowing constraint conditional on next period's state
-        for j in range(self.StateCount):
-            PermShkMinNext = np.min(self.IncShkDstn_list[j].X[0])
-            TranShkMinNext = np.min(self.IncShkDstn_list[j].X[1])
-            self.BoroCnstNatAll[j] = (
-                (self.solution_next.mNrmMin[j] - TranShkMinNext)
-                * (self.PermGroFac_list[j] * PermShkMinNext)
-                / self.Rfree_list[j]
-            )
-
-        self.BoroCnstNat_list = np.zeros(self.StateCount) + np.nan
-        self.mNrmMin_list = np.zeros(self.StateCount) + np.nan
-        self.BoroCnstDependency = np.zeros((self.StateCount, self.StateCount)) + np.nan
-        # The natural borrowing constraint in each current state is the *highest*
-        # among next-state-conditional natural borrowing constraints that could
-        # occur from this current state.
-        for i in range(self.StateCount):
-            possible_next_states = self.MrkvArray[i, :] > 0
-            self.BoroCnstNat_list[i] = np.max(self.BoroCnstNatAll[possible_next_states])
-
-            # Explicitly handle the "None" case:
-            if self.BoroCnstArt is None:
-                self.mNrmMin_list[i] = self.BoroCnstNat_list[i]
+        MrkvArray_t = np.zeros((N, N))
+        for i in range(N):
+            p_go = Mrkv_ratchet_probs[t][i]
+            p_stay = 1.0 - p_go
+            if i < (N - 1):
+                i_next = i + 1
             else:
-                self.mNrmMin_list[i] = np.max(
-                    [self.BoroCnstNat_list[i], self.BoroCnstArt]
-                )
-            self.BoroCnstDependency[i, :] = (
-                self.BoroCnstNat_list[i] == self.BoroCnstNatAll
-            )
-        # Also creates a Boolean array indicating whether the natural borrowing
-        # constraint *could* be hit when transitioning from i to j.
+                i_next = 0
+            MrkvArray_t[i, i] = p_stay
+            MrkvArray_t[i, i_next] = p_go
 
-    def condition_on_state(self, state_index):
-        """
-        Temporarily assume that a particular Markov state will occur in the
-        succeeding period, and condition solver attributes on this assumption.
-        Allows the solver to construct the future-state-conditional marginal
-        value function (etc) for that future state.
+        MrkvArray.append(MrkvArray_t)
 
-        Parameters
-        ----------
-        state_index : int
-            Index of the future Markov state to condition on.
-
-        Returns
-        -------
-        none
-        """
-        # Set future-state-conditional values as attributes of self
-        self.IncShkDstn = self.IncShkDstn_list[state_index]
-        self.Rfree = self.Rfree_list[state_index]
-        self.PermGroFac = self.PermGroFac_list[state_index]
-        self.vPfuncNext = self.solution_next.vPfunc[state_index]
-        self.mNrmMinNow = self.mNrmMin_list[state_index]
-        self.BoroCnstNat = self.BoroCnstNatAll[state_index]
-        self.set_and_update_values(
-            self.solution_next, self.IncShkDstn, self.LivPrb, self.DiscFac
-        )
-        self.DiscFacEff = (
-            self.DiscFac
-        )  # survival probability LivPrb represents probability from
-        # *current* state, so DiscFacEff is just DiscFac for now
-
-        # These lines have to come after set_and_update_values to override the definitions there
-        self.vPfuncNext = self.solution_next.vPfunc[state_index]
-        if self.CubicBool:
-            self.vPPfuncNext = self.solution_next.vPPfunc[state_index]
-        if self.vFuncBool:
-            self.vFuncNext = self.solution_next.vFunc[state_index]
-
-    def calc_EndOfPrdvPP(self):
-        """
-        Calculates end-of-period marginal marginal value using a pre-defined
-        array of next period market resources in self.mNrmNext.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        EndOfPrdvPP : np.array
-            End-of-period marginal marginal value of assets at each value in
-            the grid of assets.
-        """
-        def vpp_next(shocks, a_nrm):
-            return shocks[0] ** (- self.CRRA - 1.0) \
-                * self.vPPfuncNext(self.m_nrm_next(shocks, a_nrm))
-
-        EndOfPrdvPP = (
-            self.DiscFacEff
-            * self.Rfree
-            * self.Rfree
-            * self.PermGroFac ** (-self.CRRA - 1.0)
-            * calc_expectation(
-                self.IncShkDstn,
-                vpp_next,
-                self.aNrmNow
-            )
-        )
-        return EndOfPrdvPP
-
-    def make_EndOfPrdvFuncCond(self):
-        """
-        Construct the end-of-period value function conditional on next period's
-        state.  NOTE: It might be possible to eliminate this method and replace
-        it with ConsIndShockSolver.make_EndOfPrdvFunc, but the self.X_cond
-        variables must be renamed.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        EndofPrdvFunc_cond : ValueFuncCRRA
-            The end-of-period value function conditional on a particular state
-            occuring in the next period.
-        """
-        VLvlNext = (
-            self.PermShkVals_temp ** (1.0 - self.CRRA)
-            * self.PermGroFac ** (1.0 - self.CRRA)
-        ) * self.vFuncNext(self.mNrmNext)
-        EndOfPrdv_cond = self.DiscFacEff * np.sum(VLvlNext * self.ShkPrbs_temp, axis=0)
-        EndOfPrdvNvrs_cond = self.uinv(EndOfPrdv_cond)
-        EndOfPrdvNvrsP_cond = self.EndOfPrdvP_cond * self.uinvP(EndOfPrdv_cond)
-        EndOfPrdvNvrs_cond = np.insert(EndOfPrdvNvrs_cond, 0, 0.0)
-        EndOfPrdvNvrsP_cond = np.insert(EndOfPrdvNvrsP_cond, 0, EndOfPrdvNvrsP_cond[0])
-        aNrm_temp = np.insert(self.aNrm_cond, 0, self.BoroCnstNat)
-        EndOfPrdvNvrsFunc_cond = CubicInterp(
-            aNrm_temp, EndOfPrdvNvrs_cond, EndOfPrdvNvrsP_cond
-        )
-        EndofPrdvFunc_cond = ValueFuncCRRA(EndOfPrdvNvrsFunc_cond, self.CRRA)
-        return EndofPrdvFunc_cond
-
-    def calc_EndOfPrdvPcond(self):
-        """
-        Calculate end-of-period marginal value of assets at each point in aNrmNow
-        conditional on a particular state occuring in the next period.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        EndOfPrdvP : np.array
-            A 1D array of end-of-period marginal value of assets.
-        """
-        EndOfPrdvPcond = ConsIndShockSolver.calc_EndOfPrdvP(self)
-        return EndOfPrdvPcond
-
-    def make_EndOfPrdvPfuncCond(self):
-        """
-        Construct the end-of-period marginal value function conditional on next
-        period's state.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        EndofPrdvPfunc_cond : MargValueFuncCRRA
-            The end-of-period marginal value function conditional on a particular
-            state occuring in the succeeding period.
-        """
-        # Get data to construct the end-of-period marginal value function (conditional on next state)
-        self.aNrm_cond = self.prepare_to_calc_EndOfPrdvP()
-        self.EndOfPrdvP_cond = self.calc_EndOfPrdvPcond()
-        EndOfPrdvPnvrs_cond = self.uPinv(
-            self.EndOfPrdvP_cond
-        )  # "decurved" marginal value
-        if self.CubicBool:
-            EndOfPrdvPP_cond = self.calc_EndOfPrdvPP()
-            EndOfPrdvPnvrsP_cond = EndOfPrdvPP_cond * self.uPinvP(
-                self.EndOfPrdvP_cond
-            )  # "decurved" marginal marginal value
-
-        # Construct the end-of-period marginal value function conditional on the next state.
-        if self.CubicBool:
-            EndOfPrdvPnvrsFunc_cond = CubicInterp(
-                self.aNrm_cond,
-                EndOfPrdvPnvrs_cond,
-                EndOfPrdvPnvrsP_cond,
-                lower_extrap=True,
-            )
-        else:
-            EndOfPrdvPnvrsFunc_cond = LinearInterp(
-                self.aNrm_cond, EndOfPrdvPnvrs_cond, lower_extrap=True
-            )
-        EndofPrdvPfunc_cond = MargValueFuncCRRA(
-            EndOfPrdvPnvrsFunc_cond, self.CRRA
-        )  # "recurve" the interpolated marginal value function
-        return EndofPrdvPfunc_cond
-
-    def calc_EndOfPrdvP(self):
-        """
-        Calculates end of period marginal value (and marginal marginal) value
-        at each aXtra gridpoint for each current state, unconditional on the
-        future Markov state (i.e. weighting conditional end-of-period marginal
-        value by transition probabilities).
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        # Find unique values of minimum acceptable end-of-period assets (and the
-        # current period states for which they apply).
-        aNrmMin_unique, state_inverse = np.unique(
-            self.BoroCnstNat_list, return_inverse=True
-        )
-        self.possible_transitions = self.MrkvArray > 0
-
-        # Calculate end-of-period marginal value (and marg marg value) at each
-        # asset gridpoint for each current period state
-        EndOfPrdvP = np.zeros((self.StateCount, self.aXtraGrid.size))
-        EndOfPrdvPP = np.zeros((self.StateCount, self.aXtraGrid.size))
-        for k in range(aNrmMin_unique.size):
-            aNrmMin = aNrmMin_unique[k]  # minimum assets for this pass
-            which_states = (
-                state_inverse == k
-            )  # the states for which this minimum applies
-            aGrid = aNrmMin + self.aXtraGrid  # assets grid for this pass
-            EndOfPrdvP_all = np.zeros((self.StateCount, self.aXtraGrid.size))
-            EndOfPrdvPP_all = np.zeros((self.StateCount, self.aXtraGrid.size))
-            for j in range(self.StateCount):
-                if np.any(
-                    np.logical_and(self.possible_transitions[:, j], which_states)
-                ):  # only consider a future state if one of the relevant states could transition to it
-                    EndOfPrdvP_all[j, :] = self.EndOfPrdvPfunc_list[j](aGrid)
-                    if (
-                        self.CubicBool
-                    ):  # Add conditional end-of-period (marginal) marginal value to the arrays
-                        EndOfPrdvPP_all[j, :] = self.EndOfPrdvPfunc_list[j].derivativeX(
-                            aGrid
-                        )
-            # Weight conditional marginal (marginal) values by transition probs
-            # to get unconditional marginal (marginal) value at each gridpoint.
-            EndOfPrdvP_temp = np.dot(self.MrkvArray, EndOfPrdvP_all)
-            EndOfPrdvP[which_states, :] = EndOfPrdvP_temp[
-                which_states, :
-            ]  # only take the states for which this asset minimum applies
-            if self.CubicBool:
-                EndOfPrdvPP_temp = np.dot(self.MrkvArray, EndOfPrdvPP_all)
-                EndOfPrdvPP[which_states, :] = EndOfPrdvPP_temp[which_states, :]
-
-        # Store the results as attributes of self, scaling end of period marginal value by survival probability from each current state
-        LivPrb_tiled = np.tile(
-            np.reshape(self.LivPrb, (self.StateCount, 1)), (1, self.aXtraGrid.size)
-        )
-        self.EndOfPrdvP = LivPrb_tiled * EndOfPrdvP
-        if self.CubicBool:
-            self.EndOfPrdvPP = LivPrb_tiled * EndOfPrdvPP
-
-    def calc_HumWealth_and_BoundingMPCs(self):
-        """
-        Calculates human wealth and the maximum and minimum MPC for each current
-        period state, then stores them as attributes of self for use by other methods.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        # Upper bound on MPC at lower m-bound
-        WorstIncPrb_array = self.BoroCnstDependency * np.tile(
-            np.reshape(self.WorstIncPrbAll, (1, self.StateCount)), (self.StateCount, 1)
-        )
-        temp_array = self.MrkvArray * WorstIncPrb_array
-        WorstIncPrbNow = np.sum(
-            temp_array, axis=1
-        )  # Probability of getting the "worst" income shock and transition from each current state
-        ExMPCmaxNext = (
-            np.dot(
-                temp_array,
-                self.Rfree_list ** (1.0 - self.CRRA)
-                * self.solution_next.MPCmax ** (-self.CRRA),
-            )
-            / WorstIncPrbNow
-        ) ** (-1.0 / self.CRRA)
-        DiscFacEff_temp = self.DiscFac * self.LivPrb
-        self.MPCmaxNow = 1.0 / (
-            1.0
-            + ((DiscFacEff_temp * WorstIncPrbNow) ** (1.0 / self.CRRA)) / ExMPCmaxNext
-        )
-        self.MPCmaxEff = self.MPCmaxNow
-        self.MPCmaxEff[self.BoroCnstNat_list < self.mNrmMin_list] = 1.0
-        # State-conditional PDV of human wealth
-        hNrmPlusIncNext = self.Ex_IncNextAll + self.solution_next.hNrm
-        self.hNrmNow = np.dot(
-            self.MrkvArray, (self.PermGroFac_list / self.Rfree_list) * hNrmPlusIncNext
-        )
-        # Lower bound on MPC as m gets arbitrarily large
-        temp = (
-            DiscFacEff_temp
-            * np.dot(
-                self.MrkvArray,
-                self.solution_next.MPCmin ** (-self.CRRA)
-                * self.Rfree_list ** (1.0 - self.CRRA),
-            )
-        ) ** (1.0 / self.CRRA)
-        self.MPCminNow = 1.0 / (1.0 + temp)
-
-    def make_solution(self, cNrm, mNrm):
-        """
-        Construct an object representing the solution to this period's problem.
-
-        Parameters
-        ----------
-        cNrm : np.array
-            Array of normalized consumption values for interpolation.  Each row
-            corresponds to a Markov state for this period.
-        mNrm : np.array
-            Array of normalized market resource values for interpolation.  Each
-            row corresponds to a Markov state for this period.
-
-        Returns
-        -------
-        solution : ConsumerSolution
-            The solution to the single period consumption-saving problem. Includes
-            a consumption function cFunc (using cubic or linear splines), a marg-
-            inal value function vPfunc, a minimum acceptable level of normalized
-            market resources mNrmMin, normalized human wealth hNrm, and bounding
-            MPCs MPCmin and MPCmax.  It might also have a value function vFunc
-            and marginal marginal value function vPPfunc.  All of these attributes
-            are lists or arrays, with elements corresponding to the current
-            Markov state.  E.g. solution.cFunc[0] is the consumption function
-            when in the i=0 Markov state this period.
-        """
-        solution = (
-            ConsumerSolution()
-        )  # An empty solution to which we'll add state-conditional solutions
-        # Calculate the MPC at each market resource gridpoint in each state (if desired)
-        if self.CubicBool:
-            dcda = self.EndOfPrdvPP / self.uPP(np.array(self.cNrmNow))
-            MPC = dcda / (dcda + 1.0)
-            self.MPC_temp = np.hstack(
-                (np.reshape(self.MPCmaxNow, (self.StateCount, 1)), MPC)
-            )
-            interpfunc = self.make_cubic_cFunc
-        else:
-            interpfunc = self.make_linear_cFunc
-
-        # Loop through each current period state and add its solution to the overall solution
-        for i in range(self.StateCount):
-            # Set current-period-conditional human wealth and MPC bounds
-            self.hNrmNow_j = self.hNrmNow[i]
-            self.MPCminNow_j = self.MPCminNow[i]
-            if self.CubicBool:
-                self.MPC_temp_j = self.MPC_temp[i, :]
-
-            # Construct the consumption function by combining the constrained and unconstrained portions
-            self.cFuncNowCnst = LinearInterp(
-                [self.mNrmMin_list[i], self.mNrmMin_list[i] + 1.0], [0.0, 1.0]
-            )
-            cFuncNowUnc = interpfunc(mNrm[i, :], cNrm[i, :])
-            cFuncNow = LowerEnvelope(cFuncNowUnc, self.cFuncNowCnst)
-
-            # Make the marginal value function and pack up the current-state-conditional solution
-            vPfuncNow = MargValueFuncCRRA(cFuncNow, self.CRRA)
-            solution_cond = ConsumerSolution(
-                cFunc=cFuncNow, vPfunc=vPfuncNow, mNrmMin=self.mNrmMinNow
-            )
-            if (
-                self.CubicBool
-            ):  # Add the state-conditional marginal marginal value function (if desired)
-                solution_cond = self.add_vPPfunc(solution_cond)
-
-            # Add the current-state-conditional solution to the overall period solution
-            solution.append_solution(solution_cond)
-
-        # Add the lower bounds of market resources, MPC limits, human resources,
-        # and the value functions to the overall solution
-        solution.mNrmMin = self.mNrmMin_list
-        solution = self.add_MPC_and_human_wealth(solution)
-        if self.vFuncBool:
-            vFuncNow = self.make_vFunc(solution)
-            solution.vFunc = vFuncNow
-
-        # Return the overall solution to this period
-        return solution
-
-    def make_linear_cFunc(self, mNrm, cNrm):
-        """
-        Make a linear interpolation to represent the (unconstrained) consumption
-        function conditional on the current period state.
-
-        Parameters
-        ----------
-        mNrm : np.array
-            Array of normalized market resource values for interpolation.
-        cNrm : np.array
-            Array of normalized consumption values for interpolation.
-
-        Returns
-        -------
-        cFuncUnc: an instance of HARK.interpolation.LinearInterp
-        """
-        cFuncUnc = LinearInterp(
-            mNrm, cNrm, self.MPCminNow_j * self.hNrmNow_j, self.MPCminNow_j
-        )
-        return cFuncUnc
-
-    def make_cubic_cFunc(self, mNrm, cNrm):
-        """
-        Make a cubic interpolation to represent the (unconstrained) consumption
-        function conditional on the current period state.
-
-        Parameters
-        ----------
-        mNrm : np.array
-            Array of normalized market resource values for interpolation.
-        cNrm : np.array
-            Array of normalized consumption values for interpolation.
-
-        Returns
-        -------
-        cFuncUnc: an instance of HARK.interpolation.CubicInterp
-        """
-        cFuncUnc = CubicInterp(
-            mNrm,
-            cNrm,
-            self.MPC_temp_j,
-            self.MPCminNow_j * self.hNrmNow_j,
-            self.MPCminNow_j,
-        )
-        return cFuncUnc
-
-    def make_vFunc(self, solution):
-        """
-        Construct the value function for each current state.
-
-        Parameters
-        ----------
-        solution : ConsumerSolution
-            The solution to the single period consumption-saving problem. Must
-            have a consumption function cFunc (using cubic or linear splines) as
-            a list with elements corresponding to the current Markov state.  E.g.
-            solution.cFunc[0] is the consumption function when in the i=0 Markov
-            state this period.
-
-        Returns
-        -------
-        vFuncNow : [ValueFuncCRRA]
-            A list of value functions (defined over normalized market resources
-            m) for each current period Markov state.
-        """
-        vFuncNow = []  # Initialize an empty list of value functions
-        # Loop over each current period state and construct the value function
-        for i in range(self.StateCount):
-            # Make state-conditional grids of market resources and consumption
-            mNrmMin = self.mNrmMin_list[i]
-            mGrid = mNrmMin + self.aXtraGrid
-            cGrid = solution.cFunc[i](mGrid)
-            aGrid = mGrid - cGrid
-
-            # Calculate end-of-period value at each gridpoint
-            EndOfPrdv_all = np.zeros((self.StateCount, self.aXtraGrid.size))
-            for j in range(self.StateCount):
-                if self.possible_transitions[i, j]:
-                    EndOfPrdv_all[j, :] = self.EndOfPrdvFunc_list[j](aGrid)
-            EndOfPrdv = np.dot(self.MrkvArray[i, :], EndOfPrdv_all)
-
-            # Calculate (normalized) value and marginal value at each gridpoint
-            vNrmNow = self.u(cGrid) + EndOfPrdv
-            vPnow = self.uP(cGrid)
-
-            # Make a "decurved" value function with the inverse utility function
-            vNvrs = self.uinv(vNrmNow)  # value transformed through inverse utility
-            vNvrsP = vPnow * self.uinvP(vNrmNow)
-            mNrm_temp = np.insert(mGrid, 0, mNrmMin)  # add the lower bound
-            vNvrs = np.insert(vNvrs, 0, 0.0)
-            vNvrsP = np.insert(
-                vNvrsP, 0, self.MPCmaxEff[i] ** (-self.CRRA / (1.0 - self.CRRA))
-            )
-            MPCminNvrs = self.MPCminNow[i] ** (-self.CRRA / (1.0 - self.CRRA))
-            vNvrsFunc_i = CubicInterp(
-                mNrm_temp, vNvrs, vNvrsP, MPCminNvrs * self.hNrmNow[i], MPCminNvrs
-            )
-
-            # "Recurve" the decurved value function and add it to the list
-            vFunc_i = ValueFuncCRRA(vNvrsFunc_i, self.CRRA)
-            vFuncNow.append(vFunc_i)
-        return vFuncNow
+    return MrkvArray
 
 
-def _solve_ConsMarkov(
+###############################################################################
+
+
+def make_markov_solution_terminal(CRRA, MrkvArray):
+    """
+    Make the terminal period solution for a consumption-saving model with a discrete
+    Markov state. Simply makes a basic terminal solution for IndShockConsumerType
+    and then replicates the attributes N times for the N states in the terminal period.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    MrkvArray : [np.array]
+        List of Markov transition probabilities arrays. Only used to find the
+        number of discrete states in the terminal period.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution to the Markov consumption-saving problem.
+    """
+    solution_terminal_basic = make_basic_CRRA_solution_terminal(CRRA)
+    StateCount_T = MrkvArray[-1].shape[1]
+    N = StateCount_T  # for shorter typing
+
+    # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
+    solution_terminal = ConsumerSolution(
+        cFunc=N * [solution_terminal_basic.cFunc],
+        vFunc=N * [solution_terminal_basic.vFunc],
+        vPfunc=N * [solution_terminal_basic.vPfunc],
+        vPPfunc=N * [solution_terminal_basic.vPPfunc],
+        mNrmMin=np.zeros(N),
+        hNrm=np.zeros(N),
+        MPCmin=np.ones(N),
+        MPCmax=np.ones(N),
+    )
+    return solution_terminal
+
+
+def solve_one_period_ConsMarkov(
     solution_next,
     IncShkDstn,
     LivPrb,
@@ -747,32 +202,30 @@ def _solve_ConsMarkov(
     """
     Solves a single period consumption-saving problem with risky income and
     stochastic transitions between discrete states, in a Markov fashion.  Has
-    identical inputs as solveConsIndShock, except for a discrete
-    Markov transitionrule MrkvArray.  Markov states can differ in their interest
-    factor, permanent growth factor, and income distribution, so the inputs Rfree,
-    PermGroFac, and IncShkDstn are arrays or lists specifying those values in each
-    (succeeding) Markov state.
+    identical inputs as the ConsIndShock, except for a discrete Markov transition
+    rule MrkvArray.  Markov states can differ in their interest factor, permanent
+    growth factor, and income distribution, so the inputs Rfree, PermGroFac, and
+    IncShkDstn are lists specifying those values in each (succeeding) Markov state.
 
     Parameters
     ----------
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
-    IncShkDstn_list : [distribution.Distribution]
-        A length N list of income distributions in each succeeding Markov
-        state.  Each income distribution is
-        a discrete approximation to the income process at the
-        beginning of the succeeding period.
-    LivPrb : float
-        Survival probability; likelihood of being alive at the beginning of
-        the succeeding period.
+    IncShkDstn : [distribution.Distribution]
+        A length N list of income distributions in each succeeding Markov state.
+        Each income distribution is a discrete approximation to the income process
+        at the beginning of the succeeding period.
+    LivPrb : [float]
+        Survival probability; likelihood of being alive at the beginning of the
+        succeeding period conditional on the current state.
     DiscFac : float
         Intertemporal discount factor for future utility.
     CRRA : float
         Coefficient of relative risk aversion.
-    Rfree_list : np.array
+    Rfree : [float]
         Risk free interest factor on end-of-period assets for each Markov
         state in the succeeding period.
-    PermGroGac_list : float
+    PermGroGac : [float]
         Expected permanent income growth factor at the end of this period
         for each Markov state in the succeeding period.
     MrkvArray : numpy.array
@@ -807,26 +260,479 @@ def _solve_ConsMarkov(
         Markov state.  E.g. solution.cFunc[0] is the consumption function
         when in the i=0 Markov state this period.
     """
-    solver = ConsMarkovSolver(
-        solution_next,
-        IncShkDstn,
-        LivPrb,
-        DiscFac,
-        CRRA,
-        Rfree,
-        PermGroFac,
-        MrkvArray,
-        BoroCnstArt,
-        aXtraGrid,
-        vFuncBool,
-        CubicBool,
+    # Relabel the inputs that vary across Markov states
+    IncShkDstn_list = IncShkDstn
+    Rfree_list = np.array(Rfree)
+    LivPrb_list = np.array(LivPrb)
+    PermGroFac_list = np.array(PermGroFac)
+    StateCountNow = MrkvArray.shape[0]
+    StateCountNext = MrkvArray.shape[1]
+
+    # Define the utility function
+    uFunc = UtilityFuncCRRA(CRRA)
+
+    # Initialize the natural borrowing constraint when entering each succeeding state
+    BoroCnstNat_temp = np.zeros(StateCountNext) + np.nan
+
+    # Find the natural borrowing constraint conditional on next period's state
+    for j in range(StateCountNext):
+        PermShkMinNext = np.min(IncShkDstn_list[j].atoms[0])
+        TranShkMinNext = np.min(IncShkDstn_list[j].atoms[1])
+        BoroCnstNat_temp[j] = (
+            (solution_next.mNrmMin[j] - TranShkMinNext)
+            * (PermGroFac_list[j] * PermShkMinNext)
+            / Rfree_list[j]
+        )
+
+    # Initialize the natural borrowing constraint and minimum value of mNrm for
+    # *this* period's Markov states, as well as a "dependency table"
+    BoroCnstNat_list = np.zeros(StateCountNow) + np.nan
+    mNrmMin_list = np.zeros(StateCountNow) + np.nan
+    BoroCnstDependency = np.zeros((StateCountNow, StateCountNext)) + np.nan
+
+    # The natural borrowing constraint in each current state is the *highest*
+    # among next-state-conditional natural borrowing constraints that could
+    # occur from this current state.
+    for i in range(StateCountNow):
+        possible_next_states = MrkvArray[i, :] > 0
+        BoroCnstNat_list[i] = np.max(BoroCnstNat_temp[possible_next_states])
+
+        # Explicitly handle the "None" case:
+        if BoroCnstArt is None:
+            mNrmMin_list[i] = BoroCnstNat_list[i]
+        else:
+            mNrmMin_list[i] = np.max([BoroCnstNat_list[i], BoroCnstArt])
+        BoroCnstDependency[i, :] = BoroCnstNat_list[i] == BoroCnstNat_temp
+    # Also creates a Boolean array indicating whether the natural borrowing
+    # constraint *could* be hit when transitioning from i to j.
+
+    # Initialize end-of-period (marginal) value functions, expected income conditional
+    # on the next state, and probability of getting the worst income shock in each
+    # succeeding period state
+    BegOfPrd_vFunc_list = []
+    BegOfPrd_vPfunc_list = []
+    Ex_IncNextAll = np.zeros(StateCountNext) + np.nan
+    WorstIncPrbAll = np.zeros(StateCountNext) + np.nan
+
+    # Loop through each next-period-state and calculate the beginning-of-period
+    # (marginal) value function
+    for j in range(StateCountNext):
+        # Condition values on next period's state (and record a couple for later use)
+        Rfree = Rfree_list[j]
+        PermGroFac = PermGroFac_list[j]
+        LivPrb = LivPrb_list[j]
+        # mNrmMinNow = self.mNrmMin_list[state_index]
+        BoroCnstNat = BoroCnstNat_temp[j]
+
+        # Unpack the income distribution in next period's Markov state
+        IncShkDstn = IncShkDstn_list[j]
+        ShkPrbsNext = IncShkDstn.pmv
+        PermShkValsNext = IncShkDstn.atoms[0]
+        TranShkValsNext = IncShkDstn.atoms[1]
+        PermShkMinNext = np.min(PermShkValsNext)
+        TranShkMinNext = np.min(TranShkValsNext)
+
+        # Calculate the probability that we get the worst possible income draw
+        IncNext = PermShkValsNext * TranShkValsNext
+        WorstIncNext = PermShkMinNext * TranShkMinNext
+        WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+        # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
+
+        DiscFacEff = DiscFac  # survival probability LivPrb represents probability
+        # from *current* state, so DiscFacEff is just DiscFac for now
+
+        # Unpack next period's (marginal) value function
+        vFuncNext = solution_next.vFunc[j]  # This is None when vFuncBool is False
+        vPfuncNext = solution_next.vPfunc[j]
+        vPPfuncNext = solution_next.vPPfunc[j]  # This is None when CubicBool is False
+
+        # Compute expected income next period and record worst income probability
+        Ex_IncNextAll[j] = np.dot(ShkPrbsNext, PermShkValsNext * TranShkValsNext)
+        WorstIncPrbAll[j] = WorstIncPrb
+
+        # Construct the BEGINNING-of-period marginal value function conditional
+        # on next period's state and add it to the list of value functions
+
+        # Get data to construct the end-of-period marginal value function (conditional on next state)
+        aNrmNext = np.asarray(aXtraGrid) + BoroCnstNat
+
+        # Define local functions for taking future expectations
+        def calc_mNrmNext(S, a, R):
+            return R / (PermGroFac * S["PermShk"]) * a + S["TranShk"]
+
+        def calc_vNext(S, a, R):
+            return (
+                S["PermShk"] ** (1.0 - CRRA) * PermGroFac ** (1.0 - CRRA)
+            ) * vFuncNext(calc_mNrmNext(S, a, R))
+
+        def calc_vPnext(S, a, R):
+            return S["PermShk"] ** (-CRRA) * vPfuncNext(calc_mNrmNext(S, a, R))
+
+        def calc_vPPnext(S, a, R):
+            return S["PermShk"] ** (-CRRA - 1.0) * vPPfuncNext(calc_mNrmNext(S, a, R))
+
+        # Calculate beginning-of-period marginal value of assets at each gridpoint
+        vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
+        BegOfPrd_vPnext = vPfacEff * expected(
+            calc_vPnext, IncShkDstn, args=(aNrmNext, Rfree)
+        )
+
+        # "Decurved" marginal value
+        BegOfPrd_vPnvrsNext = uFunc.derinv(BegOfPrd_vPnext, order=(1, 0))
+
+        # Make the beginning-of-period pseudo-inverse marginal value of assets
+        # function conditionalon next period's state
+        if CubicBool:
+            # Calculate end-of-period marginal marginal value of assets at each gridpoint
+            vPPfacEff = DiscFacEff * Rfree * Rfree * PermGroFac ** (-CRRA - 1.0)
+            BegOfPrd_vPPnext = vPPfacEff * expected(
+                calc_vPPnext, IncShkDstn, args=(aNrmNext, Rfree)
+            )
+            # "Decurved" marginal marginal value
+            BegOfPrd_vPnvrsPnext = BegOfPrd_vPPnext * uFunc.derinv(
+                BegOfPrd_vPnext, order=(1, 1)
+            )
+
+            # Construct the end-of-period marginal value function conditional on the next state.
+            BegOfPrd_vPnvrsFunc = CubicInterp(
+                aNrmNext,
+                BegOfPrd_vPnvrsNext,
+                BegOfPrd_vPnvrsPnext,
+                lower_extrap=True,
+            )
+            # TODO: Should not be lower extrap, add point at BoroCnstNat
+        else:
+            BegOfPrd_vPnvrsFunc = LinearInterp(
+                aNrmNext, BegOfPrd_vPnvrsNext, lower_extrap=True
+            )
+            # TODO: Should not be lower extrap, add point at BoroCnstNat
+
+        # "Recurve" the pseudo-inverse marginal value function
+        BegOfPrd_vPfunc = MargValueFuncCRRA(BegOfPrd_vPnvrsFunc, CRRA)
+        BegOfPrd_vPfunc_list.append(BegOfPrd_vPfunc)
+
+        # Construct the beginning-of-period value functional conditional on next
+        # period's state and add it to the list of value functions
+        if vFuncBool:
+            # Calculate end-of-period value, its derivative, and their pseudo-inverse
+            BegOfPrd_vNext = DiscFacEff * expected(
+                calc_vNext, IncShkDstn, args=(aNrmNext, Rfree)
+            )
+            # value transformed through inverse utility
+            BegOfPrd_vNvrsNext = uFunc.inv(BegOfPrd_vNext)
+            BegOfPrd_vNvrsPnext = BegOfPrd_vPnext * uFunc.derinv(
+                BegOfPrd_vNext, order=(0, 1)
+            )
+            BegOfPrd_vNvrsNext = np.insert(BegOfPrd_vNvrsNext, 0, 0.0)
+            BegOfPrd_vNvrsPnext = np.insert(
+                BegOfPrd_vNvrsPnext, 0, BegOfPrd_vNvrsPnext[0]
+            )
+            # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+            # Construct the end-of-period value function
+            aNrm_temp = np.insert(aNrmNext, 0, BoroCnstNat)
+            BegOfPrd_vNvrsFunc = CubicInterp(
+                aNrm_temp, BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext
+            )
+            BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
+            BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
+
+    # BegOfPrdvP is marginal value conditional on *next* period's state.
+    # Take expectations over Markov transitions to get EndOfPrdvP conditional on
+    # *this* period's Markov state.
+
+    # Find unique values of minimum acceptable end-of-period assets (and the
+    # current period states for which they apply).
+    aNrmMin_unique, Mrkv_inverse = np.unique(BoroCnstNat_list, return_inverse=True)
+    possible_transitions = MrkvArray > 0
+
+    # Initialize end-of-period marginal value (and marg marg value) at each
+    # asset gridpoint for each current period state
+    EndOfPrd_vP = np.zeros((StateCountNow, aXtraGrid.size))
+    EndOfPrd_vPP = np.zeros((StateCountNow, aXtraGrid.size))
+
+    # Calculate end-of-period marginal value (and marg marg value) at each
+    # asset gridpoint for each current period state, grouping current states
+    # by their natural borrowing constraint
+    for k in range(aNrmMin_unique.size):
+        # Get the states for which this minimum applies amd the aNrm grid for
+        # this set of current states
+        aNrmMin = aNrmMin_unique[k]  # minimum assets for this pass
+        which_states = Mrkv_inverse == k
+        aNrmNow = aNrmMin + aXtraGrid  # assets grid for this pass
+
+        # Make arrays to hold successor period's beginning-of-period (marginal)
+        # marginal value if we transition to it
+        BegOfPrd_vPnext = np.zeros((StateCountNext, aXtraGrid.size))
+        BegOfPrd_vPPnext = np.zeros((StateCountNext, aXtraGrid.size))
+
+        # Loop through future Markov states and fill in those values, but only
+        # look at future states that can actually be reached from our current
+        # set of states (for this natural borrowing constraint value)
+        for j in range(StateCountNext):
+            if not np.any(np.logical_and(possible_transitions[:, j], which_states)):
+                continue
+
+            BegOfPrd_vPnext[j, :] = BegOfPrd_vPfunc_list[j](aNrmNow)
+            # Add conditional end-of-period (marginal) marginal value to the arrays
+            if CubicBool:
+                BegOfPrd_vPPnext[j, :] = BegOfPrd_vPfunc_list[j].derivativeX(aNrmNow)
+
+        # Weight conditional marginal values by transition probabilities
+        # to get unconditional marginal (marginal) value at each gridpoint.
+        EndOfPrd_vP_temp = np.dot(MrkvArray, BegOfPrd_vPnext)
+
+        # Only take the states for which this asset minimum applies
+        EndOfPrd_vP[which_states, :] = EndOfPrd_vP_temp[which_states, :]
+
+        # Do the same thing for marginal marginal value
+        if CubicBool:
+            EndOfPrd_vPP_temp = np.dot(MrkvArray, BegOfPrd_vPPnext)
+            EndOfPrd_vPP[which_states, :] = EndOfPrd_vPP_temp[which_states, :]
+
+    # Store the results as attributes of self, scaling end of period marginal value by survival probability from each current state
+    LivPrb_tiled = np.tile(
+        np.reshape(LivPrb_list, (StateCountNow, 1)), (1, aXtraGrid.size)
     )
-    solution_now = solver.solve()
-    return solution_now
+    EndOfPrd_vP = LivPrb_tiled * EndOfPrd_vP
+    if CubicBool:
+        EndOfPrd_vPP = LivPrb_tiled * EndOfPrd_vPP
+
+    # Calculate the bounding MPCs and PDV of human wealth for each state
+
+    # Calculate probability of getting the "worst" income shock and transition
+    # from each current state
+    WorstIncPrb_array = BoroCnstDependency * np.tile(
+        np.reshape(WorstIncPrbAll, (1, StateCountNext)), (StateCountNow, 1)
+    )
+    temp_array = MrkvArray * WorstIncPrb_array
+    WorstIncPrbNow = np.sum(temp_array, axis=1)
+
+    # Calculate expectation of upper bound of next period's MPC
+    Ex_MPCmaxNext = (
+        np.dot(temp_array, Rfree_list ** (1.0 - CRRA) * solution_next.MPCmax ** (-CRRA))
+        / WorstIncPrbNow
+    ) ** (-1.0 / CRRA)
+
+    # Calculate limiting upper bound of MPC this period for each Markov state
+    DiscFacEff_temp = DiscFac * LivPrb_list
+    MPCmaxNow = 1.0 / (
+        1.0 + ((DiscFacEff_temp * WorstIncPrbNow) ** (1.0 / CRRA)) / Ex_MPCmaxNext
+    )
+    MPCmaxEff = MPCmaxNow
+    MPCmaxEff[BoroCnstNat_list < mNrmMin_list] = 1.0
+
+    # Calculate the current Markov-state-conditional PDV of human wealth, correctly
+    # accounting for risky returns and risk aversion
+    hNrmPlusIncNext = Ex_IncNextAll + solution_next.hNrm
+    R_adj = np.dot(MrkvArray, Rfree_list ** (1.0 - CRRA))
+    hNrmNow = (
+        np.dot(MrkvArray, (PermGroFac_list / Rfree_list**CRRA) * hNrmPlusIncNext)
+        / R_adj
+    )
+
+    # Calculate the lower bound on MPC as m gets arbitrarily large
+    temp = (
+        DiscFacEff_temp
+        * np.dot(
+            MrkvArray, solution_next.MPCmin ** (-CRRA) * Rfree_list ** (1.0 - CRRA)
+        )
+    ) ** (1.0 / CRRA)
+    MPCminNow = 1.0 / (1.0 + temp)
+
+    # Find consumption and market resources corresponding to each end-of-period
+    # assets point for each state (and add an additional point at the lower bound)
+    aNrmNow = (aXtraGrid)[np.newaxis, :] + np.array(BoroCnstNat_list)[:, np.newaxis]
+    cNrmNow = uFunc.derinv(EndOfPrd_vP, order=(1, 0))
+    mNrmNow = cNrmNow + aNrmNow  # Endogenous mNrm gridpoints
+    cNrmNow = np.hstack((np.zeros((StateCountNow, 1)), cNrmNow))
+    mNrmNow = np.hstack((np.reshape(mNrmMin_list, (StateCountNow, 1)), mNrmNow))
+
+    # Calculate the MPC at each market resource gridpoint in each state (if desired)
+    if CubicBool:
+        dcda = EndOfPrd_vPP / uFunc.der(cNrmNow[:, 1:], order=2)  # drop first
+        MPCnow = dcda / (dcda + 1.0)
+        MPCnow = np.hstack((np.reshape(MPCmaxNow, (StateCountNow, 1)), MPCnow))
+
+    # Initialize an empty solution to which we'll add state-conditional solutions
+    solution = ConsumerSolution()
+
+    # Loop through each current period state and add its solution to the overall solution
+    for i in range(StateCountNow):
+        # Set current-Markov-state-conditional human wealth and MPC bounds
+        hNrmNow_i = hNrmNow[i]
+        MPCminNow_i = MPCminNow[i]
+        mNrmMin_i = mNrmMin_list[i]
+
+        # Construct the consumption function by combining the constrained and unconstrained portions
+        cFuncNowCnst = LinearInterp(
+            np.array([mNrmMin_list[i], mNrmMin_list[i] + 1.0]), np.array([0.0, 1.0])
+        )
+        if CubicBool:
+            cFuncNowUnc = CubicInterp(
+                mNrmNow[i, :],
+                cNrmNow[i, :],
+                MPCnow[i, :],
+                MPCminNow_i * hNrmNow_i,
+                MPCminNow_i,
+            )
+        else:
+            cFuncNowUnc = LinearInterp(
+                mNrmNow[i, :], cNrmNow[i, :], MPCminNow_i * hNrmNow_i, MPCminNow_i
+            )
+        cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst)
+
+        # Make the marginal (marginal) value function
+        vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
+        if CubicBool:
+            vPPfuncNow = MargMargValueFuncCRRA(cFuncNow, CRRA)
+        else:
+            vPPfuncNow = NullFunc()
+
+        # Make the value function for this state if requested
+        if vFuncBool:
+            # Make state-conditional grids of market resources and consumption
+            mNrm_for_vFunc = mNrmMin_i + aXtraGrid
+            cNrm_for_vFunc = cFuncNow(mNrm_for_vFunc)
+            aNrm_for_vFunc = mNrm_for_vFunc - cNrm_for_vFunc
+
+            # Calculate end-of-period value at each gridpoint
+            BegOfPrd_v_temp = np.zeros((StateCountNow, aXtraGrid.size))
+            for j in range(StateCountNext):
+                if possible_transitions[i, j]:
+                    BegOfPrd_v_temp[j, :] = BegOfPrd_vFunc_list[j](aNrm_for_vFunc)
+            EndOfPrd_v = np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
+
+            # Calculate (normalized) value and marginal value at each gridpoint
+            v_now = uFunc(cNrm_for_vFunc) + EndOfPrd_v
+            vP_now = uFunc.der(cNrm_for_vFunc)
+
+            # Make a "decurved" value function with the inverse utility function
+            # value transformed through inverse utility
+            vNvrs_now = uFunc.inv(v_now)
+            vNvrsP_now = vP_now * uFunc.derinv(v_now, order=(0, 1))
+            mNrm_temp = np.insert(mNrm_for_vFunc, 0, mNrmMin_i)  # add the lower bound
+            vNvrs_now = np.insert(vNvrs_now, 0, 0.0)
+            vNvrsP_now = np.insert(
+                vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
+            )
+            # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
+            vNvrsFuncNow = CubicInterp(
+                mNrm_temp,
+                vNvrs_now,
+                vNvrsP_now,
+            )  # MPCminNvrs * hNrmNow_i, MPCminNvrs)
+            # The bounding function for the pseudo-inverse value function is incorrect.
+            # TODO: Resolve this strange issue; extrapolation is suppressed for now.
+
+            # "Recurve" the decurved value function and add it to the list
+            vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+
+        else:
+            vFuncNow = NullFunc()
+
+        # Make the current-Markov-state-conditional solution
+        solution_cond = ConsumerSolution(
+            cFunc=cFuncNow,
+            vFunc=vFuncNow,
+            vPfunc=vPfuncNow,
+            vPPfunc=vPPfuncNow,
+            mNrmMin=mNrmMin_i,
+        )
+
+        # Add the current-state-conditional solution to the overall period solution
+        solution.append_solution(solution_cond)
+
+    # Add the lower bounds of market resources, MPC limits, human resources,
+    # and the value functions to the overall solution, then return it
+    solution.mNrmMin = mNrmMin_list
+    solution.hNrm = hNrmNow
+    solution.MPCmin = MPCminNow
+    solution.MPCmax = MPCmaxNow
+    return solution
 
 
 ####################################################################################################
 ####################################################################################################
+
+# Make a dictionary of constructors for the markov consumption-saving model
+markov_constructor_dict = {
+    "IncShkDstn": construct_markov_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn_markov,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn_markov,
+    "aXtraGrid": make_assets_grid,
+    "MrkvArray": make_simple_binary_markov,
+    "solution_terminal": make_markov_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": np.array([0.05, 0.05]),  # Probability of unemployment while working
+    "IncUnemp": np.array(
+        [0.3, 0.3]
+    ),  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": None,  # Probability of "unemployment" while retired
+    "IncUnempRet": None,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make MrkvArray using make_simple_binary_markov
+default_MrkvArray_params = {
+    "Mrkv_p11": [0.9],  # Probability of remaining in binary state 1
+    "Mrkv_p22": [0.4],  # Probability of remaining in binary state 2
+}
+
+# Make a dictionary to specify an idiosyncratic income shocks consumer type
+init_indshk_markov = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": markov_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
+    "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_indshk_markov.update(default_IncShkDstn_params)
+init_indshk_markov.update(default_aXtraGrid_params)
+init_indshk_markov.update(default_MrkvArray_params)
 
 
 class MarkovConsumerType(IndShockConsumerType):
@@ -839,16 +745,35 @@ class MarkovConsumerType(IndShockConsumerType):
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
 
-    # Is "Mrkv" a shock or a state?
+    # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
 
     def __init__(self, **kwds):
-        IndShockConsumerType.__init__(self, **kwds)
-        self.solve_one_period = _solve_ConsMarkov
+        params = init_indshk_markov.copy()
+        params.update(kwds)
+
+        super().__init__(**params)
+        self.solve_one_period = solve_one_period_ConsMarkov
 
         if not hasattr(self, "global_markov"):
             self.global_markov = False
+
+    def update(self):
+        """
+        Update the Markov array, the income process, the assets grid, and
+        the terminal solution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self.construct("MrkvArray")
+        super().update()
 
     def check_markov_inputs(self):
         """
@@ -868,7 +793,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Check that arrays are the right shape
         if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
             raise ValueError(
-                "Rfree not the right shape, it should an array of Rfree of all the states."
+                "Rfree not the right shape, it should be an array of Rfree of all the states."
             )
 
         # Check that arrays in lists are the right shape
@@ -878,7 +803,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 StateCount,
             ):
                 raise ValueError(
-                    "MrkvArray not the right shape, it should be of the size states*statres."
+                    "MrkvArray not the right shape, it should be of the size states*states."
                 )
         for LivPrb_t in self.LivPrb:
             if not isinstance(LivPrb_t, np.ndarray) or LivPrb_t.shape != (StateCount,):
@@ -896,10 +821,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now check the income distribution.
         # Note IncShkDstn is (potentially) time-varying, so it is in time_vary.
         # Therefore it is a list, and each element of that list responds to the income distribution
-        # at a particular point in time.  Each income distribution at a point in time should itself
-        # be a list, with each element corresponding to the income distribution
-        # conditional on a particular Markov state.
-        # TODO: should this be a numpy array too?
+        # at a particular point in time.
         for IncShkDstn_t in self.IncShkDstn:
             if not isinstance(IncShkDstn_t, list):
                 raise ValueError(
@@ -927,32 +849,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        IndShockConsumerType.update_solution_terminal(self)
-
-        # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
-        StateCount = self.MrkvArray[0].shape[0]
-        self.solution_terminal.cFunc = StateCount * [self.cFunc_terminal_]
-        self.solution_terminal.vFunc = StateCount * [self.solution_terminal.vFunc]
-        self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
-        self.solution_terminal.vPPfunc = StateCount * [self.solution_terminal.vPPfunc]
-        self.solution_terminal.mNrmMin = np.zeros(StateCount)
-        self.solution_terminal.hRto = np.zeros(StateCount)
-        self.solution_terminal.MPCmax = np.ones(StateCount)
-        self.solution_terminal.MPCmin = np.ones(StateCount)
+        self.update_solution_terminal()
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
@@ -960,7 +857,7 @@ class MarkovConsumerType(IndShockConsumerType):
         if (
             self.global_markov
         ):  # Need to initialize markov state to be the same for all agents
-            base_draw = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(1)
+            base_draw = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"] = np.ones(self.AgentCount) * np.searchsorted(
                 Cutoffs, base_draw
@@ -1009,7 +906,7 @@ class MarkovConsumerType(IndShockConsumerType):
             self.t_cycle - 1, self.shocks["Mrkv"]
         ]  # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(
+        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
             N=self.AgentCount
         )
         which_agents = DeathShks < DiePrb
@@ -1039,7 +936,7 @@ class MarkovConsumerType(IndShockConsumerType):
             not self.global_markov
         ):  # Markov state is not changed if it is set at the global level
             N = np.sum(which_agents)
-            base_draws = Uniform(seed=self.RNG.randint(0, 2 ** 31 - 1)).draw(N)
+            base_draws = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(N)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"][which_agents] = np.searchsorted(
                 Cutoffs, base_draws
@@ -1072,9 +969,8 @@ class MarkovConsumerType(IndShockConsumerType):
         # Draw new Markov states for each agent
         for t in range(self.T_cycle):
             markov_process = MarkovProcess(
-                self.MrkvArray[t],
-                seed=self.RNG.randint(0, 2 ** 31 - 1)
-                )
+                self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
+            )
             right_age = self.t_cycle == t
             MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
         if not self.global_markov:
@@ -1096,7 +992,7 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         """
         self.get_markov_states()
-        MrkvNow = self.shocks['Mrkv']
+        MrkvNow = self.shocks["Mrkv"]
 
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
@@ -1116,14 +1012,14 @@ class MarkovConsumerType(IndShockConsumerType):
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws = IncShkDstnNow.draw_events(N)
                     PermShkNow[these] = (
-                        IncShkDstnNow.X[0][EventDraws] * PermGroFacNow
+                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.X[1][EventDraws]
+                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
         newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
         TranShkNow[newborn] = 1.0
-        self.shocks['PermShk'] = PermShkNow
-        self.shocks['TranShk'] = TranShkNow
+        self.shocks["PermShk"] = PermShkNow
+        self.shocks["TranShk"] = TranShkNow
 
     def read_shocks_from_history(self):
         """
@@ -1138,7 +1034,7 @@ class MarkovConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.read_shocks_from_history(self)
-        self.shocks['Mrkv'] = self.shocks['Mrkv'].astype(int)
+        self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
 
     def get_Rfree(self):
         """
@@ -1153,7 +1049,7 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree[self.shocks['Mrkv']]
+        RfreeNow = self.Rfree[self.shocks["Mrkv"]]
         return RfreeNow
 
     def get_controls(self):
@@ -1174,16 +1070,18 @@ class MarkovConsumerType(IndShockConsumerType):
 
         MrkvBoolArray = np.zeros((J, self.AgentCount), dtype=bool)
         for j in range(J):
-            MrkvBoolArray[j, :] = j == self.shocks['Mrkv']
+            MrkvBoolArray[j, :] = j == self.shocks["Mrkv"]
 
         for t in range(self.T_cycle):
             right_t = t == self.t_cycle
             for j in range(J):
                 these = np.logical_and(right_t, MrkvBoolArray[j, :])
                 cNrmNow[these], MPCnow[these] = (
-                    self.solution[t].cFunc[j].eval_with_derivative(self.state_now['mNrm'][these])
+                    self.solution[t]
+                    .cFunc[j]
+                    .eval_with_derivative(self.state_now["mNrm"][these])
                 )
-        self.controls['cNrm'] = cNrmNow
+        self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
 
     def calc_bounding_values(self):
