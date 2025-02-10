@@ -863,14 +863,13 @@ def solve_one_period_ConsKinkedR(
 
     # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
     aNrmNow = np.sort(
-        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 0.0]))),
+        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 1e-15]))),
     )
 
     # Make a 1D array of the interest factor at each asset gridpoint
     Rfree = Rsave * np.ones_like(aNrmNow)
-    Rfree[aNrmNow < 0] = Rboro
+    Rfree[aNrmNow <= 0] = Rboro
     i_kink = np.argwhere(aNrmNow == 0.0)[0][0]
-    Rfree[i_kink] = Rboro
 
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
