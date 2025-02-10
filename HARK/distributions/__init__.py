@@ -22,6 +22,7 @@ __all__ = [
     "Uniform",
     "MarkovProcess",
     "add_discrete_outcome_constant_mean",
+    "make_tauchen_ar1",
 ]
 
 from HARK.distributions.base import (
@@ -53,4 +54,5 @@ from HARK.distributions.utils import (
     combine_indep_dstns,
     distr_of_function,
     expected,
+    make_tauchen_ar1,
 )

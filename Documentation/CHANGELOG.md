@@ -23,10 +23,10 @@ Release Date: TBD
 
 #### Minor Changes
 
-- Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [1275](https://github.com/econ-ark/HARK/pull/1275)
-- Adds support for distributions, booleans, and callables as parameters in the `Parameters` class. [1387](https://github.com/econ-ark/HARK/pull/1387)
-- Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [1473](https://github.com/econ-ark/HARK/pull/1473)
-- Adds income process constructor for the discrete Markov state consumption-saving model. [1484](https://github.com/econ-ark/HARK/pull/1484)
+- Fixes bug in `AgentPopulation` that caused discretization of distributions to not work. [#1275](https://github.com/econ-ark/HARK/pull/1275)
+- Adds support for distributions, booleans, and callables as parameters in the `Parameters` class. [#1387](https://github.com/econ-ark/HARK/pull/1387)
+- Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [#1473](https://github.com/econ-ark/HARK/pull/1473)
+- Adds income process constructor for the discrete Markov state consumption-saving model. [#1484](https://github.com/econ-ark/HARK/pull/1484)
 - Changes the behavior of make_lognormal_RiskyDstn so that the standard deviation represents the standard deviation of log(returns)
 - Adds detailed parameter and latex documentation to most models.
 - Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [1489](https://github.com/econ-ark/HARK/pull/1489)
@@ -35,6 +35,8 @@ Release Date: TBD
 - Fixes typos in IdentityFunction interpolator class. [1492](https://github.com/econ-ark/HARK/pull/1492)
 - Expands functionality of Cobb-Douglas aggregator for CRRA utility. [1363](https://github.com/econ-ark/HARK/pull/1363)
 - Improved tracking of the bounds of support for distributions, and (some) solvers now respect those bounds when computing the "worst outcome". [1524](https://github.com/econ-ark/HARK/pull/1524)
+- Adds a new function for using Tauchen's method to approximate an AR1 process. [#1521](https://github.com/econ-ark/HARK/pull/1521)
+- Adds additional functionality to the CubicHermiteInterp class, imported from scipy.interpolate. [#1020](https://github.com/econ-ark/HARK/pull/1020/)
 
 ### 0.15.1
 
