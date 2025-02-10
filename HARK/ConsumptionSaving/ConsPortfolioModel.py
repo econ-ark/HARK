@@ -166,6 +166,7 @@ class PortfolioSolution(MetricObject):
 
 ###############################################################################
 
+
 def make_portfolio_solution_terminal(CRRA):
     """
     Solves the terminal period of the portfolio choice problem.  The solution is
