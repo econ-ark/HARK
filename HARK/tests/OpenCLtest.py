@@ -3,17 +3,17 @@ Simple test for opencl4py, edited from the example distributed in that package.
 """
 
 import os
-import opencl4py as cl
-import numpy as np
 
-os.environ[
-    "PYOPENCL_CTX"
-] = "0:0"  # This is where you set which devices are in the context
+import numpy as np
+import opencl4py as cl
+
+os.environ["PYOPENCL_CTX"] = (
+    "0:0"  # This is where you set which devices are in the context
+)
 # EVERY machine will have a device 0:0
 from time import time
 
 if __name__ == "__main__":
-
     N = 20000000  # Size of vectors to work with
     use_DP = True  # Whether to use double precision floating point
 
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     double_code = """
         #pragma OPENCL EXTENSION cl_khr_fp64 : enable
         #pragma OPENCL EXTENSION cl_amd_fp64 : enable
-        
+
         __kernel void test(__global const double *a, __global const double *b,
                            __global double *c, const double k) {
           size_t i = get_global_id(0);

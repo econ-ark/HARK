@@ -281,6 +281,14 @@ nate-notes/
 
 *_region_*.*
 
-# VSCode 
+# VSCode
 settings.json
 .idea
+
+# Spyder project settings
+.spyderproject
+spyproject
+.spyproject
+
+# 20240608: CDC added *private* to avoid accidentally uploading private material
+*private*

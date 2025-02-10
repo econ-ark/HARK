@@ -2,20 +2,19 @@
 This file tests whether HARK's models are initialized correctly.
 """
 
-
 # Bring in modules we need
 import unittest
+
 import numpy as np
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType, init_kinked_R
+
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
+    KinkedRconsumerType,
+    PerfForesightConsumerType,
+    init_kinked_R,
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-from HARK.utilities import plot_funcs_der, plot_funcs
-from copy import copy
 
 
 class testInitialization(unittest.TestCase):
@@ -87,12 +86,16 @@ class testInitialization(unittest.TestCase):
             )
 
             # Make a consumer with serially correlated unemployment, subject to boom and bust cycles
-            init_serial_unemployment = copy(init_idiosyncratic_shocks)
+            init_serial_unemployment = {}
             init_serial_unemployment["MrkvArray"] = [MrkvArray]
-            init_serial_unemployment[
-                "UnempPrb"
-            ] = 0  # to make income distribution when employed
+            init_serial_unemployment["UnempPrb"] = np.zeros(2)
+            # Income process is overwritten below to make income distribution when employed
             init_serial_unemployment["global_markov"] = False
+            init_serial_unemployment["Rfree"] = np.array([1.03, 1.03, 1.03, 1.03])
+            init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
+            init_serial_unemployment["PermGroFac"] = [
+                np.array([1.01, 1.01, 1.01, 1.01])
+            ]
             SerialUnemploymentExample = MarkovConsumerType(**init_serial_unemployment)
         except:
             self.fail(

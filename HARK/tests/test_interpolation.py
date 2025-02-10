@@ -1,21 +1,24 @@
 """
 This file implements unit tests for interpolation methods
 """
+
 from HARK.interpolation import (
+    IdentityFunction,
     LinearInterp,
-    CubicInterp,
     BilinearInterp,
     TrilinearInterp,
     QuadlinearInterp,
 )
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 
 import numpy as np
 import unittest
+import numpy as np
 
 
 class testsLinearInterp(unittest.TestCase):
-    """ tests for LinearInterp, currently tests for uneven length of
-    x and y with user input as lists, arrays, arrays with column orientation 
+    """tests for LinearInterp, currently tests for uneven length of
+    x and y with user input as lists, arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -44,8 +47,8 @@ class testsLinearInterp(unittest.TestCase):
 
 
 class testsCubicInterp(unittest.TestCase):
-    """ tests for CubicInterp, currently tests for uneven length of
-    x, y and derivative with user input as lists, arrays, arrays with column orientation 
+    """tests for CubicInterp, currently tests for uneven length of
+    x, y and derivative with user input as lists, arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -83,8 +86,8 @@ class testsCubicInterp(unittest.TestCase):
 
 
 class testsBilinearInterp(unittest.TestCase):
-    """ tests for BilinearInterp, currently tests for uneven length of
-    x, y, f(x,y) with user input as arrays, arrays with column orientation 
+    """tests for BilinearInterp, currently tests for uneven length of
+    x, y, f(x,y) with user input as arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -111,8 +114,8 @@ class testsBilinearInterp(unittest.TestCase):
 
 
 class testsTrilinearInterp(unittest.TestCase):
-    """ tests for TrilinearInterp, currently tests for uneven length of
-    x, y, z, f(x, y, z) with user input as arrays, arrays with column orientation 
+    """tests for TrilinearInterp, currently tests for uneven length of
+    x, y, z, f(x, y, z) with user input as arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -154,8 +157,8 @@ class testsTrilinearInterp(unittest.TestCase):
 
 
 class testsQuadlinearInterp(unittest.TestCase):
-    """ tests for TrilinearInterp, currently tests for uneven length of
-    w, x, y, z, f(w, x, y, z) with user input as arrays, arrays with column orientation 
+    """tests for TrilinearInterp, currently tests for uneven length of
+    w, x, y, z, f(w, x, y, z) with user input as arrays, arrays with column orientation
     """
 
     def setUp(self):
@@ -202,3 +205,45 @@ class testsQuadlinearInterp(unittest.TestCase):
             self.f_array, self.w_array, self.x_array, self.y_array_t, self.z_array
         )
         self.assertEqual(bilinear(1, 2, 1, 2), 6.0)
+
+
+class test_IdentityFunction(unittest.TestCase):
+    """
+    Tests evaluation and derivatives of IdentityFunction class.
+    """
+
+    def setUp(self):
+        self.IF1D = IdentityFunction()
+        self.IF2Da = IdentityFunction(i_dim=0, n_dims=2)
+        self.IF2Db = IdentityFunction(i_dim=1, n_dims=2)
+        self.IF3Da = IdentityFunction(i_dim=0, n_dims=3)
+        self.IF3Db = IdentityFunction(i_dim=2, n_dims=3)
+        self.X = 3 * np.ones(100)
+        self.Y = 4 * np.ones(100)
+        self.Z = 5 * np.ones(100)
+        self.zero = np.zeros(100)
+        self.one = np.ones(100)
+
+    def test_eval(self):
+        assert np.all(self.X == self.IF1D(self.X))
+        assert np.all(self.X == self.IF2Da(self.X, self.Y))
+        assert np.all(self.Y == self.IF2Db(self.X, self.Y))
+        assert np.all(self.X == self.IF3Da(self.X, self.Y, self.Z))
+        assert np.all(self.Z == self.IF3Db(self.X, self.Y, self.Z))
+
+    def test_der(self):
+        assert np.all(self.one == self.IF1D.derivative(self.X))
+
+        assert np.all(self.one == self.IF2Da.derivativeX(self.X, self.Y))
+        assert np.all(self.zero == self.IF2Da.derivativeY(self.X, self.Y))
+
+        assert np.all(self.zero == self.IF2Db.derivativeX(self.X, self.Y))
+        assert np.all(self.one == self.IF2Db.derivativeY(self.X, self.Y))
+
+        assert np.all(self.one == self.IF3Da.derivativeX(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Da.derivativeY(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Da.derivativeZ(self.X, self.Y, self.Z))
+
+        assert np.all(self.zero == self.IF3Db.derivativeX(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Db.derivativeY(self.X, self.Y, self.Z))
+        assert np.all(self.one == self.IF3Db.derivativeZ(self.X, self.Y, self.Z))

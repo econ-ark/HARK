@@ -9,7 +9,8 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings. #todo
 
-See `NARK <https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf>`_ for information on variable naming conventions.  See `hark.readthedocs.io <https://hark.readthedocs.io>`_ for mathematical descriptions of the models being solved.
+See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
+See HARK documentation for mathematical descriptions of the models being solved.
 """
 
 from copy import deepcopy
@@ -19,39 +20,41 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-from HARK import make_one_period_oo_solver, MetricObject
+from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
-    ConsPerfForesightSolver,
-    ConsIndShockSolverBasic,
-    PerfForesightConsumerType,
     IndShockConsumerType,
+    PerfForesightConsumerType,
+)
+from HARK.ConsumptionSaving.LegacyOOsolvers import (
+    ConsIndShockSolverBasic,
+    ConsPerfForesightSolver,
 )
 from HARK.interpolation import (
+    CubicInterp,
     LinearInterp,
     LowerEnvelope,
-    CubicInterp,
-    ValueFuncCRRA,
-    MargValueFuncCRRA,
     MargMargValueFuncCRRA,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
-from HARK.numba import (
+from HARK.metric import MetricObject
+from HARK.numba_tools import (
     CRRAutility,
-    CRRAutilityP,
-    CRRAutilityPP,
-    CRRAutilityP_inv,
-    CRRAutility_invP,
     CRRAutility_inv,
+    CRRAutility_invP,
+    CRRAutilityP,
+    CRRAutilityP_inv,
     CRRAutilityP_invP,
+    CRRAutilityPP,
+    cubic_interp_fast,
+    linear_interp_deriv_fast,
+    linear_interp_fast,
 )
-from HARK.numba import linear_interp_fast, cubic_interp_fast, linear_interp_deriv_fast
 
 __all__ = [
     "PerfForesightSolution",
     "IndShockSolution",
-    "ConsPerfForesightSolverFast",
-    "ConsIndShockSolverBasicFast",
-    "ConsIndShockSolverFast",
     "PerfForesightConsumerTypeFast",
     "IndShockConsumerTypeFast",
 ]
@@ -71,7 +74,7 @@ utilityP_invP = CRRAutilityP_invP
 
 
 class PerfForesightSolution(MetricObject):
-    """
+    r"""
     A class representing the solution of a single period of a consumption-saving
     perfect foresight problem.
 
@@ -227,7 +230,7 @@ def _add_mNrmStENumba(
         return None
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsPerfForesightNumba(
     DiscFac,
     LivPrb,
@@ -251,8 +254,8 @@ def _solveConsPerfForesightNumba(
     hNrmNow = (PermGroFac / Rfree) * (hNrmNext + 1.0)
 
     # Calculate the lower bound of the marginal propensity to consume
-    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
-    MPCmin = 1.0 / (1.0 + PatFac / MPCminNext)
+    APF = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCmin = 1.0 / (1.0 + APF / MPCminNext)
 
     # Extract the discrete kink points in next period's consumption function;
     # don't take the last one, as it only defines the extrapolation and is not a kink.
@@ -300,7 +303,7 @@ def _solveConsPerfForesightNumba(
             # If it *is* the very last index, then there are only three points
             # that characterize the consumption function: the artificial borrowing
             # constraint, the constraint kink, and the extrapolation point.
-            mXtra = cNrmNow[-1] - cNrmCnst[-1] / (1.0 - MPCmin)
+            mXtra = (cNrmNow[-1] - cNrmCnst[-1]) / (1.0 - MPCmin)
             mCrit = mNrmNow[-1] + mXtra
             cCrit = mCrit - BoroCnstArt
             mNrmNow = np.array([BoroCnstArt, mCrit, mCrit + 1.0])
@@ -403,7 +406,7 @@ def _np_insert(arr, obj, values, axis=-1):
     return np.append(np.array(values), arr)
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _prepare_to_solveConsIndShockNumba(
     DiscFac,
     LivPrb,
@@ -442,11 +445,11 @@ def _prepare_to_solveConsIndShockNumba(
     )
 
     # Update the bounding MPCs and PDV of human wealth:
-    PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
-    MPCminNow = 1.0 / (1.0 + PatFac / MPCminNext)
+    APF = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
+    MPCminNow = 1.0 / (1.0 + APF / MPCminNext)
     Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
     hNrmNow = PermGroFac / Rfree * (Ex_IncNext + hNrmNext)
-    MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / MPCmaxNext)
+    MPCmaxNow = 1.0 / (1.0 + (WorstIncPrb ** (1.0 / CRRA)) * APF / MPCmaxNext)
 
     cFuncLimitIntercept = MPCminNow * hNrmNow
     cFuncLimitSlope = MPCminNow
@@ -511,7 +514,7 @@ def _prepare_to_solveConsIndShockNumba(
     )
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsIndShockLinearNumba(
     mNrmMinNext,
     mNrmNext,
@@ -586,9 +589,9 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         none
         """
 
-        self.ShkPrbsNext = self.IncShkDstn.pmf
-        self.PermShkValsNext = self.IncShkDstn.X[0]
-        self.TranShkValsNext = self.IncShkDstn.X[1]
+        self.ShkPrbsNext = self.IncShkDstn.pmv
+        self.PermShkValsNext = self.IncShkDstn.atoms[0]
+        self.TranShkValsNext = self.IncShkDstn.atoms[1]
 
         (
             self.DiscFacEff,
@@ -667,7 +670,7 @@ class ConsIndShockSolverBasicFast(ConsIndShockSolverBasic):
         return solution
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def _solveConsIndShockCubicNumba(
     mNrmMinNext,
     mNrmNext,
@@ -937,7 +940,7 @@ def _find_mNrmStECubic(
 
 
 class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
-    """
+    r"""
     This class solves a single period of a standard consumption-saving problem.
     It inherits from ConsIndShockSolverBasic, adding the ability to perform cubic
     interpolation and to calculate the value function.
@@ -1024,7 +1027,6 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
             )
 
         if self.vFuncBool:
-
             if self.CubicBool:
                 self.cFuncNow, self.mNrmGrid = _cFuncCubic(
                     self.aXtraGrid,
@@ -1083,15 +1085,13 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 
 
 class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
-    """
-    A perfect foresight consumer type who has no uncertainty other than mortality.
-    His problem is defined by a coefficient of relative risk aversion, intertemporal
-    discount factor, interest factor, an artificial borrowing constraint (maybe)
-    and time sequences of the permanent income growth rate and survival probability.
+    r"""
+    A version of the perfect foresight consumer type speed up by numba.
     """
 
     # Define some universal values for all consumer types
     solution_terminal_ = PerfForesightSolution()
+    solution_terminal_class = PerfForesightSolution
 
     def __init__(self, **kwargs):
         PerfForesightConsumerType.__init__(self, **kwargs)
@@ -1115,23 +1115,16 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             MPCmax=1.0,
         )
 
+        # TODO: Move this whole method to a constructor
+        solution_terminal = deepcopy(self.solution_terminal_)
+        cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
+        solution_terminal.cFunc = cFunc_terminal  # c=m at t=T
+        solution_terminal.vFunc = ValueFuncCRRA(cFunc_terminal, self.CRRA)
+        solution_terminal.vPfunc = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
+        solution_terminal.vPPfunc = MargMargValueFuncCRRA(cFunc_terminal, self.CRRA)
+        self.solution_terminal = solution_terminal
+
     def post_solve(self):
-        """
-        Defines the value and marginal value functions for this period.
-        Uses the fact that for a perfect foresight CRRA utility problem,
-        if the MPC at :math:`t` is :math:`\\kappa_{t}`, and relative risk
-        aversion is :math:`\\rho`, then the inverse value function ``vFuncNvrs`` has a
-        constant slope of :math:`\\kappa_{t}^{-\\rho/(1-\\rho)}` and
-        ``vFuncNvrs`` has value of zero at the lower bound of market resources
-        `mNrmMin`.  See the `PerfForesightConsumerType <https://hark.readthedocs.io/en/latest/example_notebooks/PerfForesightConsumerType.html?highlight=PerfForesightConsumerType#Solution-method-for-PerfForesightConsumerType>`_ documentation notebook
-        for a brief explanation and the links below for a fuller treatment.
-
-        `PerfForesightCRRA/#vFuncAnalytical <https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical>`_
-
-        `SolvingMicroDSOPs/#vFuncPF <https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF>`_
-
-        """
-
         self.solution_fast = deepcopy(self.solution)
 
         if self.cycles == 0:
@@ -1145,6 +1138,20 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
             # Construct the consumption function as a linear interpolation.
             cFunc = LinearInterp(solution.mNrm, solution.cNrm)
+
+            """
+            Defines the value and marginal value functions for this period.
+            Uses the fact that for a perfect foresight CRRA utility problem,
+            if the MPC in period t is :math:`\\kappa_{t}`, and relative risk
+            aversion :math:`\rho`, then the inverse value vFuncNvrs has a
+            constant slope of :math:`\\kappa_{t}^{-\rho/(1-\rho)}` and
+            vFuncNvrs has value of zero at the lower bound of market resources
+            mNrmMin.  See PerfForesightConsumerType.ipynb documentation notebook
+            for a brief explanation and the links below for a fuller treatment.
+
+            https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/#vFuncAnalytical
+            https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/#vFuncPF
+            """
 
             vFuncNvrs = LinearInterp(
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
@@ -1180,7 +1187,14 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
 
 class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFast):
+    r"""
+    A version of the idiosyncratic shock consumer type speed up by numba.
+
+    If CubicBool and vFuncBool are both set to false it's further optimized.
+    """
+
     solution_terminal_ = IndShockSolution()
+    solution_terminal_class = IndShockSolution
 
     def __init__(self, **kwargs):
         IndShockConsumerType.__init__(self, **kwargs)
