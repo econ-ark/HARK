@@ -26,12 +26,12 @@ from HARK.interpolation import CubicInterp, CubicHermiteInterp
 # %% [markdown]
 # ### Creating a HARK wrapper for scipy's CubicHermiteSpline
 #
-# The class CubicHermiteInterp in HARK.interpolation implements a HARK wrapper for scipy's CubicHermiteSpline. A HARK wrapper is needed due to the way interpolators are used in solution methods accross HARK, and in particular due to the `distance_criteria` attribute used for VFI convergence. 
+# The class CubicHermiteInterp in HARK.interpolation implements a HARK wrapper for scipy's CubicHermiteSpline. A HARK wrapper is needed due to the way interpolators are used in solution methods accross HARK, and in particular due to the `distance_criteria` attribute used for VFI convergence.
 
 # %% pycharm={"name": "#%%\n"}
 x = np.linspace(0, 10, num=11, endpoint=True)
-y = np.cos(-(x ** 2) / 9.0)
-dydx = 2.0 * x / 9.0 * np.sin(-(x ** 2) / 9.0)
+y = np.cos(-(x**2) / 9.0)
+dydx = 2.0 * x / 9.0 * np.sin(-(x**2) / 9.0)
 
 f = CubicInterp(x, y, dydx, lower_extrap=True)
 f2 = CubicHermiteSpline(x, y, dydx)
@@ -65,7 +65,7 @@ plt.show()
 # %% [markdown]
 # ### Timings
 #
-# Below we can compare timings for interpolation and extrapolation among the 3 interpolators. As expected, `scipy`'s CubicHermiteInterpolator (`f2` below) is the fastest, but it's not HARK compatible. `HARK.interpolation`'s CubicInterp (`f`) is the slowest, and `HARK.interpolation`'s new CubicHermiteInterp (`f3`) is somewhere in between. 
+# Below we can compare timings for interpolation and extrapolation among the 3 interpolators. As expected, `scipy`'s CubicHermiteInterpolator (`f2` below) is the fastest, but it's not HARK compatible. `HARK.interpolation`'s CubicInterp (`f`) is the slowest, and `HARK.interpolation`'s new CubicHermiteInterp (`f3`) is somewhere in between.
 
 # %% pycharm={"name": "#%%\n"}
 # %timeit f(xnew)

@@ -1,6 +1,7 @@
 """
 This file implements unit tests for interpolation methods
 """
+
 from HARK.interpolation import (
     IdentityFunction,
     LinearInterp,
@@ -13,6 +14,7 @@ from HARK.interpolation import CubicHermiteInterp as CubicInterp
 import numpy as np
 import unittest
 import numpy as np
+
 
 class testsLinearInterp(unittest.TestCase):
     """tests for LinearInterp, currently tests for uneven length of

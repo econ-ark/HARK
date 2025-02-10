@@ -15,6 +15,7 @@ from scipy.interpolate import CubicHermiteSpline
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 
+
 def _isscalar(x):
     """
     Check whether x is if a scalar type, or 0-dim.
