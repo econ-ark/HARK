@@ -11,8 +11,6 @@ from HARK.distributions import (
     Lognormal,
     MarkovProcess,
     MeanOneLogNormal,
-    MultivariateNormal,
-    MultivariateLogNormal,
     Normal,
     Uniform,
     Weibull,
@@ -23,6 +21,8 @@ from HARK.distributions import (
     distr_of_function,
     expected,
     make_tauchen_ar1,
+    MultivariateNormal,
+    MultivariateLogNormal,
 )
 from HARK.tests import HARK_PRECISION
 
@@ -306,9 +306,9 @@ class DistributionClassTests(unittest.TestCase):
 
         dist.draw(1)[0]
 
-    def test_MVNormal(self):
+    def test_MultivariateNormal(self):
         # Are these tests generator/backend specific?
-        dist = MVNormal()
+        dist = MultivariateNormal()
 
         # self.assertTrue(
         #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
@@ -321,8 +321,8 @@ class DistributionClassTests(unittest.TestCase):
         #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
         # )
 
-    def test_MVLogNormal(self):
-        dist = MVLogNormal()
+    def test_MultivariateLogNormal(self):
+        dist = MultivariateLogNormal()
 
         dist.draw(100)
         dist.reset()
