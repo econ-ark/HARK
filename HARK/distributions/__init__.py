@@ -9,8 +9,8 @@ __all__ = [
     "Normal",
     "Weibull",
     "Bernoulli",
-    "MVLogNormal",
-    "MVNormal",
+    "MultivariateLogNormal",
+    "MultivariateNormal",
     "approx_beta",
     "approx_lognormal_gauss_hermite",
     "calc_expectation",
@@ -43,7 +43,7 @@ from HARK.distributions.discrete import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
 )
-from HARK.distributions.multivariate import MVLogNormal, MVNormal
+from HARK.distributions.multivariate import MultivariateLogNormal, MultivariateNormal
 from HARK.distributions.utils import (
     add_discrete_outcome_constant_mean,
     approx_beta,
