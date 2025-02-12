@@ -161,7 +161,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         if (x.shape != self.M) & (x.shape[1] != self.M):
             raise ValueError(f"x must be and {self.M}-dimensional input")
 
-        return MVNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
+        return MultivariateNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
 
     def _pdf(self, x: Union[list, np.ndarray]):
         """
@@ -267,7 +267,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
             Random sample from the distribution.
         """
 
-        Z = MVNormal(mu=self.mu, Sigma=self.Sigma)
+        Z = MultivariateNormal(mu=self.mu, Sigma=self.Sigma)
 
         return np.exp(Z.rvs(size, random_state=random_state))
 
