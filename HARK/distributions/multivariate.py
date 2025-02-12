@@ -330,7 +330,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
             atoms = np.stack(
                 [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
             ).T
-            
+
             interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
 
             inners = np.zeros(N + 2 * tail_N)
