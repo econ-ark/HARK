@@ -12,6 +12,7 @@ from HARK.distributions.discrete import (
 from HARK.distributions.continuous import Normal
 
 
+# TODO: This function does not generate the limit attribute
 def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
     d = Normal(mu, sigma).discretize(N, method="hermite")
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
@@ -264,18 +265,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-
-    if type(distribution) != TimeVaryingDiscreteDistribution:
-        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
-        pmv = np.append(p, distribution.pmv * (1 - p))
-
-        if sort:
-            indices = np.argsort(atoms)
-            atoms = atoms[indices]
-            pmv = pmv[indices]
-
-        return DiscreteDistribution(pmv, atoms)
-    elif type(distribution) == TimeVaryingDiscreteDistribution:
+    if type(distribution) == TimeVaryingDiscreteDistribution:
         # apply recursively on all the internal distributions
         return TimeVaryingDiscreteDistribution(
             [
@@ -284,6 +274,47 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
             ],
             seed=distribution.seed,
         )
+
+    else:
+        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+        pmv = np.append(p, distribution.pmv * (1 - p))
+
+        if sort:
+            indices = np.argsort(atoms)
+            atoms = atoms[indices]
+            pmv = pmv[indices]
+
+        # Update infimum and supremum
+        temp_x = np.array(x, ndmin=1)
+        try:
+            infimum = np.array(
+                [
+                    np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                    for i in range(temp_x.size)
+                ]
+            )
+        except:
+            infimum = np.min(atoms, axis=-1, keepdims=True)
+        try:
+            supremum = np.array(
+                [
+                    np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                    for i in range(temp_x.size)
+                ]
+            )
+        except:
+            supremum = np.max(atoms, axis=-1, keepdims=True)
+
+        limit = {
+            "dist": distribution,
+            "method": "add_discrete_outcome_constant_mean",
+            "x": x,
+            "p": p,
+            "infimum": infimum,
+            "supremum": supremum,
+        }
+
+        return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -315,7 +346,37 @@ def add_discrete_outcome(distribution, x, p, sort=False):
         atoms = atoms[indices]
         pmv = pmv[indices]
 
-    return DiscreteDistribution(pmv, atoms)
+    # Update infimum and supremum
+    temp_x = np.array(x, ndmin=1)
+    try:
+        infimum = np.array(
+            [
+                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except:
+        infimum = np.min(atoms, axis=-1, keepdims=True)
+    try:
+        supremum = np.array(
+            [
+                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except:
+        supremum = np.max(atoms, axis=-1, keepdims=True)
+
+    limit = {
+        "dist": distribution,
+        "method": "add_discrete_outcome",
+        "x": x,
+        "p": p,
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+
+    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
 
 
 def combine_indep_dstns(*distributions, seed=0):
@@ -328,6 +389,8 @@ def combine_indep_dstns(*distributions, seed=0):
     distributions : DiscreteDistribution
         Arbitrary number of discrete distributions to combine. Their realizations must be
         vector-valued (for each D in distributions, it must be the case that len(D.dim())==1).
+    seed : int, optional
+        Value to use as the RNG seed for the combined distribution, default is 0.
 
     Returns
     -------
@@ -355,7 +418,7 @@ def combine_indep_dstns(*distributions, seed=0):
         else:
             var_labels += tuple([""] * dist.dim()[0])
 
-    number_of_distributions = len(distributions)
+    dstn_count = len(distributions)
 
     all_labeled = all(dist_is_labeled)
     labels_are_unique = len(var_labels) == len(set(var_labels))
@@ -379,11 +442,26 @@ def combine_indep_dstns(*distributions, seed=0):
 
     assert np.isclose(np.sum(P_out), 1), "Probabilities do not sum to 1!"
 
+    # Make the limit dictionary
+    infimum = np.concatenate(
+        [distributions[i].limit["infimum"] for i in range(dstn_count)]
+    )
+    supremum = np.concatenate(
+        [distributions[i].limit["supremum"] for i in range(dstn_count)]
+    )
+    limit = {
+        "dist": distributions,
+        "method": "combine_indep_dstns",
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+
     if all_labeled and labels_are_unique:
         combined_dstn = DiscreteDistributionLabeled(
             pmv=P_out,
             atoms=atoms_out,
             var_names=var_labels,
+            limit=limit,
             seed=seed,
         )
     else:
@@ -391,7 +469,7 @@ def combine_indep_dstns(*distributions, seed=0):
             warn(
                 "There are duplicated labels in the provided distributions. Returning a non-labeled combination"
             )
-        combined_dstn = DiscreteDistribution(P_out, atoms_out, seed=seed)
+        combined_dstn = DiscreteDistribution(P_out, atoms_out, limit=limit, seed=seed)
 
     return combined_dstn
 

@@ -50,17 +50,17 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75062,
+            0.75074,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75864,
+            0.75876,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76812,
+            0.76824,
             places=HARK_PRECISION,
         )
 
@@ -227,13 +227,15 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54765, places=HARK_PRECISION
         )
-        self.assertAlmostEqual(
-            IndShockExample.solution[0].cFunc.functions[0].x_list[0],
-            -0.25018,
-            places=HARK_PRECISION,
-        )
+        # self.assertAlmostEqual(
+        #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
+        #    -0.25018,
+        #    places=HARK_PRECISION,
+        # )
+        # This test is commented out because it was trivialized by revisions to the "worst income shock" code.
+        # The bottom x value of the unconstrained consumption function will definitely be zero, so this is pointless.
 
         IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
         IndShockExample.initialize_sim()
@@ -309,7 +311,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.12998,
+            2.13004,
             places=HARK_PRECISION,
         )
 
@@ -383,7 +385,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59584,
+            1.59597,
             places=HARK_PRECISION,
         )
 
@@ -391,7 +393,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 3.32431, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 3.31950, places=HARK_PRECISION
         )
 
 
