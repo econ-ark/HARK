@@ -46,13 +46,13 @@ class test_MVNormalApprox(unittest.TestCase):
         # 2-D distribution
         self.mu2 = np.array([5, -10])
         self.Sigma2 = np.array([[2, -0.6], [-0.6, 1]])
-        self.dist2D = distribution.MVNormal(self.mu2, self.Sigma2)
+        self.dist2D = distribution.MultivariateNormal(self.mu2, self.Sigma2)
         self.dist2D_approx = self.dist2D.discretize(N, method="hermite")
 
         # 3-D Distribution
         self.mu3 = np.array([5, -10, 0])
         self.Sigma3 = np.array([[2, -0.6, 0.1], [-0.6, 1, 0.2], [0.1, 0.2, 3]])
-        self.dist3D = distribution.MVNormal(self.mu3, self.Sigma3)
+        self.dist3D = distribution.MultivariateNormal(self.mu3, self.Sigma3)
         self.dist3D_approx = self.dist3D.discretize(N, method="hermite")
 
     def test_means(self):
