@@ -799,8 +799,7 @@ class AgentType(Model):
     shock_vars_ = []
     state_vars = []
     default_params_ = {}
-    default_solver_ = NullFunc()
-    _default_params_ = {}
+    default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
         self,
@@ -814,13 +813,13 @@ class AgentType(Model):
         **kwds,
     ):
         super().__init__()
-        params = self.default_params_.copy()
+        params = self.default_["params"].copy()
         params.update(kwds)
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
 
-        self.solve_one_period = self.default_solver_  # NOQA
+        self.solve_one_period = self.default_["solver"]  # NOQA
         self.solution_terminal = solution_terminal  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
         self.tolerance = tolerance  # NOQA
@@ -987,6 +986,8 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
+            if not hasattr(self, param):
+                continue
             if not isinstance(
                 getattr(self, param),
                 (TimeVaryingDiscreteDistribution, IndexDistribution),
@@ -1702,8 +1703,6 @@ def solve_one_cycle(agent, solution_last):
     else:
         # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
         if len(agent.time_vary) > 0:
-            # name = agent.time_vary[0]
-            # T = len(eval('agent.' + name))
             T = len(agent.__dict__[agent.time_vary[0]])
         else:
             T = 1

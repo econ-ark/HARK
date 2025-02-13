@@ -1171,8 +1171,10 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
-    default_params_ = PerfForesightConsumerType_defaults
-    default_solver_ = solve_one_period_ConsPF
+    default_ = {
+        "params": PerfForesightConsumerType_defaults,
+        "solver": solve_one_period_ConsPF,
+    }
 
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
@@ -1205,7 +1207,7 @@ class PerfForesightConsumerType(AgentType):
         constraint and MaxKinks attribute (only relevant in constrained, infinite
         horizon problems).
         """
-        self.update_solution_terminal()  # Solve the terminal period problem
+        self.construct("solution_terminal")  # Solve the terminal period problem
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
@@ -1252,21 +1254,6 @@ class PerfForesightConsumerType(AgentType):
 
         return
 
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        self.construct("solution_terminal")
-
     def update_Rfree(self):
         """
         Determines whether Rfree is time-varying or fixed.
@@ -1279,7 +1266,8 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-
+        if not hasattr(self, "Rfree"):
+            return
         if isinstance(self.Rfree, (int, float)):
             self.add_to_time_inv("Rfree")
         elif isinstance(self.Rfree, list):
@@ -2098,73 +2086,25 @@ class IndShockConsumerType(PerfForesightConsumerType):
     aXtraGrid_defaults = IndShockConsumerType_aXtraGrid_default
     solving_defaults = IndShockConsumerType_solving_default
     simulation_defaults = IndShockConsumerType_simulation_default
+    default_ = {
+        "params": IndShockConsumerType_defaults,
+        "solver": solve_one_period_ConsIndShock,
+    }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
         "BoroCnstArt",
         "vFuncBool",
         "CubicBool",
+        "aXtraGrid",
+    ]
+    time_vary_ = PerfForesightConsumerType.time_vary_ + [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
     ]
     # This is in the PerfForesight model but not ConsIndShock
     time_inv_.remove("MaxKinks")
     shock_vars_ = ["PermShk", "TranShk"]
-
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = IndShockConsumerType_defaults.copy()
-        params.update(kwds)
-
-        # Initialize a basic PerfForesightConsumerType
-        super().__init__(verbose=verbose, quiet=quiet, **params)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.solve_one_period = solve_one_period_ConsIndShock
-        self.update()  # Make assets grid, income process, terminal solution
-
-    def update_income_process(self):
-        """
-        Updates this agent's income process based on his own attributes.
-
-        Parameters
-        ----------
-        none
-
-        Returns:
-        -----------
-        none
-        """
-        self.construct("IncShkDstn", "PermShkDstn", "TranShkDstn")
-        self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
-
-    def update_assets_grid(self):
-        """
-        Updates this agent's end-of-period assets grid by constructing a multi-
-        exponentially spaced grid of aXtra values.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        self.construct("aXtraGrid")
-        self.add_to_time_inv("aXtraGrid")
-
-    def update(self):
-        """
-        Update the income process, the assets grid, and the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.update_income_process()
-        self.update_assets_grid()
-        self.update_solution_terminal()
 
     def reset_rng(self):
         """
@@ -2358,7 +2298,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
@@ -2890,22 +2830,16 @@ class KinkedRconsumerType(IndShockConsumerType):
     """
 
     IncShkDstn_defaults = KinkedRconsumerType_IncShkDstn_default
-    aXtraGrid_defualts = KinkedRconsumerType_aXtraGrid_default
+    aXtraGrid_defaults = KinkedRconsumerType_aXtraGrid_default
     solving_defaults = KinkedRconsumerType_solving_default
-    simulation_defualts = KinkedRconsumerType_simulation_default
+    simulation_defaults = KinkedRconsumerType_simulation_default
+    default_ = {
+        "params": KinkedRconsumerType_defaults,
+        "solver": solve_one_period_ConsKinkedR,
+    }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
-
-    def __init__(self, **kwds):
-        params = KinkedRconsumerType_defaults.copy()
-        params.update(kwds)
-
-        # Initialize a basic AgentType
-        super().__init__(**params)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.solve_one_period = solve_one_period_ConsKinkedR
 
     def calc_bounding_values(self):
         """
