@@ -660,7 +660,7 @@ class test_Harmenbergs_method(unittest.TestCase):
         example.solve()
 
         example.neutral_measure = True
-        example.update_income_process()
+        example.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         example.initialize_sim()
         example.simulate()

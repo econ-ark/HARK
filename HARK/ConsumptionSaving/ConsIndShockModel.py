@@ -1194,10 +1194,7 @@ class PerfForesightConsumerType(AgentType):
 
     def __init__(self, **kwds):
         # Initialize a basic AgentType
-        super().__init__(
-            pseudo_terminal=False,
-            **kwds,
-        )
+        super().__init__(pseudo_terminal=False, **kwds)
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
