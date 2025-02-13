@@ -1043,6 +1043,7 @@ PerfForesightConsumerType_solving_defaults = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": PerfForesightConsumerType_constructors_default,  # See dictionary above
     # PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -1194,7 +1195,7 @@ class PerfForesightConsumerType(AgentType):
 
     def __init__(self, **kwds):
         # Initialize a basic AgentType
-        super().__init__(pseudo_terminal=False, **kwds)
+        super().__init__(**kwds)
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
@@ -1924,6 +1925,7 @@ IndShockConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": IndShockConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion

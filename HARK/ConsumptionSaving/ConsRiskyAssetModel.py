@@ -61,6 +61,49 @@ def make_simple_ShareGrid(ShareCount):
     return ShareGrid
 
 
+def select_risky_solver(PortfolioBool):
+    """
+    Trivial constructor function that chooses between two solvers.
+    """
+    if PortfolioBool:
+        solve_one_period = solve_one_period_ConsPortChoice
+    else:
+        solve_one_period = solve_one_period_ConsIndShockRiskyAsset
+    return solve_one_period
+
+
+def make_AdjustDstn(AdjustPrb, T_cycle, RNG):
+    """
+    Make the distribution of "allowed to adjust" outcomes (a Bernoulli dstn) that
+    could depend on age.
+
+    Parameters
+    ----------
+    AdjustPrb : float or [float]
+        Probability of being allowed to adjust portfolio allocation, by period of cycle.
+    T_cycle : int
+        Number of periods in the cycle.
+    RNG : RandomState
+        Instance's own random number generator.
+
+    Returns
+    -------
+    AdjustDstn : BernoulliDistribution or IndexDistribution
+        Distribution object for whether agents can update their portfolios.
+    """
+    if type(AdjustPrb) is list and (len(AdjustPrb) == T_cycle):
+        AdjustDstn = IndexDistribution(
+            Bernoulli, {"p": AdjustPrb}, seed=RNG.integers(0, 2**31 - 1)
+        )
+    elif type(AdjustPrb) is list:
+        raise AttributeError(
+            "If AdjustPrb is time-varying, it must have length of T_cycle!"
+        )
+    else:
+        AdjustDstn = Bernoulli(p=AdjustPrb, seed=RNG.integers(0, 2**31 - 1))
+    return AdjustDstn
+
+
 ###############################################################################
 
 # Make a dictionary of constructors for the risky asset model
@@ -73,7 +116,9 @@ IndShockRiskyAssetConsumerType_constructor_default = {
     "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
+    "AdjustDstn": make_AdjustDstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
+    "solve_one_period": select_risky_solver,
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -114,7 +159,6 @@ IndShockRiskyAssetConsumerType_ShareGrid_default = {
     "ShareCount": 25,  # Number of discrete points in the risky share approximation
 }
 
-
 # Make a dictionary to specify a risky asset consumer type
 IndShockRiskyAssetConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
@@ -132,8 +176,10 @@ IndShockRiskyAssetConsumerType_solving_default = {
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "IndepDstnBool": True,  # Whether return and income shocks are independent
     # TODO: This is not used in this file and should be moved to ConsPortfolioModel.py
-    "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
+    "PortfolioBool": False,  # Whether this instance can choose portfolio shares
+    "PortfolioBisect": False,  # What does this do?
 }
 IndShockRiskyAssetConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -150,6 +196,7 @@ IndShockRiskyAssetConsumerType_simulation_default = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
 IndShockRiskyAssetConsumerType_default = {}
 IndShockRiskyAssetConsumerType_default.update(
@@ -317,154 +364,44 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     ShareGrid_default = IndShockRiskyAssetConsumerType_ShareGrid_default
     solving_default = IndShockRiskyAssetConsumerType_solving_default
     simulation_default = IndShockRiskyAssetConsumerType_simulation_default  # So sphinx documents defaults
+    default_ = {"params": IndShockRiskyAssetConsumerType_default, "solver": NullFunc()}
 
-    time_inv_ = IndShockConsumerType.time_inv_ + ["PortfolioBisect"]
+    time_inv_ = IndShockConsumerType.time_inv_ + [
+        "PortfolioBisect",
+        "ShareGrid",
+        "PortfolioBool",
+        "IndepDstnBool",
+    ]
+    time_vary_ = IndShockConsumerType.time_vary_ + ["ShockDstn"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
-    def __init__(self, verbose=False, quiet=False, **kwds):
-        params = IndShockRiskyAssetConsumerType_default.copy()
-        params.update(kwds)
-        kwds = params
-
-        # Boolean determines whether agent will use portfolio
-        # optimization or only has access to risky asset
-        if not hasattr(self, "PortfolioBool"):
-            self.PortfolioBool = False
-
-        if not hasattr(self, "PortfolioBisect"):
-            self.PortfolioBisect = False
-
-        # Boolean determines whether, when simulating a given time period,
-        # all agents will draw the same risky return factor (true by default)
-        if not hasattr(self, "sim_common_Rrisky"):
-            self.sim_common_Rrisky = True
-
-        # Initialize a basic consumer type
-        IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
-
-        # Set the solver depending on whether portfolio choice is possible
-        if self.PortfolioBool:
-            self.solve_one_period = solve_one_period_ConsPortChoice
-        else:
-            self.solve_one_period = solve_one_period_ConsIndShockRiskyAsset
-
     def pre_solve(self):
-        self.update_solution_terminal()
-
+        self.construct("solution_terminal")
+        self.update_timing()
         if self.PortfolioBool:
             self.solution_terminal.ShareFunc = ConstantFunction(1.0)
 
-    def update(self):
-        IndShockConsumerType.update(self)
-        self.update_AdjustDstn()
-        self.update_RiskyDstn()
-        self.update_ShockDstn()
-        if self.PortfolioBool:
-            self.update_ShareLimit()
-            self.update_ShareGrid()
-
-    def update_RiskyDstn(self):
+    def update_timing(self):
         """
-        Updates the attribute RiskyDstn, approximating the (perceived) distribution of
-        returns in each period of the cycle.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
+        This method simply ensures that a few attributes that could be in either
+        time_inv or time_vary are appropriately labeled.
         """
-        self.construct("RiskyDstn")
+        if type(self.AdjustDstn) is IndexDistribution:
+            self.add_to_time_vary("AdjustPrb")
+            self.del_from_time_inv("AdjustPrb")
+        else:
+            self.add_to_time_inv("AdjustPrb")
+            self.del_from_time_vary("AdjustPrb")
         if hasattr(self.RiskyDstn, "__getitem__"):
             self.add_to_time_vary("RiskyDstn")
         else:
             self.add_to_time_inv("RiskyDstn")
-
-    def update_ShockDstn(self):
-        """
-        Combine the income shock distribution (over PermShk and TranShk) with the
-        risky return distribution (RiskyDstn) to make a new attribute called ShockDstn.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("ShockDstn")
-        self.add_to_time_vary("ShockDstn")
-        # Mark whether the risky returns and income shocks are independent (they are)
-        self.IndepDstnBool = True
-        self.add_to_time_inv("IndepDstnBool")
-
-    def update_AdjustDstn(self):
-        """
-        Checks and updates the exogenous probability of the agent being allowed
-        to rebalance his portfolio/contribution scheme. It can be time varying.
-
-        Parameters
-        ------
-        None.
-
-        Returns
-        -------
-        None.
-
-        """
-        if type(self.AdjustPrb) is list and (len(self.AdjustPrb) == self.T_cycle):
-            self.add_to_time_vary("AdjustPrb")
-
-            self.AdjustDstn = IndexDistribution(
-                Bernoulli, {"p": self.AdjustPrb}, seed=self.RNG.integers(0, 2**31 - 1)
-            )
-
-        elif type(self.AdjustPrb) is list:
-            raise AttributeError(
-                "If AdjustPrb is time-varying, it must have length of T_cycle!"
-            )
-        else:
-            self.add_to_time_inv("AdjustPrb")
-            self.AdjustDstn = Bernoulli(
-                p=self.AdjustPrb, seed=self.RNG.integers(0, 2**31 - 1)
-            )
-
-    def update_ShareLimit(self):
-        """
-        Creates the attribute ShareLimit, representing the limiting lower bound of
-        risky portfolio share as mNrm goes to infinity, if it is allowed to adjust.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("ShareLimit")
         if type(self.ShareLimit) is list:
             self.add_to_time_vary("ShareLimit")
+            self.del_from_time_inv("ShareLimit")
         else:
             self.add_to_time_inv("ShareLimit")
-
-    def update_ShareGrid(self):
-        """
-        Creates the attribute ShareGrid.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("ShareGrid")
-        self.add_to_time_inv("ShareGrid")
+            self.del_from_time_vary("ShareLimit")
 
     def get_Rfree(self):
         """

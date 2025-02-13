@@ -798,7 +798,6 @@ class AgentType(Model):
     time_inv_ = []
     shock_vars_ = []
     state_vars = []
-    default_params_ = {}
     default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
