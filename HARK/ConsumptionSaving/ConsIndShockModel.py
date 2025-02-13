@@ -1171,6 +1171,8 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
+    default_params_ = PerfForesightConsumerType_defaults
+    default_solver_ = solve_one_period_ConsPF
 
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
@@ -1188,26 +1190,12 @@ class PerfForesightConsumerType(AgentType):
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = PerfForesightConsumerType_defaults.copy()
-        params.update(kwds)
-        kwds = params
-
+    def __init__(self, **kwds):
         # Initialize a basic AgentType
         super().__init__(
             pseudo_terminal=False,
             **kwds,
         )
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = deepcopy(self.time_vary_)
-        self.time_inv = deepcopy(self.time_inv_)
-        self.shock_vars = deepcopy(self.shock_vars_)
-        self.verbose = verbose
-        self.quiet = quiet
-        self.solve_one_period = solve_one_period_ConsPF
-        set_verbosity_level((4 - verbose) * 10)
-        self.bilt = {}
         self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
