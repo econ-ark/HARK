@@ -570,6 +570,8 @@ class Model:
             keys = list(self.constructors.keys())
         N_keys = len(keys)
         keys_complete = np.zeros(N_keys, dtype=bool)
+        if N_keys == 0:
+            return  # Do nothing if there are no constructed objects
 
         # Get the dictionary of constructor errors
         if not hasattr(self, "_constructor_errors"):
@@ -798,6 +800,7 @@ class AgentType(Model):
     time_inv_ = []
     shock_vars_ = []
     state_vars = []
+    poststate_vars = []
     default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
