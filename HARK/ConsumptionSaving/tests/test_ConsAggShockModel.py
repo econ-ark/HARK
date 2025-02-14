@@ -123,6 +123,7 @@ class KrusellSmithTestCase(unittest.TestCase):
 class KrusellSmithAgentTestCase(KrusellSmithTestCase):
     def test_agent(self):
         self.agent.get_economy_data(self.economy)
+        self.agent.construct()
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
@@ -134,6 +135,8 @@ class KrusellSmithAgentTestCase(KrusellSmithTestCase):
 class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
     def test_methods(self):
         self.agent.get_economy_data(self.economy)
+
+        self.agent.construct()
 
         self.assertAlmostEqual(self.agent.AFunc[0].slope, 1.0)
 
@@ -246,12 +249,14 @@ class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
         self.assertAlmostEqual(self.economy.AFunc[1].slope, 1.0)
 
         self.agent.get_economy_data(self.economy)
+        self.agent.construct()
+
         self.economy.make_Mrkv_history()  # Make a simulated history of aggregate shocks
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.02108, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.02668, places=HARK_PRECISION
         )
 
         # simulation test -- seed/generator specific
