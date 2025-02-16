@@ -25,6 +25,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
+    init_perfect_foresight,
+    init_idiosyncratic_shocks,
 )
 from HARK.ConsumptionSaving.LegacyOOsolvers import (
     ConsIndShockSolverBasic,
@@ -34,7 +36,6 @@ from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
     LowerEnvelope,
-    MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
@@ -51,6 +52,7 @@ from HARK.numba_tools import (
     linear_interp_deriv_fast,
     linear_interp_fast,
 )
+from HARK.utilities import NullFunc
 
 __all__ = [
     "PerfForesightSolution",
@@ -1084,45 +1086,26 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 # ============================================================================
 
 
+def make_solution_terminal_fast(solution_terminal_class):
+    return solution_terminal_class()
+
+
+init_perfect_foresight_fast = init_perfect_foresight.copy()
+perf_foresight_constructor_dict = init_perfect_foresight["constructors"].copy()
+perf_foresight_constructor_dict["solution_terminal"] = make_solution_terminal_fast
+init_perfect_foresight_fast["constructors"] = perf_foresight_constructor_dict
+
+
 class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     r"""
     A version of the perfect foresight consumer type speed up by numba.
     """
 
-    # Define some universal values for all consumer types
-    solution_terminal_ = PerfForesightSolution()
     solution_terminal_class = PerfForesightSolution
-
-    def __init__(self, **kwargs):
-        PerfForesightConsumerType.__init__(self, **kwargs)
-
-        self.solve_one_period = make_one_period_oo_solver(ConsPerfForesightSolverFast)
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-        """
-
-        self.solution_terminal_cs = ConsumerSolution(
-            cFunc=self.cFunc_terminal_,
-            vFunc=ValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
-            vPfunc=MargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
-            vPPfunc=MargMargValueFuncCRRA(self.cFunc_terminal_, self.CRRA),
-            mNrmMin=0.0,
-            hNrm=0.0,
-            MPCmin=1.0,
-            MPCmax=1.0,
-        )
-
-        # TODO: Move this whole method to a constructor
-        solution_terminal = deepcopy(self.solution_terminal_)
-        cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
-        solution_terminal.cFunc = cFunc_terminal  # c=m at t=T
-        solution_terminal.vFunc = ValueFuncCRRA(cFunc_terminal, self.CRRA)
-        solution_terminal.vPfunc = MargValueFuncCRRA(cFunc_terminal, self.CRRA)
-        solution_terminal.vPPfunc = MargMargValueFuncCRRA(cFunc_terminal, self.CRRA)
-        self.solution_terminal = solution_terminal
+    default_ = {
+        "params": init_perfect_foresight_fast,
+        "solver": make_one_period_oo_solver(ConsPerfForesightSolverFast),
+    }
 
     def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
@@ -1131,7 +1114,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             terminal = 1
         else:
             terminal = self.cycles
-            self.solution[terminal] = self.solution_terminal_cs
+            self.solution[terminal] = self.solution_terminal
 
         for i in range(terminal):
             solution = self.solution[i]
@@ -1186,37 +1169,37 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             self.solution[i] = consumer_solution
 
 
+###############################################################################
+
+
+def select_fast_solver(CubicBool, vFuncBool):
+    if (not CubicBool) and (not vFuncBool):
+        solver = ConsIndShockSolverBasicFast
+    else:  # Use the "advanced" solver if either is requested
+        solver = ConsIndShockSolverFast
+    solve_one_period = make_one_period_oo_solver(solver)
+    return solve_one_period
+
+
+init_idiosyncratic_shocks_fast = init_idiosyncratic_shocks.copy()
+ind_shock_fast_constructor_dict = init_idiosyncratic_shocks["constructors"].copy()
+ind_shock_fast_constructor_dict["solution_terminal"] = make_solution_terminal_fast
+ind_shock_fast_constructor_dict["solve_one_period"] = select_fast_solver
+init_idiosyncratic_shocks_fast["constructors"] = ind_shock_fast_constructor_dict
+
+
 class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFast):
     r"""
-    A version of the idiosyncratic shock consumer type speed up by numba.
+    A version of the idiosyncratic shock consumer type sped up by numba.
 
     If CubicBool and vFuncBool are both set to false it's further optimized.
     """
 
-    solution_terminal_ = IndShockSolution()
     solution_terminal_class = IndShockSolution
-
-    def __init__(self, **kwargs):
-        IndShockConsumerType.__init__(self, **kwargs)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        if (not self.CubicBool) and (not self.vFuncBool):
-            solver = ConsIndShockSolverBasicFast
-        else:  # Use the "advanced" solver if either is requested
-            solver = ConsIndShockSolverFast
-
-        self.solve_one_period = make_one_period_oo_solver(solver)
-
-    def update_solution_terminal(self):
-        PerfForesightConsumerTypeFast.update_solution_terminal(self)
-        with np.errstate(
-            divide="ignore", over="ignore", under="ignore", invalid="ignore"
-        ):
-            self.solution_terminal.MPC = np.array([1.0, 1.0])
-            self.solution_terminal.MPCminNvrs = 0.0
-            self.solution_terminal.vNvrs = utility(np.linspace(0.0, 1.0), self.CRRA)
-            self.solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), self.CRRA)
-            self.solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
+    default_ = {
+        "params": init_idiosyncratic_shocks_fast,
+        "solver": NullFunc(),
+    }
 
     def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
@@ -1225,7 +1208,9 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             cycles = 1
         else:
             cycles = self.cycles
-            self.solution[-1] = self.solution_terminal_cs
+            self.solution[-1] = init_idiosyncratic_shocks["constructors"][
+                "solution_terminal"
+            ](self.CRRA)
 
         for i in range(cycles):
             for j in range(self.T_cycle):
@@ -1309,3 +1294,6 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     )
 
                 self.solution[i * self.T_cycle + j] = consumer_solution
+
+        if (self.cycles == 0) and (self.T_cycle == 1):
+            self.calc_stable_points(force=True)

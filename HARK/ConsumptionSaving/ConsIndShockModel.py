@@ -1813,7 +1813,7 @@ class PerfForesightConsumerType(AgentType):
         if not self.quiet:
             _log.info(self.bilt["conditions_report"])
 
-    def calc_stable_points(self):
+    def calc_stable_points(self, force=False):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
         variables to permanent income to exist, and has been solved to within the self-defined
@@ -1821,7 +1821,9 @@ class PerfForesightConsumerType(AgentType):
 
         Parameters
         ----------
-        None
+        force : bool
+            Indicator for whether the method should be forced to be run even if
+            the agent seems to be the wrong type. Default is False.
 
         Returns
         -------
@@ -1830,7 +1832,7 @@ class PerfForesightConsumerType(AgentType):
         # Child classes should not run this method
         is_perf_foresight = type(self) is PerfForesightConsumerType
         is_ind_shock = type(self) is IndShockConsumerType
-        if not (is_perf_foresight or is_ind_shock):
+        if not (is_perf_foresight or is_ind_shock or force):
             return
 
         infinite_horizon = self.cycles == 0
@@ -3035,6 +3037,7 @@ time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
 init_lifecycle = copy(init_idiosyncratic_shocks)
+del init_lifecycle["constructors"]
 init_lifecycle.update(time_params)
 init_lifecycle.update(dist_params)
 # Note the income specification overrides the pLvlInitMean from the SCF.
