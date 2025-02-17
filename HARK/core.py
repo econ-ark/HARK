@@ -743,8 +743,8 @@ class Model:
         return
 
     # This is a "synonym" method so that old calls to update() still work
-    def update(self, **kwds):
-        self.construct(**kwds)
+    def update(self, *args):
+        self.construct(*args)
 
 
 class AgentType(Model):
