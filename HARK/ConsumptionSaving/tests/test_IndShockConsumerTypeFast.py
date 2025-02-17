@@ -142,7 +142,6 @@ class testBufferStock(unittest.TestCase):
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerTypeFast(**self.base_params)
-        self.InfType = baseEx_inf
         baseEx_inf.cycles = 0
         baseEx_inf.solve()
         baseEx_inf.unpack_cFunc()
@@ -174,7 +173,6 @@ class testIndShockConsumerTypeFastExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerTypeFast(**IdiosyncDict)
         IndShockExample.cycles = 0
-        IndShockExample.vFuncBool = False
         IndShockExample.solve()
 
         self.assertAlmostEqual(

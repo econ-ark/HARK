@@ -52,7 +52,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         InfiniteType = IndShockConsumerType(**test_dictionary)
         InfiniteType.cycles = 0
 
-        InfiniteType.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        InfiniteType.update_income_process()
         InfiniteType.solve()
         InfiniteType.unpack("cFunc")
 
