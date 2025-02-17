@@ -127,6 +127,38 @@ def make_aggmrkv_solution_terminal(CRRA, MrkvArray):
     return solution_terminal
 
 
+def make_exponential_MgridBase(MaggCount, MaggPerturb, MaggExpFac):
+    """
+    Constructor function for MgridBase, the grid of aggregate market resources
+    relative to the steady state. This grid is always centered around 1.0.
+
+    Parameters
+    ----------
+    MaggCount : int
+        Number of gridpoints for aggregate market resources. Should be odd.
+    MaggPerturb : float
+        Small perturbation around the steady state; the grid will always include
+        1+perturb and 1-perturb.
+    MaggExpFac : float
+        Log growth factor for gridpoints beyond the two adjacent to the steady state.
+
+    Returns
+    -------
+    MgridBase : np.array
+        Grid of aggregate market resources relative to the steady state.
+    """
+    N = int((MaggCount - 1) / 2)
+    gridpoints = [1.0 - MaggPerturb, 1.0, 1.0 + MaggPerturb]
+    fac = np.exp(MaggExpFac)
+    for n in range(N - 1):
+        new_hi = gridpoints[-1] * fac
+        new_lo = gridpoints[0] / fac
+        gridpoints.append(new_hi)
+        gridpoints.insert(0, new_lo)
+    MgridBase = np.array(gridpoints)
+    return MgridBase
+
+
 ###############################################################################
 
 
@@ -879,6 +911,7 @@ aggshock_constructor_dict = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
+    "MgridBase": make_exponential_MgridBase,
     "solution_terminal": make_aggshock_solution_terminal,
 }
 
@@ -904,11 +937,12 @@ default_aXtraGrid_params = {
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
-# Choose a grid of capital-to-labor-ratios (factors relative to SS)
-# TODO: Make a constructor for this
-MgridBase = np.array(
-    [0.1, 0.3, 0.6, 0.8, 0.9, 0.98, 1.0, 1.02, 1.1, 1.2, 1.6, 2.0, 3.0]
-)
+# Default parameters to make MgridBase using make_exponential_MgridBase
+default_MgridBase_params = {
+    "MaggCount": 17,
+    "MaggPerturb": 0.01,
+    "MaggExpFac": 0.15,
+}
 
 # Make a dictionary to specify an aggregate income shocks consumer type
 init_agg_shocks = {
@@ -923,7 +957,6 @@ init_agg_shocks = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.00],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "MgridBase": MgridBase,
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
@@ -941,6 +974,7 @@ init_agg_shocks = {
 }
 init_agg_shocks.update(default_IncShkDstn_params)
 init_agg_shocks.update(default_aXtraGrid_params)
+init_agg_shocks.update(default_MgridBase_params)
 
 
 class AggShockConsumerType(IndShockConsumerType):
@@ -1545,6 +1579,7 @@ KS_constructor_dict = {
     "mNextArray": get_mNextArray,
     "MnextArray": get_MnextArray,
     "RnextArray": get_RnextArray,
+    "MgridBase": make_exponential_MgridBase,
 }
 
 init_KS_agents = {
@@ -1558,9 +1593,10 @@ init_KS_agents = {
     "aMax": 50.0,
     "aCount": 32,
     "aNestFac": 2,
-    "MgridBase": np.array(
-        [0.1, 0.3, 0.6, 0.8, 0.9, 0.95, 0.98, 1.0, 1.02, 1.05, 1.1, 1.2, 1.6, 2.0, 3.0]
-    ),
+    "MaggCount": 25,
+    "MaggPerturb": 0.01,
+    "MaggExpFac": 0.12,
+    "MgridBase": np.array([0.99, 1.0, 1.01]),  ## dummy, this will be overwritten
     "AgentCount": 5000,
 }
 
@@ -1598,11 +1634,14 @@ class KrusellSmithType(AgentType):
         temp = kwds.copy()
         temp["construct"] = False
         AgentType.__init__(self, **temp)
+        self.construct("MgridBase")
+
         # Special case: this type *must* be initialized with construct=False
         # because the data required to make its solution attributes is obtained
         # from the associated economy, not passed as part of its parameters.
         # To make it work properly, instantiate both this class and an instance
         # of KrusellSmithEconomy, then use this class' get_economy_data method.
+        # Exception: MgridBase must exist
 
     def pre_solve(self):
         self.construct("solution_terminal")

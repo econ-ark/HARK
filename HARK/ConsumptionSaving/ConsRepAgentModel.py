@@ -16,7 +16,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import (
+    MarkovConsumerType,
+    make_simple_binary_markov,
+)
 from HARK.distributions import MarkovProcess
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 from HARK.utilities import make_assets_grid
@@ -59,6 +62,14 @@ def make_repagent_markov_solution_terminal(CRRA, MrkvArray):
         MPCmax=np.ones(N),
     )
     return solution_terminal
+
+
+def make_simple_binary_rep_markov(Mrkv_p11, Mrkv_p22):
+    MrkvArray = make_simple_binary_markov(1, [Mrkv_p11], [Mrkv_p22])[0]
+    return MrkvArray
+
+
+###############################################################################
 
 
 def solve_ConsRepAgent(
@@ -396,10 +407,12 @@ markov_repagent_constructor_dict = repagent_constructor_dict.copy()
 markov_repagent_constructor_dict["solution_terminal"] = (
     make_repagent_markov_solution_terminal
 )
+markov_repagent_constructor_dict["MrkvArray"] = make_simple_binary_rep_markov
 
 init_markov_rep_agent = init_rep_agent.copy()
 init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
-init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
+init_markov_rep_agent["Mrkv_p11"] = 0.99
+init_markov_rep_agent["Mrkv_p22"] = 0.99
 init_markov_rep_agent["Mrkv"] = 0
 init_markov_rep_agent["constructors"] = markov_repagent_constructor_dict
 
