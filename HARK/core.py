@@ -742,6 +742,10 @@ class Model:
         print(out)
         return
 
+    # This is a "synonym" method so that old calls to update() still work
+    def update(self, **kwds):
+        self.construct(**kwds)
+
 
 class AgentType(Model):
     """

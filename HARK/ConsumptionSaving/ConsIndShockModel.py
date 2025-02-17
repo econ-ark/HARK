@@ -2107,6 +2107,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
     time_inv_.remove("MaxKinks")
     shock_vars_ = ["PermShk", "TranShk"]
 
+    def update_income_process(self):
+        self.update("IncShkDstn", "PermShkDstn", "TranShkDstn")
+
     def reset_rng(self):
         """
         Reset the RNG behavior of this type.  This method is called automatically

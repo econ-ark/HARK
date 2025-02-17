@@ -769,19 +769,18 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         "solver": solve_one_period_ConsGenIncProcess,
     }
 
-    #    def __init__(self, **kwds):
-    #        super().__init__(**kwds)
-
-    # # a poststate?
-    # self.state_now["aLvl"] = None
-    # self.state_prev["aLvl"] = None
-
-    # # better way to do this...
-    # self.state_now["mLvl"] = None
-    # self.state_prev["mLvl"] = None
-
     def pre_solve(self):
         self.construct("solution_terminal")
+
+    def update_income_process(self):
+        self.update(
+            "IncShkDstn",
+            "PermShkDstn",
+            "TranShkDstn",
+            "pLvlPctiles",
+            "pLvlNextFunc",
+            "pLvlGrid",
+        )
 
     def update_pLvlNextFunc(self):
         """
