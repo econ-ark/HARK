@@ -37,6 +37,7 @@ from HARK.interpolation import (
     LinearInterp,
     LowerEnvelope,
     MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
     ValueFuncCRRA,
 )
 from HARK.metric import MetricObject
@@ -191,6 +192,21 @@ class IndShockSolution(MetricObject):
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
+
+
+def make_solution_terminal_fast(solution_terminal_class, CRRA):
+    solution_terminal = solution_terminal_class()
+    cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
+    solution_terminal.cFunc = cFunc_terminal  # c=m at t=T
+    solution_terminal.vFunc = ValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal.vPfunc = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal.vPPfunc = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal.MPC = np.array([1.0, 1.0])
+    solution_terminal.MPCminNvrs = 0.0
+    solution_terminal.vNvrs = utility(np.linspace(0.0, 1.0), CRRA)
+    solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), CRRA)
+    solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
+    return solution_terminal
 
 
 @njit(cache=True)
@@ -1084,10 +1100,6 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 # ============================================================================
 # == Classes for representing types of consumer agents (and things they do) ==
 # ============================================================================
-
-
-def make_solution_terminal_fast(solution_terminal_class):
-    return solution_terminal_class()
 
 
 init_perfect_foresight_fast = init_perfect_foresight.copy()
