@@ -997,7 +997,7 @@ init_warm_glow = {
     "constructors": warmglow_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -1235,7 +1235,7 @@ init_portfolio_bequest = {
     "constructors": portfolio_bequest_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 5.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Return factor on risk free asset
+    "Rfree": [1.03],  # Return factor on risk free asset
     "DiscFac": 0.90,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor

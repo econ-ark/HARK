@@ -74,7 +74,7 @@ init_newkeynesian = {
     "constructors": newkeynesian_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.0],  # Permanent income growth factor
@@ -318,7 +318,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
             # Obtain shock values and shock probabilities from income distribution
             # Bank Balances next period (Interest rate * assets)
-            bNext = self.Rfree * aNext
+            bNext = self.Rfree[0] * aNext
             shk_prbs = shk_dstn[0].pmv  # Probability of shocks
             tran_shks = shk_dstn[0].atoms[1]  # Transitory shocks
             perm_shks = shk_dstn[0].atoms[0]  # Permanent shocks
@@ -397,10 +397,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                 aNext = dist_mGrid - Cnow  # Asset policy grid in period k
                 self.aPol_Grid.append(aNext)  # Add to list
 
-                if type(self.Rfree) == list:
-                    bNext = self.Rfree[k] * aNext
-                else:
-                    bNext = self.Rfree * aNext
+                bNext = self.Rfree[k] * aNext
 
                 # Obtain shocks and shock probabilities from income distribution this period
                 shk_prbs = shk_dstn[k].pmv  # Probability of shocks this period
@@ -543,7 +540,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
         params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
-        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree[0]]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["wage"] = params["T_cycle"] * [self.wage[0]]
@@ -553,11 +550,6 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Create instance of a finite horizon agent
         FinHorizonAgent = NewKeynesianConsumerType(**params)
-
-        # delete Rfree from time invariant list since it varies overtime
-        FinHorizonAgent.del_from_time_inv("Rfree")
-        # Add Rfree to time varying list to be able to introduce time varying interest rates
-        FinHorizonAgent.add_to_time_vary("Rfree")
 
         # Set Terminal Solution as Steady State Solution
         FinHorizonAgent.solution_terminal = deepcopy(self.solution[0])
@@ -733,7 +725,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
         params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
-        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree[0]]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["IncShkDstn"] = params["T_cycle"] * [self.IncShkDstn[0]]

@@ -14,7 +14,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
         PF_dictionary = {
             "CRRA": 2.5,
             "DiscFac": 0.96,
-            "Rfree": 1.03,
+            "Rfree": [1.03],
             "LivPrb": [0.98],
             "PermGroFac": [1.01],
             "T_cycle": 1,

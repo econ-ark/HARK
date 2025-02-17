@@ -167,7 +167,7 @@ IndShockRiskyAssetConsumerType_solving_default = {
     "constructors": IndShockRiskyAssetConsumerType_constructor_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Return factor on risk free asset (not used by this type)
+    "Rfree": [1.03],  # Return factor on risk free asset (not used by this type)
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
