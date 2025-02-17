@@ -368,7 +368,7 @@ def make_labeled_shock_dstn(T_cycle, IncShkDstn, RiskyDstn):
     """
     A wrapper function that makes the joint distributions labeled.
     """
-    ShockDstnBase = combine_IncShkDstn_and_RiskyDstn(T_cycle, IncShkDstn, RiskyDstn)
+    ShockDstnBase = combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn)
     ShockDstn = []
     for i in range(len(ShockDstnBase.dstns)):
         ShockDstn.append(
@@ -1404,6 +1404,7 @@ init_portfolio_labeled_constructors["solution_terminal"] = (
     make_solution_terminal_labeled
 )
 init_portfolio_labeled["constructors"] = init_portfolio_labeled_constructors
+init_portfolio_labeled["RiskyShareFixed"] = [0.0]  # This shouldn't exist
 
 
 class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
