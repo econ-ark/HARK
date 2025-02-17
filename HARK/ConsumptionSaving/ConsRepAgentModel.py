@@ -16,12 +16,60 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import (
+    MarkovConsumerType,
+    make_simple_binary_markov,
+)
 from HARK.distributions import MarkovProcess
 from HARK.interpolation import LinearInterp, MargValueFuncCRRA
 from HARK.utilities import make_assets_grid
 
 __all__ = ["RepAgentConsumerType", "RepAgentMarkovConsumerType"]
+
+
+def make_repagent_markov_solution_terminal(CRRA, MrkvArray):
+    """
+    Make the terminal period solution for a consumption-saving model with a discrete
+    Markov state. Simply makes a basic terminal solution for IndShockConsumerType
+    and then replicates the attributes N times for the N states in the terminal period.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    MrkvArray : [np.array]
+        List of Markov transition probabilities arrays. Only used to find the
+        number of discrete states in the terminal period.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution to the Markov consumption-saving problem.
+    """
+    solution_terminal_basic = make_basic_CRRA_solution_terminal(CRRA)
+    StateCount_T = MrkvArray.shape[1]
+    N = StateCount_T  # for shorter typing
+
+    # Make replicated terminal period solution: consume all resources, no human wealth, minimum m is 0
+    solution_terminal = ConsumerSolution(
+        cFunc=N * [solution_terminal_basic.cFunc],
+        vFunc=N * [solution_terminal_basic.vFunc],
+        vPfunc=N * [solution_terminal_basic.vPfunc],
+        vPPfunc=N * [solution_terminal_basic.vPPfunc],
+        mNrmMin=np.zeros(N),
+        hNrm=np.zeros(N),
+        MPCmin=np.ones(N),
+        MPCmax=np.ones(N),
+    )
+    return solution_terminal
+
+
+def make_simple_binary_rep_markov(Mrkv_p11, Mrkv_p22):
+    MrkvArray = make_simple_binary_markov(1, [Mrkv_p11], [Mrkv_p22])[0]
+    return MrkvArray
+
+
+###############################################################################
 
 
 def solve_ConsRepAgent(
@@ -265,6 +313,7 @@ init_rep_agent = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 0,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": repagent_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -306,19 +355,11 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     """
 
-    time_inv_ = IndShockConsumerType.time_inv_ + ["CapShare", "DeprFac"]
-
-    def __init__(self, **kwds):
-        params = init_rep_agent.copy()
-        params.update(kwds)
-
-        IndShockConsumerType.__init__(self, **params)
-        self.AgentCount = 1  # Hardcoded, because this is rep agent
-        self.solve_one_period = solve_ConsRepAgent
-        self.del_from_time_inv("Rfree", "BoroCnstArt", "vFuncBool", "CubicBool")
+    time_inv_ = ["CRRA", "DiscFac", "CapShare", "DeprFac", "aXtraGrid"]
+    default_ = {"params": init_rep_agent, "solver": solve_ConsRepAgent}
 
     def pre_solve(self):
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
 
     def get_states(self):
         """
@@ -362,10 +403,18 @@ class RepAgentConsumerType(IndShockConsumerType):
 ###############################################################################
 
 # Define the default dictionary for a markov representative agent type
+markov_repagent_constructor_dict = repagent_constructor_dict.copy()
+markov_repagent_constructor_dict["solution_terminal"] = (
+    make_repagent_markov_solution_terminal
+)
+markov_repagent_constructor_dict["MrkvArray"] = make_simple_binary_rep_markov
+
 init_markov_rep_agent = init_rep_agent.copy()
 init_markov_rep_agent["PermGroFac"] = [[0.97, 1.03]]
-init_markov_rep_agent["MrkvArray"] = np.array([[0.99, 0.01], [0.01, 0.99]])
+init_markov_rep_agent["Mrkv_p11"] = 0.99
+init_markov_rep_agent["Mrkv_p22"] = 0.99
 init_markov_rep_agent["Mrkv"] = 0
+init_markov_rep_agent["constructors"] = markov_repagent_constructor_dict
 
 
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
@@ -387,33 +436,12 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
         self.solve_one_period = solve_ConsRepAgentMarkov
 
     def pre_solve(self):
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
 
     def initialize_sim(self):
         # self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         RepAgentConsumerType.initialize_sim(self)
         self.shocks["Mrkv"] = self.Mrkv
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        RepAgentConsumerType.update_solution_terminal(self)
-
-        # Make replicated terminal period solution
-        StateCount = self.MrkvArray.shape[0]
-        self.solution_terminal.cFunc = StateCount * [self.cFunc_terminal_]
-        self.solution_terminal.vPfunc = StateCount * [self.solution_terminal.vPfunc]
-        self.solution_terminal.mNrmMin = StateCount * [self.solution_terminal.mNrmMin]
 
     def reset_rng(self):
         MarkovConsumerType.reset_rng(self)
