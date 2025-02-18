@@ -3016,4 +3016,5 @@ init_cyclical["PermGroFac"] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical["PermShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["LivPrb"] = 4 * [0.98]
+init_cyclical["Rfree"] = 4 * [1.03]
 init_cyclical["T_cycle"] = 4

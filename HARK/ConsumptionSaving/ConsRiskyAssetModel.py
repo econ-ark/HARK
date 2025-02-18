@@ -372,7 +372,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         "PortfolioBool",
         "IndepDstnBool",
     ]
-    time_vary_ = IndShockConsumerType.time_vary_ + ["ShockDstn"]
+    time_vary_ = IndShockConsumerType.time_vary_ + ["ShockDstn", "ShareLimit"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
 
     def pre_solve(self):

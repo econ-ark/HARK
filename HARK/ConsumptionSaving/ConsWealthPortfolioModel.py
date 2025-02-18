@@ -571,7 +571,7 @@ WealthPortfolioConsumerType_solving_default = {
     "constructors": WealthPortfolioConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 5.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Return factor on risk free asset
+    "Rfree": [1.03],  # Return factor on risk free asset
     "DiscFac": 0.90,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
