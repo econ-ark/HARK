@@ -640,7 +640,6 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
         "WealthShift",
         "ChiFunc",
         "RiskyDstn",
-        "ShareLimit",
     ]
     default_ = {
         "params": init_wealth_portfolio,
