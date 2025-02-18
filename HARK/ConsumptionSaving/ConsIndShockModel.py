@@ -1043,10 +1043,11 @@ PerfForesightConsumerType_solving_defaults = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": PerfForesightConsumerType_constructors_default,  # See dictionary above
     # PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -1171,6 +1172,10 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
+    default_ = {
+        "params": PerfForesightConsumerType_defaults,
+        "solver": solve_one_period_ConsPF,
+    }
 
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
@@ -1183,32 +1188,10 @@ class PerfForesightConsumerType(AgentType):
         MPCmin=1.0,
         MPCmax=1.0,
     )
-    time_vary_ = ["LivPrb", "PermGroFac"]
+    time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
-
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = PerfForesightConsumerType_defaults.copy()
-        params.update(kwds)
-        kwds = params
-
-        # Initialize a basic AgentType
-        super().__init__(
-            pseudo_terminal=False,
-            **kwds,
-        )
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = deepcopy(self.time_vary_)
-        self.time_inv = deepcopy(self.time_inv_)
-        self.shock_vars = deepcopy(self.shock_vars_)
-        self.verbose = verbose
-        self.quiet = quiet
-        self.solve_one_period = solve_one_period_ConsPF
-        set_verbosity_level((4 - verbose) * 10)
-        self.bilt = {}
-        self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
         """
@@ -1217,7 +1200,7 @@ class PerfForesightConsumerType(AgentType):
         constraint and MaxKinks attribute (only relevant in constrained, infinite
         horizon problems).
         """
-        self.update_solution_terminal()  # Solve the terminal period problem
+        self.construct("solution_terminal")  # Solve the terminal period problem
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
@@ -1263,50 +1246,6 @@ class PerfForesightConsumerType(AgentType):
             raise Exception("DiscFac is below zero with value: " + str(self.DiscFac))
 
         return
-
-    def update_solution_terminal(self):
-        """
-        Update the terminal period solution.  This method should be run when a
-        new AgentType is created or when CRRA changes.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        self.construct("solution_terminal")
-
-    def update_Rfree(self):
-        """
-        Determines whether Rfree is time-varying or fixed.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-
-        if isinstance(self.Rfree, (int, float)):
-            self.add_to_time_inv("Rfree")
-        elif isinstance(self.Rfree, list):
-            if len(self.Rfree) == self.T_cycle:
-                if len(self.Rfree) == 1:
-                    self.Rfree = self.Rfree[0]
-                    self.add_to_time_inv("Rfree")
-                else:
-                    self.add_to_time_vary("Rfree")
-            else:
-                raise AttributeError(
-                    "If Rfree is time-varying, it should have a length of T_cycle!"
-                )
-        elif isinstance(self.Rfree, np.ndarray):
-            self.add_to_time_inv("Rfree")
 
     def unpack_cFunc(self):
         """DEPRECATED: Use solution.unpack('cFunc') instead.
@@ -1433,7 +1372,7 @@ class PerfForesightConsumerType(AgentType):
 
     def get_Rfree(self):
         """
-        Returns an array of size self.AgentCount with self.Rfree in every entry.
+        Returns an array of size self.AgentCount with Rfree in every entry.
 
         Parameters
         ----------
@@ -1445,12 +1384,9 @@ class PerfForesightConsumerType(AgentType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         RfreeNow = np.ones(self.AgentCount)
-        if "Rfree" in self.time_inv:
-            RfreeNow = RfreeNow * self.Rfree
-        elif "Rfree" in self.time_vary:
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-                RfreeNow[these] = self.Rfree[t]
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            RfreeNow[these] = self.Rfree[t]
         return RfreeNow
 
     def transition(self):
@@ -1628,7 +1564,7 @@ class PerfForesightConsumerType(AgentType):
         params_to_describe = [
             # [name, description, symbol, time varying]
             ["DiscFac", "intertemporal discount factor", "β", False],
-            ["Rfree", "risk free interest factor", "R", False],
+            ["Rfree", "risk free interest factor", "R", True],
             ["PermGroFac", "permanent income growth factor", "G", True],
             ["CRRA", "coefficient of relative risk aversion", "ρ", False],
             ["LivPrb", "survival probability", "ℒ", True],
@@ -1682,12 +1618,12 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         aux_dict = self.bilt
-        aux_dict["APFac"] = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (
+        aux_dict["APFac"] = (self.Rfree[0] * self.DiscFac * self.LivPrb[0]) ** (
             1 / self.CRRA
         )
         aux_dict["GPFacRaw"] = aux_dict["APFac"] / self.PermGroFac[0]
-        aux_dict["FHWFac"] = self.PermGroFac[0] / self.Rfree
-        aux_dict["RPFac"] = aux_dict["APFac"] / self.Rfree
+        aux_dict["FHWFac"] = self.PermGroFac[0] / self.Rfree[0]
+        aux_dict["RPFac"] = aux_dict["APFac"] / self.Rfree[0]
         aux_dict["PFVAFac"] = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0] ** (
             1.0 - self.CRRA
         )
@@ -1709,13 +1645,13 @@ class PerfForesightConsumerType(AgentType):
             aux_dict["hNrm"] = np.inf
 
         # Generate the "Delta m = 0" function, which is used to find target market resources
-        Ex_Rnrm = self.Rfree / self.PermGroFac[0]
+        Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0]
         aux_dict["Delta_mNrm_ZeroFunc"] = (
             lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
         )
 
         # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
-        PF_Rnrm = self.Rfree / self.PermGroFac[0]
+        PF_Rnrm = self.Rfree[0] / self.PermGroFac[0]
         aux_dict["BalGroFunc"] = lambda m: (1.0 - 1.0 / PF_Rnrm) * m + 1.0 / PF_Rnrm
 
         self.bilt = aux_dict
@@ -1839,7 +1775,7 @@ class PerfForesightConsumerType(AgentType):
         if not self.quiet:
             _log.info(self.bilt["conditions_report"])
 
-    def calc_stable_points(self):
+    def calc_stable_points(self, force=False):
         """
         If the problem is one that satisfies the conditions required for target ratios of different
         variables to permanent income to exist, and has been solved to within the self-defined
@@ -1847,7 +1783,9 @@ class PerfForesightConsumerType(AgentType):
 
         Parameters
         ----------
-        None
+        force : bool
+            Indicator for whether the method should be forced to be run even if
+            the agent seems to be the wrong type. Default is False.
 
         Returns
         -------
@@ -1856,7 +1794,7 @@ class PerfForesightConsumerType(AgentType):
         # Child classes should not run this method
         is_perf_foresight = type(self) is PerfForesightConsumerType
         is_ind_shock = type(self) is IndShockConsumerType
-        if not (is_perf_foresight or is_ind_shock):
+        if not (is_perf_foresight or is_ind_shock or force):
             return
 
         infinite_horizon = self.cycles == 0
@@ -1951,10 +1889,11 @@ IndShockConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": IndShockConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -2110,73 +2049,28 @@ class IndShockConsumerType(PerfForesightConsumerType):
     aXtraGrid_defaults = IndShockConsumerType_aXtraGrid_default
     solving_defaults = IndShockConsumerType_solving_default
     simulation_defaults = IndShockConsumerType_simulation_default
+    default_ = {
+        "params": IndShockConsumerType_defaults,
+        "solver": solve_one_period_ConsIndShock,
+    }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
         "BoroCnstArt",
         "vFuncBool",
         "CubicBool",
+        "aXtraGrid",
+    ]
+    time_vary_ = PerfForesightConsumerType.time_vary_ + [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
     ]
     # This is in the PerfForesight model but not ConsIndShock
     time_inv_.remove("MaxKinks")
     shock_vars_ = ["PermShk", "TranShk"]
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = IndShockConsumerType_defaults.copy()
-        params.update(kwds)
-
-        # Initialize a basic PerfForesightConsumerType
-        super().__init__(verbose=verbose, quiet=quiet, **params)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.solve_one_period = solve_one_period_ConsIndShock
-        self.update()  # Make assets grid, income process, terminal solution
-
     def update_income_process(self):
-        """
-        Updates this agent's income process based on his own attributes.
-
-        Parameters
-        ----------
-        none
-
-        Returns:
-        -----------
-        none
-        """
-        self.construct("IncShkDstn", "PermShkDstn", "TranShkDstn")
-        self.add_to_time_vary("IncShkDstn", "PermShkDstn", "TranShkDstn")
-
-    def update_assets_grid(self):
-        """
-        Updates this agent's end-of-period assets grid by constructing a multi-
-        exponentially spaced grid of aXtra values.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
-        """
-        self.construct("aXtraGrid")
-        self.add_to_time_inv("aXtraGrid")
-
-    def update(self):
-        """
-        Update the income process, the assets grid, and the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.update_income_process()
-        self.update_assets_grid()
-        self.update_solution_terminal()
+        self.update("IncShkDstn", "PermShkDstn", "TranShkDstn")
 
     def reset_rng(self):
         """
@@ -2345,7 +2239,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (
-            self.Rfree / (self.PermGroFac[0] * PermShkVals_tiled) * aNowGrid_tiled
+            self.Rfree[0] / (self.PermGroFac[0] * PermShkVals_tiled) * aNowGrid_tiled
             + TranShkVals_tiled
         )
         vPnextArray = vPfuncNext(mNextArray)
@@ -2353,7 +2247,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Calculate expected marginal value and implied optimal consumption
         ExvPnextGrid = (
             self.DiscFac
-            * self.Rfree
+            * self.Rfree[0]
             * self.LivPrb[0]
             * self.PermGroFac[0] ** (-self.CRRA)
             * np.sum(
@@ -2370,7 +2264,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
@@ -2524,7 +2418,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Generate the "Delta m = 0" function, which is used to find target market resources
         # This overwrites the function generated by the perfect foresight version
-        Ex_Rnrm = self.Rfree / self.PermGroFac[0] * Ex_PermShkInv
+        Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0] * Ex_PermShkInv
         aux_dict["Delta_mNrm_ZeroFunc"] = (
             lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
         )
@@ -2902,22 +2796,16 @@ class KinkedRconsumerType(IndShockConsumerType):
     """
 
     IncShkDstn_defaults = KinkedRconsumerType_IncShkDstn_default
-    aXtraGrid_defualts = KinkedRconsumerType_aXtraGrid_default
+    aXtraGrid_defaults = KinkedRconsumerType_aXtraGrid_default
     solving_defaults = KinkedRconsumerType_solving_default
-    simulation_defualts = KinkedRconsumerType_simulation_default
+    simulation_defaults = KinkedRconsumerType_simulation_default
+    default_ = {
+        "params": KinkedRconsumerType_defaults,
+        "solver": solve_one_period_ConsKinkedR,
+    }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
-
-    def __init__(self, **kwds):
-        params = KinkedRconsumerType_defaults.copy()
-        params.update(kwds)
-
-        # Initialize a basic AgentType
-        super().__init__(**params)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.solve_one_period = solve_one_period_ConsKinkedR
 
     def calc_bounding_values(self):
         """
@@ -3114,11 +3002,13 @@ time_params = parse_time_params(age_birth=birth_age, age_death=death_age)
 
 # Update all the new parameters
 init_lifecycle = copy(init_idiosyncratic_shocks)
+del init_lifecycle["constructors"]
 init_lifecycle.update(time_params)
 init_lifecycle.update(dist_params)
 # Note the income specification overrides the pLvlInitMean from the SCF.
 init_lifecycle.update(income_params)
 init_lifecycle.update({"LivPrb": liv_prb})
+init_lifecycle["Rfree"] = init_lifecycle["T_cycle"] * init_lifecycle["Rfree"]
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
@@ -3126,4 +3016,5 @@ init_cyclical["PermGroFac"] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical["PermShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["LivPrb"] = 4 * [0.98]
+init_cyclical["Rfree"] = 4 * [1.03]
 init_cyclical["T_cycle"] = 4

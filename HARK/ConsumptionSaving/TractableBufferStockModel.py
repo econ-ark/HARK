@@ -28,7 +28,7 @@ from scipy.optimize import brentq, newton
 
 from HARK import AgentType, NullFunc
 from HARK.distributions import Bernoulli, Lognormal
-from HARK.interpolation import CubicInterp
+from HARK.interpolation import LinearInterp, CubicInterp
 
 # Import the HARK library.
 from HARK.metric import MetricObject
@@ -319,31 +319,22 @@ class TractableConsumerType(AgentType):
     Same as AgentType
     """
 
+    time_inv_ = [
+        "DiscFac",
+        "Rfree",
+        "CRRA",
+        "PermGroFacCmp",
+        "UnempPrb",
+        "PFMPC",
+        "Rnrm",
+        "Beth",
+        "mLowerBnd",
+        "mUpperBnd",
+    ]
+    shock_vars_ = ["eStateNow"]
     state_vars = ["bLvl", "mLvl", "aLvl"]
-
-    def __init__(self, **kwds):
-        params = init_tractable.copy()
-        params.update(kwds)
-        # Initialize a basic AgentType
-        AgentType.__init__(self, pseudo_terminal=True, **params)
-
-        # Add consumer-type specific objects, copying to create independent versions
-        self.time_vary = []
-        self.time_inv = [
-            "DiscFac",
-            "Rfree",
-            "CRRA",
-            "PermGroFacCmp",
-            "UnempPrb",
-            "PFMPC",
-            "Rnrm",
-            "Beth",
-            "mLowerBnd",
-            "mUpperBnd",
-        ]
-        self.shock_vars = ["eStateNow"]
-        self.poststate_vars = ["aLvl", "eStateNow"]  # For simulation
-        self.solve_one_period = add_to_stable_arm_points  # set correct solver
+    poststate_vars = ["aLvl", "eStateNow"]  # For simulation
+    default_ = {"params": init_tractable, "solver": add_to_stable_arm_points}
 
     def pre_solve(self):
         """
@@ -351,6 +342,8 @@ class TractableConsumerType(AgentType):
         ducting the backshooting routine, including the target levels, the per-
         fect foresight solution, (marginal) consumption at m=0, and the small
         perturbations around the steady state.
+
+        TODO: This should probably all be moved to a constructor function.
 
         Parameters
         ----------
@@ -606,7 +599,7 @@ class TractableConsumerType(AgentType):
             self.PFMPC * (self.h - 1.0),
             self.PFMPC,
         )
-        self.solution[0].cFunc_U = lambda m: self.PFMPC * m
+        self.solution[0].cFunc_U = LinearInterp([0.0, 1.0], [0.0, self.PFMPC])
 
     def sim_birth(self, which_agents):
         """

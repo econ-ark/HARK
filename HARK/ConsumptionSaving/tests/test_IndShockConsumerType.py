@@ -91,7 +91,7 @@ class testBufferStock(unittest.TestCase):
         # Set the parameters for the baseline results in the paper
         # using the variable values defined in the cell above
         self.base_params["PermGroFac"] = [1.03]
-        self.base_params["Rfree"] = 1.04
+        self.base_params["Rfree"] = [1.04]
         self.base_params["DiscFac"] = 0.96
         self.base_params["CRRA"] = 2.00
         self.base_params["UnempPrb"] = 0.005
@@ -126,7 +126,7 @@ class testBufferStock(unittest.TestCase):
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
-        GICRaw_fail_dictionary["Rfree"] = 1.08
+        GICRaw_fail_dictionary["Rfree"] = [1.08]
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
         GICRaw_fail_dictionary["cycles"] = (
             0  # cycles=0 makes this an infinite horizon consumer
@@ -176,7 +176,7 @@ class testBufferStock(unittest.TestCase):
 IdiosyncDict = {
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on assets
+    "Rfree": [1.03],  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -254,7 +254,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on assets
+    "Rfree": 10 * [1.03],  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.99, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
     "PermGroFac": [1.01, 1.01, 1.01, 1.02, 1.02, 1.02, 0.7, 1.0, 1.0, 1.0],
@@ -318,7 +318,7 @@ class testIndShockConsumerTypeLifecycleRfree(unittest.TestCase):
     def test_lifecyleRfree(self):
         Rfree = list(np.linspace(1.02, 1.04, 10))
         LifeCycleRfreeDict = LifecycleDict.copy()
-        LifeCycleRfreeDict["RFree"] = Rfree
+        LifeCycleRfreeDict["Rfree"] = Rfree
 
         LifecycleRfreeExample = IndShockConsumerType(**LifeCycleRfreeDict)
         LifecycleRfreeExample.cycles = 1
@@ -337,7 +337,7 @@ class testIndShockConsumerTypeLifecycleRfree(unittest.TestCase):
 CyclicalDict = {
     # Parameters shared with the perfect foresight model
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on assets
+    "Rfree": 4 * [1.03],  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": 4 * [0.98],  # Survival probability
     "PermGroFac": [1.1, 1.082251, 2.8, 0.3],
@@ -402,7 +402,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 # Theory" paper.
 bst_params = copy(init_idiosyncratic_shocks)
 bst_params["PermGroFac"] = [1.03]  # Permanent income growth factor
-bst_params["Rfree"] = 1.04  # Interest factor on assets
+bst_params["Rfree"] = [1.04]  # Interest factor on assets
 bst_params["DiscFac"] = 0.96  # Time Preference Factor
 bst_params["CRRA"] = 2.00  # Coefficient of relative risk aversion
 # Probability of unemployment (e.g. Probability of Zero Income in the paper)
@@ -439,7 +439,7 @@ class testStablePoints(unittest.TestCase):
 JACDict = {
     # Parameters shared with the perfect foresight model
     "CRRA": 2,  # Coefficient of relative risk aversion
-    "Rfree": 1.05**0.25,  # Interest factor on assets
+    "Rfree": [1.05**0.25],  # Interest factor on assets
     "DiscFac": 0.972,  # Intertemporal discount factor
     "LivPrb": [0.99375],  # Survival probability
     "PermGroFac": [1.00],  # Permanent income growth factor
@@ -553,8 +553,6 @@ class testPerfMITShk(unittest.TestCase):
         ss_dx.T_sim = params["T_cycle"]
         ss_dx.cycles = 1
         ss_dx.IncShkDstn = params["T_cycle"] * ss_dx.IncShkDstn
-        ss_dx.del_from_time_inv("Rfree")
-        ss_dx.add_to_time_vary("Rfree")
 
         ss_dx.solve()
         ss_dx.initialize_sim()
@@ -575,8 +573,6 @@ class testPerfMITShk(unittest.TestCase):
         example.cycles = 1
         example.PerfMITShk = True
         example.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "aLvl"]
-        example.del_from_time_inv("Rfree")
-        example.add_to_time_vary("Rfree")
         example.IncShkDstn = params["T_cycle"] * example.IncShkDstn
 
         AHist = []
@@ -605,7 +601,7 @@ class testPerfMITShk(unittest.TestCase):
 dict_harmenberg = {
     # Parameters shared with the perfect foresight model
     "CRRA": 2,  # Coefficient of relative risk aversion
-    "Rfree": 1.04**0.25,  # Interest factor on assets
+    "Rfree": [1.04**0.25],  # Interest factor on assets
     "DiscFac": 0.9735,  # Intertemporal discount factor
     "LivPrb": [0.99375],  # Survival probability
     "PermGroFac": [1.00],  # Permanent income growth factor
@@ -738,7 +734,7 @@ class testReadShock(unittest.TestCase):
                 "T_sim": t_sim,
                 "LivPrb": LivPrb,
                 "PermGroFac": [PermGroFac],
-                "Rfree": Rfree,
+                "Rfree": [Rfree],
             }
         )
 

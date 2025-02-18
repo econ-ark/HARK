@@ -1,10 +1,8 @@
 import unittest
-from copy import copy
 
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    init_idiosyncratic_shocks,
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
@@ -84,23 +82,22 @@ class testBufferStock(unittest.TestCase):
     """Tests of the results of the BufferStock REMARK."""
 
     def setUp(self):
-        # Make a dictionary containing all parameters needed to solve the model
-        self.base_params = copy(init_idiosyncratic_shocks)
-
         # Set the parameters for the baseline results in the paper
         # using the variable values defined in the cell above
-        self.base_params["PermGroFac"] = [1.03]
-        self.base_params["Rfree"] = 1.04
-        self.base_params["DiscFac"] = 0.96
-        self.base_params["CRRA"] = 2.00
-        self.base_params["UnempPrb"] = 0.005
-        self.base_params["IncUnemp"] = 0.0
-        self.base_params["PermShkStd"] = [0.1]
-        self.base_params["TranShkStd"] = [0.1]
-        self.base_params["LivPrb"] = [1.0]
-        self.base_params["CubicBool"] = True
-        self.base_params["T_cycle"] = 1
-        self.base_params["BoroCnstArt"] = None
+        self.base_params = {
+            "PermGroFac": [1.03],
+            "Rfree": [1.04],
+            "DiscFac": 0.96,
+            "CRRA": 2.0,
+            "UnempPrb": 0.005,
+            "IncUnemp": 0.0,
+            "PermShkStd": [0.1],
+            "TranShkStd": [0.1],
+            "LivPrb": [1.0],
+            "CubicBool": True,  ## This is causing a typing error?
+            "T_cycle": 1,
+            "BoroCnstArt": None,
+        }
 
     def test_baseEx(self):
         baseEx = IndShockConsumerTypeFast(**self.base_params)
@@ -125,7 +122,7 @@ class testBufferStock(unittest.TestCase):
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
-        GICRaw_fail_dictionary["Rfree"] = 1.08
+        GICRaw_fail_dictionary["Rfree"] = [1.08]
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
         GICRaw_fail_dictionary["cycles"] = (
             0  # cycles=0 makes this an infinite horizon consumer
@@ -145,7 +142,7 @@ class testBufferStock(unittest.TestCase):
 
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerTypeFast(**self.base_params)
-        baseEx_inf.assign_parameters(cycles=0)
+        baseEx_inf.cycles = 0
         baseEx_inf.solve()
         baseEx_inf.unpack_cFunc()
 
@@ -175,9 +172,7 @@ class testBufferStock(unittest.TestCase):
 class testIndShockConsumerTypeFastExample(unittest.TestCase):
     def test_infinite_horizon(self):
         IndShockExample = IndShockConsumerTypeFast(**IdiosyncDict)
-        IndShockExample.assign_parameters(
-            cycles=0
-        )  # Make this type have an infinite horizon
+        IndShockExample.cycles = 0
         IndShockExample.solve()
 
         self.assertAlmostEqual(

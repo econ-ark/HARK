@@ -110,7 +110,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         # Set up and solve Markov
         Markov_primitives = {
             "CRRA": base_primitives["CRRA"],
-            "Rfree": np.array(2 * [base_primitives["Rfree"]]),
+            "Rfree": [np.array(2 * [base_primitives["Rfree"]])],
             "PermGroFac": [
                 np.array(
                     [

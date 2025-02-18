@@ -504,10 +504,11 @@ LaborIntMargConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": LaborIntMargConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -666,38 +667,14 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     LbrCost_default = LaborIntMargConsumerType_LbrCost_default
     solving_default = LaborIntMargConsumerType_solving_default
     simulation_default = LaborIntMargConsumerType_simulation_default
+    default_ = {
+        "params": LaborIntMargConsumerType_default,
+        "solver": solve_ConsLaborIntMarg,
+    }
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)
-    time_vary_ += ["WageRte"]
+    time_vary_ += ["WageRte", "LbrCost", "TranShkGrid"]
     time_inv_ = copy(IndShockConsumerType.time_inv_)
-
-    def __init__(self, **kwds):
-        params = LaborIntMargConsumerType_default.copy()
-        params.update(kwds)
-
-        IndShockConsumerType.__init__(self, **params)
-
-        self.pseudo_terminal = False
-        self.solve_one_period = solve_ConsLaborIntMarg
-        self.update()
-
-    def update(self):
-        """
-        Update the income process, the assets grid, and the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.update_income_process()
-        self.construct("LbrCost", "TranShkGrid")
-        self.add_to_time_vary("LbrCost", "TranShkGrid")
-        self.update_assets_grid()
-        self.update_solution_terminal()
 
     def calc_bounding_values(self):
         """
@@ -921,6 +898,7 @@ init_labor_lifecycle["WageRte"] = [
     1.0,
     1.0,
 ]  # Wage rate in a lifecycle
+init_labor_lifecycle["Rfree"] = 10 * [1.03]
 # Assume labor cost coeffs is a polynomial of degree 1
 init_labor_lifecycle["LbrCostCoeffs"] = np.array([-2.0, 0.4])
 init_labor_lifecycle["T_cycle"] = 10
