@@ -14,6 +14,7 @@ See HARK documentation for mathematical descriptions of the models being solved.
 """
 
 from copy import copy, deepcopy
+import importlib.resources
 
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
@@ -33,6 +34,7 @@ from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
 from HARK.distributions import (
     Lognormal,
     MeanOneLogNormal,
+    Bernoulli,
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
@@ -196,6 +198,32 @@ class ConsumerSolution(MetricObject):
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
+
+
+def make_simple_dead_dstn(LivPrb, RNG, T_cycle):
+    """
+    A simple constructor method that constructs a time-varying list of Bernoulli
+    distributions, representing draws of who dies at the end of each period.
+
+    Parameters
+    ----------
+    LivPrb : [float]
+        Age-varying list of survival probabilities for each period of the cycle.
+    RNG : RandomState
+        The AgentType's internal random number generator.
+    T_cycle : int
+        Number of periods in this agent's cycle.
+
+    Returns
+    -------
+    DeadDstn : [Bernoulli]
+        Age-varying list of Bernoulli-type distributions of death shocks.
+    """
+    DeadDstn = [
+        Bernoulli(1.0 - LivPrb[t], seed=RNG.integers(0, 2**31 - 1))
+        for t in range(T_cycle)
+    ]
+    return DeadDstn
 
 
 def calc_human_wealth(h_nrm_next, perm_gro_fac, rfree, ex_inc_next):
@@ -1036,6 +1064,7 @@ def make_basic_CRRA_solution_terminal(CRRA):
 # Make a dictionary of constructors (very simply for perfect foresight model)
 PerfForesightConsumerType_constructors_default = {
     "solution_terminal": make_basic_CRRA_solution_terminal,
+    "DeadDstn": make_simple_dead_dstn,
 }
 
 # Make a dictionary to specify a perfect foresight consumer type
@@ -1071,6 +1100,10 @@ PerfForesightConsumerType_defaults = {}
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_solving_defaults)
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_simulation_defaults)
 init_perfect_foresight = PerfForesightConsumerType_defaults
+
+with importlib.resources.open_text("HARK.models", "ConsPerfForesight.yaml") as f:
+    ConsPF_model_statement = f.read()
+    f.close()
 
 
 class PerfForesightConsumerType(AgentType):
@@ -1171,6 +1204,7 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
+    model_ = ConsPF_model_statement
 
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
@@ -1183,7 +1217,7 @@ class PerfForesightConsumerType(AgentType):
         MPCmin=1.0,
         MPCmax=1.0,
     )
-    time_vary_ = ["LivPrb", "PermGroFac"]
+    time_vary_ = ["LivPrb", "PermGroFac", "DeadDstn"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
@@ -1921,6 +1955,7 @@ IndShockConsumerType_constructors_default = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
+    "DeadDstn": make_simple_dead_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
@@ -1986,6 +2021,10 @@ IndShockConsumerType_defaults.update(IndShockConsumerType_aXtraGrid_default)
 IndShockConsumerType_defaults.update(IndShockConsumerType_solving_default)
 IndShockConsumerType_defaults.update(IndShockConsumerType_simulation_default)
 init_idiosyncratic_shocks = IndShockConsumerType_defaults  # Here so that other models which use the old convention don't break
+
+with importlib.resources.open_text("HARK.models", "ConsIndShock.yaml") as f:
+    IndShock_model_statement = f.read()
+    f.close()
 
 
 class IndShockConsumerType(PerfForesightConsumerType):
@@ -2110,6 +2149,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     aXtraGrid_defaults = IndShockConsumerType_aXtraGrid_default
     solving_defaults = IndShockConsumerType_solving_default
     simulation_defaults = IndShockConsumerType_simulation_default
+    model_ = IndShock_model_statement
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
         "BoroCnstArt",

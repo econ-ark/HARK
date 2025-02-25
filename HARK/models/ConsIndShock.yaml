@@ -1,0 +1,31 @@
+description: "MNW's first attempt at the idiosyncratic income shocks model in YAML"
+symbols:
+  pre_states:
+    - kNrm
+    - pLvlPrev
+  parameters:
+    - Rfree
+    - PermGroFac
+  functions:
+    - cFunc
+  distributions:
+    - IncShkDstn
+    - DeadDstn
+  solution:
+    - cFunc
+initialize: |
+  pLvlPrev = 1                     \\ set initial permanent income to one
+  kNrm = 0.                        \\ set initial capital holdings to zero
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  yNrm = TranShk                   \\ normalized income is the transitory shock
+  G    = PermGroFac * PermShk      \\ calculate permanent income growth
+  pLvl = pLvlPrev * G              \\ update permanent income level
+  bNrm = Rfree * kNrm / G          \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm               \\ calculate normalized market resources
+  cNrm = cFunc@(mNrm)              \\ evaluate consumption from market resources
+  aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
+  dead ~ DeadDstn                  \\ draw binary death
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev

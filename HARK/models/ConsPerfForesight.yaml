@@ -1,0 +1,29 @@
+description: "MNW's first attempt at a perfect foresight model in YAML"
+symbols:
+  pre_states:
+    - kNrm
+    - pLvlPrev
+  parameters:
+    - Rfree
+    - PermGroFac
+  functions:
+    - cFunc
+  distributions:
+    - DeadDstn
+  solution:
+    - cFunc
+initialize: |
+  pLvlPrev = 1                     \\ set initial permanent income to one
+  kNrm = 10.                       \\ set initial capital holdings to ten
+dynamics: |
+  yNrm = 1.0                       \\ normalized income is constant in PF setting
+  G    = PermGroFac                \\ designate permanent income growth
+  pLvl = pLvlPrev * G              \\ update permanent income level
+  bNrm = Rfree * kNrm / G          \\ calculate normalized bank balances
+  mNrm = bNrm + yLvl               \\ calculate normalized market resources
+  cNrm = cFunc@(mNrm)              \\ evaluate consumption from market resources
+  aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
+  dead ~ DeadDstn                  \\ draw binary death
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
