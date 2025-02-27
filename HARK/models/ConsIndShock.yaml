@@ -6,6 +6,10 @@ symbols:
   parameters:
     - Rfree
     - PermGroFac
+  offset:
+    - PermGroFac
+    - Rfree
+    - IncShkDstn
   functions:
     - cFunc
   distributions:
@@ -14,7 +18,7 @@ symbols:
   solution:
     - cFunc
 initialize: |
-  pLvlPrev = 1                     \\ set initial permanent income to one
+  pLvlPrev = 1.                    \\ set initial permanent income to one
   kNrm = 0.                        \\ set initial capital holdings to zero
 dynamics: |
   (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks

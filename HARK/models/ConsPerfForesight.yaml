@@ -6,6 +6,9 @@ symbols:
   parameters:
     - Rfree
     - PermGroFac
+  offset:
+    - PermGroFac
+    - Rfree
   functions:
     - cFunc
   distributions:

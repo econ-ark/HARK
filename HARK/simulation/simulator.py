@@ -7,10 +7,15 @@ from dataclasses import dataclass, field
 from copy import deepcopy
 import numpy as np
 from sympy.utilities.lambdify import lambdify
+from sympy import symbols
 from typing import Callable
 from HARK.utilities import NullFunc
 from HARK.distributions import Distribution
 import yaml
+
+# Prevent pre-commit from removing sympy
+x = symbols("x")
+del x
 
 
 @dataclass(kw_only=True)
@@ -256,6 +261,9 @@ class AgentSimulator:
     T_sim: int
         Maximum number of periods that will be simulated, determining the size
         of the history arrays.
+    T_age: int
+        Period after which to automatically terminate an agent if they would
+        survive past this period.
     periods: list[SimBlock]
         Ordered list of simulation blocks, each representing a period.
     twist : dict
@@ -279,6 +287,7 @@ class AgentSimulator:
     N_agents: int = 1
     T_total: int = 1
     T_sim: int = 1
+    T_age: int = 0
     periods: list[SimBlock] = field(default_factory=list)
     twist: dict = field(default_factory=dict)
     data: dict = field(default_factory=dict)
@@ -341,6 +350,9 @@ class AgentSimulator:
         Looks at the special data field "dead" and marks those agents for replacement.
         If no variable called "dead" has been defined, this is skipped.
         """
+        if self.T_age > 0:
+            too_old = self.t_age > self.T_age  # age has already advanced
+            self.data["dead"][too_old] = True
         who_died = self.data["dead"]
         self.t_seq_bool_array[:, who_died] = False
         self.t_age[who_died] = -1
@@ -451,6 +463,8 @@ def make_simulator_from_agent(agent):
     model = yaml.safe_load(agent.model_)
     time_vary = agent.time_vary
     time_inv = agent.time_inv
+    cycles = agent.cycles
+    T_age = agent.T_age
 
     # Make a blank "template" period with structure but no data
     template_period, information = make_template_block(model)
@@ -500,6 +514,8 @@ def make_simulator_from_agent(agent):
         types[var] = float
     if "dead" in types.keys():
         types["dead"] = bool
+    types["t_cycle"] = int
+    types["t_age"] = int
 
     # Make a dictionary for the initializer and distribute information
     init_dict = {}
@@ -538,7 +554,7 @@ def make_simulator_from_agent(agent):
             if name in solution:
                 new_param_dict[name] = getattr(agent.solution[t], name)
             elif name in time_vary:
-                s = (t_cycle + 1) if name in offset else t_cycle
+                s = (t_cycle - 1) if name in offset else t_cycle
                 new_param_dict[name] = getattr(agent, name)[s]
             elif name in time_inv:
                 continue
@@ -557,6 +573,11 @@ def make_simulator_from_agent(agent):
         if t_cycle == T_cycle:
             t_cycle = 0
 
+    # Calculate maximum age
+    if cycles > 0:
+        T_age_max = T_seq - 1
+        T_age = np.minimum(T_age_max, T_age)
+
     # Make and return the new simulator
     new_simulator = AgentSimulator(
         description=description,
@@ -566,6 +587,7 @@ def make_simulator_from_agent(agent):
         N_agents=agent.AgentCount,
         T_total=T_seq,
         T_sim=agent.T_sim,
+        T_age=T_age,
         periods=periods,
         twist=twist,
         initializer=initializer,

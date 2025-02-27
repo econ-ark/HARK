@@ -30,6 +30,7 @@ from HARK.distributions import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+from HARK.simulation.simulator import make_simulator_from_agent
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -1006,6 +1007,14 @@ class AgentType(Model):
         """
         return None
 
+    def initialize_sym(self):
+        """
+        Use the new simulator structure to build a simulator from the agents'
+        attributes, storing it in a private attribute.
+        """
+        self._simulator = make_simulator_from_agent(self)
+        self._simulator.reset()
+
     def initialize_sim(self):
         """
         Prepares this AgentType for a new simulation.  Resets the internal random number generator,
@@ -1422,6 +1431,14 @@ class AgentType(Model):
         """
 
         return None
+
+    def symulate(self, T=None):
+        """
+        Run the new simulation structure, with history results written to the
+        hystory attribute of self.
+        """
+        self._simulator.simulate(T)
+        self.hystory = self._simulator.history
 
     def simulate(self, sim_periods=None):
         """
