@@ -1007,12 +1007,12 @@ class AgentType(Model):
         """
         return None
 
-    def initialize_sym(self):
+    def initialize_sym(self, **kwargs):
         """
         Use the new simulator structure to build a simulator from the agents'
         attributes, storing it in a private attribute.
         """
-        self._simulator = make_simulator_from_agent(self)
+        self._simulator = make_simulator_from_agent(self, **kwargs)
         self._simulator.reset()
 
     def initialize_sim(self):

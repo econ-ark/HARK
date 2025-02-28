@@ -264,6 +264,18 @@ class AgentSimulator:
     T_age: int
         Period after which to automatically terminate an agent if they would
         survive past this period.
+    stop_dead : bool
+        Whether simulated agents who draw dead=True should actually cease acting.
+        Default is True. Setting to False allows "cohort-style" simulation that
+        will generate many agents that survive to old ages. In most cases, T_sim
+        should not exceed T_age, unless the user really does want multiple succ-
+        essive cohorts to be born and fully simulated.
+    replace_dead : bool
+        Whether simulated agents who are marked as dead should be replaced with
+        newborns (default True) or simply cease acting without replacement (False).
+        The latter option is useful for models with state-dependent mortality,
+        to allow "cohort-style" simulation with the correct distribution of states
+        for survivors at each age. Setting to False has no effect if stop_dead is True.
     periods: list[SimBlock]
         Ordered list of simulation blocks, each representing a period.
     twist : dict
@@ -288,6 +300,8 @@ class AgentSimulator:
     T_total: int = 1
     T_sim: int = 1
     T_age: int = 0
+    stop_dead: bool = True
+    replace_dead: bool = True
     periods: list[SimBlock] = field(default_factory=list)
     twist: dict = field(default_factory=dict)
     data: dict = field(default_factory=dict)
@@ -309,10 +323,20 @@ class AgentSimulator:
 
         # Execute the simulation loop for T periods
         for t in range(T):
+            # Do the ordinary work for simulating a period
             self.sim_one_period()
+
+            # Mark agents who have reached maximum allowable age
+            if "dead" in self.data.keys() and self.T_age > 0:
+                too_old = self.t_age == self.T_age
+                self.data["dead"][too_old] = True
+
+            # Record tracked variables and advance age
             self.store_tracked_vars()
             self.advance_age()
-            if "dead" in self.data.keys():
+
+            # Handle death and replacement depending on simulation style
+            if "dead" in self.data.keys() and self.stop_dead:
                 self.mark_dead_agents()
             self.t_sim += 1
 
@@ -326,12 +350,8 @@ class AgentSimulator:
         T = self.T_sim
         self.t_sim = 0  # Time index for the simulation
 
-        # Reset the variable data
-        self.data = {}
-        for var in self.types.keys():
-            self.data[var] = np.empty(N, dtype=self.types[var])
-
-        # Reset the history arrays
+        # Reset the variable data and history arrays
+        self.clear_data()
         self.history = {}
         for var in self.track_vars:
             self.history[var] = np.empty((T, N), dtype=self.types[var])
@@ -345,14 +365,50 @@ class AgentSimulator:
         self.t_seq_bool_array = np.zeros((self.T_total, N), dtype=bool)
         self.t_age = -np.ones(N, dtype=int)
 
+    def clear_data(self, skip=None):
+        """
+        Reset all current data arrays back to blank, other than those designated
+        to be skipped, if any.
+
+        Parameters
+        ----------
+        skip : [str] or None
+            Names of variables *not* to be cleared from data. Default is None.
+
+        Returns
+        -------
+        None
+        """
+        if skip is None:
+            skip = []
+        N = self.N_agents
+        # self.data = {}
+        for var in self.types.keys():
+            if var in skip:
+                continue
+            this_type = self.types[var]
+            if this_type is float:
+                self.data[var] = np.full((N,), np.nan)
+            elif this_type is bool:
+                self.data[var] = np.zeros((N,), dtype=bool)
+            elif this_type is int:
+                self.data[var] = np.zeros((N,), dtype=np.int32)
+            elif this_type is complex:
+                self.data[var] = np.full((N,), np.nan, dtype=complex)
+            else:
+                raise ValueError(
+                    "Type "
+                    + str(this_type)
+                    + " of variable "
+                    + var
+                    + " was not recognized!"
+                )
+
     def mark_dead_agents(self):
         """
         Looks at the special data field "dead" and marks those agents for replacement.
         If no variable called "dead" has been defined, this is skipped.
         """
-        if self.T_age > 0:
-            too_old = self.t_age > self.T_age  # age has already advanced
-            self.data["dead"][too_old] = True
         who_died = self.data["dead"]
         self.t_seq_bool_array[:, who_died] = False
         self.t_age[who_died] = -1
@@ -392,6 +448,20 @@ class AgentSimulator:
         for var in self.track_vars:
             self.history[var][self.t_sim, :] = self.data[var]
 
+    def advance_age(self):
+        """
+        Increments age for all agents, altering t_age and t_age_bool. Agents in
+        the last period of the sequence will be assigned to the initial period.
+        In a lifecycle model, those agents should be marked as dead and replaced
+        in short order.
+        """
+        alive = self.t_age >= 0  # Don't age the dead
+        self.t_age[alive] += 1
+        X = self.t_seq_bool_array  # For shorter typing on next line
+        self.t_seq_bool_array[:, alive] = np.concatenate(
+            (X[-1:, alive], X[:-1, alive]), axis=0
+        )
+
     def sim_one_period(self):
         """
         Simulates one period of the model by advancing all agents one period.
@@ -401,48 +471,42 @@ class AgentSimulator:
         you want to run the model for exactly one period.
         """
         # Use the "twist" information to advance last period's end-of-period
-        # information/values to be the pre-states for this period
+        # information/values to be the pre-states for this period. Then, for
+        # any variable other than those brought in with the twist, wipe it clean.
+        keepers = []
         for var_tm1 in self.twist:
             var_t = self.twist[var_tm1]
+            keepers.append(var_t)
             self.data[var_t] = self.data[var_tm1].copy()
+        self.clear_data(skip=keepers)
 
-        # Create newborns first so the pre-states exist
-        self.create_newborns()
+        # Create newborns first so the pre-states exist. This should be done in
+        # the first simulated period (t_sim=0) or if decedents should be replaced.
+        if self.replace_dead or self.t_sim == 0:
+            self.create_newborns()
 
         # Loop through ages and run the model on the appropriately aged agents
         for t in range(self.T_total):
             these = self.t_seq_bool_array[t, :]
             if not np.any(these):
                 continue  # Skip any "empty ages"
+            this_period = self.periods[t]
 
-            data_temp = {
-                var: self.data[var][these] for var in self.periods[t].pre_states
-            }
-            self.periods[t].data = data_temp
-            self.periods[t].N = np.sum(these)
-            self.periods[t].run()
+            data_temp = {var: self.data[var][these] for var in this_period.pre_states}
+            this_period.data = data_temp
+            this_period.N = np.sum(these)
+            this_period.run()
 
             # Extract all of the variables from this period and write it to data
-            for var in self.periods[t].data.keys():
-                self.data[var][these] = self.periods[t].data[var]
+            for var in this_period.data.keys():
+                self.data[var][these] = this_period.data[var]
 
         # Put time information into the data dictionary
         self.data["t_age"] = self.t_age.copy()
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
 
-    def advance_age(self):
-        """
-        Increments age for all agents, altering t_age and t_age_bool. Agents in
-        the last period of the sequence will be assigned to the initial period.
-        In a lifecycle model, those agents should be marked as dead and replaced
-        in short order.
-        """
-        self.t_age += 1
-        X = self.t_seq_bool_array  # For shorter typing on next line
-        self.t_seq_bool_array = np.concatenate((X[-1:, :], X[:-1, :]), axis=0)
 
-
-def make_simulator_from_agent(agent):
+def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     """
     Build an AgentSimulator instance based on an AgentType instance. The AgentType
     should have its model attribute defined so that it can be parsed and translated
@@ -453,6 +517,18 @@ def make_simulator_from_agent(agent):
     ----------
     agent : AgentType
         Agents for whom a new simulator is to be constructed.
+    stop_dead : bool
+        Whether simulated agents who draw dead=True should actually cease acting.
+        Default is True. Setting to False allows "cohort-style" simulation that
+        will generate many agents that survive to old ages. In most cases, T_sim
+        should not exceed T_age, unless the user really does want multiple succ-
+        essive cohorts to be born and fully simulated.
+    replace_dead : bool
+        Whether simulated agents who are marked as dead should be replaced with
+        newborns (default True) or simply cease acting without replacement (False).
+        The latter option is useful for models with state-dependent mortality,
+        to allow "cohort-style" simulation with the correct distribution of states
+        for survivors at each age. Setting False has no effect if stop_dead is True.
 
     Returns
     -------
@@ -588,6 +664,8 @@ def make_simulator_from_agent(agent):
         T_total=T_seq,
         T_sim=agent.T_sim,
         T_age=T_age,
+        stop_dead=stop_dead,
+        replace_dead=replace_dead,
         periods=periods,
         twist=twist,
         initializer=initializer,
