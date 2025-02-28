@@ -6,15 +6,15 @@ symbols:
   parameters:
     - Rfree
     - PermGroFac
-  offset:
-    - PermGroFac
-    - Rfree
   functions:
     - cFunc
   distributions:
     - DeadDstn
   solution:
     - cFunc
+  offset:
+    - PermGroFac
+    - Rfree
 initialize: |
   pLvlPrev = 1                     \\ set initial permanent income to one
   kNrm = 10.                       \\ set initial capital holdings to ten

@@ -249,7 +249,15 @@ class AgentSimulator:
     description : str
         Textual description of what happens in this simulated block.
     statement : str
-        Verbatim model statement that was used to create this block.
+        Verbatim model statement that was used to create this simulator.
+    comments : dict
+        Dictionary of comments or descriptions for various model objects.
+    parameters : list[str]
+        List of parameter names used in the model.
+    distributions : list[str]
+        List of distribution names used in the model.
+    functions : list[str]
+        List of function names used in the model.
     common: list[str]
         Names of variables that are common across idiosyncratic agents.
     types: dict
@@ -294,6 +302,10 @@ class AgentSimulator:
 
     description: str = ""
     statement: str = ""
+    comments: dict = field(default_factory=dict)
+    parameters: list[str] = field(default_factory=list)
+    distributions: list[str] = field(default_factory=list)
+    functions: list[str] = field(default_factory=list)
     common: list[str] = field(default_factory=list)
     types: dict = field(default_factory=dict)
     N_agents: int = 1
@@ -505,6 +517,102 @@ class AgentSimulator:
         self.data["t_age"] = self.t_age.copy()
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
 
+    def describe_model(self, display=True):
+        """
+        Convenience method that prints model information to screen.
+        """
+        # Make a twist statement
+        twist_statement = ""
+        for var_tm1 in self.twist.keys():
+            var_t = self.twist[var_tm1]
+            new_line = var_tm1 + "[t-1] <---> " + var_t + "[t]\n"
+            twist_statement += new_line
+
+        # Assemble the overall model statement
+        output = ""
+        output += "----------------------------------\n"
+        output += "%%%%%% INITIALIZATION AT t=0 %%%%%\n"
+        output += "----------------------------------\n"
+        output += self.initializer.statement
+        output += "----------------------------------\n"
+        output += "%%%% DYNAMICS WITHIN PERIOD t %%%%\n"
+        output += "----------------------------------\n"
+        output += self.statement
+        output += "----------------------------------\n"
+        output += "%%%%%%% RELABELING / TWIST %%%%%%%\n"
+        output += "----------------------------------\n"
+        output += twist_statement
+        output += "-----------------------------------"
+
+        # Return or print the output
+        if display:
+            print(output)
+            return
+        else:
+            return output
+
+    def describe_symbols(self, display=True):
+        """
+        Convenience method that prints symbol information to screen.
+        """
+        symbols_text = ""
+        for key in self.comments.keys():
+            comment = self.comments[key]
+
+            # Get type of object
+            if key in self.types.keys():
+                this_type = str(self.types[key].__name__)
+            elif key in self.distributions:
+                this_type = "dstn"
+            elif key in self.parameters:
+                this_type = "param"
+            elif key in self.functions:
+                this_type = "func"
+
+            # Add tags
+            if key in self.common:
+                this_type += ", common"
+            # if key in self.solution:
+            #    this_type += ', solution'
+            this_line = key + " (" + this_type + ")"
+            if comment != "":
+                this_line += " : " + comment
+            this_line += "\n"
+            symbols_text += this_line
+
+        # Return or print the output
+        output = symbols_text
+        if display:
+            print(output)
+            return
+        else:
+            return output
+
+    def describe(self, symbols=True, model=True, display=True):
+        """
+        Convenience method for showing all information about the model.
+        """
+        # Asssemble the requested output
+        output = self.description + "\n"
+        if symbols or model:
+            output += "\n"
+        if symbols:
+            output += "----------------------------------\n"
+            output += "%%%%%%%%%%%%% SYMBOLS %%%%%%%%%%%%\n"
+            output += "----------------------------------\n"
+            output += self.describe_symbols(display=False)
+        if model:
+            output += self.describe_model(display=False)
+        if symbols and not model:
+            output += "----------------------------------"
+
+        # Return or print the output
+        if display:
+            print(output)
+            return
+        else:
+            return output
+
 
 def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     """
@@ -541,9 +649,11 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     time_inv = agent.time_inv
     cycles = agent.cycles
     T_age = agent.T_age
+    comments = {}
 
     # Make a blank "template" period with structure but no data
-    template_period, information = make_template_block(model)
+    template_period, information, block_comments = make_template_block(model)
+    comments.update(block_comments)
 
     # Make the agent initializer, without parameter values (etc)
     initializer, init_info = make_initializer(model)
@@ -573,14 +683,38 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     except:
         twist = {}
 
-    # Make a dictionary of data types
+    # Get the names of parameters, functions, and distributions
+    parameters = []
+    functions = []
+    distributions = []
+    for key in information.keys():
+        val = information[key]
+        if val is None:
+            parameters.append(key)
+        elif type(val) is NullFunc:
+            functions.append(key)
+        elif type(val) is Distribution:
+            distributions.append(key)
+
+    # Make a dictionary of data types and add comments
     types = {}
-    for var in variables:  # Loop through declared variables
-        try:
-            var_type = eval(variables[var]["type"])
-        except:
+    for var_line in variables:  # Loop through declared variables
+        var_name, var_type, desc = parse_declaration_for_parts(var_line)
+        if var_type is not None:
+            try:
+                var_type = eval(var_type)
+            except:
+                raise ValueError(
+                    "Couldn't understand type "
+                    + var_type
+                    + " for declared variable "
+                    + var_name
+                    + "!"
+                )
+        else:
             var_type = float
-        types[var] = var_type
+        types[var_name] = var_type
+        comments[var_name] = desc
     for var in information.keys():  # Loop through undeclared variables
         if var in types.keys():
             continue
@@ -588,10 +722,14 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
         if (this is None) or (type(this) is Distribution) or (type(this) is NullFunc):
             continue
         types[var] = float
+        comments[var] = ""
     if "dead" in types.keys():
         types["dead"] = bool
-    types["t_cycle"] = int
+        comments["dead"] = "whether agent died this period"
+    types["t_seq"] = int
     types["t_age"] = int
+    comments["t_seq"] = "which period of the sequence the agent is on"
+    comments["t_age"] = "how many periods the agent has already lived for"
 
     # Make a dictionary for the initializer and distribute information
     init_dict = {}
@@ -658,6 +796,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     new_simulator = AgentSimulator(
         description=description,
         statement=statement,
+        comments=comments,
+        parameters=parameters,
+        functions=functions,
+        distributions=distributions,
         common=common,
         types=types,
         N_agents=agent.AgentCount,
@@ -695,6 +837,9 @@ def make_template_block(model):
         - 0 --> outcome variable (including pre-states)
         - NullFunc --> function
         - Distribution --> distribution
+    comments : dict
+        Dictionary of comments included with declared functions, distributions,
+        and parameters.
     """
     # Extract pre-state names
     try:
@@ -709,20 +854,41 @@ def make_template_block(model):
         description = ""
 
     # Extract parameters, functions, and distributions
-    try:
-        parameters = {param: None for param in model["symbols"]["parameters"]}
-    except:
-        parameters = {}
-    try:
-        functions = {func: NullFunc() for func in model["symbols"]["functions"]}
-    except:
-        functions = {}
-    try:
-        distributions = {
-            dstn: Distribution() for dstn in model["symbols"]["distributions"]
-        }
-    except:
-        distributions = {}
+    comments = {}
+    parameters = {}
+    if "parameters" in model["symbols"].keys():
+        param_lines = model["symbols"]["parameters"]
+        for line in param_lines:
+            param_name, datatype, desc = parse_declaration_for_parts(line)
+            parameters[param_name] = None
+            comments[param_name] = desc
+            # TODO: what to do with parameter types?
+
+    functions = {}
+    if "functions" in model["symbols"].keys():
+        func_lines = model["symbols"]["functions"]
+        for line in func_lines:
+            func_name, datatype, desc = parse_declaration_for_parts(line)
+            if (datatype is not None) and (datatype != "func"):
+                raise ValueError(
+                    func_name
+                    + " was declared as a function, but given a different datatype!"
+                )
+            functions[func_name] = NullFunc()
+            comments[func_name] = desc
+
+    distributions = {}
+    if "distributions" in model["symbols"].keys():
+        dstn_lines = model["symbols"]["distributions"]
+        for line in dstn_lines:
+            dstn_name, datatype, desc = parse_declaration_for_parts(line)
+            if (datatype is not None) and (datatype != "dstn"):
+                raise ValueError(
+                    dstn_name
+                    + " was declared as a distribution, but given a different datatype!"
+                )
+            distributions[dstn_name] = Distribution()
+            comments[dstn_name] = desc
 
     # Combine those dictionaries into a single "information" dictionary
     content = parameters.copy()
@@ -761,7 +927,7 @@ def make_template_block(model):
         statement=statement,
         events=events,
     )
-    return template_block, info
+    return template_block, info, comments
 
 
 def make_initializer(model):
@@ -793,20 +959,36 @@ def make_initializer(model):
         pre_states = []
 
     # Extract parameters, functions, and distributions
-    try:
-        parameters = {param: None for param in model["symbols"]["parameters"]}
-    except:
-        parameters = {}
-    try:
-        functions = {func: NullFunc() for func in model["symbols"]["functions"]}
-    except:
-        functions = {}
-    try:
-        distributions = {
-            dstn: Distribution() for dstn in model["symbols"]["distributions"]
-        }
-    except:
-        distributions = {}
+    parameters = {}
+    if "parameters" in model["symbols"].keys():
+        param_lines = model["symbols"]["parameters"]
+        for line in param_lines:
+            param_name, datatype, desc = parse_declaration_for_parts(line)
+            parameters[param_name] = None
+
+    functions = {}
+    if "functions" in model["symbols"].keys():
+        func_lines = model["symbols"]["functions"]
+        for line in func_lines:
+            func_name, datatype, desc = parse_declaration_for_parts(line)
+            if (datatype is not None) and (datatype != "func"):
+                raise ValueError(
+                    func_name
+                    + " was declared as a function, but given a different datatype!"
+                )
+            functions[func_name] = NullFunc()
+
+    distributions = {}
+    if "distributions" in model["symbols"].keys():
+        dstn_lines = model["symbols"]["distributions"]
+        for line in dstn_lines:
+            dstn_name, datatype, desc = parse_declaration_for_parts(line)
+            if (datatype is not None) and (datatype != "dstn"):
+                raise ValueError(
+                    dstn_name
+                    + " was declared as a distribution, but given a different datatype!"
+                )
+            distributions[dstn_name] = Distribution()
 
     # Combine those dictionaries into a single "information" dictionary
     content = parameters.copy()
@@ -903,7 +1085,6 @@ def make_new_event(statement, info):
         A new model event with values and information missing, but structure set.
     """
     # First determine what kind of event this is
-    # print("Now examining this statement: " + statement)
     has_eq = "=" in statement
     has_tld = "~" in statement
     has_amp = "@" in statement
@@ -919,8 +1100,6 @@ def make_new_event(statement, info):
         event_type = RandomEvent
     if event_type is None:
         raise ValueError("Statement line was not any valid type!")
-
-    # print("It's a " + str(event_type.__name__) + "!")
 
     # Now make and return an appropriate event for that type
     if event_type is DynamicEvent:
@@ -951,7 +1130,7 @@ def make_new_dynamic(statement, info):
         A new dynamic event with values and information missing, but structure set.
     """
     # Cut the statement up into its LHS, RHS, and description
-    lhs, rhs, description = parse_for_parts(statement, "=")
+    lhs, rhs, description = parse_line_for_parts(statement, "=")
 
     # Parse the LHS (assignment) to get assigned variables
     assigns = parse_assignment(lhs)
@@ -995,7 +1174,7 @@ def make_new_dynamic(statement, info):
     # Make and return the new dynamic event
     new_dynamic = DynamicEvent(
         description=description,
-        statement=lhs + "=" + rhs,
+        statement=lhs + " = " + rhs,
         assigns=assigns,
         needs=needs,
         parameters=parameters,
@@ -1024,7 +1203,7 @@ def make_new_random(statement, info):
         A new random event with values and information missing, but structure set.
     """
     # Cut the statement up into its LHS, RHS, and description
-    lhs, rhs, description = parse_for_parts(statement, "~")
+    lhs, rhs, description = parse_line_for_parts(statement, "~")
 
     # Parse the LHS (assignment) to get assigned variables
     assigns = parse_assignment(lhs)
@@ -1038,7 +1217,7 @@ def make_new_random(statement, info):
     # Make and return the new random event
     new_random = RandomEvent(
         description=description,
-        statement=lhs + "~" + rhs,
+        statement=lhs + " ~ " + rhs,
         assigns=assigns,
         needs=[],
         parameters={},
@@ -1068,7 +1247,7 @@ def make_new_evaluation(statement, info):
         A new evaluation event with values and information missing, but structure set.
     """
     # Cut the statement up into its LHS, RHS, and description
-    lhs, rhs, description = parse_for_parts(statement, "=")
+    lhs, rhs, description = parse_line_for_parts(statement, "=")
 
     # Parse the LHS (assignment) to get assigned variables
     assigns = parse_assignment(lhs)
@@ -1103,7 +1282,7 @@ def make_new_evaluation(statement, info):
     # Make and return the new evaluation event
     new_evaluation = EvaluationEvent(
         description=description,
-        statement=lhs + "=" + rhs,
+        statement=lhs + " = " + rhs,
         assigns=assigns,
         needs=needs,
         parameters=parameters,
@@ -1114,7 +1293,52 @@ def make_new_evaluation(statement, info):
     return new_evaluation
 
 
-def parse_for_parts(statement, symb):
+def parse_declaration_for_parts(line):
+    """
+    Split a declaration line from a model file into the object's name, its datatype,
+    and any provided comment or description.
+
+
+
+    Parameters
+    ----------
+    line : str
+        Line of to be parsed into the object name, object type, and a comment or description.
+
+    Returns
+    -------
+    name : str
+        Name of the object.
+    datatype : str or None
+        Provided datatype string, in parentheses, if any.
+    desc : str
+        Comment or description, after //, if any.
+    """
+    # First, separate off the comment or description, if any
+    slashes = line.find("\\")
+    desc = "" if slashes == -1 else line[(slashes + 2) :].strip()
+    rem = line if slashes == -1 else line[:slashes].strip()
+
+    # Now look for bracketing parentheses declaring a datatype
+    lp = rem.find("(")
+    if lp > -1:
+        rp = rem.find(")")
+        if rp == -1:
+            raise ValueError("Unclosed parentheses on object declaration line!")
+        datatype = rem[(lp + 1) : rp].strip()
+        leftover = rem[:lp].strip()
+    else:
+        datatype = None
+        leftover = rem
+
+    # What's left over should be the object name.
+    # TODO: Check for valid name formatting based on characters.
+    name = leftover
+
+    return name, datatype, desc
+
+
+def parse_line_for_parts(statement, symb):
     """
     Split one line of a model statement into its LHS, RHS, and description. The
     description is everything following \\, while the LHS and RHS are determined

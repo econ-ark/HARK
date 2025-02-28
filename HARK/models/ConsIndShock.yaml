@@ -1,22 +1,31 @@
-description: "MNW's first attempt at the idiosyncratic income shocks model in YAML"
+description: "MNW's first attempt at the idiosyncratic income shocks model in YAML."
 symbols:
+  variables:
+    - kNrm               \\ beginning of period capital, normalized by p_{t-1}
+    - pLvlPrev           \\ inbound permanent income level, before growth
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - aNrm               \\ normalized end-of-period assets
   pre_states:
     - kNrm
     - pLvlPrev
   parameters:
-    - Rfree
-    - PermGroFac
+    - Rfree              \\ risk free return factor on assets
+    - PermGroFac         \\ expected permanent income growth factor
+  functions:
+    - cFunc              \\ consumption function over market resources
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - DeadDstn           \\ binary mortality distribution
+  solution:
+    - cFunc
   offset:
     - PermGroFac
     - Rfree
     - IncShkDstn
-  functions:
-    - cFunc
-  distributions:
-    - IncShkDstn
-    - DeadDstn
-  solution:
-    - cFunc
 initialize: |
   pLvlPrev = 1.                    \\ set initial permanent income to one
   kNrm = 0.                        \\ set initial capital holdings to zero
