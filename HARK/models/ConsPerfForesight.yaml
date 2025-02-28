@@ -26,7 +26,7 @@ dynamics: |
   mNrm = bNrm + yLvl               \\ calculate normalized market resources
   cNrm = cFunc@(mNrm)              \\ evaluate consumption from market resources
   aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
-  dead ~ DeadDstn                  \\ draw binary death
+  dead ~ MortDstn                  \\ draw binary death
 twist:
   aNrm: kNrm
   pLvl: pLvlPrev

@@ -555,9 +555,11 @@ class AgentSimulator:
         """
         Convenience method that prints symbol information to screen.
         """
-        symbols_text = ""
+        # Get names and types
+        symbols_lines = []
+        comments = []
         for key in self.comments.keys():
-            comment = self.comments[key]
+            comments.append(self.comments[key])
 
             # Get type of object
             if key in self.types.keys():
@@ -575,10 +577,17 @@ class AgentSimulator:
             # if key in self.solution:
             #    this_type += ', solution'
             this_line = key + " (" + this_type + ")"
-            if comment != "":
-                this_line += " : " + comment
-            this_line += "\n"
-            symbols_text += this_line
+            symbols_lines.append(this_line)
+
+        # Add comments, aligned
+        symbols_text = ""
+        longest = np.max([len(this) for this in symbols_lines])
+        for j in range(len(symbols_lines)):
+            line = symbols_lines[j]
+            comment = comments[j]
+            L = len(line)
+            pad = (longest + 1) - L
+            symbols_text += line + pad * " " + ": " + comment + "\n"
 
         # Return or print the output
         output = symbols_text
@@ -788,6 +797,8 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
             t_cycle = 0
 
     # Calculate maximum age
+    if T_age is None:
+        T_age = 0
     if cycles > 0:
         T_age_max = T_seq - 1
         T_age = np.minimum(T_age_max, T_age)
@@ -916,8 +927,12 @@ def make_template_block(model):
 
     # Make a single string model statement
     statement = ""
+    longest = np.max([len(event.statement) for event in events])
     for event in events:
-        statement += event.statement + "\n"
+        this_statement = event.statement
+        L = len(this_statement)
+        pad = (longest + 1) - L
+        statement += this_statement + pad * " " + ": " + event.description + "\n"
 
     # Make and return the new SimBlock
     template_block = SimBlock(
@@ -1052,8 +1067,12 @@ def make_initializer(model):
 
     # Make a single string initializer statement
     statement = ""
+    longest = np.max([len(event.statement) for event in events])
     for event in events:
-        statement += event.statement + "\n"
+        this_statement = event.statement
+        L = len(this_statement)
+        pad = (longest + 1) - L
+        statement += this_statement + pad * " " + ": " + event.description + "\n"
 
     # Make and return the new SimBlock
     initializer = SimBlock(

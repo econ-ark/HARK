@@ -8,12 +8,14 @@ It currently only two models:
 """
 
 import numpy as np
+import importlib
 
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
+    make_simple_mort_dstn,
     make_assets_grid,
     make_basic_CRRA_solution_terminal,
 )
@@ -103,6 +105,7 @@ PrefShockConsumerType_constructors_default = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "PrefShkDstn": make_lognormal_PrefShkDstn,
+    "MortDstn": make_simple_mort_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
@@ -131,7 +134,6 @@ PrefShockConsumerType_aXtraGrid_default = {
 }
 
 # Default parameters to make PrefShkDstn using make_lognormal_PrefShkDstn
-
 PrefShockConsumerType_PrefShkDstn_default = {
     "PrefShkCount": 12,  # Number of points in discrete approximation to preference shock dist
     "PrefShk_tail_N": 4,  # Number of "tail points" on each end of pref shock dist
@@ -181,6 +183,10 @@ PrefShockConsumerType_default.update(PrefShockConsumerType_simulation_default)
 init_preference_shocks = (
     PrefShockConsumerType_default  # So models that aren't updated don't break
 )
+
+with importlib.resources.open_text("HARK.models", "ConsPrefShockModel.yaml") as f:
+    PrefShock_model_statement = f.read()
+    f.close()
 
 # Specify default parameters that differ in "kinky preference" model compared to base PrefShockConsumerType
 kinky_pref_different_params = {
@@ -343,6 +349,7 @@ class PrefShockConsumerType(IndShockConsumerType):
     PrefShkDstn_defaults = PrefShockConsumerType_PrefShkDstn_default
     solving_defaults = PrefShockConsumerType_solving_default
     simulation_defaults = PrefShockConsumerType_simulation_default
+    model_ = PrefShock_model_statement
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
 

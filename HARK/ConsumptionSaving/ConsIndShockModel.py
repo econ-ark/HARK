@@ -200,7 +200,7 @@ class ConsumerSolution(MetricObject):
 # =====================================================================
 
 
-def make_simple_dead_dstn(LivPrb, RNG, T_cycle):
+def make_simple_mort_dstn(LivPrb, RNG, T_cycle):
     """
     A simple constructor method that constructs a time-varying list of Bernoulli
     distributions, representing draws of who dies at the end of each period.
@@ -216,14 +216,14 @@ def make_simple_dead_dstn(LivPrb, RNG, T_cycle):
 
     Returns
     -------
-    DeadDstn : [Bernoulli]
+    MortDstn : [Bernoulli]
         Age-varying list of Bernoulli-type distributions of death shocks.
     """
-    DeadDstn = [
+    MortDstn = [
         Bernoulli(1.0 - LivPrb[t], seed=RNG.integers(0, 2**31 - 1))
         for t in range(T_cycle)
     ]
-    return DeadDstn
+    return MortDstn
 
 
 def calc_human_wealth(h_nrm_next, perm_gro_fac, rfree, ex_inc_next):
@@ -1064,7 +1064,7 @@ def make_basic_CRRA_solution_terminal(CRRA):
 # Make a dictionary of constructors (very simply for perfect foresight model)
 PerfForesightConsumerType_constructors_default = {
     "solution_terminal": make_basic_CRRA_solution_terminal,
-    "DeadDstn": make_simple_dead_dstn,
+    "MortDstn": make_simple_mort_dstn,
 }
 
 # Make a dictionary to specify a perfect foresight consumer type
@@ -1217,7 +1217,7 @@ class PerfForesightConsumerType(AgentType):
         MPCmin=1.0,
         MPCmax=1.0,
     )
-    time_vary_ = ["LivPrb", "PermGroFac", "DeadDstn"]
+    time_vary_ = ["LivPrb", "PermGroFac", "MortDstn"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
@@ -1955,7 +1955,7 @@ IndShockConsumerType_constructors_default = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
-    "DeadDstn": make_simple_dead_dstn,
+    "MortDstn": make_simple_mort_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
