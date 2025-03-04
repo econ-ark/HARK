@@ -4,7 +4,7 @@ This file implements unit tests for the Monte Carlo simulation module
 
 import unittest
 
-from HARK.distribution import Bernoulli, IndexDistribution, MeanOneLogNormal
+from HARK.distributions import Bernoulli, IndexDistribution, MeanOneLogNormal
 from HARK.model import Aggregate, Control, DBlock
 from HARK.simulation.monte_carlo import *
 
@@ -157,5 +157,51 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
 
         a1 = history["a"][1]
         b1 = history["m"][1] - self.dr["c"][1](history["m"][1])
+
+        self.assertTrue((a1 == b1).all())
+
+
+class test_MonteCarloSimulator(unittest.TestCase):
+    def setUp(self):
+        self.calibration = {  # TODO
+            "G": 1.05,
+        }
+        self.block = DBlock(
+            **{
+                "shocks": {
+                    "theta": MeanOneLogNormal(1),
+                    "agg_R": Aggregate(MeanOneLogNormal(1)),
+                },
+                "dynamics": {
+                    "b": lambda agg_R, G, a: agg_R * G * a,
+                    "m": lambda b, theta: b + theta,
+                    "c": Control(["m"]),
+                    "a": lambda m, c: m - c,
+                },
+            }
+        )
+
+        self.initial = {"a": MeanOneLogNormal(1)}
+
+        self.dr = {"c": lambda m: m / 2}
+
+    def test_simulate(self):
+        self.simulator = MonteCarloSimulator(
+            self.calibration,
+            self.block,
+            self.dr,
+            self.initial,
+            agent_count=3,
+        )
+
+        self.simulator.initialize_sim()
+        history = self.simulator.simulate()
+
+        a1 = history["a"][5]
+        b1 = (
+            history["a"][4] * history["agg_R"][5] * self.calibration["G"]
+            + history["theta"][5]
+            - history["c"][5]
+        )
 
         self.assertTrue((a1 == b1).all())

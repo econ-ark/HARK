@@ -4,7 +4,7 @@ Tools for crafting models.
 
 from dataclasses import dataclass, field, replace
 from copy import copy, deepcopy
-from HARK.distribution import (
+from HARK.distributions import (
     Distribution,
     DiscreteDistributionLabeled,
     combine_indep_dstns,
@@ -174,9 +174,11 @@ def simulate_dynamics(
                 ## This is quite slow.
                 for i in range(dr[varn].size):
                     vals_i = {
-                        var: vals[var][i]
-                        if isinstance(vals[var], np.ndarray)
-                        else vals[var]
+                        var: (
+                            vals[var][i]
+                            if isinstance(vals[var], np.ndarray)
+                            else vals[var]
+                        )
                         for var in vals
                     }
                     vals[varn][i] = dr[varn][i](
@@ -273,7 +275,11 @@ class DBlock(Block):
         return self.dynamics
 
     def get_vars(self):
-        return list(self.shocks.keys()) + list(self.dynamics.keys())
+        return (
+            list(self.shocks.keys())
+            + list(self.dynamics.keys())
+            + list(self.reward.keys())
+        )
 
     def get_controls(self):
         """
@@ -357,6 +363,9 @@ class DBlock(Block):
         Given a decision rule and a continuation value function,
         return a function for the value at the decision step/tac,
         after the shock have been realized.
+
+        ## TODO: it would be better to systematize these value functions per block
+        ## better, then construct them with 'partial' methods
         """
         srvf = self.get_state_rule_value_function_from_continuation(continuation)
 

@@ -30,7 +30,7 @@ from HARK.Calibration.life_tables.us_ssa.SSATools import parse_ssa_life_table
 from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
-from HARK.distribution import (
+from HARK.distributions import (
     Lognormal,
     MeanOneLogNormal,
     Uniform,
@@ -39,13 +39,13 @@ from HARK.distribution import (
     expected,
 )
 from HARK.interpolation import (
-    CubicInterp,
     LinearInterp,
     LowerEnvelope,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
@@ -863,14 +863,13 @@ def solve_one_period_ConsKinkedR(
 
     # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
     aNrmNow = np.sort(
-        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 0.0]))),
+        np.hstack((np.asarray(aXtraGrid) + mNrmMinNow, np.array([0.0, 1e-15]))),
     )
 
     # Make a 1D array of the interest factor at each asset gridpoint
     Rfree = Rsave * np.ones_like(aNrmNow)
-    Rfree[aNrmNow < 0] = Rboro
+    Rfree[aNrmNow <= 0] = Rboro
     i_kink = np.argwhere(aNrmNow == 0.0)[0][0]
-    Rfree[i_kink] = Rboro
 
     # Calculate end-of-period marginal value of assets at each gridpoint
     vPfacEff = DiscFacEff * Rfree * PermGroFac ** (-CRRA)
@@ -1854,6 +1853,12 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
+        # Child classes should not run this method
+        is_perf_foresight = type(self) is PerfForesightConsumerType
+        is_ind_shock = type(self) is IndShockConsumerType
+        if not (is_perf_foresight or is_ind_shock):
+            return
+
         infinite_horizon = self.cycles == 0
         single_period = self.T_cycle = 1
         if not infinite_horizon:
@@ -2303,7 +2308,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 tail_bound=[0.05, 0.95],
             )
             TranShkDstn = add_discrete_outcome_constant_mean(
-                TranShkDstn, self.UnempPrb, self.IncUnemp
+                TranShkDstn, p=self.UnempPrb, x=self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
                 N=200,
@@ -2331,12 +2336,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         aNowGrid = mNowGrid - cNowGrid
 
         # Tile the grids for fast computation
-        ShkCount = IncShkDstn[0].size
+        ShkCount = IncShkDstn.pmv.size
         aCount = aNowGrid.size
         aNowGrid_tiled = np.tile(aNowGrid, (ShkCount, 1))
-        PermShkVals_tiled = (np.tile(IncShkDstn[1], (aCount, 1))).transpose()
-        TranShkVals_tiled = (np.tile(IncShkDstn[2], (aCount, 1))).transpose()
-        ShkPrbs_tiled = (np.tile(IncShkDstn[0], (aCount, 1))).transpose()
+        PermShkVals_tiled = (np.tile(IncShkDstn.atoms[0], (aCount, 1))).transpose()
+        TranShkVals_tiled = (np.tile(IncShkDstn.atoms[1], (aCount, 1))).transpose()
+        ShkPrbs_tiled = (np.tile(IncShkDstn.pmv, (aCount, 1))).transpose()
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (

@@ -12,7 +12,6 @@ from copy import deepcopy
 
 import numpy as np
 from scipy.interpolate import CubicHermiteSpline
-
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
 
@@ -611,9 +610,9 @@ class IdentityFunction(MetricObject):
         Returns the derivative of the function with respect to the first dimension.
         """
         if self.i_dim == 0:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeX(self, *args):
         """
@@ -625,9 +624,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 0
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeY(self, *args):
         """
@@ -639,9 +638,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 1
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeZ(self, *args):
         """
@@ -653,9 +652,9 @@ class IdentityFunction(MetricObject):
         else:
             j = 2
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
     def derivativeW(self, *args):
         """
@@ -669,9 +668,9 @@ class IdentityFunction(MetricObject):
                 False
             ), "Derivative with respect to W can't be called when n_dims < 4!"
         if self.i_dim == j:
-            return np.ones_like(*args[0])
+            return np.ones_like(args[0])
         else:
-            return np.zeros_like(*args[0])
+            return np.zeros_like(args[0])
 
 
 class ConstantFunction(MetricObject):
@@ -1231,7 +1230,7 @@ class CubicHermiteInterp(HARKinterpolator1D):
         _check_grid_dimensions(1, self.y_list, self.x_list)
         _check_grid_dimensions(1, self.dydx_list, self.x_list)
 
-        self.n = self.x_list.size
+        self.n = len(x_list)
 
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
@@ -1329,6 +1328,53 @@ class CubicHermiteInterp(HARKinterpolator1D):
         y = self._eval_helper(x, out_bot, out_top)
         dydx = self._der_helper(x, out_bot, out_top)
         return y, dydx
+
+    def der_interp(self, nu=1):
+        """
+        Construct a new piecewise polynomial representing the derivative.
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.derivative(nu)
+
+    def antider_interp(self, nu=1):
+        """
+        Construct a new piecewise polynomial representing the antiderivative.
+
+        Antiderivative is also the indefinite integral of the function,
+        and derivative is its inverse operation.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.antiderivative(nu)
+
+    def integrate(self, a, b, extrapolate=False):
+        """
+        Compute a definite integral over a piecewise polynomial.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.integrate(a, b, extrapolate)
+
+    def roots(self, discontinuity=True, extrapolate=False):
+        """
+        Find real roots of the the piecewise polynomial.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.roots(discontinuity, extrapolate)
+
+    def solve(self, y=0.0, discontinuity=True, extrapolate=False):
+        """
+        Find real solutions of the the equation ``pp(x) == y``.
+
+        See `scipy` for additional documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html
+        """
+        return self._chs.solve(y, discontinuity, extrapolate)
 
 
 class BilinearInterp(HARKinterpolator2D):
@@ -4716,477 +4762,4 @@ class MargMargValueFuncCRRA(MetricObject):
                 "cFunc does not have a 'derivativeX' attribute. Can't compute"
                 + "marginal marginal value."
             )
-
         return MPC * CRRAutilityPP(c, rho=self.CRRA)
-
-
-##############################################################################
-# Examples and tests
-##############################################################################
-
-
-def main():
-    print("Sorry, HARK.interpolation doesn't actually do much on its own.")
-    print("To see some examples of its interpolation methods in action, look at any")
-    print("of the model modules in /ConsumptionSavingModel.  In the future, running")
-    print("this module will show examples of each interpolation class.")
-
-    RNG = np.random.default_rng(123)
-
-    if False:
-        x = np.linspace(1, 20, 39)
-        y = np.log(x)
-        dydx = 1.0 / x
-        f = CubicInterp(x, y, dydx)
-        x_test = np.linspace(0, 30, 200)
-        y_test = f(x_test)
-        plt.plot(x_test, y_test)
-        plt.show()
-
-    if False:
-
-        def f(x, y):
-            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
-
-        def dfdx(x, y):
-            return 6.0 * x + y
-
-        def dfdy(x, y):
-            return x + 8.0 * y
-
-        y_list = np.linspace(0, 5, 100, dtype=float)
-        xInterpolators = []
-        xInterpolators_alt = []
-        for y in y_list:
-            this_x_list = np.sort(RNG.random(100) * 5.0)
-            this_interpolation = LinearInterp(
-                this_x_list, f(this_x_list, y * np.ones(this_x_list.size))
-            )
-            that_interpolation = CubicInterp(
-                this_x_list,
-                f(this_x_list, y * np.ones(this_x_list.size)),
-                dfdx(this_x_list, y * np.ones(this_x_list.size)),
-            )
-            xInterpolators.append(this_interpolation)
-            xInterpolators_alt.append(that_interpolation)
-        g = LinearInterpOnInterp1D(xInterpolators, y_list)
-        LinearInterpOnInterp1D(xInterpolators_alt, y_list)
-
-        rand_x = RNG.random(100) * 5.0
-        rand_y = RNG.random(100) * 5.0
-        z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
-        q = (dfdx(rand_x, rand_y) - g.derivativeX(rand_x, rand_y)) / dfdx(
-            rand_x, rand_y
-        )
-        r = (dfdy(rand_x, rand_y) - g.derivativeY(rand_x, rand_y)) / dfdy(
-            rand_x, rand_y
-        )
-        # print(z)
-        # print(q)
-        # print(r)
-
-        z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
-        q = (dfdx(rand_x, rand_y) - g.derivativeX(rand_x, rand_y)) / dfdx(
-            rand_x, rand_y
-        )
-        r = (dfdy(rand_x, rand_y) - g.derivativeY(rand_x, rand_y)) / dfdy(
-            rand_x, rand_y
-        )
-        print(z)
-        # print(q)
-        # print(r)
-
-    if False:
-
-        def f(x, y, z):
-            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
-
-        def dfdx(x, y, z):
-            return 6.0 * x + y + 1.5 * z
-
-        def dfdy(x, y, z):
-            return x + 8.0 * y
-
-        def dfdz(x, y, z):
-            return -10.0 * z + 1.5 * x
-
-        y_list = np.linspace(0, 5, 51, dtype=float)
-        z_list = np.linspace(0, 5, 51, dtype=float)
-        xInterpolators = []
-        for y in y_list:
-            temp = []
-            for z in z_list:
-                this_x_list = np.sort(RNG.random(100) * 5.0)
-                this_interpolation = LinearInterp(
-                    this_x_list,
-                    f(
-                        this_x_list,
-                        y * np.ones(this_x_list.size),
-                        z * np.ones(this_x_list.size),
-                    ),
-                )
-                temp.append(this_interpolation)
-            xInterpolators.append(deepcopy(temp))
-        g = BilinearInterpOnInterp1D(xInterpolators, y_list, z_list)
-
-        rand_x = RNG.random(1000) * 5.0
-        rand_y = RNG.random(1000) * 5.0
-        rand_z = RNG.random(1000) * 5.0
-        z = (f(rand_x, rand_y, rand_z) - g(rand_x, rand_y, rand_z)) / f(
-            rand_x, rand_y, rand_z
-        )
-        q = (
-            dfdx(rand_x, rand_y, rand_z) - g.derivativeX(rand_x, rand_y, rand_z)
-        ) / dfdx(rand_x, rand_y, rand_z)
-        r = (
-            dfdy(rand_x, rand_y, rand_z) - g.derivativeY(rand_x, rand_y, rand_z)
-        ) / dfdy(rand_x, rand_y, rand_z)
-        p = (
-            dfdz(rand_x, rand_y, rand_z) - g.derivativeZ(rand_x, rand_y, rand_z)
-        ) / dfdz(rand_x, rand_y, rand_z)
-        z.sort()
-
-    if False:
-
-        def f(w, x, y, z):
-            return (
-                4.0 * w * z
-                - 2.5 * w * x
-                + w * y
-                + 6.0 * x * y
-                - 10.0 * x * z
-                + 3.0 * y * z
-                - 7.0 * z
-                + 4.0 * x
-                + 2.0 * y
-                - 5.0 * w
-            )
-
-        def dfdw(w, x, y, z):
-            return 4.0 * z - 2.5 * x + y - 5.0
-
-        def dfdx(w, x, y, z):
-            return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-
-        def dfdy(w, x, y, z):
-            return w + 6.0 * x + 3.0 * z + 2.0
-
-        def dfdz(w, x, y, z):
-            return 4.0 * w - 10.0 * x + 3.0 * y - 7
-
-        x_list = np.linspace(0, 5, 16, dtype=float)
-        y_list = np.linspace(0, 5, 16, dtype=float)
-        z_list = np.linspace(0, 5, 16, dtype=float)
-        wInterpolators = []
-        for x in x_list:
-            temp = []
-            for y in y_list:
-                temptemp = []
-                for z in z_list:
-                    this_w_list = np.sort(RNG.random(16) * 5.0)
-                    this_interpolation = LinearInterp(
-                        this_w_list,
-                        f(
-                            this_w_list,
-                            x * np.ones(this_w_list.size),
-                            y * np.ones(this_w_list.size),
-                            z * np.ones(this_w_list.size),
-                        ),
-                    )
-                    temptemp.append(this_interpolation)
-                temp.append(deepcopy(temptemp))
-            wInterpolators.append(deepcopy(temp))
-        g = TrilinearInterpOnInterp1D(wInterpolators, x_list, y_list, z_list)
-
-        N = 20000
-        rand_w = RNG.random(N) * 5.0
-        rand_x = RNG.random(N) * 5.0
-        rand_y = RNG.random(N) * 5.0
-        rand_z = RNG.random(N) * 5.0
-        t_start = time()
-        z = (f(rand_w, rand_x, rand_y, rand_z) - g(rand_w, rand_x, rand_y, rand_z)) / f(
-            rand_w, rand_x, rand_y, rand_z
-        )
-        q = (
-            dfdw(rand_w, rand_x, rand_y, rand_z)
-            - g.derivativeW(rand_w, rand_x, rand_y, rand_z)
-        ) / dfdw(rand_w, rand_x, rand_y, rand_z)
-        r = (
-            dfdx(rand_w, rand_x, rand_y, rand_z)
-            - g.derivativeX(rand_w, rand_x, rand_y, rand_z)
-        ) / dfdx(rand_w, rand_x, rand_y, rand_z)
-        p = (
-            dfdy(rand_w, rand_x, rand_y, rand_z)
-            - g.derivativeY(rand_w, rand_x, rand_y, rand_z)
-        ) / dfdy(rand_w, rand_x, rand_y, rand_z)
-        (
-            dfdz(rand_w, rand_x, rand_y, rand_z)
-            - g.derivativeZ(rand_w, rand_x, rand_y, rand_z)
-        ) / dfdz(rand_w, rand_x, rand_y, rand_z)
-        t_end = time()
-
-        z.sort()
-        print(z)
-        print(t_end - t_start)
-
-    if False:
-
-        def f(x, y):
-            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
-
-        def dfdx(x, y):
-            return 6.0 * x + y
-
-        def dfdy(x, y):
-            return x + 8.0 * y
-
-        x_list = np.linspace(0, 5, 101, dtype=float)
-        y_list = np.linspace(0, 5, 101, dtype=float)
-        x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
-        g = BilinearInterp(f(x_temp, y_temp), x_list, y_list)
-
-        rand_x = RNG.random(100) * 5.0
-        rand_y = RNG.random(100) * 5.0
-        z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
-        q = (f(x_temp, y_temp) - g(x_temp, y_temp)) / f(x_temp, y_temp)
-        # print(z)
-        # print(q)
-
-    if False:
-
-        def f(x, y, z):
-            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
-
-        def dfdx(x, y, z):
-            return 6.0 * x + y + 1.5 * z
-
-        def dfdy(x, y, z):
-            return x + 8.0 * y
-
-        def dfdz(x, y, z):
-            return -10.0 * z + 1.5 * x
-
-        x_list = np.linspace(0, 5, 11, dtype=float)
-        y_list = np.linspace(0, 5, 11, dtype=float)
-        z_list = np.linspace(0, 5, 101, dtype=float)
-        x_temp, y_temp, z_temp = np.meshgrid(x_list, y_list, z_list, indexing="ij")
-        g = TrilinearInterp(f(x_temp, y_temp, z_temp), x_list, y_list, z_list)
-
-        rand_x = RNG.random(1000) * 5.0
-        rand_y = RNG.random(1000) * 5.0
-        rand_z = RNG.random(1000) * 5.0
-        z = (f(rand_x, rand_y, rand_z) - g(rand_x, rand_y, rand_z)) / f(
-            rand_x, rand_y, rand_z
-        )
-        q = (
-            dfdx(rand_x, rand_y, rand_z) - g.derivativeX(rand_x, rand_y, rand_z)
-        ) / dfdx(rand_x, rand_y, rand_z)
-        r = (
-            dfdy(rand_x, rand_y, rand_z) - g.derivativeY(rand_x, rand_y, rand_z)
-        ) / dfdy(rand_x, rand_y, rand_z)
-        p = (
-            dfdz(rand_x, rand_y, rand_z) - g.derivativeZ(rand_x, rand_y, rand_z)
-        ) / dfdz(rand_x, rand_y, rand_z)
-        p.sort()
-        plt.plot(p)
-
-    if False:
-
-        def f(w, x, y, z):
-            return (
-                4.0 * w * z
-                - 2.5 * w * x
-                + w * y
-                + 6.0 * x * y
-                - 10.0 * x * z
-                + 3.0 * y * z
-                - 7.0 * z
-                + 4.0 * x
-                + 2.0 * y
-                - 5.0 * w
-            )
-
-        def dfdw(w, x, y, z):
-            return 4.0 * z - 2.5 * x + y - 5.0
-
-        def dfdx(w, x, y, z):
-            return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-
-        def dfdy(w, x, y, z):
-            return w + 6.0 * x + 3.0 * z + 2.0
-
-        def dfdz(w, x, y, z):
-            return 4.0 * w - 10.0 * x + 3.0 * y - 7
-
-        w_list = np.linspace(0, 5, 16, dtype=float)
-        x_list = np.linspace(0, 5, 16, dtype=float)
-        y_list = np.linspace(0, 5, 16, dtype=float)
-        z_list = np.linspace(0, 5, 16, dtype=float)
-        w_temp, x_temp, y_temp, z_temp = np.meshgrid(
-            w_list, x_list, y_list, z_list, indexing="ij"
-        )
-
-        def mySearch(trash, x):
-            return np.floor(x / 5 * 32).astype(int)
-
-        g = QuadlinearInterp(
-            f(w_temp, x_temp, y_temp, z_temp), w_list, x_list, y_list, z_list
-        )
-
-        N = 1000000
-        rand_w = RNG.random(N) * 5.0
-        rand_x = RNG.random(N) * 5.0
-        rand_y = RNG.random(N) * 5.0
-        rand_z = RNG.random(N) * 5.0
-        t_start = time()
-        z = (f(rand_w, rand_x, rand_y, rand_z) - g(rand_w, rand_x, rand_y, rand_z)) / f(
-            rand_w, rand_x, rand_y, rand_z
-        )
-        t_end = time()
-        # print(z)
-        print(t_end - t_start)
-
-    if False:
-
-        def f(x, y):
-            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0
-
-        def dfdx(x, y):
-            return 6.0 * x + y
-
-        def dfdy(x, y):
-            return x + 8.0 * y
-
-        warp_factor = 0.01
-        x_list = np.linspace(0, 5, 71, dtype=float)
-        y_list = np.linspace(0, 5, 51, dtype=float)
-        x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
-        x_adj = x_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
-        y_adj = y_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
-        g = Curvilinear2DInterp(f(x_adj, y_adj), x_adj, y_adj)
-
-        rand_x = RNG.random(1000) * 5.0
-        rand_y = RNG.random(1000) * 5.0
-        t_start = time()
-        z = (f(rand_x, rand_y) - g(rand_x, rand_y)) / f(rand_x, rand_y)
-        q = (dfdx(rand_x, rand_y) - g.derivativeX(rand_x, rand_y)) / dfdx(
-            rand_x, rand_y
-        )
-        r = (dfdy(rand_x, rand_y) - g.derivativeY(rand_x, rand_y)) / dfdy(
-            rand_x, rand_y
-        )
-        t_end = time()
-        z.sort()
-        q.sort()
-        r.sort()
-        # print(z)
-        print(t_end - t_start)
-
-    if False:
-
-        def f(x, y, z):
-            return 3.0 * x**2.0 + x * y + 4.0 * y**2.0 - 5 * z**2.0 + 1.5 * x * z
-
-        def dfdx(x, y, z):
-            return 6.0 * x + y + 1.5 * z
-
-        def dfdy(x, y, z):
-            return x + 8.0 * y
-
-        def dfdz(x, y, z):
-            return -10.0 * z + 1.5 * x
-
-        warp_factor = 0.01
-        x_list = np.linspace(0, 5, 11, dtype=float)
-        y_list = np.linspace(0, 5, 11, dtype=float)
-        z_list = np.linspace(0, 5, 101, dtype=float)
-        x_temp, y_temp = np.meshgrid(x_list, y_list, indexing="ij")
-        xyInterpolators = []
-        for j in range(z_list.size):
-            x_adj = x_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
-            y_adj = y_temp + warp_factor * (RNG.random(x_list.size, y_list.size) - 0.5)
-            z_temp = z_list[j] * np.ones(x_adj.shape)
-            thisInterp = Curvilinear2DInterp(f(x_adj, y_adj, z_temp), x_adj, y_adj)
-            xyInterpolators.append(thisInterp)
-        g = LinearInterpOnInterp2D(xyInterpolators, z_list)
-
-        N = 1000
-        rand_x = RNG.random(N) * 5.0
-        rand_y = RNG.random(N) * 5.0
-        rand_z = RNG.random(N) * 5.0
-        z = (f(rand_x, rand_y, rand_z) - g(rand_x, rand_y, rand_z)) / f(
-            rand_x, rand_y, rand_z
-        )
-        p = (
-            dfdz(rand_x, rand_y, rand_z) - g.derivativeZ(rand_x, rand_y, rand_z)
-        ) / dfdz(rand_x, rand_y, rand_z)
-        p.sort()
-        plt.plot(p)
-
-    if False:
-
-        def f(w, x, y, z):
-            return (
-                4.0 * w * z
-                - 2.5 * w * x
-                + w * y
-                + 6.0 * x * y
-                - 10.0 * x * z
-                + 3.0 * y * z
-                - 7.0 * z
-                + 4.0 * x
-                + 2.0 * y
-                - 5.0 * w
-            )
-
-        def dfdw(w, x, y, z):
-            return 4.0 * z - 2.5 * x + y - 5.0
-
-        def dfdx(w, x, y, z):
-            return -2.5 * w + 6.0 * y - 10.0 * z + 4.0
-
-        def dfdy(w, x, y, z):
-            return w + 6.0 * x + 3.0 * z + 2.0
-
-        def dfdz(w, x, y, z):
-            return 4.0 * w - 10.0 * x + 3.0 * y - 7
-
-        warp_factor = 0.1
-        w_list = np.linspace(0, 5, 16, dtype=float)
-        x_list = np.linspace(0, 5, 16, dtype=float)
-        y_list = np.linspace(0, 5, 16, dtype=float)
-        z_list = np.linspace(0, 5, 16, dtype=float)
-        w_temp, x_temp = np.meshgrid(w_list, x_list, indexing="ij")
-        wxInterpolators = []
-        for i in range(y_list.size):
-            temp = []
-            for j in range(z_list.size):
-                w_adj = w_temp + warp_factor * (
-                    RNG.random(w_list.size, x_list.size) - 0.5
-                )
-                x_adj = x_temp + warp_factor * (
-                    RNG.random(w_list.size, x_list.size) - 0.5
-                )
-                y_temp = y_list[i] * np.ones(w_adj.shape)
-                z_temp = z_list[j] * np.ones(w_adj.shape)
-                thisInterp = Curvilinear2DInterp(
-                    f(w_adj, x_adj, y_temp, z_temp), w_adj, x_adj
-                )
-                temp.append(thisInterp)
-            wxInterpolators.append(temp)
-        g = BilinearInterpOnInterp2D(wxInterpolators, y_list, z_list)
-
-        N = 1000000
-        rand_w = RNG.random(N) * 5.0
-        rand_x = RNG.random(N) * 5.0
-        rand_y = RNG.random(N) * 5.0
-        rand_z = RNG.random(N) * 5.0
-
-        t_start = time()
-        z = (f(rand_w, rand_x, rand_y, rand_z) - g(rand_w, rand_x, rand_y, rand_z)) / f(
-            rand_w, rand_x, rand_y, rand_z
-        )
-        t_end = time()
-        z.sort()
-        print(z)
-        print(t_end - t_start)

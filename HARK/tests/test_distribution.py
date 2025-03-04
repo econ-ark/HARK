@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from HARK.distribution import (
+from HARK.distributions import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
@@ -11,8 +11,6 @@ from HARK.distribution import (
     Lognormal,
     MarkovProcess,
     MeanOneLogNormal,
-    MVNormal,
-    MVLogNormal,
     Normal,
     Uniform,
     Weibull,
@@ -22,6 +20,9 @@ from HARK.distribution import (
     combine_indep_dstns,
     distr_of_function,
     expected,
+    make_tauchen_ar1,
+    MultivariateNormal,
+    MultivariateLogNormal,
 )
 from HARK.tests import HARK_PRECISION
 
@@ -305,9 +306,9 @@ class DistributionClassTests(unittest.TestCase):
 
         dist.draw(1)[0]
 
-    def test_MVNormal(self):
+    def test_MultivariateNormal(self):
         # Are these tests generator/backend specific?
-        dist = MVNormal()
+        dist = MultivariateNormal()
 
         # self.assertTrue(
         #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
@@ -320,8 +321,8 @@ class DistributionClassTests(unittest.TestCase):
         #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
         # )
 
-    def test_MVLogNormal(self):
-        dist = MVLogNormal()
+    def test_MultivariateLogNormal(self):
+        dist = MultivariateLogNormal()
 
         dist.draw(100)
         dist.reset()
@@ -657,3 +658,38 @@ class labeled_transition_tests(unittest.TestCase):
 
         assert np.all(exp1["m"] == exp2["m"]).item()
         assert np.all(exp1["n"] == exp2["n"]).item()
+
+
+class TestTauchenAR1(unittest.TestCase):
+    def test_tauchen(self):
+        # Test with a simple AR(1) process
+        N = 5
+        sigma = 1.0
+        ar_1 = 0.9
+        bound = 3.0
+
+        # By default, inflendpoint = True
+        standard = make_tauchen_ar1(N, sigma, ar_1, bound)
+        alternative = make_tauchen_ar1(N, sigma, ar_1, bound, inflendpoint=False)
+
+        # Check that the grid points of the two methods are identical
+        self.assertTrue(np.all(np.equal(standard[0], alternative[0])))
+
+        # Check the shape of the transition matrix
+        self.assertEqual(standard[1].shape, (N, N))
+        self.assertEqual(alternative[1].shape, (N, N))
+
+        # Check that the sum of each row in the transition matrix is 1
+        self.assertTrue(np.allclose(np.sum(standard[1], axis=1), np.ones(N)))
+        self.assertTrue(np.allclose(np.sum(alternative[1], axis=1), np.ones(N)))
+
+        # Check that [k]-th column ./ [k-1]-th column are identical (k = 3, ..., N-1)
+        # Note: the first and the last column of the 'standard' transition matrix are inflated
+        if N > 3:
+            for i in range(2, N - 1):
+                self.assertTrue(
+                    np.allclose(
+                        standard[1][:, i] * alternative[1][:, i - 1],
+                        alternative[1][:, i] * standard[1][:, i - 1],
+                    )
+                )

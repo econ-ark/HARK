@@ -11,7 +11,6 @@ API Reference
    tools/distribution
    tools/econforgeinterp
    tools/estimation
-   tools/frame
    tools/helpers
    tools/interpolation
    tools/incomeprocess
@@ -35,7 +34,6 @@ API Reference
    ConsumptionSaving/ConsLaborModel
    ConsumptionSaving/ConsMarkovModel
    ConsumptionSaving/ConsMedModel
-   ConsumptionSaving/ConsPortfolioFrameModel
    ConsumptionSaving/ConsPortfolioModel
    ConsumptionSaving/ConsPrefShochModel
    ConsumptionSaving/ConsRepAgentModel

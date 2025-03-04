@@ -4,7 +4,7 @@ This file has various classes and functions for constructing income processes.
 
 import numpy as np
 from HARK.metric import MetricObject
-from HARK.distribution import (
+from HARK.distributions import (
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
     DiscreteDistribution,
@@ -462,6 +462,189 @@ def construct_lognormal_income_process_unemployment(
     return IncShkDstn
 
 
+def construct_markov_lognormal_income_process_unemployment(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    RNG,
+    neutral_measure=False,
+):
+    """
+    Generates a nested list of discrete approximations to the income process for each
+    life period, from end of life to beginning of life, for each discrete Markov
+    state in the problem. This function calls construct_lognormal_income_process_unemployment
+    for each Markov state, then rearranges the output. Permanent shocks are mean
+    one lognormally distributed with standard deviation PermShkStd[t] during the
+    working life, and degenerate at 1 in the retirement period.  Transitory shocks
+    are mean one lognormally distributed with a point mass at IncUnemp with
+    probability UnempPrb while working; they are mean one with a point mass at
+    IncUnempRet with probability UnempPrbRet.  Retirement occurs after t=T_retire
+    periods of working. The problem is specified as having T=T_cycle periods and
+    K discrete Markov states.
+
+    Parameters
+    ----------
+    PermShkStd : np.array
+        2D array of shape (T,K) of standard deviations of log permanent income
+        uncertainty during the agent's life.
+    PermShkCount : int
+        The number of approximation points to be used in the discrete approxima-
+        tion to the permanent income shock distribution.
+    TranShkStd : np.array
+        2D array of shape (T,K) standard deviations in log transitory income
+        uncertainty during the agent's life.
+    TranShkCount : int
+        The number of approximation points to be used in the discrete approxima-
+        tion to the permanent income shock distribution.
+    UnempPrb : np.array
+        1D or 2D array of the probability of becoming unemployed during the working
+        portion of the agent's life. If 1D, it should be size K, providing one
+        unemployment probability per discrete Markov state. If 2D, it should be
+        shape (T,K).
+    UnempPrbRet : np.array or None
+        The probability of not receiving typical retirement income when retired.
+        If not None, should be size K. Can be set to None when T_retire is 0.
+    T_retire : int
+        The index value for the final working period in the agent's life.
+        If T_retire <= 0 then there is no retirement.
+    IncUnemp : np.array
+        1D or 2D array of transitory income received when unemployed during the
+        working portion of the agent's life. If 1D, it should be size K, providing
+        one unemployment probability per discrete Markov state. If 2D, it should be
+        shape (T,K).
+    IncUnempRet : np.array or None
+        Transitory income received while "unemployed" when retired. If provided,
+        should be size K. Can be None when T_retire is 0.
+    T_cycle :  int
+        Total number of non-terminal periods in the consumer's sequence of periods.
+    RNG : np.random.RandomState
+        Random number generator for this type.
+    neutral_measure : bool
+        Indicator for whether the permanent-income-neutral measure should be used.
+
+    Returns
+    -------
+    IncShkDstn : [[distribution.Distribution]]
+        A list with T_cycle elements, each of which is a discrete approximation
+        to the income process in a period.
+    """
+    if T_retire > 0:
+        normal_length = T_retire
+        retire_length = T_cycle - T_retire
+    else:
+        normal_length = T_cycle
+        retire_length = 0
+
+    # Check dimensions of inputs
+    try:
+        PermShkStd_K = PermShkStd.shape[1]
+        TranShkStd_K = TranShkStd.shape[1]
+        if UnempPrb.ndim == 2:
+            UnempPrb_K = UnempPrb.shape[1]
+        else:
+            UnempPrb_K = UnempPrb.shape[0]
+        if IncUnemp.ndim == 2:
+            IncUnemp_K = IncUnemp.shape[1]
+        else:
+            IncUnemp_K = IncUnemp.shape[0]
+        K = PermShkStd_K
+        assert K == TranShkStd_K
+        assert K == TranShkStd_K
+        assert K == UnempPrb_K
+        assert K == IncUnemp_K
+    except:
+        raise Exception(
+            "The last dimension of PermShkStd, TranShkStd, IncUnemp,"
+            + " and UnempPrb must all be K, the number of discrete states."
+        )
+    try:
+        if T_retire > 0:
+            assert K == UnempPrbRet.size
+            assert K == IncUnempRet.size
+    except:
+        raise Exception(
+            "When T_retire is not zero, UnempPrbRet and IncUnempRet"
+            + " must be specified as arrays of size K, the number of "
+            + "discrete Markov states."
+        )
+    try:
+        D = UnempPrb.ndim
+        assert D == IncUnemp.ndim
+        if T_retire > 0:
+            assert D == UnempPrbRet.ndim
+            assert D == IncUnempRet.ndim
+    except:
+        raise Exception(
+            "If any of UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet "
+            + "are 2D arrays, then they must *all* be 2D arrays."
+        )
+    try:
+        assert D == 1 or D == 2
+    except:
+        raise Exception(
+            "UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet must "
+            + "all be 1D or 2D arrays."
+        )
+
+    # Prepare lists that don't vary by Markov state
+    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
+    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
+    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
+
+    # Loop through the Markov states, constructing the lifecycle income process for each one
+    IncShkDstn_by_Mrkv = []
+    for k in range(K):
+        if D == 1:  # Unemployment parameters don't vary by age other than retirement
+            if T_retire > 0:
+                UnempPrb_list = [UnempPrb[k]] * normal_length + [
+                    UnempPrbRet[k]
+                ] * retire_length
+                IncUnemp_list = [IncUnemp[k]] * normal_length + [
+                    IncUnempRet[k]
+                ] * retire_length
+            else:
+                UnempPrb_list = [UnempPrb[k]] * normal_length
+                IncUnemp_list = [IncUnemp[k]] * normal_length
+        else:  # Unemployment parameters vary by age
+            UnempPrb_list = UnempPrb[:, k].tolist()
+            IncUnemp_list = IncUnemp[:, k].tolist()
+
+        PermShkStd_k = PermShkStd[:, k].tolist()
+        TranShkStd_k = TranShkStd[:, k].tolist()
+
+        IncShkDstn_k = IndexDistribution(
+            engine=BufferStockIncShkDstn,
+            conditional={
+                "sigma_Perm": PermShkStd_k,
+                "sigma_Tran": TranShkStd_k,
+                "n_approx_Perm": PermShkCount_list,
+                "n_approx_Tran": TranShkCount_list,
+                "neutral_measure": neutral_measure_list,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+            },
+            RNG=RNG,
+            seed=RNG.integers(0, 2**31 - 1),
+        )
+        IncShkDstn_by_Mrkv.append(IncShkDstn_k)
+
+    # Rearrange the list that was just constructed, so that element [t][k] represents
+    # the income shock distribution in period t, Markov state k.
+    IncShkDstn = []
+    for t in range(T_cycle):
+        IncShkDstn_t = [IncShkDstn_by_Mrkv[k][t] for k in range(K)]
+        IncShkDstn.append(IncShkDstn_t)
+
+    return IncShkDstn
+
+
 def construct_HANK_lognormal_income_process_unemployment(
     T_cycle,
     PermShkStd,
@@ -611,6 +794,28 @@ def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
         this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
     return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
+
+
+def get_PermShkDstn_from_IncShkDstn_markov(IncShkDstn, RNG):
+    PermShkDstn = [
+        [
+            this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1))
+            for this in IncShkDstn_t
+        ]
+        for IncShkDstn_t in IncShkDstn
+    ]
+    return PermShkDstn
+
+
+def get_TranShkDstn_from_IncShkDstn_markov(IncShkDstn, RNG):
+    TranShkDstn = [
+        [
+            this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1))
+            for this in IncShkDstn_t
+        ]
+        for IncShkDstn_t in IncShkDstn
+    ]
+    return TranShkDstn
 
 
 def get_TranShkGrid_from_TranShkDstn(T_cycle, TranShkDstn):
