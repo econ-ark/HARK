@@ -1,4 +1,4 @@
-from HARK.distribution import Bernoulli
+from HARK.distributions import Bernoulli
 from HARK.model import Control, DBlock
 
 calibration = {

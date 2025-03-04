@@ -36,7 +36,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     make_portfolio_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
-from HARK.distribution import expected
+from HARK.distributions import expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,
