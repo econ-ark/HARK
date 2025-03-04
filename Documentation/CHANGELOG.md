@@ -36,6 +36,7 @@ Release Date: TBD
 - Expands functionality of Cobb-Douglas aggregator for CRRA utility. [#1363](https://github.com/econ-ark/HARK/pull/1363)
 - Adds a new function for using Tauchen's method to approximate an AR1 process. [#1521](https://github.com/econ-ark/HARK/pull/1521)
 - Adds additional functionality to the CubicHermiteInterp class, imported from scipy.interpolate. [#1020](https://github.com/econ-ark/HARK/pull/1020/)
+- Adds an example, ModelConfiguration, which demonstrates how a consumption saving "true" model, approximations, solution paramaters, and simulation parameters can be defined in one YAML file. [1463](https://github.com/econ-ark/HARK/pull/1463)
 
 ### 0.15.1
 
