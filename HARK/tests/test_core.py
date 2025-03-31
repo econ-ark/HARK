@@ -6,6 +6,7 @@ import unittest
 
 import numpy as np
 import pytest
+from copy import deepcopy
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
@@ -248,3 +249,47 @@ class TestParameters:
     def test_setitem_invalid_value_length(self, sample_params):
         with pytest.raises(ValueError):
             sample_params["invalid"] = [1, 2]  # Should be length 1 or 3
+
+
+class TestSolveFrom(unittest.TestCase):
+
+    def shorten_params(self, params, length):
+
+        par = deepcopy(params)
+        for key in params.keys():
+            if isinstance(params[key], list):
+                par[key] = params[key][:length]
+        par['T_cycle'] = length
+        return par
+
+    def setUp(self):
+        
+        # Create a 3-period parametrization of the IndShockConsumerType model
+        self.params = init_idiosyncratic_shocks.copy()
+        self.params.update(
+            {
+                'T_cycle' : 3,
+                'PermGroFac' : [1.05, 1.10, 1.3],
+                'LivPrb' : [0.95, 0.9, 0.85],
+                'TranShkStd' : [0.1]*3,
+                'PermShkStd' : [0.1]*3,
+            }
+        )
+
+    def test_solve_from(self):
+
+        # Create an IndShockConsumerType agent
+        agent = IndShockConsumerType(**self.params)
+        # Solve the model
+        agent.solve()
+        # Solution must have length 4 (includes terminal)
+        assert len(agent.solution) == 4
+        # Now create an agent with only the first 2 periods
+        agent_2 = IndShockConsumerType(**self.shorten_params(self.params, 2))
+        # Solve from the third solution of the previous agent
+        agent_2.solve(from_solution=agent.solution[2])
+        # The solutions (up to 2) must be the same
+        for t, s2 in enumerate(agent_2.solution):
+            self.assertEqual(s2.distance(agent.solution[t]), 0.0)
+        
+

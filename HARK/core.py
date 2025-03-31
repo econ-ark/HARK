@@ -1525,6 +1525,9 @@ def solve_agent(agent, verbose, from_solution=None):
         is to be solved.
     verbose : boolean
         If True, solution progress is printed to screen (when cycles != 1).
+    from_solution: Solution
+        If different from None, will be used as the starting point of backward
+        induction, instead of self.solution_terminal
 
     Returns
     -------
