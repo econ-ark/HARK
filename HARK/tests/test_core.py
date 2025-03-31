@@ -252,32 +252,28 @@ class TestParameters:
 
 
 class TestSolveFrom(unittest.TestCase):
-
     def shorten_params(self, params, length):
-
         par = deepcopy(params)
         for key in params.keys():
             if isinstance(params[key], list):
                 par[key] = params[key][:length]
-        par['T_cycle'] = length
+        par["T_cycle"] = length
         return par
 
     def setUp(self):
-        
         # Create a 3-period parametrization of the IndShockConsumerType model
         self.params = init_idiosyncratic_shocks.copy()
         self.params.update(
             {
-                'T_cycle' : 3,
-                'PermGroFac' : [1.05, 1.10, 1.3],
-                'LivPrb' : [0.95, 0.9, 0.85],
-                'TranShkStd' : [0.1]*3,
-                'PermShkStd' : [0.1]*3,
+                "T_cycle": 3,
+                "PermGroFac": [1.05, 1.10, 1.3],
+                "LivPrb": [0.95, 0.9, 0.85],
+                "TranShkStd": [0.1] * 3,
+                "PermShkStd": [0.1] * 3,
             }
         )
 
     def test_solve_from(self):
-
         # Create an IndShockConsumerType agent
         agent = IndShockConsumerType(**self.params)
         # Solve the model
@@ -291,5 +287,3 @@ class TestSolveFrom(unittest.TestCase):
         # The solutions (up to 2) must be the same
         for t, s2 in enumerate(agent_2.solution):
             self.assertEqual(s2.distance(agent.solution[t]), 0.0)
-        
-
