@@ -920,6 +920,9 @@ class AgentType(Model):
             If True, solution progress is printed to screen. Default False.
         presolve : bool, optional
             If True (default), the pre_solve method is run before solving.
+        from_solution: Solution
+            If different from None, will be used as the starting point of backward
+            induction, instead of self.solution_terminal
 
         Returns
         -------
