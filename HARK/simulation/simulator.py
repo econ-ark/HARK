@@ -126,7 +126,7 @@ class RandomEvent(ModelEvent):
     def reset(self):
         self.dstn.reset()
         ModelEvent.reset(self)
-        
+
 
 @dataclass(kw_only=True)
 class RandomIndexedEvent(RandomEvent):
@@ -134,7 +134,7 @@ class RandomIndexedEvent(RandomEvent):
     Class for representing the realization of random variables for an agent,
     consisting of a list of shock distributions, and index for the list, and the
     variables to which the results are assigned.
-    
+
     Parameters
     ----------
     dstn : [Distribution]
@@ -143,10 +143,10 @@ class RandomIndexedEvent(RandomEvent):
     index : str
         Name of the index that is used to choose a distribution for each agent.
     """
-    
-    index : str = ""
-    dstn : list[Distribution] = field(default_factory=list)
-    
+
+    index: str = ""
+    dstn: list[Distribution] = field(default_factory=list)
+
     def draw(self):
         idx = self.data[self.index]
         K = len(self.assigns)
@@ -156,17 +156,17 @@ class RandomIndexedEvent(RandomEvent):
             these = idx == k
             if not np.any(these):
                 continue
-            out[:,these] = self.dstn[k].draw(np.sum(these))
+            out[:, these] = self.dstn[k].draw(np.sum(these))
         if K == 1:
             out = out.flatten()
         return out
-    
+
     def reset(self):
         for k in range(len(self.dstn)):
             self.dstn[k].reset()
         ModelEvent.reset(self)
-        
-        
+
+
 @dataclass(kw_only=True)
 class MarkovEvent(ModelEvent):
     """
@@ -174,18 +174,18 @@ class MarkovEvent(ModelEvent):
     a Markov matrix (array) is used to determine transition probabilities for some
     discrete state.
     """
-    
-    array : str = ""
-    index : str = ""
-    N : int = 1
-    seed : int = 0  # TODO: There needs to be some way to set this seed
-    
+
+    array: str = ""
+    index: str = ""
+    N: int = 1
+    seed: int = 0  # TODO: There needs to be some way to set this seed
+
     def __post_init__(self):
         self.reset_rng()
-        
+
     def reset_rng(self):
         self.RNG = np.random.default_rng(self.seed)
-        
+
     def draw(self):
         out = -np.ones(self.N, dtype=int)
         probs = self.parameters[self.array]
@@ -195,14 +195,14 @@ class MarkovEvent(ModelEvent):
             these = idx == j
             if not np.any(these):
                 continue
-            P = np.cumsum(probs[j,:])
+            P = np.cumsum(probs[j, :])
             X = self.RNG.random(np.sum(these))
             out[these] = np.searchsorted(P, X)
         return out
-        
+
     def run(self):
         self.assign(self.draw())
-        
+
     def reset(self):
         self.reset_rng()
         ModelEvent.reset(self)
@@ -1287,7 +1287,7 @@ def make_new_dynamic(statement, info):
         else:
             exec(_var + " = symbols('" + _var + "')")
         _args.append(eval(_var))
-    
+
     # Make a SymPy expression, then lambdify it
     sympy_expr = eval(rhs)
     expr = lambdify(_args, sympy_expr)
@@ -1371,16 +1371,16 @@ def make_new_random_indexed(statement, info):
 
     # Parse the LHS (assignment) to get assigned variables
     assigns = parse_assignment(lhs)
-    
+
     # Split the RHS into the distribution and the index
     dstn, index = parse_random_indexed(rhs)
-    
+
     # Verify that the RHS is actually a distribution
     if type(info[dstn]) is not Distribution:
         raise ValueError(
             dstn + " was treated as a distribution, but not declared as one!"
         )
-        
+
     # Make and return the new random indexed event
     new_random_indexed = RandomIndexedEvent(
         description=description,
@@ -1388,12 +1388,11 @@ def make_new_random_indexed(statement, info):
         assigns=assigns,
         needs=[index],
         parameters={},
-        #dstn=info[dstn],
+        # dstn=info[dstn],
         index=index,
     )
     new_random_indexed._dstn_name = dstn
     return new_random_indexed
-    
 
 
 def make_new_markov(statement, info):
@@ -1419,17 +1418,17 @@ def make_new_markov(statement, info):
 
     # Parse the LHS (assignment) to get assigned variables
     assigns = parse_assignment(lhs)
-    
+
     # Parse the RHS (Markov statement) for the array and index
     array, index = parse_markov(rhs)
-    
+
     # Make and return the new Markov event
     new_markov = MarkovEvent(
         description=description,
         statement=lhs + " ~ " + rhs,
         assigns=assigns,
         needs=[index],
-        parameters={array : None},
+        parameters={array: None},
         array=array,
         index=index,
     )
@@ -1719,18 +1718,18 @@ def parse_markov(expression):
     # Get the name of the array
     lb = expression.find("{")  # this *should* be 0
     rb = expression.find("}")
-    if (lb == -1 or rb == -1 or rb < (lb+2)):
+    if lb == -1 or rb == -1 or rb < (lb + 2):
         raise ValueError("A Markov assignment must have an {array}!")
-    array = expression[(lb+1):rb]
-    
+    array = expression[(lb + 1) : rb]
+
     # Get the name of the index
-    x = rb+1
+    x = rb + 1
     lp = expression.find("(", x)
     rp = expression.find(")", x)
-    if (lp == -1 or rp == -1 or rp < (lp+2)):
+    if lp == -1 or rp == -1 or rp < (lp + 2):
         raise ValueError("A Markov assignment must have an (index) after the {array}!")
-    index = expression[(lp+1):rp]
-    
+    index = expression[(lp + 1) : rp]
+
     return array, index
 
 
@@ -1755,15 +1754,14 @@ def parse_random_indexed(expression):
     # Get the name of the index
     lb = expression.find("[")
     rb = expression.find("]")
-    if (lb == -1 or rb == -1 or rb < (lb+2)):
+    if lb == -1 or rb == -1 or rb < (lb + 2):
         raise ValueError("An indexed random variable assignment must have an [index]!")
-    index = expression[(lb+1):rb]
-    
+    index = expression[(lb + 1) : rb]
+
     # Get the name of the distribution
     dstn = expression[:lb]
-    
+
     return dstn, index
-    
 
 
 def format_block_statement(statement):

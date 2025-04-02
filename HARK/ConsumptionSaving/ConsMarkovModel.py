@@ -149,6 +149,7 @@ def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
 
 ###############################################################################
 
+
 def make_markov_mort_dstn(LivPrb, RNG, T_cycle):
     """
     A simple constructor method that constructs a time-varying nested list of
@@ -1127,7 +1128,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 )
         self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
-        
+
     def get_poststates(self):
         super().get_poststates()
         self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
