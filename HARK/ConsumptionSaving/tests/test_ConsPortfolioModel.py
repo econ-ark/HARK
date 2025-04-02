@@ -169,7 +169,6 @@ class testPortfolioConsumerTypeSticky(unittest.TestCase):
         self.sticky = cpm.PortfolioConsumerType(**init_sticky_share)
 
         # Solve the model under the given parameters
-
         self.sticky.solve()
 
 

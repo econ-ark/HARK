@@ -48,6 +48,7 @@ class test_(unittest.TestCase):
         cont_params["vFuncBool"] = False
 
         fin_cont_agent = RiskyContribConsumerType(**cont_params)
+        self.agent = fin_cont_agent
 
         # Independent solver
         fin_cont_agent.solve()

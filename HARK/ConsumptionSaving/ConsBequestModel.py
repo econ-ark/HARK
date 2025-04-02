@@ -34,6 +34,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
     PortfolioSolution,
     make_portfolio_solution_terminal,
+    make_AdjustDstn,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
 from HARK.distributions import expected
@@ -182,234 +183,6 @@ def make_warmglow_portfolio_solution_terminal(
         dvdsFuncFxd=dvdsFuncFxd_terminal,
     )
     return solution_terminal
-
-
-###############################################################################
-
-
-# Make a dictionary of constructors for the warm glow bequest model
-warmglow_constructor_dict = {
-    "IncShkDstn": construct_lognormal_income_process_unemployment,
-    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
-    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
-    "aXtraGrid": make_assets_grid,
-    "solution_terminal": make_bequest_solution_terminal,
-}
-
-# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
-default_IncShkDstn_params = {
-    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
-    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
-    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb": 0.05,  # Probability of unemployment while working
-    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
-    "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
-    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-}
-
-# Default parameters to make aXtraGrid using make_assets_grid
-default_aXtraGrid_params = {
-    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
-    "aXtraExtra": None,  # Additional other values to add in grid (optional)
-}
-
-# Make a dictionary to specify awarm glow bequest consumer type
-init_warm_glow = {
-    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "cycles": 1,  # Finite, non-cyclic model
-    "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "constructors": warmglow_constructor_dict,  # See dictionary above
-    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
-    "Rfree": 1.03,  # Interest factor on retained assets
-    "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability after each period
-    "PermGroFac": [1.01],  # Permanent income growth factor
-    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "BeqCRRA": 2.0,  # Coefficient of relative risk aversion for bequest motive
-    "BeqFac": 40.0,  # Scaling factor for bequest motive
-    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
-    "BeqCRRATerm": 2.0,  # Coefficient of relative risk aversion for bequest motive, terminal period only
-    "BeqFacTerm": 40.0,  # Scaling factor for bequest motive, terminal period only
-    "BeqShiftTerm": 0.0,  # Stone-Geary shifter term for bequest motive, terminal period only
-    "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
-    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
-    "AgentCount": 10000,  # Number of agents of this type
-    "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
-    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
-    # (The portion of PermGroFac attributable to aggregate productivity growth)
-    "NewbornTransShk": False,  # Whether Newborns have transitory shock
-    # ADDITIONAL OPTIONAL PARAMETERS
-    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
-    # (Forces Newborns to follow solution path of the agent they replaced if True)
-    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
-}
-init_warm_glow.update(default_IncShkDstn_params)
-init_warm_glow.update(default_aXtraGrid_params)
-
-# Make a dictionary with bequest motives turned off
-init_accidental_bequest = init_warm_glow.copy()
-init_accidental_bequest["BeqFac"] = 0.0
-init_accidental_bequest["BeqShift"] = 0.0
-init_accidental_bequest["BeqFacTerm"] = 0.0
-init_accidental_bequest["BeqShiftTerm"] = 0.0
-
-# Make a dictionary that has *only* a terminal period bequest
-init_warm_glow_terminal_only = init_warm_glow.copy()
-init_warm_glow_terminal_only["BeqFac"] = 0.0
-init_warm_glow_terminal_only["BeqShift"] = 0.0
-
-
-class BequestWarmGlowConsumerType(IndShockConsumerType):
-    r"""
-    A consumer type with based on IndShockConsumerType, with an additional bequest motive.
-    They gain utility for any wealth they leave when they die, according to a Stone-Geary utility.
-
-    .. math::
-        \newcommand{\CRRA}{\rho}
-        \newcommand{\DiePrb}{\mathsf{D}}
-        \newcommand{\PermGroFac}{\Gamma}
-        \newcommand{\Rfree}{\mathsf{R}}
-        \newcommand{\DiscFac}{\beta}
-        \begin{align*}
-        v_t(m_t) &= \max_{c_t}u(c_t) + \DiePrb_{t+1} u_{Beq}(a_t)+\DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
-        & \text{s.t.}  \\
-        a_t &= m_t - c_t, \\
-        a_t &\geq \underline{a}, \\
-        m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
-        (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
-        u_{Beq} (a) &= \textbf{BeqFac} \frac{(a+\textbf{BeqShift})^{1-\CRRA_{Beq}}}{1-\CRRA_{Beq}} \\
-        \end{align*}
-
-
-    Constructors
-    ------------
-    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
-        The agent's income shock distributions.
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
-    aXtraGrid: Constructor
-        The agent's asset grid.
-
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
-
-    Solving Parameters
-    ------------------
-    cycles: int
-        0 specifies an infinite horizon model, 1 specifies a finite model.
-    T_cycle: int
-        Number of periods in the cycle for this agent type.
-    CRRA: float, :math:`\rho`
-        Coefficient of Relative Risk Aversion.
-    BeqCRRA: float, :math:`\rho_{Beq}`
-        Coefficient of Relative Risk Aversion for the bequest motive.
-        If this value isn't the same as CRRA, then the model can only be represented as a Bellman equation.
-        This may cause unintented behavior.
-    BeqCRRATerm: float, :math:`\rho_{Beq}`
-        The Coefficient of Relative Risk Aversion for the bequest motive, but only in the terminal period.
-        In most cases this should be the same as beqCRRA.
-    BeqShift: float, :math:`\textbf{BeqShift}`
-        The Shift term from the bequest motive's utility function.
-        If this value isn't 0, then the model can only be represented as a Bellman equation.
-        This may cause unintented behavior.
-    BeqShiftTerm: float, :math:`\textbf{BeqShift}`
-        The shift term from the bequest motive's utility function, in the terminal period.
-        In most cases this should be the same as beqShift
-    BeqFac: float, :math:`\textbf{BeqFac}`
-        The weight for the bequest's utility function.
-    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
-        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
-    DiscFac: float, :math:`\beta`
-        Intertemporal discount factor.
-    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
-        Survival probability after each period.
-    PermGroFac: list[float], time varying, :math:`\Gamma`
-        Permanent income growth factor.
-    BoroCnstArt: float, :math:`\underline{a}`
-        The minimum Asset/Perminant Income ratio, None to ignore.
-    vFuncBool: bool
-        Whether to calculate the value function during solution.
-    CubicBool: bool
-        Whether to use cubic spline interpoliation.
-
-    Simulation Parameters
-    ---------------------
-    AgentCount: int
-        Number of agents of this kind that are created during simulations.
-    T_age: int
-        Age after which to automatically kill agents, None to ignore.
-    T_sim: int, required for simulation
-        Number of periods to simulate.
-    track_vars: list[strings]
-        List of variables that should be tracked when running the simulation.
-        For this agent, the options are 'PermShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
-
-        PermShk is the agent's permanent income shock
-
-        TranShk is the agent's transitory income shock
-
-        aLvl is the nominal asset level
-
-        aNrm is the normalized assets
-
-        bNrm is the normalized resources without this period's labor income
-
-        cNrm is the normalized consumption
-
-        mNrm is the normalized market resources
-
-        pLvl is the permanent income level
-
-        who_dies is the array of which agents died
-    aNrmInitMean: float
-        Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
-        Std of Log initial Normalized Assets.
-    pLvlInitMean: float
-        Mean of Log initial permanent income.
-    pLvlInitStd: float
-        Std of Log initial permanent income.
-    PermGroFacAgg: float
-        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
-    PerfMITShk: boolean
-        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
-    NewbornTransShk: boolean
-        Whether Newborns have transitory shock.
-
-    Attributes
-    ----------
-    solution: list[Consumer solution object]
-        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
-        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
-
-        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
-    history: Dict[Array]
-        Created by running the :func:`.simulate()` method.
-        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
-        Visit :class:`HARK.core.AgentType.simulate` for more information.
-    """
-
-    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
-
-    def __init__(self, **kwds):
-        params = init_accidental_bequest.copy()
-        params.update(kwds)
-
-        super().__init__(**params)
-        self.solve_one_period = solve_one_period_ConsWarmBequest
 
 
 ###############################################################################
@@ -664,6 +437,9 @@ def solve_one_period_ConsWarmBequest(
         MPCmax=MPCmaxEff,
     )
     return solution_now
+
+
+###############################################################################
 
 
 def solve_one_period_ConsPortfolioWarmGlow(
@@ -1182,6 +958,230 @@ def solve_one_period_ConsPortfolioWarmGlow(
 
 ###############################################################################
 
+# Make a dictionary of constructors for the warm glow bequest model
+warmglow_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "solution_terminal": make_bequest_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": None,  # Additional other values to add in grid (optional)
+}
+
+# Make a dictionary to specify awarm glow bequest consumer type
+init_warm_glow = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "constructors": warmglow_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "PermGroFac": [1.01],  # Permanent income growth factor
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "BeqCRRA": 2.0,  # Coefficient of relative risk aversion for bequest motive
+    "BeqFac": 40.0,  # Scaling factor for bequest motive
+    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
+    "BeqCRRATerm": 2.0,  # Coefficient of relative risk aversion for bequest motive, terminal period only
+    "BeqFacTerm": 40.0,  # Scaling factor for bequest motive, terminal period only
+    "BeqShiftTerm": 0.0,  # Stone-Geary shifter term for bequest motive, terminal period only
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_warm_glow.update(default_IncShkDstn_params)
+init_warm_glow.update(default_aXtraGrid_params)
+
+# Make a dictionary with bequest motives turned off
+init_accidental_bequest = init_warm_glow.copy()
+init_accidental_bequest["BeqFac"] = 0.0
+init_accidental_bequest["BeqShift"] = 0.0
+init_accidental_bequest["BeqFacTerm"] = 0.0
+init_accidental_bequest["BeqShiftTerm"] = 0.0
+
+# Make a dictionary that has *only* a terminal period bequest
+init_warm_glow_terminal_only = init_warm_glow.copy()
+init_warm_glow_terminal_only["BeqFac"] = 0.0
+init_warm_glow_terminal_only["BeqShift"] = 0.0
+
+
+class BequestWarmGlowConsumerType(IndShockConsumerType):
+    r"""
+    A consumer type with based on IndShockConsumerType, with an additional bequest motive.
+    They gain utility for any wealth they leave when they die, according to a Stone-Geary utility.
+
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \begin{align*}
+        v_t(m_t) &= \max_{c_t}u(c_t) + \DiePrb_{t+1} u_{Beq}(a_t)+\DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        & \text{s.t.}  \\
+        a_t &= m_t - c_t, \\
+        a_t &\geq \underline{a}, \\
+        m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
+        u_{Beq} (a) &= \textbf{BeqFac} \frac{(a+\textbf{BeqShift})^{1-\CRRA_{Beq}}}{1-\CRRA_{Beq}} \\
+        \end{align*}
+
+
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+
+        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    BeqCRRA: float, :math:`\rho_{Beq}`
+        Coefficient of Relative Risk Aversion for the bequest motive.
+        If this value isn't the same as CRRA, then the model can only be represented as a Bellman equation.
+        This may cause unintented behavior.
+    BeqCRRATerm: float, :math:`\rho_{Beq}`
+        The Coefficient of Relative Risk Aversion for the bequest motive, but only in the terminal period.
+        In most cases this should be the same as beqCRRA.
+    BeqShift: float, :math:`\textbf{BeqShift}`
+        The Shift term from the bequest motive's utility function.
+        If this value isn't 0, then the model can only be represented as a Bellman equation.
+        This may cause unintented behavior.
+    BeqShiftTerm: float, :math:`\textbf{BeqShift}`
+        The shift term from the bequest motive's utility function, in the terminal period.
+        In most cases this should be the same as beqShift
+    BeqFac: float, :math:`\textbf{BeqFac}`
+        The weight for the bequest's utility function.
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+    BoroCnstArt: float, :math:`\underline{a}`
+        The minimum Asset/Perminant Income ratio, None to ignore.
+    vFuncBool: bool
+        Whether to calculate the value function during solution.
+    CubicBool: bool
+        Whether to use cubic spline interpoliation.
+
+    Simulation Parameters
+    ---------------------
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'PermShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+
+        PermShk is the agent's permanent income shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        aNrm is the normalized assets
+
+        bNrm is the normalized resources without this period's labor income
+
+        cNrm is the normalized consumption
+
+        mNrm is the normalized market resources
+
+        pLvl is the permanent income level
+
+        who_dies is the array of which agents died
+    aNrmInitMean: float
+        Mean of Log initial Normalized Assets.
+    aNrmInitStd: float
+        Std of Log initial Normalized Assets.
+    pLvlInitMean: float
+        Mean of Log initial permanent income.
+    pLvlInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
+    """
+
+    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
+    default_ = {
+        "params": init_accidental_bequest,
+        "solver": solve_one_period_ConsWarmBequest,
+    }
+
+
+###############################################################################
+
 
 # Make a dictionary of constructors for the portfolio choice consumer type
 portfolio_bequest_constructor_dict = {
@@ -1193,6 +1193,7 @@ portfolio_bequest_constructor_dict = {
     "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
+    "AdjustDstn": make_AdjustDstn,
     "solution_terminal": make_warmglow_portfolio_solution_terminal,
 }
 
@@ -1249,6 +1250,9 @@ init_portfolio_bequest = {
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
+    "IndepDstnBool": True,  # Indicator for whether return & income shocks are independent
+    "PortfolioBool": True,  # Whether this agent has portfolio choice
+    "PortfolioBisect": False,  # What does this do?
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -1425,11 +1429,7 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
     """
 
     time_inv_ = PortfolioConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
-
-    def __init__(self, **kwds):
-        params = init_portfolio_bequest.copy()
-        params.update(kwds)
-
-        self.IndepDstnBool = True
-        super().__init__(**params)
-        self.solve_one_period = solve_one_period_ConsPortfolioWarmGlow
+    default_ = {
+        "params": init_portfolio_bequest,
+        "solver": solve_one_period_ConsPortfolioWarmGlow,
+    }

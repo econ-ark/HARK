@@ -570,6 +570,8 @@ class Model:
             keys = list(self.constructors.keys())
         N_keys = len(keys)
         keys_complete = np.zeros(N_keys, dtype=bool)
+        if N_keys == 0:
+            return  # Do nothing if there are no constructed objects
 
         # Get the dictionary of constructor errors
         if not hasattr(self, "_constructor_errors"):
@@ -740,6 +742,10 @@ class Model:
         print(out)
         return
 
+    # This is a "synonym" method so that old calls to update() still work
+    def update(self, *args):
+        self.construct(*args)
+
 
 class AgentType(Model):
     """
@@ -763,19 +769,27 @@ class AgentType(Model):
         model, with a certain sequence of one period problems experienced
         once before terminating.  cycles=0 corresponds to an infinite horizon
         model, with a sequence of one period problems repeating indefinitely.
-    pseudo_terminal : boolean
+    pseudo_terminal : bool
         Indicates whether solution_terminal isn't actually part of the
         solution to the problem (as a known solution to the terminal period
         problem), but instead represents a "scrap value"-style termination.
         When True, solution_terminal is not included in the solution; when
-        false, solution_terminal is the last element of the solution.
+        False, solution_terminal is the last element of the solution.
     tolerance : float
         Maximum acceptable "distance" between successive solutions to the
         one period problem in an infinite horizon (cycles=0) model in order
         for the solution to be considered as having "converged".  Inoperative
         when cycles>0.
+    verbose : int
+        Level of output to be displayed by this instance, default is 1.
+    quiet : bool
+        Indicator for whether this instance should operate "quietly", default False.
     seed : int
         A seed for this instance's random number generator.
+    construct : bool
+        Indicator for whether this instance's construct() method should be run
+        when initialized (default True). When False, an instance of the class
+        can be created even if not all of its attributes can be constructed.
 
     Attributes
     ----------
@@ -786,26 +800,38 @@ class AgentType(Model):
         The string labels for this AgentType's model state variables.
     """
 
+    time_vary_ = []
+    time_inv_ = []
+    shock_vars_ = []
     state_vars = []
-    _default_params_ = {}
+    poststate_vars = []
+    default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
         self,
         solution_terminal=None,
         pseudo_terminal=True,
         tolerance=0.000001,
+        verbose=1,
+        quiet=False,
         seed=0,
+        construct=True,
         **kwds,
     ):
         super().__init__()
+        params = self.default_["params"].copy()
+        params.update(kwds)
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
 
+        self.solve_one_period = self.default_["solver"]  # NOQA
         self.solution_terminal = solution_terminal  # NOQA
         self.pseudo_terminal = pseudo_terminal  # NOQA
-        self.solve_one_period = NullFunc()  # NOQA
         self.tolerance = tolerance  # NOQA
+        self.verbose = verbose
+        self.quiet = quiet
+        set_verbosity_level((4 - verbose) * 10)
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
         self.state_now = {sv: None for sv in self.state_vars}
@@ -816,8 +842,16 @@ class AgentType(Model):
         self.shock_history = {}
         self.newborn_init_history = {}
         self.history = {}
-        self.assign_parameters(**kwds)  # NOQA
+        self.assign_parameters(**params)  # NOQA
         self.reset_rng()  # NOQA
+        self.bilt = {}
+        if construct:
+            self.construct()
+
+        # Add instance-level lists and objects
+        self.time_vary = deepcopy(self.time_vary_)
+        self.time_inv = deepcopy(self.time_inv_)
+        self.shock_vars = deepcopy(self.shock_vars_)
 
     def add_to_time_vary(self, *params):
         """
@@ -961,6 +995,8 @@ class AgentType(Model):
         A method to check that elements of time_vary are lists.
         """
         for param in self.time_vary:
+            if not hasattr(self, param):
+                continue
             if not isinstance(
                 getattr(self, param),
                 (TimeVaryingDiscreteDistribution, IndexDistribution),
@@ -1684,8 +1720,6 @@ def solve_one_cycle(agent, solution_last):
     else:
         # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
         if len(agent.time_vary) > 0:
-            # name = agent.time_vary[0]
-            # T = len(eval('agent.' + name))
             T = len(agent.__dict__[agent.time_vary[0]])
         else:
             T = 1

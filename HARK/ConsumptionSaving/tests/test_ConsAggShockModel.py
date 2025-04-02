@@ -42,7 +42,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.agents[0].solve()
         self.assertAlmostEqual(
             self.agents[0].solution[0].cFunc(10.0, self.economy.MSS),
-            3.22908,
+            3.23694,
             places=HARK_PRECISION,
         )
 
@@ -58,7 +58,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(self.economy.AFunc.slope, 1.11810, places=HARK_PRECISION)
+        self.assertAlmostEqual(self.economy.AFunc.slope, 1.13204, places=HARK_PRECISION)
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.45632, place = HARK_PRECISION)
@@ -80,7 +80,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
-            2.56359,
+            2.56379,
             places=HARK_PRECISION,
         )
 
@@ -96,7 +96,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
 
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.08987, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.08571, places=HARK_PRECISION
         )
 
         # simulation test -- seed/generator specific
@@ -123,10 +123,11 @@ class KrusellSmithTestCase(unittest.TestCase):
 class KrusellSmithAgentTestCase(KrusellSmithTestCase):
     def test_agent(self):
         self.agent.get_economy_data(self.economy)
+        self.agent.construct()
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
-            1.23868,
+            1.24280,
             places=HARK_PRECISION,
         )
 
@@ -134,6 +135,8 @@ class KrusellSmithAgentTestCase(KrusellSmithTestCase):
 class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
     def test_methods(self):
         self.agent.get_economy_data(self.economy)
+
+        self.agent.construct()
 
         self.assertAlmostEqual(self.agent.AFunc[0].slope, 1.0)
 
@@ -174,7 +177,7 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 
         # testing precompute_arrays()
         self.assertAlmostEqual(
-            self.agent.mNextArray[5, 2, 3, 0], 0.34880, places=HARK_PRECISION
+            self.agent.mNextArray[5, 2, 3, 0], 0.35541, places=HARK_PRECISION
         )
 
         # testing make_grid()
@@ -189,7 +192,7 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 
         self.assertAlmostEqual(
             self.economy.agents[0].solution[0].cFunc[0](10, self.economy.MSS).tolist(),
-            1.2386774,
+            1.24280,
             places=4,
         )
 
@@ -231,11 +234,11 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
         new_dynamics = self.economy.update_dynamics()
 
         self.assertAlmostEqual(
-            new_dynamics.AFunc[0].slope, 1.01779, places=HARK_PRECISION
+            new_dynamics.AFunc[0].slope, 1.02231, places=HARK_PRECISION
         )
 
         self.assertAlmostEqual(
-            new_dynamics.AFunc[1].slope, 1.02020, places=HARK_PRECISION
+            new_dynamics.AFunc[1].slope, 1.02515, places=HARK_PRECISION
         )
 
 
@@ -246,12 +249,14 @@ class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
         self.assertAlmostEqual(self.economy.AFunc[1].slope, 1.0)
 
         self.agent.get_economy_data(self.economy)
+        self.agent.construct()
+
         self.economy.make_Mrkv_history()  # Make a simulated history of aggregate shocks
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.02108, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.03346, places=HARK_PRECISION
         )
 
         # simulation test -- seed/generator specific

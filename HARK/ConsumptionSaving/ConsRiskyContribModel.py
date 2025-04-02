@@ -24,8 +24,6 @@ https://econ-ark.org/materials/riskycontrib
 
 """
 
-from copy import deepcopy
-
 import numpy as np
 
 from HARK import NullFunc  # Basic HARK features
@@ -39,11 +37,21 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP_inv,  # Inverse CRRA marginal utility function
 )
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn,
+    get_TranShkDstn_from_IncShkDstn,
+)
+from HARK.Calibration.Assets.AssetProcesses import (
+    make_lognormal_RiskyDstn,
+    combine_IncShkDstn_and_RiskyDstn,
+    calc_ShareLimit_for_CRRA,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
-    IndShockRiskyAssetConsumerType_constructor_default,
+    make_AdjustDstn,
 )
 from HARK.distributions import calc_expectation
 from HARK.interpolation import BilinearInterp  # 2D interpolator
@@ -57,576 +65,201 @@ from HARK.interpolation import LinearInterp  # Piecewise linear interpolation
 from HARK.interpolation import TrilinearInterp  # 3D interpolator
 from HARK.interpolation import DiscreteInterp, MargValueFuncCRRA, ValueFuncCRRA
 from HARK.metric import MetricObject
-from HARK.utilities import make_grid_exp_mult
+from HARK.utilities import make_grid_exp_mult, make_assets_grid
+
+###############################################################################
 
 
-class RiskyContribConsumerType(RiskyAssetConsumerType):
+def make_bounded_ShareGrid(ShareCount, ShareMax):
     """
-    A consumer type with idiosyncratic shocks to permanent and transitory income,
-    who can save in both a risk-free and a risky asset but faces frictions to
-    moving funds between them. The agent can only consume out of his risk-free
-    asset.
+    Make a uniformly spaced grid on the unit interval, representing shares
+    contributed toward the risky asset.
 
-    The frictions are:
+    Parameters
+    ----------
+    ShareCount : int
+        Number of points in the grid.
+    ShareMax : float
+        Highest risky fraction allowed.
 
-    - A proportional tax on funds moved from the risky to the risk-free
-      asset.
-    - A stochastic inability to move funds between his accounts.
+    Returns
+    -------
+    ShareGrid : np.array
+    """
+    ShareGrid = np.linspace(0.0, ShareMax, ShareCount)
+    return ShareGrid
 
-    To partially avoid the second friction, the agent can commit to have a
-    fraction of his labor income, which is usually deposited in his risk-free
-    account, diverted to his risky account. He can change this fraction
-    only in periods where he is able to move funds between accounts.
+
+def make_simple_dGrid(dCount):
+    """
+    Make a uniformly spaced grid on the unit interval, representing rebalancing rates.
+
+    Parameters
+    ----------
+    dCount : int
+        Number of points in the grid.
+
+    Returns
+    -------
+    dGrid : np.array
+    """
+    dGrid = np.linspace(0.0, 1.0, dCount)
+    return dGrid
+
+
+def make_nNrm_grid(nNrmMin, nNrmMax, nNrmCount, nNrmNestFac):
+    """
+    Creates the agent's illiquid assets grid by constructing a multi-exponentially
+    spaced grid of nNrm values.
+
+    Parameters
+    ----------
+    nNrmMin : float
+        Minimum value in the illiquid assets grid.
+    nNrmMax : float
+        Maximum value in the illiquid assets grid.
+    nNrmCount : float
+        Number of gridpoints in the illiquid assets grid.
+    nNrmNestFac : int
+        Degree of exponential nesting for illiquid assets.
+
+    Returns
+    -------
+    nNrmGrid : np.array
+        Constructed grid of illiquid assets.
+    """
+    nNrmGrid = make_grid_exp_mult(
+        ming=nNrmMin, maxg=nNrmMax, ng=nNrmCount, timestonest=nNrmNestFac
+    )
+    return nNrmGrid
+
+
+def make_mNrm_grid(mNrmMin, mNrmMax, mNrmCount, mNrmNestFac):
+    """
+    Creates the agent's liquid assets grid by constructing a multi-exponentially
+    spaced grid of mNrm values.
+
+    Parameters
+    ----------
+    mNrmMin : float
+        Minimum value in the liquid assets grid.
+    mNrmMax : float
+        Maximum value in the liquid assets grid.
+    mNrmCount : float
+        Number of gridpoints in the liquid assets grid.
+    mNrmNestFac : int
+        Degree of exponential nesting for liquid assets.
+
+    Returns
+    -------
+    mNrmGrid : np.array
+        Constructed grid of liquid assets.
+    """
+    mNrmGrid = make_grid_exp_mult(
+        ming=mNrmMin, maxg=mNrmMax, ng=mNrmCount, timestonest=mNrmNestFac
+    )
+    return mNrmGrid
+
+
+def make_solution_terminal_risky_contrib(CRRA, tau):
+    """
+    Solves the terminal period. The solution is trivial.
+    Cns: agent will consume all of his liquid resources.
+    Sha: irrelevant as there is no "next" period.
+    Reb: agent will shift all of his resources to the risk-free asset.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    tau : float
+        Tax rate of some kind.
+
+    Returns
+    -------
+    solution_terminal : RiskyContribSolution
+        Terminal period solution object
     """
 
-    time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["DiscreteShareBool", "joint_dist_solver"]
+    # Construct the terminal solution backwards.
 
-    # The new state variables (over those in ConsIndShock) are:
-    # - nMrm: start-of-period risky resources.
-    # - mNrmTilde: post-rebalancing risk-free resources.
-    # - nNrmTilde: post-rebalancing risky resources.
-    # - Share: income-deduction share.
-    # For details, see
-    # https://github.com/Mv77/RiskyContrib/blob/main/RiskyContrib.pdf
-    state_vars = RiskyAssetConsumerType.state_vars + [
-        "gNrm",
-        "nNrm",
-        "mNrmTilde",
-        "nNrmTilde",
-        "Share",
-    ]
-    shock_vars_ = RiskyAssetConsumerType.shock_vars_
+    # Start with the consumption stage. All liquid resources are consumed.
+    cFunc_term = IdentityFunction(i_dim=0, n_dims=3)
+    vFunc_Cns_term = ValueFuncCRRA(cFunc_term, CRRA=CRRA)
+    # Marginal values
+    dvdmFunc_Cns_term = MargValueFuncCRRA(cFunc_term, CRRA=CRRA)
+    dvdnFunc_Cns_term = ConstantFunction(0.0)
+    dvdsFunc_Cns_term = ConstantFunction(0.0)
 
-    def __init__(self, verbose=False, quiet=False, joint_dist_solver=False, **kwds):
-        params = init_risky_contrib.copy()
-        params.update(kwds)
-        kwds = params
+    Cns_stage_sol = RiskyContribCnsSolution(
+        # Consumption stage
+        vFunc=vFunc_Cns_term,
+        cFunc=cFunc_term,
+        dvdmFunc=dvdmFunc_Cns_term,
+        dvdnFunc=dvdnFunc_Cns_term,
+        dvdsFunc=dvdsFunc_Cns_term,
+    )
 
-        # Initialize a basic consumer type
-        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
+    # Share stage
 
-        # The model is solved and simulated spliting each of the agent's
-        # decisions into its own "stage". The stages in chronological order
-        # are
-        # - Reb: asset-rebalancing stage.
-        # - Sha: definition of the income contribution share.
-        # - Cns: consumption stage.
-        self.stages = ["Reb", "Sha", "Cns"]
+    # It's irrelevant because there is no future period. Set share to 0.
+    # Create a dummy 2-d consumption function to get value function and marginal
+    c2d = IdentityFunction(i_dim=0, n_dims=2)
+    Sha_stage_sol = RiskyContribShaSolution(
+        # Adjust
+        vFunc_Adj=ValueFuncCRRA(c2d, CRRA=CRRA),
+        ShareFunc_Adj=ConstantFunction(0.0),
+        dvdmFunc_Adj=MargValueFuncCRRA(c2d, CRRA=CRRA),
+        dvdnFunc_Adj=ConstantFunction(0.0),
+        # Fixed
+        vFunc_Fxd=vFunc_Cns_term,
+        ShareFunc_Fxd=IdentityFunction(i_dim=2, n_dims=3),
+        dvdmFunc_Fxd=dvdmFunc_Cns_term,
+        dvdnFunc_Fxd=dvdnFunc_Cns_term,
+        dvdsFunc_Fxd=dvdsFunc_Cns_term,
+    )
 
-        # Each stage has its own states and controls, and its methods
-        # to find them.
-        self.get_states = {
-            "Reb": self.get_states_Reb,
-            "Sha": self.get_states_Sha,
-            "Cns": self.get_states_Cns,
-        }
+    # Rebalancing stage
 
-        self.get_controls = {
-            "Reb": self.get_controls_Reb,
-            "Sha": self.get_controls_Sha,
-            "Cns": self.get_controls_Cns,
-        }
+    # Adjusting agent:
+    # Withdraw everything from the pension fund and consume everything
+    dfracFunc_Adj_term = ConstantFunction(-1.0)
 
-        # The model can be solved more quickly if income and risky returns are
-        # independent. However, people might want to use the general solver
-        # even when they are independent for debugging and testing.
-        self.joint_dist_solver = joint_dist_solver
+    # Find the withdrawal penalty. If it is time-varying, assume it takes
+    # the same value as in the last non-terminal period
+    if type(tau) is list:
+        tau = tau[-1]
+    else:
+        tau = tau
 
-        # Set the solver for the portfolio model, and update various constructed attributes
-        self.solve_one_period = solveRiskyContrib
-        self.update()
+    # Value and marginal value function of the adjusting agent
+    vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + tau), CRRA)
+    dvdmFunc_Reb_Adj_term = MargValueFuncCRRA(lambda m, n: m + n / (1 + tau), CRRA)
+    # A marginal unit of n will be withdrawn and put into m. Then consumed.
+    dvdnFunc_Reb_Adj_term = lambda m, n: dvdmFunc_Reb_Adj_term(m, n) / (1 + tau)
 
-    def pre_solve(self):
-        self.update_solution_terminal()
-
-    def update(self):
-        RiskyAssetConsumerType.update(self)
-        self.update_share_grid()
-        self.update_dfrac_grid()
-        self.update_nNrm_grid()
-        self.update_mNrm_grid()
-        self.update_tau()
-
-    def update_solution_terminal(self):
-        """
-        Solves the terminal period. The solution is trivial.
-        Cns: agent will consume all of his liquid resources.
-        Sha: irrelevant as there is no "next" period.
-        Reb: agent will shift all of his resources to the risk-free asset.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-
-        # Construct the terminal solution backwards.
-
-        # Start with the consumption stage. All liquid resources are consumed.
-        cFunc_term = IdentityFunction(i_dim=0, n_dims=3)
-        vFunc_Cns_term = ValueFuncCRRA(cFunc_term, CRRA=self.CRRA)
-        # Marginal values
-        dvdmFunc_Cns_term = MargValueFuncCRRA(cFunc_term, CRRA=self.CRRA)
-        dvdnFunc_Cns_term = ConstantFunction(0.0)
-        dvdsFunc_Cns_term = ConstantFunction(0.0)
-
-        Cns_stage_sol = RiskyContribCnsSolution(
-            # Consumption stage
-            vFunc=vFunc_Cns_term,
-            cFunc=cFunc_term,
-            dvdmFunc=dvdmFunc_Cns_term,
-            dvdnFunc=dvdnFunc_Cns_term,
-            dvdsFunc=dvdsFunc_Cns_term,
-        )
-
-        # Share stage
-
-        # It's irrelevant because there is no future period. Set share to 0.
-        # Create a dummy 2-d consumption function to get value function and marginal
-        c2d = IdentityFunction(i_dim=0, n_dims=2)
-        Sha_stage_sol = RiskyContribShaSolution(
-            # Adjust
-            vFunc_Adj=ValueFuncCRRA(c2d, CRRA=self.CRRA),
-            ShareFunc_Adj=ConstantFunction(0.0),
-            dvdmFunc_Adj=MargValueFuncCRRA(c2d, CRRA=self.CRRA),
-            dvdnFunc_Adj=ConstantFunction(0.0),
-            # Fixed
-            vFunc_Fxd=vFunc_Cns_term,
-            ShareFunc_Fxd=IdentityFunction(i_dim=2, n_dims=3),
-            dvdmFunc_Fxd=dvdmFunc_Cns_term,
-            dvdnFunc_Fxd=dvdnFunc_Cns_term,
-            dvdsFunc_Fxd=dvdsFunc_Cns_term,
-        )
-
+    Reb_stage_sol = RiskyContribRebSolution(
         # Rebalancing stage
-
-        # Adjusting agent:
-        # Withdraw everything from the pension fund and consume everything
-        dfracFunc_Adj_term = ConstantFunction(-1.0)
-
-        # Find the withdrawal penalty. If it is time-varying, assume it takes
-        # the same value as in the last non-terminal period
-        if type(self.tau) is list:
-            tau = self.tau[-1]
-        else:
-            tau = self.tau
-
-        # Value and marginal value function of the adjusting agent
-        vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + tau), self.CRRA)
-        dvdmFunc_Reb_Adj_term = MargValueFuncCRRA(
-            lambda m, n: m + n / (1 + tau), self.CRRA
-        )
-        # A marginal unit of n will be withdrawn and put into m. Then consumed.
-        dvdnFunc_Reb_Adj_term = lambda m, n: dvdmFunc_Reb_Adj_term(m, n) / (1 + tau)
-
-        Reb_stage_sol = RiskyContribRebSolution(
-            # Rebalancing stage
-            vFunc_Adj=vFunc_Reb_Adj_term,
-            dfracFunc_Adj=dfracFunc_Adj_term,
-            dvdmFunc_Adj=dvdmFunc_Reb_Adj_term,
-            dvdnFunc_Adj=dvdnFunc_Reb_Adj_term,
-            # Adjusting stage
-            vFunc_Fxd=vFunc_Cns_term,
-            dfracFunc_Fxd=ConstantFunction(0.0),
-            dvdmFunc_Fxd=dvdmFunc_Cns_term,
-            dvdnFunc_Fxd=dvdnFunc_Cns_term,
-            dvdsFunc_Fxd=dvdsFunc_Cns_term,
-        )
-
-        # Construct the terminal period solution
-        self.solution_terminal = RiskyContribSolution(
-            Reb_stage_sol, Sha_stage_sol, Cns_stage_sol
-        )
-
-    def update_tau(self):
-        """
-        Checks that the tax rate on risky-to-risk-free flows has the appropriate
-        length adds it to time_(in)vary
-
-        Returns
-        -------
-        None.
-
-        """
-        if type(self.tau) is list and (len(self.tau) == self.T_cycle):
-            self.add_to_time_vary("tau")
-        elif type(self.tau) is list:
-            raise AttributeError(
-                "If tau is time-varying, it must have length of T_cycle!"
-            )
-        else:
-            self.add_to_time_inv("tau")
-
-    def update_share_grid(self):
-        """
-        Creates grid for the income contribution share.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.ShareGrid = np.linspace(0.0, self.ShareMax, self.ShareCount)
-        self.add_to_time_inv("ShareGrid")
-
-    def update_dfrac_grid(self):
-        """
-        Creates grid for the rebalancing flow between assets. This flow is
-        normalized as a ratio.
-        - If d > 0, d*mNrm flows towards the risky asset.
-        - If d < 0, d*nNrm (pre-tax) flows towards the risk-free asset.
-
-        Returns
-        -------
-        None.
-
-        """
-        self.dfracGrid = np.linspace(0, 1, self.dCount)
-        self.add_to_time_inv("dfracGrid")
-
-    def update_nNrm_grid(self):
-        """
-        Updates the agent's iliquid assets grid by constructing a
-        multi-exponentially spaced grid of nNrm values.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None.
-        """
-        # Extract parameters
-        nNrmMin = self.nNrmMin
-        nNrmMax = self.nNrmMax
-        nNrmCount = self.nNrmCount
-        exp_nest = self.nNrmNestFac
-        # Create grid
-        nNrmGrid = make_grid_exp_mult(
-            ming=nNrmMin, maxg=nNrmMax, ng=nNrmCount, timestonest=exp_nest
-        )
-        # Assign and set it as time invariant
-        self.nNrmGrid = nNrmGrid
-        self.add_to_time_inv("nNrmGrid")
-
-    def update_mNrm_grid(self):
-        """
-        Updates the agent's liquid assets exogenous grid by constructing a
-        multi-exponentially spaced grid of mNrm values.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None.
-        """
-        # Extract parameters
-        mNrmMin = self.mNrmMin
-        mNrmMax = self.mNrmMax
-        mNrmCount = self.mNrmCount
-        exp_nest = self.mNrmNestFac
-        # Create grid
-        mNrmGrid = make_grid_exp_mult(
-            ming=mNrmMin, maxg=mNrmMax, ng=mNrmCount, timestonest=exp_nest
-        )
-        # Assign and set it as time invariant
-        self.mNrmGrid = mNrmGrid
-        self.add_to_time_inv("mNrmGrid")
-
-    def initialize_sim(self):
-        """
-        Initialize the state of simulation attributes.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        RiskyAssetConsumerType.initialize_sim(self)
-        self.state_now["Share"] = np.zeros(self.AgentCount)
-
-    def sim_birth(self, which_agents):
-        """
-        Create new agents to replace ones who have recently died; takes draws of
-        initial aNrm and pLvl, as in ConsIndShockModel, then sets Share, Adjust
-        and post-rebalancing risky asset nNrmTilde to zero as initial values.
-        Parameters
-        ----------
-        which_agents : np.array
-            Boolean array of size AgentCount indicating which agents should be "born".
-
-        Returns
-        -------
-        None
-        """
-
-        RiskyAssetConsumerType.sim_birth(self, which_agents)
-        self.state_now["Share"][which_agents] = 0.0
-        self.state_now["nNrmTilde"][which_agents] = 0.0
-
-    def sim_one_period(self):
-        """
-        Simulates one period for this type.
-
-        Has to be re-defined instead of using AgentType.sim_one_period() because
-        of the "stages" structure.
-
-        Parameters
-        ----------
-        None
-        Returns
-        -------
-        None
-        """
-
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method of the class first."
-            )
-
-        # Mortality adjusts the agent population
-        self.get_mortality()  # Replace some agents with "newborns"
-
-        # Make state_now into state_prev, clearing state_now
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
-
-        if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.read_shocks_from_history()
-        else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.get_shocks()
-
-        # Sequentially get states and controls of every stage
-        for s in self.stages:
-            self.get_states[s]()
-            self.get_controls[s]()
-
-        self.get_post_states()
-
-        # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = (
-            0  # Resetting to zero for those who have reached the end
-        )
-
-    def get_states_Reb(self):
-        """
-        Get states for the first "stage": rebalancing.
-        """
-
-        pLvlPrev = self.state_prev["pLvl"]
-        aNrmPrev = self.state_prev["aNrm"]
-        SharePrev = self.state_prev["Share"]
-        nNrmTildePrev = self.state_prev["nNrmTilde"]
-        Rfree = self.Rfree
-        Rrisk = self.shocks["Risky"]
-
-        # Calculate new states:
-
-        # Permanent income
-        self.state_now["pLvl"] = pLvlPrev * self.shocks["PermShk"]
-        self.state_now["PlvlAgg"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
-
-        # Assets: mNrm and nNrm
-
-        # Compute the effective growth factor of each asset
-        RfEff = Rfree / self.shocks["PermShk"]
-        RrEff = Rrisk / self.shocks["PermShk"]
-
-        self.state_now["bNrm"] = RfEff * aNrmPrev  # Liquid balances before labor income
-        self.state_now["gNrm"] = (
-            RrEff * nNrmTildePrev
-        )  # Iliquid balances before labor income
-
-        # Liquid balances after labor income
-        self.state_now["mNrm"] = self.state_now["bNrm"] + self.shocks["TranShk"] * (
-            1 - SharePrev
-        )
-        # Iliquid balances after labor income
-        self.state_now["nNrm"] = (
-            self.state_now["gNrm"] + self.shocks["TranShk"] * SharePrev
-        )
-
-        return None
-
-    def get_controls_Reb(self):
-        """
-        Get controls for the first stage: rebalancing
-        """
-        dfrac = np.zeros(self.AgentCount) + np.nan
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            # Find agents in this period-stage
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust.
-            those = np.logical_and(these, self.shocks["Adjust"])
-            dfrac[those] = (
-                self.solution[t]
-                .stage_sols["Reb"]
-                .dfracFunc_Adj(
-                    self.state_now["mNrm"][those], self.state_now["nNrm"][those]
-                )
-            )
-
-            # Get Controls for agents who *can't* adjust.
-            those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
-            dfrac[those] = (
-                self.solution[t]
-                .stage_sols["Reb"]
-                .dfracFunc_Fxd(
-                    self.state_now["mNrm"][those],
-                    self.state_now["nNrm"][those],
-                    self.state_prev["Share"][those],
-                )
-            )
-
-        # Limit dfrac to [-1,1] to prevent negative balances. Values outside
-        # the range can come from extrapolation.
-        self.controls["dfrac"] = np.minimum(np.maximum(dfrac, -1), 1.0)
-
-    def get_states_Sha(self):
-        """
-        Get states for the second "stage": choosing the contribution share.
-        """
-
-        # Post-states are assets after rebalancing
-
-        if "tau" not in self.time_vary:
-            mNrmTilde, nNrmTilde = rebalance_assets(
-                self.controls["dfrac"],
-                self.state_now["mNrm"],
-                self.state_now["nNrm"],
-                self.tau,
-            )
-
-        else:
-            # Initialize
-            mNrmTilde = np.zeros_like(self.state_now["mNrm"]) + np.nan
-            nNrmTilde = np.zeros_like(self.state_now["mNrm"]) + np.nan
-
-            # Loop over each period of the cycle, getting controls separately depending on "age"
-            for t in range(self.T_cycle):
-                # Find agents in this period-stage
-                these = t == self.t_cycle
-
-                if np.sum(these) > 0:
-                    tau = self.tau[t]
-
-                    mNrmTilde[these], nNrmTilde[these] = rebalance_assets(
-                        self.controls["dfrac"][these],
-                        self.state_now["mNrm"][these],
-                        self.state_now["nNrm"][these],
-                        tau,
-                    )
-
-        self.state_now["mNrmTilde"] = mNrmTilde
-        self.state_now["nNrmTilde"] = nNrmTilde
-
-    def get_controls_Sha(self):
-        """
-        Get controls for the second "stage": choosing the contribution share.
-        """
-
-        Share = np.zeros(self.AgentCount) + np.nan
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            # Find agents in this period-stage
-            these = t == self.t_cycle
-
-            # Get controls for agents who *can* adjust.
-            those = np.logical_and(these, self.shocks["Adjust"])
-            Share[those] = (
-                self.solution[t]
-                .stage_sols["Sha"]
-                .ShareFunc_Adj(
-                    self.state_now["mNrmTilde"][those],
-                    self.state_now["nNrmTilde"][those],
-                )
-            )
-
-            # Get Controls for agents who *can't* adjust.
-            those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
-            Share[those] = (
-                self.solution[t]
-                .stage_sols["Sha"]
-                .ShareFunc_Fxd(
-                    self.state_now["mNrmTilde"][those],
-                    self.state_now["nNrmTilde"][those],
-                    self.state_prev["Share"][those],
-                )
-            )
-
-        # Store controls as attributes of self
-        self.controls["Share"] = Share
-
-    def get_states_Cns(self):
-        """
-        Get states for the third "stage": consumption.
-        """
-
-        # Contribution share becomes a state in the consumption problem
-        self.state_now["Share"] = self.controls["Share"]
-
-    def get_controls_Cns(self):
-        """
-        Get controls for the third "stage": consumption.
-        """
-
-        cNrm = np.zeros(self.AgentCount) + np.nan
-
-        # Loop over each period of the cycle, getting controls separately depending on "age"
-        for t in range(self.T_cycle):
-            # Find agents in this period-stage
-            these = t == self.t_cycle
-
-            # Get consumption
-            cNrm[these] = (
-                self.solution[t]
-                .stage_sols["Cns"]
-                .cFunc(
-                    self.state_now["mNrmTilde"][these],
-                    self.state_now["nNrmTilde"][these],
-                    self.state_now["Share"][these],
-                )
-            )
-
-        # Store controls as attributes of self
-        # Since agents might be willing to end the period with a = 0, make
-        # sure consumption does not go over m because of some numerical error.
-        self.controls["cNrm"] = np.minimum(cNrm, self.state_now["mNrmTilde"])
-
-    def get_post_states(self):
-        """
-        Set variables that are not a state to any problem but need to be
-        computed in order to interact with shocks and produce next period's
-        states.
-        """
-        self.state_now["aNrm"] = self.state_now["mNrmTilde"] - self.controls["cNrm"]
-
+        vFunc_Adj=vFunc_Reb_Adj_term,
+        dfracFunc_Adj=dfracFunc_Adj_term,
+        dvdmFunc_Adj=dvdmFunc_Reb_Adj_term,
+        dvdnFunc_Adj=dvdnFunc_Reb_Adj_term,
+        # Adjusting stage
+        vFunc_Fxd=vFunc_Cns_term,
+        dfracFunc_Fxd=ConstantFunction(0.0),
+        dvdmFunc_Fxd=dvdmFunc_Cns_term,
+        dvdnFunc_Fxd=dvdnFunc_Cns_term,
+        dvdsFunc_Fxd=dvdsFunc_Cns_term,
+    )
+
+    # Construct the terminal period solution
+    solution_terminal = RiskyContribSolution(
+        Reb_stage_sol, Sha_stage_sol, Cns_stage_sol
+    )
+    return solution_terminal
+
+
+###############################################################################
 
 # %% Classes for RiskyContrib type solution objects
 
@@ -1998,7 +1631,24 @@ def solveRiskyContrib(
 
 # %% Base risky-contrib dictionaries
 
+risky_contrib_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "RiskyDstn": make_lognormal_RiskyDstn,
+    "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
+    "ShareLimit": calc_ShareLimit_for_CRRA,
+    "AdjustDstn": make_AdjustDstn,
+    "solution_terminal": make_solution_terminal_risky_contrib,
+    "ShareGrid": make_bounded_ShareGrid,
+    "dfracGrid": make_simple_dGrid,
+    "mNrmGrid": make_mNrm_grid,
+    "nNrmGrid": make_nNrm_grid,
+}
+
 risky_contrib_params = {
+    "constructors": risky_contrib_constructor_dict,
     # Preferences. The points of the model are more evident for more risk
     # averse and impatient agents
     "CRRA": 5.0,
@@ -2024,6 +1674,7 @@ risky_contrib_params = {
     "DiscreteShareBool": False,
     # Grid for finding the optimal rebalancing flow
     "dCount": 20,
+    "joint_dist_solver": False,
 }
 risky_asset_params = {
     # Risky return factor moments. Based on SP500 real returns from Shiller's
@@ -2034,11 +1685,10 @@ risky_asset_params = {
     # Number of integration nodes to use in approximation of risky returns
     "RiskyCount": 5,
     # Probability that the agent can adjust their portfolio each period
-    "AdjustPrb": 1.0,
+    "AdjustPrb": [1.0],
     # When simulating the model, should all agents get the same risky return in
     # a given period?
     "sim_common_Rrisky": True,
-    "constructors": IndShockRiskyAssetConsumerType_constructor_default,
 }
 
 # Infinite horizon version
@@ -2049,3 +1699,363 @@ init_risky_contrib.update(risky_contrib_params)
 init_risky_contrib_lifecycle = init_lifecycle.copy()
 init_risky_contrib_lifecycle.update(risky_asset_params)
 init_risky_contrib_lifecycle.update(risky_contrib_params)
+
+###############################################################################
+
+
+class RiskyContribConsumerType(RiskyAssetConsumerType):
+    """
+    A consumer type with idiosyncratic shocks to permanent and transitory income,
+    who can save in both a risk-free and a risky asset but faces frictions to
+    moving funds between them. The agent can only consume out of his risk-free
+    asset.
+
+    The frictions are:
+
+    - A proportional tax on funds moved from the risky to the risk-free
+      asset.
+    - A stochastic inability to move funds between his accounts.
+
+    To partially avoid the second friction, the agent can commit to have a
+    fraction of his labor income, which is usually deposited in his risk-free
+    account, diverted to his risky account. He can change this fraction
+    only in periods where he is able to move funds between accounts.
+    """
+
+    # The model is solved and simulated spliting each of the agent's
+    # decisions into its own "stage". The stages in chronological order
+    # are
+    # - Reb: asset-rebalancing stage.
+    # - Sha: definition of the income contribution share.
+    # - Cns: consumption stage.
+    stages = ["Reb", "Sha", "Cns"]
+    # Each stage has its own states and controls, and its methods to find them.
+
+    time_inv_ = RiskyAssetConsumerType.time_inv_ + [
+        "DiscreteShareBool",
+        "joint_dist_solver",
+        "ShareGrid",
+        "nNrmGrid",
+        "mNrmGrid",
+        "RiskyDstn",
+        "dfracGrid",
+    ]
+    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["tau", "AdjustPrb"]
+
+    # The new state variables (over those in ConsIndShock) are:
+    # - nNrm: start-of-period risky resources.
+    # - mNrmTilde: post-rebalancing risk-free resources.
+    # - nNrmTilde: post-rebalancing risky resources.
+    # - Share: income-deduction share.
+    # For details, see
+    # https://github.com/Mv77/RiskyContrib/blob/main/RiskyContrib.pdf
+    state_vars = RiskyAssetConsumerType.state_vars + [
+        "gNrm",
+        "nNrm",
+        "mNrmTilde",
+        "nNrmTilde",
+        "Share",
+    ]
+    shock_vars_ = RiskyAssetConsumerType.shock_vars_
+    default_ = {"params": init_risky_contrib, "solver": solveRiskyContrib}
+
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        # It looks like I can't assign this at the class level, unfortunately
+        self.get_states = {
+            "Reb": self.get_states_Reb,
+            "Sha": self.get_states_Sha,
+            "Cns": self.get_states_Cns,
+        }
+        self.get_controls = {
+            "Reb": self.get_controls_Reb,
+            "Sha": self.get_controls_Sha,
+            "Cns": self.get_controls_Cns,
+        }
+
+    def pre_solve(self):
+        self.construct("solution_terminal")
+
+    def initialize_sim(self):
+        """
+        Initialize the state of simulation attributes.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        RiskyAssetConsumerType.initialize_sim(self)
+        self.state_now["Share"] = np.zeros(self.AgentCount)
+
+    def sim_birth(self, which_agents):
+        """
+        Create new agents to replace ones who have recently died; takes draws of
+        initial aNrm and pLvl, as in ConsIndShockModel, then sets Share, Adjust
+        and post-rebalancing risky asset nNrmTilde to zero as initial values.
+        Parameters
+        ----------
+        which_agents : np.array
+            Boolean array of size AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        """
+
+        RiskyAssetConsumerType.sim_birth(self, which_agents)
+        self.state_now["Share"][which_agents] = 0.0
+        self.state_now["nNrmTilde"][which_agents] = 0.0
+
+    def sim_one_period(self):
+        """
+        Simulates one period for this type.
+
+        Has to be re-defined instead of using AgentType.sim_one_period() because
+        of the "stages" structure.
+
+        Parameters
+        ----------
+        None
+        Returns
+        -------
+        None
+        """
+
+        if not hasattr(self, "solution"):
+            raise Exception(
+                "Model instance does not have a solution stored. To simulate, it is necessary"
+                " to run the `solve()` method of the class first."
+            )
+
+        # Mortality adjusts the agent population
+        self.get_mortality()  # Replace some agents with "newborns"
+
+        # Make state_now into state_prev, clearing state_now
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+
+            if isinstance(self.state_now[var], np.ndarray):
+                self.state_now[var] = np.empty(self.AgentCount)
+            else:
+                # Probably an aggregate variable. It may be getting set by the Market.
+                pass
+
+        if self.read_shocks:  # If shock histories have been pre-specified, use those
+            self.read_shocks_from_history()
+        else:  # Otherwise, draw shocks as usual according to subclass-specific method
+            self.get_shocks()
+
+        # Sequentially get states and controls of every stage
+        for s in self.stages:
+            self.get_states[s]()
+            self.get_controls[s]()
+
+        self.get_post_states()
+
+        # Advance time for all agents
+        self.t_age = self.t_age + 1  # Age all consumers by one period
+        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+        self.t_cycle[self.t_cycle == self.T_cycle] = (
+            0  # Resetting to zero for those who have reached the end
+        )
+
+    def get_states_Reb(self):
+        """
+        Get states for the first "stage": rebalancing.
+        """
+
+        pLvlPrev = self.state_prev["pLvl"]
+        aNrmPrev = self.state_prev["aNrm"]
+        SharePrev = self.state_prev["Share"]
+        nNrmTildePrev = self.state_prev["nNrmTilde"]
+        Rfree = self.Rfree
+        Rrisk = self.shocks["Risky"]
+
+        # Calculate new states:
+
+        # Permanent income
+        self.state_now["pLvl"] = pLvlPrev * self.shocks["PermShk"]
+        self.state_now["PlvlAgg"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
+
+        # Assets: mNrm and nNrm
+
+        # Compute the effective growth factor of each asset
+        RfEff = Rfree / self.shocks["PermShk"]
+        RrEff = Rrisk / self.shocks["PermShk"]
+
+        self.state_now["bNrm"] = RfEff * aNrmPrev  # Liquid balances before labor income
+        self.state_now["gNrm"] = (
+            RrEff * nNrmTildePrev
+        )  # Iliquid balances before labor income
+
+        # Liquid balances after labor income
+        self.state_now["mNrm"] = self.state_now["bNrm"] + self.shocks["TranShk"] * (
+            1 - SharePrev
+        )
+        # Iliquid balances after labor income
+        self.state_now["nNrm"] = (
+            self.state_now["gNrm"] + self.shocks["TranShk"] * SharePrev
+        )
+
+        return None
+
+    def get_controls_Reb(self):
+        """
+        Get controls for the first stage: rebalancing
+        """
+        dfrac = np.zeros(self.AgentCount) + np.nan
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            # Find agents in this period-stage
+            these = t == self.t_cycle
+
+            # Get controls for agents who *can* adjust.
+            those = np.logical_and(these, self.shocks["Adjust"])
+            dfrac[those] = (
+                self.solution[t]
+                .stage_sols["Reb"]
+                .dfracFunc_Adj(
+                    self.state_now["mNrm"][those], self.state_now["nNrm"][those]
+                )
+            )
+
+            # Get Controls for agents who *can't* adjust.
+            those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
+            dfrac[those] = (
+                self.solution[t]
+                .stage_sols["Reb"]
+                .dfracFunc_Fxd(
+                    self.state_now["mNrm"][those],
+                    self.state_now["nNrm"][those],
+                    self.state_prev["Share"][those],
+                )
+            )
+
+        # Limit dfrac to [-1,1] to prevent negative balances. Values outside
+        # the range can come from extrapolation.
+        self.controls["dfrac"] = np.minimum(np.maximum(dfrac, -1), 1.0)
+
+    def get_states_Sha(self):
+        """
+        Get states for the second "stage": choosing the contribution share.
+        """
+
+        # Post-states are assets after rebalancing
+
+        if "tau" not in self.time_vary:
+            mNrmTilde, nNrmTilde = rebalance_assets(
+                self.controls["dfrac"],
+                self.state_now["mNrm"],
+                self.state_now["nNrm"],
+                self.tau,
+            )
+
+        else:
+            # Initialize
+            mNrmTilde = np.zeros_like(self.state_now["mNrm"]) + np.nan
+            nNrmTilde = np.zeros_like(self.state_now["mNrm"]) + np.nan
+
+            # Loop over each period of the cycle, getting controls separately depending on "age"
+            for t in range(self.T_cycle):
+                # Find agents in this period-stage
+                these = t == self.t_cycle
+
+                if np.sum(these) > 0:
+                    tau = self.tau[t]
+
+                    mNrmTilde[these], nNrmTilde[these] = rebalance_assets(
+                        self.controls["dfrac"][these],
+                        self.state_now["mNrm"][these],
+                        self.state_now["nNrm"][these],
+                        tau,
+                    )
+
+        self.state_now["mNrmTilde"] = mNrmTilde
+        self.state_now["nNrmTilde"] = nNrmTilde
+
+    def get_controls_Sha(self):
+        """
+        Get controls for the second "stage": choosing the contribution share.
+        """
+
+        Share = np.zeros(self.AgentCount) + np.nan
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            # Find agents in this period-stage
+            these = t == self.t_cycle
+
+            # Get controls for agents who *can* adjust.
+            those = np.logical_and(these, self.shocks["Adjust"])
+            Share[those] = (
+                self.solution[t]
+                .stage_sols["Sha"]
+                .ShareFunc_Adj(
+                    self.state_now["mNrmTilde"][those],
+                    self.state_now["nNrmTilde"][those],
+                )
+            )
+
+            # Get Controls for agents who *can't* adjust.
+            those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
+            Share[those] = (
+                self.solution[t]
+                .stage_sols["Sha"]
+                .ShareFunc_Fxd(
+                    self.state_now["mNrmTilde"][those],
+                    self.state_now["nNrmTilde"][those],
+                    self.state_prev["Share"][those],
+                )
+            )
+
+        # Store controls as attributes of self
+        self.controls["Share"] = Share
+
+    def get_states_Cns(self):
+        """
+        Get states for the third "stage": consumption.
+        """
+
+        # Contribution share becomes a state in the consumption problem
+        self.state_now["Share"] = self.controls["Share"]
+
+    def get_controls_Cns(self):
+        """
+        Get controls for the third "stage": consumption.
+        """
+
+        cNrm = np.zeros(self.AgentCount) + np.nan
+
+        # Loop over each period of the cycle, getting controls separately depending on "age"
+        for t in range(self.T_cycle):
+            # Find agents in this period-stage
+            these = t == self.t_cycle
+
+            # Get consumption
+            cNrm[these] = (
+                self.solution[t]
+                .stage_sols["Cns"]
+                .cFunc(
+                    self.state_now["mNrmTilde"][these],
+                    self.state_now["nNrmTilde"][these],
+                    self.state_now["Share"][these],
+                )
+            )
+
+        # Store controls as attributes of self
+        # Since agents might be willing to end the period with a = 0, make
+        # sure consumption does not go over m because of some numerical error.
+        self.controls["cNrm"] = np.minimum(cNrm, self.state_now["mNrmTilde"])
+
+    def get_post_states(self):
+        """
+        Set variables that are not a state to any problem but need to be
+        computed in order to interact with shocks and produce next period's
+        states.
+        """
+        self.state_now["aNrm"] = self.state_now["mNrmTilde"] - self.controls["cNrm"]
