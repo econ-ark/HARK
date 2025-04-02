@@ -33,12 +33,17 @@ class Control:
 
     Parameters
     ----------
-    args : list of str
+    iset : list of str
         The labels of the variables that are in the information set of this control.
+
+    upper_bound : function
+        An 'equation function' which evaluates to the upper bound of the control variable.
     """
 
-    def __init__(self, args):
-        pass
+    def __init__(self, iset, lower_bound=None, upper_bound=None):
+        self.iset = iset
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
 
 
 def discretized_shock_dstn(shocks, disc_params):
@@ -276,11 +281,48 @@ class DBlock(Block):
             + list(self.reward.keys())
         )
 
-    def transition(self, pre, dr):
+    def get_controls(self):
         """
-        Returns variable values given previous values and decision rule for all controls.
+        TODO: Repeated in RBlock. Move to higher order class.
         """
-        return simulate_dynamics(self.dynamics, pre, dr)
+        dyn = self.get_dynamics()
+
+        return [varn for varn in dyn if isinstance(dyn[varn], Control)]
+
+    def transition(self, pre, dr, screen=False):
+        """
+        Computes the state variables following pre-given states,
+        given a decision rule for all controls.
+
+        Parameters
+        -----------
+        pre
+        dr
+
+        screen: Boolean
+            If True, the remove any dynamics that are prior to the first given state.
+            Defaults to False.
+        """
+        dyn = self.dynamics.copy()
+
+        if screen:
+            # don't simulate any states that are logically prior
+            # to those that have already been given.
+            met_pre = False  # this is a hack; really should use dependency graph
+            for varn in list(dyn.keys()):
+                if not met_pre:
+                    if varn in pre:
+                        met_pre = True
+                        del dyn[varn]
+                    elif varn not in pre and varn not in dr:
+                        del dyn[varn]
+
+            # this will break if there's a directly recursive label,
+            # i.e. if dynamics at time t for variable 'a'
+            # depend on state of 'a' at time t-1
+            # This is a forbidden case in CDC's design.
+
+        return simulate_dynamics(dyn, pre, dr)
 
     def calc_reward(self, vals):
         """
@@ -294,7 +336,9 @@ class DBlock(Block):
 
         return rvals
 
-    def get_state_rule_value_function_from_continuation(self, continuation):
+    def get_state_rule_value_function_from_continuation(
+        self, continuation, screen=False
+    ):
         """
         Given a continuation value function, returns a state-rule value
         function: the value for each state and decision rule.
@@ -303,8 +347,9 @@ class DBlock(Block):
         """
 
         def state_rule_value_function(pre, dr):
-            vals = self.transition(pre, dr)
+            vals = self.transition(pre, dr, screen=screen)
             r = list(self.calc_reward(vals).values())[0]  # a hack; to be improved
+            # this assumes a single reward variable; instead, a named could be passed in.
             cv = continuation(
                 *[vals[var] for var in signature(continuation).parameters]
             )

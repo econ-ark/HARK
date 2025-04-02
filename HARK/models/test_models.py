@@ -103,7 +103,7 @@ class test_consumer_models(unittest.TestCase):
             {  # initial states
                 "k": Lognormal(-6, 0),
                 #'live' : 1,
-                "p": 1.0,
+                # "p": 1.0, - not needed, using normalized problem
             },
             agent_count=2,
             T_sim=5,
@@ -121,7 +121,7 @@ class test_consumer_models(unittest.TestCase):
             {  # initial states
                 "k": Lognormal(-6, 0),
                 #'live' : 1,
-                "p": 1.0,
+                # "p": 1.0,- not needed, using normalized problem
                 "R": 1.03,
             },
             agent_count=2,
