@@ -6,6 +6,7 @@ distribution can vary with the discrete state.
 """
 
 import numpy as np
+import importlib
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -19,11 +20,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.distributions import MarkovProcess, Uniform, expected
+from HARK.distributions import MarkovProcess, Uniform, Bernoulli, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
     LowerEnvelope,
+    IndexedInterp,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
@@ -143,6 +145,40 @@ def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
         MrkvArray.append(MrkvArray_t)
 
     return MrkvArray
+
+
+###############################################################################
+
+def make_markov_mort_dstn(LivPrb, RNG, T_cycle):
+    """
+    A simple constructor method that constructs a time-varying nested list of
+    Bernoulli distributions, representing draws of who dies at the end of each
+    period, conditional on discrete Markov state
+
+    Parameters
+    ----------
+    LivPrb : [array]
+        Age-varying list of arrays of state-dependent survival probabilities for
+        each period of the cycle.
+    RNG : RandomState
+        The AgentType's internal random number generator.
+    T_cycle : int
+        Number of periods in this agent's cycle.
+
+    Returns
+    -------
+    MortDstn : [[Bernoulli]]
+        Age-varying nested list of Bernoulli-type distributions of death shocks,
+        conditional on discrete Markov state.
+    """
+    MortDstn = []
+    for t in range(T_cycle):
+        MortDstn_t = [
+            Bernoulli(1.0 - LivPrb[t][z], seed=RNG.integers(0, 2**31 - 1))
+            for z in range(len(LivPrb[t]))
+        ]
+        MortDstn.append(MortDstn_t)
+    return MortDstn
 
 
 ###############################################################################
@@ -649,6 +685,7 @@ def solve_one_period_ConsMarkov(
     solution.hNrm = hNrmNow
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
+    solution.cFuncX = IndexedInterp(solution.cFunc)
     return solution
 
 
@@ -662,6 +699,7 @@ markov_constructor_dict = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn_markov,
     "aXtraGrid": make_assets_grid,
     "MrkvArray": make_simple_binary_markov,
+    "MortDstn": make_markov_mort_dstn,
     "solution_terminal": make_markov_solution_terminal,
 }
 
@@ -723,6 +761,7 @@ init_indshk_markov = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "MrkvPrbsInit": [1.0, 0.0],  # Initial distribution of discrete state
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
     # ADDITIONAL OPTIONAL PARAMETERS
@@ -734,6 +773,10 @@ init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
 init_indshk_markov.update(default_MrkvArray_params)
 
+with importlib.resources.open_text("HARK.models", "ConsMarkov.yaml") as f:
+    ConsMarkov_model_statement = f.read()
+    f.close()
+
 
 class MarkovConsumerType(IndShockConsumerType):
     """
@@ -744,6 +787,7 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
+    model_ = ConsMarkov_model_statement
 
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
@@ -1083,6 +1127,10 @@ class MarkovConsumerType(IndShockConsumerType):
                 )
         self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
+        
+    def get_poststates(self):
+        super().get_poststates()
+        self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
 
     def calc_bounding_values(self):
         """

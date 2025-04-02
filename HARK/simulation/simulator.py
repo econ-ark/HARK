@@ -7,15 +7,18 @@ from dataclasses import dataclass, field
 from copy import deepcopy
 import numpy as np
 from sympy.utilities.lambdify import lambdify
-from sympy import symbols
+from sympy import symbols, IndexedBase
 from typing import Callable
 from HARK.utilities import NullFunc
 from HARK.distributions import Distribution
 import yaml
+import numpy as np
 
 # Prevent pre-commit from removing sympy
 x = symbols("x")
 del x
+y = IndexedBase("y")
+del y
 
 
 @dataclass(kw_only=True)
@@ -79,14 +82,18 @@ class DynamicEvent(ModelEvent):
     ----------
     expr : Callable
         Function or expression to be evaluated for the assigned variables.
+    args : list[str]
+        Ordered list of argument names for the expression.
     """
 
     expr: Callable = NullFunc()
+    args: list[str] = field(default_factory=list)
 
     def evaluate(self):
         temp_dict = self.data.copy()
         temp_dict.update(self.parameters)
-        out = self.expr(**temp_dict)
+        args = (temp_dict[arg] for arg in self.args)
+        out = self.expr(*args)
         return out
 
     def run(self):
@@ -118,6 +125,86 @@ class RandomEvent(ModelEvent):
 
     def reset(self):
         self.dstn.reset()
+        ModelEvent.reset(self)
+        
+
+@dataclass(kw_only=True)
+class RandomIndexedEvent(RandomEvent):
+    """
+    Class for representing the realization of random variables for an agent,
+    consisting of a list of shock distributions, and index for the list, and the
+    variables to which the results are assigned.
+    
+    Parameters
+    ----------
+    dstn : [Distribution]
+        List of distributions of one or more random variables that are drawn
+        from during this event and assigned to the corresponding variables.
+    index : str
+        Name of the index that is used to choose a distribution for each agent.
+    """
+    
+    index : str = ""
+    dstn : list[Distribution] = field(default_factory=list)
+    
+    def draw(self):
+        idx = self.data[self.index]
+        K = len(self.assigns)
+        out = np.empty((K, self.N))
+        out.fill(np.nan)
+        for k in range(len(self.dstn)):
+            these = idx == k
+            if not np.any(these):
+                continue
+            out[:,these] = self.dstn[k].draw(np.sum(these))
+        if K == 1:
+            out = out.flatten()
+        return out
+    
+    def reset(self):
+        for k in range(len(self.dstn)):
+            self.dstn[k].reset()
+        ModelEvent.reset(self)
+        
+        
+@dataclass(kw_only=True)
+class MarkovEvent(ModelEvent):
+    """
+    Class for representing the realization of a Markov draw for an agent, in which
+    a Markov matrix (array) is used to determine transition probabilities for some
+    discrete state.
+    """
+    
+    array : str = ""
+    index : str = ""
+    N : int = 1
+    seed : int = 0  # TODO: There needs to be some way to set this seed
+    
+    def __post_init__(self):
+        self.reset_rng()
+        
+    def reset_rng(self):
+        self.RNG = np.random.default_rng(self.seed)
+        
+    def draw(self):
+        out = -np.ones(self.N, dtype=int)
+        probs = self.parameters[self.array]
+        idx = self.data[self.index]
+        J = probs.shape[0]
+        for j in range(J):
+            these = idx == j
+            if not np.any(these):
+                continue
+            P = np.cumsum(probs[j,:])
+            X = self.RNG.random(np.sum(these))
+            out[these] = np.searchsorted(P, X)
+        return out
+        
+    def run(self):
+        self.assign(self.draw())
+        
+    def reset(self):
+        self.reset_rng()
         ModelEvent.reset(self)
 
 
@@ -221,7 +308,7 @@ class SimBlock:
                     raise ValueError(
                         "Could not distribute the parameter called " + param + "!"
                     )
-            if type(event) is RandomEvent:
+            if (type(event) is RandomEvent) or (type(event) is RandomIndexedEvent):
                 try:
                     event.dstn = self.content[event._dstn_name]
                 except:
@@ -1107,6 +1194,8 @@ def make_new_event(statement, info):
     has_eq = "=" in statement
     has_tld = "~" in statement
     has_amp = "@" in statement
+    has_brc = ("{" in statement) and ("}" in statement)
+    has_brk = ("[" in statement) and ("]" in statement)
     event_type = None
     if has_eq:
         if has_tld:
@@ -1116,7 +1205,12 @@ def make_new_event(statement, info):
         else:
             event_type = DynamicEvent
     if has_tld:
-        event_type = RandomEvent
+        if has_brc:
+            event_type = MarkovEvent
+        elif has_brk:
+            event_type = RandomIndexedEvent
+        else:
+            event_type = RandomEvent
     if event_type is None:
         raise ValueError("Statement line was not any valid type!")
 
@@ -1125,6 +1219,10 @@ def make_new_event(statement, info):
         new_event = make_new_dynamic(statement, info)
     if event_type is RandomEvent:
         new_event = make_new_random(statement, info)
+    if event_type is RandomIndexedEvent:
+        new_event = make_new_random_indexed(statement, info)
+    if event_type is MarkovEvent:
+        new_event = make_new_markov(statement, info)
     if event_type is EvaluationEvent:
         new_event = make_new_evaluation(statement, info)
     return new_event
@@ -1155,7 +1253,7 @@ def make_new_dynamic(statement, info):
     assigns = parse_assignment(lhs)
 
     # Parse the RHS (dynamic statement) to extract variable names used
-    variables = extract_var_names_from_expr(rhs)
+    variables, is_indexed = extract_var_names_from_expr(rhs)
 
     # Allocate each variable to needed dynamic variables or parameters
     needs = []
@@ -1182,10 +1280,14 @@ def make_new_dynamic(statement, info):
 
     # Declare a SymPy symbol for each variable used; these are temporary
     _args = []
-    for _var in variables:
-        exec(_var + " = symbols('" + _var + "')")
+    for j in range(len(variables)):
+        _var = variables[j]
+        if is_indexed[j]:
+            exec(_var + " = IndexedBase('" + _var + "')")
+        else:
+            exec(_var + " = symbols('" + _var + "')")
         _args.append(eval(_var))
-
+    
     # Make a SymPy expression, then lambdify it
     sympy_expr = eval(rhs)
     expr = lambdify(_args, sympy_expr)
@@ -1198,16 +1300,16 @@ def make_new_dynamic(statement, info):
         needs=needs,
         parameters=parameters,
         expr=expr,
+        args=variables,
     )
     return new_dynamic
 
 
 def make_new_random(statement, info):
     """
-    Make a new random variable realization event based on a line of the given
-    model statement line and a blank dictionary of parameters. The statement
-    should already be verified to be a valid random statement: it has a ~ but
-    no =.
+    Make a new random variable realization event based on the given model statement
+    line and a blank dictionary of parameters. The statement should already be
+    verified to be a valid random statement: it has a ~ but no = or [].
 
     Parameters
     ----------
@@ -1246,12 +1348,99 @@ def make_new_random(statement, info):
     return new_random
 
 
+def make_new_random_indexed(statement, info):
+    """
+    Make a new indexed random variable realization event based on the given model
+    statement line and a blank dictionary of parameters. The statement should
+    already be verified to be a valid random statement: it has a ~ and [].
+
+    Parameters
+    ----------
+    statement : str
+        One line of the model statement, which will be turned into a random event.
+    info : dict
+        Empty dictionary of available information.
+
+    Returns
+    -------
+    new_random_indexed : RandomEvent
+        A new random indexed event with values and information missing, but structure set.
+    """
+    # Cut the statement up into its LHS, RHS, and description
+    lhs, rhs, description = parse_line_for_parts(statement, "~")
+
+    # Parse the LHS (assignment) to get assigned variables
+    assigns = parse_assignment(lhs)
+    
+    # Split the RHS into the distribution and the index
+    dstn, index = parse_random_indexed(rhs)
+    
+    # Verify that the RHS is actually a distribution
+    if type(info[dstn]) is not Distribution:
+        raise ValueError(
+            dstn + " was treated as a distribution, but not declared as one!"
+        )
+        
+    # Make and return the new random indexed event
+    new_random_indexed = RandomIndexedEvent(
+        description=description,
+        statement=lhs + " ~ " + rhs,
+        assigns=assigns,
+        needs=[index],
+        parameters={},
+        #dstn=info[dstn],
+        index=index,
+    )
+    new_random_indexed._dstn_name = dstn
+    return new_random_indexed
+    
+
+
+def make_new_markov(statement, info):
+    """
+    Make a new Markov-type event based on the given model statement line and a
+    blank dictionary of parameters. The statement should already be verified to
+    be a valid Markov statement: it has a ~ and {} and ().
+
+    Parameters
+    ----------
+    statement : str
+        One line of the model statement, which will be turned into a random event.
+    info : dict
+        Empty dictionary of available information.
+
+    Returns
+    -------
+    new_markov : MarkovEvent
+        A new Markov draw event with values and information missing, but structure set.
+    """
+    # Cut the statement up into its LHS, RHS, and description
+    lhs, rhs, description = parse_line_for_parts(statement, "~")
+
+    # Parse the LHS (assignment) to get assigned variables
+    assigns = parse_assignment(lhs)
+    
+    # Parse the RHS (Markov statement) for the array and index
+    array, index = parse_markov(rhs)
+    
+    # Make and return the new Markov event
+    new_markov = MarkovEvent(
+        description=description,
+        statement=lhs + " ~ " + rhs,
+        assigns=assigns,
+        needs=[index],
+        parameters={array : None},
+        array=array,
+        index=index,
+    )
+    return new_markov
+
+
 def make_new_evaluation(statement, info):
     """
-    Make a new function evaluation event based on a line of the given model
-    statement line and a blank dictionary of parameters. The statement should
-    already be verified to be a valid evaluation statement: it has an @ and an
-    = but no ~.
+    Make a new function evaluation event based the given model statement line
+    and a blank dictionary of parameters. The statement should already be verified
+    to be a valid evaluation statement: it has an @ and an = but no ~.
 
     Parameters
     ----------
@@ -1316,8 +1505,6 @@ def parse_declaration_for_parts(line):
     """
     Split a declaration line from a model file into the object's name, its datatype,
     and any provided comment or description.
-
-
 
     Parameters
     ----------
@@ -1434,9 +1621,12 @@ def extract_var_names_from_expr(expression):
     var_names : List[str]
         List of variable names used in the expression. These *should* be dynamic
         variables and parameters, but not functions.
+    indexed : List[bool]
+        Indicators for whether each variable seems to be used with indexing.
     """
     var_names = []
-    math_symbols = "+-/*^%.(),"
+    indexed = []
+    math_symbols = "+-/*^%.(),[]"
     digits = "01234567890"
     cur = ""
     for j in range(len(expression)):
@@ -1445,12 +1635,17 @@ def extract_var_names_from_expr(expression):
             if cur == "":
                 continue
             var_names.append(cur)
+            if c == "[":
+                indexed.append(True)
+            else:
+                indexed.append(False)
             cur = ""
         else:
             cur += c
     if cur != "":
         var_names.append(cur)
-    return var_names
+        indexed.append(False)  # final symbol couldn't possibly be indexed
+    return var_names, indexed
 
 
 def parse_evaluation(expression):
@@ -1501,6 +1696,74 @@ def parse_evaluation(expression):
         pos = end + 1
 
     return func_name, arg_names
+
+
+def parse_markov(expression):
+    """
+    Separate a Markov draw declaration into the array of probabilities and the
+    index for idiosyncratic values.
+
+    Parameters
+    ----------
+    expression : str
+        RHS of a function evaluation model statement, which will be parsed for
+        the Markov array name and index name.
+
+    Returns
+    -------
+    array : str
+        Name of the Markov array in this statement.
+    index : str
+        Name of the indexing variable in this statement.
+    """
+    # Get the name of the array
+    lb = expression.find("{")  # this *should* be 0
+    rb = expression.find("}")
+    if (lb == -1 or rb == -1 or rb < (lb+2)):
+        raise ValueError("A Markov assignment must have an {array}!")
+    array = expression[(lb+1):rb]
+    
+    # Get the name of the index
+    x = rb+1
+    lp = expression.find("(", x)
+    rp = expression.find(")", x)
+    if (lp == -1 or rp == -1 or rp < (lp+2)):
+        raise ValueError("A Markov assignment must have an (index) after the {array}!")
+    index = expression[(lp+1):rp]
+    
+    return array, index
+
+
+def parse_random_indexed(expression):
+    """
+    Separate an indexed random variable assignment into the distribution and
+    the index for it.
+
+    Parameters
+    ----------
+    expression : str
+        RHS of a function evaluation model statement, which will be parsed for
+        the distribution name and index name.
+
+    Returns
+    -------
+    dstn : str
+        Name of the distribution in this statement.
+    index : str
+        Name of the indexing variable in this statement.
+    """
+    # Get the name of the index
+    lb = expression.find("[")
+    rb = expression.find("]")
+    if (lb == -1 or rb == -1 or rb < (lb+2)):
+        raise ValueError("An indexed random variable assignment must have an [index]!")
+    index = expression[(lb+1):rb]
+    
+    # Get the name of the distribution
+    dstn = expression[:lb]
+    
+    return dstn, index
+    
 
 
 def format_block_statement(statement):
