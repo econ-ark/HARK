@@ -12,7 +12,6 @@ from typing import Callable
 from HARK.utilities import NullFunc
 from HARK.distributions import Distribution
 import yaml
-import numpy as np
 
 # Prevent pre-commit from removing sympy
 x = symbols("x")
@@ -1625,13 +1624,16 @@ def extract_var_names_from_expr(expression):
     """
     var_names = []
     indexed = []
-    math_symbols = "+-/*^%.(),[]"
+    math_symbols = "+-/*^%.(),[]{}<>"
     digits = "01234567890"
     cur = ""
     for j in range(len(expression)):
         c = expression[j]
         if (c in math_symbols) or ((c in digits) and cur == ""):
             if cur == "":
+                continue
+            if cur in var_names:
+                cur = ""
                 continue
             var_names.append(cur)
             if c == "[":
@@ -1641,7 +1643,7 @@ def extract_var_names_from_expr(expression):
             cur = ""
         else:
             cur += c
-    if cur != "":
+    if cur != "" and not (cur in var_names):
         var_names.append(cur)
         indexed.append(False)  # final symbol couldn't possibly be indexed
     return var_names, indexed

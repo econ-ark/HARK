@@ -9,7 +9,7 @@ symbols:
   functions:
     - cFunc
   distributions:
-    - DeadDstn
+    - MortDstn
   solution:
     - cFunc
   offset:

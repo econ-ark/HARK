@@ -2816,6 +2816,10 @@ KinkedRconsumerType_defaults.update(KinkedRconsumerType_solving_default)
 KinkedRconsumerType_defaults.update(KinkedRconsumerType_simulation_default)
 init_kinked_R = KinkedRconsumerType_defaults
 
+with importlib.resources.open_text("HARK.models", "ConsKinkedR.yaml") as f:
+    KinkedR_model_statement = f.read()
+    f.close()
+
 
 class KinkedRconsumerType(IndShockConsumerType):
     r"""
@@ -2948,6 +2952,8 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
+    
+    model_ = KinkedR_model_statement
 
     def __init__(self, **kwds):
         params = KinkedRconsumerType_defaults.copy()
