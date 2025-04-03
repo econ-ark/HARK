@@ -2952,7 +2952,7 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
-    
+
     model_ = KinkedR_model_statement
 
     def __init__(self, **kwds):

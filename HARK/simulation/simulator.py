@@ -1643,7 +1643,7 @@ def extract_var_names_from_expr(expression):
             cur = ""
         else:
             cur += c
-    if cur != "" and not (cur in var_names):
+    if cur != "" and cur not in var_names:
         var_names.append(cur)
         indexed.append(False)  # final symbol couldn't possibly be indexed
     return var_names, indexed
