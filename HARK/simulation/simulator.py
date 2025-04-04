@@ -170,11 +170,14 @@ class RandomIndexedEvent(RandomEvent):
 class MarkovEvent(ModelEvent):
     """
     Class for representing the realization of a Markov draw for an agent, in which
-    a Markov matrix (array) is used to determine transition probabilities for some
-    discrete state.
+    a Markov probabilities (array, vector, or a single float) is used to determine
+    the realization of some discrete outcome. If the probabilities are a 2D array,
+    it represents a Markov matrix (rows sum to 1), and there must be an index; if
+    the probabilities are a vector, it should be a stochastic vector; if it's a
+    single float, it represents a Bernoulli probability.
     """
 
-    array: str = ""
+    probs: str = ""
     index: str = ""
     N: int = 1
     seed: int = 0  # TODO: There needs to be some way to set this seed
@@ -187,17 +190,28 @@ class MarkovEvent(ModelEvent):
 
     def draw(self):
         out = -np.ones(self.N, dtype=int)
-        probs = self.parameters[self.array]
-        idx = self.data[self.index]
-        J = probs.shape[0]
-        for j in range(J):
-            these = idx == j
-            if not np.any(these):
-                continue
-            P = np.cumsum(probs[j, :])
-            X = self.RNG.random(np.sum(these))
-            out[these] = np.searchsorted(P, X)
-        return out
+        probs = self.parameters[self.probs]
+        X = self.RNG.random(self.N)
+        if self.index:  # it's a Markov matrix
+            idx = self.data[self.index]
+            J = probs.shape[0]
+            for j in range(J):
+                these = idx == j
+                if not np.any(these):
+                    continue
+                P = np.cumsum(probs[j, :])
+                out[these] = np.searchsorted(P, X[these])
+            return out
+        if type(probs) is np.array:  # it's a stochastic vector
+            P = np.cumsum(probs)
+            return np.searchsorted(P, X)
+        # Otherwise, this is just a Bernoulli RV
+        if type(probs) is not float:
+            raise ValueError(
+                "Probabilities for an event must be a Markov matrix, stochastic vector, or single probability!"
+            )
+        P = probs
+        return X < P  # basic Bernoulli
 
     def run(self):
         self.assign(self.draw())
@@ -1419,16 +1433,20 @@ def make_new_markov(statement, info):
     assigns = parse_assignment(lhs)
 
     # Parse the RHS (Markov statement) for the array and index
-    array, index = parse_markov(rhs)
+    probs, index = parse_markov(rhs)
+    if index is None:
+        needs = []
+    else:
+        needs = [index]
 
     # Make and return the new Markov event
     new_markov = MarkovEvent(
         description=description,
         statement=lhs + " ~ " + rhs,
         assigns=assigns,
-        needs=[index],
-        parameters={array: None},
-        array=array,
+        needs=needs,
+        parameters={probs: None},
+        probs=probs,
         index=index,
     )
     return new_markov
@@ -1535,9 +1553,9 @@ def parse_declaration_for_parts(line):
         datatype = None
         leftover = rem
 
-    # What's left over should be the object name.
-    # TODO: Check for valid name formatting based on characters.
+    # What's left over should be the object name
     name = leftover
+    # TODO: Check for valid name formatting based on characters.
 
     return name, datatype, desc
 
@@ -1708,31 +1726,33 @@ def parse_markov(expression):
     ----------
     expression : str
         RHS of a function evaluation model statement, which will be parsed for
-        the Markov array name and index name.
+        the probabilities name and index name.
 
     Returns
     -------
-    array : str
-        Name of the Markov array in this statement.
+    probs : str
+        Name of the probabilities object in this statement.
     index : str
         Name of the indexing variable in this statement.
     """
-    # Get the name of the array
+    # Get the name of the probabilitie
     lb = expression.find("{")  # this *should* be 0
     rb = expression.find("}")
     if lb == -1 or rb == -1 or rb < (lb + 2):
         raise ValueError("A Markov assignment must have an {array}!")
-    array = expression[(lb + 1) : rb]
+    probs = expression[(lb + 1) : rb]
 
-    # Get the name of the index
+    # Get the name of the index, if any
     x = rb + 1
     lp = expression.find("(", x)
     rp = expression.find(")", x)
+    if lp == -1 and rp == -1:  # no index present at all
+        return probs, None
     if lp == -1 or rp == -1 or rp < (lp + 2):
-        raise ValueError("A Markov assignment must have an (index) after the {array}!")
+        raise ValueError("Improper Markov formatting: should be {probs}(index)!")
     index = expression[(lp + 1) : rp]
 
-    return array, index
+    return probs, index
 
 
 def parse_random_indexed(expression):
