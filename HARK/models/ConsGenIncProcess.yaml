@@ -1,0 +1,44 @@
+description: "MNW's first attempt at the general income process model in YAML."
+symbols:
+  variables:
+    - kLvl               \\ beginning of period capital
+    - pLvlPrev           \\ inbound permanent income level, before growth
+    - yLvl               \\ labor income level
+    - pLvl               \\ permanent income level
+    - bLvl               \\ bank balances level
+    - mLvl               \\ market resources level
+    - cLvl               \\ consumption level
+    - aLvl               \\ end-of-period assets level
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+  functions:
+    - cFunc              \\ consumption function over permanent income and market resources
+    - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - MortDstn           \\ binary mortality distribution
+  pre_states:
+    - kLvl
+    - pLvlPrev
+  solution:
+    - cFunc
+  offset:
+    - pLvlNextFunc
+    - Rfree
+    - IncShkDstn
+initialize: |
+  pLvlPrev = 1.                    \\ set initial permanent income to one
+  kLvl = 0.                        \\ set initial capital holdings to zero
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  p_temp = pLvlNextFunc@(pLvlPrev) \\ find expected permanent income level, without shock
+  pLvl = p_temp * PermShk          \\ update permanent income level with shock
+  yLvl = TranShk * pLvl            \\ income is the transitory shock times permanent income
+  bLvl = Rfree * kLvl              \\ calculate bank balances
+  mLvl = bLvl + yLvl               \\ calculate market resources
+  cLvl = cFunc@(mLvl, pLvl)        \\ evaluate consumption from market resources and permanent income
+  aLvl = mLvl - cLvl               \\ calculate end-of-period assets
+  dead ~ MortDstn                  \\ draw binary death
+twist:
+  aLvl: kLvl
+  pLvl: pLvlPrev

@@ -6,6 +6,7 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 """
 
 import numpy as np
+import importlib.resources
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -22,6 +23,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    make_simple_mort_dstn,
 )
 from HARK.distributions import Lognormal, expected
 from HARK.interpolation import (
@@ -553,6 +555,7 @@ GenIncProcessConsumerType_constructors_default = {
     "pLvlPctiles": make_basic_pLvlPctiles,
     "pLvlGrid": make_pLvlGrid_by_simulation,
     "pLvlNextFunc": make_trivial_pLvlNextFunc,
+    "MortDstn": make_simple_mort_dstn,
     "solution_terminal": make_2D_CRRA_solution_terminal,
 }
 
@@ -636,6 +639,10 @@ GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_pLvlPctiles_d
 GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_solving_default)
 GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_simulation_default)
 init_general_inc = GenIncProcessConsumerType_default
+
+with importlib.resources.open_text("HARK.models", "ConsGenIncProcess.yaml") as f:
+    ConsGenIncProcess_model_statement = f.read()
+    f.close()
 
 
 class GenIncProcessConsumerType(IndShockConsumerType):
@@ -772,6 +779,8 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     state_vars = ["pLvl", "mLvl", "aLvl"]
     default_params_ = GenIncProcessConsumerType_default
+
+    model_ = ConsGenIncProcess_model_statement
 
     def __init__(self, **kwds):
         params = self.default_params_.copy()
