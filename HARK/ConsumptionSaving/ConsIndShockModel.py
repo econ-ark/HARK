@@ -14,7 +14,6 @@ See HARK documentation for mathematical descriptions of the models being solved.
 """
 
 from copy import copy, deepcopy
-import importlib.resources
 
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
@@ -1101,10 +1100,6 @@ PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_solving_defa
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_simulation_defaults)
 init_perfect_foresight = PerfForesightConsumerType_defaults
 
-with importlib.resources.open_text("HARK.models", "ConsPerfForesight.yaml") as f:
-    ConsPF_model_statement = f.read()
-    f.close()
-
 
 class PerfForesightConsumerType(AgentType):
     r"""
@@ -1204,7 +1199,7 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
-    model_ = ConsPF_model_statement
+    model_ = "ConsPerfForesight.yaml"
 
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
@@ -2022,10 +2017,6 @@ IndShockConsumerType_defaults.update(IndShockConsumerType_solving_default)
 IndShockConsumerType_defaults.update(IndShockConsumerType_simulation_default)
 init_idiosyncratic_shocks = IndShockConsumerType_defaults  # Here so that other models which use the old convention don't break
 
-with importlib.resources.open_text("HARK.models", "ConsIndShock.yaml") as f:
-    IndShock_model_statement = f.read()
-    f.close()
-
 
 class IndShockConsumerType(PerfForesightConsumerType):
     r"""
@@ -2149,7 +2140,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     aXtraGrid_defaults = IndShockConsumerType_aXtraGrid_default
     solving_defaults = IndShockConsumerType_solving_default
     simulation_defaults = IndShockConsumerType_simulation_default
-    model_ = IndShock_model_statement
+    model_ = "ConsIndShock.yaml"
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
         "BoroCnstArt",
@@ -2816,10 +2807,6 @@ KinkedRconsumerType_defaults.update(KinkedRconsumerType_solving_default)
 KinkedRconsumerType_defaults.update(KinkedRconsumerType_simulation_default)
 init_kinked_R = KinkedRconsumerType_defaults
 
-with importlib.resources.open_text("HARK.models", "ConsKinkedR.yaml") as f:
-    KinkedR_model_statement = f.read()
-    f.close()
-
 
 class KinkedRconsumerType(IndShockConsumerType):
     r"""
@@ -2953,7 +2940,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
 
-    model_ = KinkedR_model_statement
+    model_ = "ConsKinkedR.yaml"
 
     def __init__(self, **kwds):
         params = KinkedRconsumerType_defaults.copy()

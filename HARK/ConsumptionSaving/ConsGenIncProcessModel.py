@@ -6,7 +6,6 @@ and allows (log) persistent income to follow an AR1 process rather than random w
 """
 
 import numpy as np
-import importlib.resources
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -640,10 +639,6 @@ GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_solving_defau
 GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_simulation_default)
 init_general_inc = GenIncProcessConsumerType_default
 
-with importlib.resources.open_text("HARK.models", "ConsGenIncProcess.yaml") as f:
-    ConsGenIncProcess_model_statement = f.read()
-    f.close()
-
 
 class GenIncProcessConsumerType(IndShockConsumerType):
     r"""
@@ -780,7 +775,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     state_vars = ["pLvl", "mLvl", "aLvl"]
     default_params_ = GenIncProcessConsumerType_default
 
-    model_ = ConsGenIncProcess_model_statement
+    model_ = "ConsGenIncProcess.yaml"
 
     def __init__(self, **kwds):
         params = self.default_params_.copy()

@@ -10,9 +10,6 @@ symbols:
     - cNrm               \\ normalized consumption
     - aNrm               \\ normalized end-of-period assets
     - live (bool)        \\ whether the agent survives
-  pre_states:
-    - kNrm
-    - pLvlPrev
   parameters:
     - Rfree              \\ risk free return factor on assets
     - PermGroFac         \\ expected permanent income growth factor
@@ -21,6 +18,9 @@ symbols:
     - cFunc              \\ consumption function over market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+  pre_states:
+    - kNrm
+    - pLvlPrev
   solution:
     - cFunc
   offset:

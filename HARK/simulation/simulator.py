@@ -11,6 +11,7 @@ from sympy import symbols, IndexedBase
 from typing import Callable
 from HARK.utilities import NullFunc
 from HARK.distributions import Distribution
+import importlib.resources
 import yaml
 
 # Prevent pre-commit from removing sympy
@@ -753,7 +754,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
         A simulator structure based on the agents.
     """
     # Read the model statement into a dictionary, and get names of attributes
-    model = yaml.safe_load(agent.model_)
+    with importlib.resources.open_text("HARK.models", agent.model_) as f:
+        model_statement = f.read()
+        f.close()
+    model = yaml.safe_load(model_statement)
     time_vary = agent.time_vary
     time_inv = agent.time_inv
     cycles = agent.cycles

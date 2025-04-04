@@ -8,7 +8,6 @@ It currently only two models:
 """
 
 import numpy as np
-import importlib
 
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -184,9 +183,6 @@ init_preference_shocks = (
     PrefShockConsumerType_default  # So models that aren't updated don't break
 )
 
-with importlib.resources.open_text("HARK.models", "ConsPrefShockModel.yaml") as f:
-    PrefShock_model_statement = f.read()
-    f.close()
 
 # Specify default parameters that differ in "kinky preference" model compared to base PrefShockConsumerType
 kinky_pref_different_params = {
@@ -349,7 +345,7 @@ class PrefShockConsumerType(IndShockConsumerType):
     PrefShkDstn_defaults = PrefShockConsumerType_PrefShkDstn_default
     solving_defaults = PrefShockConsumerType_solving_default
     simulation_defaults = PrefShockConsumerType_simulation_default
-    model_ = PrefShock_model_statement
+    model_ = "ConsPrefShockModel.yaml"
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
 

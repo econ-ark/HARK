@@ -6,7 +6,6 @@ distribution can vary with the discrete state.
 """
 
 import numpy as np
-import importlib
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -774,10 +773,6 @@ init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
 init_indshk_markov.update(default_MrkvArray_params)
 
-with importlib.resources.open_text("HARK.models", "ConsMarkov.yaml") as f:
-    ConsMarkov_model_statement = f.read()
-    f.close()
-
 
 class MarkovConsumerType(IndShockConsumerType):
     """
@@ -788,7 +783,7 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
-    model_ = ConsMarkov_model_statement
+    model_ = "ConsMarkov.yaml"
 
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
