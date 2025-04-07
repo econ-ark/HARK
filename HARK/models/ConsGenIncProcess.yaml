@@ -9,14 +9,15 @@ symbols:
     - mLvl               \\ market resources level
     - cLvl               \\ consumption level
     - aLvl               \\ end-of-period assets level
+    - live (bool)        \\ whether the agent survives
   parameters:
     - Rfree              \\ risk free return factor on assets
+    - LivPrb             \\ probability of dying at end of period
   functions:
     - cFunc              \\ consumption function over permanent income and market resources
     - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-    - MortDstn           \\ binary mortality distribution
   pre_states:
     - kLvl
     - pLvlPrev
@@ -38,7 +39,8 @@ dynamics: |
   mLvl = bLvl + yLvl               \\ calculate market resources
   cLvl = cFunc@(mLvl, pLvl)        \\ evaluate consumption from market resources and permanent income
   aLvl = mLvl - cLvl               \\ calculate end-of-period assets
-  dead ~ MortDstn                  \\ draw binary death
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
 twist:
   aLvl: kLvl
   pLvl: pLvlPrev

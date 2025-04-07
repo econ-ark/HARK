@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.distributions import MarkovProcess, Uniform, Bernoulli, expected
+from HARK.distributions import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -144,41 +144,6 @@ def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
         MrkvArray.append(MrkvArray_t)
 
     return MrkvArray
-
-
-###############################################################################
-
-
-def make_markov_mort_dstn(LivPrb, RNG, T_cycle):
-    """
-    A simple constructor method that constructs a time-varying nested list of
-    Bernoulli distributions, representing draws of who dies at the end of each
-    period, conditional on discrete Markov state
-
-    Parameters
-    ----------
-    LivPrb : [array]
-        Age-varying list of arrays of state-dependent survival probabilities for
-        each period of the cycle.
-    RNG : RandomState
-        The AgentType's internal random number generator.
-    T_cycle : int
-        Number of periods in this agent's cycle.
-
-    Returns
-    -------
-    MortDstn : [[Bernoulli]]
-        Age-varying nested list of Bernoulli-type distributions of death shocks,
-        conditional on discrete Markov state.
-    """
-    MortDstn = []
-    for t in range(T_cycle):
-        MortDstn_t = [
-            Bernoulli(1.0 - LivPrb[t][z], seed=RNG.integers(0, 2**31 - 1))
-            for z in range(len(LivPrb[t]))
-        ]
-        MortDstn.append(MortDstn_t)
-    return MortDstn
 
 
 ###############################################################################
@@ -699,7 +664,6 @@ markov_constructor_dict = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn_markov,
     "aXtraGrid": make_assets_grid,
     "MrkvArray": make_simple_binary_markov,
-    "MortDstn": make_markov_mort_dstn,
     "solution_terminal": make_markov_solution_terminal,
 }
 

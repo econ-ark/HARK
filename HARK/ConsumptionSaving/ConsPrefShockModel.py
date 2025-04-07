@@ -14,7 +14,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     KinkedRconsumerType,
-    make_simple_mort_dstn,
     make_assets_grid,
     make_basic_CRRA_solution_terminal,
 )
@@ -104,7 +103,6 @@ PrefShockConsumerType_constructors_default = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "PrefShkDstn": make_lognormal_PrefShkDstn,
-    "MortDstn": make_simple_mort_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 
@@ -345,7 +343,7 @@ class PrefShockConsumerType(IndShockConsumerType):
     PrefShkDstn_defaults = PrefShockConsumerType_PrefShkDstn_default
     solving_defaults = PrefShockConsumerType_solving_default
     simulation_defaults = PrefShockConsumerType_simulation_default
-    model_ = "ConsPrefShockModel.yaml"
+    model_ = "ConsPrefShock.yaml"
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
 

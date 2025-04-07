@@ -12,19 +12,20 @@ symbols:
     - mNrm               \\ normalized market resources
     - cNrm               \\ normalized consumption
     - aNrm               \\ normalized end-of-period assets
-  pre_states:
-    - kNrm
-    - pLvlPrev
-    - zPrev
+    - live (bool)        \\ whether the agent survives
   parameters:
     - Rfree              \\ risk free return factor on assets by state
     - PermGroFac         \\ expected permanent income growth factor by state
+    - LivPrb             \\ survival probability at end of period by discrete state
     - MrkvArray          \\ Markov transition probabilities among discrete states
   functions:
     - cFuncX             \\ consumption function over discrete state and market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-    - MortDstn           \\ binary mortality distribution by discrete state
+  pre_states:
+    - kNrm
+    - pLvlPrev
+    - zPrev
   solution:
     - cFuncX
   offset:
@@ -37,8 +38,8 @@ initialize: |
   kNrm = 0.                            \\ set initial capital holdings to zero
   zPrev = 0                            \\ set discrete state to zero
 dynamics: |
-  z    ~ {MrkvArray}(zPrev)            \\ Current discrete state depends on prior state
-  Mrkv = z                             \\ Duplicate label of discrete state for compatibility
+  z    ~ {MrkvArray}(zPrev)            \\ current discrete state depends on prior state
+  Mrkv = z                             \\ duplicate label of discrete state for compatibility
   (PermShk, TranShk) ~ IncShkDstn[z]   \\ draw permanent and transitory income shocks
   yNrm = TranShk                       \\ normalized income is the transitory shock
   G    = PermGroFac[z] * PermShk       \\ calculate permanent income growth
@@ -47,7 +48,9 @@ dynamics: |
   mNrm = bNrm + yNrm                   \\ calculate normalized market resources
   cNrm = cFuncX@(z, mNrm)              \\ evaluate consumption from discrete state and market resources
   aNrm = mNrm - cNrm                   \\ calculate normalized end-of-period assets
-  dead ~ MortDstn[z]                   \\ draw binary death
+  LivPrb_i = LivPrb[z]                 \\ get state-conditional survival probability
+  live ~ {LivPrb_i}                    \\ draw survival
+  dead = 1 - live                      \\ decedents are non-survivors
 twist:
   aNrm: kNrm
   pLvl: pLvlPrev

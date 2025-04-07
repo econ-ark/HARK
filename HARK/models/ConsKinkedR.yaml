@@ -11,18 +11,19 @@ symbols:
     - aNrm               \\ normalized end-of-period assets
     - Rfree              \\ realized interest factor, depending on save/borrow
     - boro (bool)        \\ indicator for whether agent is borrowing
-  pre_states:
-    - kNrm
-    - pLvlPrev
+    - live (bool)        \\ whether the agent survives
   parameters:
     - Rboro              \\ risk free interest factor when borrowing
     - Rsave              \\ risk free interest factor when saving
     - PermGroFac         \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
   functions:
     - cFunc              \\ consumption function over market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-    - MortDstn           \\ binary mortality distribution
+  pre_states:
+    - kNrm
+    - pLvlPrev
   solution:
     - cFunc
   offset:
@@ -44,7 +45,8 @@ dynamics: |
   mNrm = bNrm + yNrm                \\ calculate normalized market resources
   cNrm = cFunc@(mNrm)               \\ evaluate consumption from market resources
   aNrm = mNrm - cNrm                \\ calculate normalized end-of-period assets
-  dead ~ MortDstn                   \\ draw binary death
+  live ~ {LivPrb}                   \\ draw survivors
+  dead = 1 - live                   \\ dead are non-survivors
 twist:
   aNrm: kNrm
   pLvl: pLvlPrev

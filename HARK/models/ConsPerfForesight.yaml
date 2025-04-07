@@ -1,15 +1,14 @@
 description: "MNW's first attempt at a perfect foresight model in YAML"
 symbols:
-  pre_states:
-    - kNrm
-    - pLvlPrev
   parameters:
     - Rfree
     - PermGroFac
+    - LivPrb
   functions:
     - cFunc
-  distributions:
-    - MortDstn
+  pre_states:
+    - kNrm
+    - pLvlPrev
   solution:
     - cFunc
   offset:
@@ -26,7 +25,8 @@ dynamics: |
   mNrm = bNrm + yLvl               \\ calculate normalized market resources
   cNrm = cFunc@(mNrm)              \\ evaluate consumption from market resources
   aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
-  dead ~ MortDstn                  \\ draw binary death
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
 twist:
   aNrm: kNrm
   pLvl: pLvlPrev

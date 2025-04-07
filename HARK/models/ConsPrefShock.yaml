@@ -9,18 +9,19 @@ symbols:
     - mNrm               \\ normalized market resources
     - cNrm               \\ normalized consumption
     - aNrm               \\ normalized end-of-period assets
-  pre_states:
-    - kNrm
-    - pLvlPrev
+    - live (bool)        \\ whether the agent survives
   parameters:
     - Rfree              \\ risk free return factor on assets
     - PermGroFac         \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
   functions:
     - cFunc              \\ consumption function over market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
     - PrefShkDstn        \\ distribution of marginal utility shocks
-    - MortDstn           \\ binary mortality distribution
+  pre_states:
+    - kNrm
+    - pLvlPrev
   solution:
     - cFunc
   offset:
@@ -40,7 +41,8 @@ dynamics: |
   PrefShk ~ PrefShkDstn            \\ draw marginal utility shock
   cNrm = cFunc@(mNrm, PrefShk)     \\ evaluate consumption from market resources
   aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
-  dead ~ MortDstn                  \\ draw binary death
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
 twist:
   aNrm: kNrm
   pLvl: pLvlPrev

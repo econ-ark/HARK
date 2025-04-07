@@ -191,7 +191,12 @@ class MarkovEvent(ModelEvent):
 
     def draw(self):
         out = -np.ones(self.N, dtype=int)
-        probs = self.parameters[self.probs]
+        if self.probs in self.parameters:
+            probs = self.parameters[self.probs]
+            probs_are_param = True
+        else:
+            probs = self.data[self.probs]
+            probs_are_param = False
         X = self.RNG.random(self.N)
         if self.index:  # it's a Markov matrix
             idx = self.data[self.index]
@@ -203,14 +208,10 @@ class MarkovEvent(ModelEvent):
                 P = np.cumsum(probs[j, :])
                 out[these] = np.searchsorted(P, X[these])
             return out
-        if type(probs) is np.array:  # it's a stochastic vector
+        if (type(probs) is np.array) and (probs_are_param):  # it's a stochastic vector
             P = np.cumsum(probs)
             return np.searchsorted(P, X)
         # Otherwise, this is just a Bernoulli RV
-        if type(probs) is not float:
-            raise ValueError(
-                "Probabilities for an event must be a Markov matrix, stochastic vector, or single probability!"
-            )
         P = probs
         return X < P  # basic Bernoulli
 
@@ -1416,7 +1417,10 @@ def make_new_markov(statement, info):
     """
     Make a new Markov-type event based on the given model statement line and a
     blank dictionary of parameters. The statement should already be verified to
-    be a valid Markov statement: it has a ~ and {} and ().
+    be a valid Markov statement: it has a ~ and {} and maybe (). This can represent
+    a Markov matrix transition event, a draw from a discrete index, or just a
+    Bernoulli random variable. If a Bernoulli event, the "probabilties" can be
+    idiosyncratic data.
 
     Parameters
     ----------
@@ -1443,13 +1447,21 @@ def make_new_markov(statement, info):
     else:
         needs = [index]
 
+    # Determine whether probs is an idiosyncratic variable or a parameter, and
+    # set up the event to grab it appropriately
+    if info[probs] is None:
+        parameters = {probs: None}
+    else:
+        needs += [probs]
+        parameters = {}
+
     # Make and return the new Markov event
     new_markov = MarkovEvent(
         description=description,
         statement=lhs + " ~ " + rhs,
         assigns=assigns,
         needs=needs,
-        parameters={probs: None},
+        parameters=parameters,
         probs=probs,
         index=index,
     )

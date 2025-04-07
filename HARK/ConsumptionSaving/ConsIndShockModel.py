@@ -33,7 +33,6 @@ from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
 from HARK.distributions import (
     Lognormal,
     MeanOneLogNormal,
-    Bernoulli,
     Uniform,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
@@ -197,32 +196,6 @@ class ConsumerSolution(MetricObject):
 # =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
-
-
-def make_simple_mort_dstn(LivPrb, RNG, T_cycle):
-    """
-    A simple constructor method that constructs a time-varying list of Bernoulli
-    distributions, representing draws of who dies at the end of each period.
-
-    Parameters
-    ----------
-    LivPrb : [float]
-        Age-varying list of survival probabilities for each period of the cycle.
-    RNG : RandomState
-        The AgentType's internal random number generator.
-    T_cycle : int
-        Number of periods in this agent's cycle.
-
-    Returns
-    -------
-    MortDstn : [Bernoulli]
-        Age-varying list of Bernoulli-type distributions of death shocks.
-    """
-    MortDstn = [
-        Bernoulli(1.0 - LivPrb[t], seed=RNG.integers(0, 2**31 - 1))
-        for t in range(T_cycle)
-    ]
-    return MortDstn
 
 
 def calc_human_wealth(h_nrm_next, perm_gro_fac, rfree, ex_inc_next):
@@ -1063,7 +1036,6 @@ def make_basic_CRRA_solution_terminal(CRRA):
 # Make a dictionary of constructors (very simply for perfect foresight model)
 PerfForesightConsumerType_constructors_default = {
     "solution_terminal": make_basic_CRRA_solution_terminal,
-    "MortDstn": make_simple_mort_dstn,
 }
 
 # Make a dictionary to specify a perfect foresight consumer type
@@ -1212,7 +1184,7 @@ class PerfForesightConsumerType(AgentType):
         MPCmin=1.0,
         MPCmax=1.0,
     )
-    time_vary_ = ["LivPrb", "PermGroFac", "MortDstn"]
+    time_vary_ = ["LivPrb", "PermGroFac"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
@@ -1950,7 +1922,6 @@ IndShockConsumerType_constructors_default = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
-    "MortDstn": make_simple_mort_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
 }
 

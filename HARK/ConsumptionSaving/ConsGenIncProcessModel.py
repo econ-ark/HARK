@@ -22,7 +22,6 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    make_simple_mort_dstn,
 )
 from HARK.distributions import Lognormal, expected
 from HARK.interpolation import (
@@ -554,7 +553,6 @@ GenIncProcessConsumerType_constructors_default = {
     "pLvlPctiles": make_basic_pLvlPctiles,
     "pLvlGrid": make_pLvlGrid_by_simulation,
     "pLvlNextFunc": make_trivial_pLvlNextFunc,
-    "MortDstn": make_simple_mort_dstn,
     "solution_terminal": make_2D_CRRA_solution_terminal,
 }
 
