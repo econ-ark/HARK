@@ -181,13 +181,13 @@ class MarkovEvent(ModelEvent):
     probs: str = ""
     index: str = ""
     N: int = 1
-    seed: int = 0  # TODO: There needs to be some way to set this seed
+    seed: int = 0  # this is overwritten when each period is created
 
     def __post_init__(self):
         self.reset_rng()
 
     def reset_rng(self):
-        self.RNG = np.random.default_rng(self.seed)
+        self.RNG = np.random.RandomState(self.seed)
 
     def draw(self):
         out = -np.ones(self.N, dtype=int)
@@ -197,7 +197,7 @@ class MarkovEvent(ModelEvent):
         else:
             probs = self.data[self.probs]
             probs_are_param = False
-        X = self.RNG.random(self.N)
+        X = self.RNG.rand(self.N)
         if self.index:  # it's a Markov matrix
             idx = self.data[self.index]
             J = probs.shape[0]
@@ -764,6 +764,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     cycles = agent.cycles
     T_age = agent.T_age
     comments = {}
+    RNG = agent.RNG  # this is only for generating seeds for MarkovEvents
 
     # Make a blank "template" period with structure but no data
     template_period, information, block_comments = make_template_block(model)
@@ -874,7 +875,13 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     T_cycle = agent.T_cycle
     t_cycle = 0
     for t in range(T_seq):
+        # Make a fresh copy of the template period
         new_period = deepcopy(template_period)
+
+        # Make sure each period's events have unique seeds; this is only for MarkovEvents
+        for event in new_period.events:
+            if hasattr(event, "seed"):
+                event.seed = RNG.integers(0, 2**31 - 1)
 
         # Make the parameter dictionary for this period
         new_param_dict = deepcopy(time_inv_dict)

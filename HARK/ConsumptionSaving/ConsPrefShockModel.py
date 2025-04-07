@@ -651,6 +651,7 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
     PrefShkDstn_defaults = KinkyPrefConsumerType_PrefShkDstn_default
     solving_defaults = KinkyPrefConsumerType_solving_default
     simulation_defaults = KinkyPrefConsumerType_simulation_default
+    model_ = "ConsKinkyPref.yaml"
 
     def __init__(self, **kwds):
         params = KinkyPrefConsumerType_default.copy()

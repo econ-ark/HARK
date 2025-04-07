@@ -1012,6 +1012,7 @@ class AgentType(Model):
         Use the new simulator structure to build a simulator from the agents'
         attributes, storing it in a private attribute.
         """
+        self.reset_rng()  # ensure seeds are set identically each time
         self._simulator = make_simulator_from_agent(self, **kwargs)
         self._simulator.reset()
 
