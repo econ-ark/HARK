@@ -767,55 +767,30 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     comments = {}
     RNG = agent.RNG  # this is only for generating seeds for MarkovEvents
 
-    # Make a blank "template" period with structure but no data
-    template_period, information, block_comments = make_template_block(model)
-    comments.update(block_comments)
-
-    # Make the agent initializer, without parameter values (etc)
-    initializer, init_info = make_initializer(model)
-
-    # Extract basic fields from the template period and model
-    description = template_period.description
-    statement = template_period.statement
-    content = template_period.content
+    # Extract basic fields from the model
     try:
         variables = model["symbols"]["variables"]
     except:
         variables = []
     try:
-        common = model["symbols"]["common"]
-    except:
-        common = []
-    try:
-        offset = model["symbols"]["offset"]
-    except:
-        offset = []
-    try:
-        solution = model["symbols"]["solution"]
-    except:
-        solution = []
-    try:
         twist = model["twist"]
     except:
         twist = {}
+    try:
+        common = model["symbols"]["common"]
+    except:
+        common = []
 
-    # Get the names of parameters, functions, and distributions
-    parameters = []
-    functions = []
-    distributions = []
-    for key in information.keys():
-        val = information[key]
-        if val is None:
-            parameters.append(key)
-        elif type(val) is NullFunc:
-            functions.append(key)
-        elif type(val) is Distribution:
-            distributions.append(key)
+    # Extract pre-state names that were explicitly listed
+    try:
+        pre_states = model["symbols"]["pre_states"]
+    except:
+        pre_states = []
 
-    # Make a dictionary of data types and add comments
+    # Make a dictionary of declared data types and add comments
     types = {}
     for var_line in variables:  # Loop through declared variables
-        var_name, var_type, desc = parse_declaration_for_parts(var_line)
+        var_name, var_type, flags, desc = parse_declaration_for_parts(var_line)
         if var_type is not None:
             try:
                 var_type = eval(var_type)
@@ -831,7 +806,40 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
             var_type = float
         types[var_name] = var_type
         comments[var_name] = desc
-    for var in information.keys():  # Loop through undeclared variables
+        if ("prestate" in flags) and (var_name not in pre_states):
+            pre_states.append(var_name)
+        if ("common" in flags) and (var_name not in common):
+            common.append(var_name)
+
+    # Make a blank "template" period with structure but no data
+    template_period, information, offset, solution, block_comments = (
+        make_template_block(model, pre_states)
+    )
+    comments.update(block_comments)
+
+    # Make the agent initializer, without parameter values (etc)
+    initializer, init_info = make_initializer(model, pre_states)
+
+    # Extract basic fields from the template period and model
+    description = template_period.description
+    statement = template_period.statement
+    content = template_period.content
+
+    # Get the names of parameters, functions, and distributions
+    parameters = []
+    functions = []
+    distributions = []
+    for key in information.keys():
+        val = information[key]
+        if val is None:
+            parameters.append(key)
+        elif type(val) is NullFunc:
+            functions.append(key)
+        elif type(val) is Distribution:
+            distributions.append(key)
+
+    # Loop through variables that appear in the model block but were undeclared
+    for var in information.keys():
         if var in types.keys():
             continue
         this = information[var]
@@ -940,7 +948,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     return new_simulator
 
 
-def make_template_block(model):
+def make_template_block(model, pre_states=None):
     """
     Construct a new SimBlock object as a "template" of the model block. It has
     events and reference information, but no values filled in.
@@ -949,6 +957,8 @@ def make_template_block(model):
     ----------
     model : dict
         Dictionary with model block information, probably read in as a yaml.
+    pre_states : [str]
+        List of pre-states that were flagged or explicitly listed.
 
     Returns
     -------
@@ -958,18 +968,29 @@ def make_template_block(model):
         Dictionary of model objects that were referenced within the block. Keys
         are object names and entries reveal what kind of object they are:
         - None --> parameter
-        - 0 --> outcome variable (including pre-states)
+        - 0 --> outcome/data variable (including pre-states)
         - NullFunc --> function
         - Distribution --> distribution
+    offset : [str]
+        List of object names that are offset in time by one period.
+    solution : [str]
+        List of object names that are part of the model solution.
     comments : dict
         Dictionary of comments included with declared functions, distributions,
         and parameters.
     """
-    # Extract pre-state names
-    try:
-        pre_states = model["symbols"]["pre_states"]
-    except:
+    if pre_states is None:
         pre_states = []
+
+    # Extract explicitly listed metadata
+    try:
+        offset = model["symbols"]["offset"]
+    except:
+        offset = []
+    try:
+        solution = model["symbols"]["solution"]
+    except:
+        solution = []
 
     # Extract model description
     try:
@@ -983,16 +1004,20 @@ def make_template_block(model):
     if "parameters" in model["symbols"].keys():
         param_lines = model["symbols"]["parameters"]
         for line in param_lines:
-            param_name, datatype, desc = parse_declaration_for_parts(line)
+            param_name, datatype, flags, desc = parse_declaration_for_parts(line)
             parameters[param_name] = None
             comments[param_name] = desc
             # TODO: what to do with parameter types?
+            if ("offset" in flags) and (param_name not in offset):
+                offset.append(param_name)
+            if ("solution" in flags) and (param_name not in solution):
+                solution.append(param_name)
 
     functions = {}
     if "functions" in model["symbols"].keys():
         func_lines = model["symbols"]["functions"]
         for line in func_lines:
-            func_name, datatype, desc = parse_declaration_for_parts(line)
+            func_name, datatype, flags, desc = parse_declaration_for_parts(line)
             if (datatype is not None) and (datatype != "func"):
                 raise ValueError(
                     func_name
@@ -1000,12 +1025,16 @@ def make_template_block(model):
                 )
             functions[func_name] = NullFunc()
             comments[func_name] = desc
+            if ("offset" in flags) and (func_name not in offset):
+                offset.append(func_name)
+            if ("solution" in flags) and (func_name not in solution):
+                solution.append(func_name)
 
     distributions = {}
     if "distributions" in model["symbols"].keys():
         dstn_lines = model["symbols"]["distributions"]
         for line in dstn_lines:
-            dstn_name, datatype, desc = parse_declaration_for_parts(line)
+            dstn_name, datatype, flags, desc = parse_declaration_for_parts(line)
             if (datatype is not None) and (datatype != "dstn"):
                 raise ValueError(
                     dstn_name
@@ -1013,6 +1042,10 @@ def make_template_block(model):
                 )
             distributions[dstn_name] = Distribution()
             comments[dstn_name] = desc
+            if ("offset" in flags) and (dstn_name not in offset):
+                offset.append(dstn_name)
+            if ("solution" in flags) and (dstn_name not in solution):
+                solution.append(dstn_name)
 
     # Combine those dictionaries into a single "information" dictionary
     content = parameters.copy()
@@ -1055,10 +1088,10 @@ def make_template_block(model):
         statement=statement,
         events=events,
     )
-    return template_block, info, comments
+    return template_block, info, offset, solution, comments
 
 
-def make_initializer(model):
+def make_initializer(model, pre_states=None):
     """
     Construct a new SimBlock object to be the agent initializer, based on the
     model dictionary. It has structure and events, but no parameters (etc).
@@ -1067,6 +1100,8 @@ def make_initializer(model):
     ----------
     model : dict
         Dictionary with model initializer information, probably read in as a yaml.
+    pre_states : [str]
+        List of pre-states that were flagged or explicitly listed.
 
     Returns
     -------
@@ -1080,10 +1115,7 @@ def make_initializer(model):
         - NullFunc --> function
         - Distribution --> distribution
     """
-    # Extract pre-state names
-    try:
-        pre_states = model["symbols"]["pre_states"]
-    except:
+    if pre_states is None:
         pre_states = []
 
     # Extract parameters, functions, and distributions
@@ -1091,14 +1123,14 @@ def make_initializer(model):
     if "parameters" in model["symbols"].keys():
         param_lines = model["symbols"]["parameters"]
         for line in param_lines:
-            param_name, datatype, desc = parse_declaration_for_parts(line)
+            param_name, datatype, flags, desc = parse_declaration_for_parts(line)
             parameters[param_name] = None
 
     functions = {}
     if "functions" in model["symbols"].keys():
         func_lines = model["symbols"]["functions"]
         for line in func_lines:
-            func_name, datatype, desc = parse_declaration_for_parts(line)
+            func_name, datatype, flags, desc = parse_declaration_for_parts(line)
             if (datatype is not None) and (datatype != "func"):
                 raise ValueError(
                     func_name
@@ -1110,7 +1142,7 @@ def make_initializer(model):
     if "distributions" in model["symbols"].keys():
         dstn_lines = model["symbols"]["distributions"]
         for line in dstn_lines:
-            dstn_name, datatype, desc = parse_declaration_for_parts(line)
+            dstn_name, datatype, flags, desc = parse_declaration_for_parts(line)
             if (datatype is not None) and (datatype != "dstn"):
                 raise ValueError(
                     dstn_name
@@ -1541,10 +1573,33 @@ def make_new_evaluation(statement, info):
     return new_evaluation
 
 
+def look_for_char_and_remove(phrase, symb):
+    """
+    Check whether a symbol appears in a string, and remove it if it does.
+
+    Parameters
+    ----------
+    phrase : str
+        String to be searched for a symbol.
+    symb : char
+        Single character to be searched for.
+
+    Returns
+    -------
+    out : str
+        Possibly shortened input phrase.
+    found : bool
+        Whether the symbol was found and removed.
+    """
+    found = symb in phrase
+    out = phrase.replace(symb, "")
+    return out, found
+
+
 def parse_declaration_for_parts(line):
     """
     Split a declaration line from a model file into the object's name, its datatype,
-    and any provided comment or description.
+    any metadata flags, and any provided comment or description.
 
     Parameters
     ----------
@@ -1557,9 +1612,17 @@ def parse_declaration_for_parts(line):
         Name of the object.
     datatype : str or None
         Provided datatype string, in parentheses, if any.
+    flags : [str]
+        List of metadata flags that were detected. These include ! for a variable
+        that is a pre-state, * for any non-variable that's part of the solution,
+        and + for any object that is offset in time.
+
     desc : str
         Comment or description, after //, if any.
     """
+    flags = []
+    check_for_flags = {"offset": "+", "prestate": "!", "solution": "*", "common": "&"}
+
     # First, separate off the comment or description, if any
     slashes = line.find("\\")
     desc = "" if slashes == -1 else line[(slashes + 2) :].strip()
@@ -1577,11 +1640,18 @@ def parse_declaration_for_parts(line):
         datatype = None
         leftover = rem
 
-    # What's left over should be the object name
-    name = leftover
+    # What's left over should be the object name plus any flags
+    for key in check_for_flags.keys():
+        symb = check_for_flags[key]
+        leftover, found = look_for_char_and_remove(leftover, symb)
+        if found:
+            flags.append(key)
+
+    # Remove any remaining spaces, and that *should* be the name
+    name = leftover.replace(" ", "")
     # TODO: Check for valid name formatting based on characters.
 
-    return name, datatype, desc
+    return name, datatype, flags, desc
 
 
 def parse_line_for_parts(statement, symb):
