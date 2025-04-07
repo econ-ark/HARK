@@ -45,12 +45,12 @@ class ModelEvent:
         Dictionary of current variable values within this event.
     """
 
-    description: str = ""
-    statement: str = ""
+    statement: str = field(default="")
     parameters: dict = field(default_factory=dict)
-    assigns: list[str] = field(default_factory=list)
-    needs: list = field(default_factory=list)
-    data: dict = field(default_factory=dict)
+    description: str = field(default="")
+    assigns: list[str] = field(default_factory=list, repr=False)
+    needs: list = field(default_factory=list, repr=False)
+    data: dict = field(default_factory=dict, repr=False)
 
     def run(self):
         """
@@ -86,8 +86,8 @@ class DynamicEvent(ModelEvent):
         Ordered list of argument names for the expression.
     """
 
-    expr: Callable = NullFunc()
-    args: list[str] = field(default_factory=list)
+    expr: Callable = field(default_factory=NullFunc, repr=False)
+    args: list[str] = field(default_factory=list, repr=False)
 
     def evaluate(self):
         temp_dict = self.data.copy()
@@ -113,8 +113,8 @@ class RandomEvent(ModelEvent):
         this event and assigned to the corresponding variables.
     """
 
-    dstn: Distribution
-    N: int = 1
+    dstn: Distribution = field(default_factory=Distribution, repr=False)
+    N: int = field(default=1, repr=False)
 
     def draw(self):
         out = self.dstn.draw(self.N)
@@ -144,8 +144,8 @@ class RandomIndexedEvent(RandomEvent):
         Name of the index that is used to choose a distribution for each agent.
     """
 
-    index: str = ""
-    dstn: list[Distribution] = field(default_factory=list)
+    index: str = field(default="", repr=False)
+    dstn: list[Distribution] = field(default_factory=list, repr=False)
 
     def draw(self):
         idx = self.data[self.index]
@@ -178,10 +178,11 @@ class MarkovEvent(ModelEvent):
     single float, it represents a Bernoulli probability.
     """
 
-    probs: str = ""
-    index: str = ""
-    N: int = 1
-    seed: int = 0  # this is overwritten when each period is created
+    probs: str = field(default="", repr=False)
+    index: str = field(default="", repr=False)
+    N: int = field(default=1, repr=False)
+    seed: int = field(default=0, repr=False)
+    # seed is overwritten when each period is created
 
     def __post_init__(self):
         self.reset_rng()
@@ -237,8 +238,8 @@ class EvaluationEvent(ModelEvent):
         to the appropriate variables.
     """
 
-    func: Callable = NullFunc()
-    arguments: list[str] = field(default_factory=list)
+    func: Callable = field(default_factory=NullFunc, repr=False)
+    arguments: list[str] = field(default_factory=list, repr=False)
 
     def evaluate(self):
         temp_dict = self.data.copy()
@@ -276,13 +277,13 @@ class SimBlock:
         Number of idiosyncratic agents in this block.
     """
 
-    description: str = ""
-    statement: str = ""
+    statement: str = field(default="", repr=False)
     content: dict = field(default_factory=dict)
-    pre_states: list[str] = field(default_factory=list)
-    events: list[ModelEvent] = field(default_factory=list)
-    data: dict = field(default_factory=dict)
-    N: int = 1
+    description: str = field(default="", repr=False)
+    pre_states: list[str] = field(default_factory=list, repr=False)
+    events: list[ModelEvent] = field(default_factory=list, repr=False)
+    data: dict = field(default_factory=dict, repr=False)
+    N: int = field(default=1, repr=False)
 
     def run(self):
         """
@@ -402,26 +403,26 @@ class AgentSimulator:
         Dictionary that holds the histories of tracked variables.
     """
 
-    description: str = ""
-    statement: str = ""
-    comments: dict = field(default_factory=dict)
-    parameters: list[str] = field(default_factory=list)
-    distributions: list[str] = field(default_factory=list)
-    functions: list[str] = field(default_factory=list)
-    common: list[str] = field(default_factory=list)
-    types: dict = field(default_factory=dict)
-    N_agents: int = 1
-    T_total: int = 1
-    T_sim: int = 1
-    T_age: int = 0
-    stop_dead: bool = True
-    replace_dead: bool = True
-    periods: list[SimBlock] = field(default_factory=list)
-    twist: dict = field(default_factory=dict)
-    data: dict = field(default_factory=dict)
-    initializer: SimBlock = SimBlock()
-    track_vars: list[str] = field(default_factory=list)
-    history: dict = field(default_factory=dict)
+    description: str = field(default="")
+    statement: str = field(default="", repr=False)
+    comments: dict = field(default_factory=dict, repr=False)
+    parameters: list[str] = field(default_factory=list, repr=False)
+    distributions: list[str] = field(default_factory=list, repr=False)
+    functions: list[str] = field(default_factory=list, repr=False)
+    common: list[str] = field(default_factory=list, repr=False)
+    types: dict = field(default_factory=dict, repr=False)
+    N_agents: int = field(default=1)
+    T_total: int = field(default=1, repr=False)
+    T_sim: int = field(default=1)
+    T_age: int = field(default=0, repr=False)
+    stop_dead: bool = field(default=True)
+    replace_dead: bool = field(default=True)
+    periods: list[SimBlock] = field(default_factory=list, repr=False)
+    twist: dict = field(default_factory=dict, repr=False)
+    data: dict = field(default_factory=dict, repr=False)
+    initializer: SimBlock = field(default_factory=SimBlock, repr=False)
+    track_vars: list[str] = field(default_factory=list, repr=False)
+    history: dict = field(default_factory=dict, repr=False)
 
     def simulate(self, T=None):
         """
