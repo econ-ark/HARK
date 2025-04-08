@@ -420,7 +420,7 @@ class AgentSimulator:
     periods: list[SimBlock] = field(default_factory=list, repr=False)
     twist: dict = field(default_factory=dict, repr=False)
     data: dict = field(default_factory=dict, repr=False)
-    initializer: SimBlock = field(default_factory=SimBlock, repr=False)
+    initializer: field(default_factory=SimBlock, repr=False)
     track_vars: list[str] = field(default_factory=list, repr=False)
     history: dict = field(default_factory=dict, repr=False)
 
