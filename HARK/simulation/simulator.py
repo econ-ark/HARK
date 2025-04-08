@@ -634,7 +634,7 @@ class AgentSimulator:
         # Assemble the overall model statement
         output = ""
         output += "----------------------------------\n"
-        output += "%%%%%% INITIALIZATION AT t=0 %%%%%\n"
+        output += "%%%%% INITIALIZATION AT BIRTH %%%%\n"
         output += "----------------------------------\n"
         output += self.initializer.statement
         output += "----------------------------------\n"
@@ -731,7 +731,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     Build an AgentSimulator instance based on an AgentType instance. The AgentType
     should have its model attribute defined so that it can be parsed and translated
     into the simulator structure. The names of objects in the model statement
-    should correspond to attributes of the AgentType
+    should correspond to attributes of the AgentType.
 
     Parameters
     ----------
