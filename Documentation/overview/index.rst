@@ -7,6 +7,7 @@ Overview
 
    introduction
    ARKitecture
+   simulation
 
 .. nbgallery is a wrapper around the toctree directive, see
    https://nbsphinx.readthedocs.io/en/latest/a-normal-rst-file.html#thumbnail-galleries
