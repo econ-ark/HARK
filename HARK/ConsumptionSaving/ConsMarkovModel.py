@@ -725,7 +725,7 @@ init_indshk_markov = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
-    "MrkvPrbsInit": [1.0, 0.0],  # Initial distribution of discrete state
+    "MrkvPrbsInit": np.array([1.0, 0.0]),  # Initial distribution of discrete state
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
     # ADDITIONAL OPTIONAL PARAMETERS

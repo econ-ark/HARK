@@ -209,7 +209,9 @@ class MarkovEvent(ModelEvent):
                 P = np.cumsum(probs[j, :])
                 out[these] = np.searchsorted(P, X[these])
             return out
-        if (type(probs) is np.array) and (probs_are_param):  # it's a stochastic vector
+        if (isinstance(probs, np.ndarray)) and (
+            probs_are_param
+        ):  # it's a stochastic vector
             P = np.cumsum(probs)
             return np.searchsorted(P, X)
         # Otherwise, this is just a Bernoulli RV
@@ -1047,7 +1049,8 @@ def make_template_block(model, pre_states=None):
             if ("solution" in flags) and (dstn_name not in solution):
                 solution.append(dstn_name)
 
-    # Combine those dictionaries into a single "information" dictionary
+    # Combine those dictionaries into a single "information" dictionary, which
+    # represents objects available *at that point* in the dynamic block
     content = parameters.copy()
     content.update(functions)
     content.update(distributions)
@@ -1060,16 +1063,26 @@ def make_template_block(model, pre_states=None):
 
     # Make the list of ordered events
     events = []
+    names_used_in_dynamics = []
     for line in dynamics:
         # Make the new event and add it to the list
-        new_event = make_new_event(line, info)
+        new_event, names_used = make_new_event(line, info)
         events.append(new_event)
+        names_used_in_dynamics += names_used
 
         # Add newly assigned variables to the information set
         for var in new_event.assigns:
             if var in info.keys():
                 raise ValueError(var + " is assigned, but already exists!")
             info[var] = 0
+
+    # Remove content that is never referenced within the dynamics
+    delete_these = []
+    for name in content.keys():
+        if name not in names_used_in_dynamics:
+            delete_these.append(name)
+    for name in delete_these:
+        del content[name]
 
     # Make a single string model statement
     statement = ""
@@ -1161,10 +1174,12 @@ def make_initializer(model, pre_states=None):
 
     # Make the list of ordered events
     events = []
+    names_used_in_initialize = []  # this doesn't actually get used
     for line in initialize:
         # Make the new event and add it to the list
-        new_event = make_new_event(line, info)
+        new_event, names_used = make_new_event(line, info)
         events.append(new_event)
+        names_used_in_initialize += names_used
 
         # Add newly assigned variables to the information set
         for var in new_event.assigns:
@@ -1247,6 +1262,8 @@ def make_new_event(statement, info):
     -------
     new_event : ModelEvent
         A new model event with values and information missing, but structure set.
+    names_used : [str]
+        List of names of objects used in this expression.
     """
     # First determine what kind of event this is
     has_eq = "=" in statement
@@ -1274,16 +1291,18 @@ def make_new_event(statement, info):
 
     # Now make and return an appropriate event for that type
     if event_type is DynamicEvent:
-        new_event = make_new_dynamic(statement, info)
+        event_maker = make_new_dynamic
     if event_type is RandomEvent:
-        new_event = make_new_random(statement, info)
+        event_maker = make_new_random
     if event_type is RandomIndexedEvent:
-        new_event = make_new_random_indexed(statement, info)
+        event_maker = make_new_random_indexed
     if event_type is MarkovEvent:
-        new_event = make_new_markov(statement, info)
+        event_maker = make_new_markov
     if event_type is EvaluationEvent:
-        new_event = make_new_evaluation(statement, info)
-    return new_event
+        event_maker = make_new_evaluation
+
+    new_event, names_used = event_maker(statement, info)
+    return new_event, names_used
 
 
 def make_new_dynamic(statement, info):
@@ -1303,6 +1322,8 @@ def make_new_dynamic(statement, info):
     -------
     new_dynamic : DynamicEvent
         A new dynamic event with values and information missing, but structure set.
+    names_used : [str]
+        List of names of objects used in this expression.
     """
     # Cut the statement up into its LHS, RHS, and description
     lhs, rhs, description = parse_line_for_parts(statement, "=")
@@ -1310,14 +1331,14 @@ def make_new_dynamic(statement, info):
     # Parse the LHS (assignment) to get assigned variables
     assigns = parse_assignment(lhs)
 
-    # Parse the RHS (dynamic statement) to extract variable names used
-    variables, is_indexed = extract_var_names_from_expr(rhs)
+    # Parse the RHS (dynamic statement) to extract object names used
+    obj_names, is_indexed = extract_var_names_from_expr(rhs)
 
     # Allocate each variable to needed dynamic variables or parameters
     needs = []
     parameters = {}
-    for j in range(len(variables)):
-        var = variables[j]
+    for j in range(len(obj_names)):
+        var = obj_names[j]
         if var not in info.keys():
             raise ValueError(
                 var + " is used in a dynamic expression, but does not (yet) exist!"
@@ -1338,8 +1359,8 @@ def make_new_dynamic(statement, info):
 
     # Declare a SymPy symbol for each variable used; these are temporary
     _args = []
-    for j in range(len(variables)):
-        _var = variables[j]
+    for j in range(len(obj_names)):
+        _var = obj_names[j]
         if is_indexed[j]:
             exec(_var + " = IndexedBase('" + _var + "')")
         else:
@@ -1350,6 +1371,9 @@ def make_new_dynamic(statement, info):
     sympy_expr = eval(rhs)
     expr = lambdify(_args, sympy_expr)
 
+    # Make an overall list of object names referenced in this event
+    names_used = assigns + obj_names
+
     # Make and return the new dynamic event
     new_dynamic = DynamicEvent(
         description=description,
@@ -1358,9 +1382,9 @@ def make_new_dynamic(statement, info):
         needs=needs,
         parameters=parameters,
         expr=expr,
-        args=variables,
+        args=obj_names,
     )
-    return new_dynamic
+    return new_dynamic, names_used
 
 
 def make_new_random(statement, info):
@@ -1380,6 +1404,8 @@ def make_new_random(statement, info):
     -------
     new_random : RandomEvent
         A new random event with values and information missing, but structure set.
+    names_used : [str]
+        List of names of objects used in this expression.
     """
     # Cut the statement up into its LHS, RHS, and description
     lhs, rhs, description = parse_line_for_parts(statement, "~")
@@ -1393,6 +1419,9 @@ def make_new_random(statement, info):
             rhs + " was treated as a distribution, but not declared as one!"
         )
 
+    # Make an overall list of object names referenced in this event
+    names_used = assigns + [rhs]
+
     # Make and return the new random event
     new_random = RandomEvent(
         description=description,
@@ -1403,7 +1432,7 @@ def make_new_random(statement, info):
         dstn=info[rhs],
     )
     new_random._dstn_name = rhs
-    return new_random
+    return new_random, names_used
 
 
 def make_new_random_indexed(statement, info):
@@ -1423,6 +1452,8 @@ def make_new_random_indexed(statement, info):
     -------
     new_random_indexed : RandomEvent
         A new random indexed event with values and information missing, but structure set.
+    names_used : [str]
+        List of names of objects used in this expression.
     """
     # Cut the statement up into its LHS, RHS, and description
     lhs, rhs, description = parse_line_for_parts(statement, "~")
@@ -1439,6 +1470,9 @@ def make_new_random_indexed(statement, info):
             dstn + " was treated as a distribution, but not declared as one!"
         )
 
+    # Make an overall list of object names referenced in this event
+    names_used = assigns + [dstn, index]
+
     # Make and return the new random indexed event
     new_random_indexed = RandomIndexedEvent(
         description=description,
@@ -1446,11 +1480,10 @@ def make_new_random_indexed(statement, info):
         assigns=assigns,
         needs=[index],
         parameters={},
-        # dstn=info[dstn],
         index=index,
     )
     new_random_indexed._dstn_name = dstn
-    return new_random_indexed
+    return new_random_indexed, names_used
 
 
 def make_new_markov(statement, info):
@@ -1473,6 +1506,8 @@ def make_new_markov(statement, info):
     -------
     new_markov : MarkovEvent
         A new Markov draw event with values and information missing, but structure set.
+    names_used : [str]
+        List of names of objects used in this expression.
     """
     # Cut the statement up into its LHS, RHS, and description
     lhs, rhs, description = parse_line_for_parts(statement, "~")
@@ -1495,6 +1530,9 @@ def make_new_markov(statement, info):
         needs += [probs]
         parameters = {}
 
+    # Make an overall list of object names referenced in this event
+    names_used = assigns + needs + [probs]
+
     # Make and return the new Markov event
     new_markov = MarkovEvent(
         description=description,
@@ -1505,7 +1543,7 @@ def make_new_markov(statement, info):
         probs=probs,
         index=index,
     )
-    return new_markov
+    return new_markov, names_used
 
 
 def make_new_evaluation(statement, info):
@@ -1525,6 +1563,8 @@ def make_new_evaluation(statement, info):
     -------
     new_evaluation : EvaluationEvent
         A new evaluation event with values and information missing, but structure set.
+    names_used : [str]
+        List of names of objects used in this expression.
     """
     # Cut the statement up into its LHS, RHS, and description
     lhs, rhs, description = parse_line_for_parts(statement, "=")
@@ -1559,6 +1599,9 @@ def make_new_evaluation(statement, info):
         else:
             needs.append(var)
 
+    # Make an overall list of object names referenced in this event
+    names_used = assigns + arguments + [func]
+
     # Make and return the new evaluation event
     new_evaluation = EvaluationEvent(
         description=description,
@@ -1570,7 +1613,7 @@ def make_new_evaluation(statement, info):
         func=info[func],
     )
     new_evaluation._func_name = func
-    return new_evaluation
+    return new_evaluation, names_used
 
 
 def look_for_char_and_remove(phrase, symb):

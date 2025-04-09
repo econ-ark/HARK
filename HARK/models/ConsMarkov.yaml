@@ -18,6 +18,7 @@ symbols:
     - PermGroFac         \\ expected permanent income growth factor by state
     - LivPrb             \\ survival probability at end of period by discrete state
     - MrkvArray          \\ Markov transition probabilities among discrete states
+    - MrkvPrbsInit       \\ pmv of discrete state at initialization
   functions:
     - cFuncX             \\ consumption function over discrete state and market resources
   distributions:
@@ -36,7 +37,7 @@ symbols:
 initialize: |
   pLvlPrev = 1.                        \\ set initial permanent income to one
   kNrm = 0.                            \\ set initial capital holdings to zero
-  zPrev = 0                            \\ set discrete state to zero
+  zPrev ~ {MrkvPrbsInit}               \\ draw discrete state from specified distribution
 dynamics: |
   z    ~ {MrkvArray}(zPrev)            \\ current discrete state depends on prior state
   Mrkv = z                             \\ duplicate label of discrete state for compatibility
