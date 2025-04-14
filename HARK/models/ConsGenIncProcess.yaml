@@ -18,15 +18,9 @@ symbols:
     - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-  pre_states:
-    - kLvl
-    - pLvlPrev
-  solution:
-    - cFunc
-  offset:
-    - pLvlNextFunc
-    - Rfree
-    - IncShkDstn
+  pre_states: [kLvl, pLvlPrev]
+  solution: [cFunc]
+  offset: [pLvlNextFunc, Rfree, IncShkDstn]
 initialize: |
   pLvlPrev = 1.                    \\ set initial permanent income to one
   kLvl = 0.                        \\ set initial capital holdings to zero

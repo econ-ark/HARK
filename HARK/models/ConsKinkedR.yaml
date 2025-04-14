@@ -21,16 +21,9 @@ symbols:
     - cFunc              \\ consumption function over market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-  pre_states:
-    - kNrm
-    - pLvlPrev
-  solution:
-    - cFunc
-  offset:
-    - PermGroFac
-    - Rboro
-    - Rsave
-    - IncShkDstn
+  pre_states: [kNrm, pLvlPrev]
+  solution: [cFunc]
+  offset: [PermGroFac, Rboro, Rsave, IncShkDstn]
 initialize: |
   pLvlPrev = 1.                     \\ set initial permanent income to one
   kNrm = 0.                         \\ set initial capital holdings to zero
