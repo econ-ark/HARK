@@ -1286,7 +1286,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         """
         IndShockConsumerType.sim_birth(self, which_agents)
 
-        self.controls["Share"][which_agents] = 0
+        self.controls["Share"][which_agents] = 0.0
         # here a shock is being used as a 'post state'
         self.shocks["Adjust"][which_agents] = False
 
@@ -1317,14 +1317,14 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
                 self.state_now["mNrm"][those]
             )
 
-            # Get Controls for agents who *can't* adjust their portfolio share
+            # Get controls for agents who *can't* adjust their portfolio share
             those = np.logical_and(these, np.logical_not(self.shocks["Adjust"]))
             cNrmNow[those] = self.solution[t].cFuncFxd(
-                self.state_now["mNrm"][those], ShareNow[those]
+                self.state_now["mNrm"][those], self.controls["Share"][those]
             )
             ShareNow[those] = self.solution[t].ShareFuncFxd(
-                self.state_now["mNrm"][those], ShareNow[those]
-            )
+                self.state_now["mNrm"][those], self.controls["Share"][those]
+            )  # this just returns same share as before
 
         # Store controls as attributes of self
         self.controls["cNrm"] = cNrmNow
