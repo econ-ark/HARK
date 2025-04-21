@@ -1,4 +1,7 @@
-description: "MNW's first attempt at the kinked R model in YAML."
+name: ConsKinkedR
+description: >-
+  Consumption-saving model with permanent and transitory income shocks and a
+  risk-free asset with higher interest rate for borrowing than saving.
 symbols:
   variables:
     - kNrm               \\ beginning of period capital, normalized by p_{t-1}
@@ -21,7 +24,7 @@ symbols:
     - cFunc              \\ consumption function over market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-  pre_states: [kNrm, pLvlPrev]
+  arrival: [kNrm, pLvlPrev]
   solution: [cFunc]
   offset: [PermGroFac, Rboro, Rsave, IncShkDstn]
 initialize: |

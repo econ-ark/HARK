@@ -1,0 +1,21 @@
+symbols:
+  parameters: [Rfree, PermGroFac, LivPrb]
+  functions: [cFunc]
+  arrival: [kNrm, pLvlPrev]
+  solution: [cFunc]
+  offset: [PermGroFac]
+initialize: |
+  pLvlPrev = 1.
+  kNrm = 0.
+dynamics: |
+  yNrm = 1.0
+  pLvl = pLvlPrev * PermGroFac
+  bNrm = Rfree * kNrm / PermGroFac
+  mNrm = bNrm + yNrm
+  cNrm = cFunc@(mNrm)
+  aNrm = mNrm - cNrm
+  live ~ {LivPrb}
+  dead = 1 - live
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev

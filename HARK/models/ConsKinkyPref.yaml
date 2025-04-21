@@ -1,4 +1,8 @@
-description: "MNW's first attempt at the 'kinky preference' model in YAML."
+name: ConsKinkyPref
+description: >-
+  Consumption-saving model with permanent and transitory income shocks as well
+  as multiplicative marginal utility shocks, with a risk-free asset with higher
+  interest rate for borrowing than saving.
 symbols:
   variables:
     - kNrm!              \\ beginning of period capital, normalized by p_{t-1}

@@ -1,4 +1,8 @@
-description: "MNW's first attempt at the general income process model in YAML."
+name: ConsGenIncProcess
+description: >-
+  Consumption-saving model with with transitory  and persistent income shocks;
+  the persistent component of income evolves according to a general function.
+  The agent can invest in a single risk-free asset.
 symbols:
   variables:
     - kLvl               \\ beginning of period capital
@@ -18,7 +22,7 @@ symbols:
     - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-  pre_states: [kLvl, pLvlPrev]
+  arrival: [kLvl, pLvlPrev]
   solution: [cFunc]
   offset: [pLvlNextFunc, Rfree, IncShkDstn]
 initialize: |

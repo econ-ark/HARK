@@ -1,4 +1,7 @@
-description: "MNW's first attempt at the preference shocks model in YAML."
+name: ConsPrefShock
+description: >-
+  Consumption-saving model with permanent and transitory income shocks as well
+  as multiplicative marginal utility shocks, with a risk-free asset.
 symbols:
   variables:
     - kNrm               \\ beginning of period capital, normalized by p_{t-1}
@@ -19,7 +22,7 @@ symbols:
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
     - PrefShkDstn        \\ distribution of marginal utility shocks
-  pre_states: [kNrm, pLvlPrev]
+  arrival: [kNrm, pLvlPrev]
   solution: [cFunc]
   offset: [PermGroFac, Rfree, IncShkDstn]
 initialize: |

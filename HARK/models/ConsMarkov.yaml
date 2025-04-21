@@ -1,4 +1,9 @@
-description: "MNW's first attempt at the Markov model in YAML."
+name: ConsMarkov
+description: >-
+  Consumption-saving model with permanent and transitory income shocks, as well
+  as a discrete state that evolves according to a Markov matrix. Mortality, income
+  risk, income growth, and the asset return factor can all depend on the discrete
+  state. Asset returns are risk-free within a discrete state.
 symbols:
   variables:
     - kNrm               \\ beginning of period capital, normalized by p_{t-1}
@@ -23,7 +28,7 @@ symbols:
     - cFuncX             \\ consumption function over discrete state and market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-  pre_states: [kNrm, pLvlPrev, zPrev]
+  arrival: [kNrm, pLvlPrev, zPrev]
   solution: [cFuncX]
   offset: [PermGroFac, Rfree, IncShkDstn, MrkvArray]
 initialize: |

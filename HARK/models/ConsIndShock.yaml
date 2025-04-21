@@ -1,4 +1,7 @@
-description: "MNW's first attempt at the idiosyncratic income shocks model in YAML."
+name: ConsIndShock
+description: >-
+  Consumption-saving model with permanent and transitory income shocks
+  and a risk-free asset.
 symbols:
   variables:
     - kNrm               \\ beginning of period capital, normalized by p_{t-1}
@@ -18,7 +21,7 @@ symbols:
     - cFunc              \\ consumption function over market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
-  pre_states: [kNrm, pLvlPrev]
+  arrival: [kNrm, pLvlPrev]
   solution: [cFunc]
   offset: [PermGroFac, Rfree, IncShkDstn]
 initialize: |

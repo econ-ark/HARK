@@ -1,4 +1,8 @@
-description: "MNW's first attempt at the portfolio allocation model in YAML."
+name: ConsPortfolio
+description: >-
+  Consumption-saving model with permanent and transitory income risk and asset
+  allocation between a risk-free asset and a (higher return) risky asset. The
+  agent might only be able to update their portfolio shares some of the time.
 symbols:
   variables:
     - kNrm!              \\ beginning of period wealth, normalized by p_{t-1}

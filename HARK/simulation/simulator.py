@@ -269,7 +269,7 @@ class SimBlock:
     content : dict
         Dictionary of objects that are constant / universal within the block.
         This includes both traditional numeric parameters as well as functions.
-    pre_states : list[str]
+    arrival : list[str]
         List of inbound states: information available at the *start* of the block.
     events: list[ModelEvent]
         Ordered list of events that happen during the block.
@@ -282,7 +282,7 @@ class SimBlock:
     statement: str = field(default="", repr=False)
     content: dict = field(default_factory=dict)
     description: str = field(default="", repr=False)
-    pre_states: list[str] = field(default_factory=list, repr=False)
+    arrival: list[str] = field(default_factory=list, repr=False)
     events: list[ModelEvent] = field(default_factory=list, repr=False)
     data: dict = field(default_factory=dict, repr=False)
     N: int = field(default=1, repr=False)
@@ -351,6 +351,8 @@ class AgentSimulator:
 
     Parameters
     ----------
+    name : str
+        Short name of this model.s
     description : str
         Textual description of what happens in this simulated block.
     statement : str
@@ -405,6 +407,7 @@ class AgentSimulator:
         Dictionary that holds the histories of tracked variables.
     """
 
+    name: str = field(default="")
     description: str = field(default="")
     statement: str = field(default="", repr=False)
     comments: dict = field(default_factory=dict, repr=False)
@@ -546,11 +549,11 @@ class AgentSimulator:
         self.initializer.run()
 
         # Set the initial pre-state data for newborns and clear other variables
-        init_pre_states = self.periods[0].pre_states
+        init_arrival = self.periods[0].arrival
         for var in self.types:
             self.data[var][newborns] = (
                 self.initializer.data[var]
-                if var in init_pre_states
+                if var in init_arrival
                 else np.empty(N, dtype=self.types[var])
             )
 
@@ -609,7 +612,7 @@ class AgentSimulator:
                 continue  # Skip any "empty ages"
             this_period = self.periods[t]
 
-            data_temp = {var: self.data[var][these] for var in this_period.pre_states}
+            data_temp = {var: self.data[var][these] for var in this_period.arrival}
             this_period.data = data_temp
             this_period.N = np.sum(these)
             this_period.run()
@@ -707,7 +710,7 @@ class AgentSimulator:
         Convenience method for showing all information about the model.
         """
         # Asssemble the requested output
-        output = self.description + "\n"
+        output = self.name + ": " + self.description + "\n"
         if symbols or model:
             output += "\n"
         if symbols:
@@ -770,6 +773,15 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     RNG = agent.RNG  # this is only for generating seeds for MarkovEvents
 
     # Extract basic fields from the model
+    # Extract model description
+    try:
+        model_name = model["name"]
+    except:
+        c = "DEFAULT_NAME"
+    try:
+        description = model["description"]
+    except:
+        description = "(no description provided)"
     try:
         variables = model["symbols"]["variables"]
     except:
@@ -785,9 +797,9 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
 
     # Extract pre-state names that were explicitly listed
     try:
-        pre_states = model["symbols"]["pre_states"]
+        arrival = model["symbols"]["arrival"]
     except:
-        pre_states = []
+        arrival = []
 
     # Make a dictionary of declared data types and add comments
     types = {}
@@ -808,22 +820,21 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
             var_type = float
         types[var_name] = var_type
         comments[var_name] = desc
-        if ("prestate" in flags) and (var_name not in pre_states):
-            pre_states.append(var_name)
+        if ("arrival" in flags) and (var_name not in arrival):
+            arrival.append(var_name)
         if ("common" in flags) and (var_name not in common):
             common.append(var_name)
 
     # Make a blank "template" period with structure but no data
     template_period, information, offset, solution, block_comments = (
-        make_template_block(model, pre_states)
+        make_template_block(model, arrival)
     )
     comments.update(block_comments)
 
     # Make the agent initializer, without parameter values (etc)
-    initializer, init_info = make_initializer(model, pre_states)
+    initializer, init_info = make_initializer(model, arrival)
 
     # Extract basic fields from the template period and model
-    description = template_period.description
     statement = template_period.statement
     content = template_period.content
 
@@ -928,6 +939,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
 
     # Make and return the new simulator
     new_simulator = AgentSimulator(
+        name=model_name,
         description=description,
         statement=statement,
         comments=comments,
@@ -950,7 +962,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     return new_simulator
 
 
-def make_template_block(model, pre_states=None):
+def make_template_block(model, arrival=None):
     """
     Construct a new SimBlock object as a "template" of the model block. It has
     events and reference information, but no values filled in.
@@ -959,7 +971,7 @@ def make_template_block(model, pre_states=None):
     ----------
     model : dict
         Dictionary with model block information, probably read in as a yaml.
-    pre_states : [str]
+    arrival : [str]
         List of pre-states that were flagged or explicitly listed.
 
     Returns
@@ -981,10 +993,14 @@ def make_template_block(model, pre_states=None):
         Dictionary of comments included with declared functions, distributions,
         and parameters.
     """
-    if pre_states is None:
-        pre_states = []
+    if arrival is None:
+        arrival = []
 
     # Extract explicitly listed metadata
+    try:
+        name = model["name"]
+    except:
+        name = None
     try:
         offset = model["symbols"]["offset"]
     except:
@@ -993,12 +1009,6 @@ def make_template_block(model, pre_states=None):
         solution = model["symbols"]["solution"]
     except:
         solution = []
-
-    # Extract model description
-    try:
-        description = model["description"]
-    except:
-        description = ""
 
     # Extract parameters, functions, and distributions
     comments = {}
@@ -1055,7 +1065,7 @@ def make_template_block(model, pre_states=None):
     content.update(functions)
     content.update(distributions)
     info = deepcopy(content)
-    for var in pre_states:
+    for var in arrival:
         info[var] = 0  # Mark as a state variable
 
     # Parse the model dynamics
@@ -1093,10 +1103,16 @@ def make_template_block(model, pre_states=None):
         pad = (longest + 1) - L
         statement += this_statement + pad * " " + ": " + event.description + "\n"
 
+    # Make a description for the template block
+    if name is None:
+        description = "template block for unnamed block"
+    else:
+        description = "template block for " + name
+
     # Make and return the new SimBlock
     template_block = SimBlock(
         description=description,
-        pre_states=pre_states,
+        arrival=arrival,
         content=content,
         statement=statement,
         events=events,
@@ -1104,7 +1120,7 @@ def make_template_block(model, pre_states=None):
     return template_block, info, offset, solution, comments
 
 
-def make_initializer(model, pre_states=None):
+def make_initializer(model, arrival=None):
     """
     Construct a new SimBlock object to be the agent initializer, based on the
     model dictionary. It has structure and events, but no parameters (etc).
@@ -1113,7 +1129,7 @@ def make_initializer(model, pre_states=None):
     ----------
     model : dict
         Dictionary with model initializer information, probably read in as a yaml.
-    pre_states : [str]
+    arrival : [str]
         List of pre-states that were flagged or explicitly listed.
 
     Returns
@@ -1128,8 +1144,8 @@ def make_initializer(model, pre_states=None):
         - NullFunc --> function
         - Distribution --> distribution
     """
-    if pre_states is None:
-        pre_states = []
+    if arrival is None:
+        arrival = []
 
     # Extract parameters, functions, and distributions
     parameters = {}
@@ -1188,7 +1204,7 @@ def make_initializer(model, pre_states=None):
             info[var] = 0
 
     # Verify that all pre-states were created in the initializer
-    for var in pre_states:
+    for var in arrival:
         if var not in info.keys():
             raise ValueError(
                 "The pre-state " + var + " was not set in the initialize block!"
@@ -1664,7 +1680,7 @@ def parse_declaration_for_parts(line):
         Comment or description, after //, if any.
     """
     flags = []
-    check_for_flags = {"offset": "+", "prestate": "!", "solution": "*", "common": "&"}
+    check_for_flags = {"offset": "+", "arrival": "!", "solution": "*", "common": "&"}
 
     # First, separate off the comment or description, if any
     slashes = line.find("\\")
