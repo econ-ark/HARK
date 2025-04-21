@@ -43,6 +43,9 @@ class ModelEvent:
         List of names of variables that this event requires to be run.
     data : dict
         Dictionary of current variable values within this event.
+    common : bool
+        Indicator for whether the variables assigned in this event are commonly
+        held across all agents, rather than idiosyncratic.
     """
 
     statement: str = field(default="")
@@ -51,6 +54,7 @@ class ModelEvent:
     assigns: list[str] = field(default_factory=list, repr=False)
     needs: list = field(default_factory=list, repr=False)
     data: dict = field(default_factory=dict, repr=False)
+    common: bool = field(default=False, repr=False)
 
     def run(self):
         """
@@ -117,7 +121,11 @@ class RandomEvent(ModelEvent):
     N: int = field(default=1, repr=False)
 
     def draw(self):
-        out = self.dstn.draw(self.N)
+        if self.common:
+            out = np.empty((len(self.assigns), self.N))
+            out[:, :] = self.dstn.draw(self.N)
+        else:
+            out = self.dstn.draw(1)
         return out
 
     def run(self):
@@ -152,6 +160,12 @@ class RandomIndexedEvent(RandomEvent):
         K = len(self.assigns)
         out = np.empty((K, self.N))
         out.fill(np.nan)
+
+        if self.common:
+            k = idx[0]  # this will behave badly if index is not itself common
+            out[:, :] = self.dstn[k].draw(1)
+            return out
+
         for k in range(len(self.dstn)):
             these = idx == k
             if not np.any(these):
@@ -191,6 +205,7 @@ class MarkovEvent(ModelEvent):
         self.RNG = np.random.RandomState(self.seed)
 
     def draw(self):
+        # Initialize the output
         out = -np.ones(self.N, dtype=int)
         if self.probs in self.parameters:
             probs = self.parameters[self.probs]
@@ -198,7 +213,13 @@ class MarkovEvent(ModelEvent):
         else:
             probs = self.data[self.probs]
             probs_are_param = False
-        X = self.RNG.rand(self.N)
+
+        # Make the base draw(s)
+        if self.common:
+            X = self.RNG.rand(1)
+        else:
+            X = self.RNG.rand(self.N)
+
         if self.index:  # it's a Markov matrix
             idx = self.data[self.index]
             J = probs.shape[0]
@@ -207,16 +228,29 @@ class MarkovEvent(ModelEvent):
                 if not np.any(these):
                     continue
                 P = np.cumsum(probs[j, :])
-                out[these] = np.searchsorted(P, X[these])
+                if self.common:
+                    out[:] = np.searchsorted(P, X[0])  # only one value of X!
+                else:
+                    out[these] = np.searchsorted(P, X[these])
             return out
+
         if (isinstance(probs, np.ndarray)) and (
             probs_are_param
         ):  # it's a stochastic vector
             P = np.cumsum(probs)
-            return np.searchsorted(P, X)
+            if self.common:
+                out[:] = np.searchsorted(P, X[0])
+                return out
+            else:
+                return np.searchsorted(P, X)
+
         # Otherwise, this is just a Bernoulli RV
         P = probs
-        return X < P  # basic Bernoulli
+        if self.common:
+            out[:] = X < P
+            return out
+        else:
+            return X < P  # basic Bernoulli
 
     def run(self):
         self.assign(self.draw())
@@ -731,7 +765,7 @@ class AgentSimulator:
             return output
 
 
-def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
+def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=None):
     """
     Build an AgentSimulator instance based on an AgentType instance. The AgentType
     should have its model attribute defined so that it can be parsed and translated
@@ -754,6 +788,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
         The latter option is useful for models with state-dependent mortality,
         to allow "cohort-style" simulation with the correct distribution of states
         for survivors at each age. Setting False has no effect if stop_dead is True.
+    common : [str] or None
+        List of random variables that should be treated as commonly shared across
+        all agents, rather than idiosyncratically drawn. If this is provided, it
+        will override the model defaults.
 
     Returns
     -------
@@ -773,11 +811,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     RNG = agent.RNG  # this is only for generating seeds for MarkovEvents
 
     # Extract basic fields from the model
-    # Extract model description
     try:
         model_name = model["name"]
     except:
-        c = "DEFAULT_NAME"
+        model_name = "DEFAULT_NAME"
     try:
         description = model["description"]
     except:
@@ -790,10 +827,11 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
         twist = model["twist"]
     except:
         twist = {}
-    try:
-        common = model["symbols"]["common"]
-    except:
-        common = []
+    if common is None:
+        try:
+            common = model["symbols"]["common"]
+        except:
+            common = []
 
     # Extract pre-state names that were explicitly listed
     try:
@@ -827,12 +865,12 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
 
     # Make a blank "template" period with structure but no data
     template_period, information, offset, solution, block_comments = (
-        make_template_block(model, arrival)
+        make_template_block(model, arrival, common)
     )
     comments.update(block_comments)
 
     # Make the agent initializer, without parameter values (etc)
-    initializer, init_info = make_initializer(model, arrival)
+    initializer, init_info = make_initializer(model, arrival, common)
 
     # Extract basic fields from the template period and model
     statement = template_period.statement
@@ -962,7 +1000,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True):
     return new_simulator
 
 
-def make_template_block(model, arrival=None):
+def make_template_block(model, arrival=None, common=None):
     """
     Construct a new SimBlock object as a "template" of the model block. It has
     events and reference information, but no values filled in.
@@ -971,8 +1009,11 @@ def make_template_block(model, arrival=None):
     ----------
     model : dict
         Dictionary with model block information, probably read in as a yaml.
-    arrival : [str]
+    arrival : [str] or None
         List of pre-states that were flagged or explicitly listed.
+    common : [str] or None
+        List of variables that are common or shared across all agents, rather
+        than idiosyncratically drawn.
 
     Returns
     -------
@@ -995,12 +1036,14 @@ def make_template_block(model, arrival=None):
     """
     if arrival is None:
         arrival = []
+    if common is None:
+        common = []
 
     # Extract explicitly listed metadata
     try:
         name = model["name"]
     except:
-        name = None
+        name = "DEFAULT_NAME"
     try:
         offset = model["symbols"]["offset"]
     except:
@@ -1086,6 +1129,12 @@ def make_template_block(model, arrival=None):
                 raise ValueError(var + " is assigned, but already exists!")
             info[var] = 0
 
+        # If any assigned variables are common, mark the event as common
+        for var in new_event.assigns:
+            if var in common:
+                new_event.common = True
+                break  # No need to check further
+
     # Remove content that is never referenced within the dynamics
     delete_these = []
     for name in content.keys():
@@ -1120,7 +1169,7 @@ def make_template_block(model, arrival=None):
     return template_block, info, offset, solution, comments
 
 
-def make_initializer(model, arrival=None):
+def make_initializer(model, arrival=None, common=None):
     """
     Construct a new SimBlock object to be the agent initializer, based on the
     model dictionary. It has structure and events, but no parameters (etc).
@@ -1146,6 +1195,12 @@ def make_initializer(model, arrival=None):
     """
     if arrival is None:
         arrival = []
+    if common is None:
+        common = []
+    try:
+        name = model["name"]
+    except:
+        name = "DEFAULT_NAME"
 
     # Extract parameters, functions, and distributions
     parameters = {}
@@ -1203,6 +1258,12 @@ def make_initializer(model, arrival=None):
                 raise ValueError(var + " is assigned, but already exists!")
             info[var] = 0
 
+        # If any assigned variables are common, mark the event as common
+        for var in new_event.assigns:
+            if var in common:
+                new_event.common = True
+                break  # No need to check further
+
     # Verify that all pre-states were created in the initializer
     for var in arrival:
         if var not in info.keys():
@@ -1252,7 +1313,7 @@ def make_initializer(model, arrival=None):
 
     # Make and return the new SimBlock
     initializer = SimBlock(
-        description="initialize model agents",
+        description="agent initializer for " + name,
         content=init_requires,
         statement=statement,
         events=events,

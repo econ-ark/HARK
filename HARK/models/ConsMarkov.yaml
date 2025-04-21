@@ -36,8 +36,8 @@ initialize: |
   kNrm = 0.                            \\ set initial capital holdings to zero
   zPrev ~ {MrkvPrbsInit}               \\ draw discrete state from specified distribution
 dynamics: |
-  z    ~ {MrkvArray}(zPrev)            \\ current discrete state depends on prior state
-  Mrkv = z                             \\ duplicate label of discrete state for compatibility
+  Mrkv ~ {MrkvArray}(zPrev)            \\ current discrete state depends on prior state
+  z = Mrkv                             \\ duplicate label of discrete state for easy typing
   (PermShk, TranShk) ~ IncShkDstn[z]   \\ draw permanent and transitory income shocks
   yNrm = TranShk                       \\ normalized income is the transitory shock
   G    = PermGroFac[z] * PermShk       \\ calculate permanent income growth
