@@ -431,8 +431,8 @@ class AgentSimulator:
         Dictionary that maps period t-1 variables to period t variables, as a
         relabeling "between" periods.
     initializer : SimBlock
-        A special simulated block that should have *no* pre-states, because it
-        represents the initialization of "newborn" agents.
+        A special simulated block that should have *no* arrival variables, because
+        it represents the initialization of "newborn" agents.
     data : dict
         Dictionary that holds *current* values of model variables.
     track_vars : list[str]
@@ -576,13 +576,13 @@ class AgentSimulator:
         if not np.any(newborns):
             return
 
-        # Generate initial pre-states
+        # Generate initial arrival variables
         N = np.sum(newborns)
         self.initializer.data = {}  # by definition
         self.initializer.N = N
         self.initializer.run()
 
-        # Set the initial pre-state data for newborns and clear other variables
+        # Set the initial arrival data for newborns and clear other variables
         init_arrival = self.periods[0].arrival
         for var in self.types:
             self.data[var][newborns] = (
@@ -625,8 +625,8 @@ class AgentSimulator:
         you want to run the model for exactly one period.
         """
         # Use the "twist" information to advance last period's end-of-period
-        # information/values to be the pre-states for this period. Then, for
-        # any variable other than those brought in with the twist, wipe it clean.
+        # information/values to be the arrival variables for this period. Then, for
+        # each variable other than those brought in with the twist, wipe it clean.
         keepers = []
         for var_tm1 in self.twist:
             var_t = self.twist[var_tm1]
@@ -634,7 +634,7 @@ class AgentSimulator:
             self.data[var_t] = self.data[var_tm1].copy()
         self.clear_data(skip=keepers)
 
-        # Create newborns first so the pre-states exist. This should be done in
+        # Create newborns first so the arrival vars exist. This should be done in
         # the first simulated period (t_sim=0) or if decedents should be replaced.
         if self.replace_dead or self.t_sim == 0:
             self.create_newborns()
@@ -833,7 +833,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
         except:
             common = []
 
-    # Extract pre-state names that were explicitly listed
+    # Extract arrival variable names that were explicitly listed
     try:
         arrival = model["symbols"]["arrival"]
     except:
@@ -1010,7 +1010,7 @@ def make_template_block(model, arrival=None, common=None):
     model : dict
         Dictionary with model block information, probably read in as a yaml.
     arrival : [str] or None
-        List of pre-states that were flagged or explicitly listed.
+        List of arrival variables that were flagged or explicitly listed.
     common : [str] or None
         List of variables that are common or shared across all agents, rather
         than idiosyncratically drawn.
@@ -1023,7 +1023,7 @@ def make_template_block(model, arrival=None, common=None):
         Dictionary of model objects that were referenced within the block. Keys
         are object names and entries reveal what kind of object they are:
         - None --> parameter
-        - 0 --> outcome/data variable (including pre-states)
+        - 0 --> outcome/data variable (including arrival variables)
         - NullFunc --> function
         - Distribution --> distribution
     offset : [str]
@@ -1179,7 +1179,7 @@ def make_initializer(model, arrival=None, common=None):
     model : dict
         Dictionary with model initializer information, probably read in as a yaml.
     arrival : [str]
-        List of pre-states that were flagged or explicitly listed.
+        List of arrival variables that were flagged or explicitly listed.
 
     Returns
     -------
@@ -1189,7 +1189,7 @@ def make_initializer(model, arrival=None, common=None):
         Dictionary of model objects that are needed by the initializer to run.
         Keys are object names and entries reveal what kind of object they are:
         - None --> parameter
-        - 0 --> outcome variable (these should include all pre-states)
+        - 0 --> outcome variable (these should include all arrival variables)
         - NullFunc --> function
         - Distribution --> distribution
     """
@@ -1264,11 +1264,11 @@ def make_initializer(model, arrival=None, common=None):
                 new_event.common = True
                 break  # No need to check further
 
-    # Verify that all pre-states were created in the initializer
+    # Verify that all arrival variables were created in the initializer
     for var in arrival:
         if var not in info.keys():
             raise ValueError(
-                "The pre-state " + var + " was not set in the initialize block!"
+                "The arrival variable " + var + " was not set in the initialize block!"
             )
 
     # Make a blank dictionary with information the initializer needs
@@ -1332,8 +1332,8 @@ def make_new_event(statement, info):
         One line of a model statement, which will be turned into an event.
     info : dict
         Empty dictionary of model information that already exists. Consists of
-        pre-states, already assigned variables, parameters, and functions. Typing
-        of each is based on the kind of "empty" object.
+        arrival variables, already assigned variables, parameters, and functions.
+        Typing of each is based on the kind of "empty" object.
 
     Returns
     -------
@@ -1734,8 +1734,8 @@ def parse_declaration_for_parts(line):
         Provided datatype string, in parentheses, if any.
     flags : [str]
         List of metadata flags that were detected. These include ! for a variable
-        that is a pre-state, * for any non-variable that's part of the solution,
-        and + for any object that is offset in time.
+        that is in arrival, * for any non-variable that's part of the solution,
+        + for any object that is offset in time, and & for a common random variable.
 
     desc : str
         Comment or description, after //, if any.

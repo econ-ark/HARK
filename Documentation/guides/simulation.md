@@ -1,7 +1,7 @@
 ---
 title: New Simulation System and Model Specification Files for HARK
 created: '2025-04-03T13:43:25.607Z'
-modified: '2025-04-08T15:36:56.805Z'
+modified: '2025-04-22T18:23:20.648Z'
 ---
 
 # New Simulation System and Model Specification Files for HARK
@@ -47,7 +47,7 @@ A few variable names have special meaning internal to `HARK`'s simulation system
 - `dead` (bool): Whether this agent died at the *end* of the period. This variable is read by the simulator to determine who to cease and/or replace. It is appropriate (and expected) to determine `dead` in a model file as part of the model dynamics.
 - `t_seq` (int): Which period of the agent's sequence of *solutions* that were on for this period. This will only differ from `HARK`'s internal `t_cycle` when `cycles > 1`, so that knowing which *parameters* in the cycle to look at is not strictly informative of which *solution* (policy function) to use. As `cycles > 1` is rarely used outside of debugging, this is rarely useful to examine.
 
-### Simulation Style Options
+### Simulation Options
 
 In the current/legacy system, and by default in the new system, the simulation uses a "death and replacement" or "current population" style. At the start of the simulation, all agents are initialized as "newborns", and might age and die according to the model's dynamics. Decedents are replaced with newly initialized newborns at the start of the next period, and these newborns have no relationship to the prior agent other than sharing an index number. This simulation style is appropriate for infinite horizon models (where aggregate outcomes are often of interest) and for finite horizon / lifecycle models in which there are aggregate feedback effects and/or the age distribution of the population is endogenous.
 
@@ -57,6 +57,10 @@ For specific reasons (e.g. you are interested in the model's predictions of outc
 
 The main advantage of using `stop_dead=False` or `replace_dead=False` arises in lifecycle models with many periods. Preventing death or replacement means that *all* agents are the same age in each simulated period, short-circuiting the need to evaluate the policy function for each age in each simulated period for *some* agents. It also means that processing and interpreting the arrays in `hystory` (see above) is easier, as row `t` represents agent outcomes at model age `t` for all agents.
 
+In most cases, the user wants idiosyncratic shocks to occur across agents, but *sometimes* they want some shock to share a common value across everyone (representing some macroeconomic outcome). As discussed below, the new simulator has functionality for some random variables to work like this by default, but this behavior can be overridden by passing a list of strings in the `common` argument of `initialize_sym()`. The variables named should be those *directly* assigned from a distribution, not variables "downstream" from the random realization. To maximize compatibility, the simulator will assign a value for `common` variables to each agent, but they will all be identical across agents.
+
+> **NB:** This feature currently does not work as intended with lifecycle models. Because each period of the model is a "world unto itself," the random realizations are not shared across them in any way. For truly general "common" shocks, it might be necessary to have a larger structure that feeds in some values from an "aggregate block".
+
 
 ## Model File Specification
 
@@ -64,9 +68,10 @@ Model files for the new simulation system use the YAML format, and they currentl
 
 ### Model File Basics
 
-A model file has exactly **five** top-level entries, which will be described in more detail below:
+A model file has up to **six** top-level entries, which will be described in more detail below:
 
-- `description`: A single string that provides an English description or summary of the model. It can be as long or short as you'd like.
+- `name`: A short string that provides a reference label for the model; optional.
+- `description`: An optional string that provides an English description or summary of the model. It can be as long or short as you'd like.
 - `symbols`: A nested list of the names of objects that appear in the model, and what *kind* of thing each one is.
 - `initialize`: A (probably short) set of model statements that specify how a "newborn" agent is created.
 - `dynamics`: A set of sequential model statements that specify *what happens* during a period, one statement per line.
@@ -85,7 +90,7 @@ The `symbols` entry of the model file lists out the variables and objects that a
 
 The sub-entries that provide metadata about objects are:
 
-- `pre_states`: Names of model `variables` that must exist at the *start* of a period-- "inbound" information. These variables are `initialize`d for newborns, and drawn through the intertemporal `twist` otherwise.
+- `arrival`: Names of model `variables` that must exist at the *start* of a period-- "inbound" information. These variables are `initialize`d for newborns, and drawn through the intertemporal `twist` otherwise.
 - `solution`: Names of model objects (of any type) that are part of the solution of the model, rather than part of the problem itself. This tells `HARK` to look for them in the `solution` attribute rather than on the `AgentType` instance itself. For example, `cFunc` should be declared as a `function`, but also listed in the `solution` entry.
 - `offset`: Names of model objects that are "off by one" in time due to the funky timing of `HARK`'s solvers; see below.
 
@@ -93,7 +98,7 @@ Objects named as `functions`, `parameters`, or `distributions` literally refer t
 
 #### Declaring `variables`
 
-Most idiosyncratic variables that appear in the `dynamics` block do not *need* to be declared in the `variables` sub-entry, but *can* be. Any undeclared idiosyncratic variables will be automatically added, with no comment or explanation and a default datatype of `float`. To demonstrate this, the `ConsPerfForesight.yaml` file has *no* declared `variables` at all.
+Most idiosyncratic variables that appear in the `dynamics` block do not *need* to be declared in the `variables` sub-entry, but *can* be. Any undeclared idiosyncratic variables will be automatically added, with no comment or explanation and a default datatype of `float`. To demonstrate this, the `ConsPerfForesight_simple.yaml` file has *no* declared `variables` at all.
 
 There are two use cases for making declarations in the `variables` sub-entry. First, some idiosyncratic variables are *not* real-valued, and should not be stored that way. The name of such a variable should be declared, with its datatype (probably `int` or `bool`) following in parentheses. For example, in the `KinkedR` model, there is a dummy variable called `boro` that is `True` if and only if wealth is negative (the agent is borrowing); the `variables` entry for this model includes the line `boro (bool)` so that this data is appropriately recorded in a Boolean array, rather than cast to `float`.
 
@@ -105,15 +110,15 @@ Just like with `variables`, lines in the `parameters`, `functions`, and `distrib
 
 Importantly, the model file *does not care* about whether any of these objects are time-varying or time-invariant. That information is *read from* the `AgentType` when the `_simulator` attribute is built. The current/legacy simulation system has a lot of tedious code for getting the correct parameter values for each period, and sometimes for checking whether that parameter is time-varying or time-invariant *for that agent*. This makes it unnecessarily difficult to *write* simulation code for a new model, when that's supposed to be the *easy* part of structural work! The new simulation system makes it much simpler and easier.
 
-#### Inbound Information: Declaring `pre_states`
+#### Inbound Information: Declaring `arrival` variables
 
 The new simulation structure assumes that the same *kind* of period will happen over and over again to the agents, but with (potentially) different parameter values and/or policy functions (or other solution objects). The events within a period are described in `dynamics` (see below), but some information almost surely exists at the *start* of the period, probably carried over from the prior one-- otherwise, there would be no intertemporal relationships in the model.
 
-Any idiosyncratic variables that exist at the *start* of a period, before anything has happened, should be named in `pre_states`. When `HARK` parses the statement of model `dynamics`, it checks that information isn't used before it exists. Objects named in `parameters`, `functions`, and `distributions` are assumed to be static within the period and always exist, but idiosyncratic `variables` must be assigned before they can be used by subsequent events. Naming the `pre_states` informs `HARK` that these idiosyncratic variables won't be declared within the model `dynamics`, but instead carried over from the past (or were just `initialize`d for newborns).
+Any idiosyncratic variables that exist at the *start* of a period, before anything has happened, should be named in `arrival`. When `HARK` parses the statement of model `dynamics`, it checks that information isn't used before it exists. Objects named in `parameters`, `functions`, and `distributions` are assumed to be static within the period and always exist, but idiosyncratic `variables` must be assigned before they can be used by subsequent events. Naming variables in `arrival` informs `HARK` that these idiosyncratic variables won't be declared within the model `dynamics`, but instead carried over from the past (or were just `initialize`d for newborns).
 
-Alternatively, a `variable` can be designated as a `pre_state` by simply putting an exclamation point `!` after its name (but before its datatype) in the `variables` declaration; as usual, extra spaces are fine. For example, you can specify `kNrm` as a `pre_state` by naming it in `pre_states` **or** by including the line `kNrm !` in the `variables` entry (along with whatever comment you'd like). Both notations can be used in the same model file.
+Alternatively, a `variable` can be designated to be in `arrival` by simply putting an exclamation point `!` after its name (but before its datatype) in the `variables` declaration; as usual, extra spaces are fine. For example, you can specify `kNrm` to be in `arrival` by naming it in `arrival` **or** by including the line `kNrm !` in the `variables` entry (along with whatever comment you'd like). Both notations can be used in the same model file.
 
-As will be discussed more below, each variable named in `pre_states` must *both* be assigned in the `initialize` entry (i.e. there is some way to determine its starting value for newborns) *and* be included in the `twist` entry (so that `HARK` knows which variables in $t-1$ correspond to pre-states for $t$).
+As will be discussed more below, each variable named in `arrival` must *both* be assigned in the `initialize` entry (i.e. there is some way to determine its starting value for newborns) *and* be included in the `twist` entry (so that `HARK` knows which variables in $t-1$ correspond to arrival variables for $t$).
 
 #### Special Cases: Declaring the `solution` and `offset` Parameters
 
@@ -132,11 +137,11 @@ As alternative notation, a plus sign `+` can be included in the declaration of a
 
 ### The `initialize` Section
 
-Put simply, agents have to start from somewhere. The `initialize` entry contains a statement of model dynamics that are run *only* when a new agent is created, whether at the start of a simulation run or because an agent died and is being replaced. Everything that can be done in the `dynamics` entry (see below) can also be done in the `initialize` entry, except that there is *no* pre-existing idiosyncratic information. The simplest possible `initialize` block will deterministically set each of the `pre_states` to some specific value, e.g. `pLvlPrev = 1`, but more complex behavior is permitted.
+Put simply, agents have to start from somewhere. The `initialize` entry contains a statement of model dynamics that are run *only* when a new agent is created, whether at the start of a simulation run or because an agent died and is being replaced. Everything that can be done in the `dynamics` entry (see below) can also be done in the `initialize` entry, except that there is *no* pre-existing idiosyncratic information. The simplest possible `initialize` block will deterministically set each of the `arrival` variables to some specific value, e.g. `pLvlPrev = 1`, but more complex behavior is permitted.
 
-The only hard and fast rule is that *all* `pre_states` must be assigned within the `initialize` block-- they have to get *some* value. When a newborn agent begins their first simulated period, their `pre_states` are assumed to exist, and thus they cannot be "blank" or uninitialized. `HARK` will raise an error if you attempt to `initialize_sym()` with a model file that does not assign all `pre_states`.
+The only hard and fast rule is that *all* `arrival` variables must be assigned within the `initialize` block-- they have to get *some* value. When a newborn agent begins their first simulated period, their `arrival` variables are assumed to exist, and thus they cannot be "blank" or uninitialized. `HARK` will raise an error if you attempt to `initialize_sym()` with a model file that does not assign all `arrival` variables.
 
-The other thing to keep in mind is that any `parameters`, `functions`, or `distributions` referenced in the `initialize` block should *not* be time-varying. There is no sense of time or age *within* the `initialize` block-- it's just "The Before". You can have a special distribution called `kNrmInitDstn` that provides the distribution of initial capital holdings, but you can't refer to `IncShkDstn` within `initialize` because it is (very likely) time-varying and lives in a list.
+The other thing to keep in mind is that any `parameters`, `functions`, or `distributions` referenced in the `initialize` block should *not* be time-varying. There is no sense of time or age *within* the `initialize` block-- it's just "The Before". You can have a special distribution called `kNrmInitDstn` that provides the distribution of initial capital holdings, but you shouldn't refer to `IncShkDstn` within `initialize` because it is (very likely) time-varying and lives in a list.
 
 
 ### The Block Where It Happens: Model `dynamics`
@@ -154,7 +159,7 @@ As a general rule, spacing does not matter in the `dynamics` block (nor anywhere
 
 A dynamic event is characterized by exactly one *assigned variable* on the left-hand side, an `=`, and an ordinary algebraic statement on the right-hand side. All of the standard math symbols can be used, and `sympy` will automatically cast the carat `^` to Python exponentiation `**`; I have not experimented with non-typical things like pipes `|` for absolute value. For `parameters` that are vector-valued, you can use Python-style indexing with brackets, e.g. `PermGroFac[z]` to get the permanent income growth factor at index `z`. Note that the indexing variable must be an `int` or an error will be raised on execution.
 
-The `symbols` eligible to be referenced on the right-hand side include any `parameters`, any `pre_states`, and any `variables` that have already been assigned in this period in *prior* events. Notably, you cannot use any `distributions` nor `functions` in a dynamic event; those are for separate event types. As a simple example, the line `mNrm = bNrm + yNrm` assigns (normalized) market resources as the sum of bank balances and labor income, where the right-hand-side `variables` were assigned in prior model events.
+The `symbols` eligible to be referenced on the right-hand side include any `parameters`, any `arrival` variables, and any other `variables` that have already been assigned in this period in *prior* events. Notably, you cannot use any `distributions` nor `functions` in a dynamic event; those are for separate event types. As a simple example, the line `mNrm = bNrm + yNrm` assigns (normalized) market resources as the sum of bank balances and labor income, where the right-hand-side `variables` were assigned in prior model events.
 
 The restriction that only a single outcome variable be assigned is not onerous. Each `variable` should be idiosyncratically single-valued (e.g. one real value per person), so situations where it is "natural" to assign two outcomes from a single line of math are hard to conceive. In any situation where you might want to do so, it should be possible to instead have two consecutive lines, one for each outcome.
 
@@ -191,7 +196,7 @@ Unlike with `parameters` and `distributions`, a `function` cannot be indexed. In
 
 ### Intertemporal Transitions: Do the `twist`
 
-The final entry in a model file is called `twist`, and it does nothing more than provide a mapping from end-of-period-$t$ variables to beginning-of-period-$t+1$ variables. For example, in `HARK`'s consumption-saving models, end-of-period normalized assets (after all actions are accomplished) are denoted $a_t$ and represented in code as `aNrm`, and we want to use this same *value* (but not name) to represent normalized capital holdings at the start of period $t+1$, denoted $k_{t+1}$ and represented in code as `kNrm`. The fact that $a_t = k_{t+1}$ is captured in the `twist` entry `aNrm: kNrm`, an intertemporal remapping. Likewise, permanent income level `pLvl` evolves near the start of each period, but we need to know the *prior* permanent income level to calculate it. This is made accessible with the `twist` entry `pLvl: pLvlPrev`, so that `pLvlPrev` can be used to compute `pLvl`.
+The final entry in a model file is called `twist`, and it does nothing more than provide a mapping from end-of-period-$t$ variables to beginning-of-period-$t+1$ `arrival` variables. For example, in `HARK`'s consumption-saving models, end-of-period normalized assets (after all actions are accomplished) are denoted $a_t$ and represented in code as `aNrm`, and we want to use this same *value* (but not name) to represent normalized capital holdings at the start of period $t+1$, denoted $k_{t+1}$ and represented in code as `kNrm`. The fact that $a_t = k_{t+1}$ is captured in the `twist` entry `aNrm: kNrm`, an intertemporal remapping. Likewise, permanent income level `pLvl` evolves near the start of each period, but we need to know the *prior* permanent income level to calculate it. This is made accessible with the `twist` entry `pLvl: pLvlPrev`, so that `pLvlPrev` can be used to compute `pLvl`.
 
 
 ## Connecting a Model File to a `HARK` Model
