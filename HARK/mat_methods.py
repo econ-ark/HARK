@@ -8,12 +8,36 @@ from numba import njit
 # state spaces
 @dataclass
 class DiscreteTransitions:
+    """
+    Class to facilitate simulating transitions of populations in discretized state spaces,
+    supporting both life-cycle and infinite-horizon models.
+    The class assumes that:
+     - Death is exogenous and independent of every state.
+     - Agents that die are replaced by newborns.
+     - Newborns draw their state from a distribution that is constatn over time.
+
+    Parameters
+    ----------
+    living_tmats : [np.array]
+        List of transition matrices conditional on survival for each period (life-cycle) or
+        a single matrix (infinite-horizon).
+    surv_probs : list
+        List of survival probabilities for each period (life-cycle) or a single probability (infinite-horizon).
+    life_cycle : bool, optional
+        If True, use life-cycle mode; otherwise, use infinite-horizon mode.
+    newborn_dstn : np.array
+        Distribution of newborns (initial distribution).
+    """
+
     living_tmats: list
     surv_probs: list
     life_cycle: bool = False
     newborn_dstn: np.array
 
     def __post_init__(self):
+        """
+        Initialize the DiscreteTransitions object and check parameter consistency.
+        """
         if self.life_cycle:
             self.T = len(self.living_tmats) + 1
             if len(self.surv_probs) != (self.T - 1):
@@ -22,7 +46,20 @@ class DiscreteTransitions:
             self.T = 1
 
     def iterate_dstn_forward(self, dstn_init):
+        """
+        Propagate a distribution forward one period.
 
+        Parameters
+        ----------
+        dstn_init : [np.array]
+            Initial distribution to propagate. Must be a list of length T (life-cycle) or a
+            single array (infinite-horizon).
+
+        Returns
+        -------
+        [np.array]
+            The propagated distribution(s).
+        """
         if self.life_cycle:
             return _iterate_dstn_forward_lc(
                 dstn_init, self.living_tmats, self.surv_probs, self.newborn_dstn
@@ -33,12 +70,40 @@ class DiscreteTransitions:
             )
 
     def find_conditional_age_dsnt(self, dstn_init):
+        """
+        Given a distribution of agents over states for the first period of life,
+        find the distribution of agents over states in every age conditional on
+        their survival.
+        
+        Parameters
+        ----------
+        dstn_init : [np.array]
+            Initial distribution.
+
+        Returns
+        -------
+        [np.array]
+            List of distributions by age (life-cycle) or a single-element list (infinite-horizon).
+        """
         if self.life_cycle:
             return _find_conditional_age_dsnt(dstn_init, self.living_tmats)
         else:
-            return [dstn_init]
+            return dstn_init
 
     def find_steady_state_dstn(self, **kwargs):
+        """
+        Find the steady-state distribution.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional arguments for infinite-horizon steady-state solver. 
+
+        Returns
+        -------
+        [np.array]
+            List of steady-state distributions by age (life-cycle) or a single-element list (infinite-horizon).
+        """
         if self.life_cycle:
             if kwargs:
                 raise ValueError(
