@@ -4,7 +4,7 @@ models from a human- and machine-readable model specification.
 """
 
 from dataclasses import dataclass, field
-from copy import deepcopy
+from copy import copy, deepcopy
 import numpy as np
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
@@ -46,6 +46,8 @@ class ModelEvent:
     common : bool
         Indicator for whether the variables assigned in this event are commonly
         held across all agents, rather than idiosyncratic.
+    N : int
+        Number of agents currently in this event.
     """
 
     statement: str = field(default="")
@@ -55,6 +57,7 @@ class ModelEvent:
     needs: list = field(default_factory=list, repr=False)
     data: dict = field(default_factory=dict, repr=False)
     common: bool = field(default=False, repr=False)
+    N: int = field(default=1, repr=False)
 
     def run(self):
         """
@@ -70,10 +73,73 @@ class ModelEvent:
             assert len(self.assigns) == len(output)
             for j in range(len(self.assigns)):
                 var = self.assigns[j]
+                if type(output[j]) is not np.ndarray:
+                    output[j] = np.array([output[j]])
                 self.data[var] = output[j]
         else:
             var = self.assigns[0]
+            if type(output) is not np.ndarray:
+                output = np.array([output])
             self.data[var] = output
+
+    def expand_information(self, origins, probs, atoms, which=None):
+        """
+        This method is only called internally when a RandomEvent or MarkovEvent
+        runs its quasi_run() method. It expands the set of of "probability blobs"
+        by applying a random realization event. All extant blobs for which the
+        shock applies are replicated for each atom in the random event, with the
+        probability mass divided among the replicates.
+
+        Parameters
+        ----------
+        origins : np.array
+            Boolean array that tracks which arrival state space node each blob
+            originated from. This is expanded into origins_new, which is returned.
+        probs : np.array
+            Vector of probabilities of each of the random possibilities.
+        atoms : [np.array]
+            List of arrays with realization values for the distribution. Each
+            array corresponds to one variable that is assigned by this event.
+        which : np.array or None
+            If given, a Boolean array indicating which of the pre-existing blobs
+            is affected by the given probabilities and atoms. By default, all
+            blobs are assumed to be affected.
+
+        Returns
+        -------
+        origins_new : np.array
+            Expanded boolean array of indicating the arrival state space node that
+            each blob originated from.
+        """
+        K = probs.size
+        N = self.N
+        if which is None:
+            which = np.ones(N, dtype=bool)
+
+        # Update probabilities of outcomes
+        pmv_old = np.reshape(self.data["pmv_"], (N, 1))
+        pmv_new = (pmv_old * np.reshape(probs, (1, K))).flatten()
+        self.data["pmv_"] = pmv_new
+
+        # Replicate the pre-existing data for each atom
+        for var in self.data.keys():
+            if var == "pmv_":
+                continue  # Don't double expand it
+            tiled_data = np.tile(np.reshape(self.data[var], (N, 1)), (1, K))
+            self.data[var] = tiled_data.flatten()
+
+        # Add the new random variables to the simulation data
+        for j in range(len(self.assigns)):
+            var = self.assigns[j]
+            self.data[var] = np.tile(np.reshape(atoms[j], (1, K)), (N, 1)).flatten()
+
+        # Expand the origins array to account for the new replicates
+        J = origins.shape[1]
+        origins_new = np.reshape(np.tile(origins, (1, K)), (N * K, J))
+        self.N = N * K
+
+        # Send the new origins array back to the calling process
+        return origins_new
 
 
 @dataclass(kw_only=True)
@@ -103,6 +169,10 @@ class DynamicEvent(ModelEvent):
     def run(self):
         self.assign(self.evaluate())
 
+    def quasi_run(self, origins, norm=None):
+        self.run()
+        return origins
+
 
 @dataclass(kw_only=True)
 class RandomEvent(ModelEvent):
@@ -118,22 +188,37 @@ class RandomEvent(ModelEvent):
     """
 
     dstn: Distribution = field(default_factory=Distribution, repr=False)
-    N: int = field(default=1, repr=False)
+
+    def reset(self):
+        self.dstn.reset()
+        ModelEvent.reset(self)
 
     def draw(self):
-        if self.common:
-            out = np.empty((len(self.assigns), self.N))
+        out = np.empty((len(self.assigns), self.N))
+        if not self.common:
             out[:, :] = self.dstn.draw(self.N)
         else:
-            out = self.dstn.draw(1)
+            out[:, :] = self.dstn.draw(1)
         return out
 
     def run(self):
         self.assign(self.draw())
 
-    def reset(self):
-        self.dstn.reset()
-        ModelEvent.reset(self)
+    def quasi_run(self, origins, norm=None):
+        # Get distribution
+        atoms = self.dstn.atoms
+        probs = self.dstn.pmv
+
+        # Apply Harmenberg normalization if applicable
+        try:
+            harm_idx = self.assigns.index(norm)
+            probs *= atoms[harm_idx]
+        except:
+            pass
+
+        # Expand the set of simulated blobs
+        origins_new = self.expand_information(origins, probs, atoms)
+        return origins_new
 
 
 @dataclass(kw_only=True)
@@ -180,6 +265,9 @@ class RandomIndexedEvent(RandomEvent):
             self.dstn[k].reset()
         ModelEvent.reset(self)
 
+    def quasi_run(self, origins, norm=None):
+        raise ValueError("RandomIndexedEvent hasn't implemented grid methods yet!")
+
 
 @dataclass(kw_only=True)
 class MarkovEvent(ModelEvent):
@@ -200,6 +288,10 @@ class MarkovEvent(ModelEvent):
 
     def __post_init__(self):
         self.reset_rng()
+
+    def reset(self):
+        self.reset_rng()
+        ModelEvent.reset(self)
 
     def reset_rng(self):
         self.RNG = np.random.RandomState(self.seed)
@@ -255,9 +347,38 @@ class MarkovEvent(ModelEvent):
     def run(self):
         self.assign(self.draw())
 
-    def reset(self):
-        self.reset_rng()
-        ModelEvent.reset(self)
+    def quasi_run(self, origins, norm=None):
+        if self.probs in self.parameters:
+            probs = self.parameters[self.probs]
+            probs_are_param = True
+        else:
+            probs = self.data[self.probs]
+            probs_are_param = False
+
+        # If it's a Markov matrix:
+        if self.index:
+            idx = self.data[self.index]
+            K = probs.shape[0]
+            atoms = np.arange(probs.shape[1], dtype=int)
+            origins_new = origins.copy()
+            for k in range(K):
+                these = idx == k
+                probs = probs[k, :]
+                origins_new = self.expand_information(
+                    origins, probs, atoms, which=these
+                )
+
+        # If it's a stochastic vector:
+        if (isinstance(probs, np.ndarray)) and (probs_are_param):
+            atoms = np.arange(probs.shape[0], dtype=int)
+            origins_new = self.expand_information(origins, probs, atoms)
+            return origins_new
+
+        # Otherwise, this is just a Bernoulli RV
+        P = probs
+        atoms = np.array([[False, True]])
+        origins_new = self.expand_information(origins, np.array([1 - P, P]), atoms)
+        return origins_new
 
 
 @dataclass(kw_only=True)
@@ -286,6 +407,10 @@ class EvaluationEvent(ModelEvent):
 
     def run(self):
         self.assign(self.evaluate())
+
+    def quasi_run(self, origins, norm=None):
+        self.run()
+        return origins
 
 
 @dataclass(kw_only=True)
@@ -374,6 +499,224 @@ class SimBlock:
                     raise ValueError(
                         "Could not find a function called " + event._func_name + "!"
                     )
+
+    def make_transition_matrix(self, grid_specs, twist=None, norm=None):
+        """
+        Construct a transition matrix for this block, moving from a discretized
+        grid of arrival variables to a discretized grid of end-of-block variables.
+        User specifies how the grids of pre-states should be built. Output is
+        stored in the attributes X, Y, and Z.
+
+        Parameters
+        ----------
+        grid_specs : [dict]
+            List of dictionaries of grid specifications. For now, these have a
+            variable name, a minimum value, a maximum value, and a number of nodes.
+            They are equispaced in this first version.
+        twist : dict or None
+            Mapping from end-of-period (continuation) variables to successor's
+            arrival variables. When this is specified, additional output is created
+            for the "full period" arrival-to-arrival transition matrix.
+        norm : str or None
+            Name of the shock variable by which to normalize for Harmenberg
+            aggregation. By default, no normalization happens.
+
+        Returns
+        -------
+        None
+        """
+        # Initialize dictionaries of input and output grids
+        arrival_N = len(self.arrival)
+        completed = arrival_N * [False]
+        grids_in = {}
+        grids_out = {}
+        if arrival_N == 0:  # should only be for initializer block
+            dummy_grid = np.array([1.0])
+            grids_in["_dummy"] = dummy_grid
+
+        # Construct a grid for each requested variable
+        for spec in grid_specs:
+            var = spec["name"]
+            try:
+                idx = self.arrival.index(var)
+                completed[idx] = True
+                is_arrival = True
+            except:
+                is_arrival = False
+            try:
+                bot = spec["min"]
+                top = spec["max"]
+                N = spec["N"]
+                new_grid = np.linspace(bot, top, N)
+            except:
+                new_grid = None  # could not make grid, construct later
+            if is_arrival:
+                grids_in[var] = new_grid
+            else:
+                grids_out[var] = new_grid
+
+        # Verify that specifications were passed for all arrival variables
+        for j in range(len(self.arrival)):
+            if not completed[j]:
+                raise ValueError(
+                    "No grid specification was provided for " + self.arrival[var] + "!"
+                )
+
+        # If an intertemporal twist was specified, make result grids for continuation variables.
+        # This overrides any grids for these variables that were explicitly specified
+        if twist is not None:
+            for cont_var in twist.keys():
+                arr_var = twist[cont_var]
+                grids_out[cont_var] = copy(grids_in[arr_var])
+
+        # Make meshes of all the arrival grids, which will be the initial simulation data
+        state_meshes = np.meshgrid(
+            *[grids_in[k] for k in grids_in.keys()], indexing="ij"
+        )
+        state_init = {
+            self.arrival[k]: state_meshes[k].flatten() for k in range(arrival_N)
+        }
+        N_orig = state_meshes[0].size
+        self.N = N_orig
+        mesh_tuples = [
+            (state_init[self.arrival[k]][n] for k in range(arrival_N)) for n in range(N)
+        ]
+
+        # Make the initial vector of probability masses
+        state_init["pmv_"] = np.ones(self.N)
+
+        # Initialize the boolean array of arrival states
+        origin_bool_array = np.eye(self.N, dtype=bool)
+
+        # Reset the block's state and give it the initial state data
+        self.reset()
+        self.data.update(state_init)
+
+        # Loop through each event in order and quasi-simulate it
+        for j in range(len(self.events)):
+            event = self.events[j]
+            event.data = self.data  # Give event *all* data directly
+            event.N = self.N
+            origin_bool_array = event.quasi_run(origin_bool_array, norm=norm)
+            self.N = origin_bool_array.shape[0]
+
+        # Add survival to output if mortality is in the model
+        if "dead" in self.data.keys():
+            grids_out["dead"] = None
+
+        # Now project the final results onto the output or result grids
+        N = self.N
+        matrices_out = {}
+        for var in grids_out.keys():
+            if var not in self.data.keys():
+                raise ValueError(
+                    "Variable " + var + " does not exist but a grid was specified!"
+                )
+            grid = grids_out[var]
+            vals = self.data[var]
+
+            if grid is not None:  # As long as the grid was created...
+                M = grid.size
+                bot = grid[0]
+                top = grid[-1]
+                pmvX = np.zeros((N, M))
+                below = vals <= bot
+                above = vals >= top
+
+                # Split the final values among discrete gridpoints on the interior.
+                # Skip this step if the grid is a dummy with only one value
+                if M > 1:
+                    h = grid[1] - grid[0]
+                    ii = np.floor((vals - bot) / h).astype(int)
+                    these = np.logical_not(np.logical_or(below, above))
+                    alpha = (vals[these] - grid[ii[these]]) / h
+                    jj = np.where(these)[0]
+                    pmvX[jj, ii[these]] = 1.0 - alpha
+                    pmvX[jj, ii[these] + 1] = alpha
+                    # NB: This will only work properly is the grid is equispaced
+
+                # Handle "out of bounds" values, which is all of them for dummy grids
+                pmvX[below, 0] = 1.0  # fix blobs below bottom
+                pmvX[above, -1] = 1.0  # fix blobs above top
+                pmvX *= np.reshape(self.data["pmv_"], (N, 1))
+
+            else:  # If the grid was not created, use all discrete values
+                grid = np.unique(vals)
+                grids_out[var] = grid
+                M = grid.size
+                pmvX = np.zeros((N, M))
+                pmvX[np.arange(N, dtype=int), vals.astype(int)] = self.data["pmv_"]
+
+            # Construct the transition matrix
+            J = state_meshes[0].size
+            trans_matrix = np.empty((J, M))
+            for j in range(J):
+                these = origin_bool_array[:, j]
+                trans_matrix[j, :] = np.sum(pmvX[these, :], axis=0)
+            matrices_out[var] = trans_matrix
+
+        # If an intertemporal twist was specified, construct an overall transition
+        # matrix from arrival to continuation variables
+        if twist is not None:
+            cont_vars = list(twist.keys())
+            if "dead" in self.data.keys():
+                cont_vars.append("dead")
+            D = len(cont_vars)
+
+            # Reshape each continuation transition matrix into a new dimension
+            reshaped_matrices = []
+            for d in range(D):
+                var = cont_vars[d]
+                new_shape = [N_orig] + D * [1]
+                new_shape[d + 1] = grids_out[var].size
+                reshaped_matrices.append(np.reshape(matrices_out[var], new_shape))
+
+            # Multiply all of the matrices by each other
+            master_trans_array = reshaped_matrices[-1]
+            for d in range(D - 2, -1, -1):
+                master_trans_array = master_trans_array * reshaped_matrices[d]
+
+            # Condition on survival if relevant
+            if "dead" in self.data.keys():
+                master_trans_array = (
+                    master_trans_array[..., 0] / reshaped_matrices[-1][..., 0]
+                )
+
+            # Flatten the overall transition array into a square matrix
+            master_trans_array = np.reshape(master_trans_array, (N_orig, N_orig))
+
+        # If there are no arrival variables, then this is the initializer block,
+        # so construct an overall state distribution by taking the tensor product
+        # across arrival variable outcomes
+        if arrival_N == 0:
+            cont_vars = list(grids_out.keys())  # all outcomes are arrival vars
+            D = len(cont_vars)
+
+            # Reshape each arrival distribution into a new dimension
+            reshaped_matrices = []
+            for d in range(D):
+                var = cont_vars[d]
+                new_shape = [N_orig] + D * [1]
+                new_shape[d + 1] = grids_out[var].size
+                reshaped_matrices.append(np.reshape(matrices_out[var], new_shape))
+
+            # Multiply all of the distributions by each other, then flatten it
+            master_init_array = reshaped_matrices[-1]
+            for d in range(D - 2, -1, -1):
+                master_init_array = master_init_array * reshaped_matrices[d]
+            master_init_array = master_init_array.flatten()
+
+        # Store the results as attributes of self
+        grids = {}
+        grids.update(grids_in)
+        grids.update(grids_out)
+        self.grids = grids
+        self.matrices = matrices_out
+        self.mesh = mesh_tuples
+        if twist is not None:
+            self.trans_array = master_trans_array
+        if arrival_N == 0:
+            self.init_dstn = master_init_array
 
 
 @dataclass(kw_only=True)
@@ -658,6 +1001,71 @@ class AgentSimulator:
         # Put time information into the data dictionary
         self.data["t_age"] = self.t_age.copy()
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
+
+    def make_transition_matrices(self, grid_specs, norm=None):
+        """
+        Build Markov-style transition matrices for each period of the model, as
+        well as the initial distribution of arrival variables for newborns.
+        Stores results to the attributes X, Y, and Z.
+
+        Parameters
+        ----------
+        grid_specs : [dict]
+            List of dictionaries with specifications for discretized grids of all
+            variables of interest. If any arrival variables are omitted, they will
+            be given a default trivial grid with one node at 1.
+        norm : str or None
+            Name of the variable for which Harmenberg normalization should be
+            applied, if any. This should be a variable that is directly drawn
+            from a distribution, not a "downstream" variable.
+
+        Returns
+        -------
+        None
+        """
+        # Sort grid specifications into those needed by the initializer vs those
+        # used by other blocks (ordinary periods)
+        arrival = self.periods[0].arrival
+        arrival_N = len(arrival)
+        check_bool = np.zeros(arrival_N, dtype=bool)
+        grid_specs_init = []
+        grid_specs_other = []
+        for g in range(len(grid_specs)):
+            name = grid_specs[g]["name"]
+            if name in arrival:
+                idx = arrival.index(name)
+                check_bool[idx] = True
+                grid_specs_init.append(grid_specs[g])
+            grid_specs_other.append(grid_specs[g])
+        for n in range(arrival_N):
+            if check_bool[n]:
+                continue
+            name = arrival[n]
+            dummy_grid_spec = {"name": name, "min": 1.0, "max": 1.0, "N": 1}
+            grid_specs_init.append(dummy_grid_spec)
+            grid_specs_other.append(dummy_grid_spec)
+
+        # Make the initial state distribution for newborns
+        self.initializer.make_transition_matrix(grid_specs_init)
+        self.newborn_dstn = self.initializer.init_dstn
+        K = self.newborn_dstn.size
+
+        # Make the period-by-period transition matrices
+        for block in self.periods:
+            block.make_transition_matrix(grid_specs_other, twist=self.twist, norm=norm)
+
+        # Extract the master transition matrices into a single list
+        p2p_trans_arrays = [block.trans_array for block in self.periods]
+        final_death_probs = self.periods[-1].matrices["dead"][:, 1]
+        p2p_trans_arrays[-1] *= np.tile(
+            np.reshape(1 - final_death_probs, (K, 1)), (1, K)
+        )
+        p2p_trans_arrays[-1] += np.reshape(final_death_probs, (K, 1)) * np.reshape(
+            self.newborn_dstn, (1, K)
+        )
+
+        # Store the transition arrays as attributes of self
+        self.trans_arrays = p2p_trans_arrays
 
     def describe_model(self, display=True):
         """
