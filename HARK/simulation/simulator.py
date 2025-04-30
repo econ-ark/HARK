@@ -61,7 +61,7 @@ class ModelEvent:
 
     def run(self):
         """
-        This method should be filled in by each subclass
+        This method should be filled in by each subclass.
         """
         pass
 
@@ -115,28 +115,46 @@ class ModelEvent:
         N = self.N
         if which is None:
             which = np.ones(N, dtype=bool)
+        other = np.logical_not(which)
+        M = np.sum(which)  # how many blobs are we affecting?
+        MX = N - M  # how many blobs are we not affecting?
 
         # Update probabilities of outcomes
-        pmv_old = np.reshape(self.data["pmv_"], (N, 1))
+        pmv_old = np.reshape(self.data["pmv_"][which], (M, 1))
         pmv_new = (pmv_old * np.reshape(probs, (1, K))).flatten()
-        self.data["pmv_"] = pmv_new
+        self.data["pmv_"] = np.concatenate((self.data["pmv_"][other], pmv_new))
 
         # Replicate the pre-existing data for each atom
         for var in self.data.keys():
-            if var == "pmv_":
-                continue  # Don't double expand it
-            tiled_data = np.tile(np.reshape(self.data[var], (N, 1)), (1, K))
-            self.data[var] = tiled_data.flatten()
+            if (var == "pmv_") or (var in self.assigns):
+                continue  # don't double expand pmv, and don't touch assigned variables
+            data_old = np.reshape(self.data[var][which], (M, 1))
+            data_new = np.tile(data_old, (1, K)).flatten()
+            self.data[var] = np.concatenate((self.data[var][other], data_new))
 
-        # Add the new random variables to the simulation data
+        # If any of the assigned variables don't exist yet, add dummy versions
+        # of them. This section exists so that the code works with "partial events"
+        # on both the first pass and subsequent passes.
         for j in range(len(self.assigns)):
             var = self.assigns[j]
-            self.data[var] = np.tile(np.reshape(atoms[j], (1, K)), (N, 1)).flatten()
+            if var in self.data.keys():
+                continue
+            self.data[var] = np.zeros(N, dtype=atoms[j].dtype)
+            # Zeros are just dummy values
+
+        # Add the new random variables to the simulation data. This generates
+        # replicates for the affected blobs and leaves the others untouched,
+        # still with their dummy values. They will be altered on later passes.
+        for j in range(len(self.assigns)):
+            var = self.assigns[j]
+            data_new = np.tile(np.reshape(atoms[j], (1, K)), (M, 1)).flatten()
+            self.data[var] = np.concatenate((self.data[var][other], data_new))
 
         # Expand the origins array to account for the new replicates
         J = origins.shape[1]
-        origins_new = np.reshape(np.tile(origins, (1, K)), (N * K, J))
-        self.N = N * K
+        origins_new = np.reshape(np.tile(origins[which, :], (1, K)), (M * K, J))
+        origins_new = np.concatenate((origins[other, :], origins_new), axis=0)
+        self.N = MX + M * K
 
         # Send the new origins array back to the calling process
         return origins_new
@@ -207,7 +225,7 @@ class RandomEvent(ModelEvent):
     def quasi_run(self, origins, norm=None):
         # Get distribution
         atoms = self.dstn.atoms
-        probs = self.dstn.pmv
+        probs = self.dstn.pmv.copy()
 
         # Apply Harmenberg normalization if applicable
         try:
@@ -266,7 +284,31 @@ class RandomIndexedEvent(RandomEvent):
         ModelEvent.reset(self)
 
     def quasi_run(self, origins, norm=None):
-        raise ValueError("RandomIndexedEvent hasn't implemented grid methods yet!")
+        origins_new = origins.copy()
+        J = len(self.dstn)
+        idx = self.data[self.index]
+
+        for j in range(J):
+            these = idx == j
+
+            # Get distribution
+            atoms = self.dstn[j].atoms
+            probs = self.dstn[j].pmv.copy()
+
+            # Apply Harmenberg normalization if applicable
+            try:
+                harm_idx = self.assigns.index(norm)
+                probs *= atoms[harm_idx]
+            except:
+                pass
+
+            # Expand the set of simulated blobs
+            origins_new = self.expand_information(
+                origins_new, probs, atoms, which=these
+            )
+
+        # Return the altered origins array
+        return origins_new
 
 
 @dataclass(kw_only=True)
