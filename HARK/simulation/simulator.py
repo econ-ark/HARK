@@ -6,11 +6,14 @@ models from a human- and machine-readable model specification.
 from dataclasses import dataclass, field
 from copy import copy, deepcopy
 import numpy as np
+from numba import njit
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
 from typing import Callable
 from HARK.utilities import NullFunc
 from HARK.distributions import Distribution
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import eigs
 import importlib.resources
 import yaml
 
@@ -93,8 +96,8 @@ class ModelEvent:
         Parameters
         ----------
         origins : np.array
-            Boolean array that tracks which arrival state space node each blob
-            originated from. This is expanded into origins_new, which is returned.
+            Array that tracks which arrival state space node each blob originated
+            from. This is expanded into origins_new, which is returned.
         probs : np.array
             Vector of probabilities of each of the random possibilities.
         atoms : [np.array]
@@ -151,9 +154,8 @@ class ModelEvent:
             self.data[var] = np.concatenate((self.data[var][other], data_new))
 
         # Expand the origins array to account for the new replicates
-        J = origins.shape[1]
-        origins_new = np.reshape(np.tile(origins[which, :], (1, K)), (M * K, J))
-        origins_new = np.concatenate((origins[other, :], origins_new), axis=0)
+        origins_new = np.tile(np.reshape(origins[which], (M, 1)), (1, K)).flatten()
+        origins_new = np.concatenate((origins[other], origins_new))
         self.N = MX + M * K
 
         # Send the new origins array back to the calling process
@@ -542,7 +544,7 @@ class SimBlock:
                         "Could not find a function called " + event._func_name + "!"
                     )
 
-    def make_transition_matrix(self, grid_specs, twist=None, norm=None):
+    def make_transition_matrices(self, grid_specs, twist=None, norm=None):
         """
         Construct a transition matrix for this block, moving from a discretized
         grid of arrival variables to a discretized grid of end-of-block variables.
@@ -627,8 +629,8 @@ class SimBlock:
         # Make the initial vector of probability masses
         state_init["pmv_"] = np.ones(self.N)
 
-        # Initialize the boolean array of arrival states
-        origin_bool_array = np.eye(self.N, dtype=bool)
+        # Initialize the array of arrival states
+        origin_array = np.arange(self.N, dtype=int)
 
         # Reset the block's state and give it the initial state data
         self.reset()
@@ -639,8 +641,8 @@ class SimBlock:
             event = self.events[j]
             event.data = self.data  # Give event *all* data directly
             event.N = self.N
-            origin_bool_array = event.quasi_run(origin_bool_array, norm=norm)
-            self.N = origin_bool_array.shape[0]
+            origin_array = event.quasi_run(origin_array, norm=norm)
+            self.N = self.data["pmv_"].size
 
         # Add survival to output if mortality is in the model
         if "dead" in self.data.keys():
@@ -656,49 +658,35 @@ class SimBlock:
                 )
             grid = grids_out[var]
             vals = self.data[var]
+            pmv = self.data["pmv_"]
+            J = state_meshes[0].size
 
             if grid is not None:  # As long as the grid was created...
                 M = grid.size
-                bot = grid[0]
-                top = grid[-1]
-                pmvX = np.zeros((N, M))
-                below = vals <= bot
-                above = vals >= top
-
                 # Split the final values among discrete gridpoints on the interior.
                 # Skip this step if the grid is a dummy with only one value
                 if M > 1:
-                    h = grid[1] - grid[0]
-                    ii = np.floor((vals - bot) / h).astype(int)
-                    these = np.logical_not(np.logical_or(below, above))
-                    alpha = (vals[these] - grid[ii[these]]) / h
-                    jj = np.where(these)[0]
-                    pmvX[jj, ii[these]] = 1.0 - alpha
-                    pmvX[jj, ii[these] + 1] = alpha
-                    # NB: This will only work properly is the grid is equispaced
-
-                # Handle "out of bounds" values, which is all of them for dummy grids
-                pmvX[below, 0] = 1.0  # fix blobs below bottom
-                pmvX[above, -1] = 1.0  # fix blobs above top
-                pmvX *= np.reshape(self.data["pmv_"], (N, 1))
+                    trans_matrix = aggregate_blobs_onto_equispaced_grid(
+                        vals, pmv, origin_array, grid, J
+                    )
+                    # NB: This will only work properly if the grid is equispaced
+                else:
+                    trans_matrix = np.ones((J, M))
 
             else:  # If the grid was not created, use all discrete values
                 grid = np.unique(vals)
                 grids_out[var] = grid
                 M = grid.size
-                pmvX = np.zeros((N, M))
-                pmvX[np.arange(N, dtype=int), vals.astype(int)] = self.data["pmv_"]
+                trans_matrix = aggregate_blobs_onto_discrete_grid(
+                    vals.astype(int), pmv, origin_array, M, J
+                )
 
-            # Construct the transition matrix
-            J = state_meshes[0].size
-            trans_matrix = np.empty((J, M))
-            for j in range(J):
-                these = origin_bool_array[:, j]
-                trans_matrix[j, :] = np.sum(pmvX[these, :], axis=0)
+            # Store the transition matrix for this variable
             matrices_out[var] = trans_matrix
 
         # If an intertemporal twist was specified, construct an overall transition
-        # matrix from arrival to continuation variables
+        # matrix from arrival to continuation variables. THIS CODE IS WRONG AND
+        # NEEDS TO BE REWRITTEN
         if twist is not None:
             cont_vars = list(twist.keys())
             if "dead" in self.data.keys():
@@ -1088,13 +1076,15 @@ class AgentSimulator:
             grid_specs_other.append(dummy_grid_spec)
 
         # Make the initial state distribution for newborns
-        self.initializer.make_transition_matrix(grid_specs_init)
+        self.initializer.make_transition_matrices(grid_specs_init)
         self.newborn_dstn = self.initializer.init_dstn
         K = self.newborn_dstn.size
 
         # Make the period-by-period transition matrices
         for block in self.periods:
-            block.make_transition_matrix(grid_specs_other, twist=self.twist, norm=norm)
+            block.make_transition_matrices(
+                grid_specs_other, twist=self.twist, norm=norm
+            )
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [block.trans_array for block in self.periods]
@@ -1108,6 +1098,33 @@ class AgentSimulator:
 
         # Store the transition arrays as attributes of self
         self.trans_arrays = p2p_trans_arrays
+
+    def find_steady_state(self):
+        """
+        Calculates the steady state distribution of arrival states for a "one period
+        infinite horizon" model, storing the result to the attribute steady_state_dstn.
+        Should only be run after make_transition_matrices(), and only if T_total = 1
+        and the model is infinite horizon.
+        """
+        if self.T_total != 1:
+            raise ValueError(
+                "This method currently only works with one period infinite horizon problems."
+            )
+
+        # Find the eigenvector associated with the largest eigenvalue of the
+        # infinite horizon transition matrix. The largest eigenvalue *should*
+        # be 1 for any Markov matrix, but double check to be sure.
+        trans_T = csr_matrix(self.trans_arrays[0].transpose())
+        v, V = eigs(trans_T, k=1)
+        if not np.isclose(v[0], 1.0):
+            raise ValueError(
+                "The largest eigenvalue of the transition matrix isn't close to 1!"
+            )
+
+        # Normalize that eigenvector and make sure its real, then store it
+        D = V[:, 0]
+        SS_dstn = (D / np.sum(D)).real
+        self.steady_state_dstn = SS_dstn
 
     def describe_model(self, display=True):
         """
@@ -2484,3 +2501,39 @@ def format_block_statement(statement):
                 raise ValueError("The model statement somehow includes a non-string!")
         block_statements = statement.copy()
     return block_statements
+
+
+@njit
+def aggregate_blobs_onto_equispaced_grid(vals, pmv, origins, grid, J):
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    h = grid[1] - grid[0]
+    out = np.zeros((J, M))
+    N = pmv.size
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            ii = int(np.floor((x - bot) / h))
+            alpha = (x - grid[ii]) / h
+            out[jj, ii] += (1.0 - alpha) * p
+            out[jj, ii + 1] += alpha * p
+        elif x <= bot:
+            out[jj, 0] += p
+        else:
+            out[jj, -1] += p
+    return out
+
+
+@njit
+def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
+    out = np.zeros((J, M))
+    N = pmv.size
+    for n in range(N):
+        ii = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        out[jj, ii] += p
+    return out

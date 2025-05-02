@@ -28,6 +28,7 @@ symbols:
     - cFuncFxd*          \\ consumption function over market resources and risky share when share is fixed
     - cFuncAdj*          \\ consumption function over market resources when share is adjusted
     - ShareFuncAdj*      \\ risky share function over market resources (when possible to adjust)
+    - ShareFuncFxd*      \\ risky share function over market resources when it is fixed
   distributions:
     - ShockDstn+         \\ joint distribution of permanent, transitory, and return shocks
 initialize: |
@@ -43,7 +44,7 @@ dynamics: |
   bNrm   = Rport * kNrm / G                 \\ calculate normalized bank balances
   mNrm   = bNrm + yNrm                      \\ calculate normalized market resources
   cNrmF  = cFuncFxd@(mNrm, SharePrev)       \\ evaluate consumption when share is fixed
-  ShareF = ShareFuncFxd(mNrm, SharePrev)    \\ evaluate risky share when it is fixed
+  ShareF = ShareFuncFxd@(mNrm, SharePrev)   \\ evaluate risky share when it is fixed
   cNrmA  = cFuncAdj@(mNrm)                  \\ evaluate consumption when share is adjustable
   ShareA = ShareFuncAdj@(mNrm)              \\ evaluate risky share when it is adjustable
   Adjust ~ {AdjustPrb}                      \\ determine whether agent can actually adjust
