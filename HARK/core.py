@@ -909,7 +909,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False, presolve=True):
+    def solve(self, verbose=False, presolve=True, from_solution=None):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -921,6 +921,9 @@ class AgentType(Model):
             If True, solution progress is printed to screen. Default False.
         presolve : bool, optional
             If True (default), the pre_solve method is run before solving.
+        from_solution: Solution
+            If different from None, will be used as the starting point of backward
+            induction, instead of self.solution_terminal
 
         Returns
         -------
@@ -936,7 +939,7 @@ class AgentType(Model):
             if presolve:
                 self.pre_solve()  # Do pre-solution stuff
             self.solution = solve_agent(
-                self, verbose
+                self, verbose, from_solution
             )  # Solve the model by backward induction
             self.post_solve()  # Do post-solution stuff
 
@@ -1526,7 +1529,7 @@ class AgentType(Model):
             self.history[var_name].fill(np.nan)
 
 
-def solve_agent(agent, verbose):
+def solve_agent(agent, verbose, from_solution=None):
     """
     Solve the dynamic model for one agent type
     using backwards induction.
@@ -1543,6 +1546,9 @@ def solve_agent(agent, verbose):
         is to be solved.
     verbose : boolean
         If True, solution progress is printed to screen (when cycles != 1).
+    from_solution: Solution
+        If different from None, will be used as the starting point of backward
+        induction, instead of self.solution_terminal
 
     Returns
     -------
@@ -1553,13 +1559,18 @@ def solve_agent(agent, verbose):
     # Check to see whether this is an (in)finite horizon problem
     cycles_left = agent.cycles  # NOQA
     infinite_horizon = cycles_left == 0  # NOQA
+
+    if from_solution is None:
+        solution_last = agent.solution_terminal  # NOQA
+    else:
+        solution_last = from_solution
+
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
     if not agent.pseudo_terminal:
-        solution.insert(0, deepcopy(agent.solution_terminal))
+        solution.insert(0, deepcopy(solution_last))
 
     # Initialize the process, then loop over cycles
-    solution_last = agent.solution_terminal  # NOQA
     go = True  # NOQA
     completed_cycles = 0  # NOQA
     max_cycles = 5000  # NOQA  - escape clause
