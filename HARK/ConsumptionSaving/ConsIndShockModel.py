@@ -175,9 +175,9 @@ class ConsumerSolution(MetricObject):
         if type(self.cFunc) != list:
             # Then we assume that self is an empty initialized solution instance.
             # Begin by checking this is so.
-            assert (
-                NullFunc().distance(self.cFunc) == 0
-            ), "append_solution called incorrectly!"
+            assert NullFunc().distance(self.cFunc) == 0, (
+                "append_solution called incorrectly!"
+            )
 
             # We will need the attributes of the solution instance to be lists.  Do that here.
             self.cFunc = [new_solution.cFunc]
@@ -797,9 +797,9 @@ def solve_one_period_ConsKinkedR(
 
     """
     # Verifiy that there is actually a kink in the interest factor
-    assert (
-        Rboro >= Rsave
-    ), "Interest factor on debt less than interest factor on savings!"
+    assert Rboro >= Rsave, (
+        "Interest factor on debt less than interest factor on savings!"
+    )
     # If the kink is in the wrong direction, code should break here. If there's
     # no kink at all, then just use the ConsIndShockModel solver.
     if Rboro == Rsave:

@@ -2991,9 +2991,9 @@ class KrusellSmithEconomy(Market):
         MrkvIndArray[3, 1] = ProbGB - MrkvIndArray[3, 0]
 
         # Test for valid idiosyncratic transition probabilities
-        assert np.all(
-            MrkvIndArray >= 0.0
-        ), "Invalid idiosyncratic transition probabilities!"
+        assert np.all(MrkvIndArray >= 0.0), (
+            "Invalid idiosyncratic transition probabilities!"
+        )
         self.MrkvArray = MrkvAggArray
         self.MrkvIndArray = MrkvIndArray
 

@@ -59,3 +59,8 @@ namespaces = false
 
 [tool.distutils.bdist_wheel]
 universal = 1
+
+[tool.ruff]
+include = ["*.ipynb"]
+[tool.ruff.lint]
+ignore = ["E731", "E721", "E402", "F841", "F821", "F405", "F403", "E722", "E741", "F811"]

@@ -1016,9 +1016,9 @@ def solve_one_period_ConsKinkyPref(
         unconditionally on the shock, just before it is revealed.
     """
     # Verifiy that there is actually a kink in the interest factor
-    assert (
-        Rboro >= Rsave
-    ), "Interest factor on debt less than interest factor on savings!"
+    assert Rboro >= Rsave, (
+        "Interest factor on debt less than interest factor on savings!"
+    )
     # If the kink is in the wrong direction, code should break here. If there's
     # no kink at all, then just use the ConsIndShockModel solver.
     if Rboro == Rsave:

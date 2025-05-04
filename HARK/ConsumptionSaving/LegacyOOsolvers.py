@@ -1008,9 +1008,9 @@ class ConsKinkedRsolver(ConsIndShockSolver):
         vFuncBool,
         CubicBool,
     ):
-        assert (
-            Rboro >= Rsave
-        ), "Interest factor on debt less than interest factor on savings!"
+        assert Rboro >= Rsave, (
+            "Interest factor on debt less than interest factor on savings!"
+        )
 
         # Initialize the solver.  Most of the steps are exactly the same as in
         # the non-kinked-R basic case, so start with that.
