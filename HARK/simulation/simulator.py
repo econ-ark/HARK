@@ -576,7 +576,7 @@ class SimBlock:
         grids_in = {}
         grids_out = {}
         if arrival_N == 0:  # should only be for initializer block
-            dummy_grid = np.array([1.0])
+            dummy_grid = np.array([0])
             grids_in["_dummy"] = dummy_grid
 
         # Construct a grid for each requested variable
@@ -588,12 +588,14 @@ class SimBlock:
                 is_arrival = True
             except:
                 is_arrival = False
-            try:
+            if ("min" in spec) and ("max" in spec):
                 bot = spec["min"]
                 top = spec["max"]
                 N = spec["N"]
                 new_grid = np.linspace(bot, top, N)
-            except:
+            elif "N" in spec:
+                new_grid = np.arange(spec["N"], dtype=int)
+            else:
                 new_grid = None  # could not make grid, construct later
             if is_arrival:
                 grids_in[var] = new_grid
@@ -1072,7 +1074,7 @@ class AgentSimulator:
             if check_bool[n]:
                 continue
             name = arrival[n]
-            dummy_grid_spec = {"name": name, "min": 1.0, "max": 1.0, "N": 1}
+            dummy_grid_spec = {"name": name, "N": 1}
             grid_specs_init.append(dummy_grid_spec)
             grid_specs_other.append(dummy_grid_spec)
 
@@ -1126,6 +1128,100 @@ class AgentSimulator:
         D = V[:, 0]
         SS_dstn = (D / np.sum(D)).real
         self.steady_state_dstn = SS_dstn
+
+    def simulate_cohort_by_grids(
+        self, outcomes, T_max=None, calc_dstn=False, calc_avg=True
+    ):
+        """
+        Generate a simulated "cohort style" history for this type of agents using
+        discretized grid methods. Can only be run after running make_transition_matrices().
+        Starting from the distribution of states at birth, the population is moved
+        forward in time via the transition matrices, and the distribution and/or
+        average of specified outcomes are stored in the dictionary attributes
+        history_dstn and history_avg respectively.
+
+        Parameters
+        ----------
+        outcomes : str or [str]
+            Names of one or more outcome variables to be tracked during the grid
+            simulation. Each named variable should have an outcome grid specified
+            when make_transition_matrices() was called, whether explicitly or
+            implicitly. The existence of these grids is checked as a first step.
+        T_max : int or None
+            If specified, the number of periods of the model to actually generate
+            output for. If not specified, all periods are run.
+        calc_dstn : bool
+            Whether outcome distributions should be stored in the dictionary
+            attribute history_dstn. The default is False.
+        calc_avg : bool
+            Whether outcome averages should be stored in the dictionary attribute
+            history_avg. The default is True.
+
+        Returns
+        -------
+        None
+        """
+        # First, verify that newborn and transition matrices exist for all periods
+        if not hasattr(self, "newborn_dstn"):
+            raise ValueError(
+                "The newborn state distribution does not exist; make_transition_matrices() must be run before grid simulations!"
+            )
+        if T_max is None:
+            T_max = self.T_total
+        T_max = np.minimum(T_max, self.T_total)
+        if not hasattr(self, "trans_arrays"):
+            raise ValueError(
+                "The transition arrays do not exist; make_transition_matrices() must be run before grid simulations!"
+            )
+        if len(self.trans_arrays) < T_max:
+            raise ValueError(
+                "There are somehow fewer elements of trans_array than there should be!"
+            )
+        if not (calc_dstn or calc_avg):
+            return  # No work actually requested, we're done here
+
+        # Initialize generated output as requested
+        if isinstance(outcomes, str):
+            outcomes = [outcomes]
+        if calc_dstn:
+            history_dstn = {}
+            for name in outcomes:  # List will be concatenated to array at end
+                history_dstn[name] = []  # if all distributions are same size
+        if calc_avg:
+            history_avg = {}
+            for name in outcomes:
+                history_avg[name] = np.empty(T_max)
+
+        # Initialize the state distribution
+        current_dstn = self.newborn_dstn.copy()
+
+        # Loop over requested periods of this agent type's model
+        for t in range(T_max):
+            # Calculate outcome distributions and averages as requested
+            for name in outcomes:
+                this_outcome = self.periods[t].matrices[name].transpose()
+                this_dstn = np.dot(this_outcome, current_dstn)
+                if calc_dstn:
+                    history_dstn[name].append(this_dstn)
+                if calc_avg:
+                    this_grid = self.periods[t].grids[name]
+                    history_avg[name][t] = np.dot(this_dstn, this_grid)
+
+            # Advance the distribution to the next period
+            current_dstn = np.dot(self.trans_arrays[t].transpose(), current_dstn)
+
+        # Reshape the distribution histories if possible
+        if calc_dstn:
+            for name in outcomes:
+                dstn_sizes = np.array([dstn.size for dstn in history_dstn[name]])
+                if np.all(dstn_sizes == dstn_sizes[0]):
+                    history_dstn[name] = np.concatenate(history_dstn[name], axis=1)
+
+        # Store results as attributes of self
+        if calc_dstn:
+            self.history_dstn = history_dstn
+        if calc_avg:
+            self.history_avg = history_avg
 
     def describe_model(self, display=True):
         """
@@ -2687,10 +2783,6 @@ def make_basic_SSJ_matrices(
     Tm1_soln = deepcopy(agent.solution[0])
     agent.initialize_sym()
     agent._simulator.make_transition_matrices(grids, norm)
-    Tm1_trans = agent._simulator.trans_arrays[0]  # transition matrix at T-1
-    Tm1_outcomes = []
-    for var in outcomes:
-        Tm1_outcomes.append(agent._simulator.periods[0].matrices[var])
     t1 = time()
     if verbose:
         print(
@@ -2801,9 +2893,8 @@ def make_basic_SSJ_matrices(
         )
 
     # Reset the agent to its original state and return the output
-    if solved:
-        agent.solution = LR_soln
-        agent.cycles = 1
+    agent.solution = LR_soln
+    agent.cycles = 1
     if no_list:
         return SSJ[0]
     else:
