@@ -1252,9 +1252,9 @@ class AgentType(Model):
                         )
                         if idio:
                             self.state_now[var_name][who_dies] = (
-                                self.newborn_init_history[
-                                    var_name
-                                ][self.t_sim, who_dies]
+                                self.newborn_init_history[var_name][
+                                    self.t_sim, who_dies
+                                ]
                             )
 
                     else:
