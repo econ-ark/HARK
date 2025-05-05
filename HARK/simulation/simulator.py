@@ -550,14 +550,22 @@ class SimBlock:
         Construct a transition matrix for this block, moving from a discretized
         grid of arrival variables to a discretized grid of end-of-block variables.
         User specifies how the grids of pre-states should be built. Output is
-        stored in the attributes X, Y, and Z.
+        stored in attributes of self as follows:
+
+        - matrices : A dictionary of arrays that cast from the arrival state space
+                     to the grid of outcome variables. Doing np.dot(dstn, matrices[var])
+                     will yield the discretized distribution of that outcome variable.
+        - grids : A dictionary of discretized grids for outcome variables. Doing
+                  np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
+                  of that outcome in the population.
 
         Parameters
         ----------
-        grid_specs : [dict]
-            List of dictionaries of grid specifications. For now, these have a
-            variable name, a minimum value, a maximum value, and a number of nodes.
-            They are equispaced in this first version.
+        grid_specs : dict
+            Dictionary of dictionaries of grid specifications. For now, these have
+            at most a minimum value, a maximum value, and a number of nodes. They
+            are equispaced if a min and max are specified, otherwise they are set
+            at 0,..,N.
         twist : dict or None
             Mapping from end-of-period (continuation) variables to successor's
             arrival variables. When this is specified, additional output is created
@@ -580,8 +588,8 @@ class SimBlock:
             grids_in["_dummy"] = dummy_grid
 
         # Construct a grid for each requested variable
-        for spec in grid_specs:
-            var = spec["name"]
+        for var in grid_specs.keys():
+            spec = grid_specs[var]
             try:
                 idx = self.arrival.index(var)
                 completed[idx] = True
@@ -1039,14 +1047,38 @@ class AgentSimulator:
         """
         Build Markov-style transition matrices for each period of the model, as
         well as the initial distribution of arrival variables for newborns.
-        Stores results to the attributes X, Y, and Z.
+        Stores results to the attributes of self as follows:
+
+        - trans_arrays : List of Markov matrices for transitioning from the arrival
+                         state space in period t to the arrival state space in t+1.
+                         This transition includes death (and replacement).
+        - newborn_dstn : Stochastic vector as a NumPy array, representing the distribution
+                         of arrival states for "newborns" who were just initialized.
+        - state_grid : List of tuples representing the arrival state space. Each element
+                       corresponds to the discretized arrival state space point with
+                       the same index in trans_arrays and newborn_dstn. Arrival states
+                       are ordered within a tuple in the same order as the model file.
+
+        Each element of the periods attribute will also have the following attributes:
+
+        - matrices : A dictionary of arrays that cast from the arrival state space
+                     to the grid of outcome variables. Doing np.dot(dstn, matrices[var])
+                     will yield the discretized distribution of that outcome variable.
+        - grids : A dictionary of discretized grids for outcome variables. Doing
+                  np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
+                  of that outcome in the population.
 
         Parameters
         ----------
-        grid_specs : [dict]
-            List of dictionaries with specifications for discretized grids of all
-            variables of interest. If any arrival variables are omitted, they will
-            be given a default trivial grid with one node at 1.
+        grid_specs : dict
+            Dictionary of dictionaries with specifications for discretized grids
+            of all variables of interest. If any arrival variables are omitted,
+            they will be given a default trivial grid with one node at 0. This
+            should only be done if that arrival variable is closely tied to the
+            Harmenberg normalizing variable; see below. A grid specification must
+            include a number of gridpoints N, and should also include a min and
+            max if the variable is continuous. If the variable is discrete, the
+            grid values are assumed to be 0,..,N.
         norm : str or None
             Name of the variable for which Harmenberg normalization should be
             applied, if any. This should be a variable that is directly drawn
@@ -1061,22 +1093,21 @@ class AgentSimulator:
         arrival = self.periods[0].arrival
         arrival_N = len(arrival)
         check_bool = np.zeros(arrival_N, dtype=bool)
-        grid_specs_init = []
-        grid_specs_other = []
-        for g in range(len(grid_specs)):
-            name = grid_specs[g]["name"]
+        grid_specs_init = {}
+        grid_specs_other = {}
+        for name in grid_specs.keys():
             if name in arrival:
                 idx = arrival.index(name)
                 check_bool[idx] = True
-                grid_specs_init.append(grid_specs[g])
-            grid_specs_other.append(grid_specs[g])
+                grid_specs_init[name] = copy(grid_specs[name])
+            grid_specs_other[name] = copy(grid_specs[name])
         for n in range(arrival_N):
             if check_bool[n]:
                 continue
             name = arrival[n]
-            dummy_grid_spec = {"name": name, "N": 1}
-            grid_specs_init.append(dummy_grid_spec)
-            grid_specs_other.append(dummy_grid_spec)
+            dummy_grid_spec = {"N": 1}
+            grid_specs_init[name] = dummy_grid_spec
+            grid_specs_other[name] = dummy_grid_spec
 
         # Make the initial state distribution for newborns
         self.initializer.make_transition_matrices(grid_specs_init)
@@ -2667,11 +2698,13 @@ def make_basic_SSJ_matrices(
         for each variable named here. If a single string is passed, the output
         will be a single np.array. If a list of strings are passed, the output
         will be a list of SSJ matrices in the order specified here.
-    grids : [dict]
-        List of dictionaries with discretizing grid information. The grids should
-        include all arrival variables other than those that are normalized out.
-        They should also include all variables named in outcomes, except outcomes
-        that are continuation variables that remap to arrival variables.
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information. The grids
+        should include all arrival variables other than those that are normalized
+        out. They should also include all variables named in outcomes, except
+        outcomes that are continuation variables that remap to arrival variables.
+        Grid specification must include number of nodes N, should also include
+        min and max if the variable is continuous.
     eps : float
         Amount by which to perturb the shock variable. The default is 1e-4.
     T_max : int

@@ -30,7 +30,7 @@ from HARK.distributions import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
-from HARK.simulation.simulator import make_simulator_from_agent
+from HARK.simulation.simulator import make_simulator_from_agent, make_basic_SSJ_matrices
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -1527,6 +1527,15 @@ class AgentType(Model):
         for var_name in self.track_vars:
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
             self.history[var_name].fill(np.nan)
+
+    def make_basic_SSJ(self, shock, outcomes, grids, **kwargs):
+        """
+        Construct and return sequence space Jacobian matrices for specified outcomes
+        with respect to specified "shock" variable. This "basic" method only works
+        for "one period infinite horizon" models (cycles=0, T_cycle=1). See documen-
+        tation for simulator.make_basic_SSJ_matrices for more information.
+        """
+        return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
 
 
 def solve_agent(agent, verbose, from_solution=None):
