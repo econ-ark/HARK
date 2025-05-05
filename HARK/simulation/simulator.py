@@ -2709,12 +2709,12 @@ def make_basic_SSJ_matrices(
     if not solved:
         t0 = time()
         agent.solve()
-        LR_soln = deepcopy(agent.solution[0])
         t1 = time()
         if verbose:
             print(
                 "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
             )
+    LR_soln = deepcopy(agent.solution[0])
 
     # Construct the transition matrix for the long run model
     t0 = time()
@@ -2893,8 +2893,8 @@ def make_basic_SSJ_matrices(
         )
 
     # Reset the agent to its original state and return the output
-    agent.solution = LR_soln
-    agent.cycles = 1
+    agent.solution = [LR_soln]
+    agent.cycles = 0
     if no_list:
         return SSJ[0]
     else:
