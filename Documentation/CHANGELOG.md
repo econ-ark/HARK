@@ -37,6 +37,7 @@ Release Date: TBD
 - Adds a new function for using Tauchen's method to approximate an AR1 process. [#1521](https://github.com/econ-ark/HARK/pull/1521)
 - Adds additional functionality to the CubicHermiteInterp class, imported from scipy.interpolate. [#1020](https://github.com/econ-ark/HARK/pull/1020/)
 - Allows users to pass a generic solution object to agent solvers to be used as the initial condition of backward induction. [#1543](https://github.com/econ-ark/HARK/pull/1543)
+- Adds support for Python 3.13 and related package updates. [#1549](https://github.com/econ-ark/HARK/pull/1549)
 
 ### 0.15.1
 
