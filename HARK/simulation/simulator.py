@@ -636,9 +636,12 @@ class SimBlock:
         grid_out_is_continuous = np.array(continuous_grid_out_bool)
 
         # Make meshes of all the arrival grids, which will be the initial simulation data
-        state_meshes = np.meshgrid(
-            *[grids_in[k] for k in grids_in.keys()], indexing="ij"
-        )
+        if arrival_N > 0:
+            state_meshes = np.meshgrid(
+                *[grids_in[k] for k in self.arrival], indexing="ij"
+            )
+        else:  # this only happens in the initializer block
+            state_meshes = [dummy_grid.copy()]
         state_init = {
             self.arrival[k]: state_meshes[k].flatten() for k in range(arrival_N)
         }
@@ -670,9 +673,15 @@ class SimBlock:
         if "dead" in self.data.keys():
             grids_out["dead"] = None
 
-        # Get continuation variable names
+        # Get continuation variable names, making sure they're in the same order
+        # as named by the arrival variables. This should maybe be done in the
+        # simulator when it's initialized.
         if twist is not None:
-            cont_vars = list(twist.keys())
+            cont_vars_orig = list(twist.keys())
+            temp_dict = {twist[var]: var for var in cont_vars_orig}
+            cont_vars = []
+            for var in self.arrival:
+                cont_vars.append(temp_dict[var])
             if "dead" in self.data.keys():
                 cont_vars.append("dead")
                 grid_out_is_continuous = np.concatenate(
@@ -681,6 +690,7 @@ class SimBlock:
             D = len(cont_vars)
         else:
             cont_vars = []
+            D = 0
         cont_idx = {}
         cont_alpha = {}
         cont_M = {}
@@ -808,8 +818,8 @@ class SimBlock:
             master_trans_array = np.reshape(master_trans_array_X, (N_orig, N_orig))
 
         # If there are no arrival variables, then this is the initializer block,
-        # so construct an overall state distribution by taking the tensor product
-        # across arrival variable outcomes
+        # so construct an overall state distribution by combining probabilities
+        # across arrival variables.
         if arrival_N == 0:
             cont_vars = list(grids_out.keys())  # all outcomes are arrival vars
             D = len(cont_vars)
@@ -1174,18 +1184,24 @@ class AgentSimulator:
         arrival = self.periods[0].arrival
         arrival_N = len(arrival)
         check_bool = np.zeros(arrival_N, dtype=bool)
-        grid_specs_init = {}
+        grid_specs_init_orig = {}
         grid_specs_other = {}
         for name in grid_specs.keys():
             if name in arrival:
                 idx = arrival.index(name)
                 check_bool[idx] = True
-                grid_specs_init[name] = copy(grid_specs[name])
+                grid_specs_init_orig[name] = copy(grid_specs[name])
             grid_specs_other[name] = copy(grid_specs[name])
+
+        # Build the dictionary of arrival variables, making sure it's in the
+        # same order as named self.arrival. For any arrival grids that are
+        # not specified, make a dummy specification.
+        grid_specs_init = {}
         for n in range(arrival_N):
-            if check_bool[n]:
-                continue
             name = arrival[n]
+            if check_bool[n]:
+                grid_specs_init[name] = grid_specs_init_orig[name]
+                continue
             dummy_grid_spec = {"N": 1}
             grid_specs_init[name] = dummy_grid_spec
             grid_specs_other[name] = dummy_grid_spec
