@@ -1118,7 +1118,7 @@ class AgentSimulator:
         self.data["t_age"] = self.t_age.copy()
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
 
-    def make_transition_matrices(self, grid_specs, norm=None):
+    def make_transition_matrices(self, grid_specs, norm=None, fake_news_timing=False):
         """
         Build Markov-style transition matrices for each period of the model, as
         well as the initial distribution of arrival variables for newborns.
@@ -1158,6 +1158,13 @@ class AgentSimulator:
             Name of the variable for which Harmenberg normalization should be
             applied, if any. This should be a variable that is directly drawn
             from a distribution, not a "downstream" variable.
+        fake_news_timing : bool
+            Indicator for whether this call is part of the "fake news" algorithm
+            for constructing sequence space Jacobians (SSJs). This should only
+            ever be set to True in that situation, which affects how mortality
+            is handled between periods. In short, the simulator usually assumes
+            that "newborns" start with t_seq=0, but during the fake news algorithm,
+            that is not the case.
 
         Returns
         -------
@@ -1203,13 +1210,23 @@ class AgentSimulator:
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [block.trans_array for block in self.periods]
-        final_death_probs = self.periods[-1].matrices["dead"][:, 1]
-        p2p_trans_arrays[-1] *= np.tile(
-            np.reshape(1 - final_death_probs, (K, 1)), (1, K)
-        )
-        p2p_trans_arrays[-1] += np.reshape(final_death_probs, (K, 1)) * np.reshape(
-            self.newborn_dstn, (1, K)
-        )
+
+        # Apply agent replacement to the last period of the model, representing
+        # newborns filling in for decedents. This will usually only do anything
+        # at all in "one period infinite horizon" models. If this is part of the
+        # fake news algorithm for constructing SSJs, then replace decedents with
+        # newborns in *all* periods, because model timing is funny in this case.
+        if fake_news_timing:
+            T_set = np.arange(len(self.periods)).tolist()
+        else:
+            T_set = [-1]
+        newborn_dstn = np.reshape(self.newborn_dstn, (1, K))
+        for t in T_set:
+            if "dead" not in self.periods[t].matrices.keys():
+                continue
+            death_prbs = self.periods[t].matrices["dead"][:, 1]
+            p2p_trans_arrays[t] *= np.tile(np.reshape(1 - death_prbs, (K, 1)), (1, K))
+            p2p_trans_arrays[t] += np.reshape(death_prbs, (K, 1)) * newborn_dstn
 
         # Store the transition arrays as attributes of self
         self.trans_arrays = p2p_trans_arrays
@@ -2962,7 +2979,7 @@ def make_basic_SSJ_matrices(
     agent.solve(from_solution=LR_soln)
     Tm1_soln = deepcopy(agent.solution[0])
     agent.initialize_sym()
-    agent._simulator.make_transition_matrices(grids, norm)
+    agent._simulator.make_transition_matrices(grids, norm, fake_news_timing=True)
     t1 = time()
     if verbose:
         print(
@@ -2993,7 +3010,7 @@ def make_basic_SSJ_matrices(
     t0 = time()
     agent.initialize_sym()
     X = agent._simulator  # for easier typing
-    X.make_transition_matrices(grids, norm)
+    X.make_transition_matrices(grids, norm, fake_news_timing=True)
     TmX_trans = deepcopy(X.trans_arrays)
     TmX_outcomes = []
     for t in range(T_max):
