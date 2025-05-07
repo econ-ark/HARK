@@ -31,7 +31,7 @@ consumption_block = DBlock(
             "b": lambda k, R: k * R,
             "y": lambda p, theta: p * theta,
             "m": lambda b, y: b + y,
-            "c": Control(["m"]),
+            "c": Control(["m"], upper_bound=lambda m: m),
             "p": lambda PermGroFac, p: PermGroFac * p,
             "a": lambda m, c: m - c,
         },
@@ -49,8 +49,8 @@ consumption_block_normalized = DBlock(
         "dynamics": {
             "b": lambda k, R, PermGroFac: k * R / PermGroFac,
             "m": lambda b, theta: b + theta,
-            "c": Control(["m"]),
-            "a": "m - c",
+            "c": Control(["m"], upper_bound=lambda m: m),
+            "a": lambda m, c: m - c,
         },
         "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
     }
@@ -79,5 +79,7 @@ tick_block = DBlock(
     }
 )
 
-cons_problem = RBlock(blocks=[consumption_block, tick_block])
-cons_portfolio_problem = RBlock(blocks=[consumption_block, portfolio_block, tick_block])
+cons_problem = RBlock(blocks=[consumption_block_normalized, tick_block])
+cons_portfolio_problem = RBlock(
+    blocks=[consumption_block_normalized, portfolio_block, tick_block]
+)

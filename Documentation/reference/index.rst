@@ -5,6 +5,7 @@ API Reference
    :caption: Tools
    :maxdepth: 1
 
+   tools/algos
    tools/core
    tools/dcegm
    tools/distribution
