@@ -705,6 +705,8 @@ init_indshk_markov = {
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": markov_constructor_dict,  # See dictionary above
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "global_markov": False,  # Whether the Markov state is shared across agents
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
@@ -745,36 +747,10 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
-
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
-
-    def __init__(self, **kwds):
-        params = init_indshk_markov.copy()
-        params.update(kwds)
-
-        super().__init__(**params)
-        self.solve_one_period = solve_one_period_ConsMarkov
-
-        if not hasattr(self, "global_markov"):
-            self.global_markov = False
-
-    def update(self):
-        """
-        Update the Markov array, the income process, the assets grid, and
-        the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("MrkvArray")
-        super().update()
+    default_ = {"params": init_indshk_markov, "solver": solve_one_period_ConsMarkov}
 
     def check_markov_inputs(self):
         """
@@ -850,7 +826,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
