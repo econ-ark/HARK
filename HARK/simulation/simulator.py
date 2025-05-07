@@ -14,6 +14,7 @@ from HARK.utilities import NullFunc
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import eigs
+from itertools import product
 import importlib.resources
 import yaml
 from time import time
@@ -588,6 +589,7 @@ class SimBlock:
             grids_in["_dummy"] = dummy_grid
 
         # Construct a grid for each requested variable
+        continuous_grid_out_bool = []
         for var in grid_specs.keys():
             spec = grid_specs[var]
             try:
@@ -601,14 +603,19 @@ class SimBlock:
                 top = spec["max"]
                 N = spec["N"]
                 new_grid = np.linspace(bot, top, N)
+                is_cont = True
             elif "N" in spec:
                 new_grid = np.arange(spec["N"], dtype=int)
+                is_cont = False
             else:
                 new_grid = None  # could not make grid, construct later
+                is_cont = False
+
             if is_arrival:
                 grids_in[var] = new_grid
             else:
                 grids_out[var] = new_grid
+                continuous_grid_out_bool.append(is_cont)
 
         # Verify that specifications were passed for all arrival variables
         for j in range(len(self.arrival)):
@@ -622,7 +629,11 @@ class SimBlock:
         if twist is not None:
             for cont_var in twist.keys():
                 arr_var = twist[cont_var]
+                if cont_var not in list(grids_out.keys()):
+                    is_cont = grids_in[arr_var].dtype is np.dtype(np.float64)
+                    continuous_grid_out_bool.append(is_cont)
                 grids_out[cont_var] = copy(grids_in[arr_var])
+        grid_out_is_continuous = np.array(continuous_grid_out_bool)
 
         # Make meshes of all the arrival grids, which will be the initial simulation data
         state_meshes = np.meshgrid(
@@ -659,9 +670,26 @@ class SimBlock:
         if "dead" in self.data.keys():
             grids_out["dead"] = None
 
+        # Get continuation variable names
+        if twist is not None:
+            cont_vars = list(twist.keys())
+            if "dead" in self.data.keys():
+                cont_vars.append("dead")
+                grid_out_is_continuous = np.concatenate(
+                    (grid_out_is_continuous, [False])
+                )
+            D = len(cont_vars)
+        else:
+            cont_vars = []
+        cont_idx = {}
+        cont_alpha = {}
+        cont_M = {}
+        cont_discrete = {}
+
         # Now project the final results onto the output or result grids
         N = self.N
         matrices_out = {}
+        k = 0
         for var in grids_out.keys():
             if var not in self.data.keys():
                 raise ValueError(
@@ -672,59 +700,112 @@ class SimBlock:
             pmv = self.data["pmv_"]
             J = state_meshes[0].size
 
-            if grid is not None:  # As long as the grid was created...
+            if grid_out_is_continuous[k]:
                 M = grid.size
                 # Split the final values among discrete gridpoints on the interior.
-                # Skip this step if the grid is a dummy with only one value
+                # NB: This will only work properly if the grid is equispaced
                 if M > 1:
-                    trans_matrix = aggregate_blobs_onto_equispaced_grid(
-                        vals, pmv, origin_array, grid, J
-                    )
-                    # NB: This will only work properly if the grid is equispaced
-                else:
+                    if var in cont_vars:
+                        trans_matrix, cont_idx[var], cont_alpha[var] = (
+                            aggregate_blobs_onto_equispaced_grid_alt(
+                                vals, pmv, origin_array, grid, J
+                            )
+                        )
+                        cont_M[var] = M
+                        cont_discrete[var] = False
+                    else:
+                        trans_matrix = aggregate_blobs_onto_equispaced_grid(
+                            vals, pmv, origin_array, grid, J
+                        )
+                else:  # Skip if the grid is a dummy with only one value.
                     trans_matrix = np.ones((J, M))
+                    if var in cont_vars:
+                        cont_idx[var] = np.zeros(N, dtype=int)
+                        cont_alpha[var] = np.zeros(N)
+                        cont_M[var] = M
+                        cont_discrete[var] = False
 
-            else:  # If the grid was not created, use all discrete values
-                grid = np.unique(vals)
-                grids_out[var] = grid
+            else:  # Grid is discrete, can use simpler method
+                if grid is None:
+                    M = np.max(vals.astype(int))
+                    if var == "dead":
+                        M = 2
+                    grid = np.arange(M, dtype=int)
+                    grids_out[var] = grid
                 M = grid.size
+                vals = vals.astype(int)
                 trans_matrix = aggregate_blobs_onto_discrete_grid(
-                    vals.astype(int), pmv, origin_array, M, J
+                    vals, pmv, origin_array, M, J
                 )
+                if var in cont_vars:
+                    cont_idx[var] = vals
+                    cont_alpha[var] = np.zeros(N)
+                    cont_M[var] = M
+                    cont_discrete[var] = True
 
             # Store the transition matrix for this variable
             matrices_out[var] = trans_matrix
+            k += 1
 
         # If an intertemporal twist was specified, construct an overall transition
-        # matrix from arrival to continuation variables. THIS CODE IS WRONG AND
-        # NEEDS TO BE REWRITTEN
+        # matrix from arrival to continuation variables.
         if twist is not None:
-            cont_vars = list(twist.keys())
-            if "dead" in self.data.keys():
-                cont_vars.append("dead")
-            D = len(cont_vars)
+            # Count the number of non-trivial dimensions. A continuation dimension
+            # is non-trivial if it is both continuous and has more than one grid node.
+            C = 0
+            shape = [N_orig]
+            trivial = []
+            for var in cont_vars:
+                shape.append(cont_M[var])
+                if (not cont_discrete[var]) and (cont_M[var] > 1):
+                    C += 1
+                    trivial.append(False)
+                else:
+                    trivial.append(True)
+            trivial = np.array(trivial)
 
-            # Reshape each continuation transition matrix into a new dimension
-            reshaped_matrices = []
+            # Make a binary array of offsets
+            bin_array_base = np.array(list(product([0, 1], repeat=C)))
+            bin_array = np.empty((2**C, D), dtype=int)
+            some_zeros = np.zeros(2**C, dtype=int)
+            c = 0
+            for d in range(D):
+                bin_array[:, d] = some_zeros if trivial[d] else bin_array_base[:, c]
+                c += not trivial[d]
+
+            # Make a vector of dimensional offsets
+            dim_offsets = np.ones(D, dtype=int)
+            for d in range(D - 1):
+                dim_offsets[d] = np.prod(shape[(d - 2) :])
+            dim_offsets_X = np.tile(dim_offsets, (2**C, 1))
+            offsets = np.sum(bin_array * dim_offsets_X, axis=1)
+
+            # Make combined arrays of indices and alphas
+            index_array = np.empty((N, D), dtype=int)
+            alpha_array = np.empty((N, D, 2))
             for d in range(D):
                 var = cont_vars[d]
-                new_shape = [N_orig] + D * [1]
-                new_shape[d + 1] = grids_out[var].size
-                reshaped_matrices.append(np.reshape(matrices_out[var], new_shape))
+                index_array[:, d] = cont_idx[var]
+                alpha_array[:, d, 0] = 1.0 - cont_alpha[var]
+                alpha_array[:, d, 1] = cont_alpha[var]
+            idx_array = np.dot(index_array, dim_offsets)
 
-            # Multiply all of the matrices by each other
-            master_trans_array = reshaped_matrices[-1]
-            for d in range(D - 2, -1, -1):
-                master_trans_array = master_trans_array * reshaped_matrices[d]
+            # Make the master transition array
+            blank = np.zeros(np.array((N_orig, np.prod(shape[1:]))))
+            master_trans_array_X = calc_overall_trans_probs(
+                blank, idx_array, alpha_array, bin_array, offsets, pmv, origin_array
+            )
 
             # Condition on survival if relevant
             if "dead" in self.data.keys():
-                master_trans_array = (
-                    master_trans_array[..., 0] / reshaped_matrices[-1][..., 0]
+                master_trans_array_X = np.reshape(
+                    master_trans_array_X, (N_orig, N_orig, 2)
                 )
+                survival_probs = np.reshape(matrices_out["dead"][:, 0], [N_orig, 1])
+                master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
 
-            # Flatten the overall transition array into a square matrix
-            master_trans_array = np.reshape(master_trans_array, (N_orig, N_orig))
+            # Reshape the transition array so it's square
+            master_trans_array = np.reshape(master_trans_array_X, (N_orig, N_orig))
 
         # If there are no arrival variables, then this is the initializer block,
         # so construct an overall state distribution by taking the tensor product
@@ -2645,14 +2726,46 @@ def aggregate_blobs_onto_equispaced_grid(vals, pmv, origins, grid, J):
         p = pmv[n]
         if (x > bot) and (x < top):
             ii = int(np.floor((x - bot) / h))
-            alpha = (x - grid[ii]) / h
-            out[jj, ii] += (1.0 - alpha) * p
-            out[jj, ii + 1] += alpha * p
+            temp = (x - grid[ii]) / h
+            out[jj, ii] += (1.0 - temp) * p
+            out[jj, ii + 1] += temp * p
         elif x <= bot:
             out[jj, 0] += p
         else:
             out[jj, -1] += p
     return out
+
+
+@njit
+def aggregate_blobs_onto_equispaced_grid_alt(vals, pmv, origins, grid, J):
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    h = grid[1] - grid[0]
+    probs = np.zeros((J, M))
+    N = pmv.size
+    idx = np.empty(N, dtype=np.dtype(np.int32))
+    alpha = np.empty(N)
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            ii = int(np.floor((x - bot) / h))
+            temp = (x - grid[ii]) / h
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
+            alpha[n] = temp
+            idx[n] = ii
+        elif x <= bot:
+            probs[jj, 0] += p
+            alpha[n] = 0.0
+            idx[n] = 0
+        else:
+            probs[jj, -1] += p
+            alpha[n] = 1.0
+            idx[n] = M - 2
+    return probs, idx, alpha
 
 
 @njit
@@ -2664,6 +2777,26 @@ def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
         jj = origins[n]
         p = pmv[n]
         out[jj, ii] += p
+    return out
+
+
+@njit
+def calc_overall_trans_probs(out, idx, alpha, binary, offset, pmv, origins):
+    N = alpha.shape[0]
+    B = binary.shape[0]
+    D = binary.shape[1]
+    for n in range(N):
+        ii = origins[n]
+        jj_base = idx[n]
+        p = pmv[n]
+        for b in range(B):
+            adj = offset[b]
+            P = p
+            for d in range(D):
+                k = binary[b, d]
+                P *= alpha[n, d, k]
+            jj = jj_base + adj
+            out[ii, jj] += P
     return out
 
 
