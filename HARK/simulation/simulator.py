@@ -687,18 +687,17 @@ class SimBlock:
                 grid_out_is_continuous = np.concatenate(
                     (grid_out_is_continuous, [False])
                 )
-            D = len(cont_vars)
         else:
-            cont_vars = []
-            D = 0
-        cont_idx = {}
-        cont_alpha = {}
-        cont_M = {}
-        cont_discrete = {}
+            cont_vars = list(grids_out.keys())  # all outcomes are arrival vars
+        D = len(cont_vars)
 
         # Now project the final results onto the output or result grids
         N = self.N
         matrices_out = {}
+        cont_idx = {}
+        cont_alpha = {}
+        cont_M = {}
+        cont_discrete = {}
         k = 0
         for var in grids_out.keys():
             if var not in self.data.keys():
@@ -757,86 +756,71 @@ class SimBlock:
             matrices_out[var] = trans_matrix
             k += 1
 
-        # If an intertemporal twist was specified, construct an overall transition
-        # matrix from arrival to continuation variables.
-        if twist is not None:
-            # Count the number of non-trivial dimensions. A continuation dimension
-            # is non-trivial if it is both continuous and has more than one grid node.
-            C = 0
-            shape = [N_orig]
-            trivial = []
-            for var in cont_vars:
-                shape.append(cont_M[var])
-                if (not cont_discrete[var]) and (cont_M[var] > 1):
-                    C += 1
-                    trivial.append(False)
-                else:
-                    trivial.append(True)
-            trivial = np.array(trivial)
+        # Construct an overall transition matrix from arrival to continuation variables.
+        # If this is the initializer block, the "arrival" variable is just the initial
+        # dummy state, and the "continuation" variables are actually the arrival variables
+        # for ordinary blocks/periods.
 
-            # Make a binary array of offsets
-            bin_array_base = np.array(list(product([0, 1], repeat=C)))
-            bin_array = np.empty((2**C, D), dtype=int)
-            some_zeros = np.zeros(2**C, dtype=int)
-            c = 0
-            for d in range(D):
-                bin_array[:, d] = some_zeros if trivial[d] else bin_array_base[:, c]
-                c += not trivial[d]
+        # Count the number of non-trivial dimensions. A continuation dimension
+        # is non-trivial if it is both continuous and has more than one grid node.
+        C = 0
+        shape = [N_orig]
+        trivial = []
+        for var in cont_vars:
+            shape.append(cont_M[var])
+            if (not cont_discrete[var]) and (cont_M[var] > 1):
+                C += 1
+                trivial.append(False)
+            else:
+                trivial.append(True)
+        trivial = np.array(trivial)
 
-            # Make a vector of dimensional offsets
-            dim_offsets = np.ones(D, dtype=int)
-            for d in range(D - 1):
-                dim_offsets[d] = np.prod(shape[(d - 2) :])
-            dim_offsets_X = np.tile(dim_offsets, (2**C, 1))
-            offsets = np.sum(bin_array * dim_offsets_X, axis=1)
+        # Make a binary array of offsets from the base index
+        bin_array_base = np.array(list(product([0, 1], repeat=C)))
+        bin_array = np.empty((2**C, D), dtype=int)
+        some_zeros = np.zeros(2**C, dtype=int)
+        c = 0
+        for d in range(D):
+            bin_array[:, d] = some_zeros if trivial[d] else bin_array_base[:, c]
+            c += not trivial[d]
 
-            # Make combined arrays of indices and alphas
-            index_array = np.empty((N, D), dtype=int)
-            alpha_array = np.empty((N, D, 2))
-            for d in range(D):
-                var = cont_vars[d]
-                index_array[:, d] = cont_idx[var]
-                alpha_array[:, d, 0] = 1.0 - cont_alpha[var]
-                alpha_array[:, d, 1] = cont_alpha[var]
-            idx_array = np.dot(index_array, dim_offsets)
+        # Make a vector of dimensional offsets from the base index
+        dim_offsets = np.ones(D, dtype=int)
+        for d in range(D - 1):
+            dim_offsets[d] = np.prod(shape[(d - 2) :])
+        dim_offsets_X = np.tile(dim_offsets, (2**C, 1))
+        offsets = np.sum(bin_array * dim_offsets_X, axis=1)
 
-            # Make the master transition array
-            blank = np.zeros(np.array((N_orig, np.prod(shape[1:]))))
-            master_trans_array_X = calc_overall_trans_probs(
-                blank, idx_array, alpha_array, bin_array, offsets, pmv, origin_array
-            )
+        # Make combined arrays of indices and alphas
+        index_array = np.empty((N, D), dtype=int)
+        alpha_array = np.empty((N, D, 2))
+        for d in range(D):
+            var = cont_vars[d]
+            index_array[:, d] = cont_idx[var]
+            alpha_array[:, d, 0] = 1.0 - cont_alpha[var]
+            alpha_array[:, d, 1] = cont_alpha[var]
+        idx_array = np.dot(index_array, dim_offsets)
 
-            # Condition on survival if relevant
-            if "dead" in self.data.keys():
-                master_trans_array_X = np.reshape(
-                    master_trans_array_X, (N_orig, N_orig, 2)
-                )
-                survival_probs = np.reshape(matrices_out["dead"][:, 0], [N_orig, 1])
-                master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
+        # Make the master transition array
+        blank = np.zeros(np.array((N_orig, np.prod(shape[1:]))))
+        master_trans_array_X = calc_overall_trans_probs(
+            blank, idx_array, alpha_array, bin_array, offsets, pmv, origin_array
+        )
 
-            # Reshape the transition array so it's square
-            master_trans_array = np.reshape(master_trans_array_X, (N_orig, N_orig))
+        # Condition on survival if relevant
+        if "dead" in self.data.keys():
+            master_trans_array_X = np.reshape(master_trans_array_X, (N_orig, N_orig, 2))
+            survival_probs = np.reshape(matrices_out["dead"][:, 0], [N_orig, 1])
+            master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
 
-        # If there are no arrival variables, then this is the initializer block,
-        # so construct an overall state distribution by combining probabilities
-        # across arrival variables.
+        # Reshape the transition matrix depending on what kind of block this is
         if arrival_N == 0:
-            cont_vars = list(grids_out.keys())  # all outcomes are arrival vars
-            D = len(cont_vars)
-
-            # Reshape each arrival distribution into a new dimension
-            reshaped_matrices = []
-            for d in range(D):
-                var = cont_vars[d]
-                new_shape = [N_orig] + D * [1]
-                new_shape[d + 1] = grids_out[var].size
-                reshaped_matrices.append(np.reshape(matrices_out[var], new_shape))
-
-            # Multiply all of the distributions by each other, then flatten it
-            master_init_array = reshaped_matrices[-1]
-            for d in range(D - 2, -1, -1):
-                master_init_array = master_init_array * reshaped_matrices[d]
-            master_init_array = master_init_array.flatten()
+            # If this is the initializer block, the "transition" matrix is really
+            # just the initial distribution of states at model birth; flatten it.
+            master_init_array = master_trans_array_X.flatten()
+        else:
+            # In an ordinary period, reshape the transition array so it's square.
+            master_trans_array = np.reshape(master_trans_array_X, (N_orig, N_orig))
 
         # Store the results as attributes of self
         grids = {}
@@ -2825,6 +2809,7 @@ def make_basic_SSJ_matrices(
     T_max=300,
     norm=None,
     solved=False,
+    construct=True,
     verbose=False,
 ):
     """
@@ -2868,6 +2853,14 @@ def make_basic_SSJ_matrices(
         it will be solved as the very first step. Solving the agent's long run
         model before constructing SSJ matrices has the advantage of not needing
         to re-solve the long run model for each shock variable.
+    construct : bool
+        Whether the construct (update) method should be run after the shock is
+        updated. The default is True, which is the "safe" option. If the shock
+        variable is a parameter that enters the model only *directly*, rather
+        than being used to build a more complex model input, then this can be
+        set to False to save a (very) small amount of time during computation.
+        If it is set to False improperly, the SSJs will be very wrong, potentially
+        just zero everywhere.
     verbose : bool
         Whether to display timing/progress to screen. The default is False.
 
@@ -2886,6 +2879,10 @@ def make_basic_SSJ_matrices(
         no_list = True
     else:
         no_list = False
+
+    # Store the simulator if it exists
+    if hasattr(agent, "_simulator"):
+        simulator_backup = agent._simulator
 
     # Solve the long run model if it wasn't already
     if not solved:
@@ -2960,7 +2957,8 @@ def make_basic_SSJ_matrices(
         setattr(agent, shock, [base_shock_value + eps])
     else:
         setattr(agent, shock, base_shock_value + eps)
-    agent.update()
+    if construct:
+        agent.update()
     agent.solve(from_solution=LR_soln)
     Tm1_soln = deepcopy(agent.solution[0])
     agent.initialize_sym()
@@ -2979,7 +2977,8 @@ def make_basic_SSJ_matrices(
         setattr(agent, shock, [base_shock_value])
     else:
         setattr(agent, shock, base_shock_value)
-    agent.update()
+    if construct:
+        agent.update()
     agent.solve(from_solution=Tm1_soln)
     t1 = time()
     if verbose:
@@ -3077,6 +3076,10 @@ def make_basic_SSJ_matrices(
     # Reset the agent to its original state and return the output
     agent.solution = [LR_soln]
     agent.cycles = 0
+    try:
+        agent._simulator = simulator_backup
+    except:
+        pass
     if no_list:
         return SSJ[0]
     else:
