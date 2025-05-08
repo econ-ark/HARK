@@ -1667,6 +1667,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
     if cycles > 0:
         T_age_max = T_seq - 1
         T_age = np.minimum(T_age_max, T_age)
+    try:
+        T_sim = agent.T_sim
+    except:
+        T_sim = 0  # very boring default!
 
     # Make and return the new simulator
     new_simulator = AgentSimulator(
@@ -1681,7 +1685,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
         types=types,
         N_agents=agent.AgentCount,
         T_total=T_seq,
-        T_sim=agent.T_sim,
+        T_sim=T_sim,
         T_age=T_age,
         stop_dead=stop_dead,
         replace_dead=replace_dead,

@@ -1443,6 +1443,16 @@ class AgentType(Model):
         """
         self._simulator.simulate(T)
         self.hystory = self._simulator.history
+        
+    def describe_model(self, display=True):
+        """
+        Print to screen information about this agent's model, based on its model
+        file. This is useful for learning about outcome variable names for tracking
+        during simulation, or for use with sequence space Jacobians.
+        """
+        if not hasattr(self, "_simulator"):
+            self.initialize_sym()
+        self._simulator.describe(display=display)
 
     def simulate(self, sim_periods=None):
         """
