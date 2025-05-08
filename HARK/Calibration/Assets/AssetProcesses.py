@@ -101,11 +101,11 @@ def combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn):
         shocks, and risky returns. Has one element per period of the agent's cycle.
     """
     # Create placeholder distributions
-    if hasattr(RiskyDstn, "__getitem__"):
+    try:
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn[t]) for t in range(T_cycle)
         ]
-    else:
+    except:
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn) for t in range(T_cycle)
         ]

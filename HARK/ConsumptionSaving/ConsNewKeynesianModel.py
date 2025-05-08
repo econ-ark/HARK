@@ -14,6 +14,7 @@ from scipy import sparse as sp
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    solve_one_period_ConsIndShock,
 )
 
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -111,12 +112,10 @@ class NewKeynesianConsumerType(IndShockConsumerType):
     the wage rate, and the labor income tax rate to enter the income shock process.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = init_newkeynesian.copy()
-        params.update(kwds)
-
-        # Run the basic initializer
-        super().__init__(verbose=verbose, quiet=quiet, **params)
+    default_ = {
+        "params": init_newkeynesian,
+        "solver": solve_one_period_ConsIndShock,
+    }
 
     def define_distribution_grid(
         self,
@@ -488,7 +487,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Use Harmenberg Measure
         self.neutral_measure = True
-        self.update_income_process()
+        self.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Non stochastic simuation
         self.define_distribution_grid()
@@ -587,14 +586,14 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         self.parameters[shk_param] = perturbed_list
 
         # Update income process if perturbed parameter enters the income shock distribution
-        FinHorizonAgent.update_income_process()
+        FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Solve the "finite horizon" model assuming that it ends back in steady state
         FinHorizonAgent.solve(presolve=False, from_solution=self.solution[0])
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
-        FinHorizonAgent.update_income_process()
+        FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Calculate Transition Matrices
         FinHorizonAgent.define_distribution_grid()
@@ -748,7 +747,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         ZerothColAgent.add_to_time_vary(shk_param)
 
         # Update income process if perturbed parameter enters the income shock distribution
-        ZerothColAgent.update_income_process()
+        ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Solve the "finite horizon" problem, again assuming that steady state comes
         # after the shocks
@@ -772,7 +771,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Use Harmenberg Neutral Measure
         ZerothColAgent.neutral_measure = True
-        ZerothColAgent.update_income_process()
+        ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Calculate Transition Matrices
         ZerothColAgent.define_distribution_grid()

@@ -536,14 +536,6 @@ def solve_one_period_ConsGenIncProcess(
 
 ###############################################################################
 
-pLvlPctiles = np.concatenate(
-    (
-        [0.001, 0.005, 0.01, 0.03],
-        np.linspace(0.05, 0.95, num=19),
-        [0.97, 0.99, 0.995, 0.999],
-    )
-)
-
 # Make a constructor dictionary for the general income process consumer type
 GenIncProcessConsumerType_constructors_default = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
@@ -591,7 +583,6 @@ GenIncProcessConsumerType_pLvlPctiles_default = {
 GenIncProcessConsumerType_pLvlGrid_default = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
-    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
     "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
 }
 
@@ -600,6 +591,7 @@ GenIncProcessConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": GenIncProcessConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
@@ -771,45 +763,25 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     simulation_default = GenIncProcessConsumerType_simulation_default
 
     state_vars = ["pLvl", "mLvl", "aLvl"]
-    default_params_ = GenIncProcessConsumerType_default
-
     model_ = "ConsGenIncProcess.yaml"
-
-    def __init__(self, **kwds):
-        params = self.default_params_.copy()
-        params.update(kwds)
-
-        # Initialize a basic ConsumerType
-        IndShockConsumerType.__init__(self, **params)
-        self.solve_one_period = solve_one_period_ConsGenIncProcess
-
-        # a poststate?
-        self.state_now["aLvl"] = None
-        self.state_prev["aLvl"] = None
-
-        # better way to do this...
-        self.state_now["mLvl"] = None
-        self.state_prev["mLvl"] = None
+    time_vary_ = IndShockConsumerType.time_vary_ + ["pLvlNextFunc", "pLvlGrid"]
+    default_ = {
+        "params": GenIncProcessConsumerType_default,
+        "solver": solve_one_period_ConsGenIncProcess,
+    }
 
     def pre_solve(self):
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
 
-    def update(self):
-        """
-        Update the income process, the assets grid, the persistent income grid,
-        and the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        super().update()
-        self.update_pLvlNextFunc()
-        self.update_pLvlGrid()
+    def update_income_process(self):
+        self.update(
+            "IncShkDstn",
+            "PermShkDstn",
+            "TranShkDstn",
+            "pLvlPctiles",
+            "pLvlNextFunc",
+            "pLvlGrid",
+        )
 
     def update_pLvlNextFunc(self):
         """
@@ -1180,7 +1152,10 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     solving_default = GenIncProcessConsumerType_solving_default
     simulation_default = GenIncProcessConsumerType_simulation_default
 
-    default_params_ = init_explicit_perm_inc
+    default_ = {
+        "params": init_explicit_perm_inc,
+        "solver": solve_one_period_ConsGenIncProcess,
+    }
 
 
 ###############################################################################
@@ -1374,4 +1349,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
     solving_default = PersistentShockConsumerType_solving_default
     simulation_default = PersistentShockConsumerType_simulation_default
 
-    default_params_ = PersistentShockConsumerType_default
+    default_ = {
+        "params": init_persistent_shocks,
+        "solver": solve_one_period_ConsGenIncProcess,
+    }

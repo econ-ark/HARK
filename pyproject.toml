@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 description = "Heterogenous Agents Resources & toolKit"
 keywords = ["economics", "modelling", "modeling", "heterogeneity"]
@@ -59,3 +60,8 @@ namespaces = false
 
 [tool.distutils.bdist_wheel]
 universal = 1
+
+[tool.ruff]
+include = ["*.ipynb"]
+[tool.ruff.lint]
+ignore = ["E731", "E721", "E402", "F841", "F821", "F405", "F403", "E722", "E741", "F811"]

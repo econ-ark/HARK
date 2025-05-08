@@ -718,417 +718,6 @@ def make_MedShock_solution_terminal(
 
 ###############################################################################
 
-# Make a constructor dictionary for the general income process consumer type
-medshock_constructor_dict = {
-    "IncShkDstn": construct_lognormal_income_process_unemployment,
-    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
-    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
-    "aXtraGrid": make_assets_grid,
-    "pLvlPctiles": make_basic_pLvlPctiles,
-    "pLvlGrid": make_pLvlGrid_by_simulation,
-    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
-    "MedShkDstn": make_lognormal_MedShkDstn,
-    "solution_terminal": make_MedShock_solution_terminal,
-}
-
-# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
-default_IncShkDstn_params = {
-    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
-    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
-    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb": 0.05,  # Probability of unemployment while working
-    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
-    "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
-    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-}
-
-# Default parameters to make aXtraGrid using make_assets_grid
-default_aXtraGrid_params = {
-    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
-    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 32,  # Number of points in the grid of "assets above minimum"
-    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
-}
-
-# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
-default_pLvlPctiles_params = {
-    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
-    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
-    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
-    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
-}
-
-# Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
-default_pLvlGrid_params = {
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
-    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
-    "pLvlExtra": [
-        0.0001
-    ],  # Additional permanent income points to automatically add to the grid, optional
-}
-
-# Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
-default_MedShkDstn_params = {
-    "MedShkAvg": [0.001],  # Average of medical need shocks
-    "MedShkStd": [5.0],  # Standard deviation of (log) medical need shocks
-    "MedShkCount": 5,  # Number of medical shock points in "body"
-    "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
-    "MedPrice": [1.5],  # Relative price of a unit of medical care
-}
-
-# Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
-default_pLvlNextFunc_params = {
-    "PermGroFac": [1.0],  # Permanent income growth factor
-    "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
-}
-
-# Make a dictionary to specify a medical shocks consumer type
-init_medical_shocks = {
-    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "cycles": 1,  # Finite, non-cyclic model
-    "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "constructors": medshock_constructor_dict,  # See dictionary above
-    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
-    "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
-    "Rfree": 1.03,  # Interest factor on retained assets
-    "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability after each period
-    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
-    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
-    "AgentCount": 10000,  # Number of agents of this type
-    "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
-    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
-    # (The portion of PermGroFac attributable to aggregate productivity growth)
-    "NewbornTransShk": False,  # Whether Newborns have transitory shock
-    # ADDITIONAL OPTIONAL PARAMETERS
-    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
-    # (Forces Newborns to follow solution path of the agent they replaced if True)
-    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
-}
-init_medical_shocks.update(default_IncShkDstn_params)
-init_medical_shocks.update(default_aXtraGrid_params)
-init_medical_shocks.update(default_pLvlPctiles_params)
-init_medical_shocks.update(default_pLvlGrid_params)
-init_medical_shocks.update(default_MedShkDstn_params)
-init_medical_shocks.update(default_pLvlNextFunc_params)
-
-
-class MedShockConsumerType(PersistentShockConsumerType):
-    r"""
-    A consumer type based on GenIncShockConsumerType, with two types of consumption goods (medical and nonmedical) and random shocks to medical utility.
-
-    .. math::
-        \begin{eqnarray*}
-        V_t(M_t,P_t, \text{medShk}_t) &=& \max_{C_t, med_t} U_t(C_t, med_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \text{medShk}_{t+1})], \\
-        A_t &=& M_t - X_t, \\
-        X_t &=& C_t +med_t \textbf{ medPrice}_t,\\
-        A_t/P_t &\geq& \underline{a}, \\
-        M_{t+1} &=& R A_t + \theta_{t+1}, \\
-        P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
-        (\psi_{t+1},\theta_{t+1},\text{medShk}_{t+1}) &\sim& F_{t+1}\\
-        U_t(C, med) &=& \frac{C^{1-\rho}}{1-\rho}+\text{ medShk}_t \frac{med^{1-\rho_{med}}}{1-\rho_{med}}.
-        \end{eqnarray*}
-
-
-    Constructors
-    ------------
-    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
-        The agent's income shock distributions.
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
-    aXtraGrid: Constructor
-        The agent's asset grid.
-
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
-    pLvlNextFunc: Constructor
-        An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
-    pLvlGrid: Constructor
-        The agent's pLvl grid
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
-    pLvlPctiles: Constructor
-        The agents income level percentile grid
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
-    MedShkDstn: Constructor, :math:`\text{medShk}`
-        The agent's Medical utility shock distribution.
-
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`
-
-    Solving Parameters
-    ------------------
-    cycles: int
-        0 specifies an infinite horizon model, 1 specifies a finite model.
-    T_cycle: int
-        Number of periods in the cycle for this agent type.
-    CRRA: float, :math:`\rho`
-        Coefficient of Relative Risk Aversion.
-    CRRAmed: float, :math:`\rho_{med}`
-        Coefficient of Relative Risk Aversion on Medical Care
-    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
-        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
-    DiscFac: float, :math:`\beta`
-        Intertemporal discount factor.
-    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
-        Survival probability after each period.
-    PermGroFac: list[float], time varying, :math:`\Gamma`
-        Permanent income growth factor.
-    BoroCnstArt: float, :math:`\underline{a}`
-        The minimum Asset/Perminant Income ratio, None to ignore.
-    vFuncBool: bool
-        Whether to calculate the value function during solution.
-    CubicBool: bool
-        Whether to use cubic spline interpoliation.
-
-    Simulation Parameters
-    ---------------------
-    AgentCount: int
-        Number of agents of this kind that are created during simulations.
-    T_age: int
-        Age after which to automatically kill agents, None to ignore.
-    T_sim: int, required for simulation
-        Number of periods to simulate.
-    track_vars: list[strings]
-        List of variables that should be tracked when running the simulation.
-        For this agent, the options are 'Med', 'MedShk', 'PermShk', 'TranShk', 'aLvl', 'cLvl', 'mLvl', 'pLvl', and 'who_dies'.
-
-        PermShk is the agent's permanent income shock
-
-        MedShk is the agent's medical utility shock
-
-        TranShk is the agent's transitory income shock
-
-        aLvl is the nominal asset level
-
-        cLvl is the nominal consumption level
-
-        Med is the nominal medical spending level
-
-        mLvl is the nominal market resources
-
-        pLvl is the permanent income level
-
-        who_dies is the array of which agents died
-    aNrmInitMean: float
-        Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
-        Std of Log initial Normalized Assets.
-    pLvlInitMean: float
-        Mean of Log initial permanent income.
-    pLvlInitStd: float
-        Std of Log initial permanent income.
-    PermGroFacAgg: float
-        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
-    PerfMITShk: boolean
-        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
-    NewbornTransShk: boolean
-        Whether Newborns have transitory shock.
-
-    Attributes
-    ----------
-    solution: list[Consumer solution object]
-        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
-        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
-
-        Unlike other models with this solution type, this model's variables are NOT normalized.
-        The solution functions additionally depend on the permanent income level and the medical shock.
-        For example, :math:`C=\text{cFunc}(M,P,MedShk)`.
-        hNrm has been replaced by hLvl which is a function of permanent income.
-        MPC max has not yet been implemented for this class. It will be a function of permanent income.
-
-        This solution has two additional functions
-        :math:`\text{Med}=\text{MedFunc}(M,P,\text{MedShk})`: returns the agent's spending on Medical care
-
-        :math:`[C,Med]=\text{policyFunc}(M,P,\text{MedShk})`: returns the agent's spending on consumption and Medical care as numpy arrays
-
-        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
-    history: Dict[Array]
-        Created by running the :func:`.simulate()` method.
-        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
-        Visit :class:`HARK.core.AgentType.simulate` for more information.
-    """
-
-    default_params_ = init_medical_shocks
-    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
-    state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
-
-    def __init__(self, **kwds):
-        params = self.default_params_.copy()
-        params.update(kwds)
-
-        AgentType.__init__(self, **params)
-        self.time_vary = deepcopy(self.time_vary_)
-        self.time_inv = deepcopy(self.time_inv_)
-        self.shock_vars = deepcopy(self.shock_vars_)
-
-        self.solve_one_period = solve_one_period_ConsMedShock
-        self.add_to_time_inv("CRRAmed")
-        self.add_to_time_vary("MedPrice")
-        self.update()
-
-        self.state_now["aLvl"] = None
-        self.state_prev["aLvl"] = None
-        self.state_now["mLvl"] = None
-        self.state_prev["mLvl"] = None
-
-    def pre_solve(self):
-        self.update_solution_terminal()
-
-    def update(self):
-        """
-        Update the income process, the assets grid, the permanent income grid,
-        the medical shock distribution, and the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.update_Rfree()
-        self.update_income_process()
-        self.update_assets_grid()
-        self.update_pLvlNextFunc()
-        self.update_pLvlGrid()
-        self.update_med_shock_process()
-        self.update_solution_terminal()
-
-    def update_med_shock_process(self):
-        """
-        Constructs discrete distributions of medical preference shocks for each
-        period in the cycle.  Distributions are saved as attribute MedShkDstn,
-        which is added to time_vary.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("MedShkDstn")
-        self.add_to_time_vary("MedShkDstn")
-
-    def reset_rng(self):
-        """
-        Reset the RNG behavior of this type.  This method is called automatically
-        by initialize_sim(), ensuring that each simulation run uses the same sequence
-        of random shocks; this is necessary for structural estimation to work.
-        This method extends PersistentShockConsumerType.reset_rng() to also reset
-        elements of MedShkDstn.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        PersistentShockConsumerType.reset_rng(self)
-
-        # Reset MedShkDstn if it exists (it might not because reset_rng is called at init)
-        if hasattr(self, "MedShkDstn"):
-            for dstn in self.MedShkDstn:
-                dstn.reset()
-
-    def get_shocks(self):
-        """
-        Gets permanent and transitory income shocks for this period as well as medical need shocks
-        and the price of medical care.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        PersistentShockConsumerType.get_shocks(
-            self
-        )  # Get permanent and transitory income shocks
-        MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
-        # Initialize relative price array
-        MedPriceNow = np.zeros(self.AgentCount)
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-            N = np.sum(these)
-            if N > 0:
-                MedShkNow[these] = self.MedShkDstn[t].draw(N)
-                MedPriceNow[these] = self.MedPrice[t]
-        self.shocks["MedShk"] = MedShkNow
-        self.shocks["MedPrice"] = MedPriceNow
-
-    def get_controls(self):
-        """
-        Calculates consumption and medical care for each consumer of this type using the consumption
-        and medical care functions.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        cLvlNow = np.zeros(self.AgentCount) + np.nan
-        MedNow = np.zeros(self.AgentCount) + np.nan
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-            cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
-                self.state_now["mLvl"][these],
-                self.state_now["pLvl"][these],
-                self.shocks["MedShk"][these],
-            )
-        self.controls["cLvl"] = cLvlNow
-        self.controls["Med"] = MedNow
-        return None
-
-    def get_poststates(self):
-        """
-        Calculates end-of-period assets for each consumer of this type.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.state_now["aLvl"] = (
-            self.state_now["mLvl"]
-            - self.controls["cLvl"]
-            - self.shocks["MedPrice"] * self.controls["Med"]
-        )
-
-        # moves now to prev
-        AgentType.get_poststates(self)
-
-        return None
-
-
-###############################################################################
-
 
 def solve_one_period_ConsMedShock(
     solution_next,
@@ -1606,3 +1195,361 @@ def solve_one_period_ConsMedShock(
     solution_now.MedFunc = MedFuncNow
     solution_now.policyFunc = policyFuncNow
     return solution_now
+
+
+###############################################################################
+
+# Make a constructor dictionary for the general income process consumer type
+medshock_constructor_dict = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
+    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
+    "MedShkDstn": make_lognormal_MedShkDstn,
+    "solution_terminal": make_MedShock_solution_terminal,
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+default_IncShkDstn_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+default_aXtraGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 32,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+default_pLvlPctiles_params = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
+# Default parameters to make pLvlGrid using make_trivial_pLvlNextFunc
+default_pLvlGrid_params = {
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
+    "pLvlExtra": [
+        0.0001
+    ],  # Additional permanent income points to automatically add to the grid, optional
+}
+
+# Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
+default_MedShkDstn_params = {
+    "MedShkAvg": [0.001],  # Average of medical need shocks
+    "MedShkStd": [5.0],  # Standard deviation of (log) medical need shocks
+    "MedShkCount": 5,  # Number of medical shock points in "body"
+    "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
+    "MedPrice": [1.5],  # Relative price of a unit of medical care
+}
+
+# Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
+default_pLvlNextFunc_params = {
+    "PermGroFac": [1.0],  # Permanent income growth factor
+    "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
+}
+
+# Make a dictionary to specify a medical shocks consumer type
+init_medical_shocks = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "constructors": medshock_constructor_dict,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
+    "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
+    "Rfree": 1.03,  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "aNrmInitMean": 0.0,  # Mean of log initial assets
+    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
+    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+init_medical_shocks.update(default_IncShkDstn_params)
+init_medical_shocks.update(default_aXtraGrid_params)
+init_medical_shocks.update(default_pLvlPctiles_params)
+init_medical_shocks.update(default_pLvlGrid_params)
+init_medical_shocks.update(default_MedShkDstn_params)
+init_medical_shocks.update(default_pLvlNextFunc_params)
+
+
+class MedShockConsumerType(PersistentShockConsumerType):
+    r"""
+    A consumer type based on GenIncShockConsumerType, with two types of consumption goods (medical and nonmedical) and random shocks to medical utility.
+
+    .. math::
+        \begin{eqnarray*}
+        V_t(M_t,P_t, \text{medShk}_t) &=& \max_{C_t, med_t} U_t(C_t, med_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \text{medShk}_{t+1})], \\
+        A_t &=& M_t - X_t, \\
+        X_t &=& C_t +med_t \textbf{ medPrice}_t,\\
+        A_t/P_t &\geq& \underline{a}, \\
+        M_{t+1} &=& R A_t + \theta_{t+1}, \\
+        P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1},\text{medShk}_{t+1}) &\sim& F_{t+1}\\
+        U_t(C, med) &=& \frac{C^{1-\rho}}{1-\rho}+\text{ medShk}_t \frac{med^{1-\rho_{med}}}{1-\rho_{med}}.
+        \end{eqnarray*}
+
+
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+
+        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+    pLvlNextFunc: Constructor
+        An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
+    pLvlGrid: Constructor
+        The agent's pLvl grid
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
+    pLvlPctiles: Constructor
+        The agents income level percentile grid
+
+        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
+    MedShkDstn: Constructor, :math:`\text{medShk}`
+        The agent's Medical utility shock distribution.
+
+        It's default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    CRRAmed: float, :math:`\rho_{med}`
+        Coefficient of Relative Risk Aversion on Medical Care
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+    BoroCnstArt: float, :math:`\underline{a}`
+        The minimum Asset/Perminant Income ratio, None to ignore.
+    vFuncBool: bool
+        Whether to calculate the value function during solution.
+    CubicBool: bool
+        Whether to use cubic spline interpoliation.
+
+    Simulation Parameters
+    ---------------------
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'Med', 'MedShk', 'PermShk', 'TranShk', 'aLvl', 'cLvl', 'mLvl', 'pLvl', and 'who_dies'.
+
+        PermShk is the agent's permanent income shock
+
+        MedShk is the agent's medical utility shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        cLvl is the nominal consumption level
+
+        Med is the nominal medical spending level
+
+        mLvl is the nominal market resources
+
+        pLvl is the permanent income level
+
+        who_dies is the array of which agents died
+    aNrmInitMean: float
+        Mean of Log initial Normalized Assets.
+    aNrmInitStd: float
+        Std of Log initial Normalized Assets.
+    pLvlInitMean: float
+        Mean of Log initial permanent income.
+    pLvlInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Unlike other models with this solution type, this model's variables are NOT normalized.
+        The solution functions additionally depend on the permanent income level and the medical shock.
+        For example, :math:`C=\text{cFunc}(M,P,MedShk)`.
+        hNrm has been replaced by hLvl which is a function of permanent income.
+        MPC max has not yet been implemented for this class. It will be a function of permanent income.
+
+        This solution has two additional functions
+        :math:`\text{Med}=\text{MedFunc}(M,P,\text{MedShk})`: returns the agent's spending on Medical care
+
+        :math:`[C,Med]=\text{policyFunc}(M,P,\text{MedShk})`: returns the agent's spending on consumption and Medical care as numpy arrays
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
+    """
+
+    default_ = {"params": init_medical_shocks, "solver": solve_one_period_ConsMedShock}
+
+    time_vary_ = PersistentShockConsumerType.time_vary_ + ["MedPrice", "MedShkDstn"]
+    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed"]
+    shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
+    state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
+
+    def pre_solve(self):
+        self.construct("solution_terminal")
+
+    def reset_rng(self):
+        """
+        Reset the RNG behavior of this type.  This method is called automatically
+        by initialize_sim(), ensuring that each simulation run uses the same sequence
+        of random shocks; this is necessary for structural estimation to work.
+        This method extends PersistentShockConsumerType.reset_rng() to also reset
+        elements of MedShkDstn.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        PersistentShockConsumerType.reset_rng(self)
+
+        # Reset MedShkDstn if it exists (it might not because reset_rng is called at init)
+        if hasattr(self, "MedShkDstn"):
+            for dstn in self.MedShkDstn:
+                dstn.reset()
+
+    def get_shocks(self):
+        """
+        Gets permanent and transitory income shocks for this period as well as medical need shocks
+        and the price of medical care.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        PersistentShockConsumerType.get_shocks(
+            self
+        )  # Get permanent and transitory income shocks
+        MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
+        # Initialize relative price array
+        MedPriceNow = np.zeros(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            N = np.sum(these)
+            if N > 0:
+                MedShkNow[these] = self.MedShkDstn[t].draw(N)
+                MedPriceNow[these] = self.MedPrice[t]
+        self.shocks["MedShk"] = MedShkNow
+        self.shocks["MedPrice"] = MedPriceNow
+
+    def get_controls(self):
+        """
+        Calculates consumption and medical care for each consumer of this type using the consumption
+        and medical care functions.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        cLvlNow = np.zeros(self.AgentCount) + np.nan
+        MedNow = np.zeros(self.AgentCount) + np.nan
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
+                self.state_now["mLvl"][these],
+                self.state_now["pLvl"][these],
+                self.shocks["MedShk"][these],
+            )
+        self.controls["cLvl"] = cLvlNow
+        self.controls["Med"] = MedNow
+        return None
+
+    def get_poststates(self):
+        """
+        Calculates end-of-period assets for each consumer of this type.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        self.state_now["aLvl"] = (
+            self.state_now["mLvl"]
+            - self.controls["cLvl"]
+            - self.shocks["MedPrice"] * self.controls["Med"]
+        )
+
+        # moves now to prev
+        AgentType.get_poststates(self)
+
+        return None

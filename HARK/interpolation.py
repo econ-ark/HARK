@@ -664,9 +664,9 @@ class IdentityFunction(MetricObject):
         if self.n_dims >= 4:
             j = 0
         else:
-            assert (
-                False
-            ), "Derivative with respect to W can't be called when n_dims < 4!"
+            assert False, (
+                "Derivative with respect to W can't be called when n_dims < 4!"
+            )
         if self.i_dim == j:
             return np.ones_like(args[0])
         else:

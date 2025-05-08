@@ -25,6 +25,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     make_simple_ShareGrid,
+    make_AdjustDstn,
 )
 from HARK.distributions import expected
 from HARK.interpolation import (
@@ -1013,6 +1014,7 @@ PortfolioConsumerType_constructors_default = {
     "ShockDstn": combine_IncShkDstn_and_RiskyDstn,
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
+    "AdjustDstn": make_AdjustDstn,
     "solution_terminal": make_portfolio_solution_terminal,
 }
 
@@ -1062,6 +1064,9 @@ PortfolioConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
+    "PortfolioBool": True,  # Whether there is actually portfolio choice
+    "PortfolioBisect": False,  # What does this do?
+    "IndepDstnBool": True,  # Whether return and income shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
@@ -1236,22 +1241,15 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     RiskyDstn_default = PortfolioConsumerType_RiskyDstn_default
     solving_default = PortfolioConsumerType_solving_default
     simulation_default = PortfolioConsumerType_simulation_default
+
     model_ = "ConsPortfolio.yaml"
+    default_ = {
+        "params": PortfolioConsumerType_default,
+        "solver": solve_one_period_ConsPortfolio,
+    }
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["AdjustPrb", "DiscreteShareBool"]
-
-    def __init__(self, verbose=False, quiet=False, **kwds):
-        params = PortfolioConsumerType_default.copy()
-        params.update(kwds)
-        kwds = params
-        self.PortfolioBool = True
-
-        # Initialize a basic consumer type
-        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **kwds)
-
-        # Set the solver for the portfolio model, and update various constructed attributes
-        self.solve_one_period = solve_one_period_ConsPortfolio
+    time_inv_ = time_inv_ + ["DiscreteShareBool"]
 
     def initialize_sim(self):
         """

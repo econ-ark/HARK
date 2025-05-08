@@ -2,17 +2,15 @@ exclude: Documentation/example_notebooks/
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.2
+    rev: v0.11.8
     hooks:
       - id: ruff
-        types_or: [ python, pyi, jupyter ]
         args:
           - --fix
       - id: ruff-format
-        types_or: [ python, pyi, jupyter ]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
