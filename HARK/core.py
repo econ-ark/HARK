@@ -1443,7 +1443,7 @@ class AgentType(Model):
         """
         self._simulator.simulate(T)
         self.hystory = self._simulator.history
-        
+
     def describe_model(self, display=True):
         """
         Print to screen information about this agent's model, based on its model
