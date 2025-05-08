@@ -1179,7 +1179,6 @@ class PerfForesightConsumerType(AgentType):
         "solver": solve_one_period_ConsPF,
     }
 
-
     # Define some universal values for all consumer types
     cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
     vFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 0.0])  # This is overwritten
@@ -2849,7 +2848,7 @@ class KinkedRconsumerType(IndShockConsumerType):
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]
-    
+
     def calc_bounding_values(self):
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite

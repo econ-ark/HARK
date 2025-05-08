@@ -179,7 +179,6 @@ def solve_one_period_ConsPrefShock(
     PrefShkPrbs = PrefShkDstn.pmv
     PrefShkVals = PrefShkDstn.atoms.flatten()
 
-
     # Calculate the probability that we get the worst possible income draw
     IncNext = PermShkValsNext * TranShkValsNext
     WorstIncNext = PermShkMinNext * TranShkMinNext
