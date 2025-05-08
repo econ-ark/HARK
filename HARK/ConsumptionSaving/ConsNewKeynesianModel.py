@@ -551,9 +551,6 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         # Create instance of a finite horizon agent
         FinHorizonAgent = NewKeynesianConsumerType(**params)
 
-        # Set Terminal Solution as Steady State Solution
-        FinHorizonAgent.solution_terminal = deepcopy(self.solution[0])
-
         dx = 0.0001  # Size of perturbation
         # Period in which the change in the interest rate occurs (second to last period)
         i = params["T_cycle"] - 1
@@ -583,8 +580,8 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         # Update income process if perturbed parameter enters the income shock distribution
         FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
-        # Solve the "finite horizon" model, but don't re-solve the terminal period!
-        FinHorizonAgent.solve(presolve=False)
+        # Solve the "finite horizon" model assuming that it ends back in steady state
+        FinHorizonAgent.solve(presolve=False, from_solution=self.solution[0])
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
@@ -736,7 +733,6 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Create instance of a finite horizon agent for calculation of zeroth
         ZerothColAgent = NewKeynesianConsumerType(**params)
-        ZerothColAgent.solution_terminal = deepcopy(self.solution[0])
 
         # If parameter is in time invariant list then add it to time vary list
         ZerothColAgent.del_from_time_inv(shk_param)
@@ -745,9 +741,9 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         # Update income process if perturbed parameter enters the income shock distribution
         ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
-        # Solve the "finite horizon" problem, but *don't* re-solve the "terminal period",
-        # because we're using the long run solution as the "terminal" solution here!
-        ZerothColAgent.solve(presolve=False)
+        # Solve the "finite horizon" problem, again assuming that steady state comes
+        # after the shocks
+        ZerothColAgent.solve(presolve=False, from_solution=self.solution[0])
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:

@@ -373,9 +373,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         if var_names is None:
             var_names = ["var_" + str(i) for i in range(n_var)]
 
-        assert (
-            len(var_names) == n_var
-        ), "Number of variable names does not match number of variables."
+        assert len(var_names) == n_var, (
+            "Number of variable names does not match number of variables."
+        )
 
         # give dummy attributes to variables if none are provided
         if var_attrs is None:
