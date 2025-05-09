@@ -1268,6 +1268,7 @@ class AgentSimulator:
             block.make_transition_matrices(
                 grid_specs_other, twist=self.twist, norm=norm
             )
+            block.reset()
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [block.trans_array for block in self.periods]
@@ -3159,10 +3160,11 @@ def make_basic_SSJ_matrices(
     # Reset the agent to its original state and return the output
     agent.solution = [LR_soln]
     agent.cycles = 0
+    agent._simulator.reset()
     try:
         agent._simulator = simulator_backup
     except:
-        pass
+        del agent._simulator
     if no_list:
         return SSJ[0]
     else:
