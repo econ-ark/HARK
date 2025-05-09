@@ -163,6 +163,55 @@ class ModelEvent:
         # Send the new origins array back to the calling process
         return origins_new
 
+    def add_idiosyncratic_bernoulli_info(self, origins, probs):
+        """
+        Special method for adding Bernoulli outcomes to the information set when
+        probabilities are idiosyncratic to each agent. All extant blobs are duplicated
+        with the appropriate probability
+
+        Parameters
+        ----------
+        origins : np.array
+            Array that tracks which arrival state space node each blob originated
+            from. This is expanded into origins_new, which is returned.
+        probs : np.array
+            Vector of probabilities of drawing True for each blob.
+
+        Returns
+        -------
+        origins_new : np.array
+            Expanded boolean array of indicating the arrival state space node that
+            each blob originated from.
+        """
+        N = self.N
+
+        # # Update probabilities of outcomes, replicating each one
+        pmv_old = np.reshape(self.data["pmv_"], (N, 1))
+        P = np.reshape(probs, (N, 1))
+        PX = np.concatenate([1.0 - P, P], axis=1)
+        pmv_new = (pmv_old * PX).flatten()
+        self.data["pmv_"] = pmv_new
+
+        # Replicate the pre-existing data for each atom
+        for var in self.data.keys():
+            if (var == "pmv_") or (var in self.assigns):
+                continue  # don't double expand pmv, and don't touch assigned variables
+            data_old = np.reshape(self.data[var], (N, 1))
+            data_new = np.tile(data_old, (1, 2)).flatten()
+            self.data[var] = data_new
+
+        # Add the (one and only) new random variable to the simulation data
+        var = self.assigns[0]
+        data_new = np.tile(np.array([[0, 1]]), (N, 1)).flatten()
+        self.data[var] = data_new
+
+        # Expand the origins array to account for the new replicates
+        origins_new = np.tile(np.reshape(origins, (N, 1)), (1, 2)).flatten()
+        self.N = N * 2
+
+        # Send the new origins array back to the calling process
+        return origins_new
+
 
 @dataclass(kw_only=True)
 class DynamicEvent(ModelEvent):
@@ -290,9 +339,9 @@ class RandomIndexedEvent(RandomEvent):
     def quasi_run(self, origins, norm=None):
         origins_new = origins.copy()
         J = len(self.dstn)
-        idx = self.data[self.index]
 
         for j in range(J):
+            idx = self.data[self.index]
             these = idx == j
 
             # Get distribution
@@ -403,27 +452,33 @@ class MarkovEvent(ModelEvent):
 
         # If it's a Markov matrix:
         if self.index:
-            idx = self.data[self.index]
             K = probs.shape[0]
-            atoms = np.arange(probs.shape[1], dtype=int)
+            atoms = np.array([np.arange(probs.shape[1], dtype=int)])
             origins_new = origins.copy()
             for k in range(K):
+                idx = self.data[self.index]
                 these = idx == k
-                probs = probs[k, :]
+                probs_temp = probs[k, :]
                 origins_new = self.expand_information(
-                    origins, probs, atoms, which=these
+                    origins_new, probs_temp, atoms, which=these
                 )
+            return origins_new
 
         # If it's a stochastic vector:
         if (isinstance(probs, np.ndarray)) and (probs_are_param):
-            atoms = np.arange(probs.shape[0], dtype=int)
+            atoms = np.array([np.arange(probs.shape[0], dtype=int)])
             origins_new = self.expand_information(origins, probs, atoms)
             return origins_new
 
-        # Otherwise, this is just a Bernoulli RV
-        P = probs
-        atoms = np.array([[False, True]])
-        origins_new = self.expand_information(origins, np.array([1 - P, P]), atoms)
+        # Otherwise, this is just a Bernoulli RV, but it might have idiosyncratic probability
+        if probs_are_param:
+            P = probs
+            atoms = np.array([[False, True]])
+            origins_new = self.expand_information(origins, np.array([1 - P, P]), atoms)
+            return origins_new
+
+        # Final case: probability is idiosyncratic Bernoulli
+        origins_new = self.add_idiosyncratic_bernoulli_info(origins, probs)
         return origins_new
 
 
@@ -693,6 +748,7 @@ class SimBlock:
 
         # Now project the final results onto the output or result grids
         N = self.N
+        J = state_meshes[0].size
         matrices_out = {}
         cont_idx = {}
         cont_alpha = {}
@@ -707,10 +763,15 @@ class SimBlock:
             grid = grids_out[var]
             vals = self.data[var]
             pmv = self.data["pmv_"]
-            J = state_meshes[0].size
+            M = grid.size if grid is not None else 0
+
+            # Semi-hacky fix to deal with omitted arrival variables
+            if (M == 1) and (vals.dtype is np.dtype(np.float64)):
+                grid = grid.astype(float)
+                grids_out[var] = grid
+                grid_out_is_continuous[k] = True
 
             if grid_out_is_continuous[k]:
-                M = grid.size
                 # Split the final values among discrete gridpoints on the interior.
                 # NB: This will only work properly if the grid is equispaced
                 if M > 1:
@@ -787,7 +848,7 @@ class SimBlock:
         # Make a vector of dimensional offsets from the base index
         dim_offsets = np.ones(D, dtype=int)
         for d in range(D - 1):
-            dim_offsets[d] = np.prod(shape[(d - 2) :])
+            dim_offsets[d] = np.prod(shape[(d + 2) :])
         dim_offsets_X = np.tile(dim_offsets, (2**C, 1))
         offsets = np.sum(bin_array * dim_offsets_X, axis=1)
 
@@ -2981,9 +3042,9 @@ def make_basic_SSJ_matrices(
     if construct:
         agent.update()
     agent.solve(from_solution=LR_soln)
-    Tm1_soln = deepcopy(agent.solution[0])
     agent.initialize_sym()
-    agent._simulator.make_transition_matrices(grids, norm, fake_news_timing=True)
+    Tm1_soln = deepcopy(agent.solution[0])
+    period_Tm1 = agent._simulator.periods[-1]
     t1 = time()
     if verbose:
         print(
@@ -3014,6 +3075,7 @@ def make_basic_SSJ_matrices(
     t0 = time()
     agent.initialize_sym()
     X = agent._simulator  # for easier typing
+    X.periods[-1] = period_Tm1  # substitute period T-1 from above
     X.make_transition_matrices(grids, norm, fake_news_timing=True)
     TmX_trans = deepcopy(X.trans_arrays)
     TmX_outcomes = []
