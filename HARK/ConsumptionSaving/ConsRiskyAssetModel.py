@@ -180,6 +180,7 @@ IndShockRiskyAssetConsumerType_solving_default = {
     # TODO: This is not used in this file and should be moved to ConsPortfolioModel.py
     "PortfolioBool": False,  # Whether this instance can choose portfolio shares
     "PortfolioBisect": False,  # What does this do?
+    "pseudo_terminal": False,
 }
 IndShockRiskyAssetConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -365,6 +366,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     solving_default = IndShockRiskyAssetConsumerType_solving_default
     simulation_default = IndShockRiskyAssetConsumerType_simulation_default  # So sphinx documents defaults
     default_ = {"params": IndShockRiskyAssetConsumerType_default, "solver": NullFunc()}
+    model_ = "ConsRiskyAsset.yaml"
 
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "PortfolioBisect",

@@ -1,0 +1,50 @@
+name: ConsRiskyAsset
+description: >-
+  Consumption-saving model with permanent and transitory income risk and asset
+  allocation between a risk-free asset and a (higher return) risky asset. In
+  this simple model, asset returns happen at the *end* of a period.
+symbols:
+  variables:
+    - kNrm!              \\ beginning of period wealth, normalized by p_{t-1}
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - Risky              \\ realized return factor on risky assets
+    - Rport              \\ realized return factor on portfolio
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - Share              \\ share of wealth allocated to risky assets this period
+    - aNrm               \\ normalized end-of-period assets
+    - qNrm               \\ normalized risky asset holdings
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - PermGroFac+        \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+  functions:
+    - cFunc*             \\ consumption function over market resources
+    - ShareFunc*         \\ risky share function over market resource
+  distributions:
+    - ShockDstn+         \\ joint distribution of permanent, transitory, and return shocks
+initialize: |
+  pLvlPrev = 1.                             \\ set initial permanent income to one
+  kNrm = 0.                                 \\ set initial capital holdings to zero
+dynamics: |
+  (PermShk, TranShk, Risky) ~ ShockDstn     \\ draw shocks from joint distribution
+  yNrm   = TranShk                          \\ normalized income is the transitory shock
+  G      = PermGroFac * PermShk             \\ calculate permanent income growth
+  pLvl   = pLvlPrev * G                     \\ update permanent income level
+  bNrm   = kNrm / G                         \\ calculate normalized bank balances
+  mNrm   = bNrm + yNrm                      \\ calculate normalized market resources
+  cNrm   = cFunc@(mNrm)                     \\ evaluate consumption when share is fixed
+  Share  = ShareFunc@(mNrm)                 \\ evaluate risky share when it is fixed
+  wNrm   = mNrm - cNrm                      \\ calculate wealth after consumption
+  Rport  = Rfree + (Risky-Rfree)*Share      \\ calculate realized portfolio return
+  aNrm   = Rport * wNrm                     \\ calculate end-of-period assets
+  qNrm   = aNrm * Share                     \\ calculate risky asset holdings
+  live   ~ {LivPrb}                         \\ draw survival
+  dead   = 1 - live                         \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
