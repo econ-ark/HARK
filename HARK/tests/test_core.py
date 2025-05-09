@@ -183,12 +183,6 @@ class test_agent_population(unittest.TestCase):
         self.assertEqual(len(self.agent_pop.agents), 12)
 
 
-import pytest
-import numpy as np
-from HARK.distributions import Uniform
-from HARK.core import Parameters
-
-
 @pytest.fixture
 def sample_params():
     return Parameters(a=1, b=[2, 3, 4], c=5.0, d=[6.0, 7.0, 8.0], T_cycle=3)
@@ -270,6 +264,7 @@ class TestSolveFrom(unittest.TestCase):
                 "LivPrb": [0.95, 0.9, 0.85],
                 "TranShkStd": [0.1] * 3,
                 "PermShkStd": [0.1] * 3,
+                "Rfree": [1.02] * 3,
             }
         )
 

@@ -11,7 +11,7 @@ from HARK.tests import HARK_PRECISION
 
 GenIncDictionary = {
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on assets
+    "Rfree": [1.03],  # Interest factor on assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability
     "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)

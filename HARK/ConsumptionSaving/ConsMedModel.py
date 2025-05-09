@@ -1277,7 +1277,7 @@ init_medical_shocks = {
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
     "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
