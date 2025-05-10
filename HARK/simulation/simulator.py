@@ -2201,10 +2201,10 @@ def make_new_dynamic(statement, info):
             exec(_var + " = IndexedBase('" + _var + "')")
         else:
             exec(_var + " = symbols('" + _var + "')")
-        _args.append(eval(_var))
+        _args.append(symbols(_var))
 
     # Make a SymPy expression, then lambdify it
-    sympy_expr = eval(rhs)
+    sympy_expr = symbols(rhs)
     expr = lambdify(_args, sympy_expr)
 
     # Make an overall list of object names referenced in this event
