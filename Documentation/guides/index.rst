@@ -7,6 +7,7 @@ Guides
 
    quick_start
    installation
+   simulation
 
 .. toctree::
    :caption: Development
