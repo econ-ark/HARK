@@ -508,7 +508,7 @@ LaborIntMargConsumerType_solving_default = {
     "constructors": LaborIntMargConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -903,6 +903,7 @@ init_labor_lifecycle["WageRte"] = [
     1.0,
     1.0,
 ]  # Wage rate in a lifecycle
+init_labor_lifecycle["Rfree"] = 10 * [1.03]
 # Assume labor cost coeffs is a polynomial of degree 1
 init_labor_lifecycle["LbrCostCoeffs"] = np.array([-2.0, 0.4])
 init_labor_lifecycle["T_cycle"] = 10

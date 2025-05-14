@@ -820,7 +820,7 @@ class AgentType(Model):
         **kwds,
     ):
         super().__init__()
-        params = self.default_["params"].copy()
+        params = deepcopy(self.default_["params"])
         params.update(kwds)
 
         if solution_terminal is None:

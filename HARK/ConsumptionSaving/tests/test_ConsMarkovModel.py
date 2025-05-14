@@ -61,7 +61,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         init_serial_unemployment["UnempPrb"] = np.zeros(2)
         # Income process is overwritten below to make income distribution when employed
         init_serial_unemployment["global_markov"] = False
-        init_serial_unemployment["Rfree"] = np.array([1.03, 1.03, 1.03, 1.03])
+        init_serial_unemployment["Rfree"] = [np.array([1.03, 1.03, 1.03, 1.03])]
         init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
         init_serial_unemployment["PermGroFac"] = [np.array([1.01, 1.01, 1.01, 1.01])]
         init_serial_unemployment["constructors"]["MrkvArray"] = None
@@ -92,10 +92,10 @@ class test_ConsMarkovSolver(unittest.TestCase):
 
     def test_check_markov_inputs(self):
         # check Rfree
-        self.model.Rfree = 1.03
+        self.model.Rfree = [1.03]
         self.assertRaises(ValueError, self.model.check_markov_inputs)
         # fix Rfree
-        self.model.Rfree = np.array(4 * [self.model.Rfree])
+        self.model.Rfree = [np.array(4 * self.model.Rfree)]
         # check MrkvArray, first mess up the setup
         self.MrkvArray = self.model.MrkvArray
         self.model.MrkvArray = np.random.rand(3, 3)
@@ -130,7 +130,7 @@ Markov_Dict = {
     # Parameters shared with the perfect foresight model
     # Coefficient of relative risk aversion
     "CRRA": 2,
-    "Rfree": np.array([1.05**0.25] * 2),  # Interest factor on assets
+    "Rfree": [np.array([1.05**0.25] * 2)],  # Interest factor on assets
     "DiscFac": 0.985,  # Intertemporal discount factor
     "LivPrb": [np.array([0.99375] * 2)],  # Survival probability
     # Permanent income growth factor

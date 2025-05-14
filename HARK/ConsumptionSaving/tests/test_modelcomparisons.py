@@ -47,7 +47,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         test_dictionary["UnempPrb"] = 0.0
         test_dictionary["T_cycle"] = 1
         test_dictionary["T_retire"] = 0
-        test_dictionary["BoroCnstArt"] = None
+        test_dictionary["BoroCnstArt"] = 0.0
 
         InfiniteType = IndShockConsumerType(**test_dictionary)
         InfiniteType.cycles = 0
@@ -79,7 +79,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
                 m
             ) - self.InfiniteType.cFunc[0](m)
 
-        points = np.arange(0.5, mNrmMinInf + aXtraMin, mNrmMinInf + aXtraMax)
+        points = np.arange(0.5, mNrmMinInf + aXtraMax, mNrmMinInf + aXtraMin)
         difference = diffFunc(points)
         max_difference = np.max(np.abs(difference))
 
@@ -110,7 +110,7 @@ class Compare_TBS_and_Markov(unittest.TestCase):
         # Set up and solve Markov
         Markov_primitives = {
             "CRRA": base_primitives["CRRA"],
-            "Rfree": np.array(2 * [base_primitives["Rfree"]]),
+            "Rfree": [np.array(2 * [base_primitives["Rfree"]])],
             "PermGroFac": [
                 np.array(
                     [

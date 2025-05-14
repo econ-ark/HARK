@@ -1169,7 +1169,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
 
             # Add mNrmStE to the solution and return it
             consumer_solution.mNrmStE = _add_mNrmStENumba(
-                self.Rfree,
+                self.Rfree[i],
                 self.PermGroFac[i],
                 solution.mNrm,
                 solution.cNrm,
@@ -1294,7 +1294,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     # Add mNrmStE to the solution and return it
                     consumer_solution.mNrmStE = _add_mNrmStEIndNumba(
                         self.PermGroFac[j],
-                        self.Rfree,
+                        self.Rfree[j],
                         solution.Ex_IncNext,
                         solution.mNrmMin,
                         solution.mNrm,

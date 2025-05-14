@@ -12,14 +12,20 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBD
 
-### Major Changes
+The most likely code-breaking change in this release is the reorganization of `HARK.distribution`. If your project code tells you that it can't find the module `HARK.distribution`, just change the import name to `HARK.distributions` (note the plural s). The items listed as "Developmental Features" are an independent system that is not connected to HARK's existing model structure.
+
+#### Major Changes
+
+- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
+- Regularizes `AgentType` initialization methods and moves all constructed model objects to `constructors` [#1529](https://github.com/econ-ark/HARK/pull/1529) and [#1530](https://github.com/econ-ark/HARK/pull/1529)
+
+#### Developmental Features
 
 - Adds a discretize method to DBlocks and RBlocks [#1460](https://github.com/econ-ark/HARK/pull/1460)
 - Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Allows construction of shocks with arguments based on mathematical expressions [#1464](https://github.com/econ-ark/HARK/pull/1464)
 - YAML configuration file for the normalized consumption and portolio choice [#1465](https://github.com/econ-ark/HARK/pull/1465)
-- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
 
 #### Minor Changes
 
@@ -28,12 +34,13 @@ Release Date: TBD
 - Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [#1473](https://github.com/econ-ark/HARK/pull/1473)
 - Adds income process constructor for the discrete Markov state consumption-saving model. [#1484](https://github.com/econ-ark/HARK/pull/1484)
 - Changes the behavior of make_lognormal_RiskyDstn so that the standard deviation represents the standard deviation of log(returns)
-- Adds detailed parameter and LaTeX documentation to most models.
-- Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [#1489](https://github.com/econ-ark/HARK/pull/1489)
-- Suppress warning from calc_stable_points when it would be raised by inapplicable AgentType subclasses. [#1493](https://github.com/econ-ark/HARK/pull/1493)
-- Fixes notation errors in IndShockConsumerType.make_euler_error_func from prior changes. [#1495](https://github.com/econ-ark/HARK/pull/1495)
-- Fixes typos in IdentityFunction interpolator class. [#1492](https://github.com/econ-ark/HARK/pull/1492)
-- Expands functionality of Cobb-Douglas aggregator for CRRA utility. [#1363](https://github.com/econ-ark/HARK/pull/1363)
+- Adds detailed parameter and latex documentation to most models.
+- Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [1489](https://github.com/econ-ark/HARK/pull/1489)
+- Suppress warning from calc_stable_points when it would be raised by inapplicable AgentType subclasses. [1493](https://github.com/econ-ark/HARK/pull/1493)
+- Fixes notation errors in IndShockConsumerType.make_euler_error_func from prior changes. [1495](https://github.com/econ-ark/HARK/pull/1495)
+- Fixes typos in IdentityFunction interpolator class. [1492](https://github.com/econ-ark/HARK/pull/1492)
+- Expands functionality of Cobb-Douglas aggregator for CRRA utility. [1363](https://github.com/econ-ark/HARK/pull/1363)
+- Improved tracking of the bounds of support for distributions, and (some) solvers now respect those bounds when computing the "worst outcome". [1524](https://github.com/econ-ark/HARK/pull/1524)
 - Adds a new function for using Tauchen's method to approximate an AR1 process. [#1521](https://github.com/econ-ark/HARK/pull/1521)
 - Adds additional functionality to the CubicHermiteInterp class, imported from scipy.interpolate. [#1020](https://github.com/econ-ark/HARK/pull/1020/)
 - Allows users to pass a generic solution object to agent solvers to be used as the initial condition of backward induction. [#1543](https://github.com/econ-ark/HARK/pull/1543)

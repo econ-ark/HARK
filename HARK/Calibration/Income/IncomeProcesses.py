@@ -74,14 +74,27 @@ class LognormPermIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).discretize(
+        lognormal_dstn = MeanOneLogNormal(sigma)
+        logn_approx = lognormal_dstn.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
+
+        limit = {
+            "dist": lognormal_dstn,
+            "method": "equiprobable",
+            "N": n_approx,
+            "endpoints": False,
+            "infimum": logn_approx.limit["infimum"],
+            "supremum": logn_approx.limit["supremum"],
+        }
+
         # Change the pmv if necessary
         if neutral_measure:
             logn_approx.pmv = (logn_approx.atoms * logn_approx.pmv).flatten()
 
-        super().__init__(pmv=logn_approx.pmv, atoms=logn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=logn_approx.pmv, atoms=logn_approx.atoms, limit=limit, seed=seed
+        )
 
 
 class MixtureTranIncShk(DiscreteDistribution):
@@ -110,15 +123,22 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_approx = MeanOneLogNormal(sigma).discretize(
+        dstn_orig = MeanOneLogNormal(sigma)
+        dstn_approx = dstn_orig.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
+
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
 
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class MixtureTranIncShk_HANK(DiscreteDistribution):
@@ -173,7 +193,12 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         # Rescale the transitory shock values to account for new features
         TranShkMean_temp = (1.0 - tax_rate) * labor * wage
         dstn_approx.atoms *= TranShkMean_temp
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class BufferStockIncShkDstn(DiscreteDistributionLabeled):
@@ -239,6 +264,7 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 
@@ -318,6 +344,7 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 

@@ -711,7 +711,7 @@ init_indshk_markov = {
     "global_markov": False,  # Whether the Markov state is shared across agents
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
+    "Rfree": [np.array([1.03, 1.03])],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
     "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
@@ -772,10 +772,13 @@ class MarkovConsumerType(IndShockConsumerType):
         StateCount = self.MrkvArray[0].shape[0]
 
         # Check that arrays are the right shape
-        if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
-            raise ValueError(
-                "Rfree not the right shape, it should be an array of Rfree of all the states."
-            )
+        for t in range(self.T_cycle):
+            if not isinstance(self.Rfree[t], np.ndarray) or self.Rfree[t].shape != (
+                StateCount,
+            ):
+                raise ValueError(
+                    "Rfree[t] not the right shape, it should be an array of Rfree of all the states."
+                )
 
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
@@ -1029,7 +1032,10 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree[self.shocks["Mrkv"]]
+        RfreeNow = np.zeros(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = self.t_cycle == t
+            RfreeNow[these] = self.Rfree[t][self.shocks["Mrkv"][these]]
         return RfreeNow
 
     def get_controls(self):
