@@ -1047,7 +1047,7 @@ PerfForesightConsumerType_solving_defaults = {
     "constructors": PerfForesightConsumerType_constructors_default,  # See dictionary above
     # PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -1188,15 +1188,10 @@ class PerfForesightConsumerType(AgentType):
         MPCmin=1.0,
         MPCmax=1.0,
     )
-    time_vary_ = ["LivPrb", "PermGroFac"]
+    time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
-
-    def __init__(self, **kwds):
-        # Initialize a basic AgentType
-        super().__init__(**kwds)
-        self.update_Rfree()  # update interest rate if time varying
 
     def pre_solve(self):
         """
@@ -1251,36 +1246,6 @@ class PerfForesightConsumerType(AgentType):
             raise Exception("DiscFac is below zero with value: " + str(self.DiscFac))
 
         return
-
-    def update_Rfree(self):
-        """
-        Determines whether Rfree is time-varying or fixed.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        if not hasattr(self, "Rfree"):
-            return
-        if isinstance(self.Rfree, (int, float)):
-            self.add_to_time_inv("Rfree")
-        elif isinstance(self.Rfree, list):
-            if len(self.Rfree) == self.T_cycle:
-                if len(self.Rfree) == 1:
-                    self.Rfree = self.Rfree[0]
-                    self.add_to_time_inv("Rfree")
-                else:
-                    self.add_to_time_vary("Rfree")
-            else:
-                raise AttributeError(
-                    "If Rfree is time-varying, it should have a length of T_cycle!"
-                )
-        elif isinstance(self.Rfree, np.ndarray):
-            self.add_to_time_inv("Rfree")
 
     def unpack_cFunc(self):
         """DEPRECATED: Use solution.unpack('cFunc') instead.
@@ -1407,7 +1372,7 @@ class PerfForesightConsumerType(AgentType):
 
     def get_Rfree(self):
         """
-        Returns an array of size self.AgentCount with self.Rfree in every entry.
+        Returns an array of size self.AgentCount with Rfree in every entry.
 
         Parameters
         ----------
@@ -1419,12 +1384,9 @@ class PerfForesightConsumerType(AgentType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         RfreeNow = np.ones(self.AgentCount)
-        if "Rfree" in self.time_inv:
-            RfreeNow = RfreeNow * self.Rfree
-        elif "Rfree" in self.time_vary:
-            for t in range(self.T_cycle):
-                these = t == self.t_cycle
-                RfreeNow[these] = self.Rfree[t]
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            RfreeNow[these] = self.Rfree[t]
         return RfreeNow
 
     def transition(self):
@@ -1602,7 +1564,7 @@ class PerfForesightConsumerType(AgentType):
         params_to_describe = [
             # [name, description, symbol, time varying]
             ["DiscFac", "intertemporal discount factor", "β", False],
-            ["Rfree", "risk free interest factor", "R", False],
+            ["Rfree", "risk free interest factor", "R", True],
             ["PermGroFac", "permanent income growth factor", "G", True],
             ["CRRA", "coefficient of relative risk aversion", "ρ", False],
             ["LivPrb", "survival probability", "ℒ", True],
@@ -1656,12 +1618,12 @@ class PerfForesightConsumerType(AgentType):
         None
         """
         aux_dict = self.bilt
-        aux_dict["APFac"] = (self.Rfree * self.DiscFac * self.LivPrb[0]) ** (
+        aux_dict["APFac"] = (self.Rfree[0] * self.DiscFac * self.LivPrb[0]) ** (
             1 / self.CRRA
         )
         aux_dict["GPFacRaw"] = aux_dict["APFac"] / self.PermGroFac[0]
-        aux_dict["FHWFac"] = self.PermGroFac[0] / self.Rfree
-        aux_dict["RPFac"] = aux_dict["APFac"] / self.Rfree
+        aux_dict["FHWFac"] = self.PermGroFac[0] / self.Rfree[0]
+        aux_dict["RPFac"] = aux_dict["APFac"] / self.Rfree[0]
         aux_dict["PFVAFac"] = (self.DiscFac * self.LivPrb[0]) * self.PermGroFac[0] ** (
             1.0 - self.CRRA
         )
@@ -1683,13 +1645,13 @@ class PerfForesightConsumerType(AgentType):
             aux_dict["hNrm"] = np.inf
 
         # Generate the "Delta m = 0" function, which is used to find target market resources
-        Ex_Rnrm = self.Rfree / self.PermGroFac[0]
+        Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0]
         aux_dict["Delta_mNrm_ZeroFunc"] = (
             lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
         )
 
         # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
-        PF_Rnrm = self.Rfree / self.PermGroFac[0]
+        PF_Rnrm = self.Rfree[0] / self.PermGroFac[0]
         aux_dict["BalGroFunc"] = lambda m: (1.0 - 1.0 / PF_Rnrm) * m + 1.0 / PF_Rnrm
 
         self.bilt = aux_dict
@@ -1931,7 +1893,7 @@ IndShockConsumerType_solving_default = {
     "constructors": IndShockConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -2277,7 +2239,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Calculate marginal value next period for each gridpoint and each shock
         mNextArray = (
-            self.Rfree / (self.PermGroFac[0] * PermShkVals_tiled) * aNowGrid_tiled
+            self.Rfree[0] / (self.PermGroFac[0] * PermShkVals_tiled) * aNowGrid_tiled
             + TranShkVals_tiled
         )
         vPnextArray = vPfuncNext(mNextArray)
@@ -2285,7 +2247,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Calculate expected marginal value and implied optimal consumption
         ExvPnextGrid = (
             self.DiscFac
-            * self.Rfree
+            * self.Rfree[0]
             * self.LivPrb[0]
             * self.PermGroFac[0] ** (-self.CRRA)
             * np.sum(
@@ -2456,7 +2418,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Generate the "Delta m = 0" function, which is used to find target market resources
         # This overwrites the function generated by the perfect foresight version
-        Ex_Rnrm = self.Rfree / self.PermGroFac[0] * Ex_PermShkInv
+        Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0] * Ex_PermShkInv
         aux_dict["Delta_mNrm_ZeroFunc"] = (
             lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
         )
@@ -3046,6 +3008,7 @@ init_lifecycle.update(dist_params)
 # Note the income specification overrides the pLvlInitMean from the SCF.
 init_lifecycle.update(income_params)
 init_lifecycle.update({"LivPrb": liv_prb})
+init_lifecycle["Rfree"] = init_lifecycle["T_cycle"] * init_lifecycle["Rfree"]
 
 # Make a dictionary to specify an infinite consumer with a four period cycle
 init_cyclical = copy(init_idiosyncratic_shocks)
@@ -3053,4 +3016,5 @@ init_cyclical["PermGroFac"] = [1.1, 1.082251, 2.8, 0.3]
 init_cyclical["PermShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["LivPrb"] = 4 * [0.98]
+init_cyclical["Rfree"] = 4 * [1.03]
 init_cyclical["T_cycle"] = 4

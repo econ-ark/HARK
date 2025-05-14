@@ -35,7 +35,7 @@ class test_(unittest.TestCase):
         # Adjust discounting and returns distribution so that they make sense in a
         # 4-period model
         self.par_finite["DiscFac"] = 0.95**15
-        self.par_finite["Rfree"] = 1.03**15
+        self.par_finite["Rfree"] = 4 * [1.03**15]
         self.par_finite["RiskyAvg"] = 1.08**15  # Average return of the risky asset
         self.par_finite["RiskyStd"] = 0.0621376926532 * np.sqrt(
             15

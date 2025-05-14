@@ -86,7 +86,7 @@ class testBufferStock(unittest.TestCase):
         # using the variable values defined in the cell above
         self.base_params = {
             "PermGroFac": [1.03],
-            "Rfree": 1.04,
+            "Rfree": [1.04],
             "DiscFac": 0.96,
             "CRRA": 2.0,
             "UnempPrb": 0.005,
@@ -122,7 +122,7 @@ class testBufferStock(unittest.TestCase):
 
     def test_GICRawFails(self):
         GICRaw_fail_dictionary = dict(self.base_params)
-        GICRaw_fail_dictionary["Rfree"] = 1.08
+        GICRaw_fail_dictionary["Rfree"] = [1.08]
         GICRaw_fail_dictionary["PermGroFac"] = [1.00]
         GICRaw_fail_dictionary["cycles"] = (
             0  # cycles=0 makes this an infinite horizon consumer
