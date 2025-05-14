@@ -899,6 +899,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         "params": PrefShockConsumerType_default,
         "solver": solve_one_period_ConsPrefShock,
     }
+    model_ = "ConsPrefShock.yaml"
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
     time_vary_ = IndShockConsumerType.time_vary_ + ["PrefShkDstn"]

@@ -763,6 +763,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     simulation_default = GenIncProcessConsumerType_simulation_default
 
     state_vars = ["pLvl", "mLvl", "aLvl"]
+    model_ = "ConsGenIncProcess.yaml"
     time_vary_ = IndShockConsumerType.time_vary_ + ["pLvlNextFunc", "pLvlGrid"]
     default_ = {
         "params": GenIncProcessConsumerType_default,

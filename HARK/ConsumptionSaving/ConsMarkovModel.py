@@ -24,6 +24,7 @@ from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
     LowerEnvelope,
+    IndexedInterp,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
@@ -649,6 +650,7 @@ def solve_one_period_ConsMarkov(
     solution.hNrm = hNrmNow
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
+    solution.cFuncX = IndexedInterp(solution.cFunc)
     return solution
 
 
@@ -747,6 +749,8 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
+    model_ = "ConsMarkov.yaml"
+
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
