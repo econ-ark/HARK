@@ -12,14 +12,20 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBD
 
-### Major Changes
+The most likely code-breaking change in this release is the reorganization of `HARK.distribution`. If your project code tells you that it can't find the module `HARK.distribution`, just change the import name to `HARK.distributions` (note the plural s). The items listed as "Developmental Features" are an independent system that is not connected to HARK's existing model structure.
+
+#### Major Changes
+
+- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
+- Regularizes `AgentType` initialization methods and moves all constructed model objects to `constructors` [#1529](https://github.com/econ-ark/HARK/pull/1529) and [#1530](https://github.com/econ-ark/HARK/pull/1529)
+
+#### Developmental Features
 
 - Adds a discretize method to DBlocks and RBlocks [#1460](https://github.com/econ-ark/HARK/pull/1460)
 - Allows structural equations in model files to be provided in string form [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Introduces `HARK.parser' module for parsing configuration files into models [#1427](https://github.com/econ-ark/HARK/pull/1427)
 - Allows construction of shocks with arguments based on mathematical expressions [#1464](https://github.com/econ-ark/HARK/pull/1464)
 - YAML configuration file for the normalized consumption and portolio choice [#1465](https://github.com/econ-ark/HARK/pull/1465)
-- Reorganizes the `HARK.distribution` file into `HARK.distributions` submodule with various files for readability and extensibility [#1496](https://github.com/econ-ark/HARK/pull/1496)
 
 #### Minor Changes
 
