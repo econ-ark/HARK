@@ -44,6 +44,10 @@ class Distribution:
         self._seed: int = _seed
         self._rng: random.Generator = random.default_rng(self._seed)
 
+        # Bounds of distribution support should be overwritten by subclasses
+        self.infimum = np.array([])
+        self.supremum = np.array([])
+
     @property
     def seed(self) -> int:
         """
@@ -130,7 +134,7 @@ class Distribution:
 
         Returns
         -------
-        DiscreteDistribution
+        discretized_dstn : DiscreteDistribution
             Discretized distribution.
 
         Raises
@@ -149,7 +153,10 @@ class Distribution:
             )
 
         approx = getattr(self, approx_method)
-        return approx(N, endpoints, **kwds)
+        discretized_dstn = approx(N, endpoints, **kwds)
+        discretized_dstn.limit["infimum"] = self.infimum.copy()
+        discretized_dstn.limit["supremum"] = self.supremum.copy()
+        return discretized_dstn
 
 
 class MarkovProcess(Distribution):

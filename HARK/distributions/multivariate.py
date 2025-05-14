@@ -34,6 +34,8 @@ class MultivariateNormal(multivariate_normal_frozen, Distribution):
         self.M = self.mu.size
         multivariate_normal_frozen.__init__(self, mean=self.mu, cov=self.Sigma)
         Distribution.__init__(self, seed=seed)
+        self.infimum = -np.inf * np.ones(self.M)
+        self.supremum = np.inf * np.ones(self.M)
 
     def discretize(self, N, method="hermite", endpoints=False):
         """

@@ -61,6 +61,8 @@ class Normal(ContinuousFrozenDistribution):
             )
 
         super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
+        self.infimum = -np.inf * np.ones(self.mu.size)
+        self.supremum = np.inf * np.ones(self.mu.size)
 
     def discretize(self, N, method="hermite", endpoints=False):
         """
@@ -74,8 +76,6 @@ class Normal(ContinuousFrozenDistribution):
         """
         Returns a discrete approximation of this distribution
         using the Gauss-Hermite quadrature rule.
-
-        TODO: add endpoints option
 
         Parameters
         ----------
@@ -106,8 +106,6 @@ class Normal(ContinuousFrozenDistribution):
     def _approx_equiprobable(self, N, endpoints=False):
         """
         Returns a discrete equiprobable approximation of this distribution.
-
-        TODO: add endpoints option
 
         Parameters
         ----------
@@ -223,6 +221,8 @@ class Lognormal(ContinuousFrozenDistribution):
         super().__init__(
             stats.lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed
         )
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([np.inf])
 
     def _approx_equiprobable(
         self, N, endpoints=False, tail_N=0, tail_bound=None, tail_order=np.e
@@ -349,8 +349,6 @@ class Lognormal(ContinuousFrozenDistribution):
         Returns a discrete approximation of this distribution
         using the Gauss-Hermite quadrature rule.
 
-        TODO: add endpoints option
-
         Parameters
         ----------
         N : int
@@ -446,6 +444,8 @@ class Uniform(ContinuousFrozenDistribution):
         super().__init__(
             stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
         )
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([np.inf])
 
     def _approx_equiprobable(self, N, endpoints=False):
         """
@@ -476,7 +476,12 @@ class Uniform(ContinuousFrozenDistribution):
             atoms = np.concatenate(([self.bot], atoms, [self.top]))
             pmv = np.concatenate(([0.0], pmv, [0.0]))
 
-        limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
+        limit = {
+            "dist": self,
+            "method": "equiprobable",
+            "N": N,
+            "endpoints": endpoints,
+        }
 
         return DiscreteDistribution(
             pmv,
@@ -506,5 +511,8 @@ class Weibull(ContinuousFrozenDistribution):
     def __init__(self, scale=1.0, shape=1.0, seed=0):
         self.scale = np.asarray(scale)
         self.shape = np.asarray(shape)
+
         # Set up the RNG
         super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([np.inf])
