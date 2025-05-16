@@ -1404,8 +1404,6 @@ class AgentType(Model):
             if i < len(new_states):
                 self.state_now[var] = new_states[i]
 
-        return None
-
     def transition(self):
         """
 
@@ -1459,7 +1457,6 @@ class AgentType(Model):
         -------
         None
         """
-
         return None
 
     def simulate(self, sim_periods=None):

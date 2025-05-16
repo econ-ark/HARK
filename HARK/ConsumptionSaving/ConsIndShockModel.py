@@ -194,6 +194,71 @@ class ConsumerSolution(MetricObject):
 
 
 # =====================================================================
+# == Functions for initializing newborns in consumption-saving models =
+# =====================================================================
+
+
+def make_lognormal_kNrm_init_dstn(kLogInitMean, kLogInitStd, kNrmInitCount, RNG):
+    """
+    Construct a lognormal distribution for (normalized) initial capital holdings
+    of newborns, kNrm. This is the default constructor for kNrmInitDstn.
+
+    Parameters
+    ----------
+    kLogInitMean : float
+        Mean of log capital holdings for newborns.
+    kLogInitStd : float
+        Stdev of log capital holdings for newborns.
+    kNrmInitCount : int
+        Number of points in the discretization.
+    RNG : np.random.RandomState
+        Agent's internal RNG.
+
+    Returns
+    -------
+    kNrmInitDstn : DiscreteDistribution
+        Discretized distribution of initial capital holdings for newborns.
+    """
+    dstn = Lognormal(
+        mu=kLogInitMean,
+        sigma=kLogInitStd,
+        seed=RNG.integers(0, 2**31 - 1),
+    )
+    kNrmInitDstn = dstn.discretize(kNrmInitCount)
+    return kNrmInitDstn
+
+
+def make_lognormal_pLvl_init_dstn(pLogInitMean, pLogInitStd, pLvlInitCount, RNG):
+    """
+    Construct a lognormal distribution for initial permanent income level of
+    newborns, pLvl. This is the default constructor for pLvlInitDstn.
+
+    Parameters
+    ----------
+    pLogInitMean : float
+        Mean of log permanent income for newborns.
+    pLogInitStd : float
+        Stdev of log capital holdings for newborns.
+    pLvlInitCount : int
+        Number of points in the discretization.
+    RNG : np.random.RandomState
+        Agent's internal RNG.
+
+    Returns
+    -------
+    pLvlInitDstn : DiscreteDistribution
+        Discretized distribution of initial permanent income for newborns.
+    """
+    dstn = Lognormal(
+        mu=pLogInitMean,
+        sigma=pLogInitStd,
+        seed=RNG.integers(0, 2**31 - 1),
+    )
+    pLvlInitDstn = dstn.discretize(pLvlInitCount)
+    return pLvlInitDstn
+
+
+# =====================================================================
 # === Classes and functions that solve consumption-saving models ===
 # =====================================================================
 
@@ -1054,6 +1119,22 @@ def make_basic_CRRA_solution_terminal(CRRA):
 # Make a dictionary of constructors (very simply for perfect foresight model)
 PerfForesightConsumerType_constructors_default = {
     "solution_terminal": make_basic_CRRA_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+PerfForesightConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+PerfForesightConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Make a dictionary to specify a perfect foresight consumer type
@@ -1076,10 +1157,6 @@ PerfForesightConsumerType_simulation_defaults = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     # ADDITIONAL OPTIONAL PARAMETERS
@@ -1088,6 +1165,12 @@ PerfForesightConsumerType_simulation_defaults = {
 }
 PerfForesightConsumerType_defaults = {}
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_solving_defaults)
+PerfForesightConsumerType_defaults.update(
+    PerfForesightConsumerType_kNrmInitDstn_default
+)
+PerfForesightConsumerType_defaults.update(
+    PerfForesightConsumerType_pLvlInitDstn_default
+)
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_simulation_defaults)
 init_perfect_foresight = PerfForesightConsumerType_defaults
 
@@ -1147,7 +1230,9 @@ class PerfForesightConsumerType(AgentType):
         Number of periods to simulate.
     track_vars: list[strings]
         List of variables that should be tracked when running the simulation.
-        For this agent, the options are 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+        For this agent, the options are 'kNrm', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+
+        kNrm is beginning-of-period capital holdings (last period's assets)
 
         aLvl is the nominal asset level
 
@@ -1208,7 +1293,7 @@ class PerfForesightConsumerType(AgentType):
     )
     time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars = ["pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
+    state_vars = ["kNrm", "pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
 
     def pre_solve(self):
@@ -1307,31 +1392,24 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now["aNrm"][which_agents] = Lognormal(
-            mu=self.aNrmInitMean,
-            sigma=self.aNrmInitStd,
-            seed=self.RNG.integers(0, 2**31 - 1),
-        ).draw(N)
-        # why is a now variable set here? Because it's an aggregate.
-        pLvlInitMeanNow = self.pLvlInitMean + np.log(
-            self.state_now["PlvlAgg"]
-        )  # Account for newer cohorts having higher permanent income
-        self.state_now["pLvl"][which_agents] = Lognormal(
-            pLvlInitMeanNow, self.pLvlInitStd, seed=self.RNG.integers(0, 2**31 - 1)
-        ).draw(N)
-        # How many periods since each agent was born
-        self.t_age[which_agents] = 0
+        self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(N)
+        self.state_now["pLvl"][which_agents] = (
+            self.pLvlInitDstn.draw(N) * self.state_now["PlvlAgg"]
+        )
+        self.t_age[which_agents] = 0  # How many periods since each agent was born
 
-        if not hasattr(
-            self, "PerfMITShk"
-        ):  # If PerfMITShk not specified, let it be False
+        # Because of the timing of the simulation system, kNrm gets written to
+        # the *previous* period's aNrm after that aNrm has already been copied
+        # to the history array (if it's being tracked). It will be loaded into
+        # the simulation as kNrm, however, when the period is simulated.
+
+        # If PerfMITShk not specified, let it be False
+        if not hasattr(self, "PerfMITShk"):
             self.PerfMITShk = False
         if not self.PerfMITShk:
             # If True, Newborns inherit t_cycle of agent they replaced (i.e. t_cycles are not reset).
             self.t_cycle[which_agents] = 0
             # Which period of the cycle each agent is currently in
-
-        return None
 
     def sim_death(self):
         """
@@ -1409,7 +1487,7 @@ class PerfForesightConsumerType(AgentType):
 
     def transition(self):
         pLvlPrev = self.state_prev["pLvl"]
-        aNrmPrev = self.state_prev["aNrm"]
+        kNrm = self.state_prev["aNrm"]
         RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources and permanent income level
@@ -1419,11 +1497,11 @@ class PerfForesightConsumerType(AgentType):
         PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / self.shocks["PermShk"]
-        bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
+        bNrmNow = ReffNow * kNrm  # Bank balances before labor income
         # Market resources after income
         mNrmNow = bNrmNow + self.shocks["TranShk"]
 
-        return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+        return kNrm, pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
 
     def get_controls(self):
         """
@@ -1462,15 +1540,8 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        # should this be "Now", or "Prev"?!?
         self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
-        # Useful in some cases to precalculate asset level
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
-
-        # moves now to prev
-        super().get_poststates()
-
-        return None
 
     def log_condition_result(self, name, result, message, verbose):
         """
@@ -1873,11 +1944,27 @@ class PerfForesightConsumerType(AgentType):
 
 # Make a dictionary of constructors for the idiosyncratic income shocks model
 IndShockConsumerType_constructors_default = {
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "solution_terminal": make_basic_CRRA_solution_terminal,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+IndShockConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+IndShockConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -1939,6 +2026,8 @@ IndShockConsumerType_simulation_default = {
 
 IndShockConsumerType_defaults = {}
 IndShockConsumerType_defaults.update(IndShockConsumerType_IncShkDstn_default)
+IndShockConsumerType_defaults.update(IndShockConsumerType_kNrmInitDstn_default)
+IndShockConsumerType_defaults.update(IndShockConsumerType_pLvlInitDstn_default)
 IndShockConsumerType_defaults.update(IndShockConsumerType_aXtraGrid_default)
 IndShockConsumerType_defaults.update(IndShockConsumerType_solving_default)
 IndShockConsumerType_defaults.update(IndShockConsumerType_simulation_default)
