@@ -805,6 +805,7 @@ class AgentType(Model):
     shock_vars_ = []
     state_vars = []
     poststate_vars = []
+    distributions = []
     default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
@@ -978,17 +979,15 @@ class AgentType(Model):
 
     def reset_rng(self):
         """
-        Reset the random number generator for this type.
-
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
+        Reset the random number generator and all distributions for this type.
         """
         self.RNG = np.random.default_rng(self.seed)
+        for name in self.distributions:
+            try:
+                dstn = getattr(self, name)
+                dstn.reset()
+            except:
+                pass
 
     def check_elements_of_time_vary_are_lists(self):
         """

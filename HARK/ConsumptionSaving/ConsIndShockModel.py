@@ -1295,6 +1295,7 @@ class PerfForesightConsumerType(AgentType):
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["kNrm", "pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
+    distributions = ["kNrmInitDstn", "pLvlInitDstn"]
 
     def pre_solve(self):
         """
@@ -2175,31 +2176,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
     # This is in the PerfForesight model but not ConsIndShock
     time_inv_.remove("MaxKinks")
     shock_vars_ = ["PermShk", "TranShk"]
+    distributions = [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+    ]
 
     def update_income_process(self):
         self.update("IncShkDstn", "PermShkDstn", "TranShkDstn")
-
-    def reset_rng(self):
-        """
-        Reset the RNG behavior of this type.  This method is called automatically
-        by initialize_sim(), ensuring that each simulation run uses the same sequence
-        of random shocks; this is necessary for structural estimation to work.
-        This method extends AgentType.reset_rng() to also reset elements of IncShkDstn.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        super().reset_rng()
-
-        # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
-        if hasattr(self, "IncShkDstn"):
-            for dstn in self.IncShkDstn:
-                dstn.reset()
 
     def get_shocks(self):
         """
@@ -2753,8 +2739,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
 # Specify default parameters used in "kinked R" model
 
 KinkedRconsumerType_IncShkDstn_default = IndShockConsumerType_IncShkDstn_default.copy()
-
 KinkedRconsumerType_aXtraGrid_default = IndShockConsumerType_aXtraGrid_default.copy()
+KinkedRconsumerType_kNrmInitDstn_default = (
+    IndShockConsumerType_kNrmInitDstn_default.copy()
+)
+KinkedRconsumerType_pLvlInitDstn_default = (
+    IndShockConsumerType_pLvlInitDstn_default.copy()
+)
 
 KinkedRconsumerType_solving_default = IndShockConsumerType_solving_default.copy()
 KinkedRconsumerType_solving_default.update(
@@ -2772,6 +2763,8 @@ KinkedRconsumerType_defaults = {}
 KinkedRconsumerType_defaults.update(
     KinkedRconsumerType_IncShkDstn_default
 )  # Fill with some parameters
+KinkedRconsumerType_defaults.update(KinkedRconsumerType_pLvlInitDstn_default)
+KinkedRconsumerType_defaults.update(KinkedRconsumerType_kNrmInitDstn_default)
 KinkedRconsumerType_defaults.update(KinkedRconsumerType_aXtraGrid_default)
 KinkedRconsumerType_defaults.update(KinkedRconsumerType_solving_default)
 KinkedRconsumerType_defaults.update(KinkedRconsumerType_simulation_default)
