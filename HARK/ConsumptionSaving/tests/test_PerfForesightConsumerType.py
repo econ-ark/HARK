@@ -58,8 +58,8 @@ class testPerfForesightConsumerType(unittest.TestCase):
             "T_sim": 120,  # Number of periods to simulate
             "aNrmInitMean": -6.0,  # Mean of log initial assets
             "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-            "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-            "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+            "pLogInitMean": 0.0,  # Mean of log initial permanent income
+            "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
             "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
             "T_age": None,  # Age after which simulated agents are automatically killed
         }

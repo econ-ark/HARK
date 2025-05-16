@@ -205,10 +205,10 @@ IdiosyncDict = {
     # Parameters only used in simulation
     "AgentCount": 10000,  # Number of agents of this type
     "T_sim": 120,  # Number of periods to simulate
-    "aNrmInitMean": -6.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "kLogInitMean": -6.0,  # Mean of log initial assets
+    "kLogInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income
+    "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": None,  # Age after which simulated agents are automatically killed
 }
@@ -285,10 +285,10 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     # Parameters only used in simulation
     "AgentCount": 10000,  # Number of agents of this type
     "T_sim": 120,  # Number of periods to simulate
-    "aNrmInitMean": -6.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "kLogInitMean": -6.0,  # Mean of log initial assets
+    "kLogInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income
+    "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": 11,  # Age after which simulated agents are automatically killed
 }
@@ -368,10 +368,10 @@ CyclicalDict = {
     # Parameters only used in simulation
     "AgentCount": 10000,  # Number of agents of this type
     "T_sim": 120,  # Number of periods to simulate
-    "aNrmInitMean": -6.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
+    "kLogInitMean": -6.0,  # Mean of log initial assets
+    "kLogInitStd": 1.0,  # Standard deviation of log initial assets
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income
+    "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": None,  # Age after which simulated agents are automatically killed
 }
@@ -393,7 +393,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 3.31950, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 3.8924, places=HARK_PRECISION
         )
 
 
@@ -472,10 +472,10 @@ JACDict = {
     # Parameters only used in simulation
     "AgentCount": 5000,  # Number of agents of this type
     "T_sim": 100,  # Number of periods to simulate
-    "aNrmInitMean": np.log(2) - (0.5**2) / 2,  # Mean of log initial assets
-    "aNrmInitStd": 0.5,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0,  # Standard deviation of log initial permanent income
+    "kLogInitMean": np.log(2) - (0.5**2) / 2,  # Mean of log initial assets
+    "kLogInitStd": 0.5,  # Standard deviation of log initial assets
+    "pLogInitMean": 0,  # Mean of log initial permanent income
+    "pLogInitStd": 0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": None,  # Age after which simulated agents are automatically killed
 }
@@ -634,10 +634,10 @@ dict_harmenberg = {
     # Parameters only used in simulation
     "AgentCount": 500,  # Number of agents of this type
     "T_sim": 100,  # Number of periods to simulate
-    "aNrmInitMean": np.log(1.3) - (0.5**2) / 2,  # Mean of log initial assets
-    "aNrmInitStd": 0.5,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0,  # Standard deviation of log initial permanent income
+    "kNrmInitMean": np.log(1.3) - (0.5**2) / 2,  # Mean of log initial assets
+    "kNrmInitStd": 0.5,  # Standard deviation of log initial assets
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income
+    "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "T_age": None,  # Age after which simulated agents are automatically killed
     # Parameters for Transition Matrix Simulation
