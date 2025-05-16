@@ -1190,11 +1190,11 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
-    model_ = "ConsPerfForesight.yaml"
 
     default_ = {
         "params": PerfForesightConsumerType_defaults,
         "solver": solve_one_period_ConsPF,
+        "model": "ConsPerfForesight.yaml",
     }
 
     # Define some universal values for all consumer types
@@ -2069,10 +2069,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
     aXtraGrid_defaults = IndShockConsumerType_aXtraGrid_default
     solving_defaults = IndShockConsumerType_solving_default
     simulation_defaults = IndShockConsumerType_simulation_default
-    model_ = "ConsIndShock.yaml"
     default_ = {
         "params": IndShockConsumerType_defaults,
         "solver": solve_one_period_ConsIndShock,
+        "model": "ConsIndShock.yaml",
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2823,8 +2823,8 @@ class KinkedRconsumerType(IndShockConsumerType):
     default_ = {
         "params": KinkedRconsumerType_defaults,
         "solver": solve_one_period_ConsKinkedR,
+        "model": "ConsKinkedR.yaml",
     }
-    model_ = "ConsKinkedR.yaml"
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
     time_inv_ += ["Rboro", "Rsave"]

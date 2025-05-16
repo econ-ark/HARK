@@ -898,8 +898,8 @@ class PrefShockConsumerType(IndShockConsumerType):
     default_ = {
         "params": PrefShockConsumerType_default,
         "solver": solve_one_period_ConsPrefShock,
+        "model": "ConsMarkov.yaml",
     }
-    model_ = "ConsPrefShock.yaml"
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
     time_vary_ = IndShockConsumerType.time_vary_ + ["PrefShkDstn"]

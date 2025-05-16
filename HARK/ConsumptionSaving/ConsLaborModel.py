@@ -668,10 +668,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     solving_default = LaborIntMargConsumerType_solving_default
     simulation_default = LaborIntMargConsumerType_simulation_default
 
-    model_ = "ConsLaborIntMarg.yaml"
     default_ = {
         "params": LaborIntMargConsumerType_default,
         "solver": solve_ConsLaborIntMarg,
+        "model": "ConsLaborIntMarg.yaml",
     }
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)

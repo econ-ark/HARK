@@ -822,6 +822,10 @@ class AgentType(Model):
         super().__init__()
         params = deepcopy(self.default_["params"])
         params.update(kwds)
+        try:
+            self.model_file = copy(self.default_["model"])
+        except:
+            self.model_file = None
 
         if solution_terminal is None:
             solution_terminal = NullFunc()

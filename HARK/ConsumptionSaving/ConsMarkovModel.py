@@ -749,12 +749,15 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
-    model_ = "ConsMarkov.yaml"
 
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
-    default_ = {"params": init_indshk_markov, "solver": solve_one_period_ConsMarkov}
+    default_ = {
+        "params": init_indshk_markov,
+        "solver": solve_one_period_ConsMarkov,
+        "model": "ConsMarkov.yaml",
+    }
 
     def check_markov_inputs(self):
         """

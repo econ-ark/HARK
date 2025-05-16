@@ -365,8 +365,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     ShareGrid_default = IndShockRiskyAssetConsumerType_ShareGrid_default
     solving_default = IndShockRiskyAssetConsumerType_solving_default
     simulation_default = IndShockRiskyAssetConsumerType_simulation_default  # So sphinx documents defaults
-    default_ = {"params": IndShockRiskyAssetConsumerType_default, "solver": NullFunc()}
-    model_ = "ConsRiskyAsset.yaml"
+    default_ = {
+        "params": IndShockRiskyAssetConsumerType_default,
+        "solver": NullFunc(),
+        "model": "ConsRiskyAsset.yaml",
+    }
 
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "PortfolioBisect",
