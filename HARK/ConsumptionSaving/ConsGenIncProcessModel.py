@@ -562,7 +562,7 @@ GenIncProcessConsumerType_kNrmInitDstn_default = {
 # Make a dictionary with parameters for the default constructor for pLvlInitDstn
 GenIncProcessConsumerType_pLvlInitDstn_default = {
     "pLogInitMean": 0.0,  # Mean of log permanent income
-    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLogInitStd": 0.4,  # Stdev of log permanent income
     "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
@@ -599,8 +599,6 @@ GenIncProcessConsumerType_pLvlPctiles_default = {
 
 # Default parameters to make pLvlGrid using make_pLvlGrid_by_simulation
 GenIncProcessConsumerType_pLvlGrid_default = {
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
     "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
 }
 

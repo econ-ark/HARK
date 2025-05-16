@@ -24,6 +24,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
@@ -965,6 +967,22 @@ warmglow_constructor_dict = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "solution_terminal": make_bequest_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -1014,10 +1032,6 @@ init_warm_glow = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -1028,6 +1042,8 @@ init_warm_glow = {
 }
 init_warm_glow.update(default_IncShkDstn_params)
 init_warm_glow.update(default_aXtraGrid_params)
+init_warm_glow.update(default_kNrmInitDstn_params)
+init_warm_glow.update(default_pLvlInitDstn_params)
 
 # Make a dictionary with bequest motives turned off
 init_accidental_bequest = init_warm_glow.copy()

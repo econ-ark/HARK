@@ -17,7 +17,7 @@ GenIncDictionary = {
     "AgentCount": 10000,  # Number of agents of this type (only matters for simulation)
     "kNrmInitMean": 0.0,  # Mean of log initial assets (only matters for simulation)
     "kNrmInitStd": 1.0,  # Standard deviation of log initial assets (only for simulation)
-    "LogInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income (only matters for simulation)
     "pLogInitStd": 0.4,  # Standard deviation of log initial permanent income (only matters for simulation)
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor (only matters for simulation)
     "T_age": None,  # Age after which simulated agents are automatically killed
