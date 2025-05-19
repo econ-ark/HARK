@@ -790,13 +790,13 @@ class MarkovConsumerType(IndShockConsumerType):
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
     default_ = {"params": init_indshk_markov, "solver": solve_one_period_ConsMarkov}
-    distributions =  [
+    distributions = [
         "IncShkDstn",
         "PermShkDstn",
         "TranShkDstn",
         "kNrmInitDstn",
         "pLvlInitDstn",
-        "MrkvInitDstn"
+        "MrkvInitDstn",
     ]
 
     def check_markov_inputs(self):
