@@ -1488,7 +1488,7 @@ class AgentType(Model):
             raise Exception(
                 "This agent type instance must have the attribute T_sim set to a positive integer."
                 + "Set T_sim to match the largest dataset you might simulate, and run this agent's"
-                + "initalizeSim() method before running simulate() again."
+                + "initialize_sim() method before running simulate() again."
             )
 
         if sim_periods is not None and self.T_sim < sim_periods:
