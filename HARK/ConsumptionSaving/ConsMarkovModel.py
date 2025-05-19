@@ -16,10 +16,11 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
-from HARK.distributions import MarkovProcess, Uniform, expected
+from HARK.distributions import MarkovProcess, Uniform, expected, DiscreteDistribution
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -143,6 +144,29 @@ def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
         MrkvArray.append(MrkvArray_t)
 
     return MrkvArray
+
+
+def make_MrkvInitDstn(MrkvPrbsInit, RNG):
+    """
+    The constructor function for MrkvInitDstn, the distribution of Markov states
+    at model birth.
+
+    Parameters
+    ----------
+    MrkvPrbsInit : np.array
+        Stochastic vector specifying the distribution of initial discrete states.
+    RNG : np.random.RandomState
+        Agent's internal random number generator.
+
+    Returns
+    -------
+    MrkvInitDstn : DiscreteDistribution
+        Distribution from which discrete states at birth can be drawn.
+    """
+    seed = RNG.integers(0, 2**31 - 1)
+    vals = np.arange(MrkvPrbsInit.size, dtype=int)
+    MrkvInitDstn = DiscreteDistribution(pmv=MrkvPrbsInit, atoms=vals, seed=seed)
+    return MrkvInitDstn
 
 
 ###############################################################################
@@ -663,6 +687,23 @@ markov_constructor_dict = {
     "aXtraGrid": make_assets_grid,
     "MrkvArray": make_simple_binary_markov,
     "solution_terminal": make_markov_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "MrkvInitDstn": make_MrkvInitDstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -720,10 +761,6 @@ init_indshk_markov = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "MrkvPrbsInit": np.array([1.0, 0.0]),  # Initial distribution of discrete state
     # (The portion of PermGroFac attributable to aggregate productivity growth)
@@ -736,6 +773,8 @@ init_indshk_markov = {
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
 init_indshk_markov.update(default_MrkvArray_params)
+init_indshk_markov.update(default_kNrmInitDstn_params)
+init_indshk_markov.update(default_pLvlInitDstn_params)
 
 
 class MarkovConsumerType(IndShockConsumerType):
@@ -751,6 +790,14 @@ class MarkovConsumerType(IndShockConsumerType):
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
     default_ = {"params": init_indshk_markov, "solver": solve_one_period_ConsMarkov}
+    distributions =  [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+        "MrkvInitDstn"
+    ]
 
     def check_markov_inputs(self):
         """
@@ -844,29 +891,6 @@ class MarkovConsumerType(IndShockConsumerType):
             ).astype(int)
         self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
 
-    def reset_rng(self):
-        """
-        Extended method that ensures random shocks are drawn from the same sequence
-        on each simulation, which is important for structural estimation.  This
-        method is called automatically by initialize_sim().
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        PerfForesightConsumerType.reset_rng(self)
-
-        # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
-        if hasattr(self, "IncShkDstn"):
-            T = len(self.IncShkDstn)
-            for t in range(T):
-                for dstn in self.IncShkDstn[t]:
-                    dstn.reset()
-
     def sim_death(self):
         """
         Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
@@ -909,18 +933,13 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.sim_birth(
-            self, which_agents
-        )  # Get initial assets and permanent income
-        if (
-            not self.global_markov
-        ):  # Markov state is not changed if it is set at the global level
+        # Get initial assets and permanent income
+        IndShockConsumerType.sim_birth(self, which_agents)
+
+        # Markov state is not changed if it is set at the global level
+        if not self.global_markov:
             N = np.sum(which_agents)
-            base_draws = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(N)
-            Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
-            self.shocks["Mrkv"][which_agents] = np.searchsorted(
-                Cutoffs, base_draws
-            ).astype(int)
+            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N)
 
     def get_markov_states(self):
         """

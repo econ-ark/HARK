@@ -985,7 +985,11 @@ class AgentType(Model):
         for name in self.distributions:
             try:
                 dstn = getattr(self, name)
-                dstn.reset()
+                if type(dstn) is list:
+                    for d in dstn:
+                        d.reset()
+                else:
+                    dstn.reset()
             except:
                 pass
 
