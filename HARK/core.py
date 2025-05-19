@@ -980,18 +980,27 @@ class AgentType(Model):
     def reset_rng(self):
         """
         Reset the random number generator and all distributions for this type.
+        Type-checking for lists is to handle the following three cases:
+
+        1) The target is a single distribution object
+        2) The target is a list of distribution objects (probably time-varying)
+        3) The target is a nested list of distributions, as in ConsMarkovModel.
         """
         self.RNG = np.random.default_rng(self.seed)
         for name in self.distributions:
-            try:
-                dstn = getattr(self, name)
-                if type(dstn) is list:
-                    for d in dstn:
-                        d.reset()
-                else:
-                    dstn.reset()
-            except:
-                pass
+            if not hasattr(self, name):
+                continue
+
+            dstn = getattr(self, name)
+            if type(dstn) is list:
+                for D in dstn:
+                    if type(D) is list:
+                        for d in D:
+                            d.reset()
+                    else:
+                        D.reset()
+            else:
+                dstn.reset()
 
     def check_elements_of_time_vary_are_lists(self):
         """
