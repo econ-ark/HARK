@@ -15,6 +15,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
@@ -284,7 +286,24 @@ repagent_constructor_dict = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "solution_terminal": make_basic_CRRA_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
+}
+
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
 default_IncShkDstn_params = {
@@ -330,10 +349,6 @@ init_rep_agent = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 1,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -344,6 +359,8 @@ init_rep_agent = {
 }
 init_rep_agent.update(default_IncShkDstn_params)
 init_rep_agent.update(default_aXtraGrid_params)
+init_rep_agent.update(default_kNrmInitDstn_params)
+init_rep_agent.update(default_pLvlInitDstn_params)
 
 
 class RepAgentConsumerType(IndShockConsumerType):
@@ -420,26 +437,16 @@ init_markov_rep_agent["constructors"] = markov_repagent_constructor_dict
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
     """
     A class for representing representative agents with inelastic labor supply
-    and a discrete MarkovState
-
-    Parameters
-    ----------
+    and a discrete Markov state.
     """
 
     time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
-
-    def __init__(self, **kwds):
-        params = init_markov_rep_agent.copy()
-        params.update(kwds)
-
-        RepAgentConsumerType.__init__(self, **params)
-        self.solve_one_period = solve_ConsRepAgentMarkov
+    default_ = {"params": init_markov_rep_agent, "solver": solve_ConsRepAgentMarkov}
 
     def pre_solve(self):
         self.construct("solution_terminal")
 
     def initialize_sim(self):
-        # self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         RepAgentConsumerType.initialize_sim(self)
         self.shocks["Mrkv"] = self.Mrkv
 
@@ -449,14 +456,6 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     def get_shocks(self):
         """
         Draws a new Markov state and income shocks for the representative agent.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         self.shocks["Mrkv"] = MarkovProcess(
             self.MrkvArray, seed=self.RNG.integers(0, 2**31 - 1)
@@ -478,14 +477,6 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     def get_controls(self):
         """
         Calculates consumption for the representative agent using the consumption functions.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         t = self.t_cycle[0]
         i = self.shocks["Mrkv"]
