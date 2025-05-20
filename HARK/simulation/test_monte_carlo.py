@@ -205,5 +205,18 @@ class test_MonteCarloSimulator(unittest.TestCase):
             + history["theta"][5]
             - history["c"][5]
         )
-
         np.testing.assert_allclose(a1, b1)
+
+    def test_calibration_unmodified(self):
+        self.simulator = MonteCarloSimulator(
+            self.calibration,
+            self.block,
+            self.dr,
+            self.initial,
+            agent_count=1,
+        )
+
+        self.simulator.initialize_sim()
+        self.simulator.sim_one_period()
+
+        self.assertEqual(self.calibration, {"G": 1.05})
