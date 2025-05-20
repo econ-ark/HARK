@@ -197,7 +197,7 @@ IdiosyncDict = {
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
     "aXtraExtra": None,  # Additional values to add to aXtraGrid
-    # A few other paramaters
+    # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
@@ -277,7 +277,7 @@ LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionar
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
     "aXtraExtra": None,  # Additional values to add to aXtraGrid
-    # A few other paramaters
+    # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
@@ -360,7 +360,7 @@ CyclicalDict = {
     "aXtraCount": 48,  # Number of points in the base grid of "assets above minimum"
     "aXtraNestFac": 3,  # Exponential nesting factor when constructing "assets above minimum" grid
     "aXtraExtra": None,  # Additional values to add to aXtraGrid
-    # A few other paramaters
+    # A few other parameters
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint; imposed minimum level of end-of period assets
     "vFuncBool": True,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Preference shocks currently only compatible with linear cFunc
