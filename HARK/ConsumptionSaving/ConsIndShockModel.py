@@ -1401,11 +1401,8 @@ class PerfForesightConsumerType(AgentType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = np.ones(self.AgentCount)
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-            RfreeNow[these] = self.Rfree[t]
-        return RfreeNow
+        Rfree_array = np.array(self.Rfree)
+        return Rfree_array[self.t_cycle]
 
     def transition(self):
         pLvlPrev = self.state_prev["pLvl"]
@@ -1437,13 +1434,14 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        cNrmNow = np.zeros(self.AgentCount) + np.nan
-        MPCnow = np.zeros(self.AgentCount) + np.nan
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
-            cNrmNow[these], MPCnow[these] = self.solution[t].cFunc.eval_with_derivative(
-                self.state_now["mNrm"][these]
-            )
+        cNrmNow = np.full(self.AgentCount, np.nan)
+        MPCnow = np.full(self.AgentCount, np.nan)
+        for t in np.unique(self.t_cycle):
+            idx = self.t_cycle == t
+            if np.any(idx):
+                cNrmNow[idx], MPCnow[idx] = self.solution[t].cFunc.eval_with_derivative(
+                    self.state_now["mNrm"][idx]
+                )
         self.controls["cNrm"] = cNrmNow
 
         # MPCnow is not really a control
@@ -2133,14 +2131,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
-        for t in range(self.T_cycle):
-            these = t == self.t_cycle
+        for t in np.unique(self.t_cycle):
+            idx = self.t_cycle == t
 
             # temporary, see #1022
             if self.cycles == 1:
                 t = t - 1
 
-            N = np.sum(these)
+            N = np.sum(idx)
             if N > 0:
                 # set current income distribution
                 IncShkDstnNow = self.IncShkDstn[t]
@@ -2149,26 +2147,26 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
-                PermShkNow[these] = (
+                PermShkNow[idx] = (
                     IncShks[0, :] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
-                TranShkNow[these] = IncShks[1, :]
+                TranShkNow[idx] = IncShks[1, :]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
         N = np.sum(newborn)
         if N > 0:
-            these = newborn
+            idx = newborn
             # set current income distribution
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
             EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[these] = (
+            PermShkNow[idx] = (
                 IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
         #        PermShkNow[newborn] = 1.0
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
