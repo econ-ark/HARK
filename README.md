@@ -93,7 +93,7 @@ The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wi
 
 <br>
 
-To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate paramaters:
+To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate parameters:
 
 ```python
 import HARK
@@ -111,7 +111,7 @@ PF_params = {
     "AgentCount": 10000,
 }
 
-# Create an instance of a Perfect Foresight agent with the above paramaters
+# Create an instance of a Perfect Foresight agent with the above parameters
 PFexample = PerfForesightConsumerType(**PF_params)
 ```
 
