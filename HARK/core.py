@@ -2224,6 +2224,9 @@ class AgentPopulation:
 
         self.__infer_counts__()
 
+        self.print_parallel_error_once = True
+        # Print warning once if parallel simulation fails
+
     def __infer_counts__(self):
         """
         Infer `agent_type_count` and `term_age` from the parameters.
@@ -2414,12 +2417,31 @@ class AgentPopulation:
         for agent in self.agents:
             agent.initialize_sim()
 
-    def simulate(self):
+    def simulate(self, num_jobs=None):
         """
-        Simulates each agent of the population serially.
+        Simulates each agent of the population.
+
+        Parameters
+        ----------
+        num_jobs : int, optional
+            Number of parallel jobs to use. Defaults to using all available
+            cores when ``None``. Falls back to serial execution if parallel
+            processing fails.
         """
-        for agent in self.agents:
-            agent.simulate()
+        try:
+            multi_thread_commands(self.agents, ["simulate()"], num_jobs)
+        except Exception as err:
+            if getattr(self, "print_parallel_error_once", False):
+                self.print_parallel_error_once = False
+                print(
+                    "**** WARNING: could not execute multi_thread_commands in HARK.core.AgentPopulation.simulate() ",
+                    "so using the serial version instead. This will likely be slower. ",
+                    "The multi_thread_commands() function failed with the following error:\n",
+                    sys.exc_info()[0],
+                    ":",
+                    err,
+                )
+            multi_thread_commands_fake(self.agents, ["simulate()"], num_jobs)
 
     def __iter__(self):
         """
