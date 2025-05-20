@@ -176,7 +176,7 @@ def make_markov_approx_to_normal_by_monte_carlo(x_grid, mu, sigma, N_draws=10000
     assert (
         (np.all(p_vec >= 0.0))
         and (np.all(p_vec <= 1.0))
-        and (np.isclose(np.sum(p_vec)), 1.0)
+        and (np.isclose(np.sum(p_vec), 1.0))
     )
     return p_vec
 
