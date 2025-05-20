@@ -114,6 +114,8 @@ PF_params = {
 # Create an instance of a Perfect Foresight agent with the above parameters
 PFexample = PerfForesightConsumerType(**PF_params)
 ```
+The parameter `T_cycle` sets the length of the period cycle. Lists of time-varying parameters must have this length. With `cycles=0` the single cycle repeats forever. If a parameter `T_age` is provided, each agent is removed from the simulation when their `t_age` counter reaches this value.
+
 
 Once the model is created, ask the the agent to solve the problem with `.solve()`:
 
