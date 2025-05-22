@@ -634,8 +634,8 @@ dict_harmenberg = {
     # Parameters only used in simulation
     "AgentCount": 500,  # Number of agents of this type
     "T_sim": 100,  # Number of periods to simulate
-    "kNrmInitMean": np.log(1.3) - (0.5**2) / 2,  # Mean of log initial assets
-    "kNrmInitStd": 0.5,  # Standard deviation of log initial assets
+    "kLogInitMean": np.log(1.3) - (0.5**2) / 2,  # Mean of log initial assets
+    "kLogInitStd": 0.5,  # Standard deviation of log initial assets
     "pLogInitMean": 0.0,  # Mean of log initial permanent income
     "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor

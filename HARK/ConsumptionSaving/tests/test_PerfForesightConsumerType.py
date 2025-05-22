@@ -56,8 +56,8 @@ class testPerfForesightConsumerType(unittest.TestCase):
         SimulationParams = {
             "AgentCount": 10000,  # Number of agents of this type
             "T_sim": 120,  # Number of periods to simulate
-            "aNrmInitMean": -6.0,  # Mean of log initial assets
-            "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
+            "kLogInitMean": -6.0,  # Mean of log initial assets
+            "kLogInitStd": 1.0,  # Standard deviation of log initial assets
             "pLogInitMean": 0.0,  # Mean of log initial permanent income
             "pLogInitStd": 0.0,  # Standard deviation of log initial permanent income
             "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
