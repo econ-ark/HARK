@@ -4446,6 +4446,157 @@ class Curvilinear2DMultiInterp(Curvilinear2DInterp):
         self.N_funcs = N_funcs
         self.update_polarity()
 
+    def __call__(self, x, y):
+        """
+        Modification of HARKinterpolator2D.__call__ to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        fa = self._evaluate(xa.flatten(), ya.flatten())
+        return (fa[n].reshape(S) for n in range(self.N_funcs))
+
+    def derivativeX(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeX to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdxa = self._derX(xa.flatten(), ya.flatten())
+        return (dfdxa[n].reshape(S) for n in range(self.N_funcs))
+
+    def derivativeY(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeY to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdya = self._derY(xa.flatten(), ya.flatten())
+        return (dfdya[n].reshape(S) for n in range(self.N_funcs))
+
+    def _evaluate(self, x, y):
+        """
+        Returns the level of the interpolated function at each value in x,y.
+        Only called internally by __call__ (etc).
+        """
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
+
+        # Get weights on each vertex
+        alpha_C = 1.0 - alpha
+        beta_C = 1.0 - beta
+        wA = alpha_C * beta_C
+        wB = alpha * beta_C
+        wC = alpha_C * beta
+        wD = alpha * beta
+
+        # Evaluate each function by bilinear interpolation
+        f = []
+        for n in range(self.N_funcs):
+            f_n = (
+                0.0
+                + wA * self.f_values[n][x_pos, y_pos]
+                + wB * self.f_values[n][x_pos + 1, y_pos]
+                + wC * self.f_values[n][x_pos, y_pos + 1]
+                + wD * self.f_values[n][x_pos + 1, y_pos + 1]
+            )
+            f.append(f_n)
+        return f
+
+    def _derX(self, x, y):
+        """
+        Returns the derivative with respect to x of the interpolated function
+        at each value in x,y. Only called internally by derivativeX.
+        """
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
+
+        # Get four corners data for each point
+        xA = self.x_values[x_pos, y_pos]
+        xB = self.x_values[x_pos + 1, y_pos]
+        xC = self.x_values[x_pos, y_pos + 1]
+        xD = self.x_values[x_pos + 1, y_pos + 1]
+        yA = self.y_values[x_pos, y_pos]
+        yB = self.y_values[x_pos + 1, y_pos]
+        yC = self.y_values[x_pos, y_pos + 1]
+        yD = self.y_values[x_pos + 1, y_pos + 1]
+
+        # Calculate components of the alpha,beta --> x,y delta translation matrix
+        alpha_C = 1 - alpha
+        beta_C = 1 - beta
+        alpha_x = beta_C * (xB - xA) + beta * (xD - xC)
+        alpha_y = beta_C * (yB - yA) + beta * (yD - yC)
+        beta_x = alpha_C * (xC - xA) + alpha * (xD - xB)
+        beta_y = alpha_C * (yC - yA) + alpha * (yD - yB)
+
+        # Invert the delta translation matrix into x,y --> alpha,beta
+        det = alpha_x * beta_y - beta_x * alpha_y
+        x_alpha = beta_y / det
+        x_beta = -alpha_y / det
+
+        # Calculate the derivative of f w.r.t. alpha and beta for each function
+        dfdx = []
+        for n in range(self.N_funcs):
+            fA = self.f_values[n][x_pos, y_pos]
+            fB = self.f_values[n][x_pos + 1, y_pos]
+            fC = self.f_values[n][x_pos, y_pos + 1]
+            fD = self.f_values[n][x_pos + 1, y_pos + 1]
+            dfda = beta_C * (fB - fA) + beta * (fD - fC)
+            dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
+
+            # Calculate the derivative with respect to x
+            dfdx_n = x_alpha * dfda + x_beta * dfdb
+            dfdx.append(dfdx_n)
+        return dfdx
+
+    def _derY(self, x, y):
+        """
+        Returns the derivative with respect to y of the interpolated function
+        at each value in x,y. Only called internally by derivativeY.
+        """
+        x_pos, y_pos = self.find_sector(x, y)
+        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
+
+        # Get four corners data for each point
+        xA = self.x_values[x_pos, y_pos]
+        xB = self.x_values[x_pos + 1, y_pos]
+        xC = self.x_values[x_pos, y_pos + 1]
+        xD = self.x_values[x_pos + 1, y_pos + 1]
+        yA = self.y_values[x_pos, y_pos]
+        yB = self.y_values[x_pos + 1, y_pos]
+        yC = self.y_values[x_pos, y_pos + 1]
+        yD = self.y_values[x_pos + 1, y_pos + 1]
+
+        # Calculate components of the alpha,beta --> x,y delta translation matrix
+        alpha_C = 1 - alpha
+        beta_C = 1 - beta
+        alpha_x = beta_C * (xB - xA) + beta * (xD - xC)
+        alpha_y = beta_C * (yB - yA) + beta * (yD - yC)
+        beta_x = alpha_C * (xC - xA) + alpha * (xD - xB)
+        beta_y = alpha_C * (yC - yA) + alpha * (yD - yB)
+
+        # Invert the delta translation matrix into x,y --> alpha,beta
+        det = alpha_x * beta_y - beta_x * alpha_y
+        y_alpha = -beta_x / det
+        y_beta = alpha_x / det
+
+        # Calculate the derivative of f w.r.t. alpha and beta for each function
+        dfdy = []
+        for n in range(self.N_funcs):
+            fA = self.f_values[n][x_pos, y_pos]
+            fB = self.f_values[n][x_pos + 1, y_pos]
+            fC = self.f_values[n][x_pos, y_pos + 1]
+            fD = self.f_values[n][x_pos + 1, y_pos + 1]
+            dfda = beta_C * (fB - fA) + beta * (fD - fC)
+            dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
+
+            # Calculate the derivative with respect to x
+            dfdy_n = y_alpha * dfda + y_beta * dfdb
+            dfdy.append(dfdy_n)
+        return dfdy
+
 
 class DiscreteInterp(MetricObject):
     """

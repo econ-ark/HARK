@@ -6,7 +6,7 @@ first model here is adapted from White (2015).
 import numpy as np
 from HARK.distributions import expected
 from HARK.rewards import CRRAutility, CRRAutility_inv
-from HARK.interpolation import ValueFuncCRRA, Curvilinear2DInterp
+from HARK.interpolation import Curvilinear2DMultiInterp
 
 ###############################################################################
 
@@ -25,12 +25,13 @@ def eval_health_prod(n, alpha, gamma):
 
 # Define a function for computing expectations over next period's (marginal) value
 # from the perspective of end-of-period states, conditional on survival
-def calc_exp_next(shock, a, H, R, vFunc, dvdmFunc, dvdhFunc):
+def calc_exp_next(shock, a, H, R, rho, alpha, gamma, funcs):
     m_next = R * a + shock["WageRte"] * H
     h_next = (1.0 - shock["DeprRte"]) * H
-    dvdm_next = dvdmFunc(m_next, h_next)
-    dvdh_next = dvdhFunc(m_next, h_next)
-    v_next = vFunc(m_next, h_next)
+    vNvrs_next, c_next, n_next = funcs(m_next, h_next)
+    dvdm_next = c_next**-rho
+    dvdh_next = dvdm_next / (gamma * n_next ** (alpha - 1.0))
+    v_next = CRRAutility(vNvrs_next, rho=rho)
     dvda = R * dvdm_next
     dvdH = (1.0 - shock["DeprRte"]) * (shock["WageRte"] * dvdm_next + dvdh_next)
     return v_next, dvda, dvdH
@@ -58,15 +59,16 @@ def solve_one_period_ConsBasicHealth(
 
     Parameters
     ----------
-    solution_next : dict
-        Solution to the succeeding period's problem. Has entries for vFunc, dvdmFunc,
-        dvdhFunc, nFunc, and cFunc.
+    solution_next : Curvilinear2DMultiInterp
+        Solution to the succeeding period's problem, represented as a multi-function
+        interpolant with entries vNvrsFunc, cFunc, and nFunc.
     DiscFac : float
         Intertemporal discount factor, representing beta.
     Rfree : float
         Risk-free rate of return on retained assets.
     CRRA : float
-        Coefficient of relative risk aversion, representing rho.
+        Coefficient of relative risk aversion, representing rho. Assumed to be
+        constant across periods.
     HealthProdExp : float
         Exponent in health production function; should be strictly b/w 0 and 1.
         This corresponds to alpha in White (2015).
@@ -89,24 +91,19 @@ def solve_one_period_ConsBasicHealth(
         Solution to this period's problem, including policy functions cFunc and
         nFunc, as well as (marginal) value functions vFunc, dvdmFunc, and dvdhFunc.
     """
-    # Unpack next period's solution
-    vFunc_next = solution_next["vFunc"]
-    dvdmFunc_next = solution_next["dvdmFunc"]
-    dvdhFunc_next = solution_next["dvdhFunc"]
-
     # Make meshes of end-of-period states aLvl and HLvl
-    (aLvl_mesh, HLvl_mesh) = np.meshgrid((aLvlGrid, HLvlGrid), indexing="ij")
+    (aLvl, HLvl) = np.meshgrid((aLvlGrid, HLvlGrid), indexing="ij")
 
     # Calculate expected (marginal) value conditional on survival
     v_next_exp, dvdm_next_exp, dvdh_next_exp = expected(
         func=calc_exp_next,
         dstn=ShockDstn,
-        args=(aLvl_mesh, HLvl_mesh, Rfree, vFunc_next, dvdmFunc_next, dvdhFunc_next),
+        args=(aLvl, HLvl, Rfree, CRRA, HealthProdExp, HealthProdFac, solution_next),
     )
 
     # Calculate (marginal) survival probabilities
-    LivPrb = 1.0 - DieProbMax / (1.0 + HLvl_mesh)
-    MargLivPrb = -DieProbMax / (1.0 + HLvl_mesh) ** 2.0
+    LivPrb = 1.0 - DieProbMax / (1.0 + HLvl)
+    MargLivPrb = -DieProbMax / (1.0 + HLvl) ** 2.0
 
     # Calculate end-of-period expectations
     EndOfPrd_v = DiscFac * (LivPrb * v_next_exp)
@@ -119,23 +116,13 @@ def solve_one_period_ConsBasicHealth(
     nLvl = (vP_ratio / HealthProdFac) ** (-1.0 / (HealthProdExp - 1.0))
 
     # Invert intratemporal transitions to find endogenous gridpoints
-    mLvl = aLvl_mesh + cLvl + nLvl
-    hLvl = HLvl_mesh - eval_health_prod(nLvl, HealthProdExp, HealthProdFac)
+    mLvl = aLvl + cLvl + nLvl
+    hLvl = HLvl - eval_health_prod(nLvl, HealthProdExp, HealthProdFac)
 
     # Calculate (pseudo-inverse) value as of decision-time
     Value = CRRAutility(cLvl, rho=CRRA) + EndOfPrd_v
     vNvrs = CRRAutility_inv(Value)
 
-    # Construct policy and value functions
-    cFuncNow = Curvilinear2DInterp(cLvl, mLvl, hLvl)
-    nFuncNow = Curvilinear2DInterp(nLvl, mLvl, hLvl)
-    vNvrsFuncNow = Curvilinear2DInterp(vNvrs, mLvl, hLvl)
-    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
-
-    # Package and return the solution
-    solution_now = {
-        "cFunc": cFuncNow,
-        "nFunc": nFuncNow,
-        "vFunc": vFuncNow,
-    }
+    # Construct solution as a multi-interpolation
+    solution_now = Curvilinear2DMultiInterp([vNvrs, cLvl, nLvl], mLvl, hLvl)
     return solution_now
