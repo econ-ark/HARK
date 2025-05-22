@@ -47,7 +47,11 @@ from HARK.Calibration.Assets.AssetProcesses import (
     combine_IncShkDstn_and_RiskyDstn,
     calc_ShareLimit_for_CRRA,
 )
-from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    init_lifecycle,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
+)
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
@@ -1645,6 +1649,8 @@ risky_contrib_constructor_dict = {
     "dfracGrid": make_simple_dGrid,
     "mNrmGrid": make_mNrm_grid,
     "nNrmGrid": make_nNrm_grid,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
 
 risky_contrib_params = {
