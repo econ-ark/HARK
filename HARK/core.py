@@ -1528,8 +1528,6 @@ class AgentType(Model):
                             )
                 self.t_sim += 1
 
-            return self.history
-
     def clear_history(self):
         """
         Clears the histories of the attributes named in self.track_vars.
