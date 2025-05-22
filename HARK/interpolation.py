@@ -4070,7 +4070,7 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
 class Curvilinear2DInterp(HARKinterpolator2D):
     """
     A 2D interpolation method for curvilinear or "warped grid" interpolation, as
-    in White (2015).  Used for models with two endogenous states that are solved
+    in White (2015). Used for models with two endogenous states that are solved
     with the endogenous grid method.
 
     Parameters
@@ -4079,18 +4079,23 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         A 2D array of function values such that f_values[i,j] =
         f(x_values[i,j],y_values[i,j]).
     x_values: numpy.array
-        A 2D array of x values of the same size as f_values.
+        A 2D array of x values of the same shape as f_values.
     y_values: numpy.array
-        A 2D array of y values of the same size as f_values.
+        A 2D array of y values of the same shape as f_values.
     """
 
     distance_criteria = ["f_values", "x_values", "y_values"]
 
     def __init__(self, f_values, x_values, y_values):
+        my_shape = f_values.shape
+        if not (my_shape == x_values.shape):
+            raise ValueError("x_values must have the same shape as f_values!")
+        if not (my_shape == y_values.shape):
+            raise ValueError("y_values must have the same shape as f_values!")
+        
         self.f_values = f_values
         self.x_values = x_values
         self.y_values = y_values
-        my_shape = f_values.shape
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
         self.update_polarity()
@@ -4243,7 +4248,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         """
         Calculates the relative coordinates (alpha,beta) for each point (x,y),
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
-        a subroutine of __call__().
+        a subroutine of _evaluate().
 
         Parameters
         ----------
@@ -4414,7 +4419,30 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         # Calculate the derivative with respect to x (and return it)
         dfdy = y_alpha * dfda + y_beta * dfdb
         return dfdy
+    
 
+class Curvilinear2DMultiInterp(Curvilinear2DInterp):
+    """
+    An extension of Curvilinear2DInterp that allows multiple function outputs.
+    All of the interpolated functions must share a common curvilinear grid.
+    """
+    
+    def __init__(self, f_values, x_values, y_values):
+        N_funcs = len(f_values)
+        my_shape = x_values.shape
+        if not (my_shape == y_values.shape):
+            raise ValueError("y_values must have the same shape as x_values!")
+        for n in range(N_funcs):
+            if not (my_shape == f_values[0].shape):
+                raise ValueError("Each element of f_values must have the same shape as x_values!")
+        
+        self.f_values = f_values
+        self.x_values = x_values
+        self.y_values = y_values
+        self.x_n = my_shape[0]
+        self.y_n = my_shape[1]
+        self.N_funcs = N_funcs
+        self.update_polarity()
 
 class DiscreteInterp(MetricObject):
     """
