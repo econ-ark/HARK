@@ -992,9 +992,9 @@ class AgentType(Model):
                 continue
 
             dstn = getattr(self, name)
-            if type(dstn) is list:
+            if isinstance(dstn, list):
                 for D in dstn:
-                    if type(D) is list:
+                    if isinstance(D, list):
                         for d in D:
                             d.reset()
                     else:
