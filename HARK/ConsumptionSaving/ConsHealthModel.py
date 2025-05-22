@@ -123,6 +123,14 @@ def solve_one_period_ConsBasicHealth(
     Value = CRRAutility(cLvl, rho=CRRA) + EndOfPrd_v
     vNvrs = CRRAutility_inv(Value)
 
+    # Add points at the lower boundary of mLvl for each function
+    Zeros = np.zeros((1, HLvlGrid.size))
+    mLvl = np.concatenate((Zeros, mLvl), axis=0)
+    hLvl = np.concatenate((hLvl[0, :], hLvl), axis=0)
+    cLvl = np.concatenate((Zeros, cLvl), axis=0)
+    nLvl = np.concatenate((Zeros, nLvl), axis=0)
+    vNvrs = np.concatenate((Zeros, vNvrs), axis=0)
+
     # Construct solution as a multi-interpolation
     solution_now = Curvilinear2DMultiInterp([vNvrs, cLvl, nLvl], mLvl, hLvl)
     return solution_now
