@@ -11,7 +11,7 @@ from HARK.distributions import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
 )
-from HARK.income.IncomeProcesses import construct_lognormal_wage_dstn
+from HARK.Calibration.Income.IncomeProcesses import construct_lognormal_wage_dstn
 from HARK.rewards import CRRAutility, CRRAutility_inv
 from HARK.interpolation import Curvilinear2DMultiInterp
 from HARK.utilities import make_assets_grid
@@ -251,17 +251,18 @@ def combine_indep_wage_and_depr_dstns(T_cycle, WageRteDstn, DeprRteDstn, RNG):
         raise ValueError(
             "DeprRteDstn must be a list of distributions of length T_cycle!"
         )
-    ShockDstnX = [
-        combine_indep_dstns(
+
+    ShockDstn = []
+    for t in range(T_cycle):
+        temp_dstn = combine_indep_dstns(
             WageRteDstn[t], DeprRteDstn[t], seed=RNG.integers(0, 2**31 - 1)
         )
-        for t in range(T_cycle)
-    ]
-    ShockDstn = DiscreteDistributionLabeled.from_unlabeled(
-        dstn=ShockDstnX,
-        name="wage and depreciation shock distribution",
-        var_names=["WageRte", "DeprRte"],
-    )
+        temp_dstn_alt = DiscreteDistributionLabeled.from_unlabeled(
+            dist=temp_dstn,
+            name="wage and depreciation shock distribution",
+            var_names=["WageRte", "DeprRte"],
+        )
+        ShockDstn.append(temp_dstn_alt)
     return ShockDstn
 
 
@@ -285,20 +286,52 @@ def make_logistic_polynomial_die_prob(T_cycle, DieProbMaxCoeffs):
         Age-varying list of maximum death probabilities (if health were zero).
     """
     age_vec = np.arange(T_cycle)
-    DieProbMax = np.polyval(DieProbMaxCoeffs, age_vec).tolist()
-    return DieProbMax
+    DieProbMax = (1.0 + np.exp(-np.polyval(DieProbMaxCoeffs, age_vec))) ** (-1.0)
+    return DieProbMax.tolist()
 
 
 ###############################################################################
 
 basic_health_constructors = {
-    "solution_terminal": make_solution_terminal_ConsBasicHealth,
     "WageRteDstn": construct_lognormal_wage_dstn,
     "DeprRteDstn": make_uniform_depreciation_dstn,
     "ShockDstn": combine_indep_wage_and_depr_dstns,
     "aLvlGrid": make_assets_grid,
     "hLvlGrid": make_health_grid,
     "DieProbMax": make_logistic_polynomial_die_prob,
+    "solution_terminal": make_solution_terminal_ConsBasicHealth,
+}
+
+default_DeprRteDstn_params = {
+    "DeprRteMean": [0.05],
+    "DeprRteSpread": [0.05],
+    "DeprRteCount": 11,
+}
+
+default_WageRteDstn_params = {
+    "WageRteMean": [0.1],
+    "WageRteStd": [0.1],
+    "WageRteCount": 9,
+    "UnempPrb": 0.7,
+    "IncUnemp": 0.0,
+}
+
+default_aLvlGrid_params = {
+    "aXtraMin": 1e-5,
+    "aXtraMax": 50.0,
+    "aXtraCount": 96,
+    "aXtraNestFac": 3,
+    "aXtraExtra": None,
+}
+
+default_hLvlGrid_params = {
+    "hLvlMin": 0.0,
+    "hLvlMax": 20.0,
+    "hLvlCount": 96,
+}
+
+default_DieProbMax_params = {
+    "DieProbMaxCoeffs": [0.0],
 }
 
 basic_health_simple_params = {
@@ -313,6 +346,11 @@ basic_health_simple_params = {
 
 init_basic_health = {}
 init_basic_health.update(basic_health_simple_params)
+init_basic_health.update(default_DeprRteDstn_params)
+init_basic_health.update(default_WageRteDstn_params)
+init_basic_health.update(default_aLvlGrid_params)
+init_basic_health.update(default_hLvlGrid_params)
+init_basic_health.update(default_DieProbMax_params)
 
 
 class BasicHealthConsumerType(AgentType):
@@ -324,7 +362,7 @@ class BasicHealthConsumerType(AgentType):
     health capital, rather than next period's health capital realization.
     """
 
-    defaults_ = {
+    default_ = {
         "params": init_basic_health,
         "solver": solve_one_period_ConsBasicHealth,
     }

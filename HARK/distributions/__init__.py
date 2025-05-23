@@ -21,6 +21,7 @@ __all__ = [
     "expected",
     "Uniform",
     "MarkovProcess",
+    "add_discrete_outcome",
     "add_discrete_outcome_constant_mean",
     "make_tauchen_ar1",
 ]
@@ -45,6 +46,7 @@ from HARK.distributions.discrete import (
 )
 from HARK.distributions.multivariate import MultivariateLogNormal, MultivariateNormal
 from HARK.distributions.utils import (
+    add_discrete_outcome,
     add_discrete_outcome_constant_mean,
     approx_beta,
     approx_lognormal_gauss_hermite,
