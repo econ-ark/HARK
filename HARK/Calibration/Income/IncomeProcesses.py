@@ -5,6 +5,7 @@ This file has various classes and functions for constructing income processes.
 import numpy as np
 from HARK.metric import MetricObject
 from HARK.distributions import (
+    add_discrete_outcome,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
     DiscreteDistribution,
@@ -350,6 +351,60 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
 
 
 ###############################################################################
+
+
+def construct_lognormal_wage_dstn(
+    T_cycle, WageRteMean, WageRteStd, WageRteCount, IncUnemp, UnempPrb, RNG
+):
+    """
+    Constructor for an age-dependent wage rate distribution. The distribution
+    at each age is (equiprobably discretized) lognormal with a point mass to
+    represent unemployment. This is effectively a "transitory only" income process.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of periods in the agent's cycle or sequence.
+    WageRteMean : [float]
+        Age-varying list (or array) of mean wage rates.
+    WageRteStd : [float]
+        Age-varying standard deviations of (log) wage rates.
+    WageRteCount : int
+        Number of equiprobable nodes in the lognormal approximation.
+    UnempPrb : [float] or float
+        Age-varying probability of unemployment; can be specified to be constant.
+    IncUnemp : [float] or float
+        Age-varying "wage" rate when unemployed, maybe representing benefits.
+        Can be specified to be constant.
+    RNG : np.random.RandomState
+        Agent's internal random number generator.
+
+    Returns
+    -------
+    WageRteDstn : [DiscreteDistribution]
+        Age-varying list of discrete approximations to the lognormal wage distribution.
+    """
+    if len(WageRteMean) != T_cycle:
+        raise ValueError("WageRteMean must be a list of length T_cycle!")
+    if len(WageRteStd) != T_cycle:
+        raise ValueError("WageRteStd must be a list of length T_cycle!")
+    if not (isinstance(UnempPrb, float) or len(UnempPrb) != T_cycle):
+        raise ValueError("UnempPrb must be a single value or list of length T_cycle!")
+    if not (isinstance(IncUnemp, float) or len(IncUnemp) != T_cycle):
+        raise ValueError("IncUnemp must be a single value or list of length T_cycle!")
+
+    WageRteDstn = []
+    N = WageRteCount  # lazy typing
+    for t in range(T_cycle):
+        # Get current period values
+        W_sig = WageRteStd[t]
+        W_mu = np.log(WageRteMean[t]) - 0.5 * W_sig**2
+        B = IncUnemp if isinstance(IncUnemp, float) else IncUnemp[t]
+        U = UnempPrb if isinstance(UnempPrb, float) else UnempPrb[t]
+        temp_dstn = Lognormal(mu=W_mu, sigma=W_sig, seed=RNG.integers(0, 2**31 - 1))
+        temp_dstn_alt = add_discrete_outcome(temp_dstn.discretize(N), B, U)
+        WageRteDstn.append(temp_dstn_alt)
+    return WageRteDstn
 
 
 def construct_lognormal_income_process_unemployment(

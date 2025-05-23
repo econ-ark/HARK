@@ -8,20 +8,15 @@ from HARK.core import AgentType
 from HARK.distributions import (
     expected,
     combine_indep_dstns,
+    DiscreteDistribution,
     DiscreteDistributionLabeled,
 )
+from HARK.income.IncomeProcesses import construct_lognormal_wage_dstn
 from HARK.rewards import CRRAutility, CRRAutility_inv
 from HARK.interpolation import Curvilinear2DMultiInterp
 from HARK.utilities import make_assets_grid
 
 ###############################################################################
-
-
-# Define a function to transition from end-of-period states to succeeding states
-def get_states_next(shock, a, H, R):
-    m_next = R * a + shock["IncShk"] * H
-    h_next = (1.0 - shock["DeprRte"]) * H
-    return m_next, h_next
 
 
 # Define a function that yields health produced from investment
@@ -32,14 +27,14 @@ def eval_health_prod(n, alpha, gamma):
 # Define a function for computing expectations over next period's (marginal) value
 # from the perspective of end-of-period states, conditional on survival
 def calc_exp_next(shock, a, H, R, rho, alpha, gamma, funcs):
-    m_next = R * a + shock["IncShk"] * H
+    m_next = R * a + shock["WageRte"] * H
     h_next = (1.0 - shock["DeprRte"]) * H
     vNvrs_next, c_next, n_next = funcs(m_next, h_next)
     dvdm_next = c_next**-rho
     dvdh_next = dvdm_next / (gamma * n_next ** (alpha - 1.0))
     v_next = CRRAutility(vNvrs_next, rho=rho)
     dvda = R * dvdm_next
-    dvdH = (1.0 - shock["DeprRte"]) * (shock["IncShk"] * dvdm_next + dvdh_next)
+    dvdH = (1.0 - shock["DeprRte"]) * (shock["WageRte"] * dvdm_next + dvdh_next)
     return v_next, dvda, dvdH
 
 
@@ -142,6 +137,9 @@ def solve_one_period_ConsBasicHealth(
     return solution_now
 
 
+###############################################################################
+
+
 def make_solution_terminal_ConsBasicHealth():
     """
     Constructor for the terminal period solution for the basic health investment
@@ -177,17 +175,62 @@ def make_health_grid(hLvlMin, hLvlMax, hLvlCount):
     return np.linspace(hLvlMin, hLvlMax, hLvlCount)
 
 
-def combine_indep_inc_and_depr_dstns(T_cycle, IncShkDstn, DeprRteDstn, RNG):
+def make_uniform_depreciation_dstn(
+    T_cycle, DeprRteMean, DeprRteSpread, DeprRteCount, RNG
+):
     """
-    Combine univariate distributions of income realizations and depreciation rate
-    realizations at each age, treating them as independent.
+    Constructor for DeprRteDstn that makes uniform distributions that vary by age.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of periods in the agent's sequence or cycle.
+    DeprRteMean : [float]
+        Age-varying list (or array) of mean depreciation rates.
+    DeprRteSpread : [float]
+        Age-varying list (or array) of half-widths of depreciate rate distribution.
+    DeprRteCount : int
+        Number of equiprobable nodes in each distribution.
+    RNG : np.random.RandomState
+        Agent's internal random number generator.
+
+    Returns
+    -------
+    DeprRteDstn : [DiscreteDistribution]
+        List of age-dependent discrete approximations to the depreciate rate distribution.
+    """
+    if len(DeprRteMean) != T_cycle:
+        raise ValueError("DeprRteMean must have length T_cycle!")
+    if len(DeprRteSpread) != T_cycle:
+        raise ValueError("DeprRteSpread must have length T_cycle!")
+
+    DeprRteDstn = []
+    probs = DeprRteCount**-1.0 * np.ones(DeprRteCount)
+    for t in range(T_cycle):
+        bot = DeprRteMean[t] - DeprRteSpread[t]
+        top = DeprRteMean[t] + DeprRteSpread[t]
+        vals = np.linspace(bot, top, DeprRteCount)
+        DeprRteDstn.append(
+            DiscreteDistribution(
+                pmv=probs,
+                atoms=vals,
+                seed=RNG.integers(0, 2**31 - 1),
+            )
+        )
+    return DeprRteDstn
+
+
+def combine_indep_wage_and_depr_dstns(T_cycle, WageRteDstn, DeprRteDstn, RNG):
+    """
+    Combine univariate distributions of wage rate realizations and depreciation
+    rate realizations at each age, treating them as independent.
 
     Parameters
     ----------
     T_cycle : int
         Number of periods in the agent's sequence of periods (cycle).
-    IncShkDstn : [DiscreteDistribution]
-        Age-dependent list of income realizations; should have length T_cycle.
+    WageRteDstn : [DiscreteDistribution]
+        Age-dependent list of wage rate realizations; should have length T_cycle.
     DeprRteDstn : [DiscreteDistribution]
         Age-dependent list of health depreciation rate realizatiosn; should have
         length T_cycle.
@@ -200,7 +243,7 @@ def combine_indep_inc_and_depr_dstns(T_cycle, IncShkDstn, DeprRteDstn, RNG):
         Age-dependent bivariate distribution with joint realizations of income
         and health depreciation rates.
     """
-    if len(IncShkDstn) != T_cycle:
+    if len(WageRteDstn) != T_cycle:
         raise ValueError(
             "IncShkDstn must be a list of distributions of length T_cycle!"
         )
@@ -210,25 +253,49 @@ def combine_indep_inc_and_depr_dstns(T_cycle, IncShkDstn, DeprRteDstn, RNG):
         )
     ShockDstnX = [
         combine_indep_dstns(
-            IncShkDstn[t], DeprRteDstn[t], seed=RNG.integers(0, 2**31 - 1)
+            WageRteDstn[t], DeprRteDstn[t], seed=RNG.integers(0, 2**31 - 1)
         )
         for t in range(T_cycle)
     ]
     ShockDstn = DiscreteDistributionLabeled.from_unlabeled(
         dstn=ShockDstnX,
-        name="income and depreciation shock distribution",
-        var_names=["IncShk", "DeprRte"],
+        name="wage and depreciation shock distribution",
+        var_names=["WageRte", "DeprRte"],
     )
     return ShockDstn
+
+
+def make_logistic_polynomial_die_prob(T_cycle, DieProbMaxCoeffs):
+    """
+    Constructor for DieProbMax, the age-varying list of maximum death probabilities
+    (if health is zero). Builds the list as the logistic function evaluated on a
+    polynomial of model age, given polynomial coefficients. Logistic function is
+    applied to ensure probabilities are always between zero and one.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of periods in the agent's sequence of periods (cycle).
+    DieProbMaxCoeffs : np.array
+        List or vector of polynomial coefficients for maximum death probability.
+
+    Returns
+    -------
+    DieProbMax : [float]
+        Age-varying list of maximum death probabilities (if health were zero).
+    """
+    age_vec = np.arange(T_cycle)
+    DieProbMax = np.polyval(DieProbMaxCoeffs, age_vec).tolist()
+    return DieProbMax
 
 
 ###############################################################################
 
 basic_health_constructors = {
     "solution_terminal": make_solution_terminal_ConsBasicHealth,
-    "IncShkDstn": make_lognormal_income_dstn,
+    "WageRteDstn": construct_lognormal_wage_dstn,
     "DeprRteDstn": make_uniform_depreciation_dstn,
-    "ShockDstn": combine_indep_inc_and_depr_dstns,
+    "ShockDstn": combine_indep_wage_and_depr_dstns,
     "aLvlGrid": make_assets_grid,
     "hLvlGrid": make_health_grid,
     "DieProbMax": make_logistic_polynomial_die_prob,
