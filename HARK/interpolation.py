@@ -4454,7 +4454,7 @@ class Curvilinear2DMultiInterp(Curvilinear2DInterp):
         ya = np.asarray(y)
         S = xa.shape
         fa = self._evaluate(xa.flatten(), ya.flatten())
-        return (fa[n].reshape(S) for n in range(self.N_funcs))
+        return [fa[n].reshape(S) for n in range(self.N_funcs)]
 
     def derivativeX(self, x, y):
         """
@@ -4464,7 +4464,7 @@ class Curvilinear2DMultiInterp(Curvilinear2DInterp):
         ya = np.asarray(y)
         S = xa.shape
         dfdxa = self._derX(xa.flatten(), ya.flatten())
-        return (dfdxa[n].reshape(S) for n in range(self.N_funcs))
+        return [dfdxa[n].reshape(S) for n in range(self.N_funcs)]
 
     def derivativeY(self, x, y):
         """
@@ -4474,7 +4474,7 @@ class Curvilinear2DMultiInterp(Curvilinear2DInterp):
         ya = np.asarray(y)
         S = xa.shape
         dfdya = self._derY(xa.flatten(), ya.flatten())
-        return (dfdya[n].reshape(S) for n in range(self.N_funcs))
+        return [dfdya[n].reshape(S) for n in range(self.N_funcs)]
 
     def _evaluate(self, x, y):
         """

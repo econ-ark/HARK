@@ -93,18 +93,18 @@ def solve_one_period_ConsBasicHealth(
         nFunc, as well as (marginal) value functions vFunc, dvdmFunc, and dvdhFunc.
     """
     # Make meshes of end-of-period states aLvl and HLvl
-    (aLvl, HLvl) = np.meshgrid((aLvlGrid, HLvlGrid), indexing="ij")
+    (aLvl, HLvl) = np.meshgrid(aLvlGrid, HLvlGrid, indexing="ij")
 
     # Calculate expected (marginal) value conditional on survival
     v_next_exp, dvdm_next_exp, dvdh_next_exp = expected(
-        func=calc_exp_next,
-        dstn=ShockDstn,
+        calc_exp_next,
+        ShockDstn,
         args=(aLvl, HLvl, Rfree, CRRA, HealthProdExp, HealthProdFac, solution_next),
     )
 
     # Calculate (marginal) survival probabilities
     LivPrb = 1.0 - DieProbMax / (1.0 + HLvl)
-    MargLivPrb = -DieProbMax / (1.0 + HLvl) ** 2.0
+    MargLivPrb = DieProbMax / (1.0 + HLvl) ** 2.0
 
     # Calculate end-of-period expectations
     EndOfPrd_v = DiscFac * (LivPrb * v_next_exp)
@@ -114,7 +114,7 @@ def solve_one_period_ConsBasicHealth(
 
     # Invert the first order conditions to find optimal controls
     cLvl = EndOfPrd_dvda ** (-1.0 / CRRA)
-    nLvl = (vP_ratio / HealthProdFac) ** (-1.0 / (HealthProdExp - 1.0))
+    nLvl = (vP_ratio / HealthProdFac) ** (1.0 / (HealthProdExp - 1.0))
 
     # Invert intratemporal transitions to find endogenous gridpoints
     mLvl = aLvl + cLvl + nLvl
@@ -122,12 +122,12 @@ def solve_one_period_ConsBasicHealth(
 
     # Calculate (pseudo-inverse) value as of decision-time
     Value = CRRAutility(cLvl, rho=CRRA) + EndOfPrd_v
-    vNvrs = CRRAutility_inv(Value)
+    vNvrs = CRRAutility_inv(Value, rho=CRRA)
 
     # Add points at the lower boundary of mLvl for each function
     Zeros = np.zeros((1, HLvlGrid.size))
     mLvl = np.concatenate((Zeros, mLvl), axis=0)
-    hLvl = np.concatenate((hLvl[0, :], hLvl), axis=0)
+    hLvl = np.concatenate((np.reshape(hLvl[0, :], (1, HLvlGrid.size)), hLvl), axis=0)
     cLvl = np.concatenate((Zeros, cLvl), axis=0)
     nLvl = np.concatenate((Zeros, nLvl), axis=0)
     vNvrs = np.concatenate((Zeros, vNvrs), axis=0)
@@ -297,7 +297,7 @@ basic_health_constructors = {
     "DeprRteDstn": make_uniform_depreciation_dstn,
     "ShockDstn": combine_indep_wage_and_depr_dstns,
     "aLvlGrid": make_assets_grid,
-    "hLvlGrid": make_health_grid,
+    "HLvlGrid": make_health_grid,
     "DieProbMax": make_logistic_polynomial_die_prob,
     "solution_terminal": make_solution_terminal_ConsBasicHealth,
 }
@@ -305,29 +305,29 @@ basic_health_constructors = {
 default_DeprRteDstn_params = {
     "DeprRteMean": [0.05],
     "DeprRteSpread": [0.05],
-    "DeprRteCount": 11,
+    "DeprRteCount": 7,
 }
 
 default_WageRteDstn_params = {
     "WageRteMean": [0.1],
     "WageRteStd": [0.1],
-    "WageRteCount": 9,
-    "UnempPrb": 0.7,
+    "WageRteCount": 7,
+    "UnempPrb": 0.07,
     "IncUnemp": 0.0,
 }
 
 default_aLvlGrid_params = {
     "aXtraMin": 1e-5,
-    "aXtraMax": 50.0,
-    "aXtraCount": 96,
-    "aXtraNestFac": 3,
+    "aXtraMax": 300.0,
+    "aXtraCount": 48,
+    "aXtraNestFac": 1,
     "aXtraExtra": None,
 }
 
 default_hLvlGrid_params = {
     "hLvlMin": 0.0,
-    "hLvlMax": 20.0,
-    "hLvlCount": 96,
+    "hLvlMax": 300.0,
+    "hLvlCount": 50,
 }
 
 default_DieProbMax_params = {
@@ -336,12 +336,13 @@ default_DieProbMax_params = {
 
 basic_health_simple_params = {
     "constructors": basic_health_constructors,
-    "DiscFac": 0.96,
+    "DiscFac": 0.94,
     "Rfree": [1.03],
     "CRRA": 0.5,
     "HealthProdExp": 0.35,
     "HealthProdFac": 1.0,
     "T_cycle": 1,
+    "cycles": 1,
 }
 
 init_basic_health = {}
@@ -366,3 +367,39 @@ class BasicHealthConsumerType(AgentType):
         "params": init_basic_health,
         "solver": solve_one_period_ConsBasicHealth,
     }
+    time_vary_ = ["Rfree", "DieProbMax", "ShockDstn"]
+    time_inv_ = [
+        "DiscFac",
+        "CRRA",
+        "HealthProdExp",
+        "HealthProdFac",
+        "aLvlGrid",
+        "HLvlGrid",
+    ]
+
+
+if __name__ == "__main__":
+    from time import time
+    import matplotlib.pyplot as plt
+    from HARK.utilities import plot_funcs
+
+    MyType = BasicHealthConsumerType(cycles=99)
+
+    t0 = time()
+    MyType.solve()
+    t1 = time()
+    print(
+        "Solving the basic health investment model took {:.3f}".format(t1 - t0)
+        + " seconds."
+    )
+
+    X = MyType.solution[0].x_values
+    Y = MyType.solution[0].y_values
+    plt.plot(X.flatten(), Y.flatten(), ".k", ms=2)
+    plt.xlim(0.0, 300.0)
+    plt.ylim(0.0, 300.0)
+    plt.show()
+
+    C = lambda x: MyType.solution[0](x, 5 * np.ones_like(x))[1]
+    N = lambda x: MyType.solution[0](x, 5 * np.ones_like(x))[2]
+    plot_funcs([C, N], 0.0, 10.0)
