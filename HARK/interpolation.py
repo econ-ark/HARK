@@ -4433,7 +4433,7 @@ class Curvilinear2DMultiInterp(Curvilinear2DInterp):
         if not (my_shape == y_values.shape):
             raise ValueError("y_values must have the same shape as x_values!")
         for n in range(N_funcs):
-            if not (my_shape == f_values[0].shape):
+            if not (my_shape == f_values[n].shape):
                 raise ValueError(
                     "Each element of f_values must have the same shape as x_values!"
                 )
