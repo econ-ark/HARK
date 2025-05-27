@@ -4592,7 +4592,7 @@ class Curvilinear2DMultiInterp(Curvilinear2DInterp):
             dfda = beta_C * (fB - fA) + beta * (fD - fC)
             dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
 
-            # Calculate the derivative with respect to x
+            # Calculate the derivative with respect to y
             dfdy_n = y_alpha * dfda + y_beta * dfdb
             dfdy.append(dfdy_n)
         return dfdy
