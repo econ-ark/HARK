@@ -388,7 +388,7 @@ def construct_lognormal_wage_dstn(
         raise ValueError("WageRteMean must be a list of length T_cycle!")
     if len(WageRteStd) != T_cycle:
         raise ValueError("WageRteStd must be a list of length T_cycle!")
-    if not (isinstance(UnempPrb, float) or len(UnempPrb) != T_cycle):
+    if not (isinstance(UnempPrb, float) or len(UnempPrb) == T_cycle):
         raise ValueError("UnempPrb must be a single value or list of length T_cycle!")
     if not (isinstance(IncUnemp, float) or len(IncUnemp) != T_cycle):
         raise ValueError("IncUnemp must be a single value or list of length T_cycle!")
