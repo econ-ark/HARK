@@ -406,6 +406,78 @@ class BasicHealthConsumerType(AgentType):
         g(n) = (\gamma / \alpha) n^{\alpha}, \\
         (\WageRte_{t+1}, \DeprRte_{t+1}) \sim F_{t+1}.
         \end{align*}
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    Rfree: list[float], time varying, :math:`\mathsf{R}`
+        Risk-free interest rate by age.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    DieProbMax: list[float], time varying, :math:`\phi`
+        Maximum death probability by age, if $H_t=0$.
+    HealthProdExp : float, :math:`\alpha`
+        Exponent in health production function; should be strictly b/w 0 and 1.
+    HealthProdFac : float, :math:`\gamma`
+        Scaling factor in health production function; should be strictly positive.
+    ShockDstn : DiscreteDistribution, time varying
+        Joint distribution of income and depreciation values that could realize
+        at the start of the next period.
+    aLvlGrid : np.array
+        Grid of end-of-period assets (after all actions are accomplished).
+    HLvlGrid : np.array
+        Grid of end-of-period post-investment health.
+
+
+    Simulation Parameters
+    ---------------------
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'kLvl', 'yLvl', 'mLvl', 'hLvl', 'cLvl',
+        'nLvl', 'WageRte', 'DeprRte',  'aLvl', 'HLvl'.
+
+        kLvl : Beginning-of-period capital holdings, equivalent to aLvl_{t-1}
+
+        yLvl : Labor income, the wage rate times health capital.
+
+        mLvl : Market resources, the interest factor times capital holdings, plus labor income.
+
+        hLvl : Health or human capital level at decision-time.
+
+        cLvl : Consumption level.
+
+        nLvl : Health investment level.
+
+        WageRte : Wage rate this period.
+
+        DeprRte : Health capital depreciation rate this period.
+
+        aLvl : End-of-period assets: market resources less consumption and investment.
+
+        HLvl : End-of-period health capital: health capital plus produced health.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
     default_ = {
@@ -421,6 +493,106 @@ class BasicHealthConsumerType(AgentType):
         "aLvlGrid",
         "HLvlGrid",
     ]
+    state_vars = ["kLvl", "yLvl", "mLvl", "hLvl", "aLvl", "HLvl"]
+    shock_vars_ = ["WageRte", "DeprRte"]
+    distributions = ["ShockDstn", "kLvlInitDstn", "HLvlInitDstn"]
+
+    def sim_death(self):
+        """
+        Draw mortality shocks for all agents, marking some for death and replacement.
+
+        Returns
+        -------
+        which_agents : np.array
+            Boolean array of size AgentCount, indicating who dies now.
+        """
+        # Calculate agent-specific death probability
+        phi = np.array(self.DieProbMax)[self.t_cycle]
+        DieProb = phi / (1.0 + self.state_now["hLvl"])
+
+        # Draw mortality shocks and mark who dies
+        N = self.AgentCount
+        DeathShks = self.RNG.random(N)
+        which_agents = DeathShks < DieProb
+        if self.T_age is not None:  # Kill agents that have lived for too many periods
+            too_old = self.t_age >= self.T_age
+            which_agents = np.logical_or(which_agents, too_old)
+        return which_agents
+
+    def sim_birth(self, which_agents):
+        """
+        Makes new consumers for the given indices.  Initialized variables include
+        kLvl and HLvl, as well as time variables t_age and t_cycle.
+
+        Parameters
+        ----------
+        which_agents : np.array(Bool)
+            Boolean array of size self.AgentCount indicating which agents should be "born".
+
+        Returns
+        -------
+        None
+        """
+        N = np.sum(which_agents)
+        kLvl_newborns = self.kLvlInitDstn.draw(N)
+        HLvl_newborns = self.HLvlInitDstn.draw(N)
+        self.state_now["aLvl"][which_agents] = kLvl_newborns
+        self.state_now["HLvl"][which_agents] = HLvl_newborns
+        self.t_age[which_agents] = 0
+        self.t_cycle[which_agents] = 0
+
+    def get_shocks(self):
+        """
+        Draw wage and depreciation rate shocks for all simulated agents.
+        """
+        WageRte_now = np.empty(self.AgentCount)
+        DeprRte_now = np.empty(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = self.t_cycle == t
+            dstn = self.ShockDstn[t - 1]
+            N = np.sum(these)
+            Shocks = dstn.draw(N)
+            WageRte_now[these] = Shocks[0, :]
+            DeprRte_now[these] = Shocks[1, :]
+        self.shocks["WageRte"] = WageRte_now
+        self.shocks["DeprRte"] = DeprRte_now
+
+    def transition(self):
+        kLvlNow = self.state_prev["aLvl"]
+        HLvlPrev = self.state_prev["HLvl"]
+        RfreeNow = np.array(self.Rfree)[self.t_cycle - 1]
+        hLvlNow = (1.0 - self.shocks["DeprRte"]) * HLvlPrev
+        yLvlNow = self.shocks["WageRte"] * hLvlNow
+        mLvlNow = RfreeNow * kLvlNow + yLvlNow
+        return kLvlNow, yLvlNow, mLvlNow, hLvlNow
+
+    def get_controls(self):
+        """
+        Evaluate consumption and health investment functions conditional on
+        current state and model age, yielding controls cLvl and nLvl.
+        """
+        # This intentionally has the same bug with cycles > 1 as all our other
+        # models. It will be fixed all in one PR.
+        mLvl = self.state_now["mLvl"]
+        hLvl = self.state_now["hLvl"]
+        cLvl = np.empty(self.AgentCount)
+        nLvl = np.empty(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = self.t_cycle == t
+            func_t = self.solution[t]
+            trash, cLvl[these], nLvl[these] = func_t(mLvl[these], hLvl[these])
+        self.controls["cLvl"] = cLvl
+        self.controls["nLvl"] = nLvl
+
+    def get_poststates(self):
+        self.state_now["aLvl"] = (
+            self.state_now["mLvl"] - self.controls["cLvl"] - self.controls["nLvl"]
+        )
+        self.state_now["HLvl"] = (
+            self.state_now["hLvl"]
+            + (self.HealthProdFac / self.HealthProdExp)
+            * self.controls["nLvl"] ** self.HealthProdExp
+        )
 
 
 if __name__ == "__main__":
