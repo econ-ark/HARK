@@ -292,6 +292,7 @@ def make_logistic_polynomial_die_prob(T_cycle, DieProbMaxCoeffs):
 
 ###############################################################################
 
+# Make a dictionary of default constructor functions
 basic_health_constructors = {
     "WageRteDstn": construct_lognormal_wage_dstn,
     "DeprRteDstn": make_uniform_depreciation_dstn,
@@ -302,12 +303,14 @@ basic_health_constructors = {
     "solution_terminal": make_solution_terminal_ConsBasicHealth,
 }
 
+# Make a dictionary of default parameters for depreciation rate distribution
 default_DeprRteDstn_params = {
     "DeprRteMean": [0.05],
     "DeprRteSpread": [0.05],
     "DeprRteCount": 7,
 }
 
+# Make a dictionary of default parameters for wage rate distribution
 default_WageRteDstn_params = {
     "WageRteMean": [0.1],
     "WageRteStd": [0.1],
@@ -316,24 +319,28 @@ default_WageRteDstn_params = {
     "IncUnemp": 0.0,
 }
 
+# Make a dictionary of default parameters for assets grid
 default_aLvlGrid_params = {
     "aXtraMin": 1e-5,
     "aXtraMax": 300.0,
-    "aXtraCount": 48,
+    "aXtraCount": 44,
     "aXtraNestFac": 1,
-    "aXtraExtra": None,
+    "aXtraExtra": [3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2],
 }
 
+# Make a dictionary of default parameters for health capital grid
 default_hLvlGrid_params = {
     "hLvlMin": 0.0,
     "hLvlMax": 300.0,
     "hLvlCount": 50,
 }
 
+# Make a dictionary of default parameters for maximum death probability
 default_DieProbMax_params = {
     "DieProbMaxCoeffs": [0.0],
 }
 
+# Make a dictionary of default parameters for the health investment model
 basic_health_simple_params = {
     "constructors": basic_health_constructors,
     "DiscFac": 0.94,
@@ -345,6 +352,7 @@ basic_health_simple_params = {
     "cycles": 1,
 }
 
+# Assemble the default parameters dictionary
 init_basic_health = {}
 init_basic_health.update(basic_health_simple_params)
 init_basic_health.update(default_DeprRteDstn_params)
@@ -355,12 +363,49 @@ init_basic_health.update(default_DieProbMax_params)
 
 
 class BasicHealthConsumerType(AgentType):
-    """
+    r"""
     A class to represent consumers who can save in a risk-free asset and invest
-    in the health capital via a health production function. The model is a slight
+    in health capital via a health production function. The model is a slight
     alteration of the one from White (2015), which was in turn lifted from Ludwig
     and Schoen. In this variation, survival probability depends on post-investment
     health capital, rather than next period's health capital realization.
+
+    Each period, the agent chooses consumption $c_t$ and health investment $n_t$.
+    Consumption yields utility via CRRA function, while investment yields additional
+    health capital via production function $f(n_t)$. The agent faces a mortality
+    risk that depends on their post-investment health $H_t = h_t + g(n_t)$, as
+    well as income risk through wage rate $\omega_t$ and health capital depreciation
+    rate $\delta_t$. Health capital also serves as human capital in the sense that
+    the agent earns more income when $h_t$ is higher.
+
+    Unlike most other HARK models, this one is *not* normalized with respect to
+    permanent income-- indeed, there is no "permanent income" in this simple model.
+    As parametric restrictions, the solver requires that $\rho < 1$ so that utility
+    is positive everywhere, and that the probability of $\omega_t = 0$ is positive.
+    These restrictions ensure that the first order conditions are necessary and
+    sufficient to characterize the solution.
+
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \newcommand{\DeprRte}{\delta}
+        \newcommand{\WageRte}{\omega}
+        \begin{align*}
+        v_t(m_t, h_t) &= \max_{c_t, n_t}u(c_t) + \DiscFac (1 - \DiePrb_{t}) v_{t+1}(m_{t+1}, h_{t+1}), \\
+        & \text{s.t.}  \\
+        H_t &= h_t + g(n_t), \\
+        a_t &= m_t - c_t - n_t, \\
+        \DiePrb_t = \phi_t / (1 + H_t), \\
+        h_{t+1} &= (1-\DeprRte_{t+1}) H_t, \\
+        y_{t+1} &= \omega_{t+1} h_{t+1}, \\
+        m_{t+1} &= \Rfree_{t+1} a_t + y_{t+1}, \\
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}, \\
+        g(n) = (\gamma / \alpha) n^{\alpha}, \\
+        (\WageRte_{t+1}, \DeprRte_{t+1}) \sim F_{t+1}.
+        \end{align*}
     """
 
     default_ = {
@@ -403,3 +448,6 @@ if __name__ == "__main__":
     C = lambda x: MyType.solution[0](x, 5 * np.ones_like(x))[1]
     N = lambda x: MyType.solution[0](x, 5 * np.ones_like(x))[2]
     plot_funcs([C, N], 0.0, 10.0)
+
+    Q = lambda x: C(x) + N(x)
+    plot_funcs(Q, 0.0, 10.0)
