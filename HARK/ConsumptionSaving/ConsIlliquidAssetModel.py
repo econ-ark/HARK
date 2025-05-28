@@ -465,9 +465,9 @@ def solve_one_period_basic_illiquid(
         Solution to this period's consumption-saving problem with illiquid assets.
     """
     # Verifiy that there is actually a kink in the interest factor
-    assert (
-        Rboro >= Rsave
-    ), "Interest factor on debt less than interest factor on savings!"
+    assert Rboro >= Rsave, (
+        "Interest factor on debt less than interest factor on savings!"
+    )
     # If the kink is in the wrong direction, code should break here
 
     # Define the current period utility function and effective discount factor
