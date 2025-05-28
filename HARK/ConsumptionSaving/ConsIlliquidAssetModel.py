@@ -34,21 +34,23 @@ from HARK.Calibration.Income.IncomeProcesses import (
 
 ###############################################################################
 
+
 class ConFromAssetsFunction(MetricObject):
     """
     A trivial class for wrapping an "assets function" in a consumption function.
     """
+
     def __init__(self, aFunc):
         self.aFunc = aFunc
-        
-    def __call__(self,x,y):
-        return x - self.aFunc(x,y)
-    
-    def derivativeX(self,x,y):
-        return 1. - self.aFunc.derivativeX(x,y)
-    
-    def derivativeY(self,x,y):
-        return -self.aFunc.derivativeY(x,y)
+
+    def __call__(self, x, y):
+        return x - self.aFunc(x, y)
+
+    def derivativeX(self, x, y):
+        return 1.0 - self.aFunc.derivativeX(x, y)
+
+    def derivativeY(self, x, y):
+        return -self.aFunc.derivativeY(x, y)
 
 
 class DepositFunction(MetricObject):
@@ -150,7 +152,15 @@ class SpecialMargValueFunction(MetricObject):
     None
     """
 
-    distance_criteria = ["dFunc", "dvdk", "dvdb", "cFunc_Deposit", "cFunc_Withdraw", "Penalty", "CRRA"]
+    distance_criteria = [
+        "dFunc",
+        "dvdk",
+        "dvdb",
+        "cFunc_Deposit",
+        "cFunc_Withdraw",
+        "Penalty",
+        "CRRA",
+    ]
 
     def __init__(self, dFunc, dvdk, dvdb, cFunc_Deposit, cFunc_Withdraw, Penalty, CRRA):
         self.dFunc = dFunc
@@ -174,7 +184,7 @@ class SpecialMargValueFunction(MetricObject):
         bNrm = np.maximum(nNrm + dNrmAdj, 0.0)
         dvdm = self.dvdk(kNrm, bNrm)
         dvdn = self.dvdb(kNrm, bNrm)
-        withdraw = np.logical_and(withdraw, bNrm > 0.)
+        withdraw = np.logical_and(withdraw, bNrm > 0.0)
         if np.any(deposit):
             cNrm_dep = self.cFunc_Deposit(bNrm[deposit])
             dvdm[deposit] = cNrm_dep**-self.CRRA
@@ -209,7 +219,17 @@ class IlliquidConsumerSolution(MetricObject):
 
     distance_criteria = ["cFunc", "dFunc"]
 
-    def __init__(self, MargValueFunc, cFunc, dFunc, mNrmMin, MPCmin=None, hNrm=None, cFunc_Deposit=None, cFunc_Withdraw=None):
+    def __init__(
+        self,
+        MargValueFunc,
+        cFunc,
+        dFunc,
+        mNrmMin,
+        MPCmin=None,
+        hNrm=None,
+        cFunc_Deposit=None,
+        cFunc_Withdraw=None,
+    ):
         self.MargValueFunc = MargValueFunc
         self.cFunc = cFunc
         self.dFunc = dFunc
@@ -577,12 +597,10 @@ def solve_one_period_basic_illiquid(
         cFunc_by_bNrm_list.append(
             LinearInterp(kNrm_temp, cNrm_temp, intercept_temp, MPCminNow)
         )
-        aFunc_by_bNrm_list.append(
-            LinearInterp(kNrm_temp, aNrm_temp)
-        )
+        aFunc_by_bNrm_list.append(LinearInterp(kNrm_temp, aNrm_temp))
         dvdbNvrsFunc_by_bNrm_list.append(LinearInterp(kNrm_temp, dvdbNvrs_temp))
-    #cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_bNrm_list, bNrmGrid)
-    #cFuncUnc = VariableLowerBoundFunc2D(cFuncUncBase, BoroCnstNatFunc)
+    # cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_bNrm_list, bNrmGrid)
+    # cFuncUnc = VariableLowerBoundFunc2D(cFuncUncBase, BoroCnstNatFunc)
     cFuncCnstBase = IdentityFunction(i_dim=0, n_dims=2)
     aFuncUncBase = LinearInterpOnInterp1D(aFunc_by_bNrm_list, bNrmGrid)
     aFuncUnc = VariableLowerBoundFunc2D(aFuncUncBase, BoroCnstNatFunc)
@@ -699,10 +717,10 @@ def solve_one_period_basic_illiquid(
 
     plt.plot(bNrmGrid, OptZeroDeposit, "-b")
     plt.plot(bNrmGrid, OptZeroWithdraw, "-r")
-    plt.xlabel('illiquid assets bNrm')
-    plt.ylabel('liquid assets kNrm')
+    plt.xlabel("illiquid assets bNrm")
+    plt.ylabel("liquid assets kNrm")
     plt.show()
-    
+
     # Construct linear interpolations of the boundaries of the region of inaction
     InactionUpperBoundFunc = LinearInterp(bNrmGrid, OptZeroDeposit)
     InactionLowerBoundFunc = LinearInterp(bNrmGrid, OptZeroWithdraw)
@@ -714,19 +732,19 @@ def solve_one_period_basic_illiquid(
     # Construct the "optimal kash on hand when withdrawing" function
     TotalWealthAdj = OptZeroWithdraw + bNrmGrid / (1.0 + IlqdPenalty)
     CashFunc_Withdraw = LinearInterp(TotalWealthAdj, OptZeroWithdraw)
-    
+
     # Construct simplified consumption functions when withdrawing or depositing
     cNrm_dep = cFuncNow(OptZeroDeposit, bNrmGrid)
     cNrm_wdw = cFuncNow(OptZeroWithdraw, bNrmGrid)
     cFunc_Deposit = LinearInterp(bNrmGrid, cNrm_dep)
     cFunc_Withdraw = LinearInterp(bNrmGrid, cNrm_wdw)
-    
+
     plt.plot(bNrmGrid, cNrm_dep, "-b")
     plt.plot(bNrmGrid, cNrm_wdw, "-r")
-    plt.xlabel('illiquid assets bNrm')
-    plt.ylabel('consumption cNrm')
+    plt.xlabel("illiquid assets bNrm")
+    plt.ylabel("consumption cNrm")
     plt.show()
-    
+
     # Construct the deposit function as a special representation
     dFuncNow = DepositFunction(
         InactionLowerBoundFunc,
@@ -739,7 +757,13 @@ def solve_one_period_basic_illiquid(
 
     # Construct the marginal value function
     MargValueFuncNow = SpecialMargValueFunction(
-        dFuncNow, dvdkFunc, dvdbFunc, cFunc_Deposit, cFunc_Withdraw, IlqdPenalty, CRRA,
+        dFuncNow,
+        dvdkFunc,
+        dvdbFunc,
+        cFunc_Deposit,
+        cFunc_Withdraw,
+        IlqdPenalty,
+        CRRA,
     )
 
     # Package and return the solution object
@@ -877,7 +901,7 @@ class BasicIlliquidConsumerType(KinkedRconsumerType):
         temp = 1.0 + self.IlqdPenalty * withdraw
         bNrm = np.maximum(nNrm + temp * dNrm, 0.0)
         cNrm = cFunc(kNrm, bNrm)
-        withdraw = np.logical_and(withdraw, bNrm > 0.)
+        withdraw = np.logical_and(withdraw, bNrm > 0.0)
         if np.any(deposit):
             cNrm_dep = self.solution[t].cFunc_Deposit(bNrm[deposit])
             cNrm[deposit] = cNrm_dep
@@ -918,4 +942,3 @@ if __name__ == "__main__":
     c = lambda x: MyType.solution[0].cFunc(x, B * np.ones_like(x))
 
     plot_funcs([g], -7.5, 12)
-
