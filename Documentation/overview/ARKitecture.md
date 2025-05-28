@@ -29,7 +29,7 @@ from HARK.rewards import CRRAutility
 CRRAutility(1, 2)
 ```
 
-Python modules in HARK can generally be categorized into two types: tools and models. **Tool modules** contain functions and classes with general purpose tools that have no inherent ''economic content'', but that can be used in many economic models as building blocks or utilities; they could plausibly be useful in non-economic settings. Tools might include functions for data analysis (e.g. calculating Lorenz shares from data, or constructing a non-parametric kernel regression), functions to create and manipulate discrete approximations to continuous distributions, or classes for constructing interpolated approximations to non-parametric functions. The most commonly used tool modules reside in HARK's root directory and have names like **_HARK.distribution_** and **_HARK.interpolation_**.
+Python modules in HARK can generally be categorized into two types: tools and models. **Tool modules** contain functions and classes with general purpose tools that have no inherent ''economic content'', but that can be used in many economic models as building blocks or utilities; they could plausibly be useful in non-economic settings. Tools might include functions for data analysis (e.g. calculating Lorenz shares from data, or constructing a non-parametric kernel regression), functions to create and manipulate discrete approximations to continuous distributions, or classes for constructing interpolated approximations to non-parametric functions. The most commonly used tool modules reside in HARK's root directory and have names like **_HARK.distributions_** and **_HARK.interpolation_**.
 
 **Model modules** specify particular economic models, including classes to represent agents in the model (and the ''market structure'' in which they interact) and functions for solving the ''one period problem'' of those models. For example, **ConsIndShockModel.py** concerns consumption-saving models in which agents have CRRA utility over consumption and face idiosyncratic shocks to permanent and transitory income. The module includes classes for representing ''types'' of consumers, along with functions for solving (several flavors of) the one period consumption-saving problem. Model modules generally have **_Model_** in their name, and the classes for representing agents all have **_Type_** at the end of their name (as instances represent a collection of ex ante homogeneous agents who share common model and parameters-- a "type"). For example, **_HARK.ConsumptionSaving.ConsIndShockModel_** includes the class **_IndShockConsumerType_**.
 
@@ -59,9 +59,9 @@ Macroeconomic models in HARK use the **_Market_** class to represent a market (o
 
 The **_HARK.utilities_** module contains a variety of general purpose tools, including some data manipulation tools (e.g. for calculating an average of data conditional on being within a percentile range of different data), basic kernel regression tools, convenience functions for retrieving information about functions, and basic plotting tools using **_matplotlib.pyplot_**. See [here](https://docs.econ-ark.org/Documentation/reference/tools/utilities.html) for further documentation.
 
-#### HARK.distribution
+#### HARK.distributions
 
-The **_HARK.distribution_** module includes classes for representing continuous distributions in a relatively consistent framework. Critically for numeric purposes, it also has methods and functions for constructing discrete approximations to those distributions (e.g. **_approx\_lognormal()_** to approximate a log-normal distribution) as well as manipulating these representations (e.g. appending one outcome to an existing distribution, or combining independent univariate distributions into one multivariate distribution). As a convention in HARK, continuous distributions are approximated as finite discrete distributions when solving models. This both simplifies solution methods (reducing numeric integrals to simple dot products) and allows users to easily test whether their chosen degree of discretization yields a sufficient approximation to the full distribution. See [here](https://docs.econ-ark.org/Documentation/reference/tools/distribution.html) for further documentation.
+The **_HARK.distributions_** module includes classes for representing continuous distributions in a relatively consistent framework. Critically for numeric purposes, it also has methods and functions for constructing discrete approximations to those distributions (e.g. **_approx\_lognormal()_** to approximate a log-normal distribution) as well as manipulating these representations (e.g. appending one outcome to an existing distribution, or combining independent univariate distributions into one multivariate distribution). As a convention in HARK, continuous distributions are approximated as finite discrete distributions when solving models. This both simplifies solution methods (reducing numeric integrals to simple dot products) and allows users to easily test whether their chosen degree of discretization yields a sufficient approximation to the full distribution. See [here](https://docs.econ-ark.org/Documentation/reference/tools/distribution.html) for further documentation.
 
 #### HARK.interpolation
 
@@ -103,6 +103,8 @@ A discrete time model in our framework is characterized by a sequence of ''perio
 
 - **_cycles_**: A non-negative integer indicating the number of times the agent will experience the sequence of periods in the problem. For example, **_cycles = 1_** means that the sequence of periods is analogous to a lifecycle model, experienced once from beginning to end. An infinite horizon problem in which the sequence of periods repeats indefinitely is indicated with **_cycles = 0_**. For any **_cycles > 1_**, the agent experiences the sequence N times, with the first period in the sequence following the last; this structure is uncommon, and almost all applications with use a lifecycle or infinite horizon format.
 
+- **_T_cycle_**: The number of periods in one cycle. Lists of time-varying parameters must have this length, and the solution will contain `T_cycle` elements. Each agent tracks its position within the cycle using `t_cycle`, which resets to zero after reaching `T_cycle`.
+- **_T_age_**: Optional maximum lifespan for simulated agents. Each agent's age is counted in `t_age`; when `t_age` reaches `T_age` the agent is replaced with a newborn.
 - **_tolerance_**: A positive real number indicating convergence tolerance, representing the maximum acceptable ''distance'' between successive cycle solutions in an infinite horizon model; it is irrelevant when **_cycles > 0_**. As the distance metric on the space of solutions is model-specific, the value of **_tolerance_** is generally dimensionless.
 
 An instance of **_AgentType_** also has the attributes named in **_time_vary_** and **_time_inv_**, and may have other attributes that are not included in either (e.g. values not used in the model solution, but instead to construct objects used in the solution). Note that **_time_vary_** may include attributes that are never used by a function in **_solveOnePeriod_**. Most saliently, the attribute **_solution_** is time-varying but is not used to solve individual periods.
@@ -187,3 +189,13 @@ If you want to run the notebooks on your own machine make sure to install the ne
 HARK can be used to replicate papers as well. For this purpose the _R_[eplications/eproductions] and *E*xplorations *M*ade using _ARK_ (REMARK) [repository](https://github.com/econ-ark/REMARK) was created.
 
 Each replication consists of a _metadata file_ (.md) with an overview, a _notebook_ which replicates the paper, and a _requirement.txt_ file with the necessary packages to run the notebooks on your local mashine.
+
+### Additional Examples and Tutorials
+
+To help users understand the structure and organization of the repository, we have added more detailed explanations and examples in the following sections:
+
+- [HARK](https://github.com/econ-ark/HARK): Includes the source code as well as some example notebooks.
+- [DemARK](https://github.com/econ-ark/DemARK): Here you can find *Dem*onstrations of tools, AgentTypes, and ModelClasses.
+- [REMARK](https://github.com/econ-ark/REMARK): Here you can find _R_[eplications/eproductions] and *E*xplorations *M*ade using _ARK_.
+
+For more detailed explanations and examples, please refer to the [HARK documentation](https://docs.econ-ark.org/).

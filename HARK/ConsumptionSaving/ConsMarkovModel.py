@@ -9,9 +9,9 @@ import numpy as np
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
-    construct_lognormal_income_process_unemployment,
-    get_PermShkDstn_from_IncShkDstn,
-    get_TranShkDstn_from_IncShkDstn,
+    construct_markov_lognormal_income_process_unemployment,
+    get_PermShkDstn_from_IncShkDstn_markov,
+    get_TranShkDstn_from_IncShkDstn_markov,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -19,7 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
 )
-from HARK.distribution import MarkovProcess, Uniform, expected
+from HARK.distributions import MarkovProcess, Uniform, expected
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -657,9 +657,9 @@ def solve_one_period_ConsMarkov(
 
 # Make a dictionary of constructors for the markov consumption-saving model
 markov_constructor_dict = {
-    "IncShkDstn": construct_lognormal_income_process_unemployment,
-    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
-    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "IncShkDstn": construct_markov_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn_markov,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn_markov,
     "aXtraGrid": make_assets_grid,
     "MrkvArray": make_simple_binary_markov,
     "solution_terminal": make_markov_solution_terminal,
@@ -667,15 +667,21 @@ markov_constructor_dict = {
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
 default_IncShkDstn_params = {
-    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log permanent income shocks
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
-    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log transitory income shocks
     "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
-    "UnempPrb": 0.05,  # Probability of unemployment while working
-    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "UnempPrb": np.array([0.05, 0.05]),  # Probability of unemployment while working
+    "IncUnemp": np.array(
+        [0.3, 0.3]
+    ),  # Unemployment benefits replacement rate while working
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
-    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
-    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "UnempPrbRet": None,  # Probability of "unemployment" while retired
+    "IncUnempRet": None,  # "Unemployment" benefits when retired
 }
 
 # Default parameters to make aXtraGrid using make_assets_grid
@@ -699,9 +705,11 @@ init_indshk_markov = {
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": markov_constructor_dict,  # See dictionary above
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "global_markov": False,  # Whether the Markov state is shared across agents
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
+    "Rfree": [np.array([1.03, 1.03])],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
     "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
@@ -717,6 +725,7 @@ init_indshk_markov = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "MrkvPrbsInit": np.array([1.0, 0.0]),  # Initial distribution of discrete state
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
     # ADDITIONAL OPTIONAL PARAMETERS
@@ -738,36 +747,10 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
-
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
-
-    def __init__(self, **kwds):
-        params = init_indshk_markov.copy()
-        params.update(kwds)
-
-        super().__init__(**params)
-        self.solve_one_period = solve_one_period_ConsMarkov
-
-        if not hasattr(self, "global_markov"):
-            self.global_markov = False
-
-    def update(self):
-        """
-        Update the Markov array, the income process, the assets grid, and
-        the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("MrkvArray")
-        super().update()
+    default_ = {"params": init_indshk_markov, "solver": solve_one_period_ConsMarkov}
 
     def check_markov_inputs(self):
         """
@@ -785,10 +768,13 @@ class MarkovConsumerType(IndShockConsumerType):
         StateCount = self.MrkvArray[0].shape[0]
 
         # Check that arrays are the right shape
-        if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
-            raise ValueError(
-                "Rfree not the right shape, it should be an array of Rfree of all the states."
-            )
+        for t in range(self.T_cycle):
+            if not isinstance(self.Rfree[t], np.ndarray) or self.Rfree[t].shape != (
+                StateCount,
+            ):
+                raise ValueError(
+                    "Rfree[t] not the right shape, it should be an array of Rfree of all the states."
+                )
 
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
@@ -797,7 +783,7 @@ class MarkovConsumerType(IndShockConsumerType):
                 StateCount,
             ):
                 raise ValueError(
-                    "MrkvArray not the right shape, it should be of the size states*statres."
+                    "MrkvArray not the right shape, it should be of the size states*states."
                 )
         for LivPrb_t in self.LivPrb:
             if not isinstance(LivPrb_t, np.ndarray) or LivPrb_t.shape != (StateCount,):
@@ -843,7 +829,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
@@ -956,7 +942,6 @@ class MarkovConsumerType(IndShockConsumerType):
             dont_change[:] = True
 
         # Determine which agents are in which states right now
-        J = self.MrkvArray[0].shape[0]
         MrkvPrev = self.shocks["Mrkv"]
         MrkvNow = np.zeros(self.AgentCount, dtype=int)
 
@@ -1043,7 +1028,10 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree[self.shocks["Mrkv"]]
+        RfreeNow = np.zeros(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = self.t_cycle == t
+            RfreeNow[these] = self.Rfree[t][self.shocks["Mrkv"][these]]
         return RfreeNow
 
     def get_controls(self):
@@ -1077,6 +1065,10 @@ class MarkovConsumerType(IndShockConsumerType):
                 )
         self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
+
+    def get_poststates(self):
+        super().get_poststates()
+        self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
 
     def calc_bounding_values(self):
         """

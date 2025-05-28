@@ -14,6 +14,8 @@ import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
 from scipy.interpolate import interp1d
 
+from inspect import signature
+
 # try:
 #     import matplotlib.pyplot as plt                 # Python's plotting library
 # except ImportError:
@@ -112,6 +114,22 @@ class NullFunc:
             return 10000.0
 
 
+def apply_fun_to_vals(fun, vals):
+    """
+    Applies a function to the arguments defined in `vals`.
+    This is equivalent to `fun(**vals)`, except
+    that `vals` may contain keys that are not named arguments
+    of `fun`.
+
+    Parameters
+    ----------
+    fun: callable
+
+    vals: dict
+    """
+    return fun(*[vals[var] for var in signature(fun).parameters])
+
+
 # =======================================================
 # ================ Other useful functions ===============
 # =======================================================
@@ -126,17 +144,19 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     aXtraNestFac = 0  : Ordinary exponentially spaced grid.
     aXtraNestFac >= 1 : Multi-exponentially nested grid.
 
+    See :func:`HARK.utilities.make_grid_exp_mult` for more info
+
     Parameters
     ----------
-    aXtraMin:                  float
+    aXtraMin: float
         Minimum value for the assets-above-minimum grid.
-    aXtraMax:                  float
+    aXtraMax: float
         Maximum value for the assets-above-minimum grid.
-    aXtraCount:                 int
+    aXtraCount: int
         Number of nodes in the assets-above-minimum grid, not counting extra values.
-    aXtraExtra:                [float]
+    aXtraExtra: [float]
         Additional values to insert in the assets-above-minimum grid.
-    aXtraNestFac:               int
+    aXtraNestFac: int
         Level of exponential nesting for grid. If -1, the grid is linearly spaced.
 
     Returns
@@ -173,8 +193,12 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
 
 
 def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
-    """
-    Make a multi-exponentially spaced grid.
+    r"""
+    Makes a multi-exponentially spaced grid.
+    If the function :math:`\ln(1+x)` were applied timestonest times,
+    the grid would become linearly spaced.
+    If timestonest is 0, the grid is exponentially spaced.
+
 
     Parameters
     ----------
@@ -192,6 +216,8 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     points : np.array
         A multi-exponentially spaced grid
 
+    Notes
+    -----
     Original Matab code can be found in Chris Carroll's
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
@@ -210,8 +236,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     else:
         Lming = np.log(ming)
         Lmaxg = np.log(maxg)
-        Lstep = (Lmaxg - Lming) / (ng - 1)
-        Lgrid = np.arange(Lming, Lmaxg + 0.000001, Lstep)
+        Lstep = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
     return grid
 
@@ -439,11 +464,12 @@ def kernel_regression(x, y, bot=None, top=None, N=500, h=None):
 
     # Construct a local linear approximation
     x_vec = np.linspace(bot, top, num=N)
-    y_vec = np.zeros_like(x_vec) + np.nan
-    for j in range(N):
-        x_here = x_vec[j]
-        weights = epanechnikov_kernel(x, x_here, h)
-        y_vec[j] = np.dot(weights, y) / np.sum(weights)
+    # Evaluate the kernel for all evaluation points at once
+    weights = epanechnikov_kernel(x[:, None], x_vec[None, :], h)
+    weight_sums = np.sum(weights, axis=0)
+    # Avoid division by zero when weights are extremely small
+    weight_sums[weight_sums == 0] = np.nan
+    y_vec = np.dot(weights.T, y) / weight_sums
     regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
     return regression
 
@@ -467,9 +493,8 @@ def epanechnikov_kernel(x, ref_x, h=1.0):
         Kernel values at each value of x
     """
     u = (x - ref_x) / h  # Normalize distance by bandwidth
-    these = np.abs(u) <= 1.0  # Kernel = 0 outside [-1,1]
-    out = np.zeros_like(x)  # Initialize kernel output
-    out[these] = 0.75 * (1.0 - u[these] ** 2.0)  # Evaluate kernel
+    out = 0.75 * (1.0 - u**2)
+    out[np.abs(u) > 1.0] = 0.0  # Kernel = 0 outside [-1,1]
     return out
 
 
@@ -493,12 +518,9 @@ def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
     param_vals : np.array
         T-length array of parameter values calculated using the polynomial coefficients.
     """
-    N = len(coeffs)
     X = offset + step * np.arange(T)
-    param_vals = np.zeros_like(X)
-    for n in range(N):
-        param_vals += coeffs[n] * X**n
-    return param_vals
+    # np.polyval expects highest power first
+    return np.polyval(coeffs[::-1], X)
 
 
 @numba.njit

@@ -2,13 +2,18 @@
 This file implements unit tests for interpolation methods
 """
 
-import unittest
+from HARK.interpolation import (
+    IdentityFunction,
+    LinearInterp,
+    BilinearInterp,
+    TrilinearInterp,
+    QuadlinearInterp,
+)
+from HARK.interpolation import CubicHermiteInterp as CubicInterp
 
 import numpy as np
-
-from HARK.interpolation import BilinearInterp
-from HARK.interpolation import CubicHermiteInterp as CubicInterp
-from HARK.interpolation import LinearInterp, QuadlinearInterp, TrilinearInterp
+import unittest
+import numpy as np
 
 
 class testsLinearInterp(unittest.TestCase):
@@ -200,3 +205,45 @@ class testsQuadlinearInterp(unittest.TestCase):
             self.f_array, self.w_array, self.x_array, self.y_array_t, self.z_array
         )
         self.assertEqual(bilinear(1, 2, 1, 2), 6.0)
+
+
+class test_IdentityFunction(unittest.TestCase):
+    """
+    Tests evaluation and derivatives of IdentityFunction class.
+    """
+
+    def setUp(self):
+        self.IF1D = IdentityFunction()
+        self.IF2Da = IdentityFunction(i_dim=0, n_dims=2)
+        self.IF2Db = IdentityFunction(i_dim=1, n_dims=2)
+        self.IF3Da = IdentityFunction(i_dim=0, n_dims=3)
+        self.IF3Db = IdentityFunction(i_dim=2, n_dims=3)
+        self.X = 3 * np.ones(100)
+        self.Y = 4 * np.ones(100)
+        self.Z = 5 * np.ones(100)
+        self.zero = np.zeros(100)
+        self.one = np.ones(100)
+
+    def test_eval(self):
+        assert np.all(self.X == self.IF1D(self.X))
+        assert np.all(self.X == self.IF2Da(self.X, self.Y))
+        assert np.all(self.Y == self.IF2Db(self.X, self.Y))
+        assert np.all(self.X == self.IF3Da(self.X, self.Y, self.Z))
+        assert np.all(self.Z == self.IF3Db(self.X, self.Y, self.Z))
+
+    def test_der(self):
+        assert np.all(self.one == self.IF1D.derivative(self.X))
+
+        assert np.all(self.one == self.IF2Da.derivativeX(self.X, self.Y))
+        assert np.all(self.zero == self.IF2Da.derivativeY(self.X, self.Y))
+
+        assert np.all(self.zero == self.IF2Db.derivativeX(self.X, self.Y))
+        assert np.all(self.one == self.IF2Db.derivativeY(self.X, self.Y))
+
+        assert np.all(self.one == self.IF3Da.derivativeX(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Da.derivativeY(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Da.derivativeZ(self.X, self.Y, self.Z))
+
+        assert np.all(self.zero == self.IF3Db.derivativeX(self.X, self.Y, self.Z))
+        assert np.all(self.zero == self.IF3Db.derivativeY(self.X, self.Y, self.Z))
+        assert np.all(self.one == self.IF3Db.derivativeZ(self.X, self.Y, self.Z))

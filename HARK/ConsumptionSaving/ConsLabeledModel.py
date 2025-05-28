@@ -5,10 +5,15 @@ from typing import Mapping
 import numpy as np
 import xarray as xr
 
+from HARK.Calibration.Assets.AssetProcesses import (
+    make_lognormal_RiskyDstn,
+    combine_IncShkDstn_and_RiskyDstn,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
     init_perfect_foresight,
+    init_idiosyncratic_shocks,
+    IndShockConsumerType_aXtraGrid_default,
 )
 from HARK.ConsumptionSaving.ConsPortfolioModel import (
     PortfolioConsumerType,
@@ -19,12 +24,17 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
     init_risky_share_fixed,
+    IndShockRiskyAssetConsumerType_constructor_default,
+)
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_unemployment,
 )
 from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSetup
 from HARK.core import make_one_period_oo_solver
-from HARK.distribution import DiscreteDistributionLabeled
+from HARK.distributions import DiscreteDistributionLabeled
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
+from HARK.utilities import make_assets_grid
 
 
 class ValueFuncCRRALabeled(MetricObject):
@@ -218,95 +228,160 @@ class ConsumerSolutionLabeled(MetricObject):
         return np.max(np.abs(value - other_value).to_array())
 
 
-class PerfForesightLabeledType(IndShockConsumerType):
+###############################################################################
+
+
+def make_solution_terminal_labeled(CRRA, aXtraGrid):
     """
-    A labeled perfect foresight consumer type. This class is a subclass of
-    IndShockConsumerType, and inherits all of its methods and attributes.
+    Construct the terminal solution of the model by creating a terminal value
+    function and terminal marginal value function along with a terminal policy
+    function. This is used as the constructor for solution_terminal.
 
-    Perfect foresight consumers have no uncertainty about income or interest
-    rates, and so the only state variable is market resources m.
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    aXtraGrid : np.array
+        Grid of assets above minimum.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolutionLabeled
+        Terminal period solution.
     """
+    u = UtilityFuncCRRA(CRRA)
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        """
-        Initialize a new instance of a perfect foresight consumer type.
-        """
-        params = init_perfect_foresight.copy()
-        params.update(kwds)
-        params["constructors"] = init_idiosyncratic_shocks["constructors"]
+    mNrm = xr.DataArray(
+        np.append(0.0, aXtraGrid),
+        name="mNrm",
+        dims=("mNrm"),
+        attrs={"long_name": "cash_on_hand"},
+    )
+    state = xr.Dataset({"mNrm": mNrm})  # only one state var in this model
 
-        # Initialize a basic AgentType
-        IndShockConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
+    # optimal decision is to consume everything in the last period
+    cNrm = xr.DataArray(
+        mNrm,
+        name="cNrm",
+        dims=state.dims,
+        coords=state.coords,
+        attrs={"long_name": "consumption"},
+    )
 
-        self.solve_one_period = make_one_period_oo_solver(
-            ConsPerfForesightLabeledSolver
+    v = u(cNrm)
+    v.name = "v"
+    v.attrs = {"long_name": "value function"}
+
+    v_der = u.der(cNrm)
+    v_der.name = "v_der"
+    v_der.attrs = {"long_name": "marginal value function"}
+
+    v_inv = cNrm.copy()
+    v_inv.name = "v_inv"
+    v_inv.attrs = {"long_name": "inverse value function"}
+
+    v_der_inv = cNrm.copy()
+    v_der_inv.name = "v_der_inv"
+    v_der_inv.attrs = {"long_name": "inverse marginal value function"}
+
+    dataset = xr.Dataset(
+        {
+            "cNrm": cNrm,
+            "v": v,
+            "v_der": v_der,
+            "v_inv": v_inv,
+            "v_der_inv": v_der_inv,
+        }
+    )
+
+    vfunc = ValueFuncCRRALabeled(dataset[["v", "v_der", "v_inv", "v_der_inv"]], CRRA)
+
+    solution_terminal = ConsumerSolutionLabeled(
+        value=vfunc,
+        policy=dataset[["cNrm"]],
+        continuation=None,
+        attrs={"m_nrm_min": 0.0},  # minimum normalized market resources
+    )
+    return solution_terminal
+
+
+def make_labeled_inc_shk_dstn(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    RNG,
+    neutral_measure=False,
+):
+    """
+    Wrapper around construct_lognormal_income_process_unemployment that converts
+    the IncShkDstn to a labeled version.
+    """
+    IncShkDstnBase = construct_lognormal_income_process_unemployment(
+        T_cycle,
+        PermShkStd,
+        PermShkCount,
+        TranShkStd,
+        TranShkCount,
+        T_retire,
+        UnempPrb,
+        IncUnemp,
+        UnempPrbRet,
+        IncUnempRet,
+        RNG,
+        neutral_measure,
+    )
+    IncShkDstn = []
+    for i in range(len(IncShkDstnBase.dstns)):
+        IncShkDstn.append(
+            DiscreteDistributionLabeled.from_unlabeled(
+                IncShkDstnBase[i],
+                name="Distribution of Shocks to Income",
+                var_names=["perm", "tran"],
+            )
         )
+    return IncShkDstn
 
-    def update_solution_terminal(self):
-        """
-        Update the terminal solution of the model by creating a terminal
-        value function and terminal marginal value function along with
-        a terminal policy function.
-        """
 
-        u = UtilityFuncCRRA(self.CRRA)
+def make_labeled_risky_dstn(T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG):
+    """
+    A wrapper around make_lognormal_RiskyDstn that makes it labeled.
+    """
+    RiskyDstnBase = make_lognormal_RiskyDstn(
+        T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG
+    )
+    RiskyDstn = DiscreteDistributionLabeled.from_unlabeled(
+        RiskyDstnBase,
+        name="Distribution of Risky Asset Returns",
+        var_names=["risky"],
+    )
+    return RiskyDstn
 
-        mNrm = xr.DataArray(
-            np.append(0.0, self.aXtraGrid),
-            name="mNrm",
-            dims=("mNrm"),
-            attrs={"long_name": "cash_on_hand"},
+
+def make_labeled_shock_dstn(T_cycle, IncShkDstn, RiskyDstn):
+    """
+    A wrapper function that makes the joint distributions labeled.
+    """
+    ShockDstnBase = combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn)
+    ShockDstn = []
+    for i in range(len(ShockDstnBase.dstns)):
+        ShockDstn.append(
+            DiscreteDistributionLabeled.from_unlabeled(
+                ShockDstnBase[i],
+                name="Distribution of Shocks to Income and Risky Asset Returns",
+                var_names=["perm", "tran", "risky"],
+            )
         )
-        state = xr.Dataset({"mNrm": mNrm})  # only one state var in this model
+    return ShockDstn
 
-        # optimal decision is to consume everything in the last period
-        cNrm = xr.DataArray(
-            mNrm,
-            name="cNrm",
-            dims=state.dims,
-            coords=state.coords,
-            attrs={"long_name": "consumption"},
-        )
 
-        v = u(cNrm)
-        v.name = "v"
-        v.attrs = {"long_name": "value function"}
-
-        v_der = u.der(cNrm)
-        v_der.name = "v_der"
-        v_der.attrs = {"long_name": "marginal value function"}
-
-        v_inv = cNrm.copy()
-        v_inv.name = "v_inv"
-        v_inv.attrs = {"long_name": "inverse value function"}
-
-        v_der_inv = cNrm.copy()
-        v_der_inv.name = "v_der_inv"
-        v_der_inv.attrs = {"long_name": "inverse marginal value function"}
-
-        dataset = xr.Dataset(
-            {
-                "cNrm": cNrm,
-                "v": v,
-                "v_der": v_der,
-                "v_inv": v_inv,
-                "v_der_inv": v_der_inv,
-            }
-        )
-
-        vfunc = ValueFuncCRRALabeled(
-            dataset[["v", "v_der", "v_inv", "v_der_inv"]], self.CRRA
-        )
-
-        self.solution_terminal = ConsumerSolutionLabeled(
-            value=vfunc,
-            policy=dataset[["cNrm"]],
-            continuation=None,
-            attrs={"m_nrm_min": 0.0},  # minimum normalized market resources
-        )
-
-    def post_solve(self):
-        pass  # Do nothing, rather than try to run calc_stable_points
+###############################################################################
 
 
 class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
@@ -664,52 +739,38 @@ class ConsPerfForesightLabeledSolver(ConsIndShockSetup):
         return self.solution
 
 
-class IndShockLabeledType(PerfForesightLabeledType):
+###############################################################################
+
+init_perf_foresight_labeled = init_idiosyncratic_shocks.copy()
+init_perf_foresight_labeled.update(init_perfect_foresight)
+PF_labeled_constructor_dict = init_idiosyncratic_shocks["constructors"].copy()
+PF_labeled_constructor_dict["solution_terminal"] = make_solution_terminal_labeled
+PF_labeled_constructor_dict["aXtraGrid"] = make_assets_grid
+init_perf_foresight_labeled["constructors"] = PF_labeled_constructor_dict
+init_perf_foresight_labeled.update(IndShockConsumerType_aXtraGrid_default)
+
+###############################################################################
+
+
+class PerfForesightLabeledType(IndShockConsumerType):
     """
-    A labeled version of IndShockConsumerType. This class inherits from
-    PerfForesightLabeledType and adds income uncertainty.
+    A labeled perfect foresight consumer type. This class is a subclass of
+    IndShockConsumerType, and inherits all of its methods and attributes.
+
+    Perfect foresight consumers have no uncertainty about income or interest
+    rates, and so the only state variable is market resources m.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        """
-        Initialize an instance of IndShockLabeledType.
-        """
+    default_ = {
+        "params": init_perf_foresight_labeled,
+        "solver": make_one_period_oo_solver(ConsPerfForesightLabeledSolver),
+    }
 
-        params = init_perfect_foresight.copy()
-        params.update(kwds)
+    def post_solve(self):
+        pass  # Do nothing, rather than try to run calc_stable_points
 
-        # Initialize a basic AgentType
-        PerfForesightLabeledType.__init__(self, verbose=verbose, quiet=quiet, **params)
 
-        self.solve_one_period = make_one_period_oo_solver(ConsIndShockLabeledSolver)
-
-        self.update_labeled_type()
-
-    def update_labeled_type(self):
-        """
-        Update the labeled type by creating labeled versions
-        of the distributions.
-        """
-
-        self.update_distributions()
-
-    def update_distributions(self):
-        """
-        Create labeled versions of the distributions.
-        """
-
-        IncShkDstn = []
-
-        for i in range(len(self.IncShkDstn.dstns)):
-            IncShkDstn.append(
-                DiscreteDistributionLabeled.from_unlabeled(
-                    self.IncShkDstn[i],
-                    name="Distribution of Shocks to Income",
-                    var_names=["perm", "tran"],
-                )
-            )
-
-        self.IncShkDstn = IncShkDstn
+###############################################################################
 
 
 class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
@@ -840,55 +901,27 @@ class ConsIndShockLabeledSolver(ConsPerfForesightLabeledSolver):
         return wfunc
 
 
-class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
+###############################################################################
+
+init_ind_shock_labeled = init_perf_foresight_labeled.copy()
+ind_shock_labeled_constructor_dict = PF_labeled_constructor_dict.copy()
+ind_shock_labeled_constructor_dict["IncShkDstn"] = make_labeled_inc_shk_dstn
+init_ind_shock_labeled["constructors"] = ind_shock_labeled_constructor_dict
+
+
+class IndShockLabeledType(PerfForesightLabeledType):
     """
-    A labeled RiskyAssetConsumerType. This class is a subclass of
-    RiskyAssetConsumerType, and inherits all of its methods and attributes.
-
-    Risky asset consumers can only save on a risky asset that
-    pays a stochastic return.
+    A labeled version of IndShockConsumerType. This class inherits from
+    PerfForesightLabeledType and adds income uncertainty.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        """
-        Initialize a labeled RiskyAssetConsumerType.
-        """
+    default_ = {
+        "params": init_ind_shock_labeled,
+        "solver": make_one_period_oo_solver(ConsIndShockLabeledSolver),
+    }
 
-        params = init_risky_asset.copy()
-        params.update(kwds)
 
-        # Initialize a basic AgentType
-        RiskyAssetConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
-
-        self.solve_one_period = make_one_period_oo_solver(ConsRiskyAssetLabeledSolver)
-
-        self.update_labeled_type()
-
-    def update_distributions(self):
-        """
-        Update the labeled distributions including the Risky distribution.
-        """
-
-        super().update_distributions()
-
-        self.RiskyDstn = DiscreteDistributionLabeled.from_unlabeled(
-            self.RiskyDstn,
-            name="Distribution of Risky Asset Returns",
-            var_names=["risky"],
-        )
-
-        ShockDstn = []
-
-        for i in range(len(self.ShockDstn.dstns)):
-            ShockDstn.append(
-                DiscreteDistributionLabeled.from_unlabeled(
-                    self.ShockDstn[i],
-                    name="Distribution of Shocks to Income and Risky Asset Returns",
-                    var_names=["perm", "tran", "risky"],
-                )
-            )
-
-        self.ShockDstn = ShockDstn
+###############################################################################
 
 
 @dataclass
@@ -1032,35 +1065,40 @@ class ConsRiskyAssetLabeledSolver(ConsIndShockLabeledSolver):
         return wfunc
 
 
-class FixedPortfolioLabeledType(
-    RiskyAssetLabeledType, FixedPortfolioShareRiskyAssetConsumerType
-):
+###############################################################################
+
+risky_asset_labeled_constructor_dict = (
+    IndShockRiskyAssetConsumerType_constructor_default.copy()
+)
+risky_asset_labeled_constructor_dict["IncShkDstn"] = make_labeled_inc_shk_dstn
+risky_asset_labeled_constructor_dict["RiskyDstn"] = make_labeled_risky_dstn
+risky_asset_labeled_constructor_dict["ShockDstn"] = make_labeled_shock_dstn
+risky_asset_labeled_constructor_dict["solution_terminal"] = (
+    make_solution_terminal_labeled
+)
+del risky_asset_labeled_constructor_dict["solve_one_period"]
+init_risky_asset_labeled = init_risky_asset.copy()
+init_risky_asset_labeled["constructors"] = risky_asset_labeled_constructor_dict
+
+###############################################################################
+
+
+class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
     """
-    A labeled FixedPortfolioShareRiskyAssetConsumerType. This class is a subclass of
-    FixedPortfolioShareRiskyAssetConsumerType, and inherits all of its methods and attributes.
+    A labeled RiskyAssetConsumerType. This class is a subclass of
+    RiskyAssetConsumerType, and inherits all of its methods and attributes.
 
-    Fixed portfolio share consumers can save on a risk-free and
-    risky asset at a fixed proportion.
+    Risky asset consumers can only save on a risky asset that
+    pays a stochastic return.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        """
-        Initialize a new instance of FixedPortfolioLabeledType.
-        """
+    default_ = {
+        "params": init_risky_asset_labeled,
+        "solver": make_one_period_oo_solver(ConsRiskyAssetLabeledSolver),
+    }
 
-        params = init_risky_share_fixed.copy()
-        params.update(kwds)
 
-        # Initialize a basic AgentType
-        FixedPortfolioShareRiskyAssetConsumerType.__init__(
-            self, verbose=verbose, quiet=quiet, **params
-        )
-
-        self.solve_one_period = make_one_period_oo_solver(
-            ConsFixedPortfolioLabeledSolver
-        )
-
-        self.update_labeled_type()
+###############################################################################
 
 
 @dataclass
@@ -1162,30 +1200,37 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         return variables
 
 
-class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
+###############################################################################
+
+init_risky_share_fixed_labeled = init_risky_share_fixed.copy()
+risky_share_fixed_labeled_constructors = init_risky_share_fixed["constructors"].copy()
+risky_share_fixed_labeled_constructors["IncShkDstn"] = make_labeled_inc_shk_dstn
+risky_share_fixed_labeled_constructors["RiskyDstn"] = make_labeled_risky_dstn
+risky_share_fixed_labeled_constructors["ShockDstn"] = make_labeled_shock_dstn
+risky_share_fixed_labeled_constructors["solution_terminal"] = (
+    make_solution_terminal_labeled
+)
+init_risky_share_fixed_labeled["constructors"] = risky_share_fixed_labeled_constructors
+
+
+class FixedPortfolioLabeledType(
+    RiskyAssetLabeledType, FixedPortfolioShareRiskyAssetConsumerType
+):
     """
-    A labeled PortfolioConsumerType. This class is a subclass of
-    PortfolioConsumerType, and inherits all of its methods and attributes.
+    A labeled FixedPortfolioShareRiskyAssetConsumerType. This class is a subclass of
+    FixedPortfolioShareRiskyAssetConsumerType, and inherits all of its methods and attributes.
 
-    Portfolio consumers can save on a risk-free and
-    risky asset at an optimal proportion.
+    Fixed portfolio share consumers can save on a risk-free and
+    risky asset at a fixed proportion.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        """
-        Initialize a new instance of PortfolioLabeledType.
-        """
-        params = init_portfolio.copy()
-        params.update(kwds)
+    default_ = {
+        "params": init_risky_share_fixed_labeled,
+        "solver": make_one_period_oo_solver(ConsFixedPortfolioLabeledSolver),
+    }
 
-        self.RiskyShareFixed = [1.0]
 
-        # Initialize a basic AgentType
-        PortfolioConsumerType.__init__(self, verbose=verbose, quiet=quiet, **params)
-
-        self.solve_one_period = make_one_period_oo_solver(ConsPortfolioLabeledSolver)
-
-        self.update_labeled_type()
+###############################################################################
 
 
 @dataclass
@@ -1346,3 +1391,32 @@ class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
         self.post_state = self.post_state.drop("stigma")
 
         return wfunc
+
+
+###############################################################################
+
+init_portfolio_labeled = init_portfolio.copy()
+init_portfolio_labeled_constructors = init_portfolio["constructors"].copy()
+init_portfolio_labeled_constructors["IncShkDstn"] = make_labeled_inc_shk_dstn
+init_portfolio_labeled_constructors["RiskyDstn"] = make_labeled_risky_dstn
+init_portfolio_labeled_constructors["ShockDstn"] = make_labeled_shock_dstn
+init_portfolio_labeled_constructors["solution_terminal"] = (
+    make_solution_terminal_labeled
+)
+init_portfolio_labeled["constructors"] = init_portfolio_labeled_constructors
+init_portfolio_labeled["RiskyShareFixed"] = [0.0]  # This shouldn't exist
+
+
+class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
+    """
+    A labeled PortfolioConsumerType. This class is a subclass of
+    PortfolioConsumerType, and inherits all of its methods and attributes.
+
+    Portfolio consumers can save on a risk-free and
+    risky asset at an optimal proportion.
+    """
+
+    default_ = {
+        "params": init_portfolio_labeled,
+        "solver": make_one_period_oo_solver(ConsPortfolioLabeledSolver),
+    }

@@ -4,7 +4,7 @@ This file has various classes and functions for constructing income processes.
 
 import numpy as np
 from HARK.metric import MetricObject
-from HARK.distribution import (
+from HARK.distributions import (
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
     DiscreteDistribution,
@@ -54,7 +54,6 @@ class BinaryIncShkDstn(DiscreteDistribution):
 class LognormPermIncShk(DiscreteDistribution):
     """
     A one-period distribution of a multiplicative lognormal permanent income shock.
-
     Parameters
     ----------
     sigma : float
@@ -75,14 +74,27 @@ class LognormPermIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).discretize(
+        lognormal_dstn = MeanOneLogNormal(sigma)
+        logn_approx = lognormal_dstn.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
+
+        limit = {
+            "dist": lognormal_dstn,
+            "method": "equiprobable",
+            "N": n_approx,
+            "endpoints": False,
+            "infimum": logn_approx.limit["infimum"],
+            "supremum": logn_approx.limit["supremum"],
+        }
+
         # Change the pmv if necessary
         if neutral_measure:
             logn_approx.pmv = (logn_approx.atoms * logn_approx.pmv).flatten()
 
-        super().__init__(pmv=logn_approx.pmv, atoms=logn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=logn_approx.pmv, atoms=logn_approx.atoms, limit=limit, seed=seed
+        )
 
 
 class MixtureTranIncShk(DiscreteDistribution):
@@ -111,15 +123,22 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_approx = MeanOneLogNormal(sigma).discretize(
+        dstn_orig = MeanOneLogNormal(sigma)
+        dstn_approx = dstn_orig.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
+
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
 
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class MixtureTranIncShk_HANK(DiscreteDistribution):
@@ -174,7 +193,12 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         # Rescale the transitory shock values to account for new features
         TranShkMean_temp = (1.0 - tax_rate) * labor * wage
         dstn_approx.atoms *= TranShkMean_temp
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class BufferStockIncShkDstn(DiscreteDistributionLabeled):
@@ -182,10 +206,10 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
     paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
+    - Lognormal, discretized permanent income shocks.
+    - Transitory shocks that are a mixture of:
+    - A lognormal distribution in normal times.
+    - An "unemployment" shock.
 
     Parameters
     ----------
@@ -240,6 +264,7 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 
@@ -249,10 +274,10 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
     A one-period distribution object for the joint distribution of income
     shocks (permanent and transitory), as modeled in the Buffer Stock Theory
     paper:
-        - Lognormal, discretized permanent income shocks.
-        - Transitory shocks that are a mixture of:
-            - A lognormal distribution in normal times.
-            - An "unemployment" shock.
+    - Lognormal, discretized permanent income shocks.
+    - Transitory shocks that are a mixture of:
+    - A lognormal distribution in normal times.
+    - An "unemployment" shock.
 
     This version has additional features that make it particularly useful for HANK models.
 
@@ -319,6 +344,7 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 
@@ -340,32 +366,55 @@ def construct_lognormal_income_process_unemployment(
     RNG,
     neutral_measure=False,
 ):
-    """
+    r"""
     Generates a list of discrete approximations to the income process for each
-    life period, from end of life to beginning of life.  Permanent shocks are mean
+    life period, from end of life to beginning of life.  Permanent shocks (:math:`\psi`) are mean
     one lognormally distributed with standard deviation PermShkStd[t] during the
-    working life, and degenerate at 1 in the retirement period.  Transitory shocks
+    working life, and degenerate at 1 in the retirement period. Transitory shocks (:math:`\theta`)
     are mean one lognormally distributed with a point mass at IncUnemp with
     probability UnempPrb while working; they are mean one with a point mass at
     IncUnempRet with probability UnempPrbRet.  Retirement occurs
     after t=T_retire periods of working.
 
-    Note 1: All time in this function runs forward, from t=0 to t=T
+    .. math::
+        \begin{align*}
+        \psi_t &\sim \begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2,\textbf{PermShkStd}_{t}^{2})) & \text{if } t \leq t_{\text{retire}}\\
+        1 & \text{if } t > t_{\text{retire}}
+        \end{cases}\\
+        p_{\text{unemp}} & = \begin{cases}
+        \textbf{UnempPrb} & \text{if } t \leq t_{\text{retire}} \\
+        \textbf{UnempPrbRet} & \text{if } t > t_{\text{retire}} \\
+        \end{cases}\\
+        &\text{if } p > p_{\text{unemp}} \\
+        \theta_t &\sim\begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2-\ln(\frac{1-\textbf{IncUnemp }\textbf{UnempPrb}}{1-\textbf{UnempPrb}}),\textbf{PermShkStd}_{t}^{2})) & \text{if } t\leq t_{\text{retire}}\\
+        \frac{1-\textbf{UnempPrbRet }\textbf{IncUnempRet}}{1-\textbf{UnempPrbRet}} & \text{if } t > t_{\text{retire}} \\
+        \end{cases}\\
+        &\text{otherwise}\\
+        \theta_t &\sim\begin{cases}
+        \textbf{IncUnemp} & \text{if } t\leq t_{\text{retire}}\\
+        \textbf{IncUnempRet} & \text{if } t\leq t_{\text{retire}}\\
+        \end{cases}\\
+        \mathbb{E}[\psi]&=\mathbb{E}[\theta] = 1.\\
+        \end{align*}
 
-    Parameters (passed as attributes of the input parameters)
-    ---------------------------------------------------------
+    All time in this function runs forward, from t=0 to t=T
+
+    Parameters
+    ----------
     PermShkStd : [float]
         List of standard deviations in log permanent income uncertainty during
         the agent's life.
     PermShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
     TranShkStd : [float]
         List of standard deviations in log transitory income uncertainty during
         the agent's life.
     TranShkCount : int
-        The number of approximation points to be used in the discrete approxima-
-        tion to the permanent income shock distribution.
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
     UnempPrb : float or [float]
         The probability of becoming unemployed during the working period.
     UnempPrbRet : float or None
@@ -440,6 +489,189 @@ def construct_lognormal_income_process_unemployment(
     return IncShkDstn
 
 
+def construct_markov_lognormal_income_process_unemployment(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    RNG,
+    neutral_measure=False,
+):
+    """
+    Generates a nested list of discrete approximations to the income process for each
+    life period, from end of life to beginning of life, for each discrete Markov
+    state in the problem. This function calls construct_lognormal_income_process_unemployment
+    for each Markov state, then rearranges the output. Permanent shocks are mean
+    one lognormally distributed with standard deviation PermShkStd[t] during the
+    working life, and degenerate at 1 in the retirement period.  Transitory shocks
+    are mean one lognormally distributed with a point mass at IncUnemp with
+    probability UnempPrb while working; they are mean one with a point mass at
+    IncUnempRet with probability UnempPrbRet.  Retirement occurs after t=T_retire
+    periods of working. The problem is specified as having T=T_cycle periods and
+    K discrete Markov states.
+
+    Parameters
+    ----------
+    PermShkStd : np.array
+        2D array of shape (T,K) of standard deviations of log permanent income
+        uncertainty during the agent's life.
+    PermShkCount : int
+        The number of approximation points to be used in the discrete approxima-
+        tion to the permanent income shock distribution.
+    TranShkStd : np.array
+        2D array of shape (T,K) standard deviations in log transitory income
+        uncertainty during the agent's life.
+    TranShkCount : int
+        The number of approximation points to be used in the discrete approxima-
+        tion to the permanent income shock distribution.
+    UnempPrb : np.array
+        1D or 2D array of the probability of becoming unemployed during the working
+        portion of the agent's life. If 1D, it should be size K, providing one
+        unemployment probability per discrete Markov state. If 2D, it should be
+        shape (T,K).
+    UnempPrbRet : np.array or None
+        The probability of not receiving typical retirement income when retired.
+        If not None, should be size K. Can be set to None when T_retire is 0.
+    T_retire : int
+        The index value for the final working period in the agent's life.
+        If T_retire <= 0 then there is no retirement.
+    IncUnemp : np.array
+        1D or 2D array of transitory income received when unemployed during the
+        working portion of the agent's life. If 1D, it should be size K, providing
+        one unemployment probability per discrete Markov state. If 2D, it should be
+        shape (T,K).
+    IncUnempRet : np.array or None
+        Transitory income received while "unemployed" when retired. If provided,
+        should be size K. Can be None when T_retire is 0.
+    T_cycle :  int
+        Total number of non-terminal periods in the consumer's sequence of periods.
+    RNG : np.random.RandomState
+        Random number generator for this type.
+    neutral_measure : bool
+        Indicator for whether the permanent-income-neutral measure should be used.
+
+    Returns
+    -------
+    IncShkDstn : [[distribution.Distribution]]
+        A list with T_cycle elements, each of which is a discrete approximation
+        to the income process in a period.
+    """
+    if T_retire > 0:
+        normal_length = T_retire
+        retire_length = T_cycle - T_retire
+    else:
+        normal_length = T_cycle
+        retire_length = 0
+
+    # Check dimensions of inputs
+    try:
+        PermShkStd_K = PermShkStd.shape[1]
+        TranShkStd_K = TranShkStd.shape[1]
+        if UnempPrb.ndim == 2:
+            UnempPrb_K = UnempPrb.shape[1]
+        else:
+            UnempPrb_K = UnempPrb.shape[0]
+        if IncUnemp.ndim == 2:
+            IncUnemp_K = IncUnemp.shape[1]
+        else:
+            IncUnemp_K = IncUnemp.shape[0]
+        K = PermShkStd_K
+        assert K == TranShkStd_K
+        assert K == TranShkStd_K
+        assert K == UnempPrb_K
+        assert K == IncUnemp_K
+    except:
+        raise Exception(
+            "The last dimension of PermShkStd, TranShkStd, IncUnemp,"
+            + " and UnempPrb must all be K, the number of discrete states."
+        )
+    try:
+        if T_retire > 0:
+            assert K == UnempPrbRet.size
+            assert K == IncUnempRet.size
+    except:
+        raise Exception(
+            "When T_retire is not zero, UnempPrbRet and IncUnempRet"
+            + " must be specified as arrays of size K, the number of "
+            + "discrete Markov states."
+        )
+    try:
+        D = UnempPrb.ndim
+        assert D == IncUnemp.ndim
+        if T_retire > 0:
+            assert D == UnempPrbRet.ndim
+            assert D == IncUnempRet.ndim
+    except:
+        raise Exception(
+            "If any of UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet "
+            + "are 2D arrays, then they must *all* be 2D arrays."
+        )
+    try:
+        assert D == 1 or D == 2
+    except:
+        raise Exception(
+            "UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet must "
+            + "all be 1D or 2D arrays."
+        )
+
+    # Prepare lists that don't vary by Markov state
+    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
+    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
+    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
+
+    # Loop through the Markov states, constructing the lifecycle income process for each one
+    IncShkDstn_by_Mrkv = []
+    for k in range(K):
+        if D == 1:  # Unemployment parameters don't vary by age other than retirement
+            if T_retire > 0:
+                UnempPrb_list = [UnempPrb[k]] * normal_length + [
+                    UnempPrbRet[k]
+                ] * retire_length
+                IncUnemp_list = [IncUnemp[k]] * normal_length + [
+                    IncUnempRet[k]
+                ] * retire_length
+            else:
+                UnempPrb_list = [UnempPrb[k]] * normal_length
+                IncUnemp_list = [IncUnemp[k]] * normal_length
+        else:  # Unemployment parameters vary by age
+            UnempPrb_list = UnempPrb[:, k].tolist()
+            IncUnemp_list = IncUnemp[:, k].tolist()
+
+        PermShkStd_k = PermShkStd[:, k].tolist()
+        TranShkStd_k = TranShkStd[:, k].tolist()
+
+        IncShkDstn_k = IndexDistribution(
+            engine=BufferStockIncShkDstn,
+            conditional={
+                "sigma_Perm": PermShkStd_k,
+                "sigma_Tran": TranShkStd_k,
+                "n_approx_Perm": PermShkCount_list,
+                "n_approx_Tran": TranShkCount_list,
+                "neutral_measure": neutral_measure_list,
+                "UnempPrb": UnempPrb_list,
+                "IncUnemp": IncUnemp_list,
+            },
+            RNG=RNG,
+            seed=RNG.integers(0, 2**31 - 1),
+        )
+        IncShkDstn_by_Mrkv.append(IncShkDstn_k)
+
+    # Rearrange the list that was just constructed, so that element [t][k] represents
+    # the income shock distribution in period t, Markov state k.
+    IncShkDstn = []
+    for t in range(T_cycle):
+        IncShkDstn_t = [IncShkDstn_by_Mrkv[k][t] for k in range(K)]
+        IncShkDstn.append(IncShkDstn_t)
+
+    return IncShkDstn
+
+
 def construct_HANK_lognormal_income_process_unemployment(
     T_cycle,
     PermShkStd,
@@ -476,7 +708,7 @@ def construct_HANK_lognormal_income_process_unemployment(
     Note 2: All parameters are passed as attributes of the input parameters.
 
     Parameters (passed as attributes of the input parameters)
-    ----------
+    ---------------------------------------------------------
     PermShkStd : [float]
         List of standard deviations in log permanent income uncertainty during
         the agent's life.
@@ -589,6 +821,28 @@ def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
         this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
     return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
+
+
+def get_PermShkDstn_from_IncShkDstn_markov(IncShkDstn, RNG):
+    PermShkDstn = [
+        [
+            this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1))
+            for this in IncShkDstn_t
+        ]
+        for IncShkDstn_t in IncShkDstn
+    ]
+    return PermShkDstn
+
+
+def get_TranShkDstn_from_IncShkDstn_markov(IncShkDstn, RNG):
+    TranShkDstn = [
+        [
+            this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1))
+            for this in IncShkDstn_t
+        ]
+        for IncShkDstn_t in IncShkDstn
+    ]
+    return TranShkDstn
 
 
 def get_TranShkGrid_from_TranShkDstn(T_cycle, TranShkDstn):
@@ -727,15 +981,53 @@ class pLvlFuncAR1(MetricObject):
         return pLvlNext
 
 
+def make_PermGroFac_from_ind_and_agg(PermGroFacInd, PermGroFacAgg):
+    """
+    A very simple function that constructs *overall* permanent income growth over
+    the lifecycle as the sum of idiosyncratic productivity growth PermGroFacInd and
+    aggregate productivity growth PermGroFacAgg. In most HARK models, PermGroFac
+    is treated as the overall permanent income growth factor, regardless of source.
+    In applications in which the user has estimated permanent income growth from
+    *cross sectional* data, or wants to investigate how a change in aggregate
+    productivity growth affects behavior or outcomes, this function can be used
+    as the constructor for PermGroFac.
+
+    To use this function, specify idiosyncratic productivity growth in the attribute
+    PermGroFacInd (or construct it), and put this function as the entry for PermGroFac
+    in the constructors dictionary of your AgentType subclass instances.
+
+    Parameters
+    ----------
+    PermGroFacInd : [float] or np.array
+        Lifecycle sequence of idiosyncratic permanent productivity growth factors.
+        These represent individual-based productivity factors, like experience.
+    PermGroFacAgg : float
+        Constant aggregate permanent growth factor, representing (e.g.) TFP.
+
+    Returns
+    -------
+    PermGroFac : [float] or np.array
+        Lifecycle sequence of overall permanent productivity growth factors.
+        Returns same type as PermGroFacInd.
+    """
+    PermGroFac = [PermGroFacAgg * G for G in PermGroFacInd]
+    if type(PermGroFacInd) is np.array:
+        PermGroFac = np.array(PermGroFac)
+    return PermGroFac
+
+
 ###############################################################################
 
 # Define income processes that can be used in the ConsGenIncProcess model
 
 
 def make_trivial_pLvlNextFunc(T_cycle):
-    """
+    r"""
     A dummy function that creates default trivial permanent income dynamics:
     none at all! Simply returns a list of IdentityFunctions, one for each period.
+
+    .. math::
+        G_{t}(x) = x
 
     Parameters
     ----------
@@ -753,10 +1045,13 @@ def make_trivial_pLvlNextFunc(T_cycle):
 
 
 def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
-    """
+    r"""
     A function that creates permanent income dynamics as a sequence of linear
     functions, indicating constant expected permanent income growth across
     permanent income levels.
+
+    .. math::
+        G_{t+1} (x) = \Gamma_{t+1} x
 
     Parameters
     ----------
@@ -780,10 +1075,16 @@ def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
 
 
 def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
-    """
+    r"""
     A function that creates permanent income dynamics as a sequence of AR1-style
     functions. If cycles=0, the product of PermGroFac across all periods must be
     1.0, otherwise this method is invalid.
+
+    .. math::
+        \begin{align}
+        log(G_{t+1} (x)) &=\varphi log(x) + (1-\varphi) log(\overline{P}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
+        \overline{P}_{t+1} &= \overline{P}_{t} \Gamma_{t+1} \\
+        \end{align}
 
     Parameters
     ----------

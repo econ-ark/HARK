@@ -14,6 +14,7 @@ from scipy import sparse as sp
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    solve_one_period_ConsIndShock,
 )
 
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -73,7 +74,7 @@ init_newkeynesian = {
     "constructors": newkeynesian_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.0],  # Permanent income growth factor
@@ -111,12 +112,10 @@ class NewKeynesianConsumerType(IndShockConsumerType):
     the wage rate, and the labor income tax rate to enter the income shock process.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = init_newkeynesian.copy()
-        params.update(kwds)
-
-        # Run the basic initializer
-        super().__init__(verbose=verbose, quiet=quiet, **params)
+    default_ = {
+        "params": init_newkeynesian,
+        "solver": solve_one_period_ConsIndShock,
+    }
 
     def define_distribution_grid(
         self,
@@ -319,7 +318,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
             # Obtain shock values and shock probabilities from income distribution
             # Bank Balances next period (Interest rate * assets)
-            bNext = self.Rfree * aNext
+            bNext = self.Rfree[0] * aNext
             shk_prbs = shk_dstn[0].pmv  # Probability of shocks
             tran_shks = shk_dstn[0].atoms[1]  # Transitory shocks
             perm_shks = shk_dstn[0].atoms[0]  # Permanent shocks
@@ -398,10 +397,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                 aNext = dist_mGrid - Cnow  # Asset policy grid in period k
                 self.aPol_Grid.append(aNext)  # Add to list
 
-                if type(self.Rfree) == list:
-                    bNext = self.Rfree[k] * aNext
-                else:
-                    bNext = self.Rfree * aNext
+                bNext = self.Rfree[k] * aNext
 
                 # Obtain shocks and shock probabilities from income distribution this period
                 shk_prbs = shk_dstn[k].pmv  # Probability of shocks this period
@@ -488,7 +484,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Use Harmenberg Measure
         self.neutral_measure = True
-        self.update_income_process()
+        self.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Non stochastic simuation
         self.define_distribution_grid()
@@ -544,7 +540,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
         params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
-        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree[0]]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["wage"] = params["T_cycle"] * [self.wage[0]]
@@ -554,14 +550,6 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Create instance of a finite horizon agent
         FinHorizonAgent = NewKeynesianConsumerType(**params)
-
-        # delete Rfree from time invariant list since it varies overtime
-        FinHorizonAgent.del_from_time_inv("Rfree")
-        # Add Rfree to time varying list to be able to introduce time varying interest rates
-        FinHorizonAgent.add_to_time_vary("Rfree")
-
-        # Set Terminal Solution as Steady State Solution
-        FinHorizonAgent.solution_terminal = deepcopy(self.solution[0])
 
         dx = 0.0001  # Size of perturbation
         # Period in which the change in the interest rate occurs (second to last period)
@@ -590,14 +578,14 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         self.parameters[shk_param] = perturbed_list
 
         # Update income process if perturbed parameter enters the income shock distribution
-        FinHorizonAgent.update_income_process()
+        FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
-        # Solve the "finite horizon" model, but don't re-solve the terminal period!
-        FinHorizonAgent.solve(presolve=False)
+        # Solve the "finite horizon" model assuming that it ends back in steady state
+        FinHorizonAgent.solve(presolve=False, from_solution=self.solution[0])
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
-        FinHorizonAgent.update_income_process()
+        FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Calculate Transition Matrices
         FinHorizonAgent.define_distribution_grid()
@@ -734,7 +722,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
         params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
-        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree[0]]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["IncShkDstn"] = params["T_cycle"] * [self.IncShkDstn[0]]
@@ -745,18 +733,17 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Create instance of a finite horizon agent for calculation of zeroth
         ZerothColAgent = NewKeynesianConsumerType(**params)
-        ZerothColAgent.solution_terminal = deepcopy(self.solution[0])
 
         # If parameter is in time invariant list then add it to time vary list
         ZerothColAgent.del_from_time_inv(shk_param)
         ZerothColAgent.add_to_time_vary(shk_param)
 
         # Update income process if perturbed parameter enters the income shock distribution
-        ZerothColAgent.update_income_process()
+        ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
-        # Solve the "finite horizon" problem, but *don't* re-solve the "terminal period",
-        # because we're using the long run solution as the "terminal" solution here!
-        ZerothColAgent.solve(presolve=False)
+        # Solve the "finite horizon" problem, again assuming that steady state comes
+        # after the shocks
+        ZerothColAgent.solve(presolve=False, from_solution=self.solution[0])
 
         # this condition is because some attributes are specified as lists while other as floats
         if type(getattr(self, shk_param)) == list:
@@ -776,7 +763,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Use Harmenberg Neutral Measure
         ZerothColAgent.neutral_measure = True
-        ZerothColAgent.update_income_process()
+        ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Calculate Transition Matrices
         ZerothColAgent.define_distribution_grid()

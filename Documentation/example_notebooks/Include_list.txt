@@ -1,4 +1,5 @@
 examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
+examples/LifecycleModel/Cycles_tutorial.ipynb
 examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
 examples/ConsIndShockModel/IndShockConsumerType.ipynb
 examples/ConsIndShockModel/KinkedRconsumerType.ipynb
@@ -10,4 +11,5 @@ examples/Journeys/Journey-PhD.ipynb
 examples/ConsNewKeynesianModel/Transition_Matrix_Example.ipynb
 examples/ConsNewKeynesianModel/Jacobian_Example.ipynb
 examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb
-examples/ConsNewKeynesianModel/SSJ_example.ipynb
+examples/ConsNewKeynesianModel/SSJ_explanation.ipynb
+examples/ConsNewKeynesianModel/HANKFiscal_example.ipynb
