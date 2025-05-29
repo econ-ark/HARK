@@ -12,7 +12,16 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBD
 
-The most likely code-breaking change in this release is the reorganization of `HARK.distribution`. If your project code tells you that it can't find the module `HARK.distribution`, just change the import name to `HARK.distributions` (note the plural s). The items listed as "Developmental Features" are an independent system that is not connected to HARK's existing model structure.
+The items listed as "Developmental Features" are an independent system that is not connected to HARK's existing model structure.
+
+The most likely code-breaking change in this release is the reorganization of `HARK.distribution`. If your project code tells you that it can't find the module `HARK.distribution`, just change the import name to `HARK.distributions` (note the plural s).
+
+Additionally, several parameters have been lightly renamed:
+
+aNrmInitMean --> kLogInitMean
+aNrmInitStd --> kLogInitStd
+pLvlInitMean --> pLogInitMean
+pLvlInitStd --> pLogInitStd
 
 #### Major Changes
 
@@ -45,6 +54,7 @@ The most likely code-breaking change in this release is the reorganization of `H
 - Adds additional functionality to the CubicHermiteInterp class, imported from scipy.interpolate. [#1020](https://github.com/econ-ark/HARK/pull/1020/)
 - Allows users to pass a generic solution object to agent solvers to be used as the initial condition of backward induction. [#1543](https://github.com/econ-ark/HARK/pull/1543)
 - Adds support for Python 3.13 and related package updates. [#1549](https://github.com/econ-ark/HARK/pull/1549)
+- Move sim_birth methods to constructed distributions, lightly rename parameters. [#1553](https://github.com/econ-ark/HARK/pull/1553)
 - Cleans up warnings for the distance metric and prevents simulation history from being returned as output. [#1563](https://github.com/econ-ark/HARK/pull/1563)
 
 ### 0.15.1

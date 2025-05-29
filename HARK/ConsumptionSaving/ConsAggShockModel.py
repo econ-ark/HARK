@@ -19,7 +19,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    init_idiosyncratic_shocks,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distributions import (
@@ -902,9 +903,6 @@ def solve_KrusellSmith(
 
 ###############################################################################
 
-# Make a dictionary to specify an aggregate shocks consumer
-init_agg_shocks = init_idiosyncratic_shocks.copy()
-
 # Make a dictionary of constructors for the aggregate income shocks model
 aggshock_constructor_dict = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
@@ -912,8 +910,25 @@ aggshock_constructor_dict = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "MgridBase": make_exponential_MgridBase,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_aggshock_solution_terminal,
 }
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": 0.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
+}
+
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
 default_IncShkDstn_params = {
@@ -960,10 +975,6 @@ init_agg_shocks = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 0.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -972,6 +983,8 @@ init_agg_shocks = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
 }
+init_agg_shocks.update(default_kNrmInitDstn_params)
+init_agg_shocks.update(default_pLvlInitDstn_params)
 init_agg_shocks.update(default_IncShkDstn_params)
 init_agg_shocks.update(default_aXtraGrid_params)
 init_agg_shocks.update(default_MgridBase_params)
@@ -1087,9 +1100,8 @@ class AggShockConsumerType(IndShockConsumerType):
 
     def sim_birth(self, which_agents):
         """
-        Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
-        well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
-        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        Makes new consumers for the given indices.  Initialized variables include
+        aNrm and pLvl, as well as time variables t_age and t_cycle.
 
         Parameters
         ----------
@@ -1205,7 +1217,6 @@ class AggShockConsumerType(IndShockConsumerType):
 
         self.controls["cNrm"] = cNrmNow
         self.MPCnow = MPCnow
-        return None
 
     def get_MaggNow(self):  # This function exists to be overwritten in StickyE model
         return self.MaggNow * np.ones(self.AgentCount)

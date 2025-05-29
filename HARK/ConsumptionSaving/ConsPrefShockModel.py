@@ -16,6 +16,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     KinkedRconsumerType,
     make_assets_grid,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
@@ -689,10 +691,25 @@ PrefShockConsumerType_constructors_default = {
     "aXtraGrid": make_assets_grid,
     "PrefShkDstn": make_lognormal_PrefShkDstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+PrefShockConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+PrefShockConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
-
 PrefShockConsumerType_IncShkDstn_default = {
     "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
     "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
@@ -745,10 +762,6 @@ PrefShockConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -762,6 +775,8 @@ PrefShockConsumerType_default = {}
 PrefShockConsumerType_default.update(PrefShockConsumerType_IncShkDstn_default)
 PrefShockConsumerType_default.update(PrefShockConsumerType_aXtraGrid_default)
 PrefShockConsumerType_default.update(PrefShockConsumerType_PrefShkDstn_default)
+PrefShockConsumerType_default.update(PrefShockConsumerType_kNrmInitDstn_default)
+PrefShockConsumerType_default.update(PrefShockConsumerType_pLvlInitDstn_default)
 PrefShockConsumerType_default.update(PrefShockConsumerType_solving_default)
 PrefShockConsumerType_default.update(PrefShockConsumerType_simulation_default)
 init_preference_shocks = (
@@ -902,6 +917,14 @@ class PrefShockConsumerType(IndShockConsumerType):
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
     time_vary_ = IndShockConsumerType.time_vary_ + ["PrefShkDstn"]
+    distributions = [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+        "PrefShkDstn",
+    ]
 
     def pre_solve(self):
         self.construct("solution_terminal")
@@ -1040,6 +1063,12 @@ KinkyPrefConsumerType_constructors_default = (
 KinkyPrefConsumerType_IncShkDstn_default = (
     PrefShockConsumerType_IncShkDstn_default.copy()
 )
+KinkyPrefConsumerType_pLvlInitDstn_default = (
+    PrefShockConsumerType_pLvlInitDstn_default.copy()
+)
+KinkyPrefConsumerType_kNrmInitDstn_default = (
+    PrefShockConsumerType_kNrmInitDstn_default.copy()
+)
 KinkyPrefConsumerType_aXtraGrid_default = PrefShockConsumerType_aXtraGrid_default.copy()
 KinkyPrefConsumerType_PrefShkDstn_default = (
     PrefShockConsumerType_PrefShkDstn_default.copy()
@@ -1053,14 +1082,16 @@ KinkyPrefConsumerType_simulation_default = (
 )
 KinkyPrefConsumerType_solving_default.update(kinky_pref_different_params)
 
+# Make a dictionary to specify a "kinky preference" consumer
 KinkyPrefConsumerType_default = {}
 KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_IncShkDstn_default)
 KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_aXtraGrid_default)
 KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_PrefShkDstn_default)
+KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_kNrmInitDstn_default)
+KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_pLvlInitDstn_default)
 KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_solving_default)
 KinkyPrefConsumerType_default.update(KinkyPrefConsumerType_simulation_default)
-# Make a dictionary to specify a "kinky preference" consumer
-init_kinky_pref = KinkyPrefConsumerType_default  # Start with base above
+init_kinky_pref = KinkyPrefConsumerType_default
 
 
 class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
@@ -1207,6 +1238,14 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
     }
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["Rboro", "Rsave"]
+    distributions = [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+        "PrefShkDstn",
+    ]
 
     def pre_solve(self):
         self.construct("solution_terminal")

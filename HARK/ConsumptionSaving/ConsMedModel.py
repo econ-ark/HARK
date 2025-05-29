@@ -16,6 +16,10 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_pLvlGrid_by_simulation,
     make_basic_pLvlPctiles,
 )
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
+)
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
@@ -1210,6 +1214,22 @@ medshock_constructor_dict = {
     "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
     "MedShkDstn": make_lognormal_MedShkDstn,
     "solution_terminal": make_MedShock_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": 0.0,  # Mean of log initial capital
+    "kLogInitStd": 1.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.4,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -1287,10 +1307,6 @@ init_medical_shocks = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -1305,6 +1321,8 @@ init_medical_shocks.update(default_pLvlPctiles_params)
 init_medical_shocks.update(default_pLvlGrid_params)
 init_medical_shocks.update(default_MedShkDstn_params)
 init_medical_shocks.update(default_pLvlNextFunc_params)
+init_medical_shocks.update(default_pLvlInitDstn_params)
+init_medical_shocks.update(default_kNrmInitDstn_params)
 
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -1450,32 +1468,17 @@ class MedShockConsumerType(PersistentShockConsumerType):
     time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed"]
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
+    distributions = [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+        "MedShkDstn",
+    ]
 
     def pre_solve(self):
         self.construct("solution_terminal")
-
-    def reset_rng(self):
-        """
-        Reset the RNG behavior of this type.  This method is called automatically
-        by initialize_sim(), ensuring that each simulation run uses the same sequence
-        of random shocks; this is necessary for structural estimation to work.
-        This method extends PersistentShockConsumerType.reset_rng() to also reset
-        elements of MedShkDstn.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        PersistentShockConsumerType.reset_rng(self)
-
-        # Reset MedShkDstn if it exists (it might not because reset_rng is called at init)
-        if hasattr(self, "MedShkDstn"):
-            for dstn in self.MedShkDstn:
-                dstn.reset()
 
     def get_shocks(self):
         """
