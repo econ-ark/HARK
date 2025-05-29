@@ -1,0 +1,39 @@
+name: ConsPerfForesight
+description: >-
+  Perfect foresight consumption-saving model with permanent income growth and
+  mortality risk.
+symbols:
+  variables:
+    - kNrm               \\ beginning of period capital, normalized by p_{t-1}
+    - pLvlPrev           \\ inbound permanent income level, before growth
+    - yNrm               \\ normalized labor income, always one
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - aNrm               \\ normalized end-of-period assets
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - PermGroFac         \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+  functions:
+    - cFunc              \\ consumption function over market resources
+  arrival: [kNrm, pLvlPrev]
+  solution: [cFunc]
+  offset: [PermGroFac]
+initialize: |
+  pLvlPrev = 1.                    \\ set initial permanent income to one
+  kNrm = 0.                        \\ set initial capital holdings to zero
+dynamics: |
+  yNrm = 1.0                       \\ normalized income is constant in PF setting
+  pLvl = pLvlPrev * PermGroFac     \\ update permanent income level
+  bNrm = Rfree * kNrm / PermGroFac \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm               \\ calculate normalized market resources
+  cNrm = cFunc@(mNrm)              \\ evaluate consumption from market resources
+  aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
