@@ -538,7 +538,7 @@ class MonteCarloSimulator(Simulator):
             # this needs a little more thought
         )
 
-        pre = self.calibration  # for AgentTypeMC, this is conditional on age
+        pre = self.calibration.copy()  # for AgentTypeMC, this is conditional on age
         # TODO: generalize indexing into calibration.
 
         pre.update(self.vars_prev)

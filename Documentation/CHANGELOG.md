@@ -55,6 +55,7 @@ pLvlInitStd --> pLogInitStd
 - Allows users to pass a generic solution object to agent solvers to be used as the initial condition of backward induction. [#1543](https://github.com/econ-ark/HARK/pull/1543)
 - Adds support for Python 3.13 and related package updates. [#1549](https://github.com/econ-ark/HARK/pull/1549)
 - Move sim_birth methods to constructed distributions, lightly rename parameters. [#1553](https://github.com/econ-ark/HARK/pull/1553)
+- Cleans up warnings for the distance metric and prevents simulation history from being returned as output. [#1563](https://github.com/econ-ark/HARK/pull/1563)
 
 ### 0.15.1
 

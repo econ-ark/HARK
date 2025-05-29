@@ -1239,7 +1239,7 @@ class AgentType(Model):
             self.shock_history["who_dies"][t, :] = self.who_dies
 
             # Initial conditions of newborns
-            if np.sum(self.who_dies) > 0:
+            if self.who_dies.any():
                 for var_name in self.state_vars:
                     # Check whether the state is idiosyncratic or an aggregate
                     idio = (
@@ -1289,7 +1289,7 @@ class AgentType(Model):
         if self.read_shocks:
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
             # Instead of simulating births, assign the saved newborn initial conditions
-            if np.sum(who_dies) > 0:
+            if who_dies.any():
                 for var_name in self.state_now:
                     if var_name in self.newborn_init_history.keys():
                         # Copy only array-like idiosyncratic states. Aggregates should
@@ -1536,8 +1536,6 @@ class AgentType(Model):
                                 self, var_name
                             )
                 self.t_sim += 1
-
-            return self.history
 
     def clear_history(self):
         """
