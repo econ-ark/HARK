@@ -305,51 +305,52 @@ basic_health_constructors = {
 
 # Make a dictionary of default parameters for depreciation rate distribution
 default_DeprRteDstn_params = {
-    "DeprRteMean": [0.05],
-    "DeprRteSpread": [0.05],
-    "DeprRteCount": 7,
+    "DeprRteMean": [0.05],  # Mean of uniform depreciation distribution
+    "DeprRteSpread": [0.05],  # Half-width of uniform depreciation distribution
+    "DeprRteCount": 7,  # Number of nodes in discrete approximation
 }
 
 # Make a dictionary of default parameters for wage rate distribution
 default_WageRteDstn_params = {
-    "WageRteMean": [0.1],
-    "WageRteStd": [0.1],
-    "WageRteCount": 7,
-    "UnempPrb": 0.07,
-    "IncUnemp": 0.0,
+    "WageRteMean": [0.1],  # Age-varying mean of wage rate
+    "WageRteStd": [0.1],  # Age-varying stdev of wage rate
+    "WageRteCount": 7,  # Number of nodes to use in discrete approximation
+    "UnempPrb": 0.07,  # Probability of unemployment
+    "IncUnemp": 0.0,  # Income when unemployed
 }
 
 # Make a dictionary of default parameters for assets grid
 default_aLvlGrid_params = {
-    "aXtraMin": 1e-5,
-    "aXtraMax": 300.0,
-    "aXtraCount": 44,
-    "aXtraNestFac": 1,
-    "aXtraExtra": [3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2],
+    "aXtraMin": 1e-5,  # Minimum value of end-of-period assets grid
+    "aXtraMax": 300.0,  # Maximum value of end-of-period assets grid
+    "aXtraCount": 44,  # Number of nodes in base assets grid
+    "aXtraNestFac": 1,  # Level of exponential nesting for assets grid
+    "aXtraExtra": [3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2],  # Extra assets nodes
 }
 
 # Make a dictionary of default parameters for health capital grid
 default_hLvlGrid_params = {
-    "hLvlMin": 0.0,
-    "hLvlMax": 300.0,
-    "hLvlCount": 50,
+    "hLvlMin": 0.0,  # Minimum value of health capital grid (leave at zero)
+    "hLvlMax": 300.0,  # Maximum value of health capital grid
+    "hLvlCount": 50,  # Number of nodes in health capital grid
 }
 
 # Make a dictionary of default parameters for maximum death probability
 default_DieProbMax_params = {
-    "DieProbMaxCoeffs": [0.0],
+    "DieProbMaxCoeffs": [0.0],  # Logistic-polynomial coefficients on age
 }
 
 # Make a dictionary of default parameters for the health investment model
 basic_health_simple_params = {
     "constructors": basic_health_constructors,
-    "DiscFac": 0.94,
-    "Rfree": [1.03],
-    "CRRA": 0.5,
-    "HealthProdExp": 0.35,
-    "HealthProdFac": 1.0,
-    "T_cycle": 1,
-    "cycles": 1,
+    "DiscFac": 0.95,  # Intertemporal discount factor
+    "Rfree": [1.03],  # Risk-free asset return factor
+    "CRRA": 0.5,  # Coefficient of relative risk aversion
+    "HealthProdExp": 0.35,  # Exponent on health production function
+    "HealthProdFac": 1.0,  # Factor on health production function
+    "T_cycle": 1,  # Number of periods in default cycle
+    "cycles": 1,  # Number of cycles
+    "AgentCount": 10000,  # Number of agents to simulate
 }
 
 # Assemble the default parameters dictionary
