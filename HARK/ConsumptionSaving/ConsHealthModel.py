@@ -594,33 +594,3 @@ class BasicHealthConsumerType(AgentType):
             + (self.HealthProdFac / self.HealthProdExp)
             * self.controls["nLvl"] ** self.HealthProdExp
         )
-
-
-if __name__ == "__main__":
-    from time import time
-    import matplotlib.pyplot as plt
-    from HARK.utilities import plot_funcs
-
-    MyType = BasicHealthConsumerType(cycles=99)
-
-    t0 = time()
-    MyType.solve()
-    t1 = time()
-    print(
-        "Solving the basic health investment model took {:.3f}".format(t1 - t0)
-        + " seconds."
-    )
-
-    X = MyType.solution[0].x_values
-    Y = MyType.solution[0].y_values
-    plt.plot(X.flatten(), Y.flatten(), ".k", ms=2)
-    plt.xlim(0.0, 300.0)
-    plt.ylim(0.0, 300.0)
-    plt.show()
-
-    C = lambda x: MyType.solution[0](x, 5 * np.ones_like(x))[1]
-    N = lambda x: MyType.solution[0](x, 5 * np.ones_like(x))[2]
-    plot_funcs([C, N], 0.0, 10.0)
-
-    Q = lambda x: C(x) + N(x)
-    plot_funcs(Q, 0.0, 10.0)
