@@ -322,7 +322,7 @@ default_WageRteDstn_params = {
 # Make a dictionary of default parameters for assets grid
 default_aLvlGrid_params = {
     "aXtraMin": 1e-5,  # Minimum value of end-of-period assets grid
-    "aXtraMax": 300.0,  # Maximum value of end-of-period assets grid
+    "aXtraMax": 100.0,  # Maximum value of end-of-period assets grid
     "aXtraCount": 44,  # Number of nodes in base assets grid
     "aXtraNestFac": 1,  # Level of exponential nesting for assets grid
     "aXtraExtra": [3e-5, 1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2],  # Extra assets nodes
@@ -331,7 +331,7 @@ default_aLvlGrid_params = {
 # Make a dictionary of default parameters for health capital grid
 default_hLvlGrid_params = {
     "hLvlMin": 0.0,  # Minimum value of health capital grid (leave at zero)
-    "hLvlMax": 300.0,  # Maximum value of health capital grid
+    "hLvlMax": 50.0,  # Maximum value of health capital grid
     "hLvlCount": 50,  # Number of nodes in health capital grid
 }
 
