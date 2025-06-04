@@ -2071,7 +2071,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
-        "BoroCnstArt",
         "vFuncBool",
         "CubicBool",
         "aXtraGrid",
