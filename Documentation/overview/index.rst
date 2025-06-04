@@ -17,6 +17,7 @@ Overview
 
    ../../examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
    ../../examples/LifecycleModel/Cycles_tutorial.ipynb
+   ../../examples/LifecycleModel/Financial_planning.ipynb
    ../../examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
    ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
