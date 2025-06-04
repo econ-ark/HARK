@@ -1179,7 +1179,9 @@ class AgentSimulator:
         self.data["t_age"] = self.t_age.copy()
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
 
-    def make_transition_matrices(self, grid_specs, norm=None, fake_news_timing=False):
+    def make_transition_matrices(
+        self, grid_specs, norm=None, fake_news_timing=False, for_t=None
+    ):
         """
         Build Markov-style transition matrices for each period of the model, as
         well as the initial distribution of arrival variables for newborns.
@@ -1226,6 +1228,10 @@ class AgentSimulator:
             is handled between periods. In short, the simulator usually assumes
             that "newborns" start with t_seq=0, but during the fake news algorithm,
             that is not the case.
+        for_t : list or None
+            Optional list of time indices for which the matrices should be built.
+            When not specified, all periods are constructed. The most common use
+            for this arg is during the "fake news" algorithm for lifecycle models.
 
         Returns
         -------
@@ -1264,7 +1270,9 @@ class AgentSimulator:
         K = self.newborn_dstn.size
 
         # Make the period-by-period transition matrices
-        for block in self.periods:
+        these_t = range(len(self.periods)) if for_t is None else for_t
+        for t in these_t:
+            block = self.periods[t]
             block.make_transition_matrices(
                 grid_specs_other, twist=self.twist, norm=norm
             )
@@ -3195,6 +3203,9 @@ def make_flat_LC_SSJ_matrices(
     "Flat" demographic dynamics permit two very specific growth trends: constant
     population growth and constant aggregate productivity growth.
 
+    This algorithm (and some of the code) are directly taken from Mateo Velasquez
+    and Bence Bardoczy's paper on life-cycle Jacobians, and its accompanying repo.
+
     Parameters
     ----------
     agent : AgentType
@@ -3316,7 +3327,8 @@ def make_flat_LC_SSJ_matrices(
 
     # Find the steady state for the long run model
     t0 = time()
-    pass
+    SS_dstn = None  # need to make this
+    SS_outcomes = None  # need to make this
     t1 = time()
     if verbose:
         print(
@@ -3324,32 +3336,82 @@ def make_flat_LC_SSJ_matrices(
             + " seconds."
         )
 
+    # Construct the "expectation vectors" for all outcomes at all ages
+    E_vecs = None
+
     # Initialize the fake news matrices for each output
     J = len(outcomes)
-    fake_news_arrays = [np.zeros((T_age, T_age, T_age)) for j in range(J)]
+    fake_news_array = np.zeros((J, T_age, T_age, T_age))
     # Dimensions of fake news arrays:
-    # dim 0 --> a: age when news arrives
-    # dim 1 --> t: periods since news arrived
-    # dim 2 --> s: periods ahead that news arrived
+    # dim 0 --> j: index of outcome variable
+    # dim 1 --> a: age when news arrives
+    # dim 2 --> t: periods since news arrived
+    # dim 3 --> s: periods ahead that news arrived
 
-    # Loop over ages of the model and have the news shock apply at each one
-    for k in range(T_age - 1):
-        # k is the age index at which the shock arrives
-        pass
-
+    # Loop over ages of the model and have the news shock apply at each one;
+    # k is the age index at which the shock arrives
+    for k in reversed(range(T_age - 1)):
         # Perturb the shock variable at age k
+        shock_val_orig = getattr(agent, shock)[k]
+        shock_val_new = shock_val_orig + eps
+        getattr(agent, shock)[k] = shock_val_new
 
         # Solve the model starting from age k
+        if construct:
+            agent.update()
+        agent.solve(from_solution=LR_soln[k + 1], from_t=k + 1)
 
         # Build transitions and outcomes up to age k
+        agent.initialize_sym()
+        X = agent._simulator  # for easier typing
+        X.make_transition_matrices(grids, norm, for_t=range(k + 1))  # not FNT!
+        shocked_trans = deepcopy(X.trans_arrays)
+        shocked_outcomes = []
+        for var in outcomes:
+            temp_outcomes = []
+            for a in range(k + 1):
+                temp_outcomes.append(X.periods[a].matrices[var])
+            shocked_outcomes.append(temp_outcomes)
 
         # Update the t=0 row of the fake news matrices
+        for j in range(J):
+            for a in range(k + 1):
+                fake_news_array[j, a, 0, k - a] += np.sum(
+                    (shocked_outcomes[j][a] - LR_outcomes[j][a]) * SS_dstn[a]
+                )
 
         # Update the other t rows of the fake news matrices
+        for a in range(k + 1):
+            D_dstn_news = (
+                np.dot(shocked_trans[a], SS_dstn[a]) - SS_dstn[a + 1]
+            ).flatten()
+            update_FN_mats(fake_news_array, E_vecs[a + 1], D_dstn_news, T_age - 1, a, k)
 
     # Normalize everything by the shock size and pad with 0s to the time horizon
+    fake_news_array /= eps
 
     # Construct the (aggregate) SSJ object
 
     # Structure and return outputs
     return None
+
+
+@njit()
+def update_FN_mats(FN_mats, evecs, dD1, A, a, k):
+    """
+    This is copy-pasted from Mateo's code
+
+    Fn_mats: (J, A, A, A)
+    evecs : (T, n_out, G)
+    dD1   : (G,)
+    """
+    n_out = FN_mats.shape[0]
+    G = dD1.shape[0]
+
+    for oi in range(n_out):
+        for t in range(1, A - a):
+            # compute dot(evecs[t-1, oi, :], dD1) by hand
+            s = 0.0
+            for g in range(G):
+                s += evecs[t - 1, oi, g] * dD1[g]
+            FN_mats[oi, a + t, t, k - a] += s
