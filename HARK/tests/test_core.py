@@ -104,6 +104,7 @@ class test_AgentType(unittest.TestCase):
         self.agent.time_inv = ["inv_1"]
         self.agent.vary_1 = [1.1, 1.2, 1.3, 1.4]
         self.agent.inv_1 = 1.05
+        self.agent.T_cycle = 4
         # to test the superclass we create a dummy solve_one_period function
         # for our agent, which doesn't do anything, instead of using a NullFunc
         self.agent.solve_one_period = lambda vary_1: MetricObject()
