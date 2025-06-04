@@ -805,6 +805,7 @@ class AgentType(Model):
     shock_vars_ = []
     state_vars = []
     poststate_vars = []
+    distributions = []
     default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
@@ -978,17 +979,28 @@ class AgentType(Model):
 
     def reset_rng(self):
         """
-        Reset the random number generator for this type.
+        Reset the random number generator and all distributions for this type.
+        Type-checking for lists is to handle the following three cases:
 
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
+        1) The target is a single distribution object
+        2) The target is a list of distribution objects (probably time-varying)
+        3) The target is a nested list of distributions, as in ConsMarkovModel.
         """
         self.RNG = np.random.default_rng(self.seed)
+        for name in self.distributions:
+            if not hasattr(self, name):
+                continue
+
+            dstn = getattr(self, name)
+            if isinstance(dstn, list):
+                for D in dstn:
+                    if isinstance(D, list):
+                        for d in D:
+                            d.reset()
+                    else:
+                        D.reset()
+            else:
+                dstn.reset()
 
     def check_elements_of_time_vary_are_lists(self):
         """
@@ -1404,8 +1416,6 @@ class AgentType(Model):
             if i < len(new_states):
                 self.state_now[var] = new_states[i]
 
-        return None
-
     def transition(self):
         """
 
@@ -1459,7 +1469,6 @@ class AgentType(Model):
         -------
         None
         """
-
         return None
 
     def simulate(self, sim_periods=None):
