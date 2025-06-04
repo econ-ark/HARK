@@ -3169,3 +3169,187 @@ def make_basic_SSJ_matrices(
         return SSJ[0]
     else:
         return SSJ
+
+
+def make_flat_LC_SSJ_matrices(
+    agent,
+    shock,
+    outcomes,
+    grids,
+    eps=1e-4,
+    T_max=100,
+    norm=None,
+    PopGroFac=1.0,
+    ProdGroFac=1.0,
+    solved=False,
+    construct=True,
+    verbose=False,
+):
+    """
+    Constructs one or more sequence space Jacobian (SSJ) matrices for specified
+    outcomes over one shock variable. This version of the function is for life-
+    cycle models with "flat" demographic dynamics: the long run distribution of
+    ages is stable. This requires that survival probability is not endogenous to
+    agent actions and thus cannot be affected by shocks.
+
+    "Flat" demographic dynamics permit two very specific growth trends: constant
+    population growth and constant aggregate productivity growth.
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent for which the SSJ(s) should be constructed. Must have cycles = 1
+        or the function will throw an error. Must have a model file defined or
+        this won't work at all.
+    shock : str
+        Name of the variable that Jacobians will be computed with respect to.
+        It does not need to be a "shock" in a modeling sense, but it must be a
+        single-valued parameter (possibly a singleton list) that can be changed.
+    outcomes : str or [str]
+        Names of outcome variables of interest; an SSJ matrix will be constructed
+        for each variable named here. If a single string is passed, the output
+        will be a single np.array. If a list of strings are passed, the output
+        will be a list of SSJ matrices in the order specified here.
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information. The grids
+        should include all arrival variables other than those that are normalized
+        out. They should also include all variables named in outcomes, except
+        outcomes that are continuation variables that remap to arrival variables.
+        Grid specification must include number of nodes N, should also include
+        min and max if the variable is continuous.
+    eps : float
+        Amount by which to perturb the shock variable. The default is 1e-4.
+    T_max : int
+        Size of the SSJ matrices: the maximum number of periods to consider.
+        The default is 300.
+    norm : str or None
+        Name of the model variable to normalize by for Harmenberg aggregation,
+        if any. For many HARK models, this should be 'PermShk', which enables
+        the grid over permanent income to be omitted as an explicit state.
+    PopGroFac : float
+        Constant population growth factor, defaulting to 1. Each successive
+        birth cohort is this factor bigger than the prior birth cohort. With flat
+        demographic dynamics, this results in the entire population growing by
+        this factor each period as well.
+    ProdGroFac : float
+        Constant aggregate productivity growth factor, defaulting to 1. Each
+        successive birth cohort has permanent labor productivity that is this
+        factor bigger than the prior cohort. With flat demographic dynamics,
+        this results in aggregate productivity growing by this factor as well.
+    solved : bool
+        Whether the agent's model has already been solved. If False (default),
+        it will be solved as the very first step. Solving the agent's long run
+        model before constructing SSJ matrices has the advantage of not needing
+        to re-solve the long run model for each shock variable.
+    construct : bool
+        Whether the construct (update) method should be run after the shock is
+        updated. The default is True, which is the "safe" option. If the shock
+        variable is a parameter that enters the model only *directly*, rather
+        than being used to build a more complex model input, then this can be
+        set to False to save a (very) small amount of time during computation.
+        If it is set to False improperly, the SSJs will be very wrong, potentially
+        just zero everywhere.
+    verbose : bool
+        Whether to display timing/progress to screen. The default is False.
+
+    Returns
+    -------
+    SSJ : np.array or [np.array]
+        One or more sequence space Jacobian arrays over the outcome variables
+        with respect to the named shock variable.
+    """
+    if agent.cycles != 1:
+        raise ValueError("This function is only compatible with life-cycle models!")
+    if not isinstance(outcomes, list):
+        outcomes = [outcomes]
+        no_list = True
+    else:
+        no_list = False
+
+    # Store the simulator if it exists
+    if hasattr(agent, "_simulator"):
+        simulator_backup = agent._simulator
+
+    # Make sure the shock variable is age-varying
+    if shock in agent.time_inv:
+        temp = getattr(agent, shock)
+        setattr(agent, shock, agent.T_cycle * [temp])
+        agent.del_from_time_inv(shock)
+        agent.add_to_time_vary(shock)
+
+    # Solve the long run model if it wasn't already
+    if not solved:
+        t0 = time()
+        agent.solve()
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
+            )
+    LR_soln = deepcopy(agent.solution)
+
+    # Construct the transition matrices for the long run model
+    t0 = time()
+    agent.initialize_sym()
+    X = agent._simulator  # for easier referencing
+    X.make_transition_matrices(grids, norm)
+    LR_trans = copy(X.trans_arrays)  # the transition matrices in LR model
+    T_age = len(LR_trans)
+    LR_outcomes = []
+    outcome_grids = []
+    for var in outcomes:
+        try:
+            LR_outcomes.append([X.periods[t].matrices[var] for t in range(T_age)])
+            outcome_grids.append([X.periods[t].grids[var] for t in range(T_age)])
+        except:
+            raise ValueError(
+                "Outcome " + var + " was requested, but no grid was provided!"
+            )
+    t1 = time()
+    if verbose:
+        print(
+            "Making the transition matrix for the long run model took {:.3f}".format(
+                t1 - t0
+            )
+            + " seconds."
+        )
+
+    # Find the steady state for the long run model
+    t0 = time()
+    pass
+    t1 = time()
+    if verbose:
+        print(
+            "Finding the long run steady state took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    # Initialize the fake news matrices for each output
+    J = len(outcomes)
+    fake_news_arrays = [np.zeros((T_age, T_age, T_age)) for j in range(J)]
+    # Dimensions of fake news arrays:
+    # dim 0 --> a: age when news arrives
+    # dim 1 --> t: periods since news arrived
+    # dim 2 --> s: periods ahead that news arrived
+
+    # Loop over ages of the model and have the news shock apply at each one
+    for k in range(T_age - 1):
+        # k is the age index at which the shock arrives
+        pass
+
+        # Perturb the shock variable at age k
+
+        # Solve the model starting from age k
+
+        # Build transitions and outcomes up to age k
+
+        # Update the t=0 row of the fake news matrices
+
+        # Update the other t rows of the fake news matrices
+
+    # Normalize everything by the shock size and pad with 0s to the time horizon
+
+    # Construct the (aggregate) SSJ object
+
+    # Structure and return outputs
+    return None
