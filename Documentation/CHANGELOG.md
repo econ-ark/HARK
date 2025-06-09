@@ -8,9 +8,9 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.16.0 (in development)
+### 0.16.0
 
-Release Date: TBD
+Release Date: June 9, 2025
 
 The items listed as "Developmental Features" are an independent system that is not connected to HARK's existing model structure.
 
@@ -22,6 +22,8 @@ aNrmInitMean --> kLogInitMean
 aNrmInitStd --> kLogInitStd
 pLvlInitMean --> pLogInitMean
 pLvlInitStd --> pLogInitStd
+
+Finally, the legacy option for Rfree to be time-invariant has been removed from most models to allow the code to be simplified. If you used time-invariant Rfree, you will need to change your parameterization from Rfree = Rfree_value to T_cycle*[Rfree_value].
 
 #### Major Changes
 
@@ -43,7 +45,7 @@ pLvlInitStd --> pLogInitStd
 - Removes a specific way of accounting for ``employment'' in the idiosyncratic-shocks income process. [#1473](https://github.com/econ-ark/HARK/pull/1473)
 - Adds income process constructor for the discrete Markov state consumption-saving model. [#1484](https://github.com/econ-ark/HARK/pull/1484)
 - Changes the behavior of make_lognormal_RiskyDstn so that the standard deviation represents the standard deviation of log(returns)
-- Adds detailed parameter and latex documentation to most models.
+- Adds detailed parameter and LaTeX documentation to most models.
 - Add PermGroFac constructor that explicitly combines idiosyncratic and aggregate sources of growth. [1489](https://github.com/econ-ark/HARK/pull/1489)
 - Suppress warning from calc_stable_points when it would be raised by inapplicable AgentType subclasses. [1493](https://github.com/econ-ark/HARK/pull/1493)
 - Fixes notation errors in IndShockConsumerType.make_euler_error_func from prior changes. [1495](https://github.com/econ-ark/HARK/pull/1495)
@@ -56,6 +58,9 @@ pLvlInitStd --> pLogInitStd
 - Adds support for Python 3.13 and related package updates. [#1549](https://github.com/econ-ark/HARK/pull/1549)
 - Move sim_birth methods to constructed distributions, lightly rename parameters. [#1553](https://github.com/econ-ark/HARK/pull/1553)
 - Cleans up warnings for the distance metric and prevents simulation history from being returned as output. [#1563](https://github.com/econ-ark/HARK/pull/1563)
+- Assorted small code cleanup tasks proposed by codex. [#1555] [#1556] [#1557] [#1558] [#1559] [#1560] [#1561] [#1562]
+- Updated and expanded documentation of sequence space Jacobian examples. [#1564] [#1568] [#1501] [#1490] [#1481] [#1475]
+- Improved documentation of cycles and timing of microeconomic models. [#1571](https://github.com/econ-ark/HARK/pull/1571)
 
 ### 0.15.1
 
