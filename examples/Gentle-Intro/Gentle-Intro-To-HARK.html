@@ -1,0 +1,1067 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>A Gentle Introduction to HARK &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/Gentle-Intro-To-HARK';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="The Nature of Time in HARK’s Microeconomic Framework" href="../LifecycleModel/Cycles_tutorial.html" />
+    <link rel="prev" title="ARKitecture of Econ-ARK" href="../../Documentation/overview/ARKitecture.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../Documentation/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../Documentation/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../Documentation/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/Cycles_tutorial.html">The Nature of Time in HARK’s Microeconomic Framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect foresight consumption-saving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Consumption-Saving model with Idiosyncratic Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Consumption-Saving model with Idiosyncratic Income Shocks and Different Interest Rates on Borrowing and Saving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/example_ConsPortfolioModel.html">Portfolio Models in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GenIncProcessModel/GenIncProcessModel.html">Permanent versus Persistent Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.html">How we solve a model defined by <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/Jacobian_Example.html">Computing Heterogenous Agent Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsNewKeynesianModel/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Documentation/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../Documentation/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">A Gentle Introduction to HARK</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb">examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Gentle-Intro-To-HARK.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="A-Gentle-Introduction-to-HARK">
+<h1>A Gentle Introduction to HARK<a class="headerlink" href="#A-Gentle-Introduction-to-HARK" title="Link to this heading">#</a></h1>
+<p>This notebook provides a simple, hands-on tutorial for first time HARK users – and potentially first time Python users. It does not go “into the weeds” - we have hidden some code cells that do boring things that you don’t need to digest on your first experience with HARK. Our aim is to convey a feel for how the toolkit works.</p>
+<p>For readers for whom this is your very first experience with Python, we have put important Python concepts in <strong>boldface</strong>. For those for whom this is the first time they have used a Jupyter notebook, we have put Jupyter instructions in <em>italics</em>. Only cursory definitions (if any) are provided here. If you want to learn more, there are many online Python and Jupyter tutorials.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># This cell has a bit of initial setup. You can click the triangle to the left to expand it.</span>
+<span class="c1"># Click the &quot;Run&quot; button immediately above the notebook in order to execute the contents of any cell</span>
+<span class="c1"># WARNING: Each cell in the notebook relies upon results generated by previous cells</span>
+<span class="c1">#   The most common problem beginners have is to execute a cell before all its predecessors</span>
+<span class="c1">#   If you do this, you can restart the kernel (see the &quot;Kernel&quot; menu above) and start over</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>
+</pre></div>
+</div>
+</div>
+<section id="Your-First-HARK-Model:-Perfect-Foresight">
+<h2>Your First HARK Model: Perfect Foresight<a class="headerlink" href="#Your-First-HARK-Model:-Perfect-Foresight" title="Link to this heading">#</a></h2>
+<p>We start with almost the simplest possible consumption model: A consumer with CRRA utility</p>
+<p><span class="math">\begin{align*}
+U(C) = \frac{C^{1-\rho}}{1-\rho}
+\end{align*}</span></p>
+<p>has perfect foresight about everything except the (stochastic) date of death, which may occur in each period, implying a “survival probability” each period of <span class="math notranslate nohighlight">\(\newcommand{\LivPrb}{\aleph}\LivPrb_t \le 1\)</span>, and a complementary death probability of <span class="math notranslate nohighlight">\(\mathsf{D}_t = 1 - \LivPrb_t\)</span>; death ends the consumer’s decision problem. Permanent labor income <span class="math notranslate nohighlight">\(P_t\)</span> grows from period to period by a factor <span class="math notranslate nohighlight">\(\Gamma_t\)</span>. At the beginning of each period <span class="math notranslate nohighlight">\(t\)</span>, the consumer has some amount
+of market resources <span class="math notranslate nohighlight">\(M_t\)</span> (which includes both market wealth and current income) and must choose how much of those resources to consume <span class="math notranslate nohighlight">\(C_t\)</span> and hold the rest in a riskless asset <span class="math notranslate nohighlight">\(A_t\)</span> which will earn return factor <span class="math notranslate nohighlight">\(R\)</span>. The agent’s flow of utility <span class="math notranslate nohighlight">\(U(C_t)\)</span> from consumption is geometrically discounted by factor <span class="math notranslate nohighlight">\(\beta\)</span>.</p>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math">\begin{align*}
+V_t(M_t,P_t) &= \max_{C_t}U(C_t) + \beta \aleph_t V_{t+1}(M_{t+1},P_{t+1})\\
+&\text{s.t.} \\
+A_t &= M_t - C_t \\
+M_{t+1} &= R (M_{t}-C_{t}) + Y_{t+1}, \\
+P_{t+1} &= \Gamma_{t+1} P_t, \\
+\end{align*}</span></p>
+<p>A particular perfect foresight agent’s problem can be characterized by values of risk aversion <span class="math notranslate nohighlight">\(\rho\)</span>, discount factor <span class="math notranslate nohighlight">\(\beta\)</span>, and return factor <span class="math notranslate nohighlight">\(R\)</span>, along with sequences of income growth factors <span class="math notranslate nohighlight">\(\{ \Gamma_t \}\)</span> and survival probabilities <span class="math notranslate nohighlight">\(\{\aleph_t\}\)</span>. To keep things simple, let’s forget about “sequences” of income growth and mortality, and just think about an <em>infinite horizon</em> consumer with constant income growth and survival probability:
+<span class="math notranslate nohighlight">\(\Gamma_t = \Gamma\)</span> and <span class="math notranslate nohighlight">\(\LivPrb_t = \LivPrb\)</span> for all <span class="math notranslate nohighlight">\(t\)</span>.</p>
+</section>
+<section id="Representing-Agents-in-HARK">
+<h2>Representing Agents in HARK<a class="headerlink" href="#Representing-Agents-in-HARK" title="Link to this heading">#</a></h2>
+<p>HARK represents agents solving this type of problem as <span class="math notranslate nohighlight">\(\textbf{instances}\)</span> of the <span class="math notranslate nohighlight">\(\textbf{class}\)</span> <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span>, a <span class="math notranslate nohighlight">\(\textbf{subclass}\)</span> of <span class="math notranslate nohighlight">\(\texttt{AgentType}\)</span>. To make agents of this class, we must import the class itself into our workspace. (Run the cell below in order to do this).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">PerfForesightConsumerType</span>
+</pre></div>
+</div>
+</div>
+<p>The <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span> class contains within itself the Python code that constructs the solution for the perfect foresight model we are studying here, as specifically articulated in <a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/">these lecture notes</a>.</p>
+<p>To create an instance of <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span>, we simply call the class as if it were a function, passing as arguments the specific parameter values we want it to have. In the hidden cell below, we define a <span class="math notranslate nohighlight">\(\textbf{dictionary}\)</span> named <code class="docutils literal notranslate"><span class="pre">PF_dictionary</span></code> with these parameter values:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Relative risk aversion</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{CRRA}\)</span></p></td>
+<td><p>2.5</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Discount factor</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{DiscFac}\)</span></p></td>
+<td><p>0.96</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{Rfree}\)</span></p></td>
+<td><p>1.03</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\aleph\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{LivPrb}\)</span></p></td>
+<td><p>0.98</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Gamma\)</span></p></td>
+<td><p>Income growth factor</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{PermGroFac}\)</span></p></td>
+<td><p>1.01</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>For now, don’t worry about the specifics of dictionaries. All you need to know is that a dictionary lets us pass many arguments wrapped up in one simple data structure.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># This cell defines a parameter dictionary. You can expand it if you want to see what that looks like.</span>
+<span class="n">PF_dictionary</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">,</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">],</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.98</span><span class="p">],</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.01</span><span class="p">],</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;AgentCount&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># To those curious enough to open this hidden cell, you might notice that we defined</span>
+<span class="c1"># a few extra parameters in that dictionary: T_cycle, cycles, and AgentCount. Don&#39;t</span>
+<span class="c1"># worry about these for now.</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s make an <strong>object</strong> named <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span> which is an <strong>instance</strong> of the <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span> class. The object <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span> will bundle together the abstract mathematical description of the solution embodied in <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span> and the specific set of parameter values defined in <code class="docutils literal notranslate"><span class="pre">PF_dictionary</span></code>. Such a bundle is created passing <code class="docutils literal notranslate"><span class="pre">PF_dictionary</span></code> to the class <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span>:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PFexample</span> <span class="o">=</span> <span class="n">PerfForesightConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">PF_dictionary</span><span class="p">)</span>
+<span class="c1"># The asterisks ** basically say &quot;here come some arguments in a dictionary&quot; to PerfForesightConsumerType.</span>
+</pre></div>
+</div>
+</div>
+<p>In <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span>, we now have <em>defined</em> the problem of a particular infinite horizon perfect foresight consumer who knows how to solve this problem.</p>
+</section>
+<section id="Solving-an-Agent's-Problem">
+<h2>Solving an Agent’s Problem<a class="headerlink" href="#Solving-an-Agent's-Problem" title="Link to this heading">#</a></h2>
+<p>To tell the agent actually to solve the problem, we call the agent’s <span class="math notranslate nohighlight">\(\texttt{solve}\)</span> <strong>method</strong>. (A method is essentially a function that an object runs that affects the object’s own internal characteristics – in this case, the method adds the consumption function to the contents of <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span>.)</p>
+<p>The cell below calls the <span class="math notranslate nohighlight">\(\texttt{solve}\)</span> method for <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PFexample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>Running the <span class="math notranslate nohighlight">\(\texttt{solve}\)</span> method creates the <strong>attribute</strong> of <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span> named <span class="math notranslate nohighlight">\(\texttt{solution}\)</span>. In fact, every subclass of <span class="math notranslate nohighlight">\(\texttt{AgentType}\)</span> works the same way: The class definition contains the abstract algorithm that knows how to solve the model, but to obtain the particular solution for a specific instance (parameterization/configuration), that instance must be instructed to <span class="math notranslate nohighlight">\(\texttt{solve()}\)</span> its problem.</p>
+<p>The <span class="math notranslate nohighlight">\(\texttt{solution}\)</span> attribute is always a <span class="math notranslate nohighlight">\(\textit{list}\)</span> of solutions to a single period of the problem. In the case of an infinite horizon model like the one here, there is just one element in that list – the solution to all periods of the infinite horizon problem. The consumption function stored as the first element (index 0) of the solution list can be retrieved by:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;HARK.interpolation.LinearInterp at 0x1e4449b5990&gt;
+</pre></div></div>
+</div>
+<p>One of the results proven in the associated <a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA/">lecture notes</a> is that, for the specific problem defined above, there is a solution in which the <em>ratio</em> <span class="math notranslate nohighlight">\(c = C/P\)</span> is a linear function of the <em>ratio</em> of market resources to permanent income, <span class="math notranslate nohighlight">\(m = M/P\)</span>.</p>
+<p>This is why <span class="math notranslate nohighlight">\(\texttt{cFunc}\)</span> can be represented by a linear interpolation. It can be plotted between an <span class="math notranslate nohighlight">\(m\)</span> ratio of 0 and 10 using the command below.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mPlotTop</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">mPlotTop</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_13_0.png" src="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_13_0.png" />
+</div>
+</div>
+<p>The figure illustrates one of the surprising features of the perfect foresight model: A person with zero money should be spending at a rate more than double their income (that is, <span class="math notranslate nohighlight">\(\texttt{cFunc}(0.) \approx 2.08\)</span> - the intersection on the vertical axis). How can this be?</p>
+<p>The answer is that we have not incorporated any constraint that would prevent the agent from borrowing against the entire PDV of future earnings– their “human wealth”. How much is that? What’s the minimum value of <span class="math notranslate nohighlight">\(m_t\)</span> where the consumption function is defined? We can check by retrieving the <span class="math notranslate nohighlight">\(\texttt{hNrm}\)</span> <strong>attribute</strong> of the solution, which calculates the value of human wealth normalized by permanent income:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">humanWealth</span> <span class="o">=</span> <span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hNrm</span>
+<span class="n">mMinimum</span> <span class="o">=</span> <span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;This agent&#39;s human wealth is &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">humanWealth</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; times his current income level.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;This agent&#39;s consumption function is defined (consumption is positive) down to m_t = &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">mMinimum</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+This agent&#39;s human wealth is 50.49994992551661 times his current income level.
+This agent&#39;s consumption function is defined (consumption is positive) down to m_t = -50.49994992551661
+</pre></div></div>
+</div>
+<p>Yikes! Let’s take a look at the bottom of the consumption function. In the cell below, the bounds of the <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code> function are set to display down to the lowest defined value of the consumption function.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_funcs</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">mMinimum</span><span class="p">,</span> <span class="n">mPlotTop</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_17_0.png" src="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_17_0.png" />
+</div>
+</div>
+</section>
+<section id="Changing-Agent-Parameters">
+<h2>Changing Agent Parameters<a class="headerlink" href="#Changing-Agent-Parameters" title="Link to this heading">#</a></h2>
+<p>Suppose you wanted to change one (or more) of the parameters of the agent’s problem and see what that does. We want to compare consumption functions before and after we change parameters, so let’s make a new instance of <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span> by copying <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">NewExample</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">PFexample</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>You can assign new parameters to an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> with the <code class="docutils literal notranslate"><span class="pre">assign_parameter</span></code> method. For example, we could make the new agent less patient:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">NewExample</span><span class="o">.</span><span class="n">assign_parameters</span><span class="p">(</span><span class="n">DiscFac</span><span class="o">=</span><span class="mf">0.90</span><span class="p">)</span>
+<span class="n">NewExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">mPlotBottom</span> <span class="o">=</span> <span class="n">mMinimum</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">NewExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">],</span>
+    <span class="n">mPlotBottom</span><span class="p">,</span>
+    <span class="n">mPlotTop</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_21_0.png" src="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_21_0.png" />
+</div>
+</div>
+<p>(Note that you can pass a <strong>list</strong> of functions to <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code> as the first argument rather than just a single function. Lists are written inside of [square brackets].)</p>
+<p>Let’s try to deal with the “problem” of massive human wealth by making another consumer who has essentially no future income. We can virtually eliminate human wealth by making the permanent income growth factor <span class="math notranslate nohighlight">\(\textit{very}\)</span> small.</p>
+<p>In <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span>, the agent’s income grew by 1 percent per period – his <span class="math notranslate nohighlight">\(\texttt{PermGroFac}\)</span> took the value 1.01. What if our new agent had a growth factor of 0.01 – his income <strong>shrinks</strong> by 99 percent each period? In the cell below, set <span class="math notranslate nohighlight">\(\texttt{NewExample}\)</span>’s discount factor back to its original value, then set its <span class="math notranslate nohighlight">\(\texttt{PermGroFac}\)</span> attribute so that the growth factor is 0.01 each period.</p>
+<p>Important: Recall that the model at the top of this document said that an agent’s problem is characterized by a sequence of income growth factors, but we tabled that concept. Because <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span> treats <span class="math notranslate nohighlight">\(\texttt{PermGroFac}\)</span> as a <strong>time-varying</strong> attribute, it must be specified as a <strong>list</strong> (with a single element in this case).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Revert NewExample&#39;s discount factor and make his future income minuscule</span>
+<span class="c1"># WRITE YOUR CODE HERE!</span>
+
+<span class="c1"># Compare the old and new consumption functions</span>
+<span class="n">plot_funcs</span><span class="p">([</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">NewExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_23_0.png" src="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_23_0.png" />
+</div>
+</div>
+<p>Now <span class="math notranslate nohighlight">\(\texttt{NewExample}\)</span>’s consumption function has the same slope (MPC) as <span class="math notranslate nohighlight">\(\texttt{PFexample}\)</span>, but it emanates from (almost) zero– he has basically no future income to borrow against!</p>
+<p>If you’d like, use the cell above to alter <span class="math notranslate nohighlight">\(\texttt{NewExample}\)</span>’s other attributes (relative risk aversion, etc) and see how the consumption function changes. However, keep in mind that <em>no solution exists</em> for some combinations of parameters. HARK should let you know if this is the case if you try to solve such a model.</p>
+</section>
+<section id="Your-Second-HARK-Model:-Adding-Income-Shocks">
+<h2>Your Second HARK Model: Adding Income Shocks<a class="headerlink" href="#Your-Second-HARK-Model:-Adding-Income-Shocks" title="Link to this heading">#</a></h2>
+<p>Linear consumption functions are pretty boring, and you’d be justified in feeling unimpressed if all HARK could do was plot some lines. Let’s look at another model that adds two important layers of complexity: income shocks and (artificial) borrowing constraints.</p>
+<p>Specifically, our new type of consumer receives two income shocks at the beginning of each period: a completely transitory shock <span class="math notranslate nohighlight">\(\theta_t\)</span> and a completely permanent shock <span class="math notranslate nohighlight">\(\psi_t\)</span>. Moreover, lenders will not let the agent borrow money such that his ratio of end-of-period assets <span class="math notranslate nohighlight">\(A_t\)</span> to permanent income <span class="math notranslate nohighlight">\(P_t\)</span> is less than <span class="math notranslate nohighlight">\(\underline{a}\)</span>. As with the perfect foresight problem, this model can be framed in terms of <strong>normalized</strong> variables, e.g.
+<span class="math notranslate nohighlight">\(m_t \equiv M_t/P_t\)</span>. (See <a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/papers/BufferStockTheory/">here</a> for all the theory). Accordingly, the normalized utility and continuation value are <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(v_t\)</span>.</p>
+<p><span class="math">\begin{align*}
+v_t(m_t) &= \max_{c_t} u(c_t) + \aleph\beta \mathbb{E} [(\Gamma\psi_{t+1})^{1-\rho} v_{t+1}(m_{t+1}) ] \\
+a_t &= m_t - c_t \\
+a_t &\geq \underline{a} \\
+m_{t+1} &= R/(\Gamma \psi_{t+1}) a_t + \theta_{t+1} \\
+\mathbb{E}[\psi_t]&=\mathbb{E}[\theta_t] = 1 \\
+u(c) &= \frac{c^{1-\rho}}{1-\rho}
+\end{align*}</span></p>
+<p>HARK represents agents with this kind of problem as instances of the class <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span>. To create an <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span>, we must specify the same set of parameters as for a <span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span>, as well as an artificial borrowing constraint <span class="math notranslate nohighlight">\(\underline{a}\)</span> and a sequence of income shocks. It’s easy enough to pick a borrowing constraint – say, zero – but how would we specify the distributions of the shocks? Can’t the joint
+distribution of permanent and transitory shocks be just about anything?</p>
+<p><em>Yes</em>, and HARK can handle whatever correlation structure a user might care to specify. However, the default behavior of <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span> is that the distribution of permanent income shocks is mean one lognormal, and the distribution of transitory shocks is mean one lognormal augmented with a point mass representing unemployment. The distributions are independent of each other by default, and by default are approximated with <span class="math notranslate nohighlight">\(N\)</span> point equiprobable distributions.</p>
+<p>Let’s make an infinite horizon instance of <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span> with the same parameters as our original perfect foresight agent, plus the extra parameters to specify the income shock distribution and the artificial borrowing constraint. As before, we’ll make a dictionary:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{BoroCnstArt}\)</span></p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\psi\)</span></p></td>
+<td><p>Underlying stdev of permanent income shocks</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{PermShkStd}\)</span></p></td>
+<td><p>0.1</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\sigma_\theta\)</span></p></td>
+<td><p>Underlying stdev of transitory income shocks</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{TranShkStd}\)</span></p></td>
+<td><p>0.1</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(N_\psi\)</span></p></td>
+<td><p>Number of discrete permanent income shocks</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{PermShkCount}\)</span></p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(N_\theta\)</span></p></td>
+<td><p>Number of discrete transitory income shocks</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{TranShkCount}\)</span></p></td>
+<td><p>7</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mho\)</span></p></td>
+<td><p>Unemployment probability</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{UnempPrb}\)</span></p></td>
+<td><p>0.05</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underset{\bar{}}{\theta}\)</span></p></td>
+<td><p>Transitory shock when unemployed</p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{IncUnemp}\)</span></p></td>
+<td><p>0.3</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># This cell defines a parameter dictionary for making an instance of IndShockConsumerType.</span>
+
+<span class="n">IndShockDictionary</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">,</span>  <span class="c1"># The dictionary includes our original parameters...</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">],</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.98</span><span class="p">],</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.01</span><span class="p">],</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span>
+    <span class="s2">&quot;PermShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># and the new parameters for constructing the income process.</span>
+    <span class="s2">&quot;TranShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span>
+    <span class="s2">&quot;TranShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="s2">&quot;UnempPrb&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="s2">&quot;IncUnemp&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;aXtraMin&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># aXtra parameters specify how to construct the grid of assets.</span>
+    <span class="s2">&quot;aXtraMax&quot;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>  <span class="c1"># Don&#39;t worry about these for now</span>
+    <span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>
+    <span class="s2">&quot;aXtraExtra&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;vFuncBool&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># These booleans indicate whether the value function should be calculated</span>
+    <span class="s2">&quot;CubicBool&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># and whether to use cubic spline interpolation. You can ignore them.</span>
+    <span class="s2">&quot;kLogInitMean&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">10.0</span><span class="p">,</span>
+    <span class="s2">&quot;kLogInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># These parameters specify the (log) distribution of normalized assets</span>
+    <span class="s2">&quot;pLogInitMean&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># and permanent income for agents at &quot;birth&quot;. They are only relevant in</span>
+    <span class="s2">&quot;pLogInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># simulation and you don&#39;t need to worry about them.</span>
+    <span class="s2">&quot;PermGroFacAgg&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="s2">&quot;T_retire&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># What&#39;s this about retirement? ConsIndShock is set up to be able to</span>
+    <span class="s2">&quot;UnempPrbRet&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># handle lifecycle models as well as infinite horizon problems. Swapping</span>
+    <span class="s2">&quot;IncUnempRet&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># out the structure of the income process is easy, but ignore for now.</span>
+    <span class="s2">&quot;T_age&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;AgentCount&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>
+    <span class="s2">&quot;tax_rate&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Hey, there&#39;s a lot of parameters we didn&#39;t tell you about!  Yes, but you don&#39;t need to</span>
+<span class="c1"># think about them for now.</span>
+</pre></div>
+</div>
+</div>
+<p>As before, we need to import the relevant subclass of <span class="math notranslate nohighlight">\(\texttt{AgentType}\)</span> into our workspace, then create an instance by passing the dictionary to the class as if the class were a function.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+
+<span class="n">IndShockExample</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">IndShockDictionary</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Now we can solve our new agent’s problem just like before, using the <span class="math notranslate nohighlight">\(\texttt{solve}\)</span> method.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">IndShockExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">IndShockExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_29_0.png" src="../../_images/examples_Gentle-Intro_Gentle-Intro-To-HARK_29_0.png" />
+</div>
+</div>
+</section>
+<section id="Changing-Constructed-Attributes">
+<h2>Changing Constructed Attributes<a class="headerlink" href="#Changing-Constructed-Attributes" title="Link to this heading">#</a></h2>
+<p>In the parameter dictionary above, we chose values for HARK to use when constructing its numeric representation of <span class="math notranslate nohighlight">\(F_t\)</span>, the joint distribution of permanent and transitory income shocks. When <span class="math notranslate nohighlight">\(\texttt{IndShockExample}\)</span> was created, those parameters (<span class="math notranslate nohighlight">\(\texttt{TranShkStd}\)</span>, etc) were used by the <strong>constructor</strong> or <strong>initialization</strong> method of <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span> to construct an attribute called <span class="math notranslate nohighlight">\(\texttt{IncomeDstn}\)</span>.</p>
+<p>Suppose you were interested in changing (say) the amount of permanent income risk. From the section above, you might think that you could simply change the attribute <span class="math notranslate nohighlight">\(\texttt{TranShkStd}\)</span>, solve the model again, and it would work.</p>
+<p>That’s <em>almost</em> true– there’s one small extra step. <span class="math notranslate nohighlight">\(\texttt{TranShkStd}\)</span> is a primitive input, but it’s not the thing you <em>actually</em> want to change. Changing <span class="math notranslate nohighlight">\(\texttt{TranShkStd}\)</span> doesn’t actually update the income distribution… unless you tell it to (just like changing an agent’s preferences does not change the consumption function that was stored for the old set of parameters – until you invoke the <span class="math notranslate nohighlight">\(\texttt{solve}\)</span> method again). In the cell below, we invoke the method
+<code class="docutils literal notranslate"><span class="pre">update_income_process</span></code> so HARK knows to reconstruct the attribute <span class="math notranslate nohighlight">\(\texttt{IncomeDstn}\)</span>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">OtherExample</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span>
+    <span class="n">IndShockExample</span><span class="p">,</span>
+<span class="p">)</span>  <span class="c1"># Make a copy so we can compare consumption functions</span>
+<span class="n">OtherExample</span><span class="o">.</span><span class="n">assign_parameters</span><span class="p">(</span>
+    <span class="n">PermShkStd</span><span class="o">=</span><span class="p">[</span><span class="mf">0.2</span><span class="p">],</span>
+<span class="p">)</span>  <span class="c1"># Double permanent income risk (note that it&#39;s a one element list)</span>
+<span class="n">OtherExample</span><span class="o">.</span><span class="n">update_income_process</span><span class="p">()</span>  <span class="c1"># Call the method to reconstruct the representation of F_t</span>
+<span class="n">OtherExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>In general, agents in HARK have an <span class="math notranslate nohighlight">\(\texttt{update}\)</span> method that calls <em>all</em> of their various internal <span class="math notranslate nohighlight">\(\texttt{update_X}\)</span> methods (e.g. <span class="math notranslate nohighlight">\(\texttt{update\_income\_process}\)</span>). If you change a parameter that describes a constructed attribute of your agent, invoking the <span class="math notranslate nohighlight">\(\texttt{update}\)</span> method will re-construct that attribute using the new parameter value.</p>
+<p>In the cell below, use your blossoming HARK skills to plot the consumption function for <span class="math notranslate nohighlight">\(\texttt{IndShockExample}\)</span> and <span class="math notranslate nohighlight">\(\texttt{OtherExample}\)</span> on the same figure.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use the line(s) below to plot the consumptions functions against each other</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../../Documentation/overview/ARKitecture.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ARKitecture of Econ-ARK</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../LifecycleModel/Cycles_tutorial.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">The Nature of Time in HARK’s Microeconomic Framework</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Your-First-HARK-Model:-Perfect-Foresight">Your First HARK Model: Perfect Foresight</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Representing-Agents-in-HARK">Representing Agents in HARK</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-an-Agent's-Problem">Solving an Agent’s Problem</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Changing-Agent-Parameters">Changing Agent Parameters</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Your-Second-HARK-Model:-Adding-Income-Shocks">Your Second HARK Model: Adding Income Shocks</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Changing-Constructed-Attributes">Changing Constructed Attributes</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.1.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
