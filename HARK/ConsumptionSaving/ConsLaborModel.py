@@ -22,6 +22,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.interpolation import (
     BilinearInterp,
@@ -468,7 +470,24 @@ LaborIntMargConsumerType_constructors_default = {
     "LbrCost": make_log_polynomial_LbrCost,
     "TranShkGrid": get_TranShkGrid_from_TranShkDstn,
     "solution_terminal": make_labor_intmarg_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+LaborIntMargConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+LaborIntMargConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
+}
+
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
 LaborIntMargConsumerType_IncShkDstn_default = {
@@ -522,10 +541,6 @@ LaborIntMargConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -540,6 +555,8 @@ LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_aXtraGrid_defau
 LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_LbrCost_default)
 LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_solving_default)
 LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_simulation_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_kNrmInitDstn_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_pLvlInitDstn_default)
 init_labor_intensive = LaborIntMargConsumerType_default
 
 
@@ -752,22 +769,20 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         """
-        mNrmNow = np.zeros(self.AgentCount) + np.nan
-        aNrmNow = np.zeros(self.AgentCount) + np.nan
-        LbrEff = self.controls["Lbr"] * self.shocks["TranShk"]
+        # Make an array of wage rates by age
+        Wage = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            mNrmNow[these] = (
-                self.state_now["bNrm"][these] + LbrEff[these] * self.WageRte[t]
-            )  # mNrm = bNrm + yNrm
-            aNrmNow[these] = (
-                mNrmNow[these] - self.controls["cNrm"][these]
-            )  # aNrm = mNrm - cNrm
+            Wage[these] = self.WageRte[t]
+        LbrEff = self.controls["Lbr"] * self.shocks["TranShk"]
+        yNrmNow = LbrEff * Wage
+        mNrmNow = self.state_now["bNrm"] + yNrmNow
+        aNrmNow = mNrmNow - self.controls["cNrm"]
+        
+        self.state_now["LbrEff"] = LbrEff
         self.state_now["mNrm"] = mNrmNow
         self.state_now["aNrm"] = aNrmNow
-        self.state_now["LbrEff"] = LbrEff
-
-        # moves now to prev
+        self.state_now["yNrm"] = yNrmNow
         super().get_poststates()
 
     def plot_cFunc(self, t, bMin=None, bMax=None, ShkSet=None):

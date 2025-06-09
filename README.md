@@ -93,7 +93,7 @@ The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wi
 
 <br>
 
-To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate paramaters:
+To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate parameters:
 
 ```python
 import HARK
@@ -111,9 +111,11 @@ PF_params = {
     "AgentCount": 10000,
 }
 
-# Create an instance of a Perfect Foresight agent with the above paramaters
+# Create an instance of a Perfect Foresight agent with the above parameters
 PFexample = PerfForesightConsumerType(**PF_params)
 ```
+The parameter `T_cycle` sets the length of the period cycle. Lists of time-varying parameters must have this length. With `cycles=0` the single cycle repeats forever. If a parameter `T_age` is provided, each agent is removed from the simulation when their `t_age` counter reaches this value.
+
 
 Once the model is created, ask the the agent to solve the problem with `.solve()`:
 

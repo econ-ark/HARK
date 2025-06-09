@@ -806,6 +806,7 @@ class AgentType(Model):
     shock_vars_ = []
     state_vars = []
     poststate_vars = []
+    distributions = []
     default_ = {"params": {}, "solver": NullFunc()}
 
     def __init__(
@@ -991,17 +992,28 @@ class AgentType(Model):
 
     def reset_rng(self):
         """
-        Reset the random number generator for this type.
+        Reset the random number generator and all distributions for this type.
+        Type-checking for lists is to handle the following three cases:
 
-        Parameters
-        ----------
-        none
-
-        Returns
-        -------
-        none
+        1) The target is a single distribution object
+        2) The target is a list of distribution objects (probably time-varying)
+        3) The target is a nested list of distributions, as in ConsMarkovModel.
         """
         self.RNG = np.random.default_rng(self.seed)
+        for name in self.distributions:
+            if not hasattr(self, name):
+                continue
+
+            dstn = getattr(self, name)
+            if isinstance(dstn, list):
+                for D in dstn:
+                    if isinstance(D, list):
+                        for d in D:
+                            d.reset()
+                    else:
+                        D.reset()
+            else:
+                dstn.reset()
 
     def check_elements_of_time_vary_are_lists(self):
         """
@@ -1249,7 +1261,7 @@ class AgentType(Model):
             self.shock_history["who_dies"][t, :] = self.who_dies
 
             # Initial conditions of newborns
-            if np.sum(self.who_dies) > 0:
+            if self.who_dies.any():
                 for var_name in self.state_vars:
                     # Check whether the state is idiosyncratic or an aggregate
                     idio = (
@@ -1299,7 +1311,7 @@ class AgentType(Model):
         if self.read_shocks:
             who_dies = self.shock_history["who_dies"][self.t_sim, :]
             # Instead of simulating births, assign the saved newborn initial conditions
-            if np.sum(who_dies) > 0:
+            if who_dies.any():
                 for var_name in self.state_now:
                     if var_name in self.newborn_init_history.keys():
                         # Copy only array-like idiosyncratic states. Aggregates should
@@ -1426,8 +1438,6 @@ class AgentType(Model):
             if i < len(new_states):
                 self.state_now[var] = new_states[i]
 
-        return None
-
     def transition(self):
         """
 
@@ -1481,7 +1491,6 @@ class AgentType(Model):
         -------
         None
         """
-
         return None
 
     def symulate(self, T=None):
@@ -1528,7 +1537,7 @@ class AgentType(Model):
             raise Exception(
                 "This agent type instance must have the attribute T_sim set to a positive integer."
                 + "Set T_sim to match the largest dataset you might simulate, and run this agent's"
-                + "initalizeSim() method before running simulate() again."
+                + "initialize_sim() method before running simulate() again."
             )
 
         if sim_periods is not None and self.T_sim < sim_periods:
@@ -1567,8 +1576,6 @@ class AgentType(Model):
                                 self, var_name
                             )
                 self.t_sim += 1
-
-            return self.history
 
     def clear_history(self):
         """
@@ -2280,6 +2287,9 @@ class AgentPopulation:
 
         self.__infer_counts__()
 
+        self.print_parallel_error_once = True
+        # Print warning once if parallel simulation fails
+
     def __infer_counts__(self):
         """
         Infer `agent_type_count` and `term_age` from the parameters.
@@ -2470,12 +2480,31 @@ class AgentPopulation:
         for agent in self.agents:
             agent.initialize_sim()
 
-    def simulate(self):
+    def simulate(self, num_jobs=None):
         """
-        Simulates each agent of the population serially.
+        Simulates each agent of the population.
+
+        Parameters
+        ----------
+        num_jobs : int, optional
+            Number of parallel jobs to use. Defaults to using all available
+            cores when ``None``. Falls back to serial execution if parallel
+            processing fails.
         """
-        for agent in self.agents:
-            agent.simulate()
+        try:
+            multi_thread_commands(self.agents, ["simulate()"], num_jobs)
+        except Exception as err:
+            if getattr(self, "print_parallel_error_once", False):
+                self.print_parallel_error_once = False
+                print(
+                    "**** WARNING: could not execute multi_thread_commands in HARK.core.AgentPopulation.simulate() ",
+                    "so using the serial version instead. This will likely be slower. ",
+                    "The multi_thread_commands() function failed with the following error:\n",
+                    sys.exc_info()[0],
+                    ":",
+                    err,
+                )
+            multi_thread_commands_fake(self.agents, ["simulate()"], num_jobs)
 
     def __iter__(self):
         """

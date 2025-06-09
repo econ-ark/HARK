@@ -11,6 +11,8 @@ import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    make_lognormal_pLvl_init_dstn,
+    make_lognormal_kNrm_init_dstn,
 )
 from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
@@ -1015,7 +1017,23 @@ PortfolioConsumerType_constructors_default = {
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
     "AdjustDstn": make_AdjustDstn,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_portfolio_solution_terminal,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+PortfolioConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+PortfolioConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -1077,10 +1095,6 @@ PortfolioConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -1092,6 +1106,8 @@ PortfolioConsumerType_simulation_default = {
 PortfolioConsumerType_default = {}
 PortfolioConsumerType_default.update(PortfolioConsumerType_solving_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_simulation_default)
+PortfolioConsumerType_default.update(PortfolioConsumerType_kNrmInitDstn_default)
+PortfolioConsumerType_default.update(PortfolioConsumerType_pLvlInitDstn_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_aXtraGrid_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_ShareGrid_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_IncShkDstn_default)

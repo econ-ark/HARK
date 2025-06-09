@@ -4,6 +4,8 @@ This file implements unit tests for the Monte Carlo simulation module
 
 import unittest
 
+import numpy as np
+
 from HARK.distributions import Bernoulli, IndexDistribution, MeanOneLogNormal
 from HARK.model import Aggregate, Control, DBlock
 from HARK.simulation.monte_carlo import *
@@ -95,7 +97,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             - history["c"][5]
         )
 
-        self.assertTrue((a1 == b1).all())
+        np.testing.assert_allclose(a1, b1)
 
     def test_make_shock_history(self):
         self.simulator = AgentTypeMonteCarloSimulator(
@@ -158,7 +160,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
         a1 = history["a"][1]
         b1 = history["m"][1] - self.dr["c"][1](history["m"][1])
 
-        self.assertTrue((a1 == b1).all())
+        np.testing.assert_allclose(a1, b1)
 
 
 class test_MonteCarloSimulator(unittest.TestCase):
@@ -203,5 +205,18 @@ class test_MonteCarloSimulator(unittest.TestCase):
             + history["theta"][5]
             - history["c"][5]
         )
+        np.testing.assert_allclose(a1, b1)
 
-        self.assertTrue((a1 == b1).all())
+    def test_calibration_unmodified(self):
+        self.simulator = MonteCarloSimulator(
+            self.calibration,
+            self.block,
+            self.dr,
+            self.initial,
+            agent_count=1,
+        )
+
+        self.simulator.initialize_sim()
+        self.simulator.sim_one_period()
+
+        self.assertEqual(self.calibration, {"G": 1.05})

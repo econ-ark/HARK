@@ -22,8 +22,10 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
-from HARK.distributions import Lognormal, expected
+from HARK.distributions import expected
 from HARK.interpolation import (
     BilinearInterp,
     ConstantFunction,
@@ -546,6 +548,22 @@ GenIncProcessConsumerType_constructors_default = {
     "pLvlGrid": make_pLvlGrid_by_simulation,
     "pLvlNextFunc": make_trivial_pLvlNextFunc,
     "solution_terminal": make_2D_CRRA_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+GenIncProcessConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+GenIncProcessConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.4,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -581,8 +599,6 @@ GenIncProcessConsumerType_pLvlPctiles_default = {
 
 # Default parameters to make pLvlGrid using make_pLvlGrid_by_simulation
 GenIncProcessConsumerType_pLvlGrid_default = {
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
     "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
 }
 
@@ -607,10 +623,6 @@ GenIncProcessConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -620,6 +632,8 @@ GenIncProcessConsumerType_simulation_default = {
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
 }
 GenIncProcessConsumerType_default = {}
+GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_kNrmInitDstn_default)
+GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_pLvlInitDstn_default)
 GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_IncShkDstn_default)
 GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_aXtraGrid_default)
 GenIncProcessConsumerType_default.update(GenIncProcessConsumerType_pLvlNextFunc_default)
@@ -762,7 +776,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     solving_default = GenIncProcessConsumerType_solving_default
     simulation_default = GenIncProcessConsumerType_simulation_default
 
-    state_vars = ["pLvl", "mLvl", "aLvl"]
+    state_vars = ["kLvl", "pLvl", "mLvl", "aLvl", "aNrm"]
     time_vary_ = IndShockConsumerType.time_vary_ + ["pLvlNextFunc", "pLvlGrid"]
     default_ = {
         "params": GenIncProcessConsumerType_default,
@@ -850,21 +864,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         -------
         None
         """
-        # Get and store states for newly born agents
-        N = np.sum(which_agents)  # Number of new consumers to make
-        aNrmNow_new = Lognormal(
-            self.aNrmInitMean, self.aNrmInitStd, seed=self.RNG.integers(0, 2**31 - 1)
-        ).draw(N)
-        self.state_now["pLvl"][which_agents] = Lognormal(
-            self.pLvlInitMean, self.pLvlInitStd, seed=self.RNG.integers(0, 2**31 - 1)
-        ).draw(N)
+        super().sim_birth(which_agents)
         self.state_now["aLvl"][which_agents] = (
-            aNrmNow_new * self.state_now["pLvl"][which_agents]
+            self.state_now["aNrm"][which_agents] * self.state_now["pLvl"][which_agents]
         )
-        # How many periods since each agent was born
-        self.t_age[which_agents] = 0
-        # Which period of the cycle each agent is currently in
-        self.t_cycle[which_agents] = 0
 
     def transition(self):
         """
@@ -881,12 +884,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         pLvlNow
         mLvlNow
         """
-        aLvlPrev = self.state_prev["aLvl"]
+        kLvlNow = self.state_prev["aLvl"]
         RfreeNow = self.get_Rfree()
 
         # Calculate new states: normalized market resources
         # and persistent income level
-        pLvlNow = np.zeros_like(aLvlPrev)
+        pLvlNow = np.zeros_like(kLvlNow)
 
         for t in range(self.T_cycle):
             these = t == self.t_cycle
@@ -896,12 +899,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             )
 
         # state value
-        bLvlNow = RfreeNow * aLvlPrev  # Bank balances before labor income
+        bLvlNow = RfreeNow * kLvlNow  # Bank balances before labor income
 
         # Market resources after income - state value
         mLvlNow = bLvlNow + self.shocks["TranShk"] * pLvlNow
 
-        return (pLvlNow, mLvlNow)
+        return (kLvlNow, pLvlNow, mLvlNow)
 
     def get_controls(self):
         """
@@ -959,6 +962,12 @@ IndShockExplicitPermIncConsumerType_constructors_default["pLvlNextFunc"] = (
 IndShockExplicitPermIncConsumerType_IncShkDstn_default = (
     GenIncProcessConsumerType_IncShkDstn_default.copy()
 )
+IndShockExplicitPermIncConsumerType_kNrmInitDstn_default = (
+    GenIncProcessConsumerType_kNrmInitDstn_default.copy()
+)
+IndShockExplicitPermIncConsumerType_pLvlInitDstn_default = (
+    GenIncProcessConsumerType_pLvlInitDstn_default.copy()
+)
 IndShockExplicitPermIncConsumerType_aXtraGrid_default = (
     GenIncProcessConsumerType_aXtraGrid_default.copy()
 )
@@ -985,6 +994,12 @@ IndShockExplicitPermIncConsumerType_simulation_default = (
 IndShockExplicitPermIncConsumerType_default = {}
 IndShockExplicitPermIncConsumerType_default.update(
     IndShockExplicitPermIncConsumerType_IncShkDstn_default
+)
+IndShockExplicitPermIncConsumerType_default.update(
+    IndShockExplicitPermIncConsumerType_kNrmInitDstn_default
+)
+IndShockExplicitPermIncConsumerType_default.update(
+    IndShockExplicitPermIncConsumerType_pLvlInitDstn_default
 )
 IndShockExplicitPermIncConsumerType_default.update(
     IndShockExplicitPermIncConsumerType_aXtraGrid_default
@@ -1168,6 +1183,12 @@ PersistentShockConsumerType_constructors_default = (
 PersistentShockConsumerType_constructors_default["pLvlNextFunc"] = (
     make_AR1_style_pLvlNextFunc
 )
+PersistentShockConsumerType_kNrmInitDstn_default = (
+    IndShockExplicitPermIncConsumerType_kNrmInitDstn_default.copy()
+)
+PersistentShockConsumerType_pLvlInitDstn_default = (
+    IndShockExplicitPermIncConsumerType_pLvlInitDstn_default.copy()
+)
 PersistentShockConsumerType_IncShkDstn_default = (
     IndShockExplicitPermIncConsumerType_IncShkDstn_default.copy()
 )
@@ -1197,6 +1218,12 @@ PersistentShockConsumerType_simulation_default = (
 PersistentShockConsumerType_default = {}
 PersistentShockConsumerType_default.update(
     PersistentShockConsumerType_IncShkDstn_default
+)
+PersistentShockConsumerType_default.update(
+    PersistentShockConsumerType_kNrmInitDstn_default
+)
+PersistentShockConsumerType_default.update(
+    PersistentShockConsumerType_pLvlInitDstn_default
 )
 PersistentShockConsumerType_default.update(
     PersistentShockConsumerType_aXtraGrid_default

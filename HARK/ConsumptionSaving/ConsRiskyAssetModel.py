@@ -11,6 +11,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
@@ -117,8 +119,24 @@ IndShockRiskyAssetConsumerType_constructor_default = {
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
     "AdjustDstn": make_AdjustDstn,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
     "solve_one_period": select_risky_solver,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+IndShockRiskyAssetConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+IndShockRiskyAssetConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -186,10 +204,6 @@ IndShockRiskyAssetConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -217,6 +231,12 @@ IndShockRiskyAssetConsumerType_default.update(
 )
 IndShockRiskyAssetConsumerType_default.update(
     IndShockRiskyAssetConsumerType_simulation_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_kNrmInitDstn_default
+)
+IndShockRiskyAssetConsumerType_default.update(
+    IndShockRiskyAssetConsumerType_pLvlInitDstn_default
 )
 init_risky_asset = IndShockRiskyAssetConsumerType_default
 
@@ -379,6 +399,16 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     ]
     time_vary_ = IndShockConsumerType.time_vary_ + ["ShockDstn", "ShareLimit"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
+    distributions = [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "RiskyDstn",
+        "ShockDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+        "RiskyDstn",
+    ]
 
     def pre_solve(self):
         self.construct("solution_terminal")
@@ -1984,6 +2014,12 @@ FixedPortfolioShareRiskyAssetConsumerType_RiskyDstn_default = (
 FixedPortfolioShareRiskyAssetConsumerType_ShareGrid_default = (
     IndShockRiskyAssetConsumerType_ShareGrid_default.copy()
 )
+FixedPortfolioShareRiskyAssetConsumerType_kNrmInitDstn_default = (
+    IndShockRiskyAssetConsumerType_kNrmInitDstn_default.copy()
+)
+FixedPortfolioShareRiskyAssetConsumerType_pLvlInitDstn_default = (
+    IndShockRiskyAssetConsumerType_pLvlInitDstn_default.copy()
+)
 FixedPortfolioShareRiskyAssetConsumerType_solving_default = (
     IndShockRiskyAssetConsumerType_solving_default.copy()
 )
@@ -1997,6 +2033,12 @@ FixedPortfolioShareRiskyAssetConsumerType_solving_default["RiskyShareFixed"] = [
 FixedPortfolioShareRiskyAssetConsumerType_default = {}
 FixedPortfolioShareRiskyAssetConsumerType_default.update(
     FixedPortfolioShareRiskyAssetConsumerType_IncShkDstn_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_kNrmInitDstn_default
+)
+FixedPortfolioShareRiskyAssetConsumerType_default.update(
+    FixedPortfolioShareRiskyAssetConsumerType_pLvlInitDstn_default
 )
 FixedPortfolioShareRiskyAssetConsumerType_default.update(
     FixedPortfolioShareRiskyAssetConsumerType_RiskyDstn_default
