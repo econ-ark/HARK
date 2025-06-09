@@ -1393,9 +1393,12 @@ class AgentSimulator:
 
         # Initialize the state distribution
         current_dstn = self.newborn_dstn.copy()
+        state_dstn_by_age = []
 
         # Loop over requested periods of this agent type's model
         for t in range(T_max):
+            state_dstn_by_age.append(current_dstn)
+
             # Calculate outcome distributions and averages as requested
             for name in outcomes:
                 this_outcome = self.periods[t].matrices[name].transpose()
@@ -1417,6 +1420,7 @@ class AgentSimulator:
                     history_dstn[name] = np.concatenate(history_dstn[name], axis=1)
 
         # Store results as attributes of self
+        self.state_dstn_by_age = state_dstn_by_age
         if calc_dstn:
             self.history_dstn = history_dstn
         if calc_avg:
@@ -3327,8 +3331,15 @@ def make_flat_LC_SSJ_matrices(
 
     # Find the steady state for the long run model
     t0 = time()
-    SS_dstn = None  # need to make this
-    SS_outcomes = None  # need to make this
+    X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
+    SS_dstn = deepcopy(X.state_dstn_by_age)
+    SS_outcomes = {}
+    for j in len(outcomes):
+        name = outcomes[j]
+        SS_outcomes[name] = [
+            np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
+        ]
+    survival_by_age = 1.0 - X.history_avg["dead"]
     t1 = time()
     if verbose:
         print(
@@ -3336,8 +3347,29 @@ def make_flat_LC_SSJ_matrices(
             + " seconds."
         )
 
+    # Generate the steady state distribution of ages; adjust this later for pop growth
+    SS_age_dstn = np.cumprod(np.concatenate(([1.0], survival_by_age)))
+    SS_age_dstn /= np.sum(SS_age_dstn)
+
     # Construct the "expectation vectors" for all outcomes at all ages
-    E_vecs = None
+    t0 = time()
+    E_vecs = {}
+    for j in len(outcomes):
+        name = outcomes[j]
+        E_vecs[name] = [SS_outcomes.copy() for t in range(T_age)]
+        for t in range(1, T_age):
+            for a in range(T_age - t):
+                E_vecs[name][a].append(np.dot(LR_trans[a], E_vecs[a + 1][-1]))
+    t1 = time()
+    if verbose:
+        print(
+            "Constructing expectation vectors took {:.3f}".format(t1 - t0) + " seconds."
+        )
+
+    # Each entry of the E_vecs dictionary is a nested list. The outer index of the
+    # list is a, the age at t=0, and the inner index is time period t. The elements
+    # in the nested list are expectation vectors: the expected value of the outcome
+    # in period t conditional on being age a and at state space gridpoint n at t=0.
 
     # Initialize the fake news matrices for each output
     J = len(outcomes)
