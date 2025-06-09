@@ -796,6 +796,7 @@ class MarkovConsumerType(IndShockConsumerType):
         "params": init_indshk_markov,
         "solver": solve_one_period_ConsMarkov,
         "model": "ConsMarkov.yaml",
+    }
     distributions = [
         "IncShkDstn",
         "PermShkDstn",

@@ -778,7 +778,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         yNrmNow = LbrEff * Wage
         mNrmNow = self.state_now["bNrm"] + yNrmNow
         aNrmNow = mNrmNow - self.controls["cNrm"]
-        
+
         self.state_now["LbrEff"] = LbrEff
         self.state_now["mNrm"] = mNrmNow
         self.state_now["aNrm"] = aNrmNow
