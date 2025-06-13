@@ -1768,6 +1768,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
         initializer=initializer,
         track_vars=agent.track_vars,
     )
+    new_simulator.solution = solution  # this is for use by SSJ constructor
     return new_simulator
 
 
@@ -2895,6 +2896,9 @@ def calc_overall_trans_probs(out, idx, alpha, binary, offset, pmv, origins):
     return out
 
 
+###############################################################################
+
+
 def make_basic_SSJ_matrices(
     agent,
     shock,
@@ -2905,6 +2909,7 @@ def make_basic_SSJ_matrices(
     norm=None,
     solved=False,
     construct=True,
+    offset=False,
     verbose=False,
 ):
     """
@@ -2956,6 +2961,13 @@ def make_basic_SSJ_matrices(
         set to False to save a (very) small amount of time during computation.
         If it is set to False improperly, the SSJs will be very wrong, potentially
         just zero everywhere.
+    offset : bool
+        Whether the shock variable is "offset in time" for the solver, with a
+        default of False. This should be set to True if the named shock variable
+        (or the constructed model input that it affects) is indexed by t+1 from
+        the perspective of the solver. For example, the period t solver for the
+        ConsIndShock model takes in risk free interest factor Rfree as an argument,
+        but it represents the value of R that will occur at the start of t+1.
     verbose : bool
         Whether to display timing/progress to screen. The default is False.
 
@@ -2996,6 +3008,7 @@ def make_basic_SSJ_matrices(
     X = agent._simulator  # for easier referencing
     X.make_transition_matrices(grids, norm)
     LR_trans = X.trans_arrays[0].copy()  # the transition matrix in LR model
+    LR_period = X.periods[0]
     LR_outcomes = []
     outcome_grids = []
     for var in outcomes:
@@ -3057,7 +3070,8 @@ def make_basic_SSJ_matrices(
     agent.solve(from_solution=LR_soln)
     agent.initialize_sym()
     Tm1_soln = deepcopy(agent.solution[0])
-    period_Tm1 = agent._simulator.periods[-1]
+    period_Tm1 = agent._simulator.periods[0]
+    period_T = agent._simulator.periods[-1]
     t1 = time()
     if verbose:
         print(
@@ -3089,6 +3103,12 @@ def make_basic_SSJ_matrices(
     agent.initialize_sym()
     X = agent._simulator  # for easier typing
     X.periods[-1] = period_Tm1  # substitute period T-1 from above
+    if offset:
+        for name in X.periods[-1].content.keys():
+            if name not in X.solution:  # sub in proper T-1 non-solution info
+                X.periods[-1].content[name] = LR_period.content[name]
+        X.periods[-1].distribute_content()
+        X.periods = X.periods[1:] + [period_T]
     X.make_transition_matrices(grids, norm, fake_news_timing=True)
     TmX_trans = deepcopy(X.trans_arrays)
     TmX_outcomes = []
@@ -3382,6 +3402,7 @@ def make_flat_LC_SSJ_matrices(
 
     # Loop over ages of the model and have the news shock apply at each one;
     # k is the age index at which the shock arrives
+    t0 = time()
     for k in reversed(range(T_age - 1)):
         # Perturb the shock variable at age k
         shock_val_orig = getattr(agent, shock)[k]
@@ -3418,6 +3439,12 @@ def make_flat_LC_SSJ_matrices(
                 np.dot(shocked_trans[a], SS_dstn[a]) - SS_dstn[a + 1]
             ).flatten()
             update_FN_mats(fake_news_array, E_vecs[a + 1], D_dstn_news, T_age - 1, a, k)
+    t1 = time()
+    if verbose:
+        print(
+            "Perturbing each period of the problem took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
 
     # Normalize everything by the shock size and pad with 0s to the time horizon
     fake_news_array /= eps

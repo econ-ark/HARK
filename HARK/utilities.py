@@ -198,7 +198,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     If the function :math:`\ln(1+x)` were applied timestonest times,
     the grid would become linearly spaced.
     If timestonest is 0, the grid is exponentially spaced.
-
+    If timestonest is None, the grid is linearly spaced.
 
     Parameters
     ----------
@@ -223,6 +223,9 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     """
+    if timestonest is None:
+        grid = np.linspace(ming, maxg, ng)
+        return grid
     if timestonest > 0:
         Lming = ming
         Lmaxg = maxg
