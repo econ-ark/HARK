@@ -185,10 +185,8 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         else:
             m_points = num_pointsM
 
-        if not isinstance(timestonest, int):
+        if timestonest is None:
             timestonest = self.mFac
-        else:
-            timestonest = timestonest
 
         if self.cycles == 0:
             if not hasattr(dist_mGrid, "__len__"):
