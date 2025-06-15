@@ -22,12 +22,15 @@ symbols:
     - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
   arrival: [kLvl, pLvlPrev]
   solution: [cFunc]
   offset: [pLvlNextFunc, Rfree, IncShkDstn]
 initialize: |
-  pLvlPrev = 1.                    \\ set initial permanent income to one
-  kLvl = 0.                        \\ set initial capital holdings to zero
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial normalized capital from distribution
+  kLvl = pLvlPrev * kNrm           \\ de-normalize capital by permanent income
 dynamics: |
   (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
   p_temp = pLvlNextFunc@(pLvlPrev) \\ find expected permanent income level, without shock

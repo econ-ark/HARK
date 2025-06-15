@@ -1,12 +1,13 @@
 symbols:
   parameters: [Rfree, PermGroFac, LivPrb]
   functions: [cFunc]
+  distributions: [kNrmInitDst, pLvlInitDstn]
   arrival: [kNrm, pLvlPrev]
   solution: [cFunc]
   offset: [PermGroFac]
 initialize: |
-  pLvlPrev = 1.
-  kNrm = 0.
+  pLvlPrev ~ pLvlInitDstn
+  kNrm ~ kNrmInitDstn
 dynamics: |
   yNrm = 1.0
   pLvl = pLvlPrev * PermGroFac

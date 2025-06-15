@@ -28,12 +28,14 @@ symbols:
     - cFuncX             \\ consumption function over discrete state and market resources
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
   arrival: [kNrm, pLvlPrev, zPrev]
   solution: [cFuncX]
   offset: [PermGroFac, Rfree, IncShkDstn, MrkvArray]
 initialize: |
-  pLvlPrev = 1.                        \\ set initial permanent income to one
-  kNrm = 0.                            \\ set initial capital holdings to zero
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
   zPrev ~ {MrkvPrbsInit}               \\ draw discrete state from specified distribution
 dynamics: |
   Mrkv ~ {MrkvArray}(zPrev)            \\ current discrete state depends on prior state

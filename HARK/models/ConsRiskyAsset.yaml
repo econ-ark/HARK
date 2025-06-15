@@ -27,9 +27,11 @@ symbols:
     - ShareFunc*         \\ risky share function over market resource
   distributions:
     - ShockDstn+         \\ joint distribution of permanent, transitory, and return shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
 initialize: |
-  pLvlPrev = 1.                             \\ set initial permanent income to one
-  kNrm = 0.                                 \\ set initial capital holdings to zero
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
 dynamics: |
   (PermShk, TranShk, Risky) ~ ShockDstn     \\ draw shocks from joint distribution
   yNrm   = TranShk                          \\ normalized income is the transitory shock

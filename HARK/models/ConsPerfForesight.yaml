@@ -19,12 +19,15 @@ symbols:
     - LivPrb             \\ survival probability at end of period
   functions:
     - cFunc              \\ consumption function over market resources
+  distributions:
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
   arrival: [kNrm, pLvlPrev]
   solution: [cFunc]
   offset: [PermGroFac]
 initialize: |
-  pLvlPrev = 1.                    \\ set initial permanent income to one
-  kNrm = 0.                        \\ set initial capital holdings to zero
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
 dynamics: |
   yNrm = 1.0                       \\ normalized income is constant in PF setting
   pLvl = pLvlPrev * PermGroFac     \\ update permanent income level

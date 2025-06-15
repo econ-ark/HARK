@@ -22,12 +22,14 @@ symbols:
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
     - PrefShkDstn        \\ distribution of marginal utility shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
   arrival: [kNrm, pLvlPrev]
   solution: [cFunc]
   offset: [PermGroFac, Rfree, IncShkDstn]
 initialize: |
-  pLvlPrev = 1.                    \\ set initial permanent income to one
-  kNrm = 0.                        \\ set initial capital holdings to zero
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
 dynamics: |
   (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
   yNrm = TranShk                   \\ normalized income is the transitory shock
