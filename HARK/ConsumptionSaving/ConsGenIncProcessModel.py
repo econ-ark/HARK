@@ -781,6 +781,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     default_ = {
         "params": GenIncProcessConsumerType_default,
         "solver": solve_one_period_ConsGenIncProcess,
+        "model": "ConsGenIncProcess.yaml",
     }
 
     def pre_solve(self):
