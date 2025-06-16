@@ -270,6 +270,8 @@ class RandomEvent(ModelEvent):
             out[:, :] = self.dstn.draw(self.N)
         else:
             out[:, :] = self.dstn.draw(1)
+        if len(self.assigns) == 1:
+            out = out.flatten()
         return out
 
     def run(self):
