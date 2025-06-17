@@ -1568,9 +1568,12 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
         A simulator structure based on the agents.
     """
     # Read the model statement into a dictionary, and get names of attributes
-    with importlib.resources.open_text("HARK.models", agent.model_file) as f:
-        model_statement = f.read()
-        f.close()
+    if hasattr(agent, "model_statement"):  # look for a custom model statement
+        model_statement = copy(agent.model_statement)
+    else:  # otherwise use the default model file
+        with importlib.resources.open_text("HARK.models", agent.model_file) as f:
+            model_statement = f.read()
+            f.close()
     model = yaml.safe_load(model_statement)
     time_vary = agent.time_vary
     time_inv = agent.time_inv
