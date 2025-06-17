@@ -1194,19 +1194,22 @@ class AgentSimulator:
                          This transition includes death (and replacement).
         - newborn_dstn : Stochastic vector as a NumPy array, representing the distribution
                          of arrival states for "newborns" who were just initialized.
-        - state_grid : List of tuples representing the arrival state space. Each element
-                       corresponds to the discretized arrival state space point with
-                       the same index in trans_arrays and newborn_dstn. Arrival states
-                       are ordered within a tuple in the same order as the model file.
-
-        Each element of the periods attribute will also have the following attributes:
-
-        - matrices : A dictionary of arrays that cast from the arrival state space
-                     to the grid of outcome variables. Doing np.dot(dstn, matrices[var])
-                     will yield the discretized distribution of that outcome variable.
-        - grids : A dictionary of discretized grids for outcome variables. Doing
-                  np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
-                  of that outcome in the population.
+        - state_grids : Nested list of tuples representing the arrival state space for
+                        each period. Each element corresponds to the discretized arrival
+                        state space point with the same index in trans_arrays (and
+                        newborn_dstn). Arrival states are ordered within a tuple in the
+                        same order as the model file. Linked from period[t].mesh.
+        - outcome_arrays : List of dictionaries of arrays that cast from the arrival
+                           state space to the grid of outcome variables, for each period.
+                           Doing np.dot(state_dstn, outcome_arrays[t][var]) will yield
+                           the discretized distribution of that outcome variable. Linked
+                           from periods[t].matrices.
+        - outcome_grids : List of dictionaries of discretized outcomes in each period.
+                          Keys are names of outcome variables, and entries are vectors
+                          of discretized values that the outcome variable can take on.
+                          Doing np.dot(np.dot(state_dstn, outcome_arrays[var]), outcome_grids[var])
+                          yields the *average* of that outcome in the population. Linked
+                          from periods[t].grids.
 
         Parameters
         ----------
@@ -1302,6 +1305,13 @@ class AgentSimulator:
 
         # Store the transition arrays as attributes of self
         self.trans_arrays = p2p_trans_arrays
+
+        # Build and store lists of state meshes, outcome arrays, and outcome grids
+        self.state_grids = [self.periods[t].mesh for t in range(len(self.periods))]
+        self.outcome_grids = [self.periods[t].grids for t in range(len(self.periods))]
+        self.outcome_arrays = [
+            self.periods[t].matrices for t in range(len(self.periods))
+        ]
 
     def find_steady_state(self):
         """
