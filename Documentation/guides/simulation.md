@@ -1,9 +1,3 @@
----
-title: New Simulation System and Model Specification Files for HARK
-created: '2025-04-03T13:43:25.607Z'
-modified: '2025-04-22T18:23:20.648Z'
----
-
 # New Simulation System and Model Specification Files for HARK
 
 This document explains the formatting and usage of model files in `HARK`, which can be used to greatly simplify simulation code and to quickly and easily convey the mathematical content of a model. It begins with instructions for how to **use** the new simulation system, then proceeds to a specification of the model file format (for adding new models). I then explain how to attach the model file to an existing `HARK` model.
@@ -201,8 +195,8 @@ The final entry in a model file is called `twist`, and it does nothing more than
 
 ## Connecting a Model File to a `HARK` Model
 
-Suppose you have written a YAML file representing your model, and you want to actually use it with your `HARK` model; this section provides instruction for how to do so. All it takes is for the name of the model file to be assigned to the `model_` attribute of your `AgentType` subclass; that's it. As long as the `parameters`, `functions`, and `distributions` actually exist on your `AgentType` instances (and your model file is validly formatted), it should just work.
+Suppose you have written a YAML file representing your model, and you want to actually use it with your `HARK` model; this section provides instruction for how to do so. All it takes is for the name of the model file to be assigned to the `"model"` entry in the `default_` attribute of your `AgentType` subclass; that's it. As long as the named `parameters`, `functions`, and `distributions` actually exist on your `AgentType` instances (and your model file is validly formatted), it should just work. These files live in `/HARK/models/`.
 
-> **NB:** After another PR is merged, I would propose putting the model filename into the `default_` dictionary in the `model` entry, rather than as a separate class attribute.
+In unusual cases, you might want to change an `AgentType` instance's simulation model *after* it has been instantiated. This can be done in two ways. First, you can change the instance's `model_file` attribute to name a *different* file in `/HARK/models/`. This attribute is filled in at instantiation by copying from `default_["model"]`, but can be changed afterward. Just be sure to do this before calling `initialize_sym()` to create the simulator object.
 
-Some small changes might be required to existing `HARK` models to make them compatible with the new simulator system. In particular, initial permanent income and capital holdings are handled with handwritten methods in `HARK`, using parameters like `aNrmInitMean` (etc). These should be used to make attributes called (e.g.) `kNrmInitDstn` and `pLvlInitDstn`, which could then be referenced by the simulator for its `initialize` block. Mortality is also handled in a handwritten way in `HARK`, but Markov events can handle it with a simple Bernoulli realization.
+Alternatively, you can set the instance's `model_statement` attribute as a string with the *entire contents* of your model, in YAML format. This instance does not exist by default, but the `initialize_sym()` method looks for a model statement there before defaulting to read the one from the file named in `model_file`. Putting anything in `model_statement` thus overrides the class's default simulation model.
