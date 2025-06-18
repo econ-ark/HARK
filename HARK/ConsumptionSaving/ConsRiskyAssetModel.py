@@ -413,8 +413,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     def pre_solve(self):
         self.construct("solution_terminal")
         self.update_timing()
-        if self.PortfolioBool:
-            self.solution_terminal.ShareFunc = ConstantFunction(1.0)
+        self.solution_terminal.ShareFunc = ConstantFunction(1.0)
 
     def update_timing(self):
         """
@@ -1014,6 +1013,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
         MPCmin=MPCminNow,
         MPCmax=MPCmaxEff,
     )
+    solution_now.ShareFunc = ConstantFunction(1.0)  # used by simulator
     return solution_now
 
 
@@ -1991,6 +1991,7 @@ def solve_one_period_FixedShareRiskyAsset(
         MPCmin=MPCminNow,
         MPCmax=MPCmaxEff,
     )
+    solution_now.ShareFunc = ConstantFunction(RiskyShareFixed)
     return solution_now
 
 
@@ -2203,6 +2204,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
     default_ = {
         "params": FixedPortfolioShareRiskyAssetConsumerType_default,
         "solver": solve_one_period_FixedShareRiskyAsset,
+        "model": "ConsRiskyAsset.yaml",
     }
 
 
