@@ -4482,7 +4482,7 @@ class IndexedInterp(MetricObject):
             these = idx == n
             if not np.any(these):
                 continue
-            temp = (arg[these] for arg in args)
+            temp = [arg[these] for arg in args]
             out[these] = self.functions[n](*temp)
         return out
 
