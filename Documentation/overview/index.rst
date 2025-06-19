@@ -22,6 +22,7 @@ Overview
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
    ../../examples/ConsPortfolioModel/example_ConsPortfolioModel.ipynb
    ../../examples/GenIncProcessModel/GenIncProcessModel.ipynb
+   ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb
    ../../examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.ipynb
    ../../examples/Journeys/Journey-PhD.ipynb
