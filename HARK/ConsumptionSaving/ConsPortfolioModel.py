@@ -1257,9 +1257,11 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     RiskyDstn_default = PortfolioConsumerType_RiskyDstn_default
     solving_default = PortfolioConsumerType_solving_default
     simulation_default = PortfolioConsumerType_simulation_default
+
     default_ = {
         "params": PortfolioConsumerType_default,
         "solver": solve_one_period_ConsPortfolio,
+        "model": "ConsPortfolio.yaml",
     }
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)

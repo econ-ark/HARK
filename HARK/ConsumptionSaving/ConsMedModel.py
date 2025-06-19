@@ -1331,14 +1331,16 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
     .. math::
         \begin{eqnarray*}
-        V_t(M_t,P_t, \text{medShk}_t) &=& \max_{C_t, med_t} U_t(C_t, med_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \text{medShk}_{t+1})], \\
+        V_t(M_t,P_t,\eta_t) &=& \max_{C_t, med_t} U_t(C_t, med_t; \eta_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \text{medShk}_{t+1})], \\
         A_t &=& M_t - X_t, \\
         X_t &=& C_t +med_t \textbf{ medPrice}_t,\\
         A_t/P_t &\geq& \underline{a}, \\
-        M_{t+1} &=& R A_t + \theta_{t+1}, \\
-        P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
-        (\psi_{t+1},\theta_{t+1},\text{medShk}_{t+1}) &\sim& F_{t+1}\\
-        U_t(C, med) &=& \frac{C^{1-\rho}}{1-\rho}+\text{ medShk}_t \frac{med^{1-\rho_{med}}}{1-\rho_{med}}.
+        P_{t+1} &=& \Gamma_{t+1}(P_t)\psi_{t+1}, \\
+        Y_{t+1} &=& P_{t+1} \theta_{t+1}
+        M_{t+1} &=& R A_t + Y_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1},\\
+        \eta_t &~\sim& G_t,\\
+        U_t(C, med; \eta) &=& \frac{C^{1-\rho}}{1-\rho}+\eta \frac{med^{1-\nu}}{1-\nu}.
         \end{eqnarray*}
 
 
@@ -1376,9 +1378,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
     T_cycle: int
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
-        Coefficient of Relative Risk Aversion.
-    CRRAmed: float, :math:`\rho_{med}`
-        Coefficient of Relative Risk Aversion on Medical Care
+        Coefficient of Relative Risk Aversion for consumption.
+    CRRAmed: float, :math:`\nu`
+        Coefficient of Relative Risk Aversion for medical care.
     Rfree: float or list[float], time varying, :math:`\mathsf{R}`
         Risk Free interest rate. Pass a list of floats to make Rfree time varying.
     DiscFac: float, :math:`\beta`
@@ -1462,7 +1464,11 @@ class MedShockConsumerType(PersistentShockConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    default_ = {"params": init_medical_shocks, "solver": solve_one_period_ConsMedShock}
+    default_ = {
+        "params": init_medical_shocks,
+        "solver": solve_one_period_ConsMedShock,
+        "model": "ConsMedShock.yaml",
+    }
 
     time_vary_ = PersistentShockConsumerType.time_vary_ + ["MedPrice", "MedShkDstn"]
     time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed"]

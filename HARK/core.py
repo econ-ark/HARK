@@ -30,6 +30,7 @@ from HARK.distributions import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+from HARK.simulation.simulator import make_simulator_from_agent, make_basic_SSJ_matrices
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -822,6 +823,10 @@ class AgentType(Model):
         super().__init__()
         params = deepcopy(self.default_["params"])
         params.update(kwds)
+        try:
+            self.model_file = copy(self.default_["model"])
+        except:
+            self.model_file = None
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
@@ -943,7 +948,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False, presolve=True, from_solution=None):
+    def solve(self, verbose=False, presolve=True, from_solution=None, from_t=None):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -957,7 +962,12 @@ class AgentType(Model):
             If True (default), the pre_solve method is run before solving.
         from_solution: Solution
             If different from None, will be used as the starting point of backward
-            induction, instead of self.solution_terminal
+            induction, instead of self.solution_terminal.
+        from_t : int or None
+            If not None, indicates which period of the model the solver should start
+            from. It should usually only be used in combination with from_solution.
+            Stands for the time index that from_solution represents, and thus is
+            only compatible with cycles=1 and will be reset to None otherwise.
 
         Returns
         -------
@@ -973,7 +983,10 @@ class AgentType(Model):
             if presolve:
                 self.pre_solve()  # Do pre-solution stuff
             self.solution = solve_agent(
-                self, verbose, from_solution
+                self,
+                verbose,
+                from_solution,
+                from_t,
             )  # Solve the model by backward induction
             self.post_solve()  # Do post-solution stuff
 
@@ -1056,6 +1069,15 @@ class AgentType(Model):
         none
         """
         return None
+
+    def initialize_sym(self, **kwargs):
+        """
+        Use the new simulator structure to build a simulator from the agents'
+        attributes, storing it in a private attribute.
+        """
+        self.reset_rng()  # ensure seeds are set identically each time
+        self._simulator = make_simulator_from_agent(self, **kwargs)
+        self._simulator.reset()
 
     def initialize_sim(self):
         """
@@ -1471,6 +1493,24 @@ class AgentType(Model):
         """
         return None
 
+    def symulate(self, T=None):
+        """
+        Run the new simulation structure, with history results written to the
+        hystory attribute of self.
+        """
+        self._simulator.simulate(T)
+        self.hystory = self._simulator.history
+
+    def describe_model(self, display=True):
+        """
+        Print to screen information about this agent's model, based on its model
+        file. This is useful for learning about outcome variable names for tracking
+        during simulation, or for use with sequence space Jacobians.
+        """
+        if not hasattr(self, "_simulator"):
+            self.initialize_sym()
+        self._simulator.describe(display=display)
+
     def simulate(self, sim_periods=None):
         """
         Simulates this agent type for a given number of periods. Defaults to
@@ -1553,15 +1593,21 @@ class AgentType(Model):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
             self.history[var_name].fill(np.nan)
 
+    def make_basic_SSJ(self, shock, outcomes, grids, **kwargs):
+        """
+        Construct and return sequence space Jacobian matrices for specified outcomes
+        with respect to specified "shock" variable. This "basic" method only works
+        for "one period infinite horizon" models (cycles=0, T_cycle=1). See documen-
+        tation for simulator.make_basic_SSJ_matrices for more information.
+        """
+        return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
 
-def solve_agent(agent, verbose, from_solution=None):
+
+def solve_agent(agent, verbose, from_solution=None, from_t=None):
     """
-    Solve the dynamic model for one agent type
-    using backwards induction.
-    This function iterates on "cycles"
-    of an agent's model either a given number of times
-    or until solution convergence
-    if an infinite horizon model is used
+    Solve the dynamic model for one agent type using backwards induction. This
+    function iterates on "cycles" of an agent's model either a given number of
+    times or until solution convergence if an infinite horizon model is used
     (with agent.cycles = 0).
 
     Parameters
@@ -1574,6 +1620,11 @@ def solve_agent(agent, verbose, from_solution=None):
     from_solution: Solution
         If different from None, will be used as the starting point of backward
         induction, instead of self.solution_terminal
+    from_t : int or None
+        If not None, indicates which period of the model the solver should start
+        from. It should usually only be used in combination with from_solution.
+        Stands for the time index that from_solution represents, and thus is
+        only compatible with cycles=1 and will be reset to None otherwise.
 
     Returns
     -------
@@ -1589,6 +1640,8 @@ def solve_agent(agent, verbose, from_solution=None):
         solution_last = agent.solution_terminal  # NOQA
     else:
         solution_last = from_solution
+    if agent.cycles != 1:
+        from_t = None
 
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
@@ -1603,7 +1656,7 @@ def solve_agent(agent, verbose, from_solution=None):
         t_last = time()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solve_one_cycle(agent, solution_last)
+        solution_cycle = solve_one_cycle(agent, solution_last, from_t)
         if not infinite_horizon:
             solution = solution_cycle + solution
 
@@ -1667,7 +1720,7 @@ def solve_agent(agent, verbose, from_solution=None):
     return solution
 
 
-def solve_one_cycle(agent, solution_last):
+def solve_one_cycle(agent, solution_last, from_t):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -1682,6 +1735,9 @@ def solve_one_cycle(agent, solution_last):
         end of the sequence of one period problems.  This might be the term-
         inal period solution, a "pseudo terminal" solution, or simply the
         solution to the earliest period from the succeeding cycle.
+    from_t : int or None
+        If not None, indicates which period of the model the solver should start
+        from. When used, represents the time index that solution_last is from.
 
     Returns
     -------
@@ -1693,7 +1749,7 @@ def solve_one_cycle(agent, solution_last):
     # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
     # if so, take advantage of it. Else, use the old method
     if hasattr(agent, "params") and isinstance(agent.params, Parameters):
-        T = agent.params._length
+        T = agent.params._length if from_t is None else from_t
 
         # Initialize the solution for this cycle, then iterate on periods
         solution_cycle = []
@@ -1727,7 +1783,7 @@ def solve_one_cycle(agent, solution_last):
     else:
         # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
         if len(agent.time_vary) > 0:
-            T = len(agent.__dict__[agent.time_vary[0]])
+            T = agent.T_cycle if from_t is None else from_t
         else:
             T = 1
 
