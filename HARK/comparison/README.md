@@ -42,6 +42,16 @@ comp.add_solution_method('method_name', method_config)
 # Solve and compare
 comp.solve('method_name')
 results = comp.compare_solutions()
+
+# NEW: Baseline solution functionality
+# Save a benchmark solution
+comp.save_baseline_solution('benchmark_method', 'benchmark.pkl')
+
+# Load benchmark in new session
+comp.load_baseline_solution('benchmark.pkl', 'loaded_benchmark')
+
+# Compare methods against baseline
+baseline_comparison = comp.compare_against_baseline('loaded_benchmark')
 ```
 
 ### 2. EconomicMetrics (`metrics.py`)
@@ -71,6 +81,54 @@ Standardized interfaces for different solution methods:
 - **MaliarAdapter**: Deep learning methods (Euler, Bellman, reward)
 - **ExternalAdapter**: Load solutions from files/URLs
 - **AiyagariAdapter**: Specialized for Aiyagari equilibrium models
+
+## Baseline Solutions
+
+The comparison framework supports saving and loading baseline solutions for efficient benchmarking. This is particularly useful when you want to test multiple methods (K methods) against a single benchmark without re-solving the benchmark each time.
+
+### Key Benefits
+
+1. **Efficiency**: Solve expensive benchmark once, reuse multiple times
+2. **Consistency**: All comparisons use exactly the same baseline
+3. **Reproducibility**: Baselines include all necessary information
+4. **Flexibility**: Load different baselines for different comparisons
+
+### Baseline Workflow
+
+```python
+# 1. Solve and save benchmark
+comp.add_solution_method('benchmark', high_accuracy_config)
+comp.solve('benchmark')
+comp.save_baseline_solution('benchmark', 'my_benchmark.pkl')
+
+# 2. In new session - load benchmark and test methods
+comp = ModelComparison(description, primitives)
+comp.load_baseline_solution('my_benchmark.pkl', 'baseline')
+
+# Add and solve test methods
+comp.add_solution_method('fast_method_1', config1)
+comp.add_solution_method('fast_method_2', config2)
+comp.solve('fast_method_1')
+comp.solve('fast_method_2')
+
+# 3. Compare against baseline
+comparison = comp.compare_against_baseline('baseline')
+print(comparison[['method', 'computation_time', 'time_ratio', 'gini_rel_diff']])
+```
+
+### Managing Baselines
+
+```python
+# List loaded baselines
+baselines_df = comp.list_baselines()
+
+# Clear baselines from memory
+comp.clear_baselines(['baseline_name'])
+
+# Load multiple baselines
+comp.load_baseline_solution('benchmark1.pkl', 'bench1')
+comp.load_baseline_solution('benchmark2.pkl', 'bench2')
+```
 
 ## Usage Examples
 

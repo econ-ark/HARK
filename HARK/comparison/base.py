@@ -8,6 +8,8 @@ from typing import Dict, List
 import warnings
 from copy import deepcopy
 import time
+import pickle
+from pathlib import Path
 
 from HARK.metric import MetricObject
 from .metrics import EconomicMetrics
@@ -40,6 +42,8 @@ class ModelComparison(MetricObject):
         Computed metrics by method name
     adapters : dict
         Solution adapters by method name
+    baseline_solutions : dict
+        Stored baseline solutions loaded from disk
     """
 
     distance_criteria = ["primitives"]
@@ -54,12 +58,290 @@ class ModelComparison(MetricObject):
         self.method_configs = {}
         self.simulation_results = {}
         self.computation_times = {}
+        self.baseline_solutions = {}
 
         # Parameter translator
         self.param_translator = ParameterTranslator()
 
         # Economic metrics calculator
         self.metric_calculator = EconomicMetrics()
+
+    def save_baseline_solution(
+        self, method: str, filepath: str = None, include_adapter: bool = True
+    ) -> str:
+        """
+        Save a baseline solution to disk for later comparison.
+
+        Parameters
+        ----------
+        method : str
+            Name of the method whose solution to save as baseline
+        filepath : str, optional
+            Path to save the baseline solution. If None, uses default naming
+        include_adapter : bool
+            Whether to include the adapter in the saved baseline
+
+        Returns
+        -------
+        filepath : str
+            Path where the baseline was saved
+
+        Raises
+        ------
+        ValueError
+            If the method has not been solved yet
+        """
+        if method not in self.solutions:
+            raise ValueError(
+                f"Method {method} has not been solved yet. "
+                f"Solve it first using solve('{method}')."
+            )
+
+        # Create default filepath if not provided
+        if filepath is None:
+            # Clean method name for filename
+            safe_method = method.replace("/", "_").replace("\\", "_")
+            filepath = f"baseline_solution_{safe_method}.pkl"
+
+        # Prepare baseline data
+        baseline_data = {
+            "method": method,
+            "solution": deepcopy(self.solutions[method]),
+            "primitives": deepcopy(self.primitives),
+            "method_config": deepcopy(self.method_configs.get(method, {})),
+            "computation_time": self.computation_times.get(method, None),
+            "metrics": deepcopy(self.metrics.get(method, {})),
+            "simulation_results": deepcopy(self.simulation_results.get(method, {})),
+            "description": self.description,
+            "timestamp": time.time(),
+            "version_info": {
+                "python_version": str(type(self).__module__),
+                "class_name": type(self).__name__,
+            },
+        }
+
+        # Include adapter if requested and available
+        if include_adapter and method in self.adapters:
+            baseline_data["adapter"] = deepcopy(self.adapters[method])
+
+        # Save to disk
+        filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(filepath, "wb") as f:
+            pickle.dump(baseline_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print(f"Baseline solution for {method} saved to {filepath}")
+        return str(filepath)
+
+    def load_baseline_solution(self, filepath: str, baseline_name: str = None) -> dict:
+        """
+        Load a baseline solution from disk.
+
+        Parameters
+        ----------
+        filepath : str
+            Path to the saved baseline solution file
+        baseline_name : str, optional
+            Name to use for the loaded baseline. If None, uses original method name
+
+        Returns
+        -------
+        baseline_data : dict
+            Loaded baseline solution data
+
+        Raises
+        ------
+        FileNotFoundError
+            If the baseline file doesn't exist
+        """
+        filepath = Path(filepath)
+        if not filepath.exists():
+            raise FileNotFoundError(f"Baseline solution file not found: {filepath}")
+
+        # Load baseline data
+        with open(filepath, "rb") as f:
+            baseline_data = pickle.load(f)
+
+        # Determine baseline name
+        if baseline_name is None:
+            baseline_name = f"baseline_{baseline_data['method']}"
+
+        # Store in baseline_solutions
+        self.baseline_solutions[baseline_name] = baseline_data
+
+        # Optionally restore adapter if it was saved
+        if "adapter" in baseline_data:
+            self.adapters[baseline_name] = baseline_data["adapter"]
+
+        # Add to solutions for comparison
+        self.solutions[baseline_name] = baseline_data["solution"]
+        self.metrics[baseline_name] = baseline_data.get("metrics", {})
+        self.simulation_results[baseline_name] = baseline_data.get(
+            "simulation_results", {}
+        )
+        self.computation_times[baseline_name] = baseline_data.get(
+            "computation_time", 0.0
+        )
+
+        print(f"Baseline solution loaded from {filepath} as '{baseline_name}'")
+
+        # Check if primitives match
+        if baseline_data["primitives"] != self.primitives:
+            warnings.warn(
+                "Loaded baseline has different primitives than current model. "
+                "This may affect comparison validity."
+            )
+
+        return baseline_data
+
+    def compare_against_baseline(
+        self,
+        baseline_name: str,
+        methods: List[str] = None,
+        metrics_to_compare: List[str] = None,
+    ) -> pd.DataFrame:
+        """
+        Compare methods against a loaded baseline solution.
+
+        Parameters
+        ----------
+        baseline_name : str
+            Name of the baseline solution to compare against
+        methods : list of str, optional
+            Methods to compare. If None, compares all solved methods
+        metrics_to_compare : list of str, optional
+            Specific metrics to compare. If None, compares all available metrics
+
+        Returns
+        -------
+        comparison_df : pd.DataFrame
+            DataFrame with comparison results
+        """
+        if baseline_name not in self.baseline_solutions:
+            raise ValueError(
+                f"Baseline '{baseline_name}' not found. "
+                f"Load it first using load_baseline_solution()."
+            )
+
+        # Get methods to compare
+        if methods is None:
+            methods = [m for m in self.solutions.keys() if m != baseline_name]
+        else:
+            methods = [m for m in methods if m in self.solutions and m != baseline_name]
+
+        if not methods:
+            warnings.warn("No methods available for comparison against baseline.")
+            return pd.DataFrame()
+
+        # Ensure metrics are computed for all methods
+        all_methods = [baseline_name] + methods
+        for method in all_methods:
+            if method not in self.metrics or not self.metrics[method]:
+                self.compute_metrics(method)
+
+        # Create comparison DataFrame
+        comparison_data = []
+        baseline_metrics = self.metrics[baseline_name]
+
+        for method in methods:
+            method_metrics = self.metrics[method]
+            row = {"method": method, "baseline": baseline_name}
+
+            # Add computation time comparison
+            baseline_time = self.computation_times.get(baseline_name, 0.0)
+            method_time = self.computation_times.get(method, 0.0)
+            row["computation_time"] = method_time
+            row["baseline_computation_time"] = baseline_time
+            if baseline_time > 0:
+                row["time_ratio"] = method_time / baseline_time
+
+            # Compare metrics
+            if metrics_to_compare is None:
+                # Use all common metrics
+                common_metrics = set(baseline_metrics.keys()) & set(
+                    method_metrics.keys()
+                )
+            else:
+                common_metrics = set(metrics_to_compare)
+
+            for metric in common_metrics:
+                if metric in baseline_metrics and metric in method_metrics:
+                    baseline_val = baseline_metrics[metric]
+                    method_val = method_metrics[metric]
+
+                    row[f"{metric}"] = method_val
+                    row[f"{metric}_baseline"] = baseline_val
+
+                    # Calculate relative difference
+                    if baseline_val != 0:
+                        row[f"{metric}_rel_diff"] = (
+                            method_val - baseline_val
+                        ) / baseline_val
+                    else:
+                        row[f"{metric}_abs_diff"] = method_val - baseline_val
+
+            comparison_data.append(row)
+
+        return pd.DataFrame(comparison_data)
+
+    def list_baselines(self) -> pd.DataFrame:
+        """
+        List all loaded baseline solutions.
+
+        Returns
+        -------
+        baselines_df : pd.DataFrame
+            DataFrame with information about loaded baselines
+        """
+        if not self.baseline_solutions:
+            print("No baseline solutions loaded.")
+            return pd.DataFrame()
+
+        baselines_data = []
+        for name, data in self.baseline_solutions.items():
+            row = {
+                "baseline_name": name,
+                "original_method": data["method"],
+                "timestamp": pd.to_datetime(data["timestamp"], unit="s"),
+                "computation_time": data.get("computation_time", "N/A"),
+                "has_metrics": bool(data.get("metrics", {})),
+                "has_simulation": bool(data.get("simulation_results", {})),
+                "has_adapter": name in self.adapters,
+            }
+            baselines_data.append(row)
+
+        return pd.DataFrame(baselines_data)
+
+    def clear_baselines(self, baseline_names: List[str] = None):
+        """
+        Clear loaded baseline solutions from memory.
+
+        Parameters
+        ----------
+        baseline_names : list of str, optional
+            Names of baselines to clear. If None, clears all baselines
+        """
+        if baseline_names is None:
+            baseline_names = list(self.baseline_solutions.keys())
+
+        for name in baseline_names:
+            if name in self.baseline_solutions:
+                del self.baseline_solutions[name]
+
+                # Also remove from other dictionaries
+                if name in self.solutions:
+                    del self.solutions[name]
+                if name in self.metrics:
+                    del self.metrics[name]
+                if name in self.simulation_results:
+                    del self.simulation_results[name]
+                if name in self.adapters:
+                    del self.adapters[name]
+                if name in self.computation_times:
+                    del self.computation_times[name]
+
+        print(f"Cleared {len(baseline_names)} baseline solution(s)")
 
     def add_solution_method(self, name: str, method_config: dict):
         """
