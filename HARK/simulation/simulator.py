@@ -1340,6 +1340,32 @@ class AgentSimulator:
         SS_dstn = (D / np.sum(D)).real
         self.steady_state_dstn = SS_dstn
 
+    def get_long_run_average(self, var):
+        """
+        Calculate and return the long run / steady state population average of
+        one named variable. Should only be run after find_steady_state().
+
+        Parameters
+        ----------
+        var : str
+            Name of the variable for which to calculate the long run average.
+
+        Returns
+        -------
+        var_mean : float
+            Long run / steady state population average of the variable.
+        """
+        if not hasattr(self, "steady_state_dstn"):
+            raise ValueError("This method can only be run after find_steady_state()!")
+
+        dstn = self.steady_state_dstn
+        array = self.outcome_arrays[0][var]
+        grid = self.outcome_grids[0][var]
+
+        var_dstn = np.dot(dstn, array)
+        var_mean = np.dot(var_dstn, grid)
+        return var_mean
+
     def simulate_cohort_by_grids(
         self, outcomes, T_max=None, calc_dstn=False, calc_avg=True
     ):
