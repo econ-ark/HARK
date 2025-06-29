@@ -573,6 +573,10 @@ class Model:
         if N_keys == 0:
             return  # Do nothing if there are no constructed objects
 
+        # Delete pre-existing constructed objects, preventing "incomplete" updates
+        for key in keys:
+            self.del_param(key)
+
         # Get the dictionary of constructor errors
         if not hasattr(self, "_constructor_errors"):
             self._constructor_errors = {}
@@ -597,7 +601,6 @@ class Model:
                     constructor = self.constructors[key]
                 except Exception as not_found:
                     errors[key] = "No constructor found for " + str(not_found)
-                    self.del_param(key)
                     if force:
                         continue
                     else:
