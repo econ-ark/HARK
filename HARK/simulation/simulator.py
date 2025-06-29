@@ -705,7 +705,7 @@ class SimBlock:
         N_orig = state_meshes[0].size
         self.N = N_orig
         mesh_tuples = [
-            (state_init[self.arrival[k]][n] for k in range(arrival_N)) for n in range(N)
+            [state_init[self.arrival[k]][n] for k in range(arrival_N)] for n in range(N)
         ]
 
         # Make the initial vector of probability masses
@@ -3077,9 +3077,11 @@ def make_basic_SSJ_matrices(
         )
     agent.cycles = 1
     if shock_is_list:
-        setattr(agent, shock, [base_shock_value + eps])
+        temp_value = [base_shock_value + eps]
     else:
-        setattr(agent, shock, base_shock_value + eps)
+        temp_value = base_shock_value + eps
+    temp_dict = {shock: temp_value}
+    agent.assign_parameters(**temp_dict)
     if construct:
         agent.update()
     agent.solve(from_solution=LR_soln)
@@ -3098,9 +3100,10 @@ def make_basic_SSJ_matrices(
     t0 = time()
     agent.cycles = T_max - 1
     if shock_is_list:
-        setattr(agent, shock, [base_shock_value])
+        orig_dict = {shock: [base_shock_value]}
     else:
-        setattr(agent, shock, base_shock_value)
+        orig_dict = {shock: base_shock_value}
+    agent.assign_parameters(**orig_dict)
     if construct:
         agent.update()
     agent.solve(from_solution=Tm1_soln)
