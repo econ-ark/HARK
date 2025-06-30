@@ -731,7 +731,7 @@ class Model:
                 for k, v in inspect.signature(constructor).parameters.items()
             }
 
-            # Check whether each argument existd
+            # Check whether each argument exists
             for j in range(len(arg_names)):
                 this_arg = arg_names[j]
                 if hasattr(self, this_arg) or this_arg in self.parameters:

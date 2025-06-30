@@ -621,9 +621,10 @@ class SimBlock:
         ----------
         grid_specs : dict
             Dictionary of dictionaries of grid specifications. For now, these have
-            at most a minimum value, a maximum value, and a number of nodes. They
-            are equispaced if a min and max are specified, otherwise they are set
-            at 0,..,N.
+            at most a minimum value, a maximum value, a number of nodes, and a poly-
+            nomial order. They are equispaced if a min and max are specified, and
+            polynomially spaced with the specified order > 0 if provided. Otherwise,
+            they are set at 0,..,N if only N is provided.
         twist : dict or None
             Mapping from end-of-period (continuation) variables to successor's
             arrival variables. When this is specified, additional output is created
@@ -647,6 +648,7 @@ class SimBlock:
 
         # Construct a grid for each requested variable
         continuous_grid_out_bool = []
+        grid_orders = {}
         for var in grid_specs.keys():
             spec = grid_specs[var]
             try:
@@ -656,17 +658,21 @@ class SimBlock:
             except:
                 is_arrival = False
             if ("min" in spec) and ("max" in spec):
+                Q = spec["order"] if "order" in spec else 1.0
                 bot = spec["min"]
                 top = spec["max"]
                 N = spec["N"]
-                new_grid = np.linspace(bot, top, N)
+                new_grid = np.linspace(0.0, 1.0, N) ** Q * (top - bot) + bot
                 is_cont = True
+                grid_orders[var] = Q
             elif "N" in spec:
                 new_grid = np.arange(spec["N"], dtype=int)
                 is_cont = False
+                grid_orders[var] = -1
             else:
                 new_grid = None  # could not make grid, construct later
                 is_cont = False
+                grid_orders[var] = None
 
             if is_arrival:
                 grids_in[var] = new_grid
@@ -690,6 +696,7 @@ class SimBlock:
                     is_cont = grids_in[arr_var].dtype is np.dtype(np.float64)
                     continuous_grid_out_bool.append(is_cont)
                 grids_out[cont_var] = copy(grids_in[arr_var])
+                grid_orders[cont_var] = grid_orders[arr_var]
         grid_out_is_continuous = np.array(continuous_grid_out_bool)
 
         # Make meshes of all the arrival grids, which will be the initial simulation data
@@ -777,17 +784,18 @@ class SimBlock:
                 # Split the final values among discrete gridpoints on the interior.
                 # NB: This will only work properly if the grid is equispaced
                 if M > 1:
+                    Q = grid_orders[var]
                     if var in cont_vars:
                         trans_matrix, cont_idx[var], cont_alpha[var] = (
                             aggregate_blobs_onto_polynomial_grid_alt(
-                                vals, pmv, origin_array, grid, J, 1.0
+                                vals, pmv, origin_array, grid, J, Q
                             )
                         )
                         cont_M[var] = M
                         cont_discrete[var] = False
                     else:
                         trans_matrix = aggregate_blobs_onto_polynomial_grid(
-                            vals, pmv, origin_array, grid, J, 1.0
+                            vals, pmv, origin_array, grid, J, Q
                         )
                 else:  # Skip if the grid is a dummy with only one value.
                     trans_matrix = np.ones((J, M))
