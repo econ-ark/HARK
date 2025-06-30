@@ -4071,12 +4071,13 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     """
     A 2D interpolation method for curvilinear or "warped grid" interpolation, as
     in White (2015). Used for models with two endogenous states that are solved
-    with the endogenous grid method.
+    with the endogenous grid method. Allows multiple function outputs, but all of
+    the interpolated functions must share a common curvilinear grid.
 
     Parameters
     ----------
-    f_values: numpy.array
-        A 2D array of function values such that f_values[i,j] =
+    f_values: numpy.array or [numpy.array]
+        One or more 2D arrays of function values such that f_values[i,j] =
         f(x_values[i,j],y_values[i,j]).
     x_values: numpy.array
         A 2D array of x values of the same shape as f_values.
@@ -4087,18 +4088,74 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     distance_criteria = ["f_values", "x_values", "y_values"]
 
     def __init__(self, f_values, x_values, y_values):
-        my_shape = f_values.shape
-        if not (my_shape == x_values.shape):
-            raise ValueError("x_values must have the same shape as f_values!")
+        if hasattr(f_values, "__len__"):
+            N_funcs = len(f_values)
+            multi = True
+        else:
+            N_funcs = 1
+            multi = False
+        my_shape = x_values.shape
         if not (my_shape == y_values.shape):
-            raise ValueError("y_values must have the same shape as f_values!")
+            raise ValueError("y_values must have the same shape as x_values!")
+        for n in range(N_funcs):
+            if not (my_shape == f_values[n].shape):
+                raise ValueError(
+                    "Each element of f_values must have the same shape as x_values!"
+                )
 
-        self.f_values = f_values
+        if multi:
+            self.f_values = f_values
+        else:
+            self.f_values = [f_values]
         self.x_values = x_values
         self.y_values = y_values
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
+        self.N_funcs = N_funcs
+        self.multi = multi
         self.update_polarity()
+
+    def __call__(self, x, y):
+        """
+        Modification of HARKinterpolator2D.__call__ to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        fa = self._evaluate(xa.flatten(), ya.flatten())
+        output = [fa[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
+
+    def derivativeX(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeX to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdxa = self._derX(xa.flatten(), ya.flatten())
+        output = [dfdxa[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
+
+    def derivativeY(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeY to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdya = self._derY(xa.flatten(), ya.flatten())
+        output = [dfdya[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
 
     def update_polarity(self):
         """
@@ -4320,161 +4377,6 @@ class Curvilinear2DInterp(HARKinterpolator2D):
             # print(np.sum(np.isclose(g/c,(yD-yB)/(xD-xB))))
 
         return alpha, beta
-
-    def _evaluate(self, x, y):
-        """
-        Returns the level of the interpolated function at each value in x,y.
-        Only called internally by HARKinterpolator2D.__call__ (etc).
-        """
-        x_pos, y_pos = self.find_sector(x, y)
-        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
-
-        # Calculate the function at each point using bilinear interpolation
-        f = (
-            (1 - alpha) * (1 - beta) * self.f_values[x_pos, y_pos]
-            + (1 - alpha) * beta * self.f_values[x_pos, y_pos + 1]
-            + alpha * (1 - beta) * self.f_values[x_pos + 1, y_pos]
-            + alpha * beta * self.f_values[x_pos + 1, y_pos + 1]
-        )
-        return f
-
-    def _derX(self, x, y):
-        """
-        Returns the derivative with respect to x of the interpolated function
-        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
-        """
-        x_pos, y_pos = self.find_sector(x, y)
-        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
-
-        # Get four corners data for each point
-        xA = self.x_values[x_pos, y_pos]
-        xB = self.x_values[x_pos + 1, y_pos]
-        xC = self.x_values[x_pos, y_pos + 1]
-        xD = self.x_values[x_pos + 1, y_pos + 1]
-        yA = self.y_values[x_pos, y_pos]
-        yB = self.y_values[x_pos + 1, y_pos]
-        yC = self.y_values[x_pos, y_pos + 1]
-        yD = self.y_values[x_pos + 1, y_pos + 1]
-        fA = self.f_values[x_pos, y_pos]
-        fB = self.f_values[x_pos + 1, y_pos]
-        fC = self.f_values[x_pos, y_pos + 1]
-        fD = self.f_values[x_pos + 1, y_pos + 1]
-
-        # Calculate components of the alpha,beta --> x,y delta translation matrix
-        alpha_x = (1 - beta) * (xB - xA) + beta * (xD - xC)
-        alpha_y = (1 - beta) * (yB - yA) + beta * (yD - yC)
-        beta_x = (1 - alpha) * (xC - xA) + alpha * (xD - xB)
-        beta_y = (1 - alpha) * (yC - yA) + alpha * (yD - yB)
-
-        # Invert the delta translation matrix into x,y --> alpha,beta
-        det = alpha_x * beta_y - beta_x * alpha_y
-        x_alpha = beta_y / det
-        x_beta = -alpha_y / det
-
-        # Calculate the derivative of f w.r.t. alpha and beta
-        dfda = (1 - beta) * (fB - fA) + beta * (fD - fC)
-        dfdb = (1 - alpha) * (fC - fA) + alpha * (fD - fB)
-
-        # Calculate the derivative with respect to x (and return it)
-        dfdx = x_alpha * dfda + x_beta * dfdb
-        return dfdx
-
-    def _derY(self, x, y):
-        """
-        Returns the derivative with respect to y of the interpolated function
-        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
-        """
-        x_pos, y_pos = self.find_sector(x, y)
-        alpha, beta = self.find_coords(x, y, x_pos, y_pos)
-
-        # Get four corners data for each point
-        xA = self.x_values[x_pos, y_pos]
-        xB = self.x_values[x_pos + 1, y_pos]
-        xC = self.x_values[x_pos, y_pos + 1]
-        xD = self.x_values[x_pos + 1, y_pos + 1]
-        yA = self.y_values[x_pos, y_pos]
-        yB = self.y_values[x_pos + 1, y_pos]
-        yC = self.y_values[x_pos, y_pos + 1]
-        yD = self.y_values[x_pos + 1, y_pos + 1]
-        fA = self.f_values[x_pos, y_pos]
-        fB = self.f_values[x_pos + 1, y_pos]
-        fC = self.f_values[x_pos, y_pos + 1]
-        fD = self.f_values[x_pos + 1, y_pos + 1]
-
-        # Calculate components of the alpha,beta --> x,y delta translation matrix
-        alpha_x = (1 - beta) * (xB - xA) + beta * (xD - xC)
-        alpha_y = (1 - beta) * (yB - yA) + beta * (yD - yC)
-        beta_x = (1 - alpha) * (xC - xA) + alpha * (xD - xB)
-        beta_y = (1 - alpha) * (yC - yA) + alpha * (yD - yB)
-
-        # Invert the delta translation matrix into x,y --> alpha,beta
-        det = alpha_x * beta_y - beta_x * alpha_y
-        y_alpha = -beta_x / det
-        y_beta = alpha_x / det
-
-        # Calculate the derivative of f w.r.t. alpha and beta
-        dfda = (1 - beta) * (fB - fA) + beta * (fD - fC)
-        dfdb = (1 - alpha) * (fC - fA) + alpha * (fD - fB)
-
-        # Calculate the derivative with respect to x (and return it)
-        dfdy = y_alpha * dfda + y_beta * dfdb
-        return dfdy
-
-
-class Curvilinear2DMultiInterp(Curvilinear2DInterp):
-    """
-    An extension of Curvilinear2DInterp that allows multiple function outputs.
-    All of the interpolated functions must share a common curvilinear grid.
-    """
-
-    def __init__(self, f_values, x_values, y_values):
-        N_funcs = len(f_values)
-        my_shape = x_values.shape
-        if not (my_shape == y_values.shape):
-            raise ValueError("y_values must have the same shape as x_values!")
-        for n in range(N_funcs):
-            if not (my_shape == f_values[n].shape):
-                raise ValueError(
-                    "Each element of f_values must have the same shape as x_values!"
-                )
-
-        self.f_values = f_values
-        self.x_values = x_values
-        self.y_values = y_values
-        self.x_n = my_shape[0]
-        self.y_n = my_shape[1]
-        self.N_funcs = N_funcs
-        self.update_polarity()
-
-    def __call__(self, x, y):
-        """
-        Modification of HARKinterpolator2D.__call__ to account for multiple outputs.
-        """
-        xa = np.asarray(x)
-        ya = np.asarray(y)
-        S = xa.shape
-        fa = self._evaluate(xa.flatten(), ya.flatten())
-        return [fa[n].reshape(S) for n in range(self.N_funcs)]
-
-    def derivativeX(self, x, y):
-        """
-        Modification of HARKinterpolator2D.derivativeX to account for multiple outputs.
-        """
-        xa = np.asarray(x)
-        ya = np.asarray(y)
-        S = xa.shape
-        dfdxa = self._derX(xa.flatten(), ya.flatten())
-        return [dfdxa[n].reshape(S) for n in range(self.N_funcs)]
-
-    def derivativeY(self, x, y):
-        """
-        Modification of HARKinterpolator2D.derivativeY to account for multiple outputs.
-        """
-        xa = np.asarray(x)
-        ya = np.asarray(y)
-        S = xa.shape
-        dfdya = self._derY(xa.flatten(), ya.flatten())
-        return [dfdya[n].reshape(S) for n in range(self.N_funcs)]
 
     def _evaluate(self, x, y):
         """

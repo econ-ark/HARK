@@ -13,7 +13,7 @@ from HARK.distributions import (
 )
 from HARK.Calibration.Income.IncomeProcesses import construct_lognormal_wage_dstn
 from HARK.rewards import CRRAutility, CRRAutility_inv
-from HARK.interpolation import Curvilinear2DMultiInterp
+from HARK.interpolation import Curvilinear2DInterp
 from HARK.utilities import make_assets_grid
 
 ###############################################################################
@@ -60,7 +60,7 @@ def solve_one_period_ConsBasicHealth(
 
     Parameters
     ----------
-    solution_next : Curvilinear2DMultiInterp
+    solution_next : Curvilinear2DInterp
         Solution to the succeeding period's problem, represented as a multi-function
         interpolant with entries vNvrsFunc, cFunc, and nFunc.
     DiscFac : float
@@ -133,7 +133,7 @@ def solve_one_period_ConsBasicHealth(
     vNvrs = np.concatenate((Zeros, vNvrs), axis=0)
 
     # Construct solution as a multi-interpolation
-    solution_now = Curvilinear2DMultiInterp([vNvrs, cLvl, nLvl], mLvl, hLvl)
+    solution_now = Curvilinear2DInterp([vNvrs, cLvl, nLvl], mLvl, hLvl)
     return solution_now
 
 
