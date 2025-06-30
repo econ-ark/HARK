@@ -779,15 +779,15 @@ class SimBlock:
                 if M > 1:
                     if var in cont_vars:
                         trans_matrix, cont_idx[var], cont_alpha[var] = (
-                            aggregate_blobs_onto_equispaced_grid_alt(
-                                vals, pmv, origin_array, grid, J
+                            aggregate_blobs_onto_polynomial_grid_alt(
+                                vals, pmv, origin_array, grid, J, 1.0
                             )
                         )
                         cont_M[var] = M
                         cont_discrete[var] = False
                     else:
-                        trans_matrix = aggregate_blobs_onto_equispaced_grid(
-                            vals, pmv, origin_array, grid, J
+                        trans_matrix = aggregate_blobs_onto_polynomial_grid(
+                            vals, pmv, origin_array, grid, J, 1.0
                         )
                 else:  # Skip if the grid is a dummy with only one value.
                     trans_matrix = np.ones((J, M))
@@ -2850,46 +2850,56 @@ def format_block_statement(statement):
 
 
 @njit
-def aggregate_blobs_onto_equispaced_grid(vals, pmv, origins, grid, J):
+def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
     bot = grid[0]
     top = grid[-1]
     M = grid.size
-    h = grid[1] - grid[0]
-    out = np.zeros((J, M))
+    Mm1 = M - 1
     N = pmv.size
+    scale = 1.0 / (top - bot)
+    order = 1.0 / Q
+    diffs = grid[1:] - grid[:-1]
+
+    probs = np.zeros((J, M))
+
     for n in range(N):
         x = vals[n]
         jj = origins[n]
         p = pmv[n]
         if (x > bot) and (x < top):
-            ii = int(np.floor((x - bot) / h))
-            temp = (x - grid[ii]) / h
-            out[jj, ii] += (1.0 - temp) * p
-            out[jj, ii + 1] += temp * p
+            ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            temp = (x - grid[ii]) / diffs[ii]
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
         elif x <= bot:
-            out[jj, 0] += p
+            probs[jj, 0] += p
         else:
-            out[jj, -1] += p
-    return out
+            probs[jj, -1] += p
+    return probs
 
 
 @njit
-def aggregate_blobs_onto_equispaced_grid_alt(vals, pmv, origins, grid, J):
+def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
     bot = grid[0]
     top = grid[-1]
     M = grid.size
-    h = grid[1] - grid[0]
-    probs = np.zeros((J, M))
+    Mm1 = M - 1
     N = pmv.size
+    scale = 1.0 / (top - bot)
+    order = 1.0 / Q
+    diffs = grid[1:] - grid[:-1]
+
+    probs = np.zeros((J, M))
     idx = np.empty(N, dtype=np.dtype(np.int32))
     alpha = np.empty(N)
+
     for n in range(N):
         x = vals[n]
         jj = origins[n]
         p = pmv[n]
         if (x > bot) and (x < top):
-            ii = int(np.floor((x - bot) / h))
-            temp = (x - grid[ii]) / h
+            ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            temp = (x - grid[ii]) / diffs[ii]
             probs[jj, ii] += (1.0 - temp) * p
             probs[jj, ii + 1] += temp * p
             alpha[n] = temp
