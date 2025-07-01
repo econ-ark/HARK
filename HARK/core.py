@@ -828,7 +828,8 @@ class AgentType(Model):
         params.update(kwds)
         try:
             self.model_file = copy(self.default_["model"])
-        except:
+        except (KeyError, TypeError):
+            # Fallback to None if "model" key is missing or invalid for copying
             self.model_file = None
 
         if solution_terminal is None:
