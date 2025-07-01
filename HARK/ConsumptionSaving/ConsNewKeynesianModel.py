@@ -187,6 +187,8 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         if timestonest is None:
             timestonest = self.mFac
+        elif not isinstance(timestonest, (int, float)):
+            raise TypeError("timestonest must be a numeric value (int or float).")
 
         if self.cycles == 0:
             if not hasattr(dist_mGrid, "__len__"):
