@@ -712,7 +712,8 @@ class SimBlock:
         N_orig = state_meshes[0].size
         self.N = N_orig
         mesh_tuples = [
-            [state_init[self.arrival[k]][n] for k in range(arrival_N)] for n in range(N)
+            [state_init[self.arrival[k]][n] for k in range(arrival_N)]
+            for n in range(self.N)
         ]
 
         # Make the initial vector of probability masses
@@ -3221,10 +3222,10 @@ def make_basic_SSJ_matrices(
         expectation_vectors.append(np.dot(LR_outcomes[j], outcome_grids[j]))
     for t in range(1, T_max):
         for j in range(J):
-            E = np.dot(LR_trans, expectation_vectors[j])
+            E = expectation_vectors[j]
             for s in range(T_max):
                 fake_news_arrays[j][t, s] = np.dot(E.transpose(), D_dstn_news[s])
-            expectation_vectors[j] = E
+            expectation_vectors[j] = np.dot(LR_trans, E)
     t1 = time()
     if verbose:
         print(

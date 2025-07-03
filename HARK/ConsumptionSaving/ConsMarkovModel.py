@@ -207,6 +207,7 @@ def make_markov_solution_terminal(CRRA, MrkvArray):
         MPCmin=np.ones(N),
         MPCmax=np.ones(N),
     )
+    solution_terminal.cFuncX = IndexedInterp(solution_terminal.cFunc)
     return solution_terminal
 
 
