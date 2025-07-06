@@ -3194,11 +3194,11 @@ def make_basic_SSJ_matrices(
     D_dstn_news = []  # this is dD_1^s in the SSJ paper (equation 24)
     dY_news = []  # this is dY_0^s in the SSJ paper (equation 24)
     for t in range(T_max - 1, -1, -1):
-        D_t = np.dot(((TmX_trans[t] - LR_trans) / eps).transpose(), SS_dstn)
+        D_t = np.dot((TmX_trans[t] - LR_trans).transpose(), SS_dstn)
         D_dstn_news.append(D_t)
         dY_t = []
         for j in range(len(outcomes)):
-            temp = ((TmX_outcomes[t][j] - LR_outcomes[j]) / eps).transpose()
+            temp = (TmX_outcomes[t][j] - LR_outcomes[j]).transpose()
             dY_t.append(np.dot(np.dot(temp, SS_dstn), outcome_grids[j]))
         dY_news.append(dY_t)
     t1 = time()
@@ -3211,21 +3211,14 @@ def make_basic_SSJ_matrices(
     # Construct the "fake news" matrices, one for each outcome variable
     t0 = time()
     J = len(outcomes)
-    fake_news_arrays = [np.empty((T_max, T_max)) for j in range(J)]
     dY_news_array = np.array(dY_news)
-    # Fill in row zero
+    D_dstn_array = np.array(D_dstn_news)
+    expectation_vectors = np.empty((J, D_t.size))  # Initialize expectation vectors
     for j in range(J):
-        fake_news_arrays[j][0, :] = dY_news_array[:, j]
-    # Initialize expectation vectors
-    expectation_vectors = []
-    for j in range(J):
-        expectation_vectors.append(np.dot(LR_outcomes[j], outcome_grids[j]))
-    for t in range(1, T_max):
-        for j in range(J):
-            E = expectation_vectors[j]
-            for s in range(T_max):
-                fake_news_arrays[j][t, s] = np.dot(E.transpose(), D_dstn_news[s])
-            expectation_vectors[j] = np.dot(LR_trans, E)
+        expectation_vectors[j, :] = np.dot(LR_outcomes[j], outcome_grids[j])
+    FN = make_fake_news_matrices(
+        T_max, J, dY_news_array, D_dstn_array, LR_trans.T, expectation_vectors.copy()
+    )
     t1 = time()
     if verbose:
         print(
@@ -3235,16 +3228,8 @@ def make_basic_SSJ_matrices(
 
     # Construct the SSJ matrices, one for each outcome variable
     t0 = time()
-    SSJ = []
-    for j in range(J):
-        F = fake_news_arrays[j]
-        jac = np.empty((T_max, T_max))
-        jac[0, :] = F[0, :]
-        jac[:, 0] = F[:, 0]
-        for t in range(1, T_max):
-            for s in range(1, T_max):
-                jac[t, s] = jac[t - 1, s - 1] + F[t, s]
-        SSJ.append(jac)
+    SSJ_array = calc_ssj_from_fake_news_matrices(T_max, J, FN, eps)
+    SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
     t1 = time()
     if verbose:
         print(
@@ -3264,3 +3249,70 @@ def make_basic_SSJ_matrices(
         return SSJ[0]
     else:
         return SSJ
+
+
+@njit
+def make_fake_news_matrices(T, J, dY, D_dstn, trans_LR, E):
+    """
+    Numba-compatible function to calculate the fake news array from first order
+    perturbation information.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    J : int
+        Number of outcomes of interest.
+    dY : int
+        Array shape (T,J) representing dY_0 from the SSJ paper.
+    D_dstn : np.array
+        Array of shape (T,K) representing dD_1^s from the SSJ paper, where K
+        is the number of arrival state space nodes.
+    trans_LR : np.array
+        Array of shape (K,K) representing the transpose of the long run transition matrix.
+    E : np.array
+        Initial expectation vectors combined into a single array of shape (J,K).
+
+    Returns
+    -------
+    FN : np.array
+        Fake news array of shape (J,T,T).
+    """
+    FN = np.empty((J, T, T))
+    FN[:, 0, :] = dY.T  # Fill in row zero
+    for t in range(1, T):  # Loop over other rows
+        for s in range(T):
+            FN[:, t, s] = np.dot(E, D_dstn[s, :])
+        E = np.dot(E, trans_LR)
+    return FN
+
+
+@njit
+def calc_ssj_from_fake_news_matrices(T, J, FN, dx):
+    """
+    Numba-compatible function to calculate the HA-SSJ from fake news matrices.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    J : int
+        Number of outcomes of interest.
+    FN : np.array
+        Fake news array of shape (J,T,T).
+    dx : float
+        Size of the perturbation of the shock variables (epsilon).
+
+    Returns
+    -------
+    SSJ : np.array
+        HA-SSJ array of shape (J,T,T).
+    """
+    SSJ = np.empty((J, T, T))
+    SSJ[:, 0, :] = FN[:, 0, :]  # Fill in row zero
+    SSJ[:, :, 0] = FN[:, :, 0]  # Fill in column zero
+    for t in range(1, T):  # Loop over other rows
+        for s in range(1, T):  # Loop over other columns
+            SSJ[:, t, s] = SSJ[:, t - 1, s - 1] + FN[:, t, s]
+    SSJ *= dx**-1.0  # Scale by dx
+    return SSJ
