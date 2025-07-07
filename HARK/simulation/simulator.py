@@ -3223,16 +3223,17 @@ def make_basic_SSJ_matrices(
 
     # Calculate derivatives of transition and outcome matrices by first differences
     t0 = time()
-    D_dstn_news = []  # this is dD_1^s in the SSJ paper (equation 24)
-    dY_news = []  # this is dY_0^s in the SSJ paper (equation 24)
-    for t in range(T_max - 1, -1, -1):
-        D_t = np.dot((TmX_trans[t] - LR_trans).transpose(), SS_dstn)
-        D_dstn_news.append(D_t)
-        dY_t = []
-        for j in range(len(outcomes)):
-            temp = (TmX_outcomes[t][j] - LR_outcomes[j]).transpose()
-            dY_t.append(np.dot(np.dot(temp, SS_dstn), outcome_grids[j]))
-        dY_news.append(dY_t)
+    J = len(outcomes)
+    K = SS_dstn.size
+    D_dstn_array = calc_derivs_of_state_dstns(
+        T_max, J, np.array(TmX_trans), LR_trans, SS_dstn
+    )
+    dY_news_array = np.empty((T_max, J))
+    for j in range(J):
+        temp_outcomes = np.array([TmX_outcomes[t][j] for t in range(T_max)])
+        dY_news_array[:, j] = calc_derivs_of_policy_funcs(
+            T_max, temp_outcomes, LR_outcomes[j], outcome_grids[j], SS_dstn
+        )
     t1 = time()
     if verbose:
         print(
@@ -3242,10 +3243,7 @@ def make_basic_SSJ_matrices(
 
     # Construct the "fake news" matrices, one for each outcome variable
     t0 = time()
-    J = len(outcomes)
-    dY_news_array = np.array(dY_news)
-    D_dstn_array = np.array(D_dstn_news)
-    expectation_vectors = np.empty((J, D_t.size))  # Initialize expectation vectors
+    expectation_vectors = np.empty((J, K))  # Initialize expectation vectors
     for j in range(J):
         expectation_vectors[j, :] = np.dot(LR_outcomes[j], outcome_grids[j])
     FN = make_fake_news_matrices(
@@ -3542,6 +3540,72 @@ def calc_shock_response_manually(
         return dYdX[0]
     else:
         return dYdX
+
+
+@njit
+def calc_derivs_of_state_dstns(T, J, trans_by_t, trans_LR, SS_dstn):
+    """
+    Numba-compatible helper function to calculate the derivative of the state
+    distribution by period.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    J : int
+        Number of outcomes of interest.
+    trans_by_t : np.array
+        Array of shape (T,K,K) representing the transition matrix in each period.
+    trans_LR : np.array
+        Array of shape (K,K) representing the long run transition matrix.
+    SS_dstn : np.array
+        Array of size K representing the long run steady state distribution.
+
+    Returns
+    -------
+    D_dstn_news : np.array
+        Array of shape (T,K) representing dD_1^s from the SSJ paper, where K
+        is the number of arrival state space nodes.
+
+    """
+    K = SS_dstn.size
+    D_dstn_news = np.empty((T, K))  # this is dD_1^s in the SSJ paper (equation 24)
+    for t in range(T - 1, -1, -1):
+        D_dstn_news[T - t - 1, :] = np.dot((trans_by_t[t, :, :] - trans_LR).T, SS_dstn)
+    return D_dstn_news
+
+
+@njit
+def calc_derivs_of_policy_funcs(T, Y_by_t, Y_LR, Y_grid, SS_dstn):
+    """
+    Numba-compatible helper function to calculate the derivative of an outcome
+    function in each period.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    Y_by_t : np.array
+        Array of shape (T,K,N) with the stochastic outcome, mapping from K arrival
+        state space nodes to N outcome space nodes, for each of the T periods.
+    Y_LR : np.array
+        Array of shape (K,N) representing the stochastic outcome in the long run.
+    Y_grid : np.array
+        Array of size N representing outcome space gridpoints.
+    SS_dstn : np.array
+        Array of size K representing the long run steady state distribution.
+
+    Returns
+    -------
+    dY_news : np.array
+        Array of size T representing the change in average outcome in each period
+        when the shock arrives unexpectedly in that period.
+    """
+    dY_news = np.empty(T)  # this is dY_0^s in the SSJ paper (equation 24)
+    for t in range(T - 1, -1, -1):
+        temp = (Y_by_t[t, :, :] - Y_LR).T
+        dY_news[T - t - 1] = np.dot(np.dot(temp, SS_dstn), Y_grid)
+    return dY_news
 
 
 @njit
