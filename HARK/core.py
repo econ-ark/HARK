@@ -30,7 +30,11 @@ from HARK.distributions import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
-from HARK.simulation.simulator import make_simulator_from_agent, make_basic_SSJ_matrices
+from HARK.simulation.simulator import (
+    make_simulator_from_agent,
+    make_basic_SSJ_matrices,
+    calc_shock_response_manually,
+)
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -1605,6 +1609,16 @@ class AgentType(Model):
         tation for simulator.make_basic_SSJ_matrices for more information.
         """
         return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
+
+    def calc_impulse_response_manually(self, shock, outcomes, grids, **kwargs):
+        """
+        Calculate and return the impulse response(s) of a perturbation to the shock
+        parameter in period t=s, essentially computing one column of the sequence
+        space Jacobian matrix manually. This "basic" method only works for "one
+        period infinite horizon" models (cycles=0, T_cycle=1). See documentation
+        for simulator.calc_shock_response_manually for more information.
+        """
+        return calc_shock_response_manually(self, shock, outcomes, grids, **kwargs)
 
 
 def solve_agent(agent, verbose, from_solution=None, from_t=None):

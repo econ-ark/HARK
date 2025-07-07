@@ -1376,7 +1376,12 @@ class AgentSimulator:
         return var_mean
 
     def simulate_cohort_by_grids(
-        self, outcomes, T_max=None, calc_dstn=False, calc_avg=True
+        self,
+        outcomes,
+        T_max=None,
+        calc_dstn=False,
+        calc_avg=True,
+        from_dstn=None,
     ):
         """
         Generate a simulated "cohort style" history for this type of agents using
@@ -1402,6 +1407,9 @@ class AgentSimulator:
         calc_avg : bool
             Whether outcome averages should be stored in the dictionary attribute
             history_avg. The default is True.
+        from_dstn : np.array or None
+            Optional initial distribution of arrival states. If not specified, the
+            newborn distribution in the initializer is assumed to be used.
 
         Returns
         -------
@@ -1439,7 +1447,9 @@ class AgentSimulator:
                 history_avg[name] = np.empty(T_max)
 
         # Initialize the state distribution
-        current_dstn = self.newborn_dstn.copy()
+        current_dstn = (
+            self.newborn_dstn.copy() if from_dstn is None else from_dstn.copy()
+        )
         state_dstn_by_age = []
 
         # Loop over requested periods of this agent type's model
@@ -2860,6 +2870,12 @@ def format_block_statement(statement):
 
 @njit
 def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
+    """
+    Numba-compatible helper function for casting "probability blobs" onto a discretized
+    grid of outcome values, based on their origin in the arrival state space. This
+    version is for non-continuation variables, returning only the probability array
+    mapping from arrival states to the outcome variable.
+    """
     bot = grid[0]
     top = grid[-1]
     M = grid.size
@@ -2889,6 +2905,13 @@ def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
 
 @njit
 def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
+    """
+    Numba-compatible helper function for casting "probability blobs" onto a discretized
+    grid of outcome values, based on their origin in the arrival state space. This
+    version is for ncontinuation variables, returning the probability array mapping
+    from arrival states to the outcome variable, the index in the outcome variable grid
+    for each blob, and the alpha weighting between gridpoints.
+    """
     bot = grid[0]
     top = grid[-1]
     M = grid.size
@@ -2926,6 +2949,10 @@ def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
 
 @njit
 def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
+    """
+    Numba-compatible helper function for allocating "probability blobs" to a grid
+    over a discrete state-- the state itself is truly discrete.
+    """
     out = np.zeros((J, M))
     N = pmv.size
     for n in range(N):
@@ -2938,6 +2965,11 @@ def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
 
 @njit
 def calc_overall_trans_probs(out, idx, alpha, binary, offset, pmv, origins):
+    """
+    Numba-compatible helper function for combining transition probabilities from
+    the arrival state space to *multiple* continuation variables into a single
+    unified transition matrix.
+    """
     N = alpha.shape[0]
     B = binary.shape[0]
     D = binary.shape[1]
@@ -3249,6 +3281,267 @@ def make_basic_SSJ_matrices(
         return SSJ[0]
     else:
         return SSJ
+
+
+def calc_shock_response_manually(
+    agent,
+    shock,
+    outcomes,
+    grids,
+    s=0,
+    eps=1e-4,
+    T_max=300,
+    norm=None,
+    solved=False,
+    construct=[],
+    offset=False,
+    verbose=False,
+):
+    """
+    Compute an AgentType instance's timepath of outcome responses to learning at
+    t=0 that the named shock variable will be perturbed at t=s. This is equivalent
+    to calculating only the s-th column of the SSJs *manually*, rather than using
+    the fake news algorithm. This function can be used to verify and/or debug the
+    output of the fake news SSJ algorithm.
+
+    Important: Mortality (or death and replacement generally) should be turned
+    off in the model (via parameter values) for this to work properly. Or does it?
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent for which the response(s) should be calculated. Must have T_cycle=1
+        and cycles=0, or the function will throw an error. Must have a model
+        file defined or this won't work at all.
+    shock : str
+        Name of the variable that the response will be computed with respect to.
+        It does not need to be a "shock" in a modeling sense, but it must be a
+        single-valued parameter (possibly a singleton list) that can be changed.
+    outcomes : str or [str]
+        Names of outcome variables of interest; an SSJ matrix will be constructed
+        for each variable named here. If a single string is passed, the output
+        will be a single np.array. If a list of strings are passed, the output
+        will be a list of dYdX vectors in the order specified here.
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information. The grids
+        should include all arrival variables other than those that are normalized
+        out. They should also include all variables named in outcomes, except
+        outcomes that are continuation variables that remap to arrival variables.
+        Grid specification must include number of nodes N, should also include
+        min and max if the variable is continuous.
+    s : int
+        Period in which the shock variable is perturbed, relative to current t=0.
+        The default is 0.
+    eps : float
+        Amount by which to perturb the shock variable. The default is 1e-4.
+    T_max : int
+        The length of the simulation for this exercise. The default is 300.
+    norm : str or None
+        Name of the model variable to normalize by for Harmenberg aggregation,
+        if any. For many HARK models, this should be 'PermShk', which enables
+        the grid over permanent income to be omitted as an explicit state.
+    solved : bool
+        Whether the agent's model has already been solved. If False (default),
+        it will be solved as the very first step.
+    construct : [str]
+        List of constructed objects that will be changed by perturbing shock.
+        These should all share an "offset status" (True or False). Default is [].
+    offset : bool
+        Whether the shock variable is "offset in time" for the solver, with a
+        default of False. This should be set to True if the named shock variable
+        (or the constructed model input that it affects) is indexed by t+1 from
+        the perspective of the solver. For example, the period t solver for the
+        ConsIndShock model takes in risk free interest factor Rfree as an argument,
+        but it represents the value of R that will occur at the start of t+1.
+    verbose : bool
+        Whether to display timing/progress to screen. The default is False.
+
+    Returns
+    -------
+    dYdX : np.array or [np.array]
+        One or more vectors of length
+    """
+    if (agent.cycles > 0) or (agent.T_cycle != 1):
+        raise ValueError(
+            "This function is only compatible with one period infinite horizon models!"
+        )
+    if not isinstance(outcomes, list):
+        outcomes = [outcomes]
+        no_list = True
+    else:
+        no_list = False
+
+    # Store the simulator if it exists
+    if hasattr(agent, "_simulator"):
+        simulator_backup = agent._simulator
+
+    # Solve the long run model if it wasn't already
+    if not solved:
+        t0 = time()
+        agent.solve()
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
+            )
+    LR_soln = deepcopy(agent.solution[0])
+
+    # Construct the transition matrix for the long run model
+    t0 = time()
+    agent.initialize_sym()
+    X = agent._simulator  # for easier referencing
+    X.make_transition_matrices(grids, norm)
+    LR_outcomes = []
+    outcome_grids = []
+    for var in outcomes:
+        try:
+            LR_outcomes.append(X.periods[0].matrices[var])
+            outcome_grids.append(X.periods[0].grids[var])
+        except:
+            raise ValueError(
+                "Outcome " + var + " was requested, but no grid was provided!"
+            )
+    t1 = time()
+    if verbose:
+        print(
+            "Making the transition matrix for the long run model took {:.3f}".format(
+                t1 - t0
+            )
+            + " seconds."
+        )
+
+    # Find the steady state for the long run model
+    t0 = time()
+    X.find_steady_state()
+    SS_dstn = X.steady_state_dstn.copy()
+    SS_outcomes = []
+    SS_avgs = []
+    for j in range(len(outcomes)):
+        SS_outcomes.append(np.dot(LR_outcomes[j].transpose(), SS_dstn))
+        SS_avgs.append(np.dot(SS_outcomes[j], outcome_grids[j]))
+    t1 = time()
+    if verbose:
+        print(
+            "Finding the long run steady state took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    # Make a temporary agent to construct the perturbed constructed objects
+    t0 = time()
+    temp_agent = deepcopy(agent)
+    try:
+        base = getattr(agent, shock)
+    except:
+        raise ValueError(
+            "The agent doesn't have anything called " + shock + " to perturb!"
+        )
+    if isinstance(base, list):
+        base_shock_value = base[0]
+        shock_is_list = True
+    else:
+        base_shock_value = base
+        shock_is_list = False
+    if not isinstance(base_shock_value, float):
+        raise TypeError(
+            "Only a single real-valued object can be perturbed in this way!"
+        )
+    if shock_is_list:
+        temp_value = [base_shock_value + eps]
+    else:
+        temp_value = base_shock_value + eps
+    temp_dict = {shock: temp_value}
+    temp_agent.assign_parameters(**temp_dict)
+    if len(construct) > 0:
+        temp_agent.update()
+    for var in construct:
+        temp_dict[var] = getattr(temp_agent, var)
+
+    # Build the finite horizon version of this agent
+    FH_agent = deepcopy(agent)
+    FH_agent.del_param("solution")
+    FH_agent.del_param("_simulator")
+    FH_agent.del_from_time_vary("solution")
+    FH_agent.del_from_time_inv(shock)
+    FH_agent.add_to_time_vary(shock)
+    FH_agent.del_from_time_inv(*construct)
+    FH_agent.add_to_time_vary(*construct)
+    finite_dict = {"T_cycle": T_max, "cycles": 1}
+    for var in FH_agent.time_vary:
+        if var in construct:
+            sequence = [deepcopy(getattr(agent, var)[0]) for t in range(T_max)]
+            sequence[s] = deepcopy(getattr(temp_agent, var)[0])
+        else:
+            sequence = T_max * [deepcopy(getattr(agent, var)[0])]
+        finite_dict[var] = sequence
+    shock_seq = T_max * [base_shock_value]
+    shock_seq[s] = base_shock_value + eps
+    finite_dict[shock] = shock_seq
+    FH_agent.assign_parameters(**finite_dict)
+    del temp_agent
+    t1 = time()
+    if verbose:
+        print(
+            "Building the finite horizon agent took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    # Solve the finite horizon agent
+    t0 = time()
+    FH_agent.solve(from_solution=LR_soln)
+    t1 = time()
+    if verbose:
+        print(
+            "Solving the "
+            + str(T_max)
+            + " period problem took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    # Build transition matrices for the finite horizon problem
+    t0 = time()
+    FH_agent.initialize_sym()
+    FH_agent._simulator.make_transition_matrices(
+        grids, norm=norm, fake_news_timing=True
+    )
+    t1 = time()
+    if verbose:
+        print(
+            "Constructing transition matrices took {:.3f}".format(t1 - t0) + " seconds."
+        )
+
+    # Use grid simulation to find the timepath of requested variables, and compute
+    # the derivative with respect to baseline outcomes
+    t0 = time()
+    FH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
+    dYdX = []
+    for j, var in enumerate(outcomes):
+        diff_path = (FH_agent._simulator.history_avg[var] - SS_avgs[j]) / eps
+        if offset:
+            dYdX.append(diff_path[1:])
+        else:
+            dYdX.append(diff_path[:-1])
+    t1 = time()
+    if verbose:
+        print(
+            "Calculating impulse responses by grid simulation took {:.3f}".format(
+                t1 - t0
+            )
+            + " seconds."
+        )
+
+    # Reset the agent to its original state and return the output
+    del FH_agent
+    agent.solution = [LR_soln]
+    agent.cycles = 0
+    agent._simulator.reset()
+    try:
+        agent._simulator = simulator_backup
+    except:
+        del agent._simulator
+    if no_list:
+        return dYdX[0]
+    else:
+        return dYdX
 
 
 @njit
