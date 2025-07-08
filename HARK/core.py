@@ -547,6 +547,13 @@ class Model:
         missing data) will be named in self._missing_key_data. Other errors are
         recorded in the dictionary attribute _constructor_errors.
 
+        This method tries to "start from scratch" by removing prior constructed
+        objects, holding them in a backup dictionary during construction. This
+        is done so that dependencies among constructors are resolved properly,
+        without mistakenly relying on "old information". A backup value is used
+        if a constructor function is set to None (i.e. "don't do anything"), or
+        if the construct method fails to produce a new object.
+
         Parameters
         ----------
         *args : str, optional
@@ -573,9 +580,13 @@ class Model:
         if N_keys == 0:
             return  # Do nothing if there are no constructed objects
 
-        # Delete pre-existing constructed objects, preventing "incomplete" updates
+        # Remove pre-existing constructed objects, preventing "incomplete" updates,
+        # but store the current values in a backup dictionary in case something fails
+        backup = {}
         for key in keys:
-            self.del_param(key)
+            if hasattr(self, key):
+                backup[key] = getattr(self, key)
+                self.del_param(key)
 
         # Get the dictionary of constructor errors
         if not hasattr(self, "_constructor_errors"):
@@ -606,8 +617,12 @@ class Model:
                     else:
                         raise ValueError("No constructor found for " + key) from None
 
-                # If this constructor is None, do nothing and mark it as completed
+                # If this constructor is None, do nothing and mark it as completed;
+                # this includes restoring the previous value if it exists
                 if constructor is None:
+                    if key in backup.keys():
+                        setattr(self, key, backup[key])
+                        self.parameters[key] = backup[key]
                     keys_complete[i] = True
                     anything_accomplished_this_pass = True  # We did something!
                     continue
@@ -674,6 +689,9 @@ class Model:
                 if keys_complete[i]:
                     continue
                 msg += " " + keys[i] + ","
+                if keys[i] in backup.keys():
+                    setattr(self, key, backup[key])
+                    self.parameters[key] = backup[key]
             msg = msg[:-1]
             if not force:
                 raise ValueError(msg)
