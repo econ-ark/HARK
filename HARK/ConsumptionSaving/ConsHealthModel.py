@@ -8,6 +8,7 @@ from HARK.core import AgentType
 from HARK.distributions import (
     expected,
     combine_indep_dstns,
+    Uniform,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
 )
@@ -15,6 +16,7 @@ from HARK.Calibration.Income.IncomeProcesses import construct_lognormal_wage_dst
 from HARK.rewards import CRRAutility, CRRAutility_inv
 from HARK.interpolation import Curvilinear2DInterp
 from HARK.utilities import make_assets_grid
+from HARK.ConsumptionSaving.ConsIndShockModel import make_lognormal_kNrm_init_dstn
 
 ###############################################################################
 
@@ -290,6 +292,32 @@ def make_logistic_polynomial_die_prob(T_cycle, DieProbMaxCoeffs):
     return DieProbMax.tolist()
 
 
+def make_uniform_HLvl_init_dstn(HLvlInitMin, HLvlInitMax, HLvlInitCount, RNG):
+    """
+    Constructor for HLvlInitDstn that builds a uniform distribution for initial
+    health capital at model birth.
+
+    Parameters
+    ----------
+    HLvlInitMin : float
+        Lower bound of initial health capital distribution.
+    HLvlInitMax : float
+        Upper bound of initial health capital distribution
+    HLvlInitCount : int
+        Number of discretized nodes in initial health capital distribution.
+    RNG : np.random.RandomState
+        Agent's internal RNG.
+
+    Returns
+    -------
+    HLvlInitDstn : DiscreteDistribution
+        Discretized uniform distribution of initial health capital level.
+    """
+    dstn = Uniform(bot=HLvlInitMin, top=HLvlInitMax, seed=RNG.integers(0, 2**31 - 1))
+    HLvlInitDstn = dstn.discretize(HLvlInitCount, endpoints=True)
+    return HLvlInitDstn
+
+
 ###############################################################################
 
 # Make a dictionary of default constructor functions
@@ -300,6 +328,8 @@ basic_health_constructors = {
     "aLvlGrid": make_assets_grid,
     "HLvlGrid": make_health_grid,
     "DieProbMax": make_logistic_polynomial_die_prob,
+    "HLvlInitDstn": make_uniform_HLvl_init_dstn,
+    "kLvlInitDstn": make_lognormal_kNrm_init_dstn,
     "solution_terminal": make_solution_terminal_ConsBasicHealth,
 }
 
@@ -340,6 +370,20 @@ default_DieProbMax_params = {
     "DieProbMaxCoeffs": [0.0],  # Logistic-polynomial coefficients on age
 }
 
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kLvlInitDstn_params = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for HLvlInitDstn
+default_HLvlInitDstn_params = {
+    "HLvlInitMin": 1.0,  # Lower bound of initial health capital
+    "HLvlInitMax": 2.0,  # Upper bound of initial health capital
+    "HLvlInitCount": 15,  # Number of points in initial health capital discretization
+}
+
 # Make a dictionary of default parameters for the health investment model
 basic_health_simple_params = {
     "constructors": basic_health_constructors,
@@ -350,6 +394,7 @@ basic_health_simple_params = {
     "HealthProdFac": 1.0,  # Factor on health production function
     "T_cycle": 1,  # Number of periods in default cycle
     "cycles": 1,  # Number of cycles
+    "T_age": None,  # Maximum lifetime length override
     "AgentCount": 10000,  # Number of agents to simulate
 }
 
@@ -361,6 +406,8 @@ init_basic_health.update(default_WageRteDstn_params)
 init_basic_health.update(default_aLvlGrid_params)
 init_basic_health.update(default_hLvlGrid_params)
 init_basic_health.update(default_DieProbMax_params)
+init_basic_health.update(default_kLvlInitDstn_params)
+init_basic_health.update(default_HLvlInitDstn_params)
 
 
 class BasicHealthConsumerType(AgentType):
@@ -559,6 +606,10 @@ class BasicHealthConsumerType(AgentType):
         self.shocks["DeprRte"] = DeprRte_now
 
     def transition(self):
+        """
+        Find current market resources and health capital from prior health capital
+        and the drawn shocks.
+        """
         kLvlNow = self.state_prev["aLvl"]
         HLvlPrev = self.state_prev["HLvl"]
         RfreeNow = np.array(self.Rfree)[self.t_cycle - 1]
@@ -586,6 +637,9 @@ class BasicHealthConsumerType(AgentType):
         self.controls["nLvl"] = nLvl
 
     def get_poststates(self):
+        """
+        Calculate end-of-period retained assets and post-investment health.
+        """
         self.state_now["aLvl"] = (
             self.state_now["mLvl"] - self.controls["cLvl"] - self.controls["nLvl"]
         )

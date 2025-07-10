@@ -18,12 +18,8 @@ class testBasicHealthConsumerType(unittest.TestCase):
         self.assertAlmostEqual(nLvl, 0.5957, places=HARK_PRECISION)
 
     def test_simulation(self):
-        pass
-        # TODO: This test is dummied out until the sim_birth PR has been merged
-        # into master so that simulation can be programmed properly.
-
-        # self.agent.T_sim = 10
-        # self.agent.track_vars = ["mLvl", "cLvl", "hLvl", "nLvl"]
-        # self.agent.make_shock_history()
-        # self.agent.initialize_sim()
-        # self.agent.simulate()
+        self.agent.T_sim = 10
+        self.agent.track_vars = ["mLvl", "cLvl", "hLvl", "nLvl"]
+        self.agent.make_shock_history()
+        self.agent.initialize_sim()
+        self.agent.simulate()
