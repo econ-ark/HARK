@@ -1,0 +1,61 @@
+name: ConsPortfolio
+description: >-
+  Consumption-saving model with permanent and transitory income risk and asset
+  allocation between a risk-free asset and a (higher return) risky asset. The
+  agent might only be able to update their portfolio shares some of the time.
+symbols:
+  variables:
+    - kNrm!              \\ beginning of period wealth, normalized by p_{t-1}
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - SharePrev!         \\ share of wealth held in risky assets at period start
+    - Risky              \\ realized return factor on risky assets
+    - Rport              \\ realized return factor on portfolio
+    - Adjust (bool)      \\ whether the agent can adjust their portfolio this period
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - Share              \\ share of wealth allocated to risky assets this period
+    - aNrm               \\ normalized end-of-period assets
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree+             \\ risk free return factor on assets
+    - PermGroFac+        \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+    - AdjustPrb          \\ probability of being able to adjust risky asset share
+  functions:
+    - cFuncFxd*          \\ consumption function over market resources and risky share when share is fixed
+    - cFuncAdj*          \\ consumption function over market resources when share is adjusted
+    - ShareFuncAdj*      \\ risky share function over market resources (when possible to adjust)
+    - ShareFuncFxd*      \\ risky share function over market resources when it is fixed
+  distributions:
+    - ShockDstn+         \\ joint distribution of permanent, transitory, and return shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+  SharePrev = 0.                            \\ set initial risky asset share to zero
+dynamics: |
+  (PermShk, TranShk, Risky) ~ ShockDstn     \\ draw shocks from joint distribution
+  yNrm   = TranShk                          \\ normalized income is the transitory shock
+  G      = PermGroFac * PermShk             \\ calculate permanent income growth
+  pLvl   = pLvlPrev * G                     \\ update permanent income level
+  Rport  = Rfree + (Risky-Rfree)*SharePrev  \\ calculate realized portfolio return
+  bNrm   = Rport * kNrm / G                 \\ calculate normalized bank balances
+  mNrm   = bNrm + yNrm                      \\ calculate normalized market resources
+  cNrmF  = cFuncFxd@(mNrm, SharePrev)       \\ evaluate consumption when share is fixed
+  ShareF = ShareFuncFxd@(mNrm, SharePrev)   \\ evaluate risky share when it is fixed
+  cNrmA  = cFuncAdj@(mNrm)                  \\ evaluate consumption when share is adjustable
+  ShareA = ShareFuncAdj@(mNrm)              \\ evaluate risky share when it is adjustable
+  Adjust ~ {AdjustPrb}                      \\ determine whether agent can actually adjust
+  cNrm   = Adjust*cNrmA + (1-Adjust)*cNrmF  \\ select actual consumption based on adjustment
+  Share  = Adjust*ShareA + (1-Adjust)*ShareF\\ select risky asset share based on adjustment
+  aNrm   = mNrm - cNrm                      \\ calculate normalized end-of-period assets
+  live   ~ {LivPrb}                         \\ draw survival
+  dead   = 1 - live                         \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
+  Share: SharePrev

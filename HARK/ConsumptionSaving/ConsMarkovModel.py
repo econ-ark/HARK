@@ -25,6 +25,7 @@ from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
     LowerEnvelope,
+    IndexedInterp,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
@@ -206,6 +207,7 @@ def make_markov_solution_terminal(CRRA, MrkvArray):
         MPCmin=np.ones(N),
         MPCmax=np.ones(N),
     )
+    solution_terminal.cFuncX = IndexedInterp(solution_terminal.cFunc)
     return solution_terminal
 
 
@@ -673,6 +675,7 @@ def solve_one_period_ConsMarkov(
     solution.hNrm = hNrmNow
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
+    solution.cFuncX = IndexedInterp(solution.cFunc)
     return solution
 
 
@@ -786,10 +789,15 @@ class MarkovConsumerType(IndShockConsumerType):
     """
 
     time_vary_ = IndShockConsumerType.time_vary_ + ["MrkvArray"]
+
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
-    default_ = {"params": init_indshk_markov, "solver": solve_one_period_ConsMarkov}
+    default_ = {
+        "params": init_indshk_markov,
+        "solver": solve_one_period_ConsMarkov,
+        "model": "ConsMarkov.yaml",
+    }
     distributions = [
         "IncShkDstn",
         "PermShkDstn",

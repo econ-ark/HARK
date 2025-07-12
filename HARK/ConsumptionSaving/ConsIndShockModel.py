@@ -1275,9 +1275,11 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
+
     default_ = {
         "params": PerfForesightConsumerType_defaults,
         "solver": solve_one_period_ConsPF,
+        "model": "ConsPerfForesight.yaml",
     }
 
     # Define some universal values for all consumer types
@@ -2154,6 +2156,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     default_ = {
         "params": IndShockConsumerType_defaults,
         "solver": solve_one_period_ConsIndShock,
+        "model": "ConsIndShock.yaml",
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2895,6 +2898,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     default_ = {
         "params": KinkedRconsumerType_defaults,
         "solver": solve_one_period_ConsKinkedR,
+        "model": "ConsKinkedR.yaml",
     }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
