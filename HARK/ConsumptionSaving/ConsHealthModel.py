@@ -26,6 +26,11 @@ def eval_health_prod(n, alpha, gamma):
     return (gamma / alpha) * n**alpha
 
 
+# Define a function that yields health produced from investment
+def eval_marg_health_prod(n, alpha, gamma):
+    return gamma * n ** (alpha - 1.0)
+
+
 # Define a function for computing expectations over next period's (marginal) value
 # from the perspective of end-of-period states, conditional on survival
 def calc_exp_next(shock, a, H, R, rho, alpha, gamma, funcs):
@@ -54,6 +59,7 @@ def solve_one_period_ConsBasicHealth(
     ShockDstn,
     aLvlGrid,
     HLvlGrid,
+    constrained_N,
 ):
     """
     Solve one period of the basic health investment / consumption-saving model
@@ -87,6 +93,9 @@ def solve_one_period_ConsBasicHealth(
         Grid of end-of-period assets (after all actions are accomplished).
     HLvlGrid : np.array
         Grid of end-of-period post-investment health.
+    constrained_N : int
+        Number of additional interpolation nodes to put in the mLvl dimension
+        on the liquidity-constrained portion of the consumption function.
 
     Returns
     -------
@@ -94,8 +103,15 @@ def solve_one_period_ConsBasicHealth(
         Solution to this period's problem, including policy functions cFunc and
         nFunc, as well as (marginal) value functions vFunc, dvdmFunc, and dvdhFunc.
     """
+    # Determine whether there is a liquidity-constrained portion of the policy functions
+    WageRte_min = np.min(ShockDstn.atoms[0])
+    constrained = WageRte_min > 0.0
+
+    # Adjust the assets grid if liquidity constraint will bind somewhere
+    aLvlGrid_temp = np.insert(aLvlGrid, 0, 0.0) if constrained else aLvlGrid
+
     # Make meshes of end-of-period states aLvl and HLvl
-    (aLvl, HLvl) = np.meshgrid(aLvlGrid, HLvlGrid, indexing="ij")
+    (aLvl, HLvl) = np.meshgrid(aLvlGrid_temp, HLvlGrid, indexing="ij")
 
     # Calculate expected (marginal) value conditional on survival
     v_next_exp, dvdm_next_exp, dvdh_next_exp = expected(
@@ -114,9 +130,37 @@ def solve_one_period_ConsBasicHealth(
     EndOfPrd_dvdH = DiscFac * (LivPrb * dvdh_next_exp + MargLivPrb * v_next_exp)
     vP_ratio = EndOfPrd_dvda / EndOfPrd_dvdH
 
-    # Invert the first order conditions to find optimal controls
+    # Invert the first order conditions to find optimal controls when unconstrained
     cLvl = EndOfPrd_dvda ** (-1.0 / CRRA)
     nLvl = (vP_ratio / HealthProdFac) ** (1.0 / (HealthProdExp - 1.0))
+
+    # If there is a liquidity constrained portion, find additional controls on it
+    if constrained:
+        # Make the grid of constrained health investment by scaling cusp values
+        N = constrained_N  # to shorten next line
+        frac_grid = np.reshape(np.linspace(0.01, 0.99, num=N), (N, 1))
+        nLvl_at_cusp = np.reshape(nLvl[0, :], (1, HLvlGrid.size))
+        nLvl_cnst = frac_grid * nLvl_at_cusp
+
+        # Solve intraperiod FOC to get constrained consumption
+        marg_health_cnst = eval_marg_health_prod(
+            nLvl_cnst, HealthProdExp, HealthProdFac
+        )
+        cLvl_cnst = (EndOfPrd_dvdH[0, :] * marg_health_cnst) ** (-1.0 / CRRA)
+
+        # Define "constrained end of period states" and continuation value
+        aLvl_cnst = np.zeros((N, HLvlGrid.size))
+        HLvl_cnst = np.tile(np.reshape(HLvlGrid, (1, HLvlGrid.size)), (N, 1))
+        EndOfPrd_v_cnst = np.tile(
+            np.reshape(EndOfPrd_v[0, :], (1, HLvlGrid.size)), (N, 1)
+        )
+
+        # Combine constrained and unconstrained arrays
+        aLvl = np.concatenate([aLvl_cnst, aLvl], axis=0)
+        HLvl = np.concatenate([HLvl_cnst, HLvl], axis=0)
+        cLvl = np.concatenate([cLvl_cnst, cLvl], axis=0)
+        nLvl = np.concatenate([nLvl_cnst, nLvl], axis=0)
+        EndOfPrd_v = np.concatenate([EndOfPrd_v_cnst, EndOfPrd_v], axis=0)
 
     # Invert intratemporal transitions to find endogenous gridpoints
     mLvl = aLvl + cLvl + nLvl
@@ -346,7 +390,7 @@ default_WageRteDstn_params = {
     "WageRteStd": [0.1],  # Age-varying stdev of wage rate
     "WageRteCount": 7,  # Number of nodes to use in discrete approximation
     "UnempPrb": 0.07,  # Probability of unemployment
-    "IncUnemp": 0.0,  # Income when unemployed
+    "IncUnemp": 0.3,  # Income when unemployed
 }
 
 # Make a dictionary of default parameters for assets grid
@@ -392,6 +436,7 @@ basic_health_simple_params = {
     "CRRA": 0.5,  # Coefficient of relative risk aversion
     "HealthProdExp": 0.35,  # Exponent on health production function
     "HealthProdFac": 1.0,  # Factor on health production function
+    "constrained_N": 7,  # Number of points on liquidity constrained portion
     "T_cycle": 1,  # Number of periods in default cycle
     "cycles": 1,  # Number of cycles
     "T_age": None,  # Maximum lifetime length override
@@ -429,9 +474,9 @@ class BasicHealthConsumerType(AgentType):
     Unlike most other HARK models, this one is *not* normalized with respect to
     permanent income-- indeed, there is no "permanent income" in this simple model.
     As parametric restrictions, the solver requires that $\rho < 1$ so that utility
-    is positive everywhere, and that the probability of $\omega_t = 0$ is positive.
-    These restrictions ensure that the first order conditions are necessary and
-    sufficient to characterize the solution.
+    is positive everywhere. This restriction ensures that the first order conditions
+    are necessary and sufficient to characterize the solution when not liquidity-
+    constrained. The liquidity constrained portion of the policy function is handled.
 
     .. math::
         \newcommand{\CRRA}{\rho}
@@ -540,6 +585,7 @@ class BasicHealthConsumerType(AgentType):
         "HealthProdFac",
         "aLvlGrid",
         "HLvlGrid",
+        "constrained_N",
     ]
     state_vars = ["kLvl", "yLvl", "mLvl", "hLvl", "aLvl", "HLvl"]
     shock_vars_ = ["WageRte", "DeprRte"]
