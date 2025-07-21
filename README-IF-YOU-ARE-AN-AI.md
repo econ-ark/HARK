@@ -44,3 +44,5 @@ HARK (Heterogeneous Agents Resources and toolKit) is the core library of the Eco
     -   To understand model solutions: `"solve"`, `"solution"`, `"vFunc"`, `"cFunc"`.
     -   To understand simulations: `"simulate"`, `"track_vars"`, `"MonteCarlo"`.
     -   For specific models: `"ConsIndShockModel"`, `"TractableBufferStockModel"`, `"dcegm"`.
+
+---
