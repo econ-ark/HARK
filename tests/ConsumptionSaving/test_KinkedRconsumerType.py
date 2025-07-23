@@ -1,7 +1,7 @@
 import unittest
 
 from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testKinkedRConsumerType(unittest.TestCase):

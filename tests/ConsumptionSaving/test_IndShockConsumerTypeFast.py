@@ -6,12 +6,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsIndShockModelFast import IndShockConsumerTypeFast
-from HARK.ConsumptionSaving.tests.test_IndShockConsumerType import (
+from tests.ConsumptionSaving.test_IndShockConsumerType import (
     CyclicalDict,
     IdiosyncDict,
     LifecycleDict,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testIndShockConsumerTypeFast(unittest.TestCase):

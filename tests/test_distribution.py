@@ -24,7 +24,7 @@ from HARK.distributions import (
     MultivariateNormal,
     MultivariateLogNormal,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class DiscreteDistributionTests(unittest.TestCase):

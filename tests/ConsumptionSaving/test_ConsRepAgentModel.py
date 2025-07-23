@@ -4,7 +4,7 @@ from HARK.ConsumptionSaving.ConsRepAgentModel import (
     RepAgentConsumerType,
     RepAgentMarkovConsumerType,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testRepAgentConsumerType(unittest.TestCase):

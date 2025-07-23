@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 import HARK.ConsumptionSaving.ConsPortfolioModel as cpm
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class PortfolioConsumerTypeTestCase(unittest.TestCase):

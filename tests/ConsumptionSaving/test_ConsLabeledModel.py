@@ -5,7 +5,7 @@ from HARK.ConsumptionSaving.ConsLabeledModel import (
     PerfForesightLabeledType,
     PortfolioLabeledType,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class test_PerfForesightLabeledType(unittest.TestCase):
