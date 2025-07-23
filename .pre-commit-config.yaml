@@ -1,4 +1,4 @@
-exclude: Documentation/example_notebooks/
+exclude: docs/example_notebooks/
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit

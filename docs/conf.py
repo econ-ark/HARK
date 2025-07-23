@@ -45,7 +45,7 @@ extensions = [
 ]
 
 include_patterns = [
-    "Documentation**",
+    "docs**",
     "index.rst",
 ]  # Makes sure that only the file we want documented get documented
 with open(os.path.join(dir, "example_notebooks", "Include_list.txt"), "r") as file:
@@ -55,11 +55,11 @@ include_patterns = [
 ]  # Adds example notebooks
 
 exclude_patterns = [
-    "Documentation/_build",
-    "Documentation/Thumbs.db",
-    "Documentation/.DS_Store",
-    "Documentation/NARK",
-    "Documentation/index_core.rst",  # Prevents sphinx from getting confused
+    "docs/_build",
+    "docs/Thumbs.db",
+    "docs/.DS_Store",
+    "docs/NARK",
+    "docs/index_core.rst",  # Prevents sphinx from getting confused
 ]
 
 napoleon_custom_sections = [
@@ -146,7 +146,7 @@ html_context = {
     "github_user": "econ-ark",
     "github_repo": "hark",
     "github_version": "master",
-    "doc_path": "Documentation/",
+    "doc_path": "docs/",
 }
 
 # Use Econ-ARK URL to host the website
