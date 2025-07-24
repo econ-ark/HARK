@@ -30,8 +30,8 @@ from HARK.distributions import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
-from HARK.simulation.simulator import (
-    make_simulator_from_agent,
+from HARK.simulator import make_simulator_from_agent
+from HARK.SSJutils import (
     make_basic_SSJ_matrices,
     calc_shock_response_manually,
 )
