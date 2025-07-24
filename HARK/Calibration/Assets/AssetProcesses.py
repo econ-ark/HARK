@@ -169,7 +169,7 @@ def calc_ShareLimit_for_CRRA(T_cycle, RiskyDstn, CRRA, Rfree):
 
             def temp_f(s):
                 return -((1.0 - CRRA) ** -1) * np.dot(
-                    (Rfree_t + s * (RiskyDstn_t.atoms - Rfree_t)) ** (1.0 - CRRA),
+                    (Rfree_t + s * (RiskyDstn_t.atoms[0] - Rfree_t)) ** (1.0 - CRRA),
                     RiskyDstn_t.pmv,
                 )
 
@@ -181,7 +181,7 @@ def calc_ShareLimit_for_CRRA(T_cycle, RiskyDstn, CRRA, Rfree):
 
         def temp_f(s):
             return -((1.0 - CRRA) ** -1) * np.dot(
-                (Rfree + s * (RiskyDstn.atoms - Rfree)) ** (1.0 - CRRA),
+                (Rfree + s * (RiskyDstn.atoms[0] - Rfree)) ** (1.0 - CRRA),
                 RiskyDstn.pmv,
             )
 
