@@ -52,7 +52,7 @@ content-type = "text/markdown"
 
 [tool.setuptools.packages.find]
 # All the following settings are optional:
-exclude = ["binder", "Documentation", "examples"]
+exclude = ["binder", "docs", "examples"]
 namespaces = false
 
 [tool.setuptools.package-data]

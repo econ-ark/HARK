@@ -290,8 +290,8 @@ Congratulations! You've successfully installed HARK and run a simple model. For 
 
 To help new users get started with the repository more easily, we have added more detailed explanations and examples in the following sections:
 
-- [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
-- [Guides](https://docs.econ-ark.org/Documentation/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
-- [Reference](https://docs.econ-ark.org/Documentation/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
+- [Overview and Examples](https://docs.econ-ark.org/docs/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
+- [Guides](https://docs.econ-ark.org/docs/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
+- [Reference](https://docs.econ-ark.org/docs/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
 
 For more information and resources, please visit the [Econ-ARK documentation](https://docs.econ-ark.org/).
