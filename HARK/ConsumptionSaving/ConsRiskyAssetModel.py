@@ -198,6 +198,7 @@ IndShockRiskyAssetConsumerType_solving_default = {
     # TODO: This is not used in this file and should be moved to ConsPortfolioModel.py
     "PortfolioBool": False,  # Whether this instance can choose portfolio shares
     "PortfolioBisect": False,  # What does this do?
+    "pseudo_terminal": False,
 }
 IndShockRiskyAssetConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -384,7 +385,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     ShareGrid_default = IndShockRiskyAssetConsumerType_ShareGrid_default
     solving_default = IndShockRiskyAssetConsumerType_solving_default
     simulation_default = IndShockRiskyAssetConsumerType_simulation_default  # So sphinx documents defaults
-    default_ = {"params": IndShockRiskyAssetConsumerType_default, "solver": NullFunc()}
+    default_ = {
+        "params": IndShockRiskyAssetConsumerType_default,
+        "solver": NullFunc(),
+        "model": "ConsRiskyAsset.yaml",
+    }
 
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "PortfolioBisect",
@@ -408,8 +413,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     def pre_solve(self):
         self.construct("solution_terminal")
         self.update_timing()
-        if self.PortfolioBool:
-            self.solution_terminal.ShareFunc = ConstantFunction(1.0)
+        self.solution_terminal.ShareFunc = ConstantFunction(1.0)
 
     def update_timing(self):
         """
@@ -1009,6 +1013,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
         MPCmin=MPCminNow,
         MPCmax=MPCmaxEff,
     )
+    solution_now.ShareFunc = ConstantFunction(1.0)  # used by simulator
     return solution_now
 
 
@@ -1986,6 +1991,7 @@ def solve_one_period_FixedShareRiskyAsset(
         MPCmin=MPCminNow,
         MPCmax=MPCmaxEff,
     )
+    solution_now.ShareFunc = ConstantFunction(RiskyShareFixed)
     return solution_now
 
 
@@ -2198,6 +2204,7 @@ class FixedPortfolioShareRiskyAssetConsumerType(IndShockRiskyAssetConsumerType):
     default_ = {
         "params": FixedPortfolioShareRiskyAssetConsumerType_default,
         "solver": solve_one_period_FixedShareRiskyAsset,
+        "model": "ConsRiskyAsset.yaml",
     }
 
 
