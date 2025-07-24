@@ -1193,6 +1193,7 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
     default_ = {
         "params": init_accidental_bequest,
         "solver": solve_one_period_ConsWarmBequest,
+        "model": "ConsIndShock.yaml",
     }
 
 
@@ -1463,4 +1464,5 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
     default_ = {
         "params": init_portfolio_bequest,
         "solver": solve_one_period_ConsPortfolioWarmGlow,
+        "model": "ConsRiskyAsset.yaml",
     }
