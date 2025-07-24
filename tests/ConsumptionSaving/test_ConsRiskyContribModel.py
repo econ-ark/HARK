@@ -26,7 +26,7 @@ class test_(unittest.TestCase):
         self.par_finite["PermShkStd"] = [0.1, 0.1, 0.0, 0.0]
         self.par_finite["TranShkStd"] = [0.2, 0.2, 0.0, 0.0]
         self.par_finite["AdjustPrb"] = [0.5, 0.5, 1.0, 1.0]
-        self.par_finite["tau"] = [0.1, 0.1, 0.0, 0.0]
+        self.par_finite["WithdrawTax"] = [0.1, 0.1, 0.0, 0.0]
         self.par_finite["LivPrb"] = [1.0, 1.0, 1.0, 1.0]
         self.par_finite["T_cycle"] = 4
         self.par_finite["T_retire"] = 0
