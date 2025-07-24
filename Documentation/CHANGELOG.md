@@ -26,6 +26,13 @@ Release Date: TBD
 - Constructor make_grid_exp_mult allows linearly spaced grid with timestonest=-1 [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Adds documentation for new simulator structure and basic SSJ calculator [#1545](https://github.com/econ-ark/HARK/pull/1545)
 
+#### Bug Fixes
+
+- Fixed `make_grid_exp_mult` returning NaN values when given negative minimum values [#1576](https://github.com/econ-ark/HARK/issues/1576)
+  - Function now produces proportional grids that are linear transformations of [0,1] interval grids
+  - Resolves issues with `make_grid_exp_mult(-1, 3, 5)` and similar cases with negative ming
+  - Fixed variable name bug in exponential spacing case (timestonest=0)
+
 ### 0.16.0
 
 Release Date: June 9, 2025
