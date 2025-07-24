@@ -51,7 +51,7 @@ class Bernoulli(DiscreteFrozenDistribution):
         # Set up the RNG
         super().__init__(stats.bernoulli, p=self.p, seed=seed)
 
-        self.pmv = [1 - self.p, self.p]
+        self.pmv = np.array([1 - self.p, self.p])
         self.atoms = np.array([[0, 1]])  # Ensure atoms is properly shaped like other distributions
         self.limit = {
             "dist": self,
