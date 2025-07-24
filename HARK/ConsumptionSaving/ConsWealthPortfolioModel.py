@@ -644,6 +644,7 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
     default_ = {
         "params": init_wealth_portfolio,
         "solver": solve_one_period_WealthPortfolio,
+        "model": "ConsRiskyAsset.yaml",
     }
 
     def pre_solve(self):

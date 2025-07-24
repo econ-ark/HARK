@@ -764,6 +764,7 @@ class PerfForesightLabeledType(IndShockConsumerType):
     default_ = {
         "params": init_perf_foresight_labeled,
         "solver": make_one_period_oo_solver(ConsPerfForesightLabeledSolver),
+        "model": "ConsPerfForesight.yaml",
     }
 
     def post_solve(self):
@@ -918,6 +919,7 @@ class IndShockLabeledType(PerfForesightLabeledType):
     default_ = {
         "params": init_ind_shock_labeled,
         "solver": make_one_period_oo_solver(ConsIndShockLabeledSolver),
+        "model": "ConsIndShock.yaml",
     }
 
 
@@ -1095,6 +1097,7 @@ class RiskyAssetLabeledType(IndShockLabeledType, RiskyAssetConsumerType):
     default_ = {
         "params": init_risky_asset_labeled,
         "solver": make_one_period_oo_solver(ConsRiskyAssetLabeledSolver),
+        "model": "ConsRiskyAsset.yaml",
     }
 
 
@@ -1227,6 +1230,7 @@ class FixedPortfolioLabeledType(
     default_ = {
         "params": init_risky_share_fixed_labeled,
         "solver": make_one_period_oo_solver(ConsFixedPortfolioLabeledSolver),
+        "model": "ConsRiskyAsset.yaml",
     }
 
 
@@ -1419,4 +1423,5 @@ class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
     default_ = {
         "params": init_portfolio_labeled,
         "solver": make_one_period_oo_solver(ConsPortfolioLabeledSolver),
+        "model": "ConsPortfolio.yaml",
     }

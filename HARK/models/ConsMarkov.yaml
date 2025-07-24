@@ -1,0 +1,57 @@
+name: ConsMarkov
+description: >-
+  Consumption-saving model with permanent and transitory income shocks, as well
+  as a discrete state that evolves according to a Markov matrix. Mortality, income
+  risk, income growth, and the asset return factor can all depend on the discrete
+  state. Asset returns are risk-free within a discrete state.
+symbols:
+  variables:
+    - kNrm               \\ beginning of period capital, normalized by p_{t-1}
+    - pLvlPrev           \\ inbound permanent income level, before growth
+    - zPrev (int)        \\ inbound discrete Markov state
+    - z (int)            \\ discrete Markov state this period
+    - Mrkv (int)         \\ duplicate label for Markov state
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - aNrm               \\ normalized end-of-period assets
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets by state
+    - PermGroFac         \\ expected permanent income growth factor by state
+    - LivPrb             \\ survival probability at end of period by discrete state
+    - MrkvArray          \\ Markov transition probabilities among discrete states
+    - MrkvPrbsInit       \\ pmv of discrete state at initialization
+  functions:
+    - cFuncX             \\ consumption function over discrete state and market resources
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+  arrival: [kNrm, pLvlPrev, zPrev]
+  solution: [cFuncX]
+  offset: [PermGroFac, Rfree, IncShkDstn, MrkvArray]
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+  zPrev ~ {MrkvPrbsInit}               \\ draw discrete state from specified distribution
+dynamics: |
+  Mrkv ~ {MrkvArray}(zPrev)            \\ current discrete state depends on prior state
+  z = Mrkv                             \\ duplicate label of discrete state for easy typing
+  (PermShk, TranShk) ~ IncShkDstn[z]   \\ draw permanent and transitory income shocks
+  yNrm = TranShk                       \\ normalized income is the transitory shock
+  G    = PermGroFac[z] * PermShk       \\ calculate permanent income growth
+  pLvl = pLvlPrev * G                  \\ update permanent income level
+  bNrm = Rfree[z] * kNrm / G           \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm                   \\ calculate normalized market resources
+  cNrm = cFuncX@(z, mNrm)              \\ evaluate consumption from discrete state and market resources
+  aNrm = mNrm - cNrm                   \\ calculate normalized end-of-period assets
+  LivPrb_i = LivPrb[z]                 \\ get state-conditional survival probability
+  live ~ {LivPrb_i}                    \\ draw survival
+  dead = 1 - live                      \\ decedents are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
+  z: zPrev

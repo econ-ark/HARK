@@ -1,0 +1,47 @@
+name: ConsGenIncProcess
+description: >-
+  Consumption-saving model with with transitory  and persistent income shocks;
+  the persistent component of income evolves according to a general function.
+  The agent can invest in a single risk-free asset.
+symbols:
+  variables:
+    - kLvl               \\ beginning of period capital
+    - pLvlPrev           \\ inbound permanent income level, before growth
+    - yLvl               \\ labor income level
+    - pLvl               \\ permanent income level
+    - bLvl               \\ bank balances level
+    - mLvl               \\ market resources level
+    - cLvl               \\ consumption level
+    - aLvl               \\ end-of-period assets level
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - LivPrb             \\ probability of dying at end of period
+  functions:
+    - cFunc              \\ consumption function over permanent income and market resources
+    - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+  arrival: [kLvl, pLvlPrev]
+  solution: [cFunc]
+  offset: [pLvlNextFunc, Rfree, IncShkDstn]
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial normalized capital from distribution
+  kLvl = pLvlPrev * kNrm           \\ de-normalize capital by permanent income
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  p_temp = pLvlNextFunc@(pLvlPrev) \\ find expected permanent income level, without shock
+  pLvl = p_temp * PermShk          \\ update permanent income level with shock
+  yLvl = TranShk * pLvl            \\ income is the transitory shock times permanent income
+  bLvl = Rfree * kLvl              \\ calculate bank balances
+  mLvl = bLvl + yLvl               \\ calculate market resources
+  cLvl = cFunc@(mLvl, pLvl)        \\ evaluate consumption from market resources and permanent income
+  aLvl = mLvl - cLvl               \\ calculate end-of-period assets
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aLvl: kLvl
+  pLvl: pLvlPrev
