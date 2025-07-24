@@ -6,7 +6,7 @@ from HARK.ConsumptionSaving.ConsPrefShockModel import (
     KinkyPrefConsumerType,
     PrefShockConsumerType,
 )
-from HARK.tests import HARK_PRECISION
+from tests import HARK_PRECISION
 
 
 class testPrefShockConsumerType(unittest.TestCase):

@@ -9,7 +9,9 @@ import yaml
 class test_consumption_parsing(unittest.TestCase):
     def setUp(self):
         this_file_path = os.path.dirname(__file__)
-        consumer_yaml_path = os.path.join(this_file_path, "../models/consumer.yaml")
+        consumer_yaml_path = os.path.join(
+            this_file_path, "../HARK/models/consumer.yaml"
+        )
 
         self.consumer_yaml_file = open(consumer_yaml_path, "r")
 
