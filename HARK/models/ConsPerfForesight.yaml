@@ -1,0 +1,42 @@
+name: ConsPerfForesight
+description: >-
+  Perfect foresight consumption-saving model with permanent income growth and
+  mortality risk.
+symbols:
+  variables:
+    - kNrm               \\ beginning of period capital, normalized by p_{t-1}
+    - pLvlPrev           \\ inbound permanent income level, before growth
+    - yNrm               \\ normalized labor income, always one
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - aNrm               \\ normalized end-of-period assets
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - PermGroFac         \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+  functions:
+    - cFunc              \\ consumption function over market resources
+  distributions:
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+  arrival: [kNrm, pLvlPrev]
+  solution: [cFunc]
+  offset: [PermGroFac]
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+dynamics: |
+  yNrm = 1.0                       \\ normalized income is constant in PF setting
+  pLvl = pLvlPrev * PermGroFac     \\ update permanent income level
+  bNrm = Rfree * kNrm / PermGroFac \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm               \\ calculate normalized market resources
+  cNrm = cFunc@(mNrm)              \\ evaluate consumption from market resources
+  aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev

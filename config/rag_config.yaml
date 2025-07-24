@@ -1,0 +1,196 @@
+careful_processing:
+  code_files:
+    import_threshold: 0.8
+    skip_generated: true
+    skip_templates: false
+  config_files:
+    max_size_kb: 100
+    patterns:
+    - '*.yml'
+    - '*.yaml'
+    - '*.toml'
+    - '*.ini'
+    - '*.cfg'
+    - Dockerfile
+    - docker-compose.yml
+    - requirements.txt
+    - setup.py
+    - pyproject.toml
+  data_files:
+    max_size_kb: 50
+    patterns:
+    - '*.csv'
+    - '*.json'
+    - '*.xlsx'
+    - '*.xls'
+elasticsearch:
+  index:
+    mappings:
+      properties:
+        content:
+          analyzer: math_analyzer
+          type: text
+        file_extension:
+          type: keyword
+        file_path:
+          type: keyword
+        is_master_file:
+          type: boolean
+        priority_score:
+          type: integer
+        repository:
+          type: keyword
+    name: econ-ark-rag
+    number_of_replicas: 0
+    number_of_shards: 1
+    settings:
+      analysis:
+        analyzer:
+          math_analyzer:
+            filter:
+            - lowercase
+            - math_symbols
+            tokenizer: standard
+            type: custom
+        filter:
+          math_symbols:
+            pattern: "([\u03B1-\u03C9\u0391-\u03A9\u2211\u220F\u222B\u2202\u2207\u2206\
+              \u221A\u221E\u2260\u2264\u2265\xB1\xD7\xF7])"
+            replacement: ' $1 '
+            type: pattern_replace
+faiss:
+  batch_size: 64
+  chunk_overlap: 200
+  chunk_size: 1000
+  master_chunk_overlap: 100
+  master_chunk_size: 500
+  max_search_results: 50
+  model_name: sentence-transformers/all-MiniLM-L6-v2
+  similarity_threshold: 0.7
+  temp_dir: temp_build
+ignore_patterns:
+- '*.pyc'
+- __pycache__/
+- '*.aux'
+- '*.log'
+- '*.out'
+- '*.toc'
+- '*.bbl'
+- '*.blg'
+- '*.fdb_latexmk'
+- '*.fls'
+- '*.synctex.gz'
+- build/
+- dist/
+- '*.egg-info/'
+- '*.egg'
+- '*.whl'
+- '*.tar.gz'
+- '*.zip'
+- .DS_Store
+- Thumbs.db
+- '*.swp'
+- '*.swo'
+- '*~'
+- '*.bak'
+- .vscode/
+- .idea/
+- .pytest_cache/
+- .coverage
+- '*.png'
+- '*.jpg'
+- '*.jpeg'
+- '*.gif'
+- '*.svg'
+- '*.mp3'
+- '*.mp4'
+- '*.avi'
+- '*.mov'
+- '*.wav'
+- .env
+- '*.key'
+- '*.pem'
+- secrets.*
+- TODO.md
+- notes.md
+- personal_*.md
+- private/
+- test_data/
+- sample_data/
+- mock_data/
+- tests/
+- test_*
+- '*_test.py'
+- _build/
+- _site/
+- .jekyll-cache/
+- docs/_build/
+- node_modules/
+- package-lock.json
+- yarn.lock
+- .git/
+- '*.log'
+- .gitignore
+- .gitmodules
+master_files:
+- README.md
+- '*.md'
+- '*.ipynb'
+- '*.py'
+- '*.yml'
+- '*.yaml'
+- pyproject.toml
+- setup.py
+- requirements.txt
+metadata:
+  compatible_backends:
+  - faiss
+  - elasticsearch
+  created: '2025-01-22'
+  description: Converted from .ragignore format
+  migration:
+    from_ragignore: /Volumes/Sync/GitHub/econ-ark/HARK/.ragignore
+    notes: Converted from .ragignore format
+  validation:
+    max_priority_score: 10
+    min_priority_score: 1
+    required_sections:
+    - source_priority
+    - ignore_patterns
+    - master_files
+  version: 1.0.0
+source_priority:
+- .md
+- .ipynb
+- .py
+- .tex
+- .html
+- .txt
+- .yml
+- .yaml
+- .rst
+- .json
+source_relationships:
+- generates:
+  - '*.pdf'
+  - '*.html'
+  - '*.docx'
+  - '*.tex'
+  source: '*.md'
+- generates:
+  - '*.pyc'
+  - __pycache__/*
+  source: '*.py'
+- generates:
+  - '*.aux'
+  - '*.log'
+  - '*.out'
+  - '*.toc'
+  - '*.bbl'
+  - '*.blg'
+  source: '*.tex'
+- generates:
+  - '*.html'
+  - '*.pdf'
+  - '*.py'
+  source: '*.ipynb'

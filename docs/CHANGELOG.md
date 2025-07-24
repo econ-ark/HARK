@@ -14,11 +14,17 @@ Release Date: TBD
 
 #### Major Changes
 
-- blank
+- Adds a new simulator structure based on YAML model files, replicating legacy simulation results [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- Can convert solved HARK models into transition matrix-based discretized grid representations [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- Can produce sequence-space Jacobians for infinite horizon problems for all HARK AgentType subclasses for which this is appropriate [#1545](https://github.com/econ-ark/HARK/pull/1545)
 
 #### Minor Changes
 
-- blank
+- Allows lifecycle models to be solved backward starting from non-terminal period (with custom solution) [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- Adds new interpolator class IndexedInterp with alternative notation for functions with mixed discrete-continuous domain [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- New notebook with tutorial for (old and new) simulation methods [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- Constructor make_grid_exp_mult allows linearly spaced grid with timestonest=-1 [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- Adds documentation for new simulator structure and basic SSJ calculator [#1545](https://github.com/econ-ark/HARK/pull/1545)
 
 ### 0.16.0
 

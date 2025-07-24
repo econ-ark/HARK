@@ -1117,6 +1117,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     default_ = {
         "params": init_perfect_foresight_fast,
         "solver": make_one_period_oo_solver(ConsPerfForesightSolverFast),
+        "model": "ConsPerfForesight.yaml",
     }
 
     def post_solve(self):
@@ -1211,6 +1212,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
     default_ = {
         "params": init_idiosyncratic_shocks_fast,
         "solver": NullFunc(),
+        "model": "ConsIndShock.yaml",
     }
 
     def post_solve(self):

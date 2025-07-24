@@ -4455,6 +4455,38 @@ class DiscreteInterp(MetricObject):
         return self.discrete_vals[inds]
 
 
+class IndexedInterp(MetricObject):
+    """
+    An interpolator for functions whose first argument is an integer-valued index.
+    Constructor takes in a list of functions as its only argument. When evaluated
+    at f(i,X), interpolator returns f[i](X), where X can be any number of inputs.
+    This simply provides a different interface for accessing the same functions.
+
+    Parameters
+    ----------
+    functions : [Callable]
+        List of one or more functions to be indexed.
+    """
+
+    distance_criteria = ["functions"]
+
+    def __init__(self, functions):
+        self.functions = functions
+        self.N = len(functions)
+
+    def __call__(self, idx, *args):
+        out = np.empty(idx.shape)
+        out.fill(np.nan)
+
+        for n in range(self.N):
+            these = idx == n
+            if not np.any(these):
+                continue
+            temp = [arg[these] for arg in args]
+            out[these] = self.functions[n](*temp)
+        return out
+
+
 ###############################################################################
 ## Functions used in discrete choice models with T1EV taste shocks ############
 ###############################################################################
