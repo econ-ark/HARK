@@ -15,7 +15,7 @@ from HARK.rewards import (
     CRRAutilityPPP,
     CRRAutilityPPPP,
 )
-from HARK.utilities import make_assets_grid, make_figs
+from HARK.utilities import make_assets_grid, make_figs, make_grid_exp_mult
 
 
 class testsForHARKutilities(unittest.TestCase):
@@ -86,3 +86,41 @@ class testsForHARKutilities(unittest.TestCase):
         plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
         make_figs("test", True, False, target_dir="")
         plt.clf()
+
+    def test_make_grid_exp_mult_negative_min(self):
+        # Test make_grid_exp_mult with negative minimum values (Issue #1576)
+        # This should not produce NaN values
+        result = make_grid_exp_mult(-1, 3, 5)
+        self.assertFalse(np.any(np.isnan(result)))
+        self.assertEqual(len(result), 5)
+        self.assertAlmostEqual(result[0], -1.0, places=6)
+        self.assertAlmostEqual(result[-1], 3.0, places=6)
+        
+        # Test another negative case
+        result2 = make_grid_exp_mult(-0.5, 2, 4, 10)
+        self.assertFalse(np.any(np.isnan(result2)))
+        self.assertEqual(len(result2), 4)
+        self.assertAlmostEqual(result2[0], -0.5, places=6)
+        self.assertAlmostEqual(result2[-1], 2.0, places=6)
+        
+        # Test exponential spacing with negative minimum
+        result3 = make_grid_exp_mult(-1, 3, 5, timestonest=0)
+        self.assertFalse(np.any(np.isnan(result3)))
+        self.assertEqual(len(result3), 5)
+        self.assertAlmostEqual(result3[0], -1.0, places=6)
+        self.assertAlmostEqual(result3[-1], 3.0, places=6)
+
+    def test_make_grid_exp_mult_proportional(self):
+        # Test that the function produces proportional grids (Issue #1576)
+        # Grid for [0,1] should be proportional to grids for other intervals
+        grid_01 = make_grid_exp_mult(0, 1, 5, 10)
+        grid_24 = make_grid_exp_mult(2, 4, 5, 10)
+        
+        # grid_24 should equal 2 + 2 * grid_01
+        expected = 2 + 2 * grid_01
+        np.testing.assert_allclose(grid_24, expected, rtol=1e-10)
+        
+        # Test with negative bounds
+        grid_neg = make_grid_exp_mult(-3, -1, 5, 10)
+        expected_neg = -3 + 2 * grid_01
+        np.testing.assert_allclose(grid_neg, expected_neg, rtol=1e-10)

@@ -200,6 +200,10 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     If timestonest is 0, the grid is exponentially spaced.
     If timestonest is -1, the grid is linearly spaced.
 
+    The function produces proportional grids that are linear transformations
+    of the grid obtained with bounds [0,1], ensuring consistent behavior 
+    regardless of the actual bounds.
+
     Parameters
     ----------
     ming : float
@@ -222,13 +226,20 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
+    
+    This implementation transforms the problem to a [0,1] interval to avoid
+    issues with negative minimum values, then transforms back to [ming, maxg].
     """
     if timestonest == -1:
+        # Linear spacing
         grid = np.linspace(ming, maxg, ng)
         return grid
+    
+    # For all other cases, work on [0,1] interval and then transform
     if timestonest > 0:
-        Lming = ming
-        Lmaxg = maxg
+        # Multi-exponential nesting on [0,1]
+        Lming = 0.0
+        Lmaxg = 1.0
         for j in range(timestonest):
             Lming = np.log(Lming + 1)
             Lmaxg = np.log(Lmaxg + 1)
@@ -236,11 +247,16 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
         grid = Lgrid
         for j in range(timestonest):
             grid = np.exp(grid) - 1
-    else:
-        Lming = np.log(ming)
-        Lmaxg = np.log(maxg)
+    else:  # timestonest == 0, exponential spacing
+        # Simple exponential spacing on [0,1]
+        Lming = np.log(1e-10)  # Use small positive number instead of log(0)
+        Lmaxg = np.log(1.0)
         Lstep = np.linspace(Lming, Lmaxg, ng)
-        grid = np.exp(Lgrid)
+        grid = np.exp(Lstep)
+    
+    # Transform from [0,1] to [ming, maxg]
+    grid = ming + (maxg - ming) * grid
+    
     return grid
 
 
