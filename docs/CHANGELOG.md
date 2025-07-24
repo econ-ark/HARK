@@ -25,6 +25,8 @@ Release Date: TBD
 - New notebook with tutorial for (old and new) simulation methods [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Constructor make_grid_exp_mult allows linearly spaced grid with timestonest=-1 [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Adds documentation for new simulator structure and basic SSJ calculator [#1545](https://github.com/econ-ark/HARK/pull/1545)
+- Fixed a rare bug that could occur with unusual constructor dependencies resulting in incomplete updates. [#1575](https://github.com/econ-ark/HARK/pull/1575/)
+
 
 ### 0.16.0
 
