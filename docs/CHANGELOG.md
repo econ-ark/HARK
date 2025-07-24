@@ -27,6 +27,7 @@ Release Date: TBD
 - Adds documentation for new simulator structure and basic SSJ calculator [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Fixed a rare bug that could occur with unusual constructor dependencies resulting in incomplete updates. [#1575](https://github.com/econ-ark/HARK/pull/1575/)
 
+
 ### 0.16.0
 
 Release Date: June 9, 2025
