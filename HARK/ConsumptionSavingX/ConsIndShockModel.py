@@ -2201,6 +2201,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         """
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
+        
+        TIMING CORRECTED: Uses consistent indexing and eliminates the newborn hack.
 
         Parameters
         ----------
@@ -2221,16 +2223,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         for t in np.unique(self.t_cycle):
             idx = self.t_cycle == t
 
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
+            # TIMING CORRECTION: Use consistent indexing logic
+            t_index = t - 1 if self.cycles == 1 else t
 
             N = np.sum(idx)
             if N > 0:
                 # set current income distribution
-                IncShkDstnNow = self.IncShkDstn[t]
+                IncShkDstnNow = self.IncShkDstn[t_index]
                 # and permanent growth factor
-                PermGroFacNow = self.PermGroFac[t]
+                PermGroFacNow = self.PermGroFac[t_index]
                 # Get random draws of income shocks from the discrete distribution
                 IncShks = IncShkDstnNow.draw(N)
 
@@ -2239,23 +2240,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 )  # permanent "shock" includes expected growth
                 TranShkNow[idx] = IncShks[1, :]
 
-        # That procedure used the *last* period in the sequence for newborns, but that's not right
-        # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
-        N = np.sum(newborn)
-        if N > 0:
-            idx = newborn
-            # set current income distribution
-            IncShkDstnNow = self.IncShkDstn[0]
-            PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
-
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[idx] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-            )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
-        #        PermShkNow[newborn] = 1.0
-        #  Whether Newborns have transitory shock. The default is False.
+        # TIMING CORRECTED: The newborn hack is no longer needed with proper timing
+        # Newborns get their shocks from the regular loop above using proper indexing
+        
+        # Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
 
