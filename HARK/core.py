@@ -688,6 +688,7 @@ class Model:
 
         # Store missing key-data pairs and exit
         self._missing_key_data = missing_key_data
+        self._constructor_errors = errors
         if any_keys_incomplete:
             msg = "Did not construct these objects:"
             for i in range(N_keys):
