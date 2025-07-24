@@ -52,10 +52,20 @@ class Bernoulli(DiscreteFrozenDistribution):
         super().__init__(stats.bernoulli, p=self.p, seed=seed)
 
         self.pmv = [1 - self.p, self.p]
-        self.atoms = [0, 1]
-        self.limit = {"dist": self}
+        self.atoms = np.array([[0, 1]])  # Ensure atoms is properly shaped like other distributions
+        self.limit = {
+            "dist": self,
+            "infimum": np.array([0.0]),
+            "supremum": np.array([1.0])
+        }
         self.infimum = np.array([0.0])
         self.supremum = np.array([1.0])
+
+    def dim(self):
+        """
+        Last dimension of self.atoms indexes "atom."
+        """
+        return self.atoms.shape[:-1]
 
 
 class DiscreteDistribution(Distribution):
