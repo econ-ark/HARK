@@ -8,9 +8,13 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.16.1 (in development)
+### 0.16.1
 
-Release Date: TBD
+Release Date: July 24, 2025
+
+This release includes various small changes and improvements, as well as one significant new feature: (almost) all AgentType subclasses can now construct HA-SSJs (for use with the sequence_jacobian toolkit) in standard infinite horizon problems for arbitrary shock variables and arbitrary model outputs. This capability is powered by a new simulation structure that uses YAML-based model files to define dynamics, which in turn can be used to automatically transform HARK's model solution representations (policy functions over continuous spaces) into the grid-based representation needed for efficient computation of the fake news algorithm. Don't worry, that all happens under the hood.
+
+See documentation notebooks in /examples/SequenceSpaceJacobians/ . The capabilities of our SSJ calculator will be expanded in the near future to include lifecycle models.
 
 #### Major Changes
 
@@ -26,6 +30,10 @@ Release Date: TBD
 - Constructor make_grid_exp_mult allows linearly spaced grid with timestonest=-1 [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Adds documentation for new simulator structure and basic SSJ calculator [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Fixed a rare bug that could occur with unusual constructor dependencies resulting in incomplete updates. [#1575](https://github.com/econ-ark/HARK/pull/1575/)
+- Added a reference to a trivial constructor that was missing from the WealthPortfolio model. [#1583](https://github.com/econ-ark/HARK/pull/1583)
+- Documentation files have been moved from /Documentation/ to /docs/ [#1579](https://github.com/econ-ark/HARK/pull/1579)
+- All tests have been consolidated into a single directory, rather than being scattered about. [#1578](https://github.com/econ-ark/HARK/pull/1578)
+- Add a special README so that the robots know we're on their side when the singularity arrives. [#1577](https://github.com/econ-ark/HARK/pull/1577)
 
 
 ### 0.16.0
