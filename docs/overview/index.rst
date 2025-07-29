@@ -16,6 +16,7 @@ Overview
    :maxdepth: 1
 
    ../../examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
+   ../../examples/Gentle-Intro/Simulation-Intro.ipynb
    ../../examples/LifecycleModel/Cycles_tutorial.ipynb
    ../../examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
    ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
@@ -30,6 +31,7 @@ Overview
    ../../examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb
    ../../examples/ConsNewKeynesianModel/HANKFiscal_example.ipynb
    ../../examples/ConsNewKeynesianModel/SSJ_explanation.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
 
 .. toctree::
    :hidden:
