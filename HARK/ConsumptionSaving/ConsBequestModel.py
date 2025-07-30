@@ -419,7 +419,19 @@ def solve_one_period_ConsWarmBequest(
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
         vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        # Handle CRRA=1.0 case to avoid division by zero
+
+        if CRRA == 1.0:
+
+            # When CRRA=1.0, use a small epsilon to avoid division by zero
+
+            CRRA_safe = 1.0 + 1e-8
+
+            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
+
+        else:
+
+            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
         )
