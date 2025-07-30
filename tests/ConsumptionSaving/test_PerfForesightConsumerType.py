@@ -126,7 +126,7 @@ class testPerfForesightConsumerType(unittest.TestCase):
         # This test reproduces the issue reported in #75
         crra_one_agent = PerfForesightConsumerType()
         crra_one_agent.CRRA = 1.0
-        
+
         # This should not raise a ZeroDivisionError
         try:
             crra_one_agent.solve()
@@ -134,12 +134,12 @@ class testPerfForesightConsumerType(unittest.TestCase):
             self.assertTrue(True, "CRRA=1.0 solution completed without error")
         except ZeroDivisionError:
             self.fail("CRRA=1.0 caused ZeroDivisionError - issue #75 not fixed")
-        
+
         # Test that the solution is reasonable
         c = crra_one_agent.solution[0].cFunc
         # The solution should still be well-defined
         self.assertIsNotNone(c)
-        
+
         # Test with slightly different values around 1.0 to ensure robustness
         for crra_val in [0.99999, 1.00001]:
             test_agent = PerfForesightConsumerType()

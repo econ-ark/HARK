@@ -373,7 +373,7 @@ def solve_one_period_ConsPF(
     # Calculate (pseudo-inverse) value at each consumption kink point
     vNow = uFunc(cNrmNow) + EndOfPrdv
     vNvrsNow = uFunc.inverse(vNow)
-    
+
     # Handle CRRA=1.0 case to avoid division by zero
     if CRRA == 1.0:
         # When CRRA=1.0, use a small epsilon to avoid division by zero
@@ -800,7 +800,7 @@ def solve_one_period_ConsIndShock(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        
+
         # Handle CRRA=1.0 case to avoid division by zero
         if CRRA == 1.0:
             # When CRRA=1.0, use a small epsilon to avoid division by zero
@@ -1075,7 +1075,7 @@ def solve_one_period_ConsKinkedR(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        
+
         # Handle CRRA=1.0 case to avoid division by zero
         if CRRA == 1.0:
             # When CRRA=1.0, use a small epsilon to avoid division by zero
