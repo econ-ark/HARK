@@ -2,6 +2,7 @@
 # from HARK.ConsumptionSaving.ConsAggShockModel import *
 # from HARK.ConsumptionSaving.ConsGenIncProcessModel import *
 # from HARK.ConsumptionSaving.ConsIndShockModel import *
+# from HARK.ConsumptionSaving.ConsIRAModel import *
 # from HARK.ConsumptionSaving.ConsMarkovModel import *
 # from HARK.ConsumptionSaving.ConsMedModel import *
 # from HARK.ConsumptionSaving.ConsPortfolioModel import *
