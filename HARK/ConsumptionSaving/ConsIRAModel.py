@@ -360,6 +360,28 @@ class IRAConsumerType(IndShockConsumerType):
         terminal_solution.cFunc_IRA = terminal_solution.cFunc
         self.solution_terminal = terminal_solution
 
+    def get_solver_args(self, period):
+        """
+        Get additional arguments needed for the IRA solver.
+        
+        This method adds the current_age argument needed by solve_ConsIRA.
+        """
+        # Get standard solver arguments
+        solver_args = super().get_solver_args(period)
+        
+        # Add IRA-specific arguments
+        solver_args.update({
+            'Rfree_liquid_save': self.Rfree_liquid_save,
+            'Rfree_liquid_boro': self.Rfree_liquid_boro,
+            'Rfree_IRA_save': self.Rfree_IRA_save,
+            'Rfree_IRA_boro': self.Rfree_IRA_boro,
+            'IRA_penalty_rate': self.IRA_penalty_rate,
+            'retirement_age': self.retirement_age,
+            'current_age': getattr(self, 'current_age', 30),  # Default to 30 if not specified
+        })
+        
+        return solver_args
+
     def get_poststates(self):
         """
         Calculate end-of-period states after optimal consumption decisions.
