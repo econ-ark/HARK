@@ -460,7 +460,7 @@ def solve_one_period_ConsPF(
     return solution_now
 
 
-def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
+def calc_worst_inc_prob(inc_shk_dstn, use_infimum=False):
     """Calculate the probability of the worst income shock.
 
     Args:
@@ -478,7 +478,7 @@ def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
 
 
 def calc_boro_const_nat(
-    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=True
+    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=False
 ):
     """Calculate the natural borrowing constraint.
 
