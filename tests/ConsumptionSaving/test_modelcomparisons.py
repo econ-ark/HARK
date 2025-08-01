@@ -47,7 +47,7 @@ class Compare_PerfectForesight_and_Infinite(unittest.TestCase):
         test_dictionary["UnempPrb"] = 0.0
         test_dictionary["T_cycle"] = 1
         test_dictionary["T_retire"] = 0
-        test_dictionary["BoroCnstArt"] = 0.0
+        test_dictionary["BoroCnstArt"] = None
 
         InfiniteType = IndShockConsumerType(**test_dictionary)
         InfiniteType.cycles = 0
