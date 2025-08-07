@@ -819,7 +819,7 @@ class AgentType(Model):
         can be created even if not all of its attributes can be constructed.
     use_defaults : bool
         Indicator for whether this instance should use the values in the class'
-        default_ dictionary to fill in parameters and constructors for those not
+        default dictionary to fill in parameters and constructors for those not
         provided by the user (default True). Setting this to False is useful for
         situations where the user wants to be absolutely sure that they know what
         is being passed to the class initializer, without resorting to defaults.
