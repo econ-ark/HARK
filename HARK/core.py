@@ -817,6 +817,12 @@ class AgentType(Model):
         Indicator for whether this instance's construct() method should be run
         when initialized (default True). When False, an instance of the class
         can be created even if not all of its attributes can be constructed.
+    use_defaults : bool
+        Indicator for whether this instance should use the values in the class'
+        default_ dictionary to fill in parameters and constructors for those not
+        provided by the user (default True). Setting this to False is useful for
+        situations where the user wants to be absolutely sure that they know what
+        is being passed to the class initializer, without resorting to defaults.
 
     Attributes
     ----------
@@ -844,11 +850,23 @@ class AgentType(Model):
         quiet=False,
         seed=0,
         construct=True,
+        use_defaults=True,
         **kwds,
     ):
         super().__init__()
-        params = deepcopy(self.default_["params"])
+        params = deepcopy(self.default_["params"]) if use_defaults else {}
         params.update(kwds)
+
+        # Correctly handle constructors that have been passed in kwds
+        if "constructors" in self.default_["params"].keys() and use_defaults:
+            constructors = deepcopy(self.default_["params"]["constructors"])
+        else:
+            constructors = {}
+        if "constructors" in kwds.keys():
+            constructors.update(kwds["constructors"])
+        params["constructors"] = constructors
+
+        # Set model file name if possible
         try:
             self.model_file = copy(self.default_["model"])
         except (KeyError, TypeError):
