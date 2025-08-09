@@ -237,6 +237,12 @@ To install for development see the [Quickstart Guide](https://docs.econ-ark.org/
 For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/docs/guides/contributing.html).
 This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
+## Migration notes
+
+- Distributions: `TimeVaryingDiscreteDistribution` has been consolidated into `IndexDistribution`.
+  - If you previously constructed a time-indexed list of discrete distributions via `TimeVaryingDiscreteDistribution([...])`, use `IndexDistribution(distributions=[...])` instead.
+  - Existing `IndexDistribution(engine=..., conditional=...)` usage is unchanged.
+
 ## Disclaimer
 
 This is a beta version of HARK. The code has not been extensively tested as it should be. We hope it is useful, but there are absolutely no guarantees (expressed or implied) that it works or will do what you want. Use at your own risk. And please, let us know if you find bugs by posting an issue to [the GitHub page](https://github.com/econ-ark/HARK)!
