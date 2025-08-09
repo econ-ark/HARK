@@ -244,7 +244,9 @@ class IndexDistribution(Distribution):
     conditional = None
     engine = None
 
-    def __init__(self, engine=None, conditional=None, distributions=None, RNG=None, seed=0):
+    def __init__(
+        self, engine=None, conditional=None, distributions=None, RNG=None, seed=0
+    ):
         if RNG is None:
             # Set up the RNG
             super().__init__(seed)
@@ -340,7 +342,9 @@ class IndexDistribution(Distribution):
         if type(item0) is list:
             # Return an IndexDistribution wrapping a list of discrete distributions
             return IndexDistribution(
-                distributions=[self[i].discretize(N, **kwds) for i, _ in enumerate(item0)],
+                distributions=[
+                    self[i].discretize(N, **kwds) for i, _ in enumerate(item0)
+                ],
                 seed=self.seed,
             )
 

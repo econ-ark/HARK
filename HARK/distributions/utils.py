@@ -265,7 +265,11 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-    if isinstance(distribution, IndexDistribution) and hasattr(distribution, "distributions") and distribution.distributions:
+    if (
+        isinstance(distribution, IndexDistribution)
+        and hasattr(distribution, "distributions")
+        and distribution.distributions
+    ):
         # apply recursively on all the internal distributions
         return IndexDistribution(
             distributions=[
