@@ -3,7 +3,6 @@ __all__ = [
     "DiscreteDistributionLabeled",
     "Distribution",
     "IndexDistribution",
-    "TimeVaryingDiscreteDistribution",
     "Lognormal",
     "MeanOneLogNormal",
     "Normal",
@@ -29,7 +28,6 @@ from HARK.distributions.base import (
     Distribution,
     IndexDistribution,
     MarkovProcess,
-    TimeVaryingDiscreteDistribution,
 )
 from HARK.distributions.continuous import (
     Lognormal,

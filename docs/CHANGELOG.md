@@ -34,6 +34,7 @@ See documentation notebooks in /examples/SequenceSpaceJacobians/ . The capabilit
 - Documentation files have been moved from /Documentation/ to /docs/ [#1579](https://github.com/econ-ark/HARK/pull/1579)
 - All tests have been consolidated into a single directory, rather than being scattered about. [#1578](https://github.com/econ-ark/HARK/pull/1578)
 - Add a special README so that the robots know we're on their side when the singularity arrives. [#1577](https://github.com/econ-ark/HARK/pull/1577)
+- Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
 
 
 ### 0.16.0
