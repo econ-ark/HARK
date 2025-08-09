@@ -38,13 +38,13 @@ class ChiFromOmegaFunction:
     A class for representing a function that takes in values of omega = EndOfPrdvP / aNrm
     and returns the corresponding optimal chi = cNrm / aNrm. The only parameters
     that matter for this transformation are the coefficient of relative risk
-    aversion rho and the share of wealth in the Cobb-Douglas aggregator delta.
+    aversion (rho) and the share of wealth in the Cobb-Douglas aggregator (delta).
 
     Parameters
     ----------
-    rho : float
+    CRRA : float
         Coefficient of relative risk aversion.
-    delta : float
+    WealthShare : float
         Share for wealth in the Cobb-Douglas aggregator in CRRA utility function.
     N : int, optional
         Number of interpolating gridpoints to use (default 501).
@@ -65,10 +65,9 @@ class ChiFromOmegaFunction:
         """
         Define the relationship between chi and omega, and evaluate on the vector
         """
-        return x ** (1 - self.WealthShare) * (
-            (1 - self.WealthShare) * x ** (-self.WealthShare)
-            - self.WealthShare * x ** (1 - self.WealthShare)
-        ) ** (-1 / self.CRRA)
+        r = self.CRRA
+        d = self.WealthShare
+        return x ** (1 - d) * ((1 - d) * x ** (-d) - d * x ** (1 - d)) ** (-1 / r)
 
     def update(self):
         """
