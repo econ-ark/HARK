@@ -27,6 +27,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     make_simple_ShareGrid,
+    make_AdjustDstn,
 )
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc, make_assets_grid
@@ -521,6 +522,7 @@ WealthPortfolioConsumerType_constructors_default = {
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
     "ChiFunc": make_ChiFromOmega_function,
+    "AdjustDstn": make_AdjustDstn,
     "solution_terminal": make_portfolio_solution_terminal,
 }
 
@@ -644,6 +646,7 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
     default_ = {
         "params": init_wealth_portfolio,
         "solver": solve_one_period_WealthPortfolio,
+        "model": "ConsRiskyAsset.yaml",
     }
 
     def pre_solve(self):

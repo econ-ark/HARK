@@ -1,0 +1,52 @@
+name: ConsPrefShock
+description: >-
+  Consumption-saving model with permanent and transitory income shocks as well
+  as a second consumption good with stochastic marginal utility, representing
+  medical care; agent can save in a single risk-free asset.
+symbols:
+  variables:
+    - kLvl!              \\ beginning of period capital
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - yLvl               \\ labor income level
+    - pLvl               \\ permanent income level
+    - bLvl               \\ bank balances level
+    - MedShk             \\ medical needs shock as marginal utility factor
+    - mLvl               \\ market resources level
+    - cLvl               \\ consumption level
+    - xLvl               \\ total expenditure level
+    - MedLvl             \\ medical care level
+    - aLvl               \\ end-of-period assets level
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree+             \\ risk free return factor on assets
+    - PermGroFac+        \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+    - MedPrice           \\ price of medical care relative to consumption
+  functions:
+    - policyFunc*        \\ consumption and medical spending function over market resources, permanent income, and medical need shock
+    - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
+  distributions:
+    - IncShkDstn+        \\ joint distribution of permanent and transitory shocks
+    - MedShkDstn         \\ distribution of marginal utility shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+  kLvl = pLvlPrev * kNrm           \\ de-normalize capital by permanent income
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  p_temp = pLvlNextFunc@(pLvlPrev) \\ find expected permanent income level, without shock
+  pLvl = p_temp * PermShk          \\ update permanent income level with shock
+  yLvl = TranShk * pLvl            \\ income is the transitory shock times permanent income
+  bLvl = Rfree * kLvl              \\ calculate bank balances
+  mLvl = bLvl + yLvl               \\ calculate market resources
+  MedShk ~ MedShkDstn              \\ draw medical need shocks
+  (cLvl,MedLvl) = policyFunc@(mLvl, pLvl, MedShk)  \\ evaluate policy function at state
+  xLvl = cLvl + MedPrice*MedLvl    \\ calculate total expenditure
+  aLvl = mLvl - xLvl               \\ calculate end-of-period assets
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aLvl: kLvl
+  pLvl: pLvlPrev

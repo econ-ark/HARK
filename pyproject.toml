@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "econ-ark"
-version = "0.16.0"
+version = "0.16.1"
 authors = [{name = "Econ-ARK team", email = "econ-ark@jhuecon.org"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -52,7 +52,7 @@ content-type = "text/markdown"
 
 [tool.setuptools.packages.find]
 # All the following settings are optional:
-exclude = ["binder", "Documentation", "examples"]
+exclude = ["binder", "docs", "examples"]
 namespaces = false
 
 [tool.setuptools.package-data]

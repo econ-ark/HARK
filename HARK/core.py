@@ -30,6 +30,11 @@ from HARK.distributions import (
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names
+from HARK.simulator import make_simulator_from_agent
+from HARK.SSJutils import (
+    make_basic_SSJ_matrices,
+    calc_shock_response_manually,
+)
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -547,6 +552,13 @@ class Model:
         missing data) will be named in self._missing_key_data. Other errors are
         recorded in the dictionary attribute _constructor_errors.
 
+        This method tries to "start from scratch" by removing prior constructed
+        objects, holding them in a backup dictionary during construction. This
+        is done so that dependencies among constructors are resolved properly,
+        without mistakenly relying on "old information". A backup value is used
+        if a constructor function is set to None (i.e. "don't do anything"), or
+        if the construct method fails to produce a new object.
+
         Parameters
         ----------
         *args : str, optional
@@ -573,6 +585,14 @@ class Model:
         if N_keys == 0:
             return  # Do nothing if there are no constructed objects
 
+        # Remove pre-existing constructed objects, preventing "incomplete" updates,
+        # but store the current values in a backup dictionary in case something fails
+        backup = {}
+        for key in keys:
+            if hasattr(self, key):
+                backup[key] = getattr(self, key)
+                self.del_param(key)
+
         # Get the dictionary of constructor errors
         if not hasattr(self, "_constructor_errors"):
             self._constructor_errors = {}
@@ -597,14 +617,17 @@ class Model:
                     constructor = self.constructors[key]
                 except Exception as not_found:
                     errors[key] = "No constructor found for " + str(not_found)
-                    self.del_param(key)
                     if force:
                         continue
                     else:
                         raise ValueError("No constructor found for " + key) from None
 
-                # If this constructor is None, do nothing and mark it as completed
+                # If this constructor is None, do nothing and mark it as completed;
+                # this includes restoring the previous value if it exists
                 if constructor is None:
+                    if key in backup.keys():
+                        setattr(self, key, backup[key])
+                        self.parameters[key] = backup[key]
                     keys_complete[i] = True
                     anything_accomplished_this_pass = True  # We did something!
                     continue
@@ -665,12 +688,16 @@ class Model:
 
         # Store missing key-data pairs and exit
         self._missing_key_data = missing_key_data
+        self._constructor_errors = errors
         if any_keys_incomplete:
             msg = "Did not construct these objects:"
             for i in range(N_keys):
                 if keys_complete[i]:
                     continue
                 msg += " " + keys[i] + ","
+                if keys[i] in backup.keys():
+                    setattr(self, key, backup[key])
+                    self.parameters[key] = backup[key]
             msg = msg[:-1]
             if not force:
                 raise ValueError(msg)
@@ -727,7 +754,7 @@ class Model:
                 for k, v in inspect.signature(constructor).parameters.items()
             }
 
-            # Check whether each argument existd
+            # Check whether each argument exists
             for j in range(len(arg_names)):
                 this_arg = arg_names[j]
                 if hasattr(self, this_arg) or this_arg in self.parameters:
@@ -822,6 +849,11 @@ class AgentType(Model):
         super().__init__()
         params = deepcopy(self.default_["params"])
         params.update(kwds)
+        try:
+            self.model_file = copy(self.default_["model"])
+        except (KeyError, TypeError):
+            # Fallback to None if "model" key is missing or invalid for copying
+            self.model_file = None
 
         if solution_terminal is None:
             solution_terminal = NullFunc()
@@ -943,7 +975,7 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False, presolve=True, from_solution=None):
+    def solve(self, verbose=False, presolve=True, from_solution=None, from_t=None):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -957,7 +989,12 @@ class AgentType(Model):
             If True (default), the pre_solve method is run before solving.
         from_solution: Solution
             If different from None, will be used as the starting point of backward
-            induction, instead of self.solution_terminal
+            induction, instead of self.solution_terminal.
+        from_t : int or None
+            If not None, indicates which period of the model the solver should start
+            from. It should usually only be used in combination with from_solution.
+            Stands for the time index that from_solution represents, and thus is
+            only compatible with cycles=1 and will be reset to None otherwise.
 
         Returns
         -------
@@ -973,7 +1010,10 @@ class AgentType(Model):
             if presolve:
                 self.pre_solve()  # Do pre-solution stuff
             self.solution = solve_agent(
-                self, verbose, from_solution
+                self,
+                verbose,
+                from_solution,
+                from_t,
             )  # Solve the model by backward induction
             self.post_solve()  # Do post-solution stuff
 
@@ -1056,6 +1096,15 @@ class AgentType(Model):
         none
         """
         return None
+
+    def initialize_sym(self, **kwargs):
+        """
+        Use the new simulator structure to build a simulator from the agents'
+        attributes, storing it in a private attribute.
+        """
+        self.reset_rng()  # ensure seeds are set identically each time
+        self._simulator = make_simulator_from_agent(self, **kwargs)
+        self._simulator.reset()
 
     def initialize_sim(self):
         """
@@ -1471,6 +1520,24 @@ class AgentType(Model):
         """
         return None
 
+    def symulate(self, T=None):
+        """
+        Run the new simulation structure, with history results written to the
+        hystory attribute of self.
+        """
+        self._simulator.simulate(T)
+        self.hystory = self._simulator.history
+
+    def describe_model(self, display=True):
+        """
+        Print to screen information about this agent's model, based on its model
+        file. This is useful for learning about outcome variable names for tracking
+        during simulation, or for use with sequence space Jacobians.
+        """
+        if not hasattr(self, "_simulator"):
+            self.initialize_sym()
+        self._simulator.describe(display=display)
+
     def simulate(self, sim_periods=None):
         """
         Simulates this agent type for a given number of periods. Defaults to
@@ -1553,15 +1620,31 @@ class AgentType(Model):
             self.history[var_name] = np.empty((self.T_sim, self.AgentCount))
             self.history[var_name].fill(np.nan)
 
+    def make_basic_SSJ(self, shock, outcomes, grids, **kwargs):
+        """
+        Construct and return sequence space Jacobian matrices for specified outcomes
+        with respect to specified "shock" variable. This "basic" method only works
+        for "one period infinite horizon" models (cycles=0, T_cycle=1). See documen-
+        tation for simulator.make_basic_SSJ_matrices for more information.
+        """
+        return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
 
-def solve_agent(agent, verbose, from_solution=None):
+    def calc_impulse_response_manually(self, shock, outcomes, grids, **kwargs):
+        """
+        Calculate and return the impulse response(s) of a perturbation to the shock
+        parameter in period t=s, essentially computing one column of the sequence
+        space Jacobian matrix manually. This "basic" method only works for "one
+        period infinite horizon" models (cycles=0, T_cycle=1). See documentation
+        for simulator.calc_shock_response_manually for more information.
+        """
+        return calc_shock_response_manually(self, shock, outcomes, grids, **kwargs)
+
+
+def solve_agent(agent, verbose, from_solution=None, from_t=None):
     """
-    Solve the dynamic model for one agent type
-    using backwards induction.
-    This function iterates on "cycles"
-    of an agent's model either a given number of times
-    or until solution convergence
-    if an infinite horizon model is used
+    Solve the dynamic model for one agent type using backwards induction. This
+    function iterates on "cycles" of an agent's model either a given number of
+    times or until solution convergence if an infinite horizon model is used
     (with agent.cycles = 0).
 
     Parameters
@@ -1574,6 +1657,11 @@ def solve_agent(agent, verbose, from_solution=None):
     from_solution: Solution
         If different from None, will be used as the starting point of backward
         induction, instead of self.solution_terminal
+    from_t : int or None
+        If not None, indicates which period of the model the solver should start
+        from. It should usually only be used in combination with from_solution.
+        Stands for the time index that from_solution represents, and thus is
+        only compatible with cycles=1 and will be reset to None otherwise.
 
     Returns
     -------
@@ -1589,6 +1677,8 @@ def solve_agent(agent, verbose, from_solution=None):
         solution_last = agent.solution_terminal  # NOQA
     else:
         solution_last = from_solution
+    if agent.cycles != 1:
+        from_t = None
 
     # Initialize the solution, which includes the terminal solution if it's not a pseudo-terminal period
     solution = []
@@ -1603,7 +1693,7 @@ def solve_agent(agent, verbose, from_solution=None):
         t_last = time()
     while go:
         # Solve a cycle of the model, recording it if horizon is finite
-        solution_cycle = solve_one_cycle(agent, solution_last)
+        solution_cycle = solve_one_cycle(agent, solution_last, from_t)
         if not infinite_horizon:
             solution = solution_cycle + solution
 
@@ -1667,7 +1757,7 @@ def solve_agent(agent, verbose, from_solution=None):
     return solution
 
 
-def solve_one_cycle(agent, solution_last):
+def solve_one_cycle(agent, solution_last, from_t):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
     iterates over the periods within an agent's cycle, updating the time-varying
@@ -1682,6 +1772,9 @@ def solve_one_cycle(agent, solution_last):
         end of the sequence of one period problems.  This might be the term-
         inal period solution, a "pseudo terminal" solution, or simply the
         solution to the earliest period from the succeeding cycle.
+    from_t : int or None
+        If not None, indicates which period of the model the solver should start
+        from. When used, represents the time index that solution_last is from.
 
     Returns
     -------
@@ -1693,7 +1786,7 @@ def solve_one_cycle(agent, solution_last):
     # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
     # if so, take advantage of it. Else, use the old method
     if hasattr(agent, "params") and isinstance(agent.params, Parameters):
-        T = agent.params._length
+        T = agent.params._length if from_t is None else from_t
 
         # Initialize the solution for this cycle, then iterate on periods
         solution_cycle = []
@@ -1727,7 +1820,7 @@ def solve_one_cycle(agent, solution_last):
     else:
         # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
         if len(agent.time_vary) > 0:
-            T = len(agent.__dict__[agent.time_vary[0]])
+            T = agent.T_cycle if from_t is None else from_t
         else:
             T = 1
 
