@@ -8,6 +8,18 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.17.0(dev)
+
+Release Date: TBD
+
+#### Major Changes
+
+- none yet
+
+#### Minor Changes
+
+- Turns off use_infimum feature in ConsIndShock solver because it did not work properly when vFunc=True [#1589](https://github.com/econ-ark/HARK/pull/1589)
+
 ### 0.16.1
 
 Release Date: July 24, 2025
