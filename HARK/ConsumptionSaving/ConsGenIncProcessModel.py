@@ -488,7 +488,19 @@ def solve_one_period_ConsGenIncProcess(
         )
 
         # Add data at the lower bound of p
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        # Handle CRRA=1.0 case to avoid division by zero
+
+        if CRRA == 1.0:
+
+            # When CRRA=1.0, use a small epsilon to avoid division by zero
+
+            CRRA_safe = 1.0 + 1e-8
+
+            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
+
+        else:
+
+            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))
         mLvl_temp = np.concatenate((m_temp, mLvl_temp), axis=1)
         vNvrs_temp = np.concatenate((MPCminNvrs * m_temp, vNvrs_temp), axis=1)
