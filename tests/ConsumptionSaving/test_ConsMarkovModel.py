@@ -64,7 +64,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         init_serial_unemployment["Rfree"] = [np.array([1.03, 1.03, 1.03, 1.03])]
         init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
         init_serial_unemployment["PermGroFac"] = [np.array([1.01, 1.01, 1.01, 1.01])]
-        init_serial_unemployment["constructors"].pop("MrkvArray")
+        init_serial_unemployment["constructors"]["MrkvArray"] = None
 
         self.model = MarkovConsumerType(**init_serial_unemployment)
         self.model.cycles = 0
