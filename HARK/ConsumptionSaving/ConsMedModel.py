@@ -1562,3 +1562,111 @@ class MedShockConsumerType(PersistentShockConsumerType):
         AgentType.get_poststates(self)
 
         return None
+
+
+###############################################################################
+
+
+def solve_one_period_ConsMedExtMarg(
+    solution_next,
+    DiscFac,
+    CRRA,
+    Rfree,
+    LivPrb,
+    CoinsRate,
+    TimeCost,
+    MedShkLogMean,
+    MedShkLogStd,
+    MedCostLogMean,
+    MedCostLogStd,
+    MedCorr,
+    aXtraGrid,
+    pLogGrid,
+    pLvlMean,
+    TranShkDstn,
+    pLvlMrkvArray,
+    kLvlGrid,
+):
+    """
+    Solve one period of the "extensive margin medical care" model. Each period, the
+    agent receives a persistent and transitory shock to income, and then a medical
+    shock with two components: utility and cost. He makes a binary choice between
+    paying the cost in medical expenses or suffering the utility loss, then makes
+    his ordinary consumption-saving decision (technically made simultaneously, but
+    solved as if sequential). This version has one health state and no insurance choice
+    and hardcodes a liquidity constraint.
+
+    Parameters
+    ----------
+    solution_next : CLASS
+        Solution to the succeeding period's problem.
+    DiscFac : float
+        Intertemporal discount factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free return factor on saving.
+    LivPrb : float
+        Survival probability from this period to the next one.
+    CoinsRate : float
+        Out-of-pocket fractional cost of medical care. Will be used to do a quick
+        and dirty moral hazard analysis without insurance choice.
+    TimeCost : float
+        Fractional cost on consumption from seeking medical care; should be >= 0.
+    MedShkLogMean : float
+        Mean of log utility shocks, assumed to be lognormally distributed.
+    MedShkLogStd : float
+        Stdev of log utility shocks, assumed to be lognormally distributed.
+    MedCostLogMean : float
+        Mean of log medical expense shocks, assumed to be lognormally distributed.
+    MedCostLogStd : float
+        Stdev of log medical expense shocks, assumed to be lognormally distributed.
+    MedCorr : float
+        Correlation coefficient betwen log utility shocks and log medical expense
+        shocks, assumed to be joint normal (in logs).
+    aXtraGrid : np.array
+        Exogenous grid of assets-above-minimum, normalized by income level.
+    pLogGrid : np.array
+        Exogenous grid of *deviations from mean* log income level.
+    pLvlMean : float
+        Mean income level at this age, for generating actual income levels from
+        pLogGrid as pLvl = pLvlMean * np.exp(pLogGrid).
+    TranShkDstn : DiscreteDistribution
+        Discretized transitory income shock distribution.
+    pLvlMrkvArray : np.array
+        Markov transition array from beginning-of-period (prior) income levels
+        to this period's levels. Pre-computed by (e.g.) Tauchen's method.
+    kLvlGrid : np.array
+        Beginning-of-period capital grid (spanning zero to very high wealth).
+
+    Returns
+    -------
+    solution_now : CLASS
+        Representation of the solution to this period's problem.
+    """
+    # Make grids of pLvl x aLvl
+
+    # Evaluate end-of-period (marginal) value at each combination of pLvl x aLvl
+
+    # Calculate optimal consumption for each (aLvl,pLvl) gridpoint, roll back to bLvl
+
+    # Construct value and consumption functions over (bLvl,pLvl)
+
+    # Make a grid of (log) medical expenses (and probs), cross it with (mLvl,pLvl)
+
+    # Evaluate value function for (bLvl=mLvl-MedCost,pLvl), including MedCost=0
+
+    # Find value difference at each gridpoint, convert to MedShk stdev; find prob of care
+
+    # Calculate expected MedShk conditional on not getting medical care
+
+    # Compute expected (marginal) value over MedShk for each (mLvl,pLvl,MedCost)
+
+    # Compute expected (marginal) value over MedCost for each (mLvl,pLvl)
+
+    # Fixing kLvlGrid, compute expected (marginal) value over TranShk for each (kLvl,pLvl)
+
+    # Compute expectation over persistent shocks by using pLvlMrkvArray
+
+    # Gather and return the solution object
+    pass
