@@ -760,6 +760,12 @@ class LinearInterp(HARKinterpolator1D):
         and stored as attributes of self (default False). More memory will be used,
         and instantiation will take slightly longer, but later evaluation will
         be faster due to less arithmetic.
+    indexer : function or None (default)
+        If provided, a custom function that identifies the index of the interpolant
+        segment for each query point. Should return results identically to the
+        default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
+        WARNING: User is responsible for verifying that their custom indexer is
+        actually correct versus default behavior.
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -772,6 +778,7 @@ class LinearInterp(HARKinterpolator1D):
         slope_limit=None,
         lower_extrap=False,
         pre_compute=False,
+        indexer=None,
     ):
         # Make the basic linear spline interpolation
         self.x_list = (
@@ -787,6 +794,7 @@ class LinearInterp(HARKinterpolator1D):
         _check_grid_dimensions(1, self.y_list, self.x_list)
         self.lower_extrap = lower_extrap
         self.x_n = self.x_list.size
+        self.indexer = indexer
 
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
@@ -832,7 +840,10 @@ class LinearInterp(HARKinterpolator1D):
         -------
         A list including the level and/or derivative of the interpolated function where requested.
         """
-        i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
+        if self.indexer is None:
+            i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
+        else:
+            i = self.indexer(x)
 
         if hasattr(self, "slopes"):
             # Coefficients were pre-computed, use those
