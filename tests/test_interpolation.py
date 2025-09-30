@@ -45,6 +45,14 @@ class testsLinearInterp(unittest.TestCase):
         linear = LinearInterp(self.x_array_t, self.z_array_t)
         self.assertEqual(linear(1.5), 3.5)
 
+    def testPreCompute(self):
+        f = LinearInterp(self.x_array, self.z_array, lower_extrap=True)
+        g = LinearInterp(
+            self.x_array, self.z_array, lower_extrap=True, pre_compute=True
+        )
+        X = np.linspace(0.0, 4.0, 101)
+        self.assertTrue(np.all(np.isclose(f(X), g(X))))
+
 
 class testsCubicInterp(unittest.TestCase):
     """tests for CubicInterp, currently tests for uneven length of
