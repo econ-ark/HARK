@@ -9,7 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings. #todo
 
-See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
+See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
@@ -1117,6 +1117,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     default_ = {
         "params": init_perfect_foresight_fast,
         "solver": make_one_period_oo_solver(ConsPerfForesightSolverFast),
+        "model": "ConsPerfForesight.yaml",
     }
 
     def post_solve(self):
@@ -1211,6 +1212,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
     default_ = {
         "params": init_idiosyncratic_shocks_fast,
         "solver": NullFunc(),
+        "model": "ConsIndShock.yaml",
     }
 
     def post_solve(self):

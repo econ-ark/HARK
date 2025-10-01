@@ -576,8 +576,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         \begin{align*}
         v_t(b_t,\theta_{t}) &= \max_{c_t,L_{t}}u_{t}(c_t,L_t) + \DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(b_{t+1},\theta_{t+1}) \right], \\
         & \text{s.t.}  \\
+        m_{t} &= b_{t} + L_{t}\theta_{t} \text{WageRte}_{t}, \\
         a_t &= m_t - c_t, \\
-        m_{t+1} &= b_{t+1} + L_{t}\theta_{t} \text{WageRte}_{t}, \\
         b_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}), \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
@@ -684,9 +684,11 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     LbrCost_default = LaborIntMargConsumerType_LbrCost_default
     solving_default = LaborIntMargConsumerType_solving_default
     simulation_default = LaborIntMargConsumerType_simulation_default
+
     default_ = {
         "params": LaborIntMargConsumerType_default,
         "solver": solve_ConsLaborIntMarg,
+        "model": "ConsLaborIntMarg.yaml",
     }
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)
@@ -772,11 +774,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             Wage[these] = self.WageRte[t]
-
-        yNrmNow = self.controls["Lbr"] * self.shocks["TranShk"] * Wage
+        LbrEff = self.controls["Lbr"] * self.shocks["TranShk"]
+        yNrmNow = LbrEff * Wage
         mNrmNow = self.state_now["bNrm"] + yNrmNow
         aNrmNow = mNrmNow - self.controls["cNrm"]
 
+        self.state_now["LbrEff"] = LbrEff
         self.state_now["mNrm"] = mNrmNow
         self.state_now["aNrm"] = aNrmNow
         self.state_now["yNrm"] = yNrmNow
@@ -821,9 +824,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             B = np.linspace(bMin_temp, bMax_temp, 300)
             C = self.solution[t].cFunc(B, TranShk * np.ones_like(B))
             plt.plot(B, C)
-        plt.xlabel("Beginning of period bank balances")
-        plt.ylabel("Normalized consumption level")
+        plt.xlabel(r"Beginning of period normalized bank balances $b_t$")
+        plt.ylabel(r"Normalized consumption level $c_t$")
         plt.ylim([0.0, None])
+        plt.xlim(bMin, bMax)
         plt.show()
 
     def plot_LbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
@@ -865,9 +869,10 @@ class LaborIntMargConsumerType(IndShockConsumerType):
             B = np.linspace(bMin_temp, bMax_temp, 300)
             L = self.solution[t].LbrFunc(B, TranShk * np.ones_like(B))
             plt.plot(B, L)
-        plt.xlabel("Beginning of period bank balances")
-        plt.ylabel("Labor supply")
+        plt.xlabel(r"Beginning of period normalized bank balances $b_t$")
+        plt.ylabel(r"Labor supply $\ell_t$")
         plt.ylim([-0.001, 1.001])
+        plt.xlim(bMin, bMax)
         plt.show()
 
 

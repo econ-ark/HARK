@@ -198,7 +198,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     If the function :math:`\ln(1+x)` were applied timestonest times,
     the grid would become linearly spaced.
     If timestonest is 0, the grid is exponentially spaced.
-
+    If timestonest is -1, the grid is linearly spaced.
 
     Parameters
     ----------
@@ -223,6 +223,9 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
     Latest update: 01 May 2015
     """
+    if timestonest == -1:
+        grid = np.linspace(ming, maxg, ng)
+        return grid
     if timestonest > 0:
         Lming = ming
         Lmaxg = maxg
@@ -476,7 +479,8 @@ def kernel_regression(x, y, bot=None, top=None, N=500, h=None):
 
 def epanechnikov_kernel(x, ref_x, h=1.0):
     """
-    The Epanechnikov kernel.
+    The Epanechnikov kernel, which has been shown to be the most efficient kernel
+    for non-parametric regression.
 
     Parameters
     ----------
@@ -495,6 +499,31 @@ def epanechnikov_kernel(x, ref_x, h=1.0):
     u = (x - ref_x) / h  # Normalize distance by bandwidth
     out = 0.75 * (1.0 - u**2)
     out[np.abs(u) > 1.0] = 0.0  # Kernel = 0 outside [-1,1]
+    return out
+
+
+def triangle_kernel(x, ref_x, h=1.0):
+    """
+    The triangle or "hat" kernel.
+
+    Parameters
+    ----------
+    x : np.array
+        Values at which to evaluate the kernel
+    x_ref : float
+        The reference point
+    h : float
+        Kernel bandwidth
+
+    Returns
+    -------
+    out : np.array
+        Kernel values at each value of x
+    """
+    u = (x - ref_x) / h  # Normalize distance by bandwidth
+    these = np.abs(u) <= 1.0  # Kernel = 0 outside [-1,1]
+    out = np.zeros_like(x)  # Initialize kernel output
+    out[these] = 1.0 - np.abs(u[these])  # Evaluate kernel
     return out
 
 

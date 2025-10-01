@@ -9,7 +9,7 @@ It currently solves three types of models:
    3) The model described in (2), with an interest rate for debt that differs
       from the interest rate for savings.
 
-See NARK https://github.com/econ-ark/HARK/blob/master/Documentation/NARK/NARK.pdf for information on variable naming conventions.
+See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for information on variable naming conventions.
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
@@ -460,7 +460,7 @@ def solve_one_period_ConsPF(
     return solution_now
 
 
-def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
+def calc_worst_inc_prob(inc_shk_dstn, use_infimum=False):
     """Calculate the probability of the worst income shock.
 
     Args:
@@ -478,7 +478,7 @@ def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
 
 
 def calc_boro_const_nat(
-    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=True
+    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=False
 ):
     """Calculate the natural borrowing constraint.
 
@@ -1275,9 +1275,11 @@ class PerfForesightConsumerType(AgentType):
 
     solving_defaults = PerfForesightConsumerType_solving_defaults
     simulation_defaults = PerfForesightConsumerType_simulation_defaults
+
     default_ = {
         "params": PerfForesightConsumerType_defaults,
         "solver": solve_one_period_ConsPF,
+        "model": "ConsPerfForesight.yaml",
     }
 
     # Define some universal values for all consumer types
@@ -2154,6 +2156,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
     default_ = {
         "params": IndShockConsumerType_defaults,
         "solver": solve_one_period_ConsIndShock,
+        "model": "ConsIndShock.yaml",
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2895,6 +2898,7 @@ class KinkedRconsumerType(IndShockConsumerType):
     default_ = {
         "params": KinkedRconsumerType_defaults,
         "solver": solve_one_period_ConsKinkedR,
+        "model": "ConsKinkedR.yaml",
     }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)

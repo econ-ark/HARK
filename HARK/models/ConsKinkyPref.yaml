@@ -1,0 +1,48 @@
+name: ConsKinkyPref
+description: >-
+  Consumption-saving model with permanent and transitory income shocks as well
+  as multiplicative marginal utility shocks, with a risk-free asset with higher
+  interest rate for borrowing than saving.
+symbols:
+  variables:
+    - kNrm!              \\ beginning of period capital, normalized by p_{t-1}
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - aNrm               \\ normalized end-of-period assets
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rboro+             \\ risk free interest factor when borrowing
+    - Rsave+             \\ risk free interest factor when saving
+    - PermGroFac+        \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+  functions:
+    - cFunc*             \\ consumption function over market resources
+  distributions:
+    - IncShkDstn+        \\ joint distribution of permanent and transitory shocks
+    - PrefShkDstn        \\ distribution of marginal utility shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  yNrm = TranShk                   \\ normalized income is the transitory shock
+  G    = PermGroFac * PermShk      \\ calculate permanent income growth
+  pLvl = pLvlPrev * G              \\ update permanent income level
+  boro = (kNrm < 0.0)              \\ whether agent is borrowing
+  Rfree= Rsave + (Rboro-Rsave)*boro\\ realized interest factor depends on borrowing / saving
+  bNrm = Rfree * kNrm / G          \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm               \\ calculate normalized market resources
+  PrefShk ~ PrefShkDstn            \\ draw marginal utility shock
+  cNrm = cFunc@(mNrm, PrefShk)     \\ evaluate consumption from market resources
+  aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev

@@ -14,6 +14,7 @@ import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
+from numba import njit
 
 
 def _isscalar(x):
@@ -4070,30 +4071,92 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
 class Curvilinear2DInterp(HARKinterpolator2D):
     """
     A 2D interpolation method for curvilinear or "warped grid" interpolation, as
-    in White (2015).  Used for models with two endogenous states that are solved
-    with the endogenous grid method.
+    in White (2015). Used for models with two endogenous states that are solved
+    with the endogenous grid method. Allows multiple function outputs, but all of
+    the interpolated functions must share a common curvilinear grid.
 
     Parameters
     ----------
-    f_values: numpy.array
-        A 2D array of function values such that f_values[i,j] =
+    f_values: numpy.array or [numpy.array]
+        One or more 2D arrays of function values such that f_values[i,j] =
         f(x_values[i,j],y_values[i,j]).
     x_values: numpy.array
-        A 2D array of x values of the same size as f_values.
+        A 2D array of x values of the same shape as f_values.
     y_values: numpy.array
-        A 2D array of y values of the same size as f_values.
+        A 2D array of y values of the same shape as f_values.
     """
 
     distance_criteria = ["f_values", "x_values", "y_values"]
 
     def __init__(self, f_values, x_values, y_values):
-        self.f_values = f_values
+        if hasattr(f_values, "__len__"):
+            N_funcs = len(f_values)
+            multi = True
+        else:
+            N_funcs = 1
+            multi = False
+        my_shape = x_values.shape
+        if not (my_shape == y_values.shape):
+            raise ValueError("y_values must have the same shape as x_values!")
+        for n in range(N_funcs):
+            if not (my_shape == f_values[n].shape):
+                raise ValueError(
+                    "Each element of f_values must have the same shape as x_values!"
+                )
+
+        if multi:
+            self.f_values = f_values
+        else:
+            self.f_values = [f_values]
         self.x_values = x_values
         self.y_values = y_values
-        my_shape = f_values.shape
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
+        self.N_funcs = N_funcs
+        self.multi = multi
         self.update_polarity()
+
+    def __call__(self, x, y):
+        """
+        Modification of HARKinterpolator2D.__call__ to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        fa = self._evaluate(xa.flatten(), ya.flatten())
+        output = [fa[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
+
+    def derivativeX(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeX to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdxa = self._derX(xa.flatten(), ya.flatten())
+        output = [dfdxa[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
+
+    def derivativeY(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeY to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdya = self._derY(xa.flatten(), ya.flatten())
+        output = [dfdya[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
 
     def update_polarity(self):
         """
@@ -4141,7 +4204,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     def find_sector(self, x, y):
         """
         Finds the quadrilateral "sector" for each (x,y) point in the input.
-        Only called as a subroutine of _evaluate().
+        Only called as a subroutine of _evaluate(), etc. Uses a numba helper
+        function below to accelerate computation.
 
         Parameters
         ----------
@@ -4157,93 +4221,15 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_pos : np.array
             Sector y-coordinates for each point of the input, of the same size.
         """
-        # Initialize the sector guess
-        m = x.size
-        x_pos_guess = (np.ones(m) * self.x_n / 2).astype(int)
-        y_pos_guess = (np.ones(m) * self.y_n / 2).astype(int)
-
-        # Define a function that checks whether a set of points violates a linear
-        # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
-        # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
-        # 1 if the point is outside the boundary and 0 otherwise.
-        def violation_check(
-            x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2
-        ):
-            return (
-                (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
-                > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
-            ) + 0
-
-        # Identify the correct sector for each point to be evaluated
-        these = np.ones(m, dtype=bool)
-        max_loops = self.x_n + self.y_n
-        loops = 0
-        while np.any(these) and loops < max_loops:
-            # Get coordinates for the four vertices: (xA,yA),...,(xD,yD)
-            x_temp = x[these]
-            y_temp = y[these]
-            xA = self.x_values[x_pos_guess[these], y_pos_guess[these]]
-            xB = self.x_values[x_pos_guess[these] + 1, y_pos_guess[these]]
-            xC = self.x_values[x_pos_guess[these], y_pos_guess[these] + 1]
-            xD = self.x_values[x_pos_guess[these] + 1, y_pos_guess[these] + 1]
-            yA = self.y_values[x_pos_guess[these], y_pos_guess[these]]
-            yB = self.y_values[x_pos_guess[these] + 1, y_pos_guess[these]]
-            yC = self.y_values[x_pos_guess[these], y_pos_guess[these] + 1]
-            yD = self.y_values[x_pos_guess[these] + 1, y_pos_guess[these] + 1]
-
-            # Check the "bounding box" for the sector: is this guess plausible?
-            move_down = (y_temp < np.minimum(yA, yB)) + 0
-            move_right = (x_temp > np.maximum(xB, xD)) + 0
-            move_up = (y_temp > np.maximum(yC, yD)) + 0
-            move_left = (x_temp < np.minimum(xA, xC)) + 0
-
-            # Check which boundaries are violated (and thus where to look next)
-            c = (move_down + move_right + move_up + move_left) == 0
-            move_down[c] = violation_check(
-                x_temp[c], y_temp[c], xA[c], yA[c], xB[c], yB[c]
-            )
-            move_right[c] = violation_check(
-                x_temp[c], y_temp[c], xB[c], yB[c], xD[c], yD[c]
-            )
-            move_up[c] = violation_check(
-                x_temp[c], y_temp[c], xD[c], yD[c], xC[c], yC[c]
-            )
-            move_left[c] = violation_check(
-                x_temp[c], y_temp[c], xC[c], yC[c], xA[c], yA[c]
-            )
-
-            # Update the sector guess based on the violations
-            x_pos_next = x_pos_guess[these] - move_left + move_right
-            x_pos_next[x_pos_next < 0] = 0
-            x_pos_next[x_pos_next > (self.x_n - 2)] = self.x_n - 2
-            y_pos_next = y_pos_guess[these] - move_down + move_up
-            y_pos_next[y_pos_next < 0] = 0
-            y_pos_next[y_pos_next > (self.y_n - 2)] = self.y_n - 2
-
-            # Check which sectors have not changed, and mark them as complete
-            no_move = np.array(
-                np.logical_and(
-                    x_pos_guess[these] == x_pos_next, y_pos_guess[these] == y_pos_next
-                )
-            )
-            x_pos_guess[these] = x_pos_next
-            y_pos_guess[these] = y_pos_next
-            temp = these.nonzero()
-            these[temp[0][no_move]] = False
-
-            # Move to the next iteration of the search
-            loops += 1
-
-        # Return the output
-        x_pos = x_pos_guess
-        y_pos = y_pos_guess
+        x_pos, y_pos = find_sector_numba(x, y, self.x_values, self.y_values)
         return x_pos, y_pos
 
     def find_coords(self, x, y, x_pos, y_pos):
         """
         Calculates the relative coordinates (alpha,beta) for each point (x,y),
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
-        a subroutine of __call__().
+        a subroutine of _evaluate(), etc. Uses a numba helper function to acc-
+        elerate computation, and has a "backup method" for when the math fails.
 
         Parameters
         ----------
@@ -4263,80 +4249,72 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         beta : np.array
             Relative "vertical" position of the input in their respective sectors.
         """
-        # Calculate relative coordinates in the sector for each point
-        xA = self.x_values[x_pos, y_pos]
-        xB = self.x_values[x_pos + 1, y_pos]
-        xC = self.x_values[x_pos, y_pos + 1]
-        xD = self.x_values[x_pos + 1, y_pos + 1]
-        yA = self.y_values[x_pos, y_pos]
-        yB = self.y_values[x_pos + 1, y_pos]
-        yC = self.y_values[x_pos, y_pos + 1]
-        yD = self.y_values[x_pos + 1, y_pos + 1]
-        polarity = 2.0 * self.polarity[x_pos, y_pos] - 1.0
-        a = xA
-        b = xB - xA
-        c = xC - xA
-        d = xA - xB - xC + xD
-        e = yA
-        f = yB - yA
-        g = yC - yA
-        h = yA - yB - yC + yD
-        denom = d * g - h * c
-        mu = (h * b - d * f) / denom
-        tau = (h * (a - x) - d * (e - y)) / denom
-        zeta = a - x + c * tau
-        eta = b + c * mu + d * tau
-        theta = d * mu
-        alpha = (-eta + polarity * np.sqrt(eta**2.0 - 4.0 * zeta * theta)) / (
-            2.0 * theta
+        alpha, beta = find_coords_numba(
+            x, y, x_pos, y_pos, self.x_values, self.y_values, self.polarity
         )
-        beta = mu * alpha + tau
 
         # Alternate method if there are sectors that are "too regular"
-        z = np.logical_or(
-            np.isnan(alpha), np.isnan(beta)
-        )  # These points weren't able to identify coordinates
+        # These points weren't able to identify coordinates
+        z = np.logical_or(np.isnan(alpha), np.isnan(beta))
         if np.any(z):
-            these = np.isclose(
-                f / b, (yD - yC) / (xD - xC)
-            )  # iso-beta lines have equal slope
-            if np.any(these):
-                kappa = f[these] / b[these]
-                int_bot = yA[these] - kappa * xA[these]
-                int_top = yC[these] - kappa * xC[these]
-                int_these = y[these] - kappa * x[these]
-                beta_temp = (int_these - int_bot) / (int_top - int_bot)
-                x_left = beta_temp * xC[these] + (1.0 - beta_temp) * xA[these]
-                x_right = beta_temp * xD[these] + (1.0 - beta_temp) * xB[these]
-                alpha_temp = (x[these] - x_left) / (x_right - x_left)
-                beta[these] = beta_temp
-                alpha[these] = alpha_temp
-
-            # print(np.sum(np.isclose(g/c,(yD-yB)/(xD-xB))))
+            ii = x_pos[z]
+            jj = y_pos[z]
+            xA = self.x_values[ii, jj]
+            xB = self.x_values[ii + 1, jj]
+            xC = self.x_values[ii, jj + 1]
+            xD = self.x_values[ii + 1, jj + 1]
+            yA = self.y_values[ii, jj]
+            yB = self.y_values[ii + 1, jj]
+            yC = self.y_values[ii, jj + 1]
+            # yD = self.y_values[ii + 1, jj + 1]
+            b = xB - xA
+            f = yB - yA
+            kappa = f / b
+            int_bot = yA - kappa * xA
+            int_top = yC - kappa * xC
+            int_these = y[z] - kappa * x[z]
+            beta_temp = (int_these - int_bot) / (int_top - int_bot)
+            x_left = beta_temp * xC + (1.0 - beta_temp) * xA
+            x_right = beta_temp * xD + (1.0 - beta_temp) * xB
+            alpha_temp = (x[z] - x_left) / (x_right - x_left)
+            beta[z] = beta_temp
+            alpha[z] = alpha_temp
 
         return alpha, beta
 
     def _evaluate(self, x, y):
         """
         Returns the level of the interpolated function at each value in x,y.
-        Only called internally by HARKinterpolator2D.__call__ (etc).
+        Only called internally by __call__ (etc).
         """
         x_pos, y_pos = self.find_sector(x, y)
         alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
-        # Calculate the function at each point using bilinear interpolation
-        f = (
-            (1 - alpha) * (1 - beta) * self.f_values[x_pos, y_pos]
-            + (1 - alpha) * beta * self.f_values[x_pos, y_pos + 1]
-            + alpha * (1 - beta) * self.f_values[x_pos + 1, y_pos]
-            + alpha * beta * self.f_values[x_pos + 1, y_pos + 1]
-        )
+        # Get weights on each vertex
+        alpha_C = 1.0 - alpha
+        beta_C = 1.0 - beta
+        wA = alpha_C * beta_C
+        wB = alpha * beta_C
+        wC = alpha_C * beta
+        wD = alpha * beta
+
+        # Evaluate each function by bilinear interpolation
+        f = []
+        for n in range(self.N_funcs):
+            f_n = (
+                0.0
+                + wA * self.f_values[n][x_pos, y_pos]
+                + wB * self.f_values[n][x_pos + 1, y_pos]
+                + wC * self.f_values[n][x_pos, y_pos + 1]
+                + wD * self.f_values[n][x_pos + 1, y_pos + 1]
+            )
+            f.append(f_n)
         return f
 
     def _derX(self, x, y):
         """
         Returns the derivative with respect to x of the interpolated function
-        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        at each value in x,y. Only called internally by derivativeX.
         """
         x_pos, y_pos = self.find_sector(x, y)
         alpha, beta = self.find_coords(x, y, x_pos, y_pos)
@@ -4350,34 +4328,39 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         yB = self.y_values[x_pos + 1, y_pos]
         yC = self.y_values[x_pos, y_pos + 1]
         yD = self.y_values[x_pos + 1, y_pos + 1]
-        fA = self.f_values[x_pos, y_pos]
-        fB = self.f_values[x_pos + 1, y_pos]
-        fC = self.f_values[x_pos, y_pos + 1]
-        fD = self.f_values[x_pos + 1, y_pos + 1]
 
         # Calculate components of the alpha,beta --> x,y delta translation matrix
-        alpha_x = (1 - beta) * (xB - xA) + beta * (xD - xC)
-        alpha_y = (1 - beta) * (yB - yA) + beta * (yD - yC)
-        beta_x = (1 - alpha) * (xC - xA) + alpha * (xD - xB)
-        beta_y = (1 - alpha) * (yC - yA) + alpha * (yD - yB)
+        alpha_C = 1 - alpha
+        beta_C = 1 - beta
+        alpha_x = beta_C * (xB - xA) + beta * (xD - xC)
+        alpha_y = beta_C * (yB - yA) + beta * (yD - yC)
+        beta_x = alpha_C * (xC - xA) + alpha * (xD - xB)
+        beta_y = alpha_C * (yC - yA) + alpha * (yD - yB)
 
         # Invert the delta translation matrix into x,y --> alpha,beta
         det = alpha_x * beta_y - beta_x * alpha_y
         x_alpha = beta_y / det
         x_beta = -alpha_y / det
 
-        # Calculate the derivative of f w.r.t. alpha and beta
-        dfda = (1 - beta) * (fB - fA) + beta * (fD - fC)
-        dfdb = (1 - alpha) * (fC - fA) + alpha * (fD - fB)
+        # Calculate the derivative of f w.r.t. alpha and beta for each function
+        dfdx = []
+        for n in range(self.N_funcs):
+            fA = self.f_values[n][x_pos, y_pos]
+            fB = self.f_values[n][x_pos + 1, y_pos]
+            fC = self.f_values[n][x_pos, y_pos + 1]
+            fD = self.f_values[n][x_pos + 1, y_pos + 1]
+            dfda = beta_C * (fB - fA) + beta * (fD - fC)
+            dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
 
-        # Calculate the derivative with respect to x (and return it)
-        dfdx = x_alpha * dfda + x_beta * dfdb
+            # Calculate the derivative with respect to x
+            dfdx_n = x_alpha * dfda + x_beta * dfdb
+            dfdx.append(dfdx_n)
         return dfdx
 
     def _derY(self, x, y):
         """
         Returns the derivative with respect to y of the interpolated function
-        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        at each value in x,y. Only called internally by derivativeY.
         """
         x_pos, y_pos = self.find_sector(x, y)
         alpha, beta = self.find_coords(x, y, x_pos, y_pos)
@@ -4391,29 +4374,156 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         yB = self.y_values[x_pos + 1, y_pos]
         yC = self.y_values[x_pos, y_pos + 1]
         yD = self.y_values[x_pos + 1, y_pos + 1]
-        fA = self.f_values[x_pos, y_pos]
-        fB = self.f_values[x_pos + 1, y_pos]
-        fC = self.f_values[x_pos, y_pos + 1]
-        fD = self.f_values[x_pos + 1, y_pos + 1]
 
         # Calculate components of the alpha,beta --> x,y delta translation matrix
-        alpha_x = (1 - beta) * (xB - xA) + beta * (xD - xC)
-        alpha_y = (1 - beta) * (yB - yA) + beta * (yD - yC)
-        beta_x = (1 - alpha) * (xC - xA) + alpha * (xD - xB)
-        beta_y = (1 - alpha) * (yC - yA) + alpha * (yD - yB)
+        alpha_C = 1 - alpha
+        beta_C = 1 - beta
+        alpha_x = beta_C * (xB - xA) + beta * (xD - xC)
+        alpha_y = beta_C * (yB - yA) + beta * (yD - yC)
+        beta_x = alpha_C * (xC - xA) + alpha * (xD - xB)
+        beta_y = alpha_C * (yC - yA) + alpha * (yD - yB)
 
         # Invert the delta translation matrix into x,y --> alpha,beta
         det = alpha_x * beta_y - beta_x * alpha_y
         y_alpha = -beta_x / det
         y_beta = alpha_x / det
 
-        # Calculate the derivative of f w.r.t. alpha and beta
-        dfda = (1 - beta) * (fB - fA) + beta * (fD - fC)
-        dfdb = (1 - alpha) * (fC - fA) + alpha * (fD - fB)
+        # Calculate the derivative of f w.r.t. alpha and beta for each function
+        dfdy = []
+        for n in range(self.N_funcs):
+            fA = self.f_values[n][x_pos, y_pos]
+            fB = self.f_values[n][x_pos + 1, y_pos]
+            fC = self.f_values[n][x_pos, y_pos + 1]
+            fD = self.f_values[n][x_pos + 1, y_pos + 1]
+            dfda = beta_C * (fB - fA) + beta * (fD - fC)
+            dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
 
-        # Calculate the derivative with respect to x (and return it)
-        dfdy = y_alpha * dfda + y_beta * dfdb
+            # Calculate the derivative with respect to y
+            dfdy_n = y_alpha * dfda + y_beta * dfdb
+            dfdy.append(dfdy_n)
         return dfdy
+
+
+# Define a function that checks whether a set of points violates a linear boundary
+# defined by (x1,y1) and (x2,y2), where the latter is *COUNTER CLOCKWISE* from the
+# former. Returns 1 if the point is outside the boundary and 0 otherwise.
+@njit
+def boundary_check(xq, yq, x1, y1, x2, y2):
+    return int((y2 - y1) * xq - (x2 - x1) * yq > x1 * y2 - y1 * x2)
+
+
+# Define a numba helper function for finding the sector in the irregular grid
+@njit
+def find_sector_numba(X_query, Y_query, X_values, Y_values):
+    # Initialize the sector guess
+    M = X_query.size
+    x_n = X_values.shape[0]
+    y_n = X_values.shape[1]
+    ii = int(x_n / 2)
+    jj = int(y_n / 2)
+    top_ii = x_n - 2
+    top_jj = y_n - 2
+
+    # Initialize the output arrays
+    X_pos = np.empty(M, dtype=np.int32)
+    Y_pos = np.empty(M, dtype=np.int32)
+
+    # Identify the correct sector for each point to be evaluated
+    max_loops = x_n + y_n
+    for m in range(M):
+        found = False
+        loops = 0
+        while not found and loops < max_loops:
+            # Get coordinates for the four vertices: (xA,yA),...,(xD,yD)
+            x0 = X_query[m]
+            y0 = Y_query[m]
+            xA = X_values[ii, jj]
+            xB = X_values[ii + 1, jj]
+            xC = X_values[ii, jj + 1]
+            xD = X_values[ii + 1, jj + 1]
+            yA = Y_values[ii, jj]
+            yB = Y_values[ii + 1, jj]
+            yC = Y_values[ii, jj + 1]
+            yD = Y_values[ii + 1, jj + 1]
+
+            # Check the "bounding box" for the sector: is this guess plausible?
+            D = int(y0 < np.minimum(yA, yB))
+            R = int(x0 > np.maximum(xB, xD))
+            U = int(y0 > np.maximum(yC, yD))
+            L = int(x0 < np.minimum(xA, xC))
+
+            # Check which boundaries are violated (and thus where to look next)
+            in_box = np.all(np.logical_not(np.array([D, R, U, L])))
+            if in_box:
+                D = boundary_check(x0, y0, xA, yA, xB, yB)
+                R = boundary_check(x0, y0, xB, yB, xD, yD)
+                U = boundary_check(x0, y0, xD, yD, xC, yC)
+                L = boundary_check(x0, y0, xC, yC, xA, yA)
+
+            # Update the sector guess based on the violations
+            ii_next = np.maximum(np.minimum(ii - L + R, top_ii), 0)
+            jj_next = np.maximum(np.minimum(jj - D + U, top_jj), 0)
+
+            # Check whether sector guess changed and go to next iteration
+            found = (ii == ii_next) and (jj == jj_next)
+            ii = ii_next
+            jj = jj_next
+            loops += 1
+
+        # Put the final sector guess into the output array
+        X_pos[m] = ii
+        Y_pos[m] = jj
+
+    # Return the output
+    return X_pos, Y_pos
+
+
+# Define a numba helper function for finding relative coordinates within sector
+@njit
+def find_coords_numba(X_query, Y_query, X_pos, Y_pos, X_values, Y_values, polarity):
+    M = X_query.size
+    alpha = np.empty(M)
+    beta = np.empty(M)
+
+    # Calculate relative coordinates in the sector for each point
+    for m in range(M):
+        try:
+            x0 = X_query[m]
+            y0 = Y_query[m]
+            ii = X_pos[m]
+            jj = Y_pos[m]
+            xA = X_values[ii, jj]
+            xB = X_values[ii + 1, jj]
+            xC = X_values[ii, jj + 1]
+            xD = X_values[ii + 1, jj + 1]
+            yA = Y_values[ii, jj]
+            yB = Y_values[ii + 1, jj]
+            yC = Y_values[ii, jj + 1]
+            yD = Y_values[ii + 1, jj + 1]
+            p = 2.0 * polarity[ii, jj] - 1.0
+            a = xA
+            b = xB - xA
+            c = xC - xA
+            d = xA - xB - xC + xD
+            e = yA
+            f = yB - yA
+            g = yC - yA
+            h = yA - yB - yC + yD
+            denom = d * g - h * c
+            mu = (h * b - d * f) / denom
+            tau = (h * (a - x0) - d * (e - y0)) / denom
+            zeta = a - x0 + c * tau
+            eta = b + c * mu + d * tau
+            theta = d * mu
+            alph = (-eta + p * np.sqrt(eta**2 - 4 * zeta * theta)) / (2 * theta)
+            bet = mu * alph + tau
+        except:
+            alph = np.nan
+            bet = np.nan
+        alpha[m] = alph
+        beta[m] = bet
+
+    return alpha, beta
 
 
 class DiscreteInterp(MetricObject):
@@ -4453,6 +4563,38 @@ class DiscreteInterp(MetricObject):
 
         # Get values from grid
         return self.discrete_vals[inds]
+
+
+class IndexedInterp(MetricObject):
+    """
+    An interpolator for functions whose first argument is an integer-valued index.
+    Constructor takes in a list of functions as its only argument. When evaluated
+    at f(i,X), interpolator returns f[i](X), where X can be any number of inputs.
+    This simply provides a different interface for accessing the same functions.
+
+    Parameters
+    ----------
+    functions : [Callable]
+        List of one or more functions to be indexed.
+    """
+
+    distance_criteria = ["functions"]
+
+    def __init__(self, functions):
+        self.functions = functions
+        self.N = len(functions)
+
+    def __call__(self, idx, *args):
+        out = np.empty(idx.shape)
+        out.fill(np.nan)
+
+        for n in range(self.N):
+            these = idx == n
+            if not np.any(these):
+                continue
+            temp = [arg[these] for arg in args]
+            out[these] = self.functions[n](*temp)
+        return out
 
 
 ###############################################################################
