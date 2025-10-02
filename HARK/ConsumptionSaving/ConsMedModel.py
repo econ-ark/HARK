@@ -5,6 +5,8 @@ Consumption-saving models that also include medical spending.
 from copy import deepcopy
 
 import numpy as np
+from scipy.stats import norm
+from scipy.special import erf
 from scipy.optimize import brentq
 
 from HARK import AgentType
@@ -44,6 +46,7 @@ from HARK.interpolation import (
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
+    CRRAutilityP,
     CRRAutility_inv,
     CRRAutility_invP,
     CRRAutilityP_inv,
@@ -1567,10 +1570,62 @@ class MedShockConsumerType(PersistentShockConsumerType):
 ###############################################################################
 
 
+class ConsMedExtMargSolution(MetricObject):
+    """
+    Representation of the solution to one period's problem in the extensive margin
+    medical expense model. If no inputs are passed, a trivial object is constructed,
+    which can be used as the pseudo-terminal solution.
+
+    Parameters
+    ----------
+    vFunc_by_pLvl : [function]
+        List of beginning-of-period value functions over kLvl, by pLvl.
+    vPfunc_by_pLvl : [function]
+        List of beginning-of-period marginal functions over kLvl, by pLvl.
+    cFunc_by_pLvl : [function]
+        List of consumption functions over bLvl, by pLvl.
+    vNvrsFuncMid_by_pLvl : [function]
+        List of pseudo-inverse value function for consumption phase over bLvl, by pLvl.
+    pLvl : np.array
+        Grid of permanent income levels during the period (after shocks).
+    CRRA : float
+        Coefficient of relative risk aversion
+    """
+
+    distance_criteria = []
+
+    def __init__(
+        self,
+        vFunc_by_pLvl=None,
+        vPfunc_by_pLvl=None,
+        cFunc_by_pLvl=None,
+        vNvrsFuncMid_by_pLvl=None,
+        pLvl=None,
+        CRRA=None,
+    ):
+        self.pLvl = pLvl
+        self.CRRA = CRRA
+        if vFunc_by_pLvl is None:
+            self.vFunc_by_pLvl = pLvl.size * [ConstantFunction(0.0)]
+        else:
+            self.vFunc_by_pLvl = vFunc_by_pLvl
+        if vPfunc_by_pLvl is None:
+            self.vPfunc_by_pLvl = pLvl.size * [ConstantFunction(0.0)]
+        else:
+            self.vPfunc_by_pLvl = vPfunc_by_pLvl
+        if cFunc_by_pLvl is not None:
+            self.cFunc = LinearInterpOnInterp1D(cFunc_by_pLvl, pLvl)
+        if vNvrsFuncMid_by_pLvl is not None:
+            vNvrsFuncMid = LinearInterpOnInterp1D(vNvrsFuncMid_by_pLvl, pLvl)
+            self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA)
+
+
 def solve_one_period_ConsMedExtMarg(
     solution_next,
     DiscFac,
     CRRA,
+    BeqFac,
+    BeqShift,
     Rfree,
     LivPrb,
     CoinsRate,
@@ -1580,11 +1635,15 @@ def solve_one_period_ConsMedExtMarg(
     MedCostLogMean,
     MedCostLogStd,
     MedCorr,
-    aXtraGrid,
+    MedCostBot,
+    MedCostTop,
+    MedCostCount,
+    aNrmGrid,
     pLogGrid,
     pLvlMean,
     TranShkDstn,
     pLvlMrkvArray,
+    mNrmGrid,
     kLvlGrid,
 ):
     """
@@ -1598,12 +1657,16 @@ def solve_one_period_ConsMedExtMarg(
 
     Parameters
     ----------
-    solution_next : CLASS
+    solution_next : ConsMedExtMargSolution
         Solution to the succeeding period's problem.
     DiscFac : float
         Intertemporal discount factor.
     CRRA : float
         Coefficient of relative risk aversion.
+    BeqFac : float
+        Scaling factor for bequest motive.
+    BeqShift : float
+        Shifter for bequest motive.
     Rfree : float
         Risk free return factor on saving.
     LivPrb : float
@@ -1624,8 +1687,16 @@ def solve_one_period_ConsMedExtMarg(
     MedCorr : float
         Correlation coefficient betwen log utility shocks and log medical expense
         shocks, assumed to be joint normal (in logs).
-    aXtraGrid : np.array
-        Exogenous grid of assets-above-minimum, normalized by income level.
+    MedCostBot : float
+        Lower bound of medical costs to consider, as standard deviations of log
+        expenses away from the mean.
+    MedCostTop : float
+        Upper bound of medical costs to consider, as standard deviations of log
+        expenses away from the mean.
+    MedCostCount : int
+        Number of points to use when discretizing MedCost
+    aNrmGrid : np.array
+        Exogenous grid of end-of-period assets, normalized by income level.
     pLogGrid : np.array
         Exogenous grid of *deviations from mean* log income level.
     pLvlMean : float
@@ -1636,37 +1707,185 @@ def solve_one_period_ConsMedExtMarg(
     pLvlMrkvArray : np.array
         Markov transition array from beginning-of-period (prior) income levels
         to this period's levels. Pre-computed by (e.g.) Tauchen's method.
+    mNrmGrid : np.array
+        Exogenous grid of decision-time normalized market resources,
     kLvlGrid : np.array
         Beginning-of-period capital grid (spanning zero to very high wealth).
 
     Returns
     -------
-    solution_now : CLASS
-        Representation of the solution to this period's problem.
+    solution_now : ConsMedExtMargSolution
+        Representation of the solution to this period's problem, including the
+        beginning-of-period (marginal) value function by pLvl, the consumption
+        function by pLvl, and the (pseudo-inverse) value function for the consumption
+        phase (as a list by pLvl).
     """
-    # Make grids of pLvl x aLvl
+    # Define (marginal) utility and bequest motive functions
+    u = lambda x: CRRAutility(x, rho=CRRA)
+    uP = lambda x: CRRAutilityP(x, rho=CRRA)
+    W = lambda x: BeqFac * u(x + BeqShift)
+    Wp = lambda x: BeqFac * uP(x + BeqShift)
+    n = lambda x: CRRAutility_inv(x, rho=CRRA)
 
-    # Evaluate end-of-period (marginal) value at each combination of pLvl x aLvl
+    # Make grids of pLvl x aLvl
+    pLvl = np.exp(pLogGrid) * pLvlMean
+    aLvl = np.dot(
+        np.reshape(aNrmGrid, (aNrmGrid.size, 1)), np.reshape(pLvl, (1, pLvl.size))
+    )
+    aLvl = np.concatenate([np.zeros((pLvl.size, 1)), aLvl])  # add zero entries
+
+    # Evaluate end-of-period marginal value at each combination of pLvl x aLvl
+    pLvlCount = pLvl.size
+    EndOfPrd_vP = np.empty_like(aLvl)
+    EndOfPrd_v = np.empty_like(aLvl)
+    for j in range(pLvlCount):
+        EndOfPrdvFunc_this_pLvl = solution_next.vFunc_by_pLvl[j]
+        EndOfPrdvPfunc_this_pLvl = solution_next.vPfunc_by_pLvl[j]
+        EndOfPrd_v[:, j] = DiscFac * LivPrb * EndOfPrdvFunc_this_pLvl(aLvl[:, j])
+        EndOfPrd_vP[:, j] = DiscFac * LivPrb * EndOfPrdvPfunc_this_pLvl(aLvl[:, j])
+    EndOfPrd_v += (1.0 - LivPrb) * W(aLvl)
+    EndOfPrd_vP += (1.0 - LivPrb) * Wp(aLvl)
 
     # Calculate optimal consumption for each (aLvl,pLvl) gridpoint, roll back to bLvl
+    cLvl = CRRAutilityP_inv(EndOfPrd_vP, CRRA)
+    bLvl = aLvl + cLvl
 
-    # Construct value and consumption functions over (bLvl,pLvl)
+    # Construct consumption functions over bLvl for each pLvl
+    cFunc_by_pLvl = []
+    for j in range(pLvlCount):
+        cFunc_j = LinearInterp(
+            np.insert(bLvl[:, j], 0, 0.0), np.insert(cLvl[:, j], 0, 0.0)
+        )
+        cFunc_by_pLvl.append(cFunc_j)
+
+    # Construct pseudo-inverse value functions over bLvl for each pLvl
+    v_mid = u(cLvl) + EndOfPrd_v  # value of reaching consumption phase
+    vNvrsFuncMid_by_pLvl = []
+    for j in range(pLvlCount):
+        b_cnst = np.linspace(0.001, 0.95, 10) * bLvl[0, j]  # constrained wealth levels
+        c_cnst = b_cnst
+        v_cnst = u(c_cnst) + EndOfPrd_v[0, j]
+        b_temp = np.concatenate([b_cnst, bLvl[:, j]])
+        v_temp = np.concatenate([v_cnst, v_mid[:, j]])
+        vNvrs_temp = n(v_temp)
+        vNvrsFunc_j = LinearInterp(
+            np.insert(b_temp, 0, 0.0), np.insert(vNvrs_temp, 0, 0.0)
+        )
+        vNvrsFuncMid_by_pLvl.append(vNvrsFunc_j)
 
     # Make a grid of (log) medical expenses (and probs), cross it with (mLvl,pLvl)
+    bot = MedCostLogMean + MedCostBot * MedCostLogStd
+    top = MedCostLogMean + MedCostTop * MedCostLogStd
+    MedCostLogGrid = np.linspace(bot, top, MedCostCount)
+    MedCostGrid = np.exp(MedCostLogGrid)
+    mLvl_base = np.dot(
+        np.reshape(mNrmGrid, (mNrmGrid.size, 1), np.reshape(pLvl, (1, pLvlCount)))
+    )
+    mLvl = np.reshape(mLvl_base, (mNrmGrid.size, pLvlCount, 1))
+    bLvl_if_care = mLvl - np.reshape(MedCostGrid, (1, 1, MedCostCount))
+    bLvl_if_not = mLvl_base
 
-    # Evaluate value function for (bLvl=mLvl-MedCost,pLvl), including MedCost=0
+    # Calculate mean (log) utility shock for each MedCost gridpoint, and conditional stdev
+    MedShkLog_cond_mean = MedShkLogMean + MedCorr * MedShkLogStd * MedCostLogGrid
+    MedShkLog_cond_mean = np.reshape(MedShkLog_cond_mean, (1, MedCostCount))
+    MedShkLog_cond_std = MedShkLogStd**2 * (1.0 - MedCorr**2)
+    MedShk_cond_mean = np.exp(MedShkLog_cond_mean + 0.5 * MedShkLog_cond_std**2)
 
-    # Find value difference at each gridpoint, convert to MedShk stdev; find prob of care
+    # Initialize (marginal) value function arrays over (mLvl,pLvl,MedCost)
+    v_at_Dcsn = np.empty_like(bLvl_if_care)
+    vP_at_Dcsn = np.empty_like(bLvl_if_care)
+    for j in range(pLvlCount):
+        # Evaluate value function for (bLvl,pLvl_j), including MedCost=0
+        v_if_care = u(vNvrsFuncMid_by_pLvl[j](bLvl_if_care[:, j, :]))
+        v_if_not = np.reshape(
+            u(vNvrsFuncMid_by_pLvl[j](bLvl_if_not[:, j])), (mNrmGrid.size, 1)
+        )
 
-    # Calculate expected MedShk conditional on not getting medical care
+        # Find value difference at each gridpoint, convert to MedShk stdev; find prob of care
+        v_diff = v_if_not - v_if_care
+        cant_pay = bLvl_if_care[:, j, :] <= 0.0
+        v_diff[cant_pay] = np.inf
+        log_v_diff = np.log(v_diff)
+        crit_stdev = (log_v_diff - MedShkLog_cond_mean) / MedShkLog_cond_std
+        prob_no_care = norm.cdf(crit_stdev)
+        prob_get_care = 1.0 - prob_no_care
 
-    # Compute expected (marginal) value over MedShk for each (mLvl,pLvl,MedCost)
+        # Calculate expected MedShk conditional on not getting medical care
+        crit_z = crit_stdev - MedShkLog_cond_std
+        MedShk_no_care_cond_mean = (
+            0.5 * MedShk_cond_mean * (1.0 - erf(crit_z)) / prob_no_care
+        )
+
+        # Compute expected (marginal) value over MedShk for each (mLvl,pLvl_j,MedCost)
+        v_at_Dcsn[:, j, :] = (
+            prob_no_care * (v_if_not + MedShk_no_care_cond_mean)
+            + prob_get_care * v_if_care
+        )
+        vP_if_care = uP(cFunc_by_pLvl(bLvl_if_care[:, j, :]))
+        vP_if_not = np.reshape(uP(cFunc_by_pLvl(bLvl_if_not[:, j])), (mNrmGrid.size, 1))
+        MedShk_rate_of_change = (
+            norm.pdf(crit_stdev) * (vP_if_care - vP_if_not) * MedShk_no_care_cond_mean
+        )
+        vP_at_Dcsn[:, j, :] = (
+            prob_no_care * vP_if_not
+            + prob_get_care * vP_if_care
+            + MedShk_rate_of_change
+        )
+        # CHECK THE SIGN OF THE LAST TERM, MIGHT BE WRONG
 
     # Compute expected (marginal) value over MedCost for each (mLvl,pLvl)
+    temp_grid = np.linspace(MedCostBot, MedCostTop, MedCostCount)
+    MedCost_pmv = norm.pdf(temp_grid)
+    MedCost_pmv /= np.sum(MedCost_pmv)
+    MedCost_probs = np.reshape(MedCost_pmv, (1, 1, MedCostCount))
+    v_before_shk = np.sum(v_at_Dcsn * MedCost_probs, axis=2)
+    vP_before_shk = np.sum(vP_at_Dcsn * MedCost_probs, axis=2)
+    vNvrs_before_shk = n(v_before_shk)
+    vPnvrs_before_shk = CRRAutilityP_inv(vP_before_shk, CRRA)
 
     # Fixing kLvlGrid, compute expected (marginal) value over TranShk for each (kLvl,pLvl)
+    v_by_kLvl_and_pLvl = np.empty((kLvlGrid.size, pLvlCount))
+    vP_by_kLvl_and_pLvl = np.empty((kLvlGrid.size, pLvlCount))
+    for j in range(pLvlCount):
+        p = pLvl[j]
+
+        # Make (marginal) value functions over mLvl for this pLvl
+        m_temp = np.insert(mLvl_base[:, j], 0, 0.0)
+        vNvrs_temp = np.insert(vNvrs_before_shk[:, j], 0, 0.0)
+        vPnvrs_temp = np.insert(vPnvrs_before_shk[:, j], 0, 0.0)
+        vNvrsFunc_temp = LinearInterp(m_temp, vNvrs_temp)
+        vPnvrsFunc_temp = LinearInterp(m_temp, vPnvrs_temp)
+        vFunc_temp = lambda x: u(vNvrsFunc_temp(x))
+        vPfunc_temp = lambda x: uP(vPnvrsFunc_temp(x))
+
+        # Compute expectation over TranShkDstn
+        v = lambda TranShk, kLvl: vFunc_temp(kLvl + TranShk * p)
+        vP = lambda TranShk, kLvl: vPfunc_temp(kLvl + TranShk * p)
+        v_by_kLvl_and_pLvl[:, j] = expected(v, TranShkDstn, args=(kLvlGrid,))
+        vP_by_kLvl_and_pLvl[:, j] = expected(vP, TranShkDstn, args=(kLvlGrid,))
 
     # Compute expectation over persistent shocks by using pLvlMrkvArray
+    v_arvl = np.dot(v_by_kLvl_and_pLvl, pLvlMrkvArray.T)
+    vP_arvl = np.dot(vP_by_kLvl_and_pLvl, pLvlMrkvArray.T)
+    vNvrs_arvl = n(v_arvl)
+    vPnvrs_arvl = CRRAutilityP_inv(vP_arvl)
 
-    # Gather and return the solution object
-    pass
+    # Construct "arrival" (marginal) value function by pLvl
+    vFuncArvl_by_pLvl = []
+    vPfuncArvl_by_pLvl = []
+    for j in range(pLvlCount):
+        vNvrsFunc_temp = LinearInterp(kLvlGrid, vNvrs_arvl[:, j])
+        vPnvrsFunc_temp = LinearInterp(kLvlGrid, vPnvrs_arvl[:, j])
+        vFuncArvl_by_pLvl.append(ValueFuncCRRA(vNvrsFunc_temp, CRRA))
+        vPfuncArvl_by_pLvl.append(MargValueFuncCRRA(vPnvrsFunc_temp, CRRA))
+
+    # Gather elements and return the solution object
+    solution_now = ConsMedExtMargSolution(
+        vFunc_by_pLvl=vFuncArvl_by_pLvl,
+        vPfunc_by_pLvl=vPfuncArvl_by_pLvl,
+        cFunc_by_pLvl=cFunc_by_pLvl,
+        vNvrsFuncMid_by_pLvl=vNvrsFuncMid_by_pLvl,
+        pLvl=pLvl,
+        CRRA=CRRA,
+    )
+    return solution_now
