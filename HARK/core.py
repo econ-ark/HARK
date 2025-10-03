@@ -29,7 +29,7 @@ from HARK.distributions import (
     combine_indep_dstns,
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
-from HARK.utilities import NullFunc, get_arg_names
+from HARK.utilities import NullFunc, get_arg_names, get_it_from
 from HARK.simulator import make_simulator_from_agent
 from HARK.SSJutils import (
     make_basic_SSJ_matrices,
@@ -632,28 +632,43 @@ class Model:
                     anything_accomplished_this_pass = True  # We did something!
                     continue
 
+                # SPECIAL: if the constructor is get_it_from, handle it separately
+                if isinstance(constructor, get_it_from):
+                    try:
+                        parent = getattr(self, get_it_from.name)
+                        query = key
+                        any_missing = False
+                        missing_args = []
+                    except:
+                        parent = None
+                        query = None
+                        any_missing = True
+                        missing_args = [get_it_from.name]
+                    temp_dict = {"parent": parent, "query": query}
+
                 # Get the names of arguments for this constructor and try to gather them
-                args_needed = get_arg_names(constructor)
-                has_no_default = {
-                    k: v.default is inspect.Parameter.empty
-                    for k, v in inspect.signature(constructor).parameters.items()
-                }
-                temp_dict = {}
-                any_missing = False
-                missing_args = []
-                for j in range(len(args_needed)):
-                    this_arg = args_needed[j]
-                    if hasattr(self, this_arg):
-                        temp_dict[this_arg] = getattr(self, this_arg)
-                    else:
-                        try:
-                            temp_dict[this_arg] = self.parameters[this_arg]
-                        except:
-                            if has_no_default[this_arg]:
-                                # Record missing key-data pair
-                                any_missing = True
-                                missing_key_data.append((key, this_arg))
-                                missing_args.append(this_arg)
+                else:  # (if it's not the special case of get_it_from)
+                    args_needed = get_arg_names(constructor)
+                    has_no_default = {
+                        k: v.default is inspect.Parameter.empty
+                        for k, v in inspect.signature(constructor).parameters.items()
+                    }
+                    temp_dict = {}
+                    any_missing = False
+                    missing_args = []
+                    for j in range(len(args_needed)):
+                        this_arg = args_needed[j]
+                        if hasattr(self, this_arg):
+                            temp_dict[this_arg] = getattr(self, this_arg)
+                        else:
+                            try:
+                                temp_dict[this_arg] = self.parameters[this_arg]
+                            except:
+                                if has_no_default[this_arg]:
+                                    # Record missing key-data pair
+                                    any_missing = True
+                                    missing_key_data.append((key, this_arg))
+                                    missing_args.append(this_arg)
 
                 # If all of the required data was found, run the constructor and
                 # store the result in parameters (and on self)
