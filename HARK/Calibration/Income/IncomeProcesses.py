@@ -1374,28 +1374,10 @@ def make_persistent_income_process_dict(
     PermShkCount : int
         Number of discrete nodes in the permanent income shock distribution (can
         be used during simulation).
-    TranShkStd : [float]
-        Standard deviation of mean one transitory income shocks in each period,
-        assumed to be lognormally distributed.
-    TranShkCount : int
-        Number of discrete nodes in the transitory income shock distribution.
-    UnempPrb : float
-        Probability of the discrete "unemployment" outcome during working life.
-    IncUnemp : float
-        Unemployment benefit replacement rate during the working life.
-    T_retire : int
-        Period of the sequence after which the agent retires.
-    UnempPrbRet : float
-        Probably of "unemployment" shock after retirement.
-    IncUnempRet : float
-        "Unemployment" benefit replacement rate after retirement.
     pLvlInitMean : float
         Mean of permanent income at model entry.
     pLvlInitStd : float
         Standard deviation of log permanent income at model entry.
-    pLvlInitCount : int
-        Number of nodes in discretized initial permanent income distribution,
-        used for simulation.
     PermGroFac : [float]
         Lifecycle sequence of permanent income growth factors, *not* offset by
         one period as in most other HARK models.
