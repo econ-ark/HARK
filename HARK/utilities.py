@@ -16,13 +16,6 @@ from scipy.interpolate import interp1d
 
 from inspect import signature
 
-# try:
-#     import matplotlib.pyplot as plt                 # Python's plotting library
-# except ImportError:
-#     import sys
-#     exception_type, value, traceback = sys.exc_info()
-#     raise ImportError('HARK must be used in a graphical environment.', exception_type, value, traceback)
-
 
 def memoize(obj):
     """
@@ -42,6 +35,30 @@ def memoize(obj):
         return cache[key]
 
     return memoizer
+
+
+class get_it_from:
+    """
+    Class whose instances act as a special case trivial constructor that merely
+    grabs an attribute or entry from the named attribute. This is useful when
+    there are constructed model inputs that are "built together". Simply have a
+    constructor that makes a dictionary (or object) containing the several inputs,
+    then use get_it_from(that_dict_name) as the constructor for each of them.
+
+    Parameters
+    ----------
+    name : str
+        Name of the parent dictionary or object from which to take the object.
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, parent, query):
+        if isinstance(parent, dict):
+            return parent[query]
+        else:
+            return getattr(parent, query)
 
 
 # ==============================================================================
