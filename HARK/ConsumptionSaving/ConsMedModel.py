@@ -1651,13 +1651,13 @@ class ConsMedExtMargSolution(MetricObject):
             self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA)
 
 
-def make_MedExtMarg_solution_terminal(pLvlCount):
+def make_MedExtMarg_solution_terminal(pLogCount):
     """
     Construct a trivial pseudo-terminal solution for the extensive margin medical
     spending model: a list of constant zero functions for (marginal) value. The
     only piece of information needed for this is how many such functions to include.
     """
-    pLvl_terminal = np.arange(pLvlCount)
+    pLvl_terminal = np.arange(pLogCount)
     solution_terminal = ConsMedExtMargSolution(pLvl=pLvl_terminal)
     return solution_terminal
 
@@ -1941,13 +1941,19 @@ med_ext_marg_constructors = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "BeqParamDict": reformat_bequest_motive,
     "BeqFac": get_it_from("BeqParamDict"),
-    "BeqInt": get_it_from("BeqParamDict"),
+    "BeqShift": get_it_from("BeqParamDict"),
     "aNrmGrid": make_assets_grid,
     "mNrmGrid": make_market_resources_grid,
     "kLvlGrid": make_capital_grid,
     "solution_terminal": make_MedExtMarg_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with default bequest motive parameters
+default_BeqParam_dict = {
+    "BeqMPC": 0.1,  # Hypothetical "MPC at death"
+    "BeqInt": 1.0,  # Intercept term for hypothetical "consumption function at death"
 }
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
@@ -1969,8 +1975,8 @@ default_IncomeProcess_params = {
     "T_retire": 0,  # Period of retirement (0 --> no retirement)
     "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
     "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income
+    "pLogInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
     "pLvlInitCount": 25,  # Number of discrete nodes in initial permanent income level dstn
     "PermGroFac": [1.0],  # Permanent income growth factor
     "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
@@ -2031,6 +2037,7 @@ init_med_ext_marg.update(default_aNrmGrid_params)
 init_med_ext_marg.update(default_mNrmGrid_params)
 init_med_ext_marg.update(default_kLvlGrid_params)
 init_med_ext_marg.update(default_kNrmInitDstn_params_ExtMarg)
+init_med_ext_marg.update(default_BeqParam_dict)
 
 
 class ExtMargMedConsumerType(AgentType):

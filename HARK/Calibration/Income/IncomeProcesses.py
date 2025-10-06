@@ -1347,8 +1347,8 @@ def make_persistent_income_process_dict(
     T_cycle,
     PermShkStd,
     PermShkCount,
-    pLvlInitMean,
-    pLvlInitStd,
+    pLogInitMean,
+    pLogInitStd,
     PermGroFac,
     PrstIncCorr,
     pLogCount,
@@ -1374,9 +1374,9 @@ def make_persistent_income_process_dict(
     PermShkCount : int
         Number of discrete nodes in the permanent income shock distribution (can
         be used during simulation).
-    pLvlInitMean : float
-        Mean of permanent income at model entry.
-    pLvlInitStd : float
+    pLogInitMean : float
+        Mean of log permanent income at model entry.
+    pLogInitStd : float
         Standard deviation of log permanent income at model entry.
     PermGroFac : [float]
         Lifecycle sequence of permanent income growth factors, *not* offset by
@@ -1422,12 +1422,12 @@ def make_persistent_income_process_dict(
         )
         pLogGrid = [pLogGrid]
         pLogMrkvArray = [pLogMrkvArray]
-        pLvlMean = [pLvlInitMean]
+        pLvlMean = [pLogInitMean]
 
     else:
         # Start with the pLog distribution at model entry
-        pLvlMeanNow = pLvlInitMean
-        pLogStdNow = pLvlInitStd
+        pLvlMeanNow = pLogInitMean
+        pLogStdNow = pLogInitStd
         pLogGridPrev = np.linspace(
             -pLogRange * pLogStdNow, pLogRange * pLogStdNow, pLogCount
         )
@@ -1449,12 +1449,12 @@ def make_persistent_income_process_dict(
                 )
 
                 # Compute transition probabilities from prior grid to this one
-                pLogCuts = (pLogGridNow[1:] - pLogGridNow[:-1]) / 2.0
+                pLogCuts = (pLogGridNow[1:] + pLogGridNow[:-1]) / 2.0
                 pLogCuts = np.concatenate(([-np.inf], pLogCuts, [np.inf]))
-                distances = np.reshape(pLogGridPrev, (pLogCount, 1)) - np.reshape(
-                    pLogCuts, (1, pLogCount + 1)
+                distances = np.reshape(pLogCuts, (1, pLogCount + 1)) - np.reshape(
+                    pLogGridPrev, (pLogCount, 1)
                 )
-                cdf_array = norm.cdf(distances)
+                cdf_array = norm.cdf(distances / PermShkStd)
                 pLogMrkvNow = cdf_array[:, 1:] - cdf_array[:, :-1]
                 pLogMrkvNow /= np.sum(pLogMrkvNow, axis=1, keepdims=True)
 
