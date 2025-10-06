@@ -1422,11 +1422,11 @@ def make_persistent_income_process_dict(
         )
         pLogGrid = [pLogGrid]
         pLogMrkvArray = [pLogMrkvArray]
-        pLvlMean = [pLogInitMean]
+        pLvlMean = [np.exp(pLogInitMean + 0.5 * pLogInitStd**2)]
 
     else:
         # Start with the pLog distribution at model entry
-        pLvlMeanNow = pLogInitMean
+        pLvlMeanNow = np.exp(pLogInitMean + 0.5 * pLogInitStd**2)
         pLogStdNow = pLogInitStd
         pLogGridPrev = np.linspace(
             -pLogRange * pLogStdNow, pLogRange * pLogStdNow, pLogCount

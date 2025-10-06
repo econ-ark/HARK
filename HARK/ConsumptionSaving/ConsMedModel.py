@@ -1771,7 +1771,7 @@ def solve_one_period_ConsMedExtMarg(
     aLvl = np.dot(
         np.reshape(aNrmGrid, (aNrmGrid.size, 1)), np.reshape(pLvl, (1, pLvl.size))
     )
-    aLvl = np.concatenate([np.zeros((pLvl.size, 1)), aLvl])  # add zero entries
+    aLvl = np.concatenate([np.zeros((1, pLvl.size)), aLvl])  # add zero entries
 
     # Evaluate end-of-period marginal value at each combination of pLvl x aLvl
     pLvlCount = pLvl.size
@@ -1818,7 +1818,7 @@ def solve_one_period_ConsMedExtMarg(
     MedCostLogGrid = np.linspace(bot, top, MedCostCount)
     MedCostGrid = np.exp(MedCostLogGrid)
     mLvl_base = np.dot(
-        np.reshape(mNrmGrid, (mNrmGrid.size, 1), np.reshape(pLvl, (1, pLvlCount)))
+        np.reshape(mNrmGrid, (mNrmGrid.size, 1)), np.reshape(pLvl, (1, pLvlCount))
     )
     mLvl = np.reshape(mLvl_base, (mNrmGrid.size, pLvlCount, 1))
     bLvl_if_care = mLvl - np.reshape(MedCostGrid, (1, 1, MedCostCount))
@@ -1856,12 +1856,16 @@ def solve_one_period_ConsMedExtMarg(
         )
 
         # Compute expected (marginal) value over MedShk for each (mLvl,pLvl_j,MedCost)
+        v_if_care[cant_pay] = 0.0
         v_at_Dcsn[:, j, :] = (
             prob_no_care * (v_if_not + MedShk_no_care_cond_mean)
             + prob_get_care * v_if_care
         )
-        vP_if_care = uP(cFunc_by_pLvl(bLvl_if_care[:, j, :]))
-        vP_if_not = np.reshape(uP(cFunc_by_pLvl(bLvl_if_not[:, j])), (mNrmGrid.size, 1))
+        vP_if_care = uP(cFunc_by_pLvl[j](bLvl_if_care[:, j, :]))
+        vP_if_not = np.reshape(
+            uP(cFunc_by_pLvl[j](bLvl_if_not[:, j])), (mNrmGrid.size, 1)
+        )
+        vP_if_care[cant_pay] = 0.0
         MedShk_rate_of_change = (
             norm.pdf(crit_stdev) * (vP_if_care - vP_if_not) * MedShk_no_care_cond_mean
         )
@@ -1907,7 +1911,7 @@ def solve_one_period_ConsMedExtMarg(
     v_arvl = np.dot(v_by_kLvl_and_pLvl, pLogMrkvArray.T)
     vP_arvl = np.dot(vP_by_kLvl_and_pLvl, pLogMrkvArray.T)
     vNvrs_arvl = n(v_arvl)
-    vPnvrs_arvl = CRRAutilityP_inv(vP_arvl)
+    vPnvrs_arvl = CRRAutilityP_inv(vP_arvl, CRRA)
 
     # Construct "arrival" (marginal) value function by pLvl
     vFuncArvl_by_pLvl = []
@@ -1987,9 +1991,9 @@ default_IncomeProcess_params = {
 # Default parameters to make aNrmGrid using make_assets_grid
 default_aNrmGrid_params = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 30.0,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 40.0,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraCount": 72,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
 }
 
@@ -2007,7 +2011,7 @@ default_kLvlGrid_params = {
     "kLvlMin": 0.0,
     "kLvlMax": 200,
     "kLvlCount": 250,
-    "kLvlOrder": 1.5,
+    "kLvlOrder": 2.0,
 }
 
 # Default "basic" parameters
@@ -2068,7 +2072,7 @@ class ExtMargMedConsumerType(AgentType):
         "pLogGrid",
         "pLvlMean",
         "TranShkDstn",
-        "pLvlMrkvArray",
+        "pLogMrkvArray",
     ]
     time_inv_ = [
         "DiscFac",
@@ -2085,3 +2089,15 @@ class ExtMargMedConsumerType(AgentType):
         "kLvlGrid",
     ]
     shock_vars = ["PermShk", "TranShk", "MedShk", "MedCost"]
+
+
+if __name__ == "__main__":
+    from HARK.utilities import plot_funcs
+    from time import time
+
+    MyType = ExtMargMedConsumerType(cycles=0)
+    t0 = time()
+    MyType.solve()
+    t1 = time()
+    print("Solving the model took " + str(t1 - t0) + " seconds.")
+    plot_funcs(MyType.solution[0].cFunc.xInterpolators, 0.0, 20.0)
