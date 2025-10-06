@@ -227,28 +227,6 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
     trans_alt = sf_array[:, :-1] - sf_array[:, 1:]
     trans_matrix = np.maximum(trans, trans_alt)
     trans_matrix /= np.sum(trans_matrix, axis=1, keepdims=True)
-
-    # trans_matrix = np.ones((N, N))
-    # if inflendpoint:
-    #     for j in range(N):
-    #         for k_1 in range(N - 2):
-    #             k = k_1 + 1
-    #             trans_matrix[j, k] = stats.norm.cdf(
-    #                 (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-    #             ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-    #         trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
-    #         trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-    #             (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
-    #         )
-    # else:
-    #     for j in range(N):
-    #         for k in range(N):
-    #             trans_matrix[j, k] = stats.norm.cdf(
-    #                 (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-    #             ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-    #     ## normalize: each row sums to 1
-    #     trans_matrix = trans_matrix / trans_matrix.sum(axis=1)[:, np.newaxis]
-
     return y, trans_matrix
 
 
