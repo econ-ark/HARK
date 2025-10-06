@@ -1448,14 +1448,21 @@ def make_persistent_income_process_dict(
                     -pLogRange * pLogStdNow, pLogRange * pLogStdNow, pLogCount
                 )
 
-                # Compute transition probabilities from prior grid to this one
+                # Compute transition distances from prior grid to this one
                 pLogCuts = (pLogGridNow[1:] + pLogGridNow[:-1]) / 2.0
                 pLogCuts = np.concatenate(([-np.inf], pLogCuts, [np.inf]))
                 distances = np.reshape(pLogCuts, (1, pLogCount + 1)) - np.reshape(
-                    pLogGridPrev, (pLogCount, 1)
+                    PrstIncCorr * pLogGridPrev, (pLogCount, 1)
                 )
-                cdf_array = norm.cdf(distances / PermShkStd)
+                distances /= PermShkStd
+
+                # Compute transition probabilities, ensuring that very small
+                # probabilities are treated identically in both directions
+                cdf_array = norm.cdf(distances)
+                sf_array = norm.sf(distances)
                 pLogMrkvNow = cdf_array[:, 1:] - cdf_array[:, :-1]
+                pLogMrkvNowAlt = sf_array[:, :-1] - sf_array[:, 1:]
+                pLogMrkvNow = np.maximum(pLogMrkvNow, pLogMrkvNowAlt)
                 pLogMrkvNow /= np.sum(pLogMrkvNow, axis=1, keepdims=True)
 
                 # Add this period's output to the lists
