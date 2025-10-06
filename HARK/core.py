@@ -635,7 +635,7 @@ class Model:
                 # SPECIAL: if the constructor is get_it_from, handle it separately
                 if isinstance(constructor, get_it_from):
                     try:
-                        parent = getattr(self, get_it_from.name)
+                        parent = getattr(self, constructor.name)
                         query = key
                         any_missing = False
                         missing_args = []
