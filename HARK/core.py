@@ -643,7 +643,7 @@ class Model:
                         parent = None
                         query = None
                         any_missing = True
-                        missing_args = [get_it_from.name]
+                        missing_args = [constructor.name]
                     temp_dict = {"parent": parent, "query": query}
 
                 # Get the names of arguments for this constructor and try to gather them
@@ -710,7 +710,8 @@ class Model:
                 if keys_complete[i]:
                     continue
                 msg += " " + keys[i] + ","
-                if keys[i] in backup.keys():
+                key = keys[i]
+                if key in backup.keys():
                     setattr(self, key, backup[key])
                     self.parameters[key] = backup[key]
             msg = msg[:-1]
