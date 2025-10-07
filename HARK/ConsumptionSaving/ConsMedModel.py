@@ -1833,21 +1833,23 @@ def solve_one_period_ConsMedExtMarg(
     # Initialize (marginal) value function arrays over (mLvl,pLvl,MedCost)
     v_at_Dcsn = np.empty_like(bLvl_if_care)
     vP_at_Dcsn = np.empty_like(bLvl_if_care)
+    care_prob_array = np.empty_like(bLvl_if_care)
     for j in range(pLvlCount):
         # Evaluate value function for (bLvl,pLvl_j), including MedCost=0
         v_if_care = u(vNvrsFuncMid_by_pLvl[j](bLvl_if_care[:, j, :]))
         v_if_not = np.reshape(
             u(vNvrsFuncMid_by_pLvl[j](bLvl_if_not[:, j])), (mNrmGrid.size, 1)
         )
+        cant_pay = bLvl_if_care[:, j, :] <= 0.0
+        v_if_care[cant_pay] = -np.inf
 
         # Find value difference at each gridpoint, convert to MedShk stdev; find prob of care
         v_diff = v_if_not - v_if_care
-        cant_pay = bLvl_if_care[:, j, :] <= 0.0
-        v_diff[cant_pay] = np.inf
         log_v_diff = np.log(v_diff)
         crit_stdev = (log_v_diff - MedShkLog_cond_mean) / MedShkLog_cond_std
         prob_no_care = norm.cdf(crit_stdev)
         prob_get_care = 1.0 - prob_no_care
+        care_prob_array[:, j, :] = prob_get_care
 
         # Calculate expected MedShk conditional on not getting medical care
         crit_z = crit_stdev - MedShkLog_cond_std
@@ -1858,7 +1860,7 @@ def solve_one_period_ConsMedExtMarg(
         # Compute expected (marginal) value over MedShk for each (mLvl,pLvl_j,MedCost)
         v_if_care[cant_pay] = 0.0
         v_at_Dcsn[:, j, :] = (
-            prob_no_care * (v_if_not + MedShk_no_care_cond_mean)
+            prob_no_care * (v_if_not - MedShk_no_care_cond_mean)
             + prob_get_care * v_if_care
         )
         vP_if_care = uP(cFunc_by_pLvl[j](bLvl_if_care[:, j, :]))
@@ -1885,6 +1887,16 @@ def solve_one_period_ConsMedExtMarg(
     vP_before_shk = np.sum(vP_at_Dcsn * MedCost_probs, axis=2)
     vNvrs_before_shk = n(v_before_shk)
     vPnvrs_before_shk = CRRAutilityP_inv(vP_before_shk, CRRA)
+
+    # Compute expected medical expenses at each state space point
+    ExpCare_all = care_prob_array * np.reshape(MedCostGrid, (1, 1, MedCostCount))
+    ExpCare = np.sum(ExpCare_all * MedCost_probs, axis=2)
+    ExpCareFunc_by_pLvl = []
+    for j in range(pLvlCount):
+        m_temp = np.insert(mLvl_base[:, j], 0, 0.0)
+        EC_temp = np.insert(ExpCare[:, j], 0, 0.0)
+        ExpCareFunc_by_pLvl.append(LinearInterp(m_temp, EC_temp))
+    ExpCareFunc = LinearInterpOnInterp1D(ExpCareFunc_by_pLvl, pLvl)
 
     # Fixing kLvlGrid, compute expected (marginal) value over TranShk for each (kLvl,pLvl)
     v_by_kLvl_and_pLvl = np.empty((kLvlGrid.size, pLvlCount))
@@ -1931,6 +1943,7 @@ def solve_one_period_ConsMedExtMarg(
         pLvl=pLvl,
         CRRA=CRRA,
     )
+    solution_now.ExpCareFunc = ExpCareFunc
     return solution_now
 
 
@@ -1993,16 +2006,16 @@ default_aNrmGrid_params = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 40.0,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 72,  # Number of points in the grid of "assets above minimum"
+    "aXtraCount": 96,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
 }
 
 # Default parameters to make mLvlGrid using make_market_resources_grid
 default_mNrmGrid_params = {
     "mNrmMin": 0.001,
-    "mNrmMax": 30.0,
+    "mNrmMax": 40.0,
     "mNrmNestFac": 2,
-    "mNrmCount": 64,
+    "mNrmCount": 72,
     "mNrmExtra": None,
 }
 
@@ -2020,18 +2033,18 @@ med_ext_marg_basic_params = {
     "cycles": 1,
     "T_cycle": 1,
     "DiscFac": 0.96,  # intertemporal discount factor
-    "CRRA": 2.0,  # coefficient of relative risk aversion
+    "CRRA": 1.5,  # coefficient of relative risk aversion
     "Rfree": 1.02,  # risk free interest factor
     "CoinsRate": 1.0,  # coinsurance rate
     "LivPrb": [0.99],  # survival probability
     "MedCostBot": -3.1,  # lower bound of medical cost distribution, in stdevs
     "MedCostTop": 5.2,  # upper bound of medical cost distribution, in stdevs
     "MedCostCount": 36,  # number of nodes in medical cost discretization
-    "MedShkLogMean": [-4.0],  # mean of log utility shocks
-    "MedShkLogStd": [1.5],  # standard deviation of log utility shocks
-    "MedCostLogMean": [-2.5],  # mean of log medical expenses
+    "MedShkLogMean": [-2.0],  # mean of log utility shocks
+    "MedShkLogStd": [1.3],  # standard deviation of log utility shocks
+    "MedCostLogMean": [-1.0],  # mean of log medical expenses
     "MedCostLogStd": [1.0],  # standard deviation of log medical expenses
-    "MedCorr": [0.7],  # correlation coefficient between utility shock and expenses
+    "MedCorr": [0.6],  # correlation coefficient between utility shock and expenses
 }
 
 # Combine the dictionaries into a single default dictionary
@@ -2101,3 +2114,4 @@ if __name__ == "__main__":
     t1 = time()
     print("Solving the model took " + str(t1 - t0) + " seconds.")
     plot_funcs(MyType.solution[0].cFunc.xInterpolators, 0.0, 20.0)
+    plot_funcs(MyType.solution[0].ExpCareFunc.xInterpolators, 0.0, 20.0)
