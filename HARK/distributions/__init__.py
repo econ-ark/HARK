@@ -7,6 +7,8 @@ __all__ = [
     "Lognormal",
     "MeanOneLogNormal",
     "Normal",
+    "MultivariateNormal",
+    "MultivariateLognormal",
     "Weibull",
     "Bernoulli",
     "MultivariateLogNormal",
@@ -35,6 +37,8 @@ from HARK.distributions.base import (
 from HARK.distributions.continuous import (
     Lognormal,
     MeanOneLogNormal,
+    MultivariateNormal,
+    MultivariateLognormal,
     Normal,
     Uniform,
     Weibull,

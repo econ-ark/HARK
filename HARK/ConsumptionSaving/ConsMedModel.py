@@ -28,7 +28,12 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     VariableLowerBoundFunc2D,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
-from HARK.distributions import Lognormal, add_discrete_outcome_constant_mean, expected
+from HARK.distributions import (
+    Lognormal,
+    MultivariateLognormal,
+    add_discrete_outcome_constant_mean,
+    expected,
+)
 from HARK.interpolation import (
     BilinearInterp,
     BilinearInterpOnInterp1D,
@@ -629,12 +634,56 @@ def make_lognormal_MedShkDstn(
             method="equiprobable",
             tail_N=MedShkCountTail,
             tail_bound=MedShkTailBound,
+            seed=RNG.integers(0, 2**31 - 1),
         )
         MedShkDstn_t = add_discrete_outcome_constant_mean(
             MedShkDstn_t, 0.0, 0.0, sort=True
         )  # add point at zero with no probability
         MedShkDstn.append(MedShkDstn_t)
     return MedShkDstn
+
+
+def make_continuous_MedShockDstn(
+    MedShkLogMean, MedShkLogStd, MedCostLogMean, MedCostLogStd, MedCorr, T_cycle, RNG
+):
+    """
+    Construct a time-varying list of bivariate lognormals for the medical shocks
+    distribution. This representation uses fully continuous distributions, with
+    no discretization in either dimension.
+
+    Parameters
+    ----------
+    MedShkLogMean : [float]
+        Age-varying list of means of log medical needs (utility) shocks.
+    MedShkLogStd : [float]
+        Age-varying list of standard deviations of log medical needs (utility) shocks.
+    MedCostLogMean : [float]
+        Age-varying list of means of log medical expense shocks.
+    MedCostLogStd : [float]
+        Age-varying list of standard deviations of log medical expense shocks..
+    MedCorr : [float]
+        Age-varying correlation coefficient between log medical expenses and utility shocks.
+    T_cycle : int
+        Number of periods in the agent's sequence.
+    RNG : RandomState
+        Random number generator for this type.
+
+    Returns
+    -------
+    MedShockDstn : [MultivariateLognormal]
+        Age-varying list of bivariate lognormal distributions, ordered as (MedCost,MedShk).
+    """
+    MedShockDstn = []
+    for t in range(T_cycle):
+        s1 = MedCostLogStd[t]
+        s2 = MedShkLogStd[t]
+        diag = MedCorr[t] * s1 * s2
+        S = np.array([[s1, diag], [diag, s2]])
+        M = np.array([MedCostLogMean[t], MedShkLogMean[t]])
+        seed_t = RNG.integers(0, 2**31 - 1)
+        dstn_t = MultivariateLognormal(mu=M, sigma=S, seed=seed_t)
+        MedShockDstn.append(dstn_t)
+    return MedShockDstn
 
 
 def make_MedShock_solution_terminal(
@@ -1531,12 +1580,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        PersistentShockConsumerType.get_shocks(
-            self
-        )  # Get permanent and transitory income shocks
-        MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
-        # Initialize relative price array
+        # Get permanent and transitory income shocks
+        PersistentShockConsumerType.get_shocks(self)
+
+        # Initialize medical shock array and relative price array
+        MedShkNow = np.zeros(self.AgentCount)
         MedPriceNow = np.zeros(self.AgentCount)
+
+        # Get shocks for each period of the cycle
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)
@@ -1548,8 +1599,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
     def get_controls(self):
         """
-        Calculates consumption and medical care for each consumer of this type using the consumption
-        and medical care functions.
+        Calculates consumption and medical care for each consumer of this type
+        using the consumption and medical care functions.
 
         Parameters
         ----------
@@ -1592,8 +1643,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
         # moves now to prev
         AgentType.get_poststates(self)
-
-        return None
 
 
 ###############################################################################
@@ -1949,6 +1998,7 @@ def solve_one_period_ConsMedExtMarg(
 
 # Define a dictionary of constructors for the extensive margin medical spending model
 med_ext_marg_constructors = {
+    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
     "IncomeProcessDict": make_persistent_income_process_dict,
     "pLogGrid": get_it_from("IncomeProcessDict"),
     "pLvlMean": get_it_from("IncomeProcessDict"),
@@ -1965,6 +2015,7 @@ med_ext_marg_constructors = {
     "solution_terminal": make_MedExtMarg_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "MedShockDstn": make_continuous_MedShockDstn,
 }
 
 # Make a dictionary with default bequest motive parameters
@@ -1975,7 +2026,7 @@ default_BeqParam_dict = {
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
 default_kNrmInitDstn_params_ExtMarg = {
-    "kLogInitMean": 0.0,  # Mean of log initial capital
+    "kLogInitMean": -3.0,  # Mean of log initial capital
     "kLogInitStd": 1.0,  # Stdev of log initial capital
     "kNrmInitCount": 15,  # Number of points in initial capital discretization
 }
@@ -2030,21 +2081,25 @@ default_kLvlGrid_params = {
 # Default "basic" parameters
 med_ext_marg_basic_params = {
     "constructors": med_ext_marg_constructors,
-    "cycles": 1,
-    "T_cycle": 1,
+    "cycles": 1,  # Lifecycle by default
+    "T_cycle": 1,  # Number of periods in the default sequence
+    "T_age": None,
+    "AgentCount": 10000,  # Number of agents to simulate
     "DiscFac": 0.96,  # intertemporal discount factor
-    "CRRA": 2.0,  # coefficient of relative risk aversion
-    "Rfree": 1.02,  # risk free interest factor
+    "CRRA": 1.5,  # coefficient of relative risk aversion
+    "Rfree": [1.02],  # risk free interest factor
     "CoinsRate": 1.0,  # coinsurance rate
     "LivPrb": [0.99],  # survival probability
     "MedCostBot": -3.1,  # lower bound of medical cost distribution, in stdevs
     "MedCostTop": 5.2,  # upper bound of medical cost distribution, in stdevs
     "MedCostCount": 84,  # number of nodes in medical cost discretization
     "MedShkLogMean": [-2.0],  # mean of log utility shocks
-    "MedShkLogStd": [1.5],  # standard deviation of log utility shocks
+    "MedShkLogStd": [1.0],  # standard deviation of log utility shocks
     "MedCostLogMean": [-1.0],  # mean of log medical expenses
     "MedCostLogStd": [1.0],  # standard deviation of log medical expenses
     "MedCorr": [0.3],  # correlation coefficient between utility shock and expenses
+    "PermGroFacAgg": 1.0,  # Aggregate productivity growth rate (leave at 1)
+    "NewbornTransShk": True,  # Whether "newborns" have a transitory income shock
 }
 
 # Combine the dictionaries into a single default dictionary
@@ -2057,7 +2112,7 @@ init_med_ext_marg.update(default_kNrmInitDstn_params_ExtMarg)
 init_med_ext_marg.update(default_BeqParam_dict)
 
 
-class ExtMargMedConsumerType(AgentType):
+class ExtMargMedConsumerType(PersistentShockConsumerType):
     """
     Class for representing agents in the extensive margin medical expense model.
     Such agents have labor income dynamics identical to the "general income process"
@@ -2076,6 +2131,7 @@ class ExtMargMedConsumerType(AgentType):
     }
 
     time_vary_ = [
+        "Rfree",
         "LivPrb",
         "MedShkLogMean",
         "MedShkLogStd",
@@ -2092,7 +2148,6 @@ class ExtMargMedConsumerType(AgentType):
         "CRRA",
         "BeqFac",
         "BeqShift",
-        "Rfree",
         "CoinsRate",
         "MedCostBot",
         "MedCostTop",
@@ -2102,6 +2157,82 @@ class ExtMargMedConsumerType(AgentType):
         "kLvlGrid",
     ]
     shock_vars = ["PermShk", "TranShk", "MedShk", "MedCost"]
+
+    def get_shocks(self):
+        """
+        Gets permanent and transitory income shocks for this period as well as
+        medical need and cost shocks.
+        """
+        # Get permanent and transitory income shocks
+        PersistentShockConsumerType.get_shocks(self)
+
+        # Initialize medical shock array and cost of care array
+        MedShkNow = np.zeros(self.AgentCount)
+        MedCostNow = np.zeros(self.AgentCount)
+
+        # Get shocks for each period of the cycle
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            if np.any(these):
+                N = np.sum(these)
+                dstn_t = self.MedShockDstn[t]
+                draws_t = dstn_t.draw(N)
+                MedCostNow[these] = draws_t[:, 0]
+                MedShkNow[these] = draws_t[:, 1]
+        self.shocks["MedShk"] = MedShkNow
+        self.shocks["MedCost"] = MedCostNow
+
+    def get_controls(self):
+        """
+        Finds consumption for each agent, along with whether or not they get care.
+        """
+        # Initialize output
+        cLvlNow = np.empty(self.AgentCount)
+        CareNow = np.zeros(self.AgentCount, dtype=bool)
+
+        # Get states and shocks
+        mLvl = self.state_now["mLvl"]
+        pLvl = self.state_now["pLvl"]
+        MedCost = self.shocks["MedCost"]
+        MedShk = self.shocks["MedShk"]
+
+        # Find remaining resources with and without care
+        bLvl_no_care = mLvl
+        bLvl_with_care = mLvl - MedCost
+        cant_pay = bLvl_with_care <= 0.0
+
+        # Get controls for each period of the cycle
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            if np.any(these):
+                vFunc_t = self.solution[t].vFuncMid
+                cFunc_t = self.solution[t].cFunc
+
+                v_no_care = vFunc_t(bLvl_no_care[these], pLvl[these]) - MedShk[these]
+                v_with_care = vFunc_t(bLvl_with_care[these], pLvl[these])
+                v_with_care[cant_pay[these]] = -np.inf
+                get_care = v_with_care > v_no_care
+
+                b_temp = bLvl_no_care[these]
+                b_temp[get_care] = bLvl_with_care[get_care]
+                cLvlNow[these] = cFunc_t(b_temp, pLvl[these])
+                CareNow[these] = get_care
+
+        # Store the results
+        self.controls["cLvl"] = cLvlNow
+        self.controls["Care"] = CareNow
+
+    def get_poststates(self):
+        """
+        Calculates end-of-period assets for each consumer of this type.
+        """
+        self.state_now["MedLvl"] = self.shocks["MedCost"] * self.controls["Care"]
+        self.state_now["aLvl"] = (
+            self.state_now["mLvl"] - self.controls["cLvl"] - self.state_now["MedLvl"]
+        )
+
+        # Move now to prev
+        AgentType.get_poststates(self)
 
 
 if __name__ == "__main__":
@@ -2115,3 +2246,11 @@ if __name__ == "__main__":
     print("Solving the model took " + str(t1 - t0) + " seconds.")
     plot_funcs(MyType.solution[0].cFunc.xInterpolators, 0.0, 20.0)
     plot_funcs(MyType.solution[0].ExpCareFunc.xInterpolators, 0.0, 20.0)
+
+    t0 = time()
+    MyType.track_vars = ["aLvl", "cLvl", "MedLvl"]
+    MyType.T_sim = 100
+    MyType.initialize_sim()
+    MyType.simulate()
+    t1 = time()
+    print("Simulating the model took " + str(t1 - t0) + " seconds.")
