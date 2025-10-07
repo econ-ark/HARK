@@ -2033,18 +2033,18 @@ med_ext_marg_basic_params = {
     "cycles": 1,
     "T_cycle": 1,
     "DiscFac": 0.96,  # intertemporal discount factor
-    "CRRA": 1.5,  # coefficient of relative risk aversion
+    "CRRA": 2.0,  # coefficient of relative risk aversion
     "Rfree": 1.02,  # risk free interest factor
     "CoinsRate": 1.0,  # coinsurance rate
     "LivPrb": [0.99],  # survival probability
     "MedCostBot": -3.1,  # lower bound of medical cost distribution, in stdevs
     "MedCostTop": 5.2,  # upper bound of medical cost distribution, in stdevs
-    "MedCostCount": 36,  # number of nodes in medical cost discretization
+    "MedCostCount": 84,  # number of nodes in medical cost discretization
     "MedShkLogMean": [-2.0],  # mean of log utility shocks
-    "MedShkLogStd": [1.3],  # standard deviation of log utility shocks
+    "MedShkLogStd": [1.5],  # standard deviation of log utility shocks
     "MedCostLogMean": [-1.0],  # mean of log medical expenses
     "MedCostLogStd": [1.0],  # standard deviation of log medical expenses
-    "MedCorr": [0.6],  # correlation coefficient between utility shock and expenses
+    "MedCorr": [0.3],  # correlation coefficient between utility shock and expenses
 }
 
 # Combine the dictionaries into a single default dictionary
