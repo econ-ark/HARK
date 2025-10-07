@@ -1776,12 +1776,23 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
                 new_param_dict[name] = getattr(agent.solution[t], name)
             elif name in time_vary:
                 s = (t_cycle - 1) if name in offset else t_cycle
-                new_param_dict[name] = getattr(agent, name)[s]
+                try:
+                    new_param_dict[name] = getattr(agent, name)[s]
+                except:
+                    raise ValueError(
+                        "Couldn't get a value for time-varying object "
+                        + name
+                        + " at time index "
+                        + str(s)
+                        + "!"
+                    )
             elif name in time_inv:
                 continue
             else:
                 raise ValueError(
-                    "Couldn't get a value for time-varying object " + name + "!"
+                    "The object called "
+                    + name
+                    + " is not named in time_inv nor time_vary!"
                 )
 
         # Fill in content for this period, then add it to the list

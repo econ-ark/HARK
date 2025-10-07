@@ -167,7 +167,7 @@ class MultivariateNormal(ContinuousFrozenDistribution):
         self.dstn = multivariate_normal(mean=self.mu, cov=self.sigma, seed=self.seed)
 
     def draw(self, N=1):
-        return self.dstn.rvs(size=N)
+        return self.dstn.rvs(size=N).T
 
 
 class MultivariateLognormal(ContinuousFrozenDistribution):
@@ -202,7 +202,7 @@ class MultivariateLognormal(ContinuousFrozenDistribution):
         self.dstn = multivariate_normal(mean=self.mu, cov=self.sigma, seed=self.seed)
 
     def draw(self, N=1):
-        return np.exp(self.dstn.rvs(size=N))
+        return np.exp(self.dstn.rvs(size=N).T)
 
 
 class Lognormal(ContinuousFrozenDistribution):

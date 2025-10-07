@@ -1697,7 +1697,7 @@ class ConsMedExtMargSolution(MetricObject):
             self.cFunc = None
         if vNvrsFuncMid_by_pLvl is not None:
             vNvrsFuncMid = LinearInterpOnInterp1D(vNvrsFuncMid_by_pLvl, pLvl)
-            self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA)
+            self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA, illegal_value=-np.inf)
 
 
 def make_MedExtMarg_solution_terminal(pLogCount):
@@ -1709,6 +1709,9 @@ def make_MedExtMarg_solution_terminal(pLogCount):
     pLvl_terminal = np.arange(pLogCount)
     solution_terminal = ConsMedExtMargSolution(pLvl=pLvl_terminal)
     return solution_terminal
+
+
+###############################################################################
 
 
 def solve_one_period_ConsMedExtMarg(
@@ -1996,6 +1999,9 @@ def solve_one_period_ConsMedExtMarg(
     return solution_now
 
 
+###############################################################################
+
+
 # Define a dictionary of constructors for the extensive margin medical spending model
 med_ext_marg_constructors = {
     "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
@@ -2026,7 +2032,7 @@ default_BeqParam_dict = {
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
 default_kNrmInitDstn_params_ExtMarg = {
-    "kLogInitMean": -3.0,  # Mean of log initial capital
+    "kLogInitMean": -6.0,  # Mean of log initial capital
     "kLogInitStd": 1.0,  # Stdev of log initial capital
     "kNrmInitCount": 15,  # Number of points in initial capital discretization
 }
@@ -2128,6 +2134,7 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
     default_ = {
         "params": init_med_ext_marg,
         "solver": solve_one_period_ConsMedExtMarg,
+        "model": "ConsExtMargMed.yaml",
     }
 
     time_vary_ = [
@@ -2142,6 +2149,9 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
         "pLvlMean",
         "TranShkDstn",
         "pLogMrkvArray",
+        "pLvlNextFunc",
+        "IncShkDstn",
+        "MedShockDstn",
     ]
     time_inv_ = [
         "DiscFac",
@@ -2177,8 +2187,8 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
                 N = np.sum(these)
                 dstn_t = self.MedShockDstn[t]
                 draws_t = dstn_t.draw(N)
-                MedCostNow[these] = draws_t[:, 0]
-                MedShkNow[these] = draws_t[:, 1]
+                MedCostNow[these] = draws_t[0, :]
+                MedShkNow[these] = draws_t[1, :]
         self.shocks["MedShk"] = MedShkNow
         self.shocks["MedCost"] = MedCostNow
 
@@ -2199,7 +2209,6 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
         # Find remaining resources with and without care
         bLvl_no_care = mLvl
         bLvl_with_care = mLvl - MedCost
-        cant_pay = bLvl_with_care <= 0.0
 
         # Get controls for each period of the cycle
         for t in range(self.T_cycle):
@@ -2209,9 +2218,8 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
                 cFunc_t = self.solution[t].cFunc
 
                 v_no_care = vFunc_t(bLvl_no_care[these], pLvl[these]) - MedShk[these]
-                v_with_care = vFunc_t(bLvl_with_care[these], pLvl[these])
-                v_with_care[cant_pay[these]] = -np.inf
-                get_care = v_with_care > v_no_care
+                v_if_care = vFunc_t(bLvl_with_care[these], pLvl[these])
+                get_care = v_if_care > v_no_care
 
                 b_temp = bLvl_no_care[these]
                 b_temp[get_care] = bLvl_with_care[get_care]
@@ -2230,7 +2238,6 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
         self.state_now["aLvl"] = (
             self.state_now["mLvl"] - self.controls["cLvl"] - self.state_now["MedLvl"]
         )
-
         # Move now to prev
         AgentType.get_poststates(self)
 
@@ -2254,3 +2261,9 @@ if __name__ == "__main__":
     MyType.simulate()
     t1 = time()
     print("Simulating the model took " + str(t1 - t0) + " seconds.")
+
+    t0 = time()
+    MyType.initialize_sym()
+    MyType.symulate()
+    t1 = time()
+    print("Symulating the model took " + str(t1 - t0) + " seconds.")

@@ -4726,13 +4726,18 @@ class ValueFuncCRRA(MetricObject):
         inverse utility function, defined on the state: u_inv(vFunc(state))
     CRRA : float
         Coefficient of relative risk aversion.
+    illegal_value : float, optional
+        If provided, value to return for "out-of-bounds" inputs that return NaN
+        from the pseudo-inverse value function. Most common choice is -np.inf,
+        which makes the outcome infinitely bad.
     """
 
     distance_criteria = ["func", "CRRA"]
 
-    def __init__(self, vFuncNvrs, CRRA):
+    def __init__(self, vFuncNvrs, CRRA, illegal_value=None):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
+        self.illegal_value = illegal_value
 
         if hasattr(vFuncNvrs, "grid_list"):
             self.grid_list = vFuncNvrs.grid_list
@@ -4755,13 +4760,17 @@ class ValueFuncCRRA(MetricObject):
             Lifetime value of beginning this period with the given states; has
             same size as the state inputs.
         """
-        #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
-        return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
+        temp = self.vFuncNvrs(*vFuncArgs)
+        v = CRRAutility(temp, self.CRRA)
+        if self.illegal_value is not None:
+            illegal = np.isnan(temp)
+            v[illegal] = self.illegal_value
+        return v
 
     def gradient(self, *args):
         NvrsGrad = self.vFuncNvrs.gradient(*args)
-        grad = [CRRAutilityP(g, self.CRRA) for g in NvrsGrad]
-
+        marg_u = CRRAutilityP(*args, self.CRRA)
+        grad = [g * marg_u for g in NvrsGrad]
         return grad
 
     def _eval_and_grad(self, *args):
