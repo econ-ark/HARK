@@ -628,13 +628,14 @@ def make_lognormal_MedShkDstn(
         MedShkAvg_t = MedShkAvg[t]
         MedShkStd_t = MedShkStd[t]
         MedShkDstn_t = Lognormal(
-            mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2, sigma=MedShkStd_t
+            mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2,
+            sigma=MedShkStd_t,
+            seed=RNG.integers(0, 2**31 - 1),
         ).discretize(
             N=MedShkCount,
             method="equiprobable",
             tail_N=MedShkCountTail,
             tail_bound=MedShkTailBound,
-            seed=RNG.integers(0, 2**31 - 1),
         )
         MedShkDstn_t = add_discrete_outcome_constant_mean(
             MedShkDstn_t, 0.0, 0.0, sort=True
