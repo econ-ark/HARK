@@ -17,21 +17,23 @@ Overview
 
    ../../examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
    ../../examples/Gentle-Intro/Simulation-Intro.ipynb
-   ../../examples/LifecycleModel/Cycles_tutorial.ipynb
+   ../../examples/Gentle-Intro/Cycles-Intro.ipynb
    ../../examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
    ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
-   ../../examples/ConsPortfolioModel/example_ConsPortfolioModel.ipynb
-   ../../examples/GenIncProcessModel/GenIncProcessModel.ipynb
+   ../../examples/ConsIndShockModel/MarkovConsumerType.ipynb
+   ../../examples/GenIncProcessModel/GenIncProcessConsumerType.ipynb
+   ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
+   ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
+   ../../examples/PrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb
-   ../../examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.ipynb
    ../../examples/Journeys/Journey-PhD.ipynb
-   ../../examples/ConsNewKeynesianModel/Transition_Matrix_Example.ipynb
-   ../../examples/ConsNewKeynesianModel/Jacobian_Example.ipynb
-   ../../examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb
-   ../../examples/ConsNewKeynesianModel/HANKFiscal_example.ipynb
-   ../../examples/ConsNewKeynesianModel/SSJ_explanation.ipynb
+   ../../examples/SequenceSpaceJacobians/Transition_Matrix_Example.ipynb
+   ../../examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
+   ../../examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
+   ../../examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
 
 .. toctree::
