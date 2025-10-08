@@ -1,5 +1,5 @@
 ConsNewKeynesianModel
---------------------
+---------------------
 
 .. automodule:: HARK.ConsumptionSaving.ConsNewKeynesianModel
    :members:

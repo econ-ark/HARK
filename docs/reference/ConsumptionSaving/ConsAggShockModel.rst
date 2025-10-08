@@ -1,5 +1,5 @@
 ConsAggShockModel
---------------------
+-----------------
 
 .. automodule:: HARK.ConsumptionSaving.ConsAggShockModel
    :members:

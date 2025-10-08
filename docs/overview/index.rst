@@ -23,6 +23,7 @@ Overview
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
    ../../examples/ConsMarkovModel/MarkovConsumerType.ipynb
    ../../examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
+   ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
    ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
    ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
@@ -30,6 +31,7 @@ Overview
    ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
    ../../examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
+   ../../examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb
    ../../examples/Journeys/Journey-PhD.ipynb
    ../../examples/SequenceSpaceJacobians/Transition_Matrix_Example.ipynb
