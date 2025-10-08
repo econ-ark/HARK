@@ -27,7 +27,7 @@ Overview
    ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
    ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
-   ../../examples/PrefShockModel/PrefShockConsumerType.ipynb
+   ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
    ../../examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb
