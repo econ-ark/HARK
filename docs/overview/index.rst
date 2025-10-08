@@ -21,12 +21,15 @@ Overview
    ../../examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
    ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
-   ../../examples/ConsIndShockModel/MarkovConsumerType.ipynb
-   ../../examples/GenIncProcessModel/GenIncProcessConsumerType.ipynb
+   ../../examples/ConsMarkovModel/MarkovConsumerType.ipynb
+   ../../examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
+   ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
+   ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
    ../../examples/PrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
+   ../../examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb
    ../../examples/Journeys/Journey-PhD.ipynb
    ../../examples/SequenceSpaceJacobians/Transition_Matrix_Example.ipynb
