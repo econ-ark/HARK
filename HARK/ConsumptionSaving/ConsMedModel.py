@@ -1302,7 +1302,7 @@ medshock_constructor_dict = {
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
 default_kNrmInitDstn_params = {
-    "kLogInitMean": 0.0,  # Mean of log initial capital
+    "kLogInitMean": -6.0,  # Mean of log initial capital
     "kLogInitStd": 1.0,  # Stdev of log initial capital
     "kNrmInitCount": 15,  # Number of points in initial capital discretization
 }
@@ -1362,8 +1362,8 @@ default_pLvlNextFunc_params = {
 
 # Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
 default_MedShkDstn_params = {
-    "MedShkAvg": [0.001],  # Average of medical need shocks
-    "MedShkStd": [5.0],  # Standard deviation of (log) medical need shocks
+    "MedShkAvg": [0.1],  # Average of medical need shocks
+    "MedShkStd": [4.0],  # Standard deviation of (log) medical need shocks
     "MedShkCount": 5,  # Number of medical shock points in "body"
     "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
     "MedPrice": [1.5],  # Relative price of a unit of medical care
@@ -1381,7 +1381,7 @@ init_medical_shocks = {
     "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
     "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability after each period
+    "LivPrb": [0.99],  # Survival probability after each period
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
@@ -1422,7 +1422,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         M_{t+1} &=& R A_t + Y_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1},\\
         \eta_t &~\sim& G_t,\\
-        U_t(C, med; \eta) &=& \frac{C^{1-\rho}}{1-\rho}+\eta \frac{med^{1-\nu}}{1-\nu}.
+        U_t(C, med; \eta) &=& \frac{C^{1-\rho}}{1-\rho} +\eta \frac{med^{1-\nu}}{1-\nu}.
         \end{eqnarray*}
 
 
@@ -1430,27 +1430,21 @@ class MedShockConsumerType(PersistentShockConsumerType):
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
         Its default constructor is :func:`HARK.utilities.make_assets_grid`
     pLvlNextFunc: Constructor
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
     MedShkDstn: Constructor, :math:`\text{medShk}`
         The agent's Medical utility shock distribution.
-
         Its default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`
 
     Solving Parameters
@@ -2120,7 +2114,7 @@ init_med_ext_marg.update(default_BeqParam_dict)
 
 
 class ExtMargMedConsumerType(PersistentShockConsumerType):
-    """
+    r"""
     Class for representing agents in the extensive margin medical expense model.
     Such agents have labor income dynamics identical to the "general income process"
     model (permanent income is not normalized out), and also experience a medical
@@ -2130,6 +2124,20 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
     of medical shocks is specified as bivariate lognormal. This can be loosened to
     accommodate insurance contracts as mappings from total to out-of-pocket expenses.
     Can also be extended to include a health process.
+
+    .. math::
+        \begin{eqnarray*}
+        V_t(M_t,P_t) &=& \max_{C_t, D_t} U_t(C_t) - (1-D_t) \eta_t + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}], \\
+        A_t &=& M_t - C_t - D_t med_t,  \\
+        A_t/ &\geq& 0, \\
+        D_t &\in& \{0,1\}, \\
+        P_{t+1} &=& \Gamma_{t+1}(P_t)\psi_{t+1}, \\
+        Y_{t+1} &=& P_{t+1} \theta_{t+1}
+        M_{t+1} &=& R A_t + Y_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1},\\
+        (med_t,\eta_t) &~\sim& G_t,\\
+        U_t(C) &=& \frac{C^{1-\rho}}{1-\rho}.
+        \end{eqnarray*}
     """
 
     default_ = {
