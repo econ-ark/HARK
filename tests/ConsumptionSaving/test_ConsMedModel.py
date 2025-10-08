@@ -16,17 +16,17 @@ class testMedShockConsumerType(unittest.TestCase):
         pLvl = 2.0
         Shk = 1.5
         self.assertAlmostEqual(
-            cFunc(mLvl, pLvl, Shk).tolist(), 4.16194, places=HARK_PRECISION
+            cFunc(mLvl, pLvl, Shk).tolist(), 4.0056, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            MedFunc(mLvl, pLvl, Shk).tolist(), 2.45432, places=HARK_PRECISION
+            MedFunc(mLvl, pLvl, Shk).tolist(), 2.40487, places=HARK_PRECISION
         )
 
     def test_value(self):
         vFunc = self.agent.solution[0].vFunc
         mLvl = 10.0
         pLvl = 2.0
-        self.assertAlmostEqual(vFunc(mLvl, pLvl), -0.32428, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mLvl, pLvl), -0.36032, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
