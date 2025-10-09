@@ -6,7 +6,7 @@ from copy import deepcopy
 
 import numpy as np
 from scipy.stats import norm
-from scipy.special import erf
+from scipy.special import erfc
 from scipy.optimize import brentq
 
 from HARK import AgentType
@@ -1717,7 +1717,6 @@ def solve_one_period_ConsMedExtMarg(
     BeqShift,
     Rfree,
     LivPrb,
-    CoinsRate,
     MedShkLogMean,
     MedShkLogStd,
     MedCostLogMean,
@@ -1759,9 +1758,6 @@ def solve_one_period_ConsMedExtMarg(
         Risk free return factor on saving.
     LivPrb : float
         Survival probability from this period to the next one.
-    CoinsRate : float
-        Out-of-pocket fractional cost of medical care. Will be used to do a quick
-        and dirty moral hazard analysis without insurance choice.
     MedShkLogMean : float
         Mean of log utility shocks, assumed to be lognormally distributed.
     MedShkLogStd : float
@@ -1874,7 +1870,7 @@ def solve_one_period_ConsMedExtMarg(
     # Calculate mean (log) utility shock for each MedCost gridpoint, and conditional stdev
     MedShkLog_cond_mean = MedShkLogMean + MedCorr * MedShkLogStd * MedCostLogGrid
     MedShkLog_cond_mean = np.reshape(MedShkLog_cond_mean, (1, MedCostCount))
-    MedShkLog_cond_std = MedShkLogStd**2 * (1.0 - MedCorr**2)
+    MedShkLog_cond_std = np.sqrt(MedShkLogStd**2 * (1.0 - MedCorr**2))
     MedShk_cond_mean = np.exp(MedShkLog_cond_mean + 0.5 * MedShkLog_cond_std**2)
 
     # Initialize (marginal) value function arrays over (mLvl,pLvl,MedCost)
@@ -1900,9 +1896,7 @@ def solve_one_period_ConsMedExtMarg(
 
         # Calculate expected MedShk conditional on not getting medical care
         crit_z = crit_stdev - MedShkLog_cond_std
-        MedShk_no_care_cond_mean = (
-            0.5 * MedShk_cond_mean * (1.0 - erf(crit_z)) / prob_no_care
-        )
+        MedShk_no_care_cond_mean = 0.5 * MedShk_cond_mean * erfc(crit_z) / prob_no_care
 
         # Compute expected (marginal) value over MedShk for each (mLvl,pLvl_j,MedCost)
         v_if_care[cant_pay] = 0.0
@@ -2089,13 +2083,12 @@ med_ext_marg_basic_params = {
     "DiscFac": 0.96,  # intertemporal discount factor
     "CRRA": 1.5,  # coefficient of relative risk aversion
     "Rfree": [1.02],  # risk free interest factor
-    "CoinsRate": 1.0,  # coinsurance rate
     "LivPrb": [0.99],  # survival probability
     "MedCostBot": -3.1,  # lower bound of medical cost distribution, in stdevs
     "MedCostTop": 5.2,  # upper bound of medical cost distribution, in stdevs
     "MedCostCount": 84,  # number of nodes in medical cost discretization
     "MedShkLogMean": [-2.0],  # mean of log utility shocks
-    "MedShkLogStd": [1.0],  # standard deviation of log utility shocks
+    "MedShkLogStd": [1.5],  # standard deviation of log utility shocks
     "MedCostLogMean": [-1.0],  # mean of log medical expenses
     "MedCostLogStd": [1.0],  # standard deviation of log medical expenses
     "MedCorr": [0.3],  # correlation coefficient between utility shock and expenses
@@ -2113,7 +2106,7 @@ init_med_ext_marg.update(default_kNrmInitDstn_params_ExtMarg)
 init_med_ext_marg.update(default_BeqParam_dict)
 
 
-class ExtMargMedConsumerType(PersistentShockConsumerType):
+class MedExtMargConsumerType(PersistentShockConsumerType):
     r"""
     Class for representing agents in the extensive margin medical expense model.
     Such agents have labor income dynamics identical to the "general income process"
@@ -2167,7 +2160,6 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
         "CRRA",
         "BeqFac",
         "BeqShift",
-        "CoinsRate",
         "MedCostBot",
         "MedCostTop",
         "MedCostCount",
@@ -2249,30 +2241,3 @@ class ExtMargMedConsumerType(PersistentShockConsumerType):
         )
         # Move now to prev
         AgentType.get_poststates(self)
-
-
-if __name__ == "__main__":
-    from HARK.utilities import plot_funcs
-    from time import time
-
-    MyType = ExtMargMedConsumerType(cycles=0)
-    t0 = time()
-    MyType.solve()
-    t1 = time()
-    print("Solving the model took " + str(t1 - t0) + " seconds.")
-    plot_funcs(MyType.solution[0].cFunc.xInterpolators, 0.0, 20.0)
-    plot_funcs(MyType.solution[0].ExpCareFunc.xInterpolators, 0.0, 20.0)
-
-    t0 = time()
-    MyType.track_vars = ["aLvl", "cLvl", "MedLvl"]
-    MyType.T_sim = 100
-    MyType.initialize_sim()
-    MyType.simulate()
-    t1 = time()
-    print("Simulating the model took " + str(t1 - t0) + " seconds.")
-
-    t0 = time()
-    MyType.initialize_sym()
-    MyType.symulate()
-    t1 = time()
-    print("Symulating the model took " + str(t1 - t0) + " seconds.")
