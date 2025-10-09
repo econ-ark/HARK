@@ -1917,7 +1917,6 @@ def solve_one_period_ConsMedExtMarg(
             + prob_get_care * vP_if_care
             + MedShk_rate_of_change
         )
-        # CHECK THE SIGN OF THE LAST TERM, MIGHT BE WRONG
 
     # Compute expected (marginal) value over MedCost for each (mLvl,pLvl)
     temp_grid = np.linspace(MedCostBot, MedCostTop, MedCostCount)
