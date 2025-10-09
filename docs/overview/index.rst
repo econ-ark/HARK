@@ -25,6 +25,7 @@ Overview
    ../../examples/GenIncProcessModel/GenIncProcessModel.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
    ../../examples/ConsMedModel/MedShockConsumerType.ipynb
+   ../../examples/ConsMedModel/MedExtmargConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb
    ../../examples/HowWeSolveIndShockConsumerType/HowWeSolveIndShockConsumerType.ipynb
    ../../examples/Journeys/Journey-PhD.ipynb

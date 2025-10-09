@@ -5,6 +5,7 @@ examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
 examples/ConsIndShockModel/IndShockConsumerType.ipynb
 examples/ConsIndShockModel/KinkedRconsumerType.ipynb
 examples/ConsMedModel/MedShockConsumerType.ipynb
+examples/ConsMedModel/MedExtMargConsumerType.ipynb
 examples/ConsPortfolioModel/example_ConsPortfolioModel.ipynb
 examples/GenIncProcessModel/GenIncProcessModel.ipynb
 examples/ConsHealthModel/BasicHealthConsumerType.ipynb
