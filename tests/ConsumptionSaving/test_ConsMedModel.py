@@ -46,7 +46,7 @@ class testMedExtMargConsumerType(unittest.TestCase):
 
     def test_solution(self):
         cFunc = self.agent.solution[0].cFunc
-        MedFunc = self.agent.solution[0].ExpCareFunc
+        MedFunc = self.agent.solution[0].ExpMedFunc
         mLvl = 10.0
         pLvl = 2.0
         self.assertAlmostEqual(cFunc(mLvl, pLvl).tolist(), 10.0, places=HARK_PRECISION)

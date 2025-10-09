@@ -1659,6 +1659,12 @@ class ConsMedExtMargSolution(MetricObject):
         List of consumption functions over bLvl, by pLvl.
     vNvrsFuncMid_by_pLvl : [function]
         List of pseudo-inverse value function for consumption phase over bLvl, by pLvl.
+    ExpMedFunc : function
+        Expected medical care as a function of mLvl and pLvl, just before medical
+        shock is realized.
+    CareProbFunc : function
+        Probability of getting medical treatment as a function of mLvl and pLvl,
+        just before medical shock is realized.
     pLvl : np.array
         Grid of permanent income levels during the period (after shocks).
     CRRA : float
@@ -1673,6 +1679,8 @@ class ConsMedExtMargSolution(MetricObject):
         vPfunc_by_pLvl=None,
         cFunc_by_pLvl=None,
         vNvrsFuncMid_by_pLvl=None,
+        ExpMedFunc=None,
+        CareProbFunc=None,
         pLvl=None,
         CRRA=None,
     ):
@@ -1693,6 +1701,10 @@ class ConsMedExtMargSolution(MetricObject):
         if vNvrsFuncMid_by_pLvl is not None:
             vNvrsFuncMid = LinearInterpOnInterp1D(vNvrsFuncMid_by_pLvl, pLvl)
             self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA, illegal_value=-np.inf)
+        if ExpMedFunc is not None:
+            self.ExpMedFunc = ExpMedFunc
+        if CareProbFunc is not None:
+            self.CareProbFunc = CareProbFunc
 
 
 def make_MedExtMarg_solution_terminal(pLogCount):
@@ -1931,12 +1943,17 @@ def solve_one_period_ConsMedExtMarg(
     # Compute expected medical expenses at each state space point
     ExpCare_all = care_prob_array * np.reshape(MedCostGrid, (1, 1, MedCostCount))
     ExpCare = np.sum(ExpCare_all * MedCost_probs, axis=2)
+    ProbCare = np.sum(care_prob_array * MedCost_probs, axis=2)
     ExpCareFunc_by_pLvl = []
+    CareProbFunc_by_pLvl = []
     for j in range(pLvlCount):
         m_temp = np.insert(mLvl_base[:, j], 0, 0.0)
         EC_temp = np.insert(ExpCare[:, j], 0, 0.0)
+        prob_temp = np.insert(ProbCare[:, j], 0, 0.0)
         ExpCareFunc_by_pLvl.append(LinearInterp(m_temp, EC_temp))
+        CareProbFunc_by_pLvl.append(LinearInterp(m_temp, prob_temp))
     ExpCareFunc = LinearInterpOnInterp1D(ExpCareFunc_by_pLvl, pLvl)
+    ProbCareFunc = LinearInterpOnInterp1D(CareProbFunc_by_pLvl, pLvl)
 
     # Fixing kLvlGrid, compute expected (marginal) value over TranShk for each (kLvl,pLvl)
     v_by_kLvl_and_pLvl = np.empty((kLvlGrid.size, pLvlCount))
@@ -1982,8 +1999,9 @@ def solve_one_period_ConsMedExtMarg(
         vNvrsFuncMid_by_pLvl=vNvrsFuncMid_by_pLvl,
         pLvl=pLvl,
         CRRA=CRRA,
+        ExpMedFunc=ExpCareFunc,
+        CareProbFunc=ProbCareFunc,
     )
-    solution_now.ExpCareFunc = ExpCareFunc
     return solution_now
 
 
