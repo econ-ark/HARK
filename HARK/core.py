@@ -25,7 +25,6 @@ from xarray import DataArray
 from HARK.distributions import (
     Distribution,
     IndexDistribution,
-    TimeVaryingDiscreteDistribution,
     combine_indep_dstns,
 )
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
@@ -1085,7 +1084,7 @@ class AgentType(Model):
                 continue
             if not isinstance(
                 getattr(self, param),
-                (TimeVaryingDiscreteDistribution, IndexDistribution),
+                (IndexDistribution,),
             ):
                 assert type(getattr(self, param)) == list, (
                     param
