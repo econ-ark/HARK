@@ -45,6 +45,41 @@ class testsLinearInterp(unittest.TestCase):
         linear = LinearInterp(self.x_array_t, self.z_array_t)
         self.assertEqual(linear(1.5), 3.5)
 
+    def testPreCompute(self):
+        f = LinearInterp(self.x_array, self.z_array, lower_extrap=True)
+        g = LinearInterp(
+            self.x_array, self.z_array, lower_extrap=True, pre_compute=True
+        )
+        X = np.linspace(0.0, 4.0, 101)
+        self.assertTrue(np.all(np.isclose(f(X), g(X))))
+
+    def testIndexer(self):
+        bot = 1.0
+        top = 10.0
+        N = 30
+        order = 2.5
+        grid = (top - bot) * np.linspace(0.0, 1.0, N) ** order + bot
+
+        def my_indexer(x):
+            below = x < bot
+            above = x > top
+            these = np.logical_not(np.logical_or(below, above))
+            i = np.zeros_like(x, dtype=int)
+            i[these] = np.ceil(
+                (N - 1) * ((x[these] - bot) / (top - bot)) ** (1.0 / order)
+            )
+            i[below] = 1
+            i[above] = N - 1
+            return i
+
+        f = np.log
+        data = f(grid)
+        g = LinearInterp(grid, data)  # default indexing with searchsorted
+        h = LinearInterp(grid, data, indexer=my_indexer)  # custom indexing
+
+        X = np.linspace(2, 11, 101)
+        self.assertTrue(np.all(np.isclose(g(X), h(X))))
+
 
 class testsCubicInterp(unittest.TestCase):
     """tests for CubicInterp, currently tests for uneven length of

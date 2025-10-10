@@ -752,15 +752,33 @@ class LinearInterp(HARKinterpolator1D):
         Intercept of limiting linear function.
     slope_limit : float
         Slope of limiting linear function.
-    lower_extrap : boolean
+    lower_extrap : bool
         Indicator for whether lower extrapolation is allowed.  False means
         f(x) = NaN for x < min(x_list); True means linear extrapolation.
+    pre_compute : bool
+        Indicator for whether interpolation coefficients should be pre-computed
+        and stored as attributes of self (default False). More memory will be used,
+        and instantiation will take slightly longer, but later evaluation will
+        be faster due to less arithmetic.
+    indexer : function or None (default)
+        If provided, a custom function that identifies the index of the interpolant
+        segment for each query point. Should return results identically to the
+        default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
+        WARNING: User is responsible for verifying that their custom indexer is
+        actually correct versus default behavior.
     """
 
     distance_criteria = ["x_list", "y_list"]
 
     def __init__(
-        self, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
+        self,
+        x_list,
+        y_list,
+        intercept_limit=None,
+        slope_limit=None,
+        lower_extrap=False,
+        pre_compute=False,
+        indexer=None,
     ):
         # Make the basic linear spline interpolation
         self.x_list = (
@@ -776,6 +794,7 @@ class LinearInterp(HARKinterpolator1D):
         _check_grid_dimensions(1, self.y_list, self.x_list)
         self.lower_extrap = lower_extrap
         self.x_n = self.x_list.size
+        self.indexer = indexer
 
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
@@ -796,6 +815,13 @@ class LinearInterp(HARKinterpolator1D):
         else:
             self.decay_extrap = False
 
+        # Calculate interpolation coefficients now rather than at evaluation time
+        if pre_compute:
+            self.slopes = (self.y_list[1:] - self.y_list[:-1]) / (
+                self.x_list[1:] - self.x_list[:-1]
+            )
+            self.intercepts = self.y_list[:-1] - self.slopes * self.x_list[:-1]
+
     def _evalOrDer(self, x, _eval, _Der):
         """
         Returns the level and/or first derivative of the function at each value in
@@ -814,16 +840,28 @@ class LinearInterp(HARKinterpolator1D):
         -------
         A list including the level and/or derivative of the interpolated function where requested.
         """
+        if self.indexer is None:
+            i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
+        else:
+            i = self.indexer(x)
 
-        i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
-        alpha = (x - self.x_list[i - 1]) / (self.x_list[i] - self.x_list[i - 1])
+        if hasattr(self, "slopes"):
+            # Coefficients were pre-computed, use those
+            j = i - 1
+            dydx = self.slopes[j]
+            if _eval:
+                y = self.intercepts[j] + dydx * x
 
-        if _eval:
-            y = (1.0 - alpha) * self.y_list[i - 1] + alpha * self.y_list[i]
-        if _Der:
-            dydx = (self.y_list[i] - self.y_list[i - 1]) / (
-                self.x_list[i] - self.x_list[i - 1]
-            )
+        else:
+            # Find relative weights between endpoints and evaluate interpolation
+            alpha = (x - self.x_list[i - 1]) / (self.x_list[i] - self.x_list[i - 1])
+
+            if _eval:
+                y = (1.0 - alpha) * self.y_list[i - 1] + alpha * self.y_list[i]
+            if _Der:
+                dydx = (self.y_list[i] - self.y_list[i - 1]) / (
+                    self.x_list[i] - self.x_list[i - 1]
+                )
 
         if not self.lower_extrap:
             below_lower_bound = x < self.x_list[0]
