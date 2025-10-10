@@ -1,4 +1,4 @@
-name: ConsPrefShock
+name: ConsMedShock
 description: >-
   Consumption-saving model with permanent and transitory income shocks as well
   as a second consumption good with stochastic marginal utility, representing
@@ -19,12 +19,11 @@ symbols:
     - live (bool)        \\ whether the agent survives
   parameters:
     - Rfree+             \\ risk free return factor on assets
-    - PermGroFac+        \\ expected permanent income growth factor
     - LivPrb             \\ survival probability at end of period
     - MedPrice           \\ price of medical care relative to consumption
   functions:
     - policyFunc*        \\ consumption and medical spending function over market resources, permanent income, and medical need shock
-    - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
+    - pLvlNextFunc+      \\ expected permanent income as function of prior permanent income
   distributions:
     - IncShkDstn+        \\ joint distribution of permanent and transitory shocks
     - MedShkDstn         \\ distribution of marginal utility shocks

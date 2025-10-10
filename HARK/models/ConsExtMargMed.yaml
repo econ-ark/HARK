@@ -1,0 +1,59 @@
+name: ConsExtMargMed
+description: >-
+  Consumption-saving model with permanent and transitory income shocks as well
+  as 2D medical shocks, jointly drawing a medical cost and utility shock. Agent
+  observes the medical shock and decides whether to pay the cost or the shock.
+symbols:
+  variables:
+    - kLvl!              \\ beginning of period capital
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - yLvl               \\ labor income level
+    - pLvl               \\ permanent income level
+    - wLvl               \\ wealth level before receiving labor income
+    - MedCost            \\ medical costs
+    - MedShk             \\ medical shock as penalty to utility
+    - mLvl               \\ market resources level after receiving income
+    - MedLvl             \\ realized medical care level (zero if no care)
+    - Care (bool)        \\ binary choice of whether to buy medical care
+    - bLvl               \\ bank balances after paying medical costs
+    - cLvl               \\ consumption level
+    - aLvl               \\ end-of-period assets level
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - LivPrb             \\ survival probability at end of period
+  functions:
+    - cFunc*             \\ consumption function over bank balances and permanent income
+    - vFuncMid*          \\ value function over bank balances and permanent income
+    - pLvlNextFunc       \\ expected permanent income as function of prior permanent income
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - MedShockDstn       \\ joint distribution of medical cost and utility shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+  kLvl = pLvlPrev * kNrm           \\ de-normalize capital by permanent income
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  p_temp = pLvlNextFunc@(pLvlPrev) \\ find expected permanent income level, without shock
+  pLvl = p_temp * PermShk          \\ update permanent income level with shock
+  yLvl = TranShk * pLvl            \\ income is the transitory shock times permanent income
+  wLvl = Rfree * kLvl              \\ calculate bank balances
+  mLvl = wLvl + yLvl               \\ calculate market resources
+  (MedCost, MedShk) ~ MedShockDstn \\ draw medical cost and utility shocks
+  b_if_care = mLvl - MedCost       \\ hypothetical bank balances if care is purchased
+  v_if_care = vFuncMid@(b_if_care, pLvl) \\ pre-consumption value if care is purchased
+  v_temp = vFuncMid@(mLvl, pLvl)   \\ pre-consumption value if no medical care, less shock
+  v_no_care = v_temp - MedShk      \\ incorporate medical need shock into value
+  Care = v_if_care > v_no_care     \\ buy care if it yields higher value than not
+  MedLvl = Care * MedCost          \\ realized medical care is binary choice times cost
+  bLvl = mLvl - MedLvl             \\ bank balances are market resources less medical care
+  cLvl = cFunc@(bLvl,pLvl)         \\ evaluate consumption as function of bank balances and permanent income
+  aLvl = bLvl - cLvl               \\ calculate end-of-period assets
+  live ~ {LivPrb}                  \\ draw survivors
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aLvl: kLvl
+  pLvl: pLvlPrev

@@ -30,6 +30,8 @@ Overview
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
    ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
+   ../../examples/ConsMedModel/MedShockConsumerType.ipynb
+   ../../examples/ConsMedModel/MedExtMargConsumerType.ipynb
    ../../examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
    ../../examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb
    ../../examples/LifecycleModel/LifecycleModel.ipynb

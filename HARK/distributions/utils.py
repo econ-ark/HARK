@@ -214,27 +214,19 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
     yN = bound * sigma / ((1 - ar_1**2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
-    trans_matrix = np.ones((N, N))
+    cuts = (y[1:] + y[:-1]) / 2.0
     if inflendpoint:
-        for j in range(N):
-            for k_1 in range(N - 2):
-                k = k_1 + 1
-                trans_matrix[j, k] = stats.norm.cdf(
-                    (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-                ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-            trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
-            trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-                (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
-            )
+        cuts = np.concatenate(([-np.inf], cuts, [np.inf]))
     else:
-        for j in range(N):
-            for k in range(N):
-                trans_matrix[j, k] = stats.norm.cdf(
-                    (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-                ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-        ## normalize: each row sums to 1
-        trans_matrix = trans_matrix / trans_matrix.sum(axis=1)[:, np.newaxis]
-
+        cuts = np.concatenate(([y[0] - d / 2], cuts, [y[-1] + d / 2]))
+    dist = np.reshape(cuts, (1, N + 1)) - np.reshape(ar_1 * y, (N, 1))
+    dist /= sigma
+    cdf_array = stats.norm.cdf(dist)
+    sf_array = stats.norm.sf(dist)
+    trans = cdf_array[:, 1:] - cdf_array[:, :-1]
+    trans_alt = sf_array[:, :-1] - sf_array[:, 1:]
+    trans_matrix = np.maximum(trans, trans_alt)
+    trans_matrix /= np.sum(trans_matrix, axis=1, keepdims=True)
     return y, trans_matrix
 
 
