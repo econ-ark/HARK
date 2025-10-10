@@ -19,7 +19,7 @@ The only breaking change is the removal of TimeVaryingDiscreteDistribution; use 
 #### Major Changes
 
 - Basic health investment model added in new module ConsHealthModel. [#1567](https://github.com/econ-ark/HARK/pull/1567)
-
+- Extensive margin medical care choice model added to ConsMedModel. [#1595](https://github.com/econ-ark/HARK/pull/1595)
 
 #### Minor Changes
 
