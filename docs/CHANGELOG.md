@@ -12,13 +12,25 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 Release Date: TBD
 
+#### Release Notes
+
+The only breaking change is the removal of TimeVaryingDiscreteDistribution; use IndexDistribution instead, and see #1592.
+
 #### Major Changes
 
-- none yet
+- Basic health investment model added in new module ConsHealthModel. [#1567](https://github.com/econ-ark/HARK/pull/1567)
+
 
 #### Minor Changes
 
 - Turns off use_infimum feature in ConsIndShock solver because it did not work properly when vFunc=True [#1589](https://github.com/econ-ark/HARK/pull/1589)
+- Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
+- Krusell-Smith model guide added to documentation. [#1594](https://github.com/econ-ark/HARK/pull/1594)
+- Added additional options and simplified syntax for non-default constructors when instantiating agents. [#1591](https://github.com/econ-ark/HARK/pull/1591)
+- Added options for custom indexer and pre-computation of coefficients to LinearInterp. [#1593](https://github.com/econ-ark/HARK/pull/1593)
+- Folded TimeVaryingDiscreteDistribution into IndexDistribution. [#1592](https://github.com/econ-ark/HARK/pull/1592)
+- Fixed bug that prevented combine_indep_dstn from working with Bernoulli distributions. [#1581](https://github.com/econ-ark/HARK/pull/1581)
+
 
 ### 0.16.1
 
@@ -46,7 +58,6 @@ See documentation notebooks in /examples/SequenceSpaceJacobians/ . The capabilit
 - Documentation files have been moved from /Documentation/ to /docs/ [#1579](https://github.com/econ-ark/HARK/pull/1579)
 - All tests have been consolidated into a single directory, rather than being scattered about. [#1578](https://github.com/econ-ark/HARK/pull/1578)
 - Add a special README so that the robots know we're on their side when the singularity arrives. [#1577](https://github.com/econ-ark/HARK/pull/1577)
-- Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
 
 
 ### 0.16.0
