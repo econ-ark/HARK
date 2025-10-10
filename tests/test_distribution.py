@@ -352,6 +352,47 @@ class DistributionClassTests(unittest.TestCase):
     def test_Bernoulli(self):
         Bernoulli().draw(1)[0]
 
+    def test_Bernoulli_combine_indep_dstns(self):
+        """Test that combine_indep_dstns works with Bernoulli distributions"""
+        # Test 1: Single Bernoulli distribution
+        b = Bernoulli(p=0.3)
+        result = combine_indep_dstns(b)
+
+        # Result should be essentially the same as the input
+        self.assertEqual(len(result.pmv), 2)
+        self.assertAlmostEqual(result.pmv[0], 0.7)  # P(0)
+        self.assertAlmostEqual(result.pmv[1], 0.3)  # P(1)
+
+        # Test 2: Two independent Bernoulli distributions
+        b1 = Bernoulli(p=0.3)
+        b2 = Bernoulli(p=0.4)
+        result = combine_indep_dstns(b1, b2)
+
+        # Should have 4 outcomes: (0,0), (0,1), (1,0), (1,1)
+        self.assertEqual(len(result.pmv), 4)
+        self.assertEqual(result.atoms.shape, (2, 4))  # 2 variables, 4 outcomes
+
+        # Check probabilities
+        expected_probs = [
+            0.7 * 0.6,
+            0.7 * 0.4,
+            0.3 * 0.6,
+            0.3 * 0.4,
+        ]  # P(0,0), P(0,1), P(1,0), P(1,1)
+        for i, expected_prob in enumerate(expected_probs):
+            self.assertAlmostEqual(result.pmv[i], expected_prob, places=5)
+
+    def test_Bernoulli_labeled_combine_indep_dstns(self):
+        """Test that combine_indep_dstns works with labeled Bernoulli distributions"""
+        b = Bernoulli(p=0.5)
+        bl = DiscreteDistributionLabeled.from_unlabeled(b, var_names="b")
+        result = combine_indep_dstns(bl)
+
+        # Result should be essentially the same as the input
+        self.assertEqual(len(result.pmv), 2)
+        self.assertAlmostEqual(result.pmv[0], 0.5)  # P(0)
+        self.assertAlmostEqual(result.pmv[1], 0.5)  # P(1)
+
 
 class IndexDistributionClassTests(unittest.TestCase):
     """
