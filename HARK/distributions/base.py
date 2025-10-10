@@ -273,11 +273,11 @@ class IndexDistribution(Distribution):
 
         self.dstns = []
 
-        # If no engine/conditional were provided, remain empty (should not happen in normal use)
-        if self.engine is None and not self.conditional:
         # If no engine/conditional were provided, this is an invalid state.
         if self.engine is None and not self.conditional:
-            raise ValueError("MarkovProcess: No engine or conditional parameters provided; this should not happen in normal use.")
+            raise ValueError(
+                "MarkovProcess: No engine or conditional parameters provided; this should not happen in normal use."
+            )
 
         # Test one item to determine case handling
         item0 = list(self.conditional.values())[0]
