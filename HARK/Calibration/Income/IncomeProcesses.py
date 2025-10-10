@@ -13,7 +13,6 @@ from HARK.distributions import (
     DiscreteDistributionLabeled,
     IndexDistribution,
     MeanOneLogNormal,
-    TimeVaryingDiscreteDistribution,
     Lognormal,
     Uniform,
     make_tauchen_ar1,
@@ -870,14 +869,14 @@ def get_PermShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     PermShkDstn = [
         this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
-    return TimeVaryingDiscreteDistribution(PermShkDstn, seed=RNG.integers(0, 2**31 - 1))
+    return IndexDistribution(distributions=PermShkDstn, seed=RNG.integers(0, 2**31 - 1))
 
 
 def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     TranShkDstn = [
         this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
-    return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
+    return IndexDistribution(distributions=TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
 
 
 def get_PermShkDstn_from_IncShkDstn_markov(IncShkDstn, RNG):

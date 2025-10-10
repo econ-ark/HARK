@@ -4,7 +4,7 @@ from warnings import warn
 import numpy as np
 from scipy import stats
 
-from HARK.distributions.base import TimeVaryingDiscreteDistribution
+from HARK.distributions.base import IndexDistribution
 from HARK.distributions.discrete import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
@@ -257,10 +257,14 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-    if type(distribution) == TimeVaryingDiscreteDistribution:
+    if (
+        isinstance(distribution, IndexDistribution)
+        and hasattr(distribution, "distributions")
+        and distribution.distributions
+    ):
         # apply recursively on all the internal distributions
-        return TimeVaryingDiscreteDistribution(
-            [
+        return IndexDistribution(
+            distributions=[
                 add_discrete_outcome_constant_mean(d, x, p)
                 for d in distribution.distributions
             ],

@@ -10,7 +10,6 @@ import numpy as np
 from HARK.distributions import (
     Distribution,
     IndexDistribution,
-    TimeVaryingDiscreteDistribution,
 )
 from HARK.model import Aggregate
 from HARK.model import DBlock
@@ -47,10 +46,7 @@ def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
             draws[shock_var] = np.ones(len(conditions)) * shock
         elif isinstance(shock, Aggregate):
             draws[shock_var] = shock.dist.draw(1)[0]
-        elif isinstance(shock, IndexDistribution) or isinstance(
-            shock, TimeVaryingDiscreteDistribution
-        ):
-            ## TODO  his type test is awkward. They should share a superclass.
+        elif isinstance(shock, IndexDistribution):
             draws[shock_var] = shock.draw(conditions)
         else:
             draws[shock_var] = shock.draw(len(conditions))
