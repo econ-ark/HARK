@@ -341,7 +341,19 @@ def _solveConsPerfForesightNumba(
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-    vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
+    # Handle CRRA=1.0 case to avoid division by zero
+
+    if CRRA == 1.0:
+
+        # When CRRA=1.0, use a small epsilon to avoid division by zero
+
+        CRRA_safe = 1.0 + 1e-8
+
+        vFuncNvrsSlope = MPCmin ** (-CRRA_safe / (1.0 - CRRA_safe))
+
+    else:
+
+        vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
 
     return (
         mNrmNow,
@@ -869,7 +881,19 @@ def _add_vFuncNumba(
     mNrmGrid = _np_insert(mNrmGrid, 0, mNrmMinNow)
     vNvrs = _np_insert(vNvrs, 0, 0.0)
     vNvrsP = _np_insert(vNvrsP, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-    MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+    # Handle CRRA=1.0 case to avoid division by zero
+
+    if CRRA == 1.0:
+
+        # When CRRA=1.0, use a small epsilon to avoid division by zero
+
+        CRRA_safe = 1.0 + 1e-8
+
+        MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
+
+    else:
+
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
 
     return (
         mNrmGrid,
