@@ -759,7 +759,18 @@ class Model:
                     + "\n"
                 )
             except:
-                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
+                if isinstance(constructor, get_it_from):
+                    parent_name = self.constructors[key].name
+                    out += (
+                        noyes[int(has_val)]
+                        + " "
+                        + key
+                        + " : get it from "
+                        + parent_name
+                        + "\n"
+                    )
+                else:
+                    out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
                 continue
 
             # Get constructor argument names
