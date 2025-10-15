@@ -1241,7 +1241,7 @@ class AgentType(Model):
         if not hasattr(self, "solution"):
             raise Exception(
                 "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method of the class first."
+                " to run the `solve()` method first."
             )
 
         # Mortality adjusts the agent population
@@ -1263,7 +1263,7 @@ class AgentType(Model):
             self.get_shocks()
         self.get_states()  # Determine each agent's state at decision time
         self.get_controls()  # Determine each agent's choice or control variables based on states
-        self.get_poststates()  # Move now state_now to state_prev
+        self.get_poststates()  # Calculate variables that come *after* decision-time
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -1525,7 +1525,6 @@ class AgentType(Model):
         endogenous_state: ()
             Tuple with new values of the endogenous states
         """
-
         return ()
 
     def get_controls(self):
@@ -1550,9 +1549,6 @@ class AgentType(Model):
         states and controls and maybe market-level events or shock variables.
         Does nothing by
         default, but can be overwritten by subclasses of AgentType.
-
-        DEPRECATED: New models should use the state now/previous rollover
-        functionality instead of poststates.
 
         Parameters
         ----------
