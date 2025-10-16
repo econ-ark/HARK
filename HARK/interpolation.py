@@ -103,6 +103,8 @@ class HARKinterpolator1D(MetricObject):
         z = np.asarray(x)
         return (self._der(z.flatten())).reshape(z.shape)
 
+    derivativeX = derivative  # alias
+
     def eval_with_derivative(self, x):
         """
         Evaluates the interpolated function and its derivative at the given input.
