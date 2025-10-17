@@ -22,11 +22,7 @@ import numpy as np
 import pandas as pd
 from xarray import DataArray
 
-from HARK.distributions import (
-    Distribution,
-    IndexDistribution,
-    combine_indep_dstns,
-)
+from HARK.distributions import Distribution, IndexDistribution, combine_indep_dstns
 from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
 from HARK.utilities import NullFunc, get_arg_names, get_it_from
 from HARK.simulator import make_simulator_from_agent
