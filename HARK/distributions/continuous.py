@@ -364,15 +364,12 @@ class Lognormal(ContinuousFrozenDistribution):
             CDF_vals[-1] = 1.0
             CDF_vals[0] = 0.0  # somehow these need fixing sometimes
 
-            # Translate the CDF values to z-scores: stdevs from mean
+            # Calculate probability masses for each node
+            pmv = CDF_vals[1:] - CDF_vals[:-1]
+            pmv /= np.sum(pmv)
+
+            # Translate the CDF values to z-scores (stdevs from mean), then get q-scores
             z_cuts = norm.ppf(CDF_vals)
-
-            # Initialize the discretization
-            K = CDF_vals.size - 1  # number of points in approximation
-            pmv = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
-            atoms = np.zeros(K)
-
-            # Translate the z-scores to q-scores
             q_cuts = (z_cuts - self.sigma) / np.sqrt(2)
 
             # Evaluate the (complementary) error function at the q values
@@ -381,17 +378,12 @@ class Lognormal(ContinuousFrozenDistribution):
 
             # Evaluate the base for the conditional expectations
             vals_base = erf_q[:-1] - erf_q[1:]
-
-            # Flag low q values and use the *other* version for them
-            these = q_cuts[:-1] < -2.0
+            these = q_cuts[:-1] < -2.0  # flag low q values and use the *other* version
             vals_base[these] = erf_q_neg[1:][these] - erf_q_neg[:-1][these]
 
-            # Make and apply the normalization factor
-            norm_fac = 0.5 * np.exp(self.mu + 0.5 * self.sigma**2)
-            vals = vals_base * norm_fac
-
-            # Calculate the atoms by dividing by the probability of each one
-            atoms = vals / pmv
+            # Make and apply the normalization factor and probability weights
+            norm_fac = 0.5 * np.exp(self.mu + 0.5 * self.sigma**2) / pmv
+            atoms = vals_base * norm_fac
 
         limit = {
             "dist": self,
