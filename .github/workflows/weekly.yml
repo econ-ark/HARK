@@ -1,6 +1,5 @@
 name: Weekly cron jobs for coverage
 on:
-  pull_request:
   workflow_dispatch:
   schedule:
     - cron: "0 5 * * 0"
