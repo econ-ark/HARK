@@ -85,7 +85,7 @@ def parse_ssa_life_table(
         Boolean indicating whether the cross-sectional method should be used.
         The default is False (using the longitudinal method).
     year : int, optional
-        If cross-sectional probabilities are requestedm this is the year at
+        If cross-sectional probabilities are requested, this is the year at
         which they will be taken. The default is None.
 
     Returns

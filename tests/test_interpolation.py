@@ -13,7 +13,6 @@ from HARK.interpolation import CubicHermiteInterp as CubicInterp
 
 import numpy as np
 import unittest
-import numpy as np
 
 
 class testsLinearInterp(unittest.TestCase):
