@@ -725,6 +725,11 @@ class ConstantFunction(MetricObject):
         else:
             return 0.0
 
+    def eval_with_derivative(self, x):
+        val = self(x)
+        der = self._der(x)
+        return val, der
+
     # All other derivatives are also zero everywhere, so these methods just point to derivative
     derivative = _der
     derivativeX = derivative
@@ -2293,7 +2298,7 @@ class LowerEnvelope(HARKinterpolator1D):
         i = self.argcompare(fx, axis=1)
         y = fx[np.arange(m), i]
         dydx = np.zeros_like(y)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dydx[c] = self.functions[j].derivative(x[c])
         return y, dydx
@@ -2363,7 +2368,7 @@ class UpperEnvelope(HARKinterpolator1D):
         i = self.argcompare(fx, axis=1)
         y = fx[np.arange(m), i]
         dydx = np.zeros_like(y)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dydx[c] = self.functions[j].derivative(x[c])
         return y, dydx
@@ -2425,7 +2430,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
             temp[:, j] = self.functions[j](x, y)
         i = self.argcompare(temp, axis=1)
         dfdx = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdx[c] = self.functions[j].derivativeX(x[c], y[c])
         return dfdx
@@ -2442,7 +2447,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
         i = self.argcompare(temp, axis=1)
         y = temp[np.arange(m), i]
         dfdy = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdy[c] = self.functions[j].derivativeY(x[c], y[c])
         return dfdy
@@ -4885,7 +4890,7 @@ class MargValueFuncCRRA(MetricObject):
         """
 
         # The derivative method depends on the dimension of the function
-        if isinstance(self.cFunc, (HARKinterpolator1D)):
+        if isinstance(self.cFunc, HARKinterpolator1D):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
 
         elif hasattr(self.cFunc, "derivativeX"):
@@ -4943,7 +4948,7 @@ class MargMargValueFuncCRRA(MetricObject):
         """
 
         # The derivative method depends on the dimension of the function
-        if isinstance(self.cFunc, (HARKinterpolator1D)):
+        if isinstance(self.cFunc, HARKinterpolator1D):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
 
         elif hasattr(self.cFunc, "derivativeX"):

@@ -5,13 +5,19 @@ This file implements unit tests for interpolation methods
 from HARK.interpolation import (
     IdentityFunction,
     LinearInterp,
+    CubicInterp,
+    CubicHermiteInterp,
+    LowerEnvelope,
+    UpperEnvelope,
     BilinearInterp,
     TrilinearInterp,
     QuadlinearInterp,
     LinearInterpOnInterp1D,
     Curvilinear2DInterp,
+    LowerEnvelope2D,
+    VariableLowerBoundFunc2D,
+    ConstantFunction,
 )
-from HARK.interpolation import CubicHermiteInterp as CubicInterp
 
 import numpy as np
 import unittest
@@ -152,6 +158,39 @@ class TestCubicInterp(TestInterp1D):
         self.interpolant = self.interpolator_(x_grid, y_grid, dydx_grid)
 
 
+class TestCubicHermiteInterp(TestCubicInterp):
+    _interpolator = CubicHermiteInterp
+
+
+class TestLowerEnvelope(TestInterp1D):
+    interpolator_ = LowerEnvelope
+    tol = 1e-5
+
+    def make_interpolant(self):
+        # This class can't really be tested with this structure, so...
+        temp = TestLinearInterp()
+        temp.setUp()
+        base_func = temp.interpolant
+        high_func = lambda x: self.function(x) + 2.0  # always higher
+        self.interpolant = self.interpolator_(base_func, high_func)
+
+
+class TestUpperEnvelope(TestInterp1D):
+    interpolator_ = UpperEnvelope
+    tol = 1e-5
+
+    def make_interpolant(self):
+        # This class can't really be tested with this structure, so...
+        temp = TestLinearInterp()
+        temp.setUp()
+        base_func = temp.interpolant
+        low_func = lambda x: self.function(x) - 2.0  # always lower
+        self.interpolant = self.interpolator_(base_func, low_func)
+
+
+###############################################################################
+
+
 class TestBilinearInterp(TestInterp2D):
     interpolator_ = BilinearInterp
     tol = 1e-5
@@ -211,6 +250,33 @@ class TestCurvilinear2DInterp(TestInterp2D):
         ymesh += y_adj
         values = self.function(xmesh, ymesh)
         self.interpolant = self.interpolator_(values, xmesh, ymesh)
+
+
+class TestLowerEnvelope2D(TestInterp2D):
+    interpolator_ = LowerEnvelope2D
+    tol = 2e-5
+
+    def make_interpolant(self):
+        # This is a pretty trivial class, and one that can't readily be tested
+        # with the base test function, so...
+        temp = TestBilinearInterp()
+        temp.setUp()
+        base_func = temp.interpolant
+        high_func = lambda x, y: self.function(x, y) + 2.0  # always higher
+        self.interpolant = LowerEnvelope2D(base_func, high_func)
+
+
+class TestVariableLowerBoundFunc2D(TestInterp2D):
+    interpolator_ = VariableLowerBoundFunc2D
+    tol = 2e-5
+
+    def make_interpolant(self):
+        # Testing with a non-variable lower bound to make this work
+        temp = TestBilinearInterp()
+        temp.setUp()
+        base_func = temp.interpolant
+        lower_bound = ConstantFunction(0.0)
+        self.interpolant = self.interpolator_(base_func, lower_bound)
 
 
 ###############################################################################
@@ -281,8 +347,8 @@ class testsLinearInterp(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(g(X), h(X))))
 
 
-class testsCubicInterp(unittest.TestCase):
-    """tests for CubicInterp, currently tests for uneven length of
+class testsCubicHermiteInterp(unittest.TestCase):
+    """tests for CubicHermiteInterp, currently tests for uneven length of
     x, y and derivative with user input as lists, arrays, arrays with column orientation
     """
 
@@ -302,21 +368,25 @@ class testsCubicInterp(unittest.TestCase):
 
     def test_uneven_length(self):
         self.assertRaises(
-            ValueError, CubicInterp, self.x_list, self.y_list, self.dydx_list
+            ValueError, CubicHermiteInterp, self.x_list, self.y_list, self.dydx_list
         )
         self.assertRaises(
-            ValueError, CubicInterp, self.x_array, self.y_array, self.dydx_array
+            ValueError, CubicHermiteInterp, self.x_array, self.y_array, self.dydx_array
         )
         self.assertRaises(
-            ValueError, CubicInterp, self.x_array_t, self.y_array_t, self.dydx_array_t
+            ValueError,
+            CubicHermiteInterp,
+            self.x_array_t,
+            self.y_array_t,
+            self.dydx_array_t,
         )
 
     def test_same_length(self):
-        cube = CubicInterp(self.x_list, self.z_list, self.dydx_list)
+        cube = CubicHermiteInterp(self.x_list, self.z_list, self.dydx_list)
         self.assertEqual(cube(1.5), 2.25)
-        cube = CubicInterp(self.x_array, self.z_array, self.dydx_array)
+        cube = CubicHermiteInterp(self.x_array, self.z_array, self.dydx_array)
         self.assertEqual(cube(1.5), 2.25)
-        cube = CubicInterp(self.x_array_t, self.z_array_t, self.dydx_array_t)
+        cube = CubicHermiteInterp(self.x_array_t, self.z_array_t, self.dydx_array_t)
         self.assertEqual(cube(1.5), 2.25)
 
 
