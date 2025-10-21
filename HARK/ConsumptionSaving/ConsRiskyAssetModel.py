@@ -195,7 +195,6 @@ IndShockRiskyAssetConsumerType_solving_default = {
     # (Uses linear spline interpolation for cFunc when False)
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "IndepDstnBool": True,  # Whether return and income shocks are independent
-    # TODO: This is not used in this file and should be moved to ConsPortfolioModel.py
     "PortfolioBool": False,  # Whether this instance can choose portfolio shares
     "PortfolioBisect": False,  # What does this do?
     "pseudo_terminal": False,
