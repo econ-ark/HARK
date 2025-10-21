@@ -129,6 +129,79 @@ class TestInterp2D(unittest.TestCase):
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
 
 
+class TestInterp3D(TestInterp2D):
+    """
+    A class for testing subclasses of HARKinterpolator3D. To use it, define a subclass
+    of this class and give it the class to be tested in the attribute interpolator_.
+    Also define a method called make_interpolant that builds an interpolant for the
+    test function stored in attribute function.
+    """
+
+    tol = 1e-6  # change this at the subclass level if necessary
+
+    def setUp(self):
+        """
+        The test function for 3D interpolators is f(x,y) = sqrt(3x + 5y + 2z)
+        """
+        f = lambda x, y, z: np.sqrt(3 * x + 5 * y + 2 * z)
+        RNG = np.random.RandomState(seed=67676767)
+        N = 500
+        X = 8 * RNG.rand(N) + 0.5  # 0.5 to 8.5
+        Y = 4 * RNG.rand(N) + 0.2  # 0.2 to 4.2
+        Z = 6 * RNG.rand(N) + 0.3  # 0.3 to 6.3
+        fXYZ = f(X, Y, Z)
+        self.function = f
+        self.test_vals = (X, Y, Z)
+        self.targets = fXYZ
+        self.make_interpolant()
+
+    def test_derZ(self):
+        if self.interpolant is None:
+            return
+        # Doesn't actually check values of derivative, just whether it runs
+        # and whether they are all real values
+        derivs = self.interpolant.derivativeZ(*self.test_vals)
+        self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
+        self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+
+
+class TestInterp4D(TestInterp3D):
+    """
+    A class for testing subclasses of HARKinterpolator4D. To use it, define a subclass
+    of this class and give it the class to be tested in the attribute interpolator_.
+    Also define a method called make_interpolant that builds an interpolant for the
+    test function stored in attribute function.
+    """
+
+    tol = 1e-6  # change this at the subclass level if necessary
+
+    def setUp(self):
+        """
+        The test function for 3D interpolators is f(x,y) = sqrt(4w + 3x + 5y + 2z)
+        """
+        f = lambda w, x, y, z: np.sqrt(4 * w + 3 * x + 5 * y + 2 * z)
+        RNG = np.random.RandomState(seed=2222222)
+        N = 500
+        W = 5 * RNG.rand(N) + 0.4  # 0.4 to 5.4
+        X = 8 * RNG.rand(N) + 0.5  # 0.5 to 8.5
+        Y = 4 * RNG.rand(N) + 0.2  # 0.2 to 4.2
+        Z = 6 * RNG.rand(N) + 0.3  # 0.3 to 6.3
+        fWXYZ = f(W, X, Y, Z)
+        self.function = f
+        self.test_vals = (W, X, Y, Z)
+        self.targets = fWXYZ
+        self.make_interpolant()
+
+    def test_derW(self):
+        if self.interpolant is None:
+            return
+        # Doesn't actually check values of derivative, just whether it runs
+        # and whether they are all real values
+        derivs = self.interpolant.derivativeW(*self.test_vals)
+        self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
+        self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+
+
 ###############################################################################
 
 
