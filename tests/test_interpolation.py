@@ -8,12 +8,212 @@ from HARK.interpolation import (
     BilinearInterp,
     TrilinearInterp,
     QuadlinearInterp,
+    LinearInterpOnInterp1D,
+    Curvilinear2DInterp,
 )
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
 
 import numpy as np
 import unittest
-import numpy as np
+
+
+class TestInterp1D(unittest.TestCase):
+    """
+    A class for testing subclasses of HARKinterpolator1D. To use it, define a subclass
+    of this class and give it the class to be tested in the attribute interpolator_.
+    Also define a method called make_interpolant that builds an interpolant for the
+    test function stored in attribute function.
+    """
+
+    tol = 1e-6  # change this at the subclass level if necessary
+
+    def setUp(self):
+        """
+        The test function for 1D interpolators is the natural log function.
+        """
+        f = np.log
+        X = np.linspace(1.5, 15.0, 100)
+        fX = f(X)
+        self.function = f
+        self.test_vals = X
+        self.targets = fX
+        self.make_interpolant()
+
+    def make_interpolant(self):
+        """
+        Each subclass needs to overwrite this method with one that *actually*
+        constructs an interpolant based on the function.
+        """
+        self.interpolant = None  # This is so the base class can "pass" tests
+
+    def test_eval(self):
+        if self.interpolant is None:
+            return
+        output = self.interpolant(self.test_vals)
+        diffs = output - self.targets
+        acc = np.mean(np.abs(diffs))
+        self.assertTrue(acc < self.tol)
+
+    def test_der(self):
+        if self.interpolant is None:
+            return
+        # Doesn't actually check values of derivative, just whether it runs
+        # and whether they are all real values
+        derivs = self.interpolant.derivative(self.test_vals)
+        self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
+        self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+
+
+class TestInterp2D(unittest.TestCase):
+    """
+    A class for testing subclasses of HARKinterpolator2D. To use it, define a subclass
+    of this class and give it the class to be tested in the attribute interpolator_.
+    Also define a method called make_interpolant that builds an interpolant for the
+    test function stored in attribute function.
+    """
+
+    tol = 1e-6  # change this at the subclass level if necessary
+
+    def setUp(self):
+        """
+        The test function for 2D interpolators is f(x,y) = log(3x + 5y)
+        """
+        f = lambda x, y: np.log(3 * x + 5 * y)
+        RNG = np.random.RandomState(seed=10212026)
+        N = 500
+        X = 8 * RNG.rand(N) + 0.5  # 0.5 to 8.5
+        Y = 4 * RNG.rand(N) + 0.2  # 0.2 to 4.2
+        fXY = f(X, Y)
+        self.function = f
+        self.test_vals = (X, Y)
+        self.targets = fXY
+        self.make_interpolant()
+
+    def make_interpolant(self):
+        """
+        Each subclass needs to overwrite this method with one that *actually*
+        constructs an interpolant based on the function.
+        """
+        self.interpolant = None  # This is so the base class can "pass" tests
+
+    def test_eval(self):
+        if self.interpolant is None:
+            return
+        output = self.interpolant(*self.test_vals)
+        diffs = output - self.targets
+        acc = np.mean(np.abs(diffs))
+        self.assertTrue(acc < self.tol)
+
+    def test_derX(self):
+        if self.interpolant is None:
+            return
+        # Doesn't actually check values of derivative, just whether it runs
+        # and whether they are all real values
+        derivs = self.interpolant.derivativeX(*self.test_vals)
+        self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
+        self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+
+    def test_derY(self):
+        if self.interpolant is None:
+            return
+        # Doesn't actually check values of derivative, just whether it runs
+        # and whether they are all real values
+        derivs = self.interpolant.derivativeY(*self.test_vals)
+        self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
+        self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+
+
+###############################################################################
+
+
+class TestLinearInterp(TestInterp1D):
+    interpolator_ = LinearInterp
+    tol = 1e-5
+
+    def make_interpolant(self):
+        bot = 0.001
+        top = 20.0
+        order = 3.0
+        x_grid = (top - bot) * np.linspace(0.0, 1.0, 501) ** order + bot
+        y_grid = self.function(x_grid)
+        self.interpolant = self.interpolator_(x_grid, y_grid)
+
+
+class TestCubicInterp(TestInterp1D):
+    interpolator_ = CubicInterp
+
+    def make_interpolant(self):
+        bot = 0.001
+        top = 20.0
+        order = 3.0
+        x_grid = (top - bot) * np.linspace(0.0, 1.0, 201) ** order + bot
+        y_grid = self.function(x_grid)
+        dydx_grid = x_grid ** (-1.0)  # derivative of log
+        self.interpolant = self.interpolator_(x_grid, y_grid, dydx_grid)
+
+
+class TestBilinearInterp(TestInterp2D):
+    interpolator_ = BilinearInterp
+    tol = 1e-5
+
+    def make_interpolant(self):
+        xbot = 0.3
+        xtop = 10.0
+        xorder = 3.0
+        ybot = 0.1
+        ytop = 6.0
+        yorder = 2.5
+        x_grid = (xtop - xbot) * np.linspace(0.0, 1.0, 401) ** xorder + xbot
+        y_grid = (ytop - ybot) * np.linspace(0.0, 1.0, 301) ** yorder + ybot
+        xmesh, ymesh = np.meshgrid(x_grid, y_grid, indexing="ij")
+        values = self.function(xmesh, ymesh)
+        self.interpolant = self.interpolator_(values, x_grid, y_grid)
+
+
+class TestLinearInterpOnInterp1D(TestInterp2D):
+    interpolator_ = LinearInterpOnInterp1D
+    tol = 2e-5
+
+    def make_interpolant(self):
+        xbot = 0.3
+        xtop = 10.0
+        xorder = 3.0
+        ybot = 0.1
+        ytop = 6.0
+        yorder = 2.5
+        y_grid = (ytop - ybot) * np.linspace(0.0, 1.0, 301) ** yorder + ybot
+        x_interpolators = []
+        RNG = np.random.RandomState(seed=8675309)
+        for j in range(y_grid.size):
+            temp = np.sort(RNG.rand(401))
+            x_grid = (xtop - xbot) * temp**xorder + xbot
+            f_temp = self.function(x_grid, y_grid[j] * np.ones_like(x_grid))
+            x_interpolators.append(LinearInterp(x_grid, f_temp))
+        self.interpolant = self.interpolator_(x_interpolators, y_grid)
+
+
+class TestCurvilinear2DInterp(TestInterp2D):
+    interpolator_ = Curvilinear2DInterp
+    tol = 1e-4
+
+    def make_interpolant(self):
+        xbot = 0.3
+        xtop = 10.0
+        ybot = 0.1
+        ytop = 6.0
+        x_grid = np.linspace(xbot, xtop, 401)
+        y_grid = np.linspace(ybot, ytop, 301)
+        xmesh, ymesh = np.meshgrid(x_grid, y_grid, indexing="ij")
+        RNG = np.random.RandomState(seed=5318008)
+        x_adj = 0.005 * RNG.rand(401, 301) - 0.0025
+        y_adj = 0.004 * RNG.rand(401, 301) - 0.002
+        xmesh += x_adj
+        ymesh += y_adj
+        values = self.function(xmesh, ymesh)
+        self.interpolant = self.interpolator_(values, xmesh, ymesh)
+
+
+###############################################################################
 
 
 class testsLinearInterp(unittest.TestCase):

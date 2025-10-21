@@ -4127,7 +4127,7 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     distance_criteria = ["f_values", "x_values", "y_values"]
 
     def __init__(self, f_values, x_values, y_values):
-        if hasattr(f_values, "__len__"):
+        if isinstance(f_values, list):
             N_funcs = len(f_values)
             multi = True
         else:
@@ -4136,11 +4136,15 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         my_shape = x_values.shape
         if not (my_shape == y_values.shape):
             raise ValueError("y_values must have the same shape as x_values!")
-        for n in range(N_funcs):
-            if not (my_shape == f_values[n].shape):
-                raise ValueError(
-                    "Each element of f_values must have the same shape as x_values!"
-                )
+        if multi:
+            for n in range(N_funcs):
+                if not (my_shape == f_values[n].shape):
+                    raise ValueError(
+                        "Each element of f_values must have the same shape as x_values!"
+                    )
+        else:
+            if not (my_shape == f_values.shape):
+                raise ValueError("f_values must have the same shape as x_values!")
 
         if multi:
             self.f_values = f_values
