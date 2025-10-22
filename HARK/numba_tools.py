@@ -21,7 +21,9 @@ CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_decay(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
+def _interp_decay(
+    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+):  # pragma: no cover
     # Make a decay extrapolation
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
     level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
@@ -53,7 +55,7 @@ def _interp_decay(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_linear(x0, x_list, y_list, lower_extrap):
+def _interp_linear(x0, x_list, y_list, lower_extrap):  # pragma: no cover
     i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
     alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
     y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
@@ -68,7 +70,7 @@ def _interp_linear(x0, x_list, y_list, lower_extrap):
 @njit(cache=True, error_model="numpy")
 def linear_interp_fast(
     x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
-):
+):  # pragma: no cover
     if intercept_limit is None and slope_limit is None:
         return _interp_linear(x0, x_list, y_list, lower_extrap)
     else:
@@ -78,7 +80,7 @@ def linear_interp_fast(
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):
+def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):  # pragma: no cover
     i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
     alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
     y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
@@ -93,7 +95,9 @@ def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_decay_deriv(x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap):
+def _interp_decay_deriv(
+    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+):  # pragma: no cover
     # Make a decay extrapolation
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
     level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
@@ -133,7 +137,7 @@ def _interp_decay_deriv(x0, x_list, y_list, intercept_limit, slope_limit, lower_
 @njit(cache=True, error_model="numpy")
 def linear_interp_deriv_fast(
     x0, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
-):
+):  # pragma: no cover
     if intercept_limit is None and slope_limit is None:
         return _interp_linear_deriv(x0, x_list, y_list, lower_extrap)
     else:
@@ -145,7 +149,7 @@ def linear_interp_deriv_fast(
 @njit(cache=True, error_model="numpy")
 def _spline_decay(
     x_init, x_list, y_list, dydx_list, intercept_limit, slope_limit, lower_extrap
-):
+):  # pragma: no cover
     n = x_list.size
 
     coeffs = np.empty((n + 1, 4))
@@ -236,7 +240,7 @@ def cubic_interp_fast(
     intercept_limit=None,
     slope_limit=None,
     lower_extrap=False,
-):
+):  # pragma: no cover
     if intercept_limit is None and slope_limit is None:
         slope = dydx_list[-1]
         intercept = y_list[-1] - slope * x_list[-1]

@@ -1473,7 +1473,7 @@ class AgentSimulator:
             for name in outcomes:
                 dstn_sizes = np.array([dstn.size for dstn in history_dstn[name]])
                 if np.all(dstn_sizes == dstn_sizes[0]):
-                    history_dstn[name] = np.concatenate(history_dstn[name], axis=1)
+                    history_dstn[name] = np.stack(history_dstn[name], axis=1)
 
         # Store results as attributes of self
         self.state_dstn_by_age = state_dstn_by_age
@@ -2879,7 +2879,9 @@ def format_block_statement(statement):
 
 
 @njit
-def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
+def aggregate_blobs_onto_polynomial_grid(
+    vals, pmv, origins, grid, J, Q
+):  # pragma: no cover
     """
     Numba-compatible helper function for casting "probability blobs" onto a discretized
     grid of outcome values, based on their origin in the arrival state space. This
@@ -2914,7 +2916,9 @@ def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
 
 
 @njit
-def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
+def aggregate_blobs_onto_polynomial_grid_alt(
+    vals, pmv, origins, grid, J, Q
+):  # pragma: no cover
     """
     Numba-compatible helper function for casting "probability blobs" onto a discretized
     grid of outcome values, based on their origin in the arrival state space. This
@@ -2958,7 +2962,7 @@ def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
 
 
 @njit
-def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
+def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):  # pragma: no cover
     """
     Numba-compatible helper function for allocating "probability blobs" to a grid
     over a discrete state-- the state itself is truly discrete.
@@ -2974,7 +2978,9 @@ def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
 
 
 @njit
-def calc_overall_trans_probs(out, idx, alpha, binary, offset, pmv, origins):
+def calc_overall_trans_probs(
+    out, idx, alpha, binary, offset, pmv, origins
+):  # pragma: no cover
     """
     Numba-compatible helper function for combining transition probabilities from
     the arrival state space to *multiple* continuation variables into a single
