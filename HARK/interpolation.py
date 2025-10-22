@@ -2365,7 +2365,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
             temp[:, j] = self.functions[j](x, y, z)
         i = self.argcompare(temp, axis=1)
         dfdx = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdx[c] = self.functions[j].derivativeX(x[c], y[c], z[c])
         return dfdx
@@ -2382,7 +2382,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         i = self.argcompare(temp, axis=1)
         y = temp[np.arange(m), i]
         dfdy = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdy[c] = self.functions[j].derivativeY(x[c], y[c], z[c])
         return dfdy
@@ -2399,7 +2399,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         i = self.argcompare(temp, axis=1)
         y = temp[np.arange(m), i]
         dfdz = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdz[c] = self.functions[j].derivativeZ(x[c], y[c], z[c])
         return dfdz

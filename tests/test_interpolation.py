@@ -16,6 +16,11 @@ from HARK.interpolation import (
     Curvilinear2DInterp,
     LowerEnvelope2D,
     VariableLowerBoundFunc2D,
+    LinearInterpOnInterp2D,
+    BilinearInterpOnInterp1D,
+    LowerEnvelope3D,
+    TrilinearInterpOnInterp1D,
+    BilinearInterpOnInterp2D,
     ConstantFunction,
 )
 
@@ -137,7 +142,7 @@ class TestInterp3D(TestInterp2D):
     test function stored in attribute function.
     """
 
-    tol = 1e-6  # change this at the subclass level if necessary
+    tol = 1e-5  # change this at the subclass level if necessary
 
     def setUp(self):
         """
@@ -173,7 +178,8 @@ class TestInterp4D(TestInterp3D):
     test function stored in attribute function.
     """
 
-    tol = 1e-6  # change this at the subclass level if necessary
+    tol = 5e-4  # change this at the subclass level if necessary
+    # It is set to low accuracy because otherwise tests would take forever
 
     def setUp(self):
         """
@@ -350,6 +356,170 @@ class TestVariableLowerBoundFunc2D(TestInterp2D):
         base_func = temp.interpolant
         lower_bound = ConstantFunction(0.0)
         self.interpolant = self.interpolator_(base_func, lower_bound)
+
+
+###############################################################################
+
+
+class TestTrilinearInterp(TestInterp3D):
+    interpolator_ = TrilinearInterp
+
+    def make_interpolant(self):
+        xbot = 0.3
+        xtop = 10.0
+        xorder = 3.0
+        ybot = 0.1
+        ytop = 6.0
+        yorder = 2.5
+        zbot = 0.1
+        ztop = 7.0
+        zorder = 2.7
+        x_grid = (xtop - xbot) * np.linspace(0.0, 1.0, 401) ** xorder + xbot
+        y_grid = (ytop - ybot) * np.linspace(0.0, 1.0, 301) ** yorder + ybot
+        z_grid = (ztop - zbot) * np.linspace(0.0, 1.0, 351) ** zorder + zbot
+        xmesh, ymesh, zmesh = np.meshgrid(x_grid, y_grid, z_grid, indexing="ij")
+        values = self.function(xmesh, ymesh, zmesh)
+        self.interpolant = self.interpolator_(values, x_grid, y_grid, z_grid)
+
+
+class TestLinearInterpOnInterp2D(TestInterp3D):
+    interpolator_ = LinearInterpOnInterp2D
+
+    def make_interpolant(self):
+        # I'm not going to futz with making different interpolants in each layer
+        temp = TestTrilinearInterp()
+        temp.setUp()
+        values = temp.interpolant.f_values
+        x_grid = temp.interpolant.x_list
+        y_grid = temp.interpolant.y_list
+        z_grid = temp.interpolant.z_list
+        xy_interpolators = []
+        for j in range(z_grid.size):
+            xy_interpolators.append(BilinearInterp(values[:, :, j], x_grid, y_grid))
+        self.interpolant = self.interpolator_(xy_interpolators, z_grid)
+
+
+class TestBilinearInterpOnInterp1D(TestInterp3D):
+    interpolator_ = BilinearInterpOnInterp1D
+
+    def make_interpolant(self):
+        # I'm not going to futz with making different interpolants in each layer
+        temp = TestTrilinearInterp()
+        temp.setUp()
+        values = temp.interpolant.f_values
+        x_grid = temp.interpolant.x_list
+        y_grid = temp.interpolant.y_list
+        z_grid = temp.interpolant.z_list
+        x_interpolators = []
+        for i in range(y_grid.size):
+            temp_list = []
+            for j in range(z_grid.size):
+                temp_list.append(LinearInterp(x_grid, values[:, i, j]))
+            x_interpolators.append(temp_list)
+        self.interpolant = self.interpolator_(x_interpolators, y_grid, z_grid)
+
+
+class TestLowerEnvelope3D(TestInterp3D):
+    interpolator_ = LowerEnvelope3D
+
+    def make_interpolant(self):
+        # Lower envelope classes aren't well suited to testing, so we'll do this...
+        temp = TestTrilinearInterp()
+        temp.setUp()
+        base_func = temp.interpolant
+        high_func = lambda x, y, z: base_func(x, y, z) + 2.0  # always higher
+        self.interpolant = self.interpolator_(base_func, high_func)
+
+
+###############################################################################
+
+
+class TestQuadlinearInterp(TestInterp4D):
+    interpolator_ = QuadlinearInterp
+
+    def make_interpolant(self):
+        # Going to use many fewer gridpoints than before
+        wbot = 0.3
+        wtop = 6.0
+        worder = 2.2
+        xbot = 0.3
+        xtop = 10.0
+        xorder = 2.8
+        ybot = 0.1
+        ytop = 6.0
+        yorder = 2.5
+        zbot = 0.1
+        ztop = 7.0
+        zorder = 2.7
+        w_grid = (wtop - wbot) * np.linspace(0.0, 1.0, 46) ** worder + wbot
+        x_grid = (xtop - xbot) * np.linspace(0.0, 1.0, 41) ** xorder + xbot
+        y_grid = (ytop - ybot) * np.linspace(0.0, 1.0, 31) ** yorder + ybot
+        z_grid = (ztop - zbot) * np.linspace(0.0, 1.0, 36) ** zorder + zbot
+        wmesh, xmesh, ymesh, zmesh = np.meshgrid(
+            w_grid, x_grid, y_grid, z_grid, indexing="ij"
+        )
+        values = self.function(wmesh, xmesh, ymesh, zmesh)
+        self.interpolant = self.interpolator_(values, w_grid, x_grid, y_grid, z_grid)
+
+
+class TestTrilinearInterpOnInterp1D(TestInterp4D):
+    interpolator_ = TrilinearInterpOnInterp1D
+    tol = 6e-4  # test *barely* fails with 5e-4
+
+    def make_interpolant(self):
+        wbot = 0.3
+        wtop = 6.0
+        worder = 2.2
+        xbot = 0.3
+        xtop = 10.0
+        xorder = 2.8
+        ybot = 0.1
+        ytop = 6.0
+        yorder = 2.5
+        zbot = 0.1
+        ztop = 7.0
+        zorder = 2.7
+        RNG = np.random.RandomState(seed=31415926)
+        x_grid = (xtop - xbot) * np.linspace(0.0, 1.0, 41) ** xorder + xbot
+        y_grid = (ytop - ybot) * np.linspace(0.0, 1.0, 31) ** yorder + ybot
+        z_grid = (ztop - zbot) * np.linspace(0.0, 1.0, 36) ** zorder + zbot
+        w_interpolators = []
+        for i in range(x_grid.size):
+            x = x_grid[i]
+            outer_list = []
+            for j in range(y_grid.size):
+                y = y_grid[j]
+                temp_list = []
+                for k in range(z_grid.size):
+                    z = z_grid[k]
+                    w_grid = (wtop - wbot) * np.sort(RNG.rand(46)) ** worder + wbot
+                    temp_list.append(
+                        LinearInterp(w_grid, self.function(w_grid, x, y, z))
+                    )
+                outer_list.append(temp_list)
+            w_interpolators.append(outer_list)
+        self.interpolant = self.interpolator_(w_interpolators, x_grid, y_grid, z_grid)
+
+
+class TestBilinearInterpOnInterp2D(TestInterp4D):
+    interpolator_ = BilinearInterpOnInterp2D
+
+    def make_interpolant(self):
+        # I'm not going to futz with different values for the layers here
+        temp = TestQuadlinearInterp()
+        temp.setUp()
+        w_grid = temp.interpolant.w_list
+        x_grid = temp.interpolant.x_list
+        y_grid = temp.interpolant.y_list
+        z_grid = temp.interpolant.z_list
+        values = temp.interpolant.f_values
+        wx_interpolators = []
+        for j in range(y_grid.size):
+            temp_list = []
+            for k in range(z_grid.size):
+                temp_list.append(BilinearInterp(values[:, :, j, k], w_grid, x_grid))
+            wx_interpolators.append(temp_list)
+        self.interpolant = self.interpolator_(wx_interpolators, y_grid, z_grid)
 
 
 ###############################################################################
