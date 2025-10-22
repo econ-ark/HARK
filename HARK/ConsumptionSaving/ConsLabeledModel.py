@@ -20,10 +20,8 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
     init_portfolio,
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
-    FixedPortfolioShareRiskyAssetConsumerType,
     RiskyAssetConsumerType,
     init_risky_asset,
-    init_risky_share_fixed,
     IndShockRiskyAssetConsumerType_constructor_default,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -1205,37 +1203,6 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
 
 ###############################################################################
 
-init_risky_share_fixed_labeled = init_risky_share_fixed.copy()
-risky_share_fixed_labeled_constructors = init_risky_share_fixed["constructors"].copy()
-risky_share_fixed_labeled_constructors["IncShkDstn"] = make_labeled_inc_shk_dstn
-risky_share_fixed_labeled_constructors["RiskyDstn"] = make_labeled_risky_dstn
-risky_share_fixed_labeled_constructors["ShockDstn"] = make_labeled_shock_dstn
-risky_share_fixed_labeled_constructors["solution_terminal"] = (
-    make_solution_terminal_labeled
-)
-init_risky_share_fixed_labeled["constructors"] = risky_share_fixed_labeled_constructors
-
-
-class FixedPortfolioLabeledType(
-    RiskyAssetLabeledType, FixedPortfolioShareRiskyAssetConsumerType
-):
-    """
-    A labeled FixedPortfolioShareRiskyAssetConsumerType. This class is a subclass of
-    FixedPortfolioShareRiskyAssetConsumerType, and inherits all of its methods and attributes.
-
-    Fixed portfolio share consumers can save on a risk-free and
-    risky asset at a fixed proportion.
-    """
-
-    default_ = {
-        "params": init_risky_share_fixed_labeled,
-        "solver": make_one_period_oo_solver(ConsFixedPortfolioLabeledSolver),
-        "model": "ConsRiskyAsset.yaml",
-    }
-
-
-###############################################################################
-
 
 @dataclass
 class ConsPortfolioLabeledSolver(ConsFixedPortfolioLabeledSolver):
@@ -1411,7 +1378,7 @@ init_portfolio_labeled["constructors"] = init_portfolio_labeled_constructors
 init_portfolio_labeled["RiskyShareFixed"] = [0.0]  # This shouldn't exist
 
 
-class PortfolioLabeledType(FixedPortfolioLabeledType, PortfolioConsumerType):
+class PortfolioLabeledType(PortfolioConsumerType):
     """
     A labeled PortfolioConsumerType. This class is a subclass of
     PortfolioConsumerType, and inherits all of its methods and attributes.
