@@ -29,6 +29,10 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     make_simple_ShareGrid,
     make_AdjustDstn,
 )
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
+)
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc, make_assets_grid
 
@@ -274,7 +278,6 @@ def calc_end_v(shocks, a_nrm, share, rfree, v_func):
     ex_ret = shocks - rfree
     rport = rfree + share * ex_ret
     b_nrm = rport * a_nrm
-
     return v_func(b_nrm)
 
 
@@ -466,7 +469,7 @@ def solve_one_period_WealthPortfolio(
         end_v = DiscFacEff * expected(
             calc_end_v,
             RiskyDstn,
-            args=(aNrmNow, ShareNext, PermGroFac, CRRA, med_v_func),
+            args=(aNrmNow, ShareNext, Rfree, med_v_func),
         )
         end_v_nvrs = uFunc.inv(end_v)
 
@@ -522,6 +525,8 @@ WealthPortfolioConsumerType_constructors_default = {
     "ShareGrid": make_simple_ShareGrid,
     "ChiFunc": make_ChiFromOmega_function,
     "AdjustDstn": make_AdjustDstn,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_portfolio_solution_terminal,
 }
 
@@ -562,6 +567,20 @@ WealthPortfolioConsumerType_ShareGrid_default = {
 WealthPortfolioConsumerType_ChiFunc_default = {
     "ChiFromOmega_N": 501,  # Number of gridpoints in chi-from-omega function
     "ChiFromOmega_bound": 15,  # Highest gridpoint to use for it
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+WealthPortfolioConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+WealthPortfolioConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Make a dictionary to specify a risky asset consumer type
@@ -625,6 +644,12 @@ WealthPortfolioConsumerType_default.update(
     WealthPortfolioConsumerType_RiskyDstn_default
 )
 WealthPortfolioConsumerType_default.update(WealthPortfolioConsumerType_ChiFunc_default)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_kNrmInitDstn_default
+)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_pLvlInitDstn_default
+)
 init_wealth_portfolio = WealthPortfolioConsumerType_default
 
 ###############################################################################
