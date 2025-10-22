@@ -1527,7 +1527,6 @@ class PerfForesightConsumerType(AgentType):
 
         # MPCnow is not really a control
         self.MPCnow = MPCnow
-        return None
 
     def get_poststates(self):
         """
