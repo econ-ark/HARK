@@ -1473,7 +1473,7 @@ class AgentSimulator:
             for name in outcomes:
                 dstn_sizes = np.array([dstn.size for dstn in history_dstn[name]])
                 if np.all(dstn_sizes == dstn_sizes[0]):
-                    history_dstn[name] = np.concatenate(history_dstn[name], axis=1)
+                    history_dstn[name] = np.stack(history_dstn[name], axis=1)
 
         # Store results as attributes of self
         self.state_dstn_by_age = state_dstn_by_age
