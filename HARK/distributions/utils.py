@@ -565,7 +565,7 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The distribution over which the function is to be evaluated.
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at ``f(dstn, *args)``.
+        The expectation is computed at ``f(dstn, *args)``.
     labels : bool
         If True, the function should use labeled indexing instead of integer
         indexing using the distribution's underlying rv coordinates. For example,

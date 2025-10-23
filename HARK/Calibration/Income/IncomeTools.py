@@ -544,8 +544,8 @@ def parse_income_spec(
     income_params : dict
         Dictionary with entries:
             - P0: initial level of permanent income.
-            - pLvlInitMean: mean of the distribution of log-permanent income.
-                np.log(P0) = pLvlInitMean
+            - pLogInitMean: mean of the distribution of log-permanent income.
+                np.log(P0) = pLogInitMean
             - PermGroFac : list of deterministic growth factors for permanent
                 income.
             - PermShkStd: list of standard deviations of shocks to
@@ -673,7 +673,7 @@ def parse_income_spec(
 
     P0 = P0 * defl
     income_params["P0"] = P0
-    income_params["pLvlInitMean"] = np.log(P0)
+    income_params["pLogInitMean"] = np.log(P0)
 
     return income_params
 

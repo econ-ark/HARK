@@ -2022,18 +2022,6 @@ class CobbDouglasEconomy(Market):
         Market.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **params)
         self.update()
 
-        # Use previously hardcoded values for AFunc updating if not passed
-        # as part of initialization dictionary.  This is to prevent a last
-        # minute update to HARK before a release from having a breaking change.
-        if not hasattr(self, "DampingFac"):
-            self.DampingFac = 0.5
-        if not hasattr(self, "max_loops"):
-            self.max_loops = 20
-        if not hasattr(self, "T_discard"):
-            self.T_discard = 200
-        if not hasattr(self, "verbose"):
-            self.verbose = True
-
     def mill_rule(self, aLvl, pLvl):
         """
         Function to calculate the capital to labor ratio, interest factor, and

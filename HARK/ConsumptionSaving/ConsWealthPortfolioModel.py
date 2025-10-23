@@ -302,6 +302,50 @@ def solve_one_period_WealthPortfolio(
     WealthShift,
     ChiFunc,
 ):
+    """
+    TODO: Fill in this missing docstring.
+
+    Parameters
+    ----------
+    solution_next : TYPE
+        DESCRIPTION.
+    IncShkDstn : TYPE
+        DESCRIPTION.
+    RiskyDstn : TYPE
+        DESCRIPTION.
+    LivPrb : TYPE
+        DESCRIPTION.
+    DiscFac : TYPE
+        DESCRIPTION.
+    CRRA : TYPE
+        DESCRIPTION.
+    Rfree : TYPE
+        DESCRIPTION.
+    PermGroFac : TYPE
+        DESCRIPTION.
+    BoroCnstArt : TYPE
+        DESCRIPTION.
+    aXtraGrid : TYPE
+        DESCRIPTION.
+    ShareGrid : TYPE
+        DESCRIPTION.
+    ShareLimit : TYPE
+        DESCRIPTION.
+    vFuncBool : TYPE
+        DESCRIPTION.
+    WealthShare : TYPE
+        DESCRIPTION.
+    WealthShift : TYPE
+        DESCRIPTION.
+    ChiFunc : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    solution_now : TYPE
+        DESCRIPTION.
+
+    """
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
     if BoroCnstArt != 0.0:
