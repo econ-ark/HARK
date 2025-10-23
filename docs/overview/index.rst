@@ -24,6 +24,7 @@ Overview
    ../../examples/Gentle-Intro/Model-List.ipynb
    ../../examples/Gentle-Intro/AgentType-Intro.ipynb
    ../../examples/Gentle-Intro/Market-Intro.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
    ../../examples/Journeys/Journey-PhD.ipynb
 
