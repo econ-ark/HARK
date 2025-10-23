@@ -17,6 +17,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
 )
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 
 
 class testsForIndShk(unittest.TestCase):
@@ -92,12 +93,14 @@ class testSimulatorClass(unittest.TestCase):
             ["cNrm", "aNrm"],
             self.grid_specs,
             norm="PermShk",
-            solved=True,
         )
 
         # Verify that all of the SSJs return near zero (for shocks < 100 periods ahead)
         self.assertTrue(np.all(np.isclose(dC_dR[-1, :100], 0.0)))
         self.assertTrue(np.all(np.isclose(dA_dR[-1, :100], 0.0)))
+
+    def test_describe_model(self):
+        self.agent.describe_model()  # check that it doesn't crash
 
 
 class testGridSimulation(unittest.TestCase):
@@ -172,3 +175,38 @@ class testGridSimulation(unittest.TestCase):
         # Verify that they're close together at all ages
         self.assertTrue(np.all(np.abs(grid_sim_A[:-1] - MC_sim_A) < 0.03))
         self.assertTrue(np.all(np.abs(grid_sim_C[:-1] - MC_sim_C) < 0.005))
+
+    def test_LC_grid_dstn_generation(self):
+        self.agent.initialize_sym(stop_dead=False)
+
+        # Make mean trajectories of normalized assets and consumption by grid method
+        self.agent._simulator.make_transition_matrices(self.grid_specs)
+        self.agent._simulator.simulate_cohort_by_grids(["cNrm", "aNrm"], calc_dstn=True)
+
+
+class testMarkovEvents(unittest.TestCase):
+    # This runs some simple tests to cover parts of the simulator that are only
+    # reached by the "Markov"-type models
+
+    def setUp(self):
+        self.agent = MarkovConsumerType(
+            cycles=0, T_sim=100
+        )  # default params, infinite horizon
+        self.agent.solve()
+        kNrm_grid = {
+            "min": 0.0,
+            "max": 200.0,
+            "N": 801,
+        }
+        cNrm_grid = {
+            "min": 0.0,
+            "max": 15.0,
+            "N": 251,
+        }
+        Mrkv_grid = {"N": 2}
+        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "z": Mrkv_grid}
+
+    def test_simulation(self):
+        self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
+        self.agent.initialize_sym()
+        self.agent.symulate()
