@@ -273,19 +273,19 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     ShareGrid: Constructor
         The agent's risky asset share grid
 
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
     RiskyDstn: Constructor, :math:`\phi`
         The agent's asset shock distribution for risky assets.
 
-        It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
+        Its default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
 
     Solving Parameters
     ------------------
@@ -537,6 +537,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = np.zeros(self.AgentCount, dtype=bool)
+        self.controls["Share"] = np.ones(self.AgentCount)
         IndShockConsumerType.initialize_sim(self)
 
     def get_shocks(self):
@@ -556,6 +557,37 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         IndShockConsumerType.get_shocks(self)
         self.get_Risky()
         self.get_Adjust()
+
+    def get_controls(self):
+        """
+        Calculates consumption for each consumer of this type using the consumption functions;
+        also calculates risky asset share when PortfolioBool=True
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        if self.PortfolioBool:
+            cNrmNow = np.full(self.AgentCount, np.nan)
+            MPCnow = np.full(self.AgentCount, np.nan)
+            ShareNow = np.full(self.AgentCount, np.nan)
+            for t in np.unique(self.t_cycle):
+                idx = self.t_cycle == t
+                if np.any(idx):
+                    mNrm = self.state_now["mNrm"][idx]
+                    cNrmNow[idx], MPCnow[idx] = self.solution[
+                        t
+                    ].cFunc.eval_with_derivative(mNrm)
+                    ShareNow[idx] = self.solution[t].ShareFunc(mNrm)
+            self.controls["cNrm"] = cNrmNow
+            self.controls["Share"] = ShareNow
+            self.MPCnow = MPCnow
+        else:
+            super().get_controls()
 
 
 # This is to preserve compatibility with old name
