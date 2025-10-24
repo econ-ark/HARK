@@ -8,7 +8,7 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.17.0(dev)
+### 0.16.2(dev)
 
 Release Date: TBD
 
@@ -28,8 +28,10 @@ The only breaking change is the removal of TimeVaryingDiscreteDistribution; use 
 - Krusell-Smith model guide added to documentation. [#1594](https://github.com/econ-ark/HARK/pull/1594)
 - Added additional options and simplified syntax for non-default constructors when instantiating agents. [#1591](https://github.com/econ-ark/HARK/pull/1591)
 - Added options for custom indexer and pre-computation of coefficients to LinearInterp. [#1593](https://github.com/econ-ark/HARK/pull/1593)
-- Folded TimeVaryingDiscreteDistribution into IndexDistribution. [#1592](https://github.com/econ-ark/HARK/pull/1592)
 - Fixed bug that prevented combine_indep_dstn from working with Bernoulli distributions. [#1581](https://github.com/econ-ark/HARK/pull/1581)
+- Introductory / instructional notebooks significantly expanded. [#1597](https://github.com/econ-ark/HARK/pull/1597)
+- Lognormal discrete approximation math has been simplified. [#1598](https://github.com/econ-ark/HARK/pull/1598)
+- Directory structure for consumption-saving examples regularized. [#1596](https://github.com/econ-ark/HARK/pull/1596)
 
 
 ### 0.16.1
