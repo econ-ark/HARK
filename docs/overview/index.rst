@@ -12,12 +12,26 @@ Overview
    https://nbsphinx.readthedocs.io/en/latest/a-normal-rst-file.html#thumbnail-galleries
 
 .. nbgallery::
-   :caption: Examples
+   :caption: Learning About HARK
    :maxdepth: 1
 
    ../../examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
    ../../examples/Gentle-Intro/Simulation-Intro.ipynb
    ../../examples/Gentle-Intro/Cycles-Intro.ipynb
+   ../../examples/Gentle-Intro/Constructors-Intro.ipynb
+   ../../examples/Gentle-Intro/Advanced-Intro.ipynb
+   ../../examples/Gentle-Intro/Methods-Intro.ipynb
+   ../../examples/Gentle-Intro/Model-List.ipynb
+   ../../examples/Gentle-Intro/AgentType-Intro.ipynb
+   ../../examples/Gentle-Intro/Market-Intro.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
+   ../../examples/Journeys/Journey-PhD.ipynb
+
+.. nbgallery::
+   :caption: HARK Models
+   :maxdepth: 1
+
    ../../examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
    ../../examples/ConsIndShockModel/IndShockConsumerType.ipynb
    ../../examples/ConsIndShockModel/KinkedRconsumerType.ipynb
@@ -34,14 +48,17 @@ Overview
    ../../examples/ConsMedModel/MedExtMargConsumerType.ipynb
    ../../examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
    ../../examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb
+
+.. nbgallery::
+   :caption: Examples
+   :maxdepth: 1
+
    ../../examples/LifecycleModel/LifecycleModel.ipynb
-   ../../examples/Journeys/Journey-PhD.ipynb
    ../../examples/SequenceSpaceJacobians/Transition_Matrix_Example.ipynb
    ../../examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
    ../../examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
    ../../examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
-   ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
-   ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
+
 
 .. toctree::
    :hidden:

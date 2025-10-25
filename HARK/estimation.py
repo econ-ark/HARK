@@ -11,9 +11,9 @@ from time import time  # Used to time execution
 import estimagic as em
 import numpy as np  # Numerical Python
 from joblib import Parallel, delayed
-from scipy.optimize import fmin, fmin_powell
+from scipy.optimize import fmin, fmin_powell  # off-the-shelf minimizers
 
-from HARK.core import AgentType  # Minimizers
+from HARK.core import AgentType
 
 __all__ = [
     "minimize_nelder_mead",
@@ -227,7 +227,7 @@ def parallelNelderMead(
     maxthreads=None,
     name=None,
     resume=False,
-    savefreq=None,
+    savefreq=1,
     verbose=1,
 ):
     """A parallel implementation of the Nelder-Mead minimization algorithm, as

@@ -1,6 +1,12 @@
 examples/Gentle-Intro/Gentle-Intro-To-HARK.ipynb
 examples/Gentle-Intro/Simulation-Intro.ipynb
 examples/Gentle-Intro/Cycles-Intro.ipynb
+examples/Gentle-Intro/Constructors-Intro.ipynb
+examples/Gentle-Intro/Advanced-Intro.ipynb
+examples/Gentle-Intro/Methods-Intro.ipynb
+examples/Gentle-Intro/Model-List.ipynb
+examples/Gentle-Intro/AgentType-Intro.ipynb
+examples/Gentle-Intro/Market-Intro.ipynb
 examples/ConsHealthModel/BasicHealthConsumerType.ipynb
 examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
 examples/ConsIndShockModel/IndShockConsumerType.ipynb
