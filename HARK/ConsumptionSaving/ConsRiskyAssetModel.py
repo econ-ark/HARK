@@ -539,6 +539,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         None
         """
         self.shocks["Adjust"] = np.zeros(self.AgentCount, dtype=bool)
+        # Initialize Share to default value; will be updated in get_controls()
         self.controls["Share"] = np.ones(self.AgentCount)
         IndShockConsumerType.initialize_sim(self)
 
@@ -583,7 +584,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
                 cNrmNow[idx], MPCnow[idx] = self.solution[t].cFunc.eval_with_derivative(
                     mNrm
                 )
-                ShareNow[idx] = self.solution[t].ShareFunc(mNrm)
+                if self.PortfolioBool:
+                    ShareNow[idx] = self.solution[t].ShareFunc(mNrm)
+                else:
+                    ShareNow[idx] = self.RiskyShareFixed
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
         self.MPCnow = MPCnow
