@@ -55,9 +55,11 @@ class testMedExtMargConsumerType(unittest.TestCase):
         )
 
     def test_value(self):
-        vFunc = self.agent.solution[0].vFunc_by_pLvl[20]
+        # Use middle index to avoid hardcoded assumptions about grid size
+        pLvl_idx = len(self.agent.solution[0].vFunc_by_pLvl) // 2
+        vFunc = self.agent.solution[0].vFunc_by_pLvl[pLvl_idx]
         mLvl = 10.0
-        self.assertAlmostEqual(vFunc(mLvl), -1.0853, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mLvl), -1.08164, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
