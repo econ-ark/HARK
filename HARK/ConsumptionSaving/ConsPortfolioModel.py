@@ -1082,14 +1082,14 @@ PortfolioConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # Whether there is actually portfolio choice
+    "PortfolioBool": True,  # This *must* be set to True; only exists because of inheritance
     "PortfolioBisect": False,  # What does this do?
     "IndepDstnBool": True,  # Whether return and income shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
-    "RiskyShareFixed": None,  # Inherited from parent class; not used when PortfolioBool=True
+    "RiskyShareFixed": None,  # This does nothing in this model; only exists because of inheritance
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
 PortfolioConsumerType_simulation_default = {

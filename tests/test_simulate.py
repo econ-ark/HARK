@@ -209,5 +209,4 @@ class testMarkovEvents(unittest.TestCase):
     def test_simulation(self):
         self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
         self.agent.initialize_sym()
-        self.agent.initialize_sim()
-        self.agent.simulate()
+        self.agent.symulate()
