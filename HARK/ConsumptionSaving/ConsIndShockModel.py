@@ -13,7 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
-from copy import copy, deepcopy
+from copy import copy
 
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
@@ -3014,43 +3014,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         pass
 
 
-def apply_flat_income_tax(
-    IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
-):
-    """
-    Applies a flat income tax rate to all employed income states during the working
-    period of life (those before T_retire).  Time runs forward in this function.
-
-    Parameters
-    ----------
-    IncShkDstn : [distribution.Distribution]
-        The discrete approximation to the income distribution in each time period.
-    tax_rate : float
-        A flat income tax rate to be applied to all employed income.
-    T_retire : int
-        The time index after which the agent retires.
-    unemployed_indices : [int]
-        Indices of transitory shocks that represent unemployment states (no tax).
-    transitory_index : int
-        The index of each element of IncShkDstn representing transitory shocks.
-
-    Returns
-    -------
-    IncShkDstn_new : [distribution.Distribution]
-        The updated income distributions, after applying the tax.
-    """
-    unemployed_indices = (
-        unemployed_indices if unemployed_indices is not None else list()
-    )
-    IncShkDstn_new = deepcopy(IncShkDstn)
-    i = transitory_index
-    for t in range(len(IncShkDstn)):
-        if t < T_retire:
-            for j in range((IncShkDstn[t][i]).size):
-                if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
-    return IncShkDstn_new
-
+###############################################################################
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 
