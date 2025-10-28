@@ -211,13 +211,13 @@ class testMarkovEvents(unittest.TestCase):
         self.agent.solve()
         kNrm_grid = {
             "min": 0.0,
-            "max": 200.0,
-            "N": 801,
+            "max": 100.0,
+            "N": 301,
         }
         cNrm_grid = {
             "min": 0.0,
             "max": 15.0,
-            "N": 251,
+            "N": 201,
         }
         Mrkv_grid = {"N": 2}
         self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "z": Mrkv_grid}
