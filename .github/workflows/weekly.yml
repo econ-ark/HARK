@@ -26,7 +26,7 @@ jobs:
         uses: actions/upload-artifact@v4
         id: cov-upload-zip
         with:
-          name: coverage-report
+          name: docs_html
           path: htmlcov
 
       - run: echo "::notice::https://remote-unzip.deno.dev/${{ github.repository }}/artifacts/${{ steps.cov-upload-zip.outputs.artifact-id }}"
