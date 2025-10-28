@@ -5,7 +5,6 @@ derivatives), manipulation of discrete distributions, and basic plotting tools.
 """
 
 import cProfile
-import functools
 import os
 import pstats
 import re
@@ -15,26 +14,6 @@ import numpy as np  # Python's numeric library, abbreviated "np"
 from scipy.interpolate import interp1d
 
 from inspect import signature
-
-
-def memoize(obj):
-    """
-    A decorator to (potentially) make functions more efficient.
-
-    With this decorator, functions will "remember" if they have been evaluated with given inputs
-    before.  If they have, they will "remember" the outputs that have already been calculated
-    for those inputs, rather than calculating them again.
-    """
-    cache = obj._cache = {}
-
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        key = str(args) + str(kwargs)
-        if key not in cache:
-            cache[key] = obj(*args, **kwargs)
-        return cache[key]
-
-    return memoizer
 
 
 class get_it_from:
