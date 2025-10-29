@@ -2732,130 +2732,143 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         """
         Returns the level of the interpolated function at each value in x,y,z.
         Only called internally by HARKinterpolator3D.__call__ (etc).
+        
+        Optimized to avoid nested loops by processing all unique (i,j) combinations
+        with vectorized operations.
         """
         m = len(x)
         y_pos = np.searchsorted(self.y_list, y)
-        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-        y_pos[y_pos < 1] = 1
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
         z_pos = np.searchsorted(self.z_list, z)
-        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-        z_pos[z_pos < 1] = 1
-        f = np.zeros(m) + np.nan
-        for i in range(1, self.y_n):
-            for j in range(1, self.z_n):
-                c = np.logical_and(i == y_pos, j == z_pos)
-                if np.any(c):
-                    alpha = (y[c] - self.y_list[i - 1]) / (
-                        self.y_list[i] - self.y_list[i - 1]
-                    )
-                    beta = (z[c] - self.z_list[j - 1]) / (
-                        self.z_list[j] - self.z_list[j - 1]
-                    )
-                    f[c] = (
-                        (1 - alpha)
-                        * (1 - beta)
-                        * self.xInterpolators[i - 1][j - 1](x[c])
-                        + (1 - alpha) * beta * self.xInterpolators[i - 1][j](x[c])
-                        + alpha * (1 - beta) * self.xInterpolators[i][j - 1](x[c])
-                        + alpha * beta * self.xInterpolators[i][j](x[c])
-                    )
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+        
+        f = np.full(m, np.nan)
+        
+        # Find unique combinations of (y_pos, z_pos) to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+        
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            alpha = (y[c] - self.y_list[i - 1]) / (
+                self.y_list[i] - self.y_list[i - 1]
+            )
+            beta = (z[c] - self.z_list[j - 1]) / (
+                self.z_list[j] - self.z_list[j - 1]
+            )
+            f[c] = (
+                (1 - alpha)
+                * (1 - beta)
+                * self.xInterpolators[i - 1][j - 1](x[c])
+                + (1 - alpha) * beta * self.xInterpolators[i - 1][j](x[c])
+                + alpha * (1 - beta) * self.xInterpolators[i][j - 1](x[c])
+                + alpha * beta * self.xInterpolators[i][j](x[c])
+            )
         return f
 
     def _derX(self, x, y, z):
         """
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
+        
+        Optimized to avoid nested loops by processing unique (i,j) combinations.
         """
         m = len(x)
         y_pos = np.searchsorted(self.y_list, y)
-        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-        y_pos[y_pos < 1] = 1
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
         z_pos = np.searchsorted(self.z_list, z)
-        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-        z_pos[z_pos < 1] = 1
-        dfdx = np.zeros(m) + np.nan
-        for i in range(1, self.y_n):
-            for j in range(1, self.z_n):
-                c = np.logical_and(i == y_pos, j == z_pos)
-                if np.any(c):
-                    alpha = (y[c] - self.y_list[i - 1]) / (
-                        self.y_list[i] - self.y_list[i - 1]
-                    )
-                    beta = (z[c] - self.z_list[j - 1]) / (
-                        self.z_list[j] - self.z_list[j - 1]
-                    )
-                    dfdx[c] = (
-                        (1 - alpha)
-                        * (1 - beta)
-                        * self.xInterpolators[i - 1][j - 1]._der(x[c])
-                        + (1 - alpha) * beta * self.xInterpolators[i - 1][j]._der(x[c])
-                        + alpha * (1 - beta) * self.xInterpolators[i][j - 1]._der(x[c])
-                        + alpha * beta * self.xInterpolators[i][j]._der(x[c])
-                    )
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+        
+        dfdx = np.full(m, np.nan)
+        
+        # Find unique combinations to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+        
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            alpha = (y[c] - self.y_list[i - 1]) / (
+                self.y_list[i] - self.y_list[i - 1]
+            )
+            beta = (z[c] - self.z_list[j - 1]) / (
+                self.z_list[j] - self.z_list[j - 1]
+            )
+            dfdx[c] = (
+                (1 - alpha)
+                * (1 - beta)
+                * self.xInterpolators[i - 1][j - 1]._der(x[c])
+                + (1 - alpha) * beta * self.xInterpolators[i - 1][j]._der(x[c])
+                + alpha * (1 - beta) * self.xInterpolators[i][j - 1]._der(x[c])
+                + alpha * beta * self.xInterpolators[i][j]._der(x[c])
+            )
         return dfdx
 
     def _derY(self, x, y, z):
         """
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
+        
+        Optimized to avoid nested loops by processing unique (i,j) combinations.
         """
         m = len(x)
         y_pos = np.searchsorted(self.y_list, y)
-        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-        y_pos[y_pos < 1] = 1
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
         z_pos = np.searchsorted(self.z_list, z)
-        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-        z_pos[z_pos < 1] = 1
-        dfdy = np.zeros(m) + np.nan
-        for i in range(1, self.y_n):
-            for j in range(1, self.z_n):
-                c = np.logical_and(i == y_pos, j == z_pos)
-                if np.any(c):
-                    beta = (z[c] - self.z_list[j - 1]) / (
-                        self.z_list[j] - self.z_list[j - 1]
-                    )
-                    dfdy[c] = (
-                        (
-                            (1 - beta) * self.xInterpolators[i][j - 1](x[c])
-                            + beta * self.xInterpolators[i][j](x[c])
-                        )
-                        - (
-                            (1 - beta) * self.xInterpolators[i - 1][j - 1](x[c])
-                            + beta * self.xInterpolators[i - 1][j](x[c])
-                        )
-                    ) / (self.y_list[i] - self.y_list[i - 1])
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+        
+        dfdy = np.full(m, np.nan)
+        
+        # Find unique combinations to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+        
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            beta = (z[c] - self.z_list[j - 1]) / (
+                self.z_list[j] - self.z_list[j - 1]
+            )
+            dfdy[c] = (
+                (
+                    (1 - beta) * self.xInterpolators[i][j - 1](x[c])
+                    + beta * self.xInterpolators[i][j](x[c])
+                )
+                - (
+                    (1 - beta) * self.xInterpolators[i - 1][j - 1](x[c])
+                    + beta * self.xInterpolators[i - 1][j](x[c])
+                )
+            ) / (self.y_list[i] - self.y_list[i - 1])
         return dfdy
 
     def _derZ(self, x, y, z):
         """
         Returns the derivative with respect to z of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
+        
+        Optimized to avoid nested loops by processing unique (i,j) combinations.
         """
         m = len(x)
         y_pos = np.searchsorted(self.y_list, y)
-        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-        y_pos[y_pos < 1] = 1
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
         z_pos = np.searchsorted(self.z_list, z)
-        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-        z_pos[z_pos < 1] = 1
-        dfdz = np.zeros(m) + np.nan
-        for i in range(1, self.y_n):
-            for j in range(1, self.z_n):
-                c = np.logical_and(i == y_pos, j == z_pos)
-                if np.any(c):
-                    alpha = (y[c] - self.y_list[i - 1]) / (
-                        self.y_list[i] - self.y_list[i - 1]
-                    )
-                    dfdz[c] = (
-                        (
-                            (1 - alpha) * self.xInterpolators[i - 1][j](x[c])
-                            + alpha * self.xInterpolators[i][j](x[c])
-                        )
-                        - (
-                            (1 - alpha) * self.xInterpolators[i - 1][j - 1](x[c])
-                            + alpha * self.xInterpolators[i][j - 1](x[c])
-                        )
-                    ) / (self.z_list[j] - self.z_list[j - 1])
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+        
+        dfdz = np.full(m, np.nan)
+        
+        # Find unique combinations to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+        
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            alpha = (y[c] - self.y_list[i - 1]) / (
+                self.y_list[i] - self.y_list[i - 1]
+            )
+            dfdz[c] = (
+                (
+                    (1 - alpha) * self.xInterpolators[i - 1][j](x[c])
+                    + alpha * self.xInterpolators[i][j](x[c])
+                )
+                - (
+                    (1 - alpha) * self.xInterpolators[i - 1][j - 1](x[c])
+                    + alpha * self.xInterpolators[i][j - 1](x[c])
+                )
+            ) / (self.z_list[j] - self.z_list[j - 1])
         return dfdz
 
 
