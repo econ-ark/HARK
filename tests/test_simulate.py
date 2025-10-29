@@ -234,4 +234,5 @@ class testMarkovEvents(unittest.TestCase):
             self.grid_specs,
             norm="PermShk",
             offset=True,
+            T_max=100,
         )
