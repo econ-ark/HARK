@@ -206,8 +206,11 @@ class testMarkovEvents(unittest.TestCase):
 
     def setUp(self):
         self.agent = MarkovConsumerType(
-            cycles=0, T_sim=100
-        )  # default params, infinite horizon
+            cycles=0,
+            T_sim=100,
+            PermShkCount=3,
+            TranShkCount=3,
+        )
         self.agent.solve()
         kNrm_grid = {
             "min": 0.0,
