@@ -25,5 +25,5 @@ class test_LaborIntMargConsumerType(unittest.TestCase):
 
     def test_plotting(self):
         self.model.solve()
-        self.plot_cFunc(0)
-        self.plot_LbrFunc(0)
+        self.model.plot_cFunc(0)
+        self.model.plot_LbrFunc(0)
