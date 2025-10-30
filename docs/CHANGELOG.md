@@ -14,10 +14,11 @@ Release Date: TBD
 
 #### Release Notes
 
-There are two breaking changes:
+There are some breaking changes:
 
 - The removal of TimeVaryingDiscreteDistribution; use IndexDistribution instead, and see #1592.
 - FixedPortfolioShareRiskyAssetConsumerType is removed, but now incorporated as RiskyAssetConsumerType with PortfolioBool=False. Default behavior of latter class is unchanged; see #1607.
+- The content of HARK.parallel has been moved to HARK.core, and the former is deprecated. Import from HARK.core and see #1610.
 
 #### Major Changes
 
@@ -36,6 +37,7 @@ There are two breaking changes:
 - Lognormal discrete approximation math has been simplified. [#1598](https://github.com/econ-ark/HARK/pull/1598)
 - Directory structure for consumption-saving examples regularized. [#1596](https://github.com/econ-ark/HARK/pull/1596)
 - Fixed share model has been combined with RiskyAssetConsumerType's PortfolioBool=False option. [#1607](https://github.com/econ-ark/HARK/pull/1607)
+- Deprecate HARK.parallel, moving the three functions there to HARK.core. [#1610](https://github.com/econ-ark/HARK/pull/1610)
 
 
 ### 0.16.1
