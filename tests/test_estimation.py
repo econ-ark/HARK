@@ -4,6 +4,7 @@ This file implements unit tests for HARK.estimation, a fairly sparse module.
 
 import unittest
 import numpy as np
+from copy import copy
 
 from HARK.estimation import minimize_nelder_mead, minimize_powell, parallelNelderMead
 
@@ -11,7 +12,7 @@ from HARK.estimation import minimize_nelder_mead, minimize_powell, parallelNelde
 true_min = np.array([2.0, 3.0, -4.0])
 
 
-def alt_func(q):
+def my_func(q):
     return q[0] ** 2 - 4 * q[0] + q[1] ** 2 - 6 * q[1] + q[2] ** 2 + 8 * q[2]
 
 
@@ -25,7 +26,7 @@ class testMinimizer(unittest.TestCase):
 
         xyz_init = np.array([0.0, 0.0, 0.0])
         minimizer = self.params["minimizer"]
-        output = minimizer(alt_func, xyz_init, **self.args)
+        output = minimizer(my_func, xyz_init, **self.args)
         diff = output - true_min
         dist = np.sqrt(np.dot(diff, diff))
         self.assertTrue(dist < 1e-4)
@@ -42,3 +43,34 @@ class testNelderMead(testMinimizer):
 class testParallelNelderMead(testMinimizer):
     params = {"minimizer": parallelNelderMead}
     args = {"P": 2, "ftol": 1e-12}
+
+
+class testPNM_read_write(unittest.TestCase):
+    def test_read_and_write(self):
+        # These run for 20 iterations and then save progress
+        first_args = {
+            "verbose": True,
+            "maxiter": 20,
+            "name": "test_progress",
+            "savefreq": 10,
+            "P": 2,
+            "ftol": 1e-12,
+        }
+
+        # These resume from the prior point and then continue to completion
+        second_args = copy(first_args)
+        second_args["maxiter"] = np.inf
+        second_args["resume"] = True
+
+        xyz_init = np.array([0.0, 0.0, 0.0])
+        minimizer = parallelNelderMead
+
+        output1 = minimizer(my_func, xyz_init, **first_args)
+        diff = output1 - true_min
+        dist = np.sqrt(np.dot(diff, diff))
+        self.assertTrue(dist > 1e-4)
+
+        output2 = minimizer(my_func, xyz_init, **second_args)
+        diff = output2 - true_min
+        dist = np.sqrt(np.dot(diff, diff))
+        self.assertTrue(dist < 1e-4)

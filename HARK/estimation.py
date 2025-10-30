@@ -524,7 +524,7 @@ def save_nelder_mead_data(name, simplex, fvals, iters, evals):
     N = simplex.shape[0]  # Number of points in simplex
     K = simplex.shape[1]  # Total number of parameters
 
-    with open(name + ".txt", "w") as f:
+    with open(name + ".txt", "w", newline="") as f:
         my_writer = csv.writer(f, delimiter=",")
         my_writer.writerow(simplex.shape)
         my_writer.writerow([iters, evals])
@@ -555,26 +555,26 @@ def load_nelder_mead_data(name):
 
     """
     # Open the Nelder-Mead progress file
-    with open(name + ".txt") as f:
+    with open(name + ".txt", newline="") as f:
         my_reader = csv.reader(f, delimiter=",")
 
         # Get the shape of the simplex and initialize it
-        my_shape_txt = my_reader.next()
+        my_shape_txt = my_reader.__next__()
         N = int(my_shape_txt[0])
         K = int(my_shape_txt[1])
         simplex = np.zeros((N, K)) + np.nan
 
         # Get number of iterations and cumulative evaluations from the next line
-        my_nums_txt = my_reader.next()
+        my_nums_txt = my_reader.__next__()
         iters = int(my_nums_txt[0])
         evals = int(my_nums_txt[1])
 
         # Read one line per point of the simplex
         for n in range(N):
-            simplex[n, :] = np.array(my_reader.next(), dtype=float)
+            simplex[n, :] = np.array(my_reader.__next__(), dtype=float)
 
         # Read the final line to get function values
-        fvals = np.array(my_reader.next(), dtype=float)
+        fvals = np.array(my_reader.__next__(), dtype=float)
 
     return simplex, fvals, iters, evals
 
