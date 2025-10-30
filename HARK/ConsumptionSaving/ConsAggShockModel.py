@@ -50,7 +50,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityPP,
 )
-from HARK.utilities import make_assets_grid
+from HARK.utilities import make_assets_grid, get_it_from
 
 __all__ = [
     "AggShockConsumerType",
@@ -632,7 +632,7 @@ def solve_KrusellSmith(
     Solve the one period problem of an agent in Krusell & Smith's canonical 1998 model.
     Because this model is so specialized and only intended to be used with a very narrow
     case, many arrays can be precomputed, making the code here very short.  See the
-    method KrusellSmithType.precompute_arrays() for details.
+    default constructor functions for details.
 
     Parameters
     ----------
@@ -1360,27 +1360,13 @@ def make_KS_transition_arrays(
     )
 
     # Return the attributes that will be used by the solver
-    ProbArray = Probs_tiled
-    mNextArray = mNext
-    MnextArray = Mnext_tiled
-    RnextArray = Rnext_tiled
-    return [ProbArray, mNextArray, MnextArray, RnextArray]
-
-
-def get_ProbArray(transition_arrays):
-    return transition_arrays[0]
-
-
-def get_mNextArray(transition_arrays):
-    return transition_arrays[1]
-
-
-def get_MnextArray(transition_arrays):
-    return transition_arrays[2]
-
-
-def get_RnextArray(transition_arrays):
-    return transition_arrays[3]
+    transition_arrays = {
+        "ProbArray": Probs_tiled,
+        "mNextArray": mNext,
+        "MnextArray": Mnext_tiled,
+        "RnextArray": Rnext_tiled,
+    }
+    return transition_arrays
 
 
 ###############################################################################
@@ -1390,10 +1376,10 @@ KS_constructor_dict = {
     "solution_terminal": make_solution_terminal_KS,
     "aGrid": make_assets_grid_KS,
     "transition_arrays": make_KS_transition_arrays,
-    "ProbArray": get_ProbArray,
-    "mNextArray": get_mNextArray,
-    "MnextArray": get_MnextArray,
-    "RnextArray": get_RnextArray,
+    "ProbArray": get_it_from("transition_arrays"),
+    "mNextArray": get_it_from("transition_arrays"),
+    "MnextArray": get_it_from("transition_arrays"),
+    "RnextArray": get_it_from("transition_arrays"),
     "MgridBase": make_exponential_MgridBase,
 }
 
