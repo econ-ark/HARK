@@ -15,7 +15,6 @@ API Reference
    tools/incomeprocess
    tools/model
    tools/numba_tools
-   tools/parallel
    tools/rewards
    tools/simulation
    tools/utilities
