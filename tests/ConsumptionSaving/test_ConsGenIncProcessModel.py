@@ -109,3 +109,7 @@ class testPersistentShockConsumerType(unittest.TestCase):
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.20439, places=HARK_PRECISION)
+
+    def test_IH_constructors(self):
+        self.agent.cycles = 0
+        self.agent.construct()

@@ -348,11 +348,17 @@ def parallelNelderMead(
     if maxthreads is not None:  # Cap the number of cores if desired
         cores_to_use = min(cores_to_use, maxthreads)
     parallel = Parallel(n_jobs=cores_to_use)
+    use_parallel = cores_to_use > 1
 
     # Begin a new Nelder-Mead search
     if not resume:
         temp_simplex = list(simplex)  # Evaluate the initial simplex
-        fvals = np.array(parallel(delayed(obj_func)(params) for params in temp_simplex))
+        if use_parallel:
+            fvals = np.array(
+                parallel(delayed(obj_func)(params) for params in temp_simplex)
+            )
+        else:
+            fvals = np.array([obj_func(params) for params in temp_simplex])
         evals += N
         # Reorder the initial simplex
         order = np.argsort(fvals)
@@ -398,17 +404,25 @@ def parallelNelderMead(
             print("Beginning iteration #" + str(iters) + " now.")
 
         # Update the P worst points of the simplex
-        output = parallel(
-            delayed(parallel_nelder_mead_worker)(
-                obj_func,
-                simplex,
-                fvals,
-                j,
-                P,
-                opt_params,
+        if use_parallel:
+            output = parallel(
+                delayed(parallel_nelder_mead_worker)(
+                    obj_func,
+                    simplex,
+                    fvals,
+                    j,
+                    P,
+                    opt_params,
+                )
+                for j in j_list
             )
-            for j in j_list
-        )
+        else:
+            output = [
+                parallel_nelder_mead_worker(obj_func, simplex, fvals, j, P, opt_params)
+                for j in j_list
+            ]
+
+        # Extract the output for each node
         new_subsimplex = np.zeros((P, K)) + np.nan
         new_vals = np.zeros(P) + np.nan
         new_evals = 0
@@ -428,10 +442,15 @@ def parallelNelderMead(
                 s_param * np.tile(simplex[0, :], (N, 1)) + (1.0 - s_param) * simplex
             )
             temp_simplex = list(simplex[1:N, :])
-            fvals = np.array(
-                [fvals[0]]
-                + parallel(delayed(obj_func)(params) for params in temp_simplex),
-            )
+            if use_parallel:
+                fvals = np.array(
+                    [fvals[0]]
+                    + parallel(delayed(obj_func)(params) for params in temp_simplex),
+                )
+            else:
+                fvals = np.array(
+                    [fvals[0]] + [obj_func(params) for params in temp_simplex]
+                )
             new_evals += N - 1
             evals += N - 1
         else:
@@ -522,7 +541,6 @@ def save_nelder_mead_data(name, simplex, fvals, iters, evals):
 
     """
     N = simplex.shape[0]  # Number of points in simplex
-    K = simplex.shape[1]  # Total number of parameters
 
     with open(name + ".txt", "w", newline="") as f:
         my_writer = csv.writer(f, delimiter=",")

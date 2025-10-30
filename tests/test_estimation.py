@@ -45,6 +45,11 @@ class testParallelNelderMead(testMinimizer):
     args = {"P": 2, "ftol": 1e-12}
 
 
+class testNonParallelNelderMead(testMinimizer):
+    params = {"minimizer": parallelNelderMead}
+    args = {"P": 1, "ftol": 1e-12}
+
+
 class testPNM_read_write(unittest.TestCase):
     def test_read_and_write(self):
         # These run for 20 iterations and then save progress

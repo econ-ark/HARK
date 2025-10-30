@@ -147,7 +147,7 @@ class testBufferStock(unittest.TestCase):
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(**self.base_params)
         baseEx_inf.assign_parameters(cycles=0)
-        baseEx_inf.solve()
+        baseEx_inf.solve(verbose=True)
         baseEx_inf.unpack("cFunc")
 
         m1 = np.linspace(
