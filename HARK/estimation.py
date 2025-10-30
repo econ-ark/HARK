@@ -216,8 +216,8 @@ def parallelNelderMead(
     guess,
     perturb=None,
     P=1,
-    ftol=0.000001,
-    xtol=0.00000001,
+    ftol=1e-8,
+    xtol=1e-8,
     maxiter=np.inf,
     maxeval=np.inf,
     r_param=1.0,
@@ -227,7 +227,7 @@ def parallelNelderMead(
     maxthreads=None,
     name=None,
     resume=False,
-    savefreq=1,
+    savefreq=None,
     verbose=1,
 ):
     """A parallel implementation of the Nelder-Mead minimization algorithm, as
@@ -308,7 +308,7 @@ def parallelNelderMead(
     else:
         if perturb is None:  # Default: perturb each parameter by 10%
             perturb = 0.1 * guess
-            guess[guess == 0] = 0.1
+            perturb[guess == 0] = 0.1
 
         params_to_opt = np.where(perturb != 0)[
             0
@@ -496,7 +496,7 @@ def parallelNelderMead(
 
     # Return the results
     xopt = simplex[0, :]
-    return xopt, fmin
+    return xopt
 
 
 def save_nelder_mead_data(name, simplex, fvals, iters, evals):
