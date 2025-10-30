@@ -97,6 +97,7 @@ class testSimulatorClass(unittest.TestCase):
             self.grid_specs,
             norm="PermShk",
             offset=True,
+            verbose=True,
         )
 
         # Verify that all of the SSJs return near zero (for shocks < 100 periods ahead)
@@ -111,6 +112,7 @@ class testSimulatorClass(unittest.TestCase):
             s=50,
             norm="PermShk",
             offset=True,
+            verbose=True,
         )
         self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=1e-5)))
         self.assertTrue(np.all(np.isclose(resp_A, dA_dR[:, 50], atol=5e-4)))
