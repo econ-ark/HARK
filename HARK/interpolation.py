@@ -3871,13 +3871,13 @@ class Curvilinear2DInterp(HARKinterpolator2D):
 # defined by (x1,y1) and (x2,y2), where the latter is *COUNTER CLOCKWISE* from the
 # former. Returns 1 if the point is outside the boundary and 0 otherwise.
 @njit
-def boundary_check(xq, yq, x1, y1, x2, y2):
+def boundary_check(xq, yq, x1, y1, x2, y2):  # pragma: no cover
     return int((y2 - y1) * xq - (x2 - x1) * yq > x1 * y2 - y1 * x2)
 
 
 # Define a numba helper function for finding the sector in the irregular grid
 @njit
-def find_sector_numba(X_query, Y_query, X_values, Y_values):
+def find_sector_numba(X_query, Y_query, X_values, Y_values):  # pragma: no cover
     # Initialize the sector guess
     M = X_query.size
     x_n = X_values.shape[0]
@@ -3943,7 +3943,9 @@ def find_sector_numba(X_query, Y_query, X_values, Y_values):
 
 # Define a numba helper function for finding relative coordinates within sector
 @njit
-def find_coords_numba(X_query, Y_query, X_pos, Y_pos, X_values, Y_values, polarity):
+def find_coords_numba(
+    X_query, Y_query, X_pos, Y_pos, X_values, Y_values, polarity
+):  # pragma: no cover
     M = X_query.size
     alpha = np.empty(M)
     beta = np.empty(M)

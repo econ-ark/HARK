@@ -11,7 +11,7 @@ from tests import HARK_PRECISION
 
 class testPrefShockConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = PrefShockConsumerType()
+        self.agent = PrefShockConsumerType(vFuncBool=True)
         self.agent.cycles = 0
         self.agent.solve()
 
@@ -35,6 +35,11 @@ class testPrefShockConsumerType(unittest.TestCase):
             places=HARK_PRECISION,
         )
 
+    def test_vFunc(self):
+        vFunc = self.agent.solution[0].vFunc
+        mNrm = 5.0
+        self.assertAlmostEqual(vFunc(mNrm), -13.93642, places=HARK_PRECISION)
+
     def test_simulation(self):
         self.agent.T_sim = 10
         self.agent.track_vars = ["cNrm", "PrefShk"]
@@ -56,7 +61,7 @@ class testPrefShockConsumerType(unittest.TestCase):
 
 class testKinkyPrefConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = KinkyPrefConsumerType()
+        self.agent = KinkyPrefConsumerType(vFuncBool=True)
         self.agent.cycles = 0  # Infinite horizon
         self.agent.solve()
 
@@ -77,8 +82,10 @@ class testKinkyPrefConsumerType(unittest.TestCase):
         k = self.agent.solution[0].cFunc.derivativeX(m, np.ones_like(m))
         self.assertAlmostEqual(k[5], 0.91443, places=HARK_PRECISION)
 
-        self.agent.solution[0].vFunc
-        self.agent.solution[0].mNrmMin
+    def test_vFunc(self):
+        vFunc = self.agent.solution[0].vFunc
+        mNrm = 5.0
+        self.assertAlmostEqual(vFunc(mNrm), -14.0436, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10

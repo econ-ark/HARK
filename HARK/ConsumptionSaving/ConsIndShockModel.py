@@ -2911,16 +2911,18 @@ class KinkedRconsumerType(IndShockConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncShkDstn[0][1]
-        TranShkValsNext = self.IncShkDstn[0][2]
-        ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = expected(lambda trans, perm: trans * perm, self.IncShkDstn)
+        PermShkValsNext = self.IncShkDstn[0].atoms[0]
+        TranShkValsNext = self.IncShkDstn[0].atoms[1]
+        ShkPrbsNext = self.IncShkDstn[0].pmv
+        IncNext = PermShkValsNext * TranShkValsNext
+        Ex_IncNext = np.dot(ShkPrbsNext, IncNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
-        )
+        WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+        # TODO: Check the math above. I think it fails for non-independent shocks
+
+        BoroCnstArt = np.inf if self.BoroCnstArt is None else self.BoroCnstArt
 
         # Calculate human wealth and the infinite horizon natural borrowing constraint
         hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rsave) / (
@@ -2935,7 +2937,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PatFacBot = (self.DiscFac * self.LivPrb[0] * self.Rboro) ** (
             1.0 / self.CRRA
         ) / self.Rboro
-        if BoroCnstNat < self.BoroCnstArt:
+        if BoroCnstNat < BoroCnstArt:
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
             MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * PatFacBot

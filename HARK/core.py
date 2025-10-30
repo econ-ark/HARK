@@ -1000,15 +1000,16 @@ class AgentType(Model):
 
     def unpack(self, parameter):
         """
-        Unpacks a parameter from a solution object for easier access.
-        After the model has been solved, the parameters (like consumption function)
-        reside in the attributes of each element of `ConsumerType.solution` (e.g. `cFunc`).  This method creates a (time varying) attribute of the given
-        parameter name that contains a list of functions accessible by `ConsumerType.parameter`.
+        Unpacks an attribute from a solution object for easier access.
+        After the model has been solved, its components (like consumption function)
+        reside in the attributes of each element of `ThisType.solution` (e.g. `cFunc`).
+        This method creates a (time varying) attribute of the given attribute name
+        that contains a list of elements accessible by `ThisType.parameter`.
 
         Parameters
         ----------
         parameter: str
-            Name of the function to unpack from the solution
+            Name of the attribute to unpack from the solution
 
         Returns
         -------
@@ -1580,14 +1581,14 @@ class AgentType(Model):
 
     def simulate(self, sim_periods=None):
         """
-        Simulates this agent type for a given number of periods. Defaults to
-        self.T_sim if no input.
-        Records histories of attributes named in self.track_vars in
-        self.history[varname].
+        Simulates this agent type for a given number of periods. Defaults to self.T_sim,
+        or all remaining periods to simulate (T_sim - t_sim). Records histories of
+        attributes named in self.track_vars in self.history[varname].
 
         Parameters
         ----------
-        None
+        sim_periods : int or None
+            Number of periods to simulate. Default is all remaining periods (usually T_sim).
 
         Returns
         -------
@@ -1621,7 +1622,7 @@ class AgentType(Model):
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
             if sim_periods is None:
-                sim_periods = self.T_sim
+                sim_periods = self.T_sim - self.t_sim
 
             for t in range(sim_periods):
                 self.sim_one_period()
