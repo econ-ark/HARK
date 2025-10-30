@@ -16,12 +16,16 @@ from HARK.interpolation import (
     Curvilinear2DInterp,
     LowerEnvelope2D,
     VariableLowerBoundFunc2D,
+    VariableLowerBoundFunc3D,
     LinearInterpOnInterp2D,
     BilinearInterpOnInterp1D,
     LowerEnvelope3D,
     TrilinearInterpOnInterp1D,
     BilinearInterpOnInterp2D,
     ConstantFunction,
+    ValueFuncCRRA,
+    MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
 )
 
 import numpy as np
@@ -73,6 +77,15 @@ class TestInterp1D(unittest.TestCase):
         derivs = self.interpolant.derivative(self.test_vals)
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+
+    def test_eval_and_der(self):
+        if self.interpolant is None:
+            return
+        output = self.interpolant(self.test_vals)
+        vals, ders = self.interpolant.eval_with_derivative(self.test_vals)
+        self.assertTrue(np.all(np.logical_not(np.isnan(ders))))
+        self.assertTrue(np.all(np.logical_not(np.isinf(ders))))
+        self.assertTrue(np.all(np.isclose(output, vals)))
 
 
 class TestInterp2D(unittest.TestCase):
@@ -235,6 +248,10 @@ class TestCubicInterp(TestInterp1D):
         y_grid = self.function(x_grid)
         dydx_grid = x_grid ** (-1.0)  # derivative of log
         self.interpolant = self.interpolator_(x_grid, y_grid, dydx_grid)
+
+
+class TestCubicInterp(TestCubicInterp):
+    interpolator_ = CubicHermiteInterp
 
 
 class TestCubicHermiteInterp(TestCubicInterp):
@@ -429,6 +446,18 @@ class TestLowerEnvelope3D(TestInterp3D):
         base_func = temp.interpolant
         high_func = lambda x, y, z: base_func(x, y, z) + 2.0  # always higher
         self.interpolant = self.interpolator_(base_func, high_func)
+
+
+class TestVariableLowerBoundFunc3D(TestInterp3D):
+    interpolator_ = VariableLowerBoundFunc3D
+
+    def make_interpolant(self):
+        # Testing with a non-variable lower bound to make this work
+        temp = TestTrilinearInterp()
+        temp.setUp()
+        base_func = temp.interpolant
+        lower_bound = ConstantFunction(0.0)
+        self.interpolant = self.interpolator_(base_func, lower_bound)
 
 
 ###############################################################################
@@ -766,6 +795,9 @@ class test_IdentityFunction(unittest.TestCase):
         self.IF2Db = IdentityFunction(i_dim=1, n_dims=2)
         self.IF3Da = IdentityFunction(i_dim=0, n_dims=3)
         self.IF3Db = IdentityFunction(i_dim=2, n_dims=3)
+        self.IF4Da = IdentityFunction(i_dim=0, n_dims=4)
+        self.IF4Db = IdentityFunction(i_dim=3, n_dims=4)
+        self.W = 2 * np.ones(100)
         self.X = 3 * np.ones(100)
         self.Y = 4 * np.ones(100)
         self.Z = 5 * np.ones(100)
@@ -778,6 +810,8 @@ class test_IdentityFunction(unittest.TestCase):
         assert np.all(self.Y == self.IF2Db(self.X, self.Y))
         assert np.all(self.X == self.IF3Da(self.X, self.Y, self.Z))
         assert np.all(self.Z == self.IF3Db(self.X, self.Y, self.Z))
+        assert np.all(self.W == self.IF4Da(self.W, self.X, self.Y, self.Z))
+        assert np.all(self.Z == self.IF4Db(self.W, self.X, self.Y, self.Z))
 
     def test_der(self):
         assert np.all(self.one == self.IF1D.derivative(self.X))
@@ -795,3 +829,83 @@ class test_IdentityFunction(unittest.TestCase):
         assert np.all(self.zero == self.IF3Db.derivativeX(self.X, self.Y, self.Z))
         assert np.all(self.zero == self.IF3Db.derivativeY(self.X, self.Y, self.Z))
         assert np.all(self.one == self.IF3Db.derivativeZ(self.X, self.Y, self.Z))
+
+        assert np.all(
+            self.one == self.IF4Da.derivativeW(self.W, self.X, self.Y, self.Z)
+        )
+        assert np.all(
+            self.zero == self.IF4Da.derivativeX(self.W, self.X, self.Y, self.Z)
+        )
+        assert np.all(
+            self.zero == self.IF4Da.derivativeY(self.W, self.X, self.Y, self.Z)
+        )
+        assert np.all(
+            self.zero == self.IF4Da.derivativeZ(self.W, self.X, self.Y, self.Z)
+        )
+
+        assert np.all(
+            self.zero == self.IF4Db.derivativeW(self.W, self.X, self.Y, self.Z)
+        )
+        assert np.all(
+            self.zero == self.IF4Db.derivativeX(self.W, self.X, self.Y, self.Z)
+        )
+        assert np.all(
+            self.zero == self.IF4Db.derivativeY(self.W, self.X, self.Y, self.Z)
+        )
+        assert np.all(
+            self.one == self.IF4Db.derivativeZ(self.W, self.X, self.Y, self.Z)
+        )
+
+
+###############################################################################
+
+
+class TestValueFuncCRRA(unittest.TestCase):
+    def setUp(self):
+        vNvrsFunc = IdentityFunction(i_dim=2, n_dims=4)
+        CRRA = 2.5
+        self.vFunc = ValueFuncCRRA(vNvrsFunc, CRRA)
+        self.W = np.linspace(0.1, 20.0, 200) + 0
+        self.X = np.linspace(0.1, 20.0, 200) + 1
+        self.Y = np.linspace(0.1, 20.0, 200) + 2
+        self.Z = np.linspace(0.1, 20.0, 200) + 3
+
+    def test_vFunc(self):
+        output = self.vFunc(self.W, self.X, self.Y, self.Z)
+        rho = self.vFunc.CRRA
+        check = self.Y ** (1 - rho) / (1 - rho)
+        self.assertTrue(np.all(np.isclose(output, check)))
+
+
+class TestMargValueFuncCRRA(unittest.TestCase):
+    def setUp(self):
+        vPnvrsFunc = IdentityFunction(i_dim=1, n_dims=4)
+        CRRA = 2.5
+        self.vPfunc = MargValueFuncCRRA(vPnvrsFunc, CRRA)
+        self.W = np.linspace(0.1, 20.0, 200) + 0
+        self.X = np.linspace(0.1, 20.0, 200) + 1
+        self.Y = np.linspace(0.1, 20.0, 200) + 2
+        self.Z = np.linspace(0.1, 20.0, 200) + 3
+
+    def test_vPfunc(self):
+        output = self.vPfunc(self.W, self.X, self.Y, self.Z)
+        rho = self.vPfunc.CRRA
+        check = self.X ** (-rho)
+        self.assertTrue(np.all(np.isclose(output, check)))
+
+
+class TestMargMargValueFuncCRRA(unittest.TestCase):
+    def setUp(self):
+        vPPnvrsFunc = IdentityFunction(i_dim=1, n_dims=4)
+        CRRA = 2.5
+        self.vPPfunc = MargMargValueFuncCRRA(vPPnvrsFunc, CRRA)
+        self.W = np.linspace(0.1, 20.0, 200) + 0
+        self.X = np.linspace(0.1, 20.0, 200) + 1
+        self.Y = np.linspace(0.1, 20.0, 200) + 2
+        self.Z = np.linspace(0.1, 20.0, 200) + 3
+
+    def test_vPPfunc(self):
+        output = self.vPPfunc(self.W, self.X, self.Y, self.Z)
+        rho = self.vPPfunc.CRRA
+        check = -rho * self.X ** (-rho - 1)
+        self.assertTrue(np.all(np.isclose(output, check)))

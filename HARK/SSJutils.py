@@ -376,7 +376,7 @@ def calc_shock_response_manually(
     Returns
     -------
     dYdX : np.array or [np.array]
-        One or more vectors of length
+        One or more vectors of length T_max.
     """
     if (agent.cycles > 0) or (agent.T_cycle != 1):
         raise ValueError(

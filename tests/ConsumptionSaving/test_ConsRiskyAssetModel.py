@@ -46,7 +46,9 @@ class testCubicRiskyAssetConsumerType(unittest.TestCase):
 
 class testNonIndeptRiskyAssetConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = IndShockRiskyAssetConsumerType(IndepDstnBool=False)
+        self.agent = IndShockRiskyAssetConsumerType(
+            IndepDstnBool=False, CubicBool=True, vFuncBool=True
+        )
         self.agent.solve()
 
     def test_solution(self):
@@ -88,7 +90,9 @@ class testPortChoiceConsumerType(unittest.TestCase):
 class testNonIndepPortChoiceConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockRiskyAssetConsumerType(
-            IndepDstnBool=False, PortfolioBool=True
+            IndepDstnBool=False,
+            PortfolioBool=True,
+            vFuncBool=True,
         )
         self.agent.solve()
 
@@ -96,6 +100,11 @@ class testNonIndepPortChoiceConsumerType(unittest.TestCase):
         cFunc = self.agent.solution[0].cFunc
         mNrm = 10.0
         self.assertAlmostEqual(cFunc(mNrm).tolist(), 5.637216, places=HARK_PRECISION)
+
+    def test_value(self):
+        vFunc = self.agent.solution[0].vFunc
+        mNrm = 10.0
+        self.assertAlmostEqual(vFunc(mNrm), -0.3447, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10

@@ -283,3 +283,15 @@ class TestSolveFrom(unittest.TestCase):
         # The solutions (up to 2) must be the same
         for t, s2 in enumerate(agent_2.solution):
             self.assertEqual(s2.distance(agent.solution[t]), 0.0)
+
+
+class ExtraConstructorTests(unittest.TestCase):
+    def setUp(self):
+        self.agent = IndShockConsumerType(cycles=0)
+
+    def test_describe_constructors(self):
+        self.agent.describe_constructors()
+
+    def test_missing_input(self):
+        self.agent.del_param("PermShkCount")
+        self.assertRaises(Exception, self.agent.construct)
