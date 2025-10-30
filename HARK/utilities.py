@@ -549,7 +549,7 @@ def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
 
 
 @numba.njit
-def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
+def jump_to_grid_1D(m_vals, probs, Dist_mGrid):  # pragma: nocover
     """
     Distributes values onto a predefined grid, maintaining the means.
 
@@ -604,7 +604,9 @@ def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
 
 
 @numba.njit
-def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
+def jump_to_grid_2D(
+    m_vals, perm_vals, probs, dist_mGrid, dist_pGrid
+):  # pragma: nocover
     """
     Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while
     dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their
@@ -721,7 +723,7 @@ def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
 @numba.njit(parallel=True)
 def gen_tran_matrix_1D(
     dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
-):
+):  # pragma: nocover
     """
     Computes Transition Matrix across normalized market resources.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -774,7 +776,7 @@ def gen_tran_matrix_1D(
 @numba.njit(parallel=True)
 def gen_tran_matrix_2D(
     dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
-):
+):  # pragma: nocover
     """
     Computes Transition Matrix over normalized market resources and permanent income.
     This function is built to non-stochastic simulate the IndShockConsumerType.
