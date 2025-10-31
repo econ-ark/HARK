@@ -830,7 +830,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylabel(r"Normalized consumption level $c_t$")
         plt.ylim([0.0, None])
         plt.xlim(bMin, bMax)
-        plt.show()
+        plt.show(block=False)
 
     def plot_LbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
@@ -875,7 +875,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylabel(r"Labor supply $\ell_t$")
         plt.ylim([-0.001, 1.001])
         plt.xlim(bMin, bMax)
-        plt.show()
+        plt.show(block=False)
 
 
 ###############################################################################

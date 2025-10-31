@@ -873,7 +873,7 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
-    plt.show()
+    plt.show(block=False)
 
 
 def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
@@ -914,7 +914,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
-    plt.show()
+    plt.show(block=False)
 
 
 ###############################################################################
