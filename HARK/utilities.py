@@ -859,6 +859,8 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     """
     import matplotlib.pyplot as plt
 
+    plt.ion()
+
     if type(functions) == list:
         function_list = functions
     else:
@@ -896,6 +898,8 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     none
     """
     import matplotlib.pyplot as plt
+
+    plt.ion()
 
     if type(functions) == list:
         function_list = functions

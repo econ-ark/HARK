@@ -38,6 +38,8 @@ from HARK.metric import MetricObject
 from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 from HARK.utilities import make_assets_grid
 
+plt.ion()
+
 
 class ConsumerLaborSolution(MetricObject):
     """
