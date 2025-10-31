@@ -225,7 +225,7 @@ class testMarkovEvents(unittest.TestCase):
             "N": 201,
         }
         Mrkv_grid = {"N": 2}
-        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "z": Mrkv_grid}
+        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "zPrev": Mrkv_grid}
 
     def test_simulation(self):
         self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
@@ -233,12 +233,12 @@ class testMarkovEvents(unittest.TestCase):
         self.agent.symulate()
 
     def test_markov_SSJ(self):
-        # dC_dp1, dA_dp1 = self.agent.make_basic_SSJ(
-        #     "Mrkv_p11",
-        #     ["cNrm", "aNrm"],
-        #     self.grid_specs,
-        #     norm="PermShk",
-        #     offset=True,
-        #     T_max=100,
-        # )
+        dC_dp1, dA_dp1 = self.agent.make_basic_SSJ(
+            "Mrkv_p11",
+            ["cNrm", "aNrm"],
+            self.grid_specs,
+            norm="PermShk",
+            offset=True,
+            T_max=100,
+        )
         pass  # This test runs fine locally but breaks the automated tester
