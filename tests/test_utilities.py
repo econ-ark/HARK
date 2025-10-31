@@ -4,14 +4,18 @@ This file implements unit tests for various functions in HARK.utilities
 
 import unittest
 import numpy as np
+import matplotlib.pyplot as plt
 
 from HARK.utilities import (
+    make_assets_grid,
     get_lorenz_shares,
     make_grid_exp_mult,
     calc_subpop_avg,
     kernel_regression,
     determine_platform,
     in_ipynb,
+    find_gui,
+    make_figs,
 )
 
 
@@ -91,3 +95,29 @@ class testEnvironmentStuff(unittest.TestCase):
 
     def testInPyNB(self):
         out = in_ipynb()
+
+    def testFindGUI(self):
+        out = find_gui()
+
+
+class testEtc(unittest.TestCase):
+    def test_asset_grid(self):
+        # Test linear asset grid
+        params = {
+            "aXtraMin": 0.0,
+            "aXtraMax": 1.0,
+            "aXtraCount": 5,
+            "aXtraExtra": None,
+            "aXtraNestFac": -1,
+        }
+
+        aXtraGrid = make_assets_grid(**params)
+        test = np.unique(np.diff(aXtraGrid).round(decimals=3))
+        self.assertEqual(test.size, 1)
+
+    def test_make_figs(self):
+        # Test the make_figs() function with a trivial output
+        plt.figure()
+        plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
+        make_figs("test", True, False, target_dir="")
+        plt.clf()

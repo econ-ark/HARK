@@ -4,8 +4,6 @@ This file implements unit tests to check HARK/rewards.py
 
 # Bring in modules we need
 import unittest
-
-import matplotlib.pyplot as plt
 import numpy as np
 
 from HARK.rewards import (
@@ -14,11 +12,15 @@ from HARK.rewards import (
     CRRAutilityPP,
     CRRAutilityPPP,
     CRRAutilityPPPP,
+    UtilityFuncCRRA,
+    UtilityFuncStoneGeary,
+    UtilityFuncCobbDouglas,
+    UtilityFuncCobbDouglasCRRA,
+    UtilityFuncConstElastSubs,
 )
-from HARK.utilities import make_assets_grid, make_figs
 
 
-class testsForHARKutilities(unittest.TestCase):
+class testsForCRRA(unittest.TestCase):
     def setUp(self):
         self.c_vals = np.linspace(0.5, 10.0, 20)
         self.CRRA_vals = np.linspace(1.0, 10.0, 10)
@@ -66,23 +68,88 @@ class testsForHARKutilities(unittest.TestCase):
         # Test the fourth derivative of the utility function
         self.derivative_func_comparison(CRRAutilityPPPP, CRRAutilityPPP)
 
-    def test_asset_grid(self):
-        # Test linear asset grid
-        params = {
-            "aXtraMin": 0.0,
-            "aXtraMax": 1.0,
-            "aXtraCount": 5,
-            "aXtraExtra": None,
-            "aXtraNestFac": -1,
-        }
+    def test_structure(self):
+        U = UtilityFuncCRRA(3.0)
+        x = 2.0
+        a = U(x)
+        b = U(x, order=0)
+        self.assertAlmostEqual(a, b)
+        c = U(x, order=1)
+        d = U(x, order=2)
+        e = U(x, order=3)
+        f = U(x, order=4)
+        self.assertRaises(ValueError, U, x, 5)
 
-        aXtraGrid = make_assets_grid(**params)
-        test = np.unique(np.diff(aXtraGrid).round(decimals=3))
-        self.assertEqual(test.size, 1)
 
-    def test_make_figs(self):
-        # Test the make_figs() function with a trivial output
-        plt.figure()
-        plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
-        make_figs("test", True, False, target_dir="")
-        plt.clf()
+class testsForStoneGeary(unittest.TestCase):
+    def setUp(self):
+        self.U = UtilityFuncStoneGeary(2.0, shifter=1.0)
+        self.x = 5.0
+
+    def test_eval(self):
+        x = self.x
+        U = self.U
+        a = U(x)
+        b = U(x, order=0)
+        self.assertAlmostEqual(a, b)
+        c = U(x, order=1)
+        d = U(x, order=2)
+        self.assertRaises(ValueError, U, x, 3)
+
+    def test_inverse(self):
+        x = self.x
+        U = self.U
+        Uinv = U.inverse
+        a = Uinv(x)
+        b = Uinv(x, order=(0, 0))
+        self.assertAlmostEqual(a, b)
+        c = Uinv(x, order=(0, 1))
+        d = Uinv(x, order=(1, 0))
+        e = Uinv(x, order=(1, 1))
+        self.assertRaises(ValueError, Uinv, x, (2, 1))
+
+
+class testsForCobbDouglas(unittest.TestCase):
+    def setUp(self):
+        self.U = UtilityFuncCobbDouglas(c_share=0.7, d_bar=0.1)
+        self.x = 5.0
+        self.y = 1.0
+
+    def test_funcs(self):
+        x = self.x
+        y = self.y
+        U = self.U
+        a = U(x, y)
+        b = U.derivative(x, y, axis=0)
+        c = U.derivative(x, y, axis=1)
+        self.assertRaises(ValueError, U.derivative, x, y, 2)
+
+
+class testsForCobbDouglasCRRA(unittest.TestCase):
+    def setUp(self):
+        self.U = UtilityFuncCobbDouglasCRRA(CRRA=2.5, c_share=0.7, d_bar=0.1)
+        self.x = 5.0
+        self.y = 1.0
+
+    def test_funcs(self):
+        x = self.x
+        y = self.y
+        U = self.U
+        a = U(x, y)
+        b = U.derivative(x, y, axis=0)
+        c = U.derivative(x, y, axis=1)
+        self.assertRaises(ValueError, U.derivative, x, y, 2)
+
+
+class testsForCES:
+    def setUp(self):
+        self.U = UtilityFuncConstElastSubs(shares=[0.4, 0.5, 0.1], subs=0.3)
+        self.x = np.array([12.0, 7.0, 3.0])
+
+    def test_funcs(self):
+        U = self.U
+        x = self.x
+        a = U(x)
+        b = U.derivative(x, 0)
+        c = U.derivative(x, 1)
+        d = U.derivative(x, 2)
