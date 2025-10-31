@@ -17,6 +17,18 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
         self.pcct.solve()
 
 
+class StickyPortfolioConsumerType(unittest.TestCase):
+    def setUp(self):
+        # Create sticky portfolio choice consumer type
+        self.pcct = cpm.PortfolioConsumerType(AdjProb=0.5)
+        self.pcct.cycles = 0
+
+        # Solve the model under the given parameters
+
+    def test_solver(self):
+        self.pcct.solve()
+
+
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_RiskyShareFunc(self):
         self.assertAlmostEqual(

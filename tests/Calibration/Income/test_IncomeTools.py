@@ -17,6 +17,12 @@ from HARK.Calibration.Income.IncomeTools import (
     sabelhaus_song_var_profile,
 )
 
+from HARK.Calibration.Income.IncomeProcesses import (
+    make_polynomial_TranShkStd,
+    make_polynomial_PermGroFac,
+    BinaryIncShkDstn,
+)
+
 
 # %% Mean income profile tests
 class test_income_paths(unittest.TestCase):
@@ -513,3 +519,21 @@ class test_SabelhausSongProfiles(unittest.TestCase):
         self.assertTrue(
             np.allclose(np.array(smoothAgg["PermShkStd"]) ** 2, self.AggPerm, atol=rtol)
         )
+
+
+class testBasicIncomeProcesses(unittest.TestCase):
+    def test_BinaryIncShkDstn(self):
+        my_dstn = BinaryIncShkDstn(0.05, 0.1)
+        self.assertAlmostEqual(my_dstn.atoms[1], 1.04737, places=4)
+
+    def test_PolynomialTranShkStd(self):
+        TranShkStd = make_polynomial_TranShkStd(10, np.array([0.1, 0.001, -1e-5]))
+        self.assertAlmostEqual(TranShkStd[-1], 0.10819, places=4)
+
+    def test_PolynomialPermShkStd(self):
+        PermShkStd = make_polynomial_TranShkStd(10, np.array([0.1, 0.001, -1e-5]))
+        self.assertAlmostEqual(PermShkStd[-1], 0.10819, places=4)
+
+    def test_PolynomialPermGroFac(self):
+        PermGroFac = make_polynomial_PermGroFac(10, np.array([1.01, 0.001, -1e-5]))
+        self.assertAlmostEqual(PermGroFac[-1], 1.01819, places=4)

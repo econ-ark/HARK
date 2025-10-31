@@ -6,7 +6,12 @@ import unittest
 import numpy as np
 from copy import copy
 
-from HARK.estimation import minimize_nelder_mead, minimize_powell, parallelNelderMead
+from HARK.estimation import (
+    minimize_nelder_mead,
+    minimize_powell,
+    parallelNelderMead,
+    bootstrap_sample_from_data,
+)
 
 # Objective function is simple 3D quadratic with minimum at (2,3,-4)
 true_min = np.array([2.0, 3.0, -4.0])
@@ -79,3 +84,11 @@ class testPNM_read_write(unittest.TestCase):
         diff = output2 - true_min
         dist = np.sqrt(np.dot(diff, diff))
         self.assertTrue(dist < 1e-4)
+
+
+class testBootStrapSample(unittest.TestCase):
+    def test_function(self):
+        data = np.random.rand(1000, 5)
+        bootstrap = bootstrap_sample_from_data(data)
+        self.assertAlmostEqual(bootstrap.shape[0], 1000)
+        self.assertAlmostEqual(bootstrap.shape[1], 5)
