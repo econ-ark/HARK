@@ -227,11 +227,19 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
         )
 
 
+class testMarkovValueFunc(unittest.TestCase):
+    def test_vFunc(self):
+        agent = MarkovConsumerType(cycles=0, vFuncBool=True)
+        agent.solve()
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -30.78459, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -30.37644, places=4)
+
+
 class testRatchet(unittest.TestCase):
     def test_ratchet_markov(self):
         some_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.2, 0.1])]
         MrkvArray = make_ratchet_markov(2, some_probs)
         self.assertAlmostEqual(MrkvArray[0][0, 1], 0.1)
         self.assertAlmostEqual(MrkvArray[0][3, 3], 0.6)
-        self.assertAlmostEqual(MrkvArray[1][0, 1], 0.2)
+        self.assertAlmostEqual(MrkvArray[1][0, 1], 0.4)
         self.assertAlmostEqual(MrkvArray[1][3, 3], 0.9)
