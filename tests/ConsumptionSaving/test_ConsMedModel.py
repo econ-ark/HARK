@@ -38,6 +38,21 @@ class testMedShockConsumerType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
+    def test_cubic(self):
+        CubicType = MedShockConsumerType(CubicBool=True)
+        CubicType.solve()
+        cFunc = CubicType.solution[0].cFunc
+        MedFunc = CubicType.solution[0].MedFunc
+        mLvl = 10.0
+        pLvl = 2.0
+        Shk = 1.5
+        self.assertAlmostEqual(
+            cFunc(mLvl, pLvl, Shk).tolist(), 4.00158, places=HARK_PRECISION
+        )
+        self.assertAlmostEqual(
+            MedFunc(mLvl, pLvl, Shk).tolist(), 2.4088, places=HARK_PRECISION
+        )
+
 
 class testMedExtMargConsumerType(unittest.TestCase):
     def setUp(self):
@@ -67,3 +82,10 @@ class testMedExtMargConsumerType(unittest.TestCase):
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_IH_constructors(self):
+        self.agent.cycles = 0
+        self.agent.construct()
+
+    def test_describe_constructors(self):
+        self.agent.describe_constructors()

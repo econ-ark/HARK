@@ -12,8 +12,22 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsRiskyContribModel import (
     RiskyContribConsumerType,
     init_risky_contrib,
+    RiskyContribRebSolution,
+    RiskyContribShaSolution,
+    RiskyContribCnsSolution,
 )
 from tests import HARK_PRECISION
+
+
+class testSolutionClasses(unittest.TestCase):
+    def test_null_Reb(self):
+        soln = RiskyContribRebSolution()
+
+    def test_null_Sha(self):
+        soln = RiskyContribShaSolution()
+
+    def test_null_Cns(self):
+        soln = RiskyContribCnsSolution()
 
 
 class test_(unittest.TestCase):
@@ -31,6 +45,8 @@ class test_(unittest.TestCase):
         self.par_finite["T_cycle"] = 4
         self.par_finite["T_retire"] = 0
         self.par_finite["T_age"] = 4
+        self.par_finite["T_sim"] = 20
+        self.par_finite["AgentCount"] = 100
 
         # Adjust discounting and returns distribution so that they make sense in a
         # 4-period model
@@ -67,6 +83,11 @@ class test_(unittest.TestCase):
             2.45609,
             places=HARK_PRECISION,
         )
+
+        # Test simulation
+        fin_cont_agent.track_vars = ["cNrm", "Share", "aNrm"]
+        fin_cont_agent.initialize_sim()
+        fin_cont_agent.simulate()
 
         # General correlated solver
         fin_cont_agent.joint_dist_solver = True

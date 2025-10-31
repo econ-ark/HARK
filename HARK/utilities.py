@@ -235,7 +235,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     else:
         Lming = np.log(ming)
         Lmaxg = np.log(maxg)
-        Lstep = np.linspace(Lming, Lmaxg, ng)
+        Lgrid = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
     return grid
 
@@ -243,28 +243,6 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
-
-
-def calc_weighted_avg(data, weights):
-    """
-    Generates a weighted average of simulated data.  The Nth row of data is averaged
-    and then weighted by the Nth element of weights in an aggregate average.
-
-    Parameters
-    ----------
-    data : numpy.array
-        An array of data with N rows of J floats
-    weights : numpy.array
-        A length N array of weights for the N rows of data.
-
-    Returns
-    -------
-    weighted_sum : float
-        The weighted sum of the data.
-    """
-    data_avg = np.mean(data, axis=1)
-    weighted_sum = np.dot(data_avg, weights)
-    return weighted_sum
 
 
 def get_percentiles(data, weights=None, percentiles=None, presorted=False):
@@ -859,6 +837,8 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     """
     import matplotlib.pyplot as plt
 
+    plt.ion()
+
     if type(functions) == list:
         function_list = functions
     else:
@@ -871,7 +851,7 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
-    plt.show()
+    plt.show(block=False)
 
 
 def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
@@ -897,6 +877,8 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     """
     import matplotlib.pyplot as plt
 
+    plt.ion()
+
     if type(functions) == list:
         function_list = functions
     else:
@@ -910,7 +892,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
-    plt.show()
+    plt.show(block=False)
 
 
 ###############################################################################
@@ -943,7 +925,7 @@ def determine_platform():
     return pf
 
 
-def test_latex_installation(pf):
+def test_latex_installation(pf):  # pragma: no cover
     """Test to check if latex is installed on the machine.
 
     Parameters
@@ -1006,7 +988,7 @@ def in_ipynb():
         return False
 
 
-def setup_latex_env_notebook(pf, latexExists):
+def setup_latex_env_notebook(pf, latexExists):  # pragma: no cover
     """This is needed for use of the latex_envs notebook extension
     which allows the use of environments in Markdown.
 
@@ -1119,7 +1101,7 @@ def find_gui():
 
 
 def benchmark(
-    agent_type, sort_by="tottime", max_print=10, filename="restats", return_output=False
+    agent, sort_by="tottime", max_print=10, filename="restats", return_output=False
 ):
     """
     Profiling tool for HARK models. Calling `benchmark` on agents calls the solver for
@@ -1132,7 +1114,7 @@ def benchmark(
 
     Parameters
     ----------
-    agent_type: AgentType
+    agent: AgentType
             A HARK AgentType with a solve() method.
     sort_by: string
             A string to sort the stats by.
@@ -1148,7 +1130,6 @@ def benchmark(
     stats: Stats (optional)
           Profiling object with call statistics.
     """
-    agent = agent_type
     cProfile.run("agent.solve()", filename)
     stats = pstats.Stats(filename)
     stats.strip_dirs()
