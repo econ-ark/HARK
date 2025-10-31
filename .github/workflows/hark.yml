@@ -35,4 +35,4 @@ jobs:
           pip install ".[dev]"
       - name: Test with pytest
         run: |
-          pytest -n auto
+          pytest
