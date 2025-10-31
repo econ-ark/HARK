@@ -12,8 +12,22 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsRiskyContribModel import (
     RiskyContribConsumerType,
     init_risky_contrib,
+    RiskyContribRebSolution,
+    RiskyContribShaSolution,
+    RiskyContribCnsSolution,
 )
 from tests import HARK_PRECISION
+
+
+class testSolutionClasses(unittest.TestCase):
+    def test_null_Reb(self):
+        soln = RiskyContribRebSolution()
+
+    def test_null_Sha(self):
+        soln = RiskyContribShaSolution()
+
+    def test_null_Cns(self):
+        soln = RiskyContribCnsSolution()
 
 
 class test_(unittest.TestCase):

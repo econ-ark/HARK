@@ -1,5 +1,5 @@
 """
-This file implements unit tests to check HARK/utilities.py
+This file implements unit tests to check HARK/rewards.py
 """
 
 # Bring in modules we need

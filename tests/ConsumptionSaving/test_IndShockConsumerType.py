@@ -8,6 +8,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
+from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
 
 
@@ -251,6 +252,13 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         self.assertAlmostEqual(
             IndShockExample.eulerErrorFunc(5.0), -5.9e-5, places=HARK_PRECISION
         )
+
+    def test_plotting(self):
+        MyType = self.IndShockExample
+        MyType.solve()
+        MyType.unpack("cFunc")
+        plot_funcs(MyType.cFunc, 0.0, 10.0)
+        plot_funcs_der(MyType.cFunc, 0.0, 10.0)
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
