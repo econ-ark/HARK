@@ -225,7 +225,7 @@ class testMarkovEvents(unittest.TestCase):
             "N": 201,
         }
         Mrkv_grid = {"N": 2}
-        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "z": Mrkv_grid}
+        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "zPrev": Mrkv_grid}
 
     def test_simulation(self):
         self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
