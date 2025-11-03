@@ -307,25 +307,49 @@ class DistributionClassTests(unittest.TestCase):
         dist.draw(1)[0]
 
     def test_MultivariateNormal(self):
-        # Are these tests generator/backend specific?
         dist = MultivariateNormal()
-
-        # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
-        # )
-
         dist.draw(100)
         dist.reset()
-
-        # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
-        # )
 
     def test_MultivariateLogNormal(self):
-        dist = MultivariateLogNormal()
+        dstn = MultivariateLogNormal(mu=[-0.2, 0.3], Sigma=[[1.0, 0.3], [0.3, 1.0]])
+        X = np.random.rand(100, 2)
 
-        dist.draw(100)
-        dist.reset()
+        dstn.draw(100)
+        dstn.reset()
+
+        cdf_vals = dstn._cdf(X)
+        self.assertTrue(np.all(cdf_vals <= 1.0))
+        self.assertTrue(np.all(cdf_vals >= 0.0))
+        self.assertRaises(ValueError, dstn._cdf, X.T)
+
+        pdf_vals = dstn._pdf(X)
+        self.assertTrue(np.all(pdf_vals >= 0.0))
+
+        marg_pdf = dstn._marginal(X, dim=0)
+        self.assertTrue(np.all(marg_pdf >= 0.0))
+
+        marg_cdf = dstn._marginal_cdf(X, dim=1)
+        self.assertTrue(np.all(marg_cdf <= 1.0))
+        self.assertTrue(np.all(marg_cdf >= 0.0))
+
+        discrete_dstn = dstn.discretize(9)
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = dstn.discretize(9, decomp="sqrt")
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = dstn.discretize(9, decomp="eig")
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = MultivariateLogNormal().discretize(9)
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        self.assertRaises(NotImplementedError, dstn.discretize, 7, "well hello there")
 
     def test_Weibull(self):
         Weibull().draw(1)[0]
