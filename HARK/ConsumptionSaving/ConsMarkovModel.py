@@ -890,9 +890,9 @@ class MarkovConsumerType(IndShockConsumerType):
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         IndShockConsumerType.initialize_sim(self)
-        if (
-            self.global_markov
-        ):  # Need to initialize markov state to be the same for all agents
+
+        # Need to initialize markov state to be the same for all agents
+        if self.global_markov:
             base_draw = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"] = np.ones(self.AgentCount) * np.searchsorted(
@@ -963,9 +963,8 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        dont_change = (
-            self.t_age == 0
-        )  # Don't change Markov state for those who were just born (unless global_markov)
+        # Don't change Markov state for those who were just born (unless global_markov)
+        dont_change = self.t_age == 0
         if self.t_sim == 0:  # Respect initial distribution of Markov states
             dont_change[:] = True
 

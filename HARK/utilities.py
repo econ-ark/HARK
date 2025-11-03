@@ -1102,7 +1102,7 @@ def find_gui():
 
 def benchmark(
     agent, sort_by="tottime", max_print=10, filename="restats", return_output=False
-):
+):  # pragma : no cover
     """
     Profiling tool for HARK models. Calling `benchmark` on agents calls the solver for
     the agents and provides time to solve as well as the top `max_print` function calls

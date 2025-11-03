@@ -1299,23 +1299,6 @@ class PerfForesightConsumerType(AgentType):
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
 
-        # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
-        # If no borrowing constraint specified...
-        if not hasattr(self, "BoroCnstArt"):
-            self.BoroCnstArt = None  # ...assume the user wanted none
-
-        if not hasattr(self, "MaxKinks"):
-            if self.cycles > 0:  # If it's not an infinite horizon model...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
-            elif self.BoroCnstArt is None:  # If there's no borrowing constraint...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
-            else:
-                raise (
-                    AttributeError(
-                        "PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0."
-                    )
-                )
-
     def post_solve(self):
         """
         Method that is run automatically at the end of a call to solve. Here, it
