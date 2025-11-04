@@ -397,6 +397,9 @@ class Lognormal(ContinuousFrozenDistribution):
         return cls(mu=mu, sigma=sigma, seed=seed)
 
 
+LogNormal = Lognormal
+
+
 class MeanOneLogNormal(Lognormal):
     """
     A Lognormal distribution with mean 1.

@@ -4,6 +4,7 @@ __all__ = [
     "Distribution",
     "IndexDistribution",
     "Lognormal",
+    "LogNormal",
     "MeanOneLogNormal",
     "Normal",
     "MultivariateNormal",
@@ -34,6 +35,7 @@ from HARK.distributions.base import (
 )
 from HARK.distributions.continuous import (
     Lognormal,
+    LogNormal,
     MeanOneLogNormal,
     Normal,
     Uniform,

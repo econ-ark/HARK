@@ -24,6 +24,11 @@ from HARK.Calibration.Income.IncomeProcesses import (
     BinaryIncShkDstn,
 )
 
+from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
+    get_scf_distr_stats,
+    parse_scf_distr_stats,
+)
+
 
 # %% Mean income profile tests
 class test_income_paths(unittest.TestCase):
@@ -538,3 +543,11 @@ class testBasicIncomeProcesses(unittest.TestCase):
     def test_PolynomialPermGroFac(self):
         PermGroFac = make_polynomial_PermGroFac(10, np.array([1.01, 0.001, -1e-5]))
         self.assertAlmostEqual(PermGroFac[-1], 1.01819, places=4)
+
+
+class test_SCF_defaults(unittest.TestCase):
+    def test_get_scf(self):
+        output = get_scf_distr_stats()
+
+    def test_parse_scf(self):
+        output = parse_scf_distr_stats()
