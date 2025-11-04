@@ -1159,7 +1159,7 @@ def mround(match):
     return f"{float(match.group()):.5f}"
 
 
-def round_in_file(filename):
+def round_in_file(filename):  # pragma: nocover
     with open(filename, "r+") as file:
         filetext = file.read()
         filetext = re.sub(simpledec, mround, filetext)

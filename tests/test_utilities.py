@@ -16,6 +16,8 @@ from HARK.utilities import (
     in_ipynb,
     find_gui,
     make_figs,
+    files_in_dir,
+    NullFunc,
 )
 
 
@@ -127,3 +129,14 @@ class testEtc(unittest.TestCase):
         plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
         make_figs("test", True, False, target_dir="")
         plt.clf()
+
+    def test_files_in_dir(self):
+        some_list = files_in_dir(".")
+
+    def test_NullFunc(self):
+        f = NullFunc()
+        self.assertTrue(f() is None)
+        self.assertTrue(np.isnan(f(5.0)))
+        self.assertAlmostEqual(f.distance(f), 0.0)
+        self.assertAlmostEqual(f.distance(np), 1000.0)
+        self.assertAlmostEqual(f.distance(5), 1000.0)
