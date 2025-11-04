@@ -20,9 +20,13 @@ from HARK.distributions import (
     combine_indep_dstns,
     distr_of_function,
     expected,
+    approx_beta,
+    make_markov_approx_to_normal,
+    make_markov_approx_to_normal_by_monte_carlo,
     make_tauchen_ar1,
     MultivariateNormal,
     MultivariateLogNormal,
+    approx_lognormal_gauss_hermite,
 )
 from tests import HARK_PRECISION
 
@@ -769,3 +773,83 @@ class TestTauchenAR1(unittest.TestCase):
                         alternative[1][:, i] * standard[1][:, i - 1],
                     )
                 )
+
+
+class test_assorted_functions(unittest.TestCase):
+    def test_approx_beta(self):
+        dstn = approx_beta(15, 0.5, 2.0)
+        self.assertTrue(isinstance(dstn, DiscreteDistribution))
+        self.assertAlmostEqual(np.sum(dstn.pmv), 1.0)
+
+    def test_make_markov_approx_to_normal(self):
+        X = np.linspace(-4.0, 6.0, 50)
+        vec = make_markov_approx_to_normal(X, 0.9, 1.3)
+        self.assertAlmostEqual(np.sum(vec), 1.0)
+        self.assertAlmostEqual(np.dot(X, vec), 0.9)
+
+    def test_make_markov_approx_to_normal_by_MC(self):
+        X = np.linspace(-4.0, 6.0, 25)
+        vec = make_markov_approx_to_normal_by_monte_carlo(X, 0.9, 1.3)
+        self.assertAlmostEqual(np.sum(vec), 1.0)
+        self.assertAlmostEqual(vec.size, 25)
+
+
+class testsForDCEGM(unittest.TestCase):
+    def setUp(self):
+        # setup the parameters to loop over
+        self.mu_normals = np.linspace(-3.0, 2.0, 50)
+        self.std_normals = np.linspace(0.01, 2.0, 50)
+
+    def test_mu_normal(self):
+        for mu_normal in self.mu_normals:
+            for std_normal in self.std_normals:
+                d = Normal(mu_normal).discretize(40, method="hermite")
+                self.assertTrue(sum(d.pmv * d.atoms[0, :]) - mu_normal < 1e-12)
+
+    def test_mu_lognormal_from_normal(self):
+        for mu_normal in self.mu_normals:
+            for std_normal in self.std_normals:
+                d = approx_lognormal_gauss_hermite(40, mu_normal, std_normal)
+                self.assertTrue(
+                    abs(
+                        sum(d.pmv * d.atoms[0, :])
+                        - calc_lognormal_style_pars_from_normal_pars(
+                            mu_normal, std_normal
+                        )[0]
+                    )
+                    < 1e-12
+                )
+
+
+class test_MVNormalApprox(unittest.TestCase):
+    def setUp(self):
+        N = 5
+
+        # 2-D distribution
+        self.mu2 = np.array([5, -10])
+        self.Sigma2 = np.array([[2, -0.6], [-0.6, 1]])
+        self.dist2D = MultivariateNormal(self.mu2, self.Sigma2)
+        self.dist2D_approx = self.dist2D.discretize(N, method="hermite")
+
+        # 3-D Distribution
+        self.mu3 = np.array([5, -10, 0])
+        self.Sigma3 = np.array([[2, -0.6, 0.1], [-0.6, 1, 0.2], [0.1, 0.2, 3]])
+        self.dist3D = MultivariateNormal(self.mu3, self.Sigma3)
+        self.dist3D_approx = self.dist3D.discretize(N, method="hermite")
+
+    def test_means(self):
+        mu_2D = calc_expectation(self.dist2D_approx)
+        self.assertTrue(np.allclose(mu_2D, self.mu2, rtol=1e-5))
+
+        mu_3D = calc_expectation(self.dist3D_approx)
+        self.assertTrue(np.allclose(mu_3D, self.mu3, rtol=1e-5))
+
+    def test_VCOV(self):
+        def vcov_fun(X, mu):
+            return np.outer(X - mu, X - mu)
+
+        Sig_2D = calc_expectation(self.dist2D_approx, vcov_fun, self.mu2)
+        self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
+
+        Sig_3D = calc_expectation(self.dist3D_approx, vcov_fun, self.mu3)
+        self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))

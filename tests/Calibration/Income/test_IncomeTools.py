@@ -19,6 +19,7 @@ from HARK.Calibration.Income.IncomeTools import (
 
 from HARK.Calibration.Income.IncomeProcesses import (
     make_polynomial_TranShkStd,
+    make_polynomial_PermShkStd,
     make_polynomial_PermGroFac,
     BinaryIncShkDstn,
 )
@@ -531,7 +532,7 @@ class testBasicIncomeProcesses(unittest.TestCase):
         self.assertAlmostEqual(TranShkStd[-1], 0.10819, places=4)
 
     def test_PolynomialPermShkStd(self):
-        PermShkStd = make_polynomial_TranShkStd(10, np.array([0.1, 0.001, -1e-5]))
+        PermShkStd = make_polynomial_PermShkStd(10, np.array([0.1, 0.001, -1e-5]))
         self.assertAlmostEqual(PermShkStd[-1], 0.10819, places=4)
 
     def test_PolynomialPermGroFac(self):
