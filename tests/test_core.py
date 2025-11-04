@@ -184,6 +184,250 @@ class test_agent_population(unittest.TestCase):
         self.assertEqual(len(self.agent_pop.agents), 12)
 
 
+class test_agent_population_comprehensive(unittest.TestCase):
+    """Comprehensive tests for AgentPopulation class."""
+
+    def setUp(self):
+        """Set up test fixtures with various parameter configurations."""
+        # Basic parameters with distributions
+        self.params_with_dist = init_idiosyncratic_shocks.copy()
+        self.params_with_dist["CRRA"] = Uniform(2.0, 10)
+        self.params_with_dist["DiscFac"] = Uniform(0.9, 0.99)
+
+        # Parameters with list of lists (ex-ante heterogeneous agents)
+        self.params_with_lists = init_idiosyncratic_shocks.copy()
+        self.params_with_lists["CRRA"] = [2.0, 4.0, 6.0]
+        self.params_with_lists["DiscFac"] = [0.95, 0.96, 0.97]
+
+        # Parameters with time-varying lists
+        self.params_time_varying = init_idiosyncratic_shocks.copy()
+        self.params_time_varying["LivPrb"] = [[0.95, 0.96, 0.97], [0.96, 0.97, 0.98]]
+
+        # Homogeneous parameters (scalars only)
+        self.params_homogeneous = init_idiosyncratic_shocks.copy()
+
+    def test_initialization_with_distributions(self):
+        """Test AgentPopulation initialization with Distribution parameters."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_dist)
+        self.assertEqual(agent_pop.agent_type, IndShockConsumerType)
+        self.assertEqual(agent_pop.seed, 0)
+        self.assertIsNotNone(agent_pop.time_var)
+        self.assertIsNotNone(agent_pop.time_inv)
+        self.assertEqual(len(agent_pop.distributed_params), 2)
+
+    def test_initialization_with_lists(self):
+        """Test AgentPopulation initialization with list parameters."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        self.assertEqual(agent_pop.agent_type_count, 3)
+        self.assertIn("CRRA", agent_pop.distributed_params)
+        self.assertIn("DiscFac", agent_pop.distributed_params)
+
+    def test_initialization_homogeneous(self):
+        """Test AgentPopulation with homogeneous (scalar) parameters."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_homogeneous)
+        self.assertEqual(agent_pop.agent_type_count, 1)
+        self.assertEqual(len(agent_pop.distributed_params), 0)
+
+    def test_infer_counts_with_lists(self):
+        """Test inference of agent_type_count from list parameters."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        self.assertEqual(agent_pop.agent_type_count, 3)
+
+    def test_infer_counts_time_varying(self):
+        """Test inference of term_age from time-varying parameters."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_time_varying)
+        self.assertEqual(agent_pop.agent_type_count, 2)
+        self.assertEqual(agent_pop.term_age, 3)
+
+    def test_approx_distributions_creates_discrete(self):
+        """Test that approx_distributions creates discrete distributions."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_dist)
+        agent_pop.approx_distributions(
+            {
+                "CRRA": {"N": 3, "method": "equiprobable"},
+                "DiscFac": {"N": 4, "method": "equiprobable"},
+            }
+        )
+        self.assertEqual(len(agent_pop.continuous_distributions), 2)
+        self.assertEqual(len(agent_pop.discrete_distributions), 2)
+        self.assertEqual(agent_pop.agent_type_count, 12)
+
+    def test_approx_distributions_updates_parameters(self):
+        """Test that approx_distributions updates the parameters dict."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_dist)
+        agent_pop.approx_distributions(
+            {
+                "CRRA": {"N": 3, "method": "equiprobable"},
+                "DiscFac": {"N": 4, "method": "equiprobable"},
+            }
+        )
+        from xarray import DataArray
+
+        self.assertIsInstance(agent_pop.parameters["CRRA"], DataArray)
+        self.assertIsInstance(agent_pop.parameters["DiscFac"], DataArray)
+
+    def test_parse_parameters(self):
+        """Test parameter parsing for distributed agents."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop._AgentPopulation__parse_parameters__()
+        self.assertEqual(len(agent_pop.population_parameters), 3)
+        self.assertIsInstance(agent_pop.population_parameters[0], dict)
+        # Check that CRRA values are correctly assigned
+        self.assertEqual(agent_pop.population_parameters[0]["CRRA"], 2.0)
+        self.assertEqual(agent_pop.population_parameters[1]["CRRA"], 4.0)
+        self.assertEqual(agent_pop.population_parameters[2]["CRRA"], 6.0)
+
+    def test_create_distributed_agents_count(self):
+        """Test that create_distributed_agents creates correct number of agents."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        self.assertEqual(len(agent_pop.agents), 3)
+
+    def test_create_distributed_agents_types(self):
+        """Test that created agents are of correct type."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        for agent in agent_pop.agents:
+            self.assertIsInstance(agent, IndShockConsumerType)
+
+    def test_create_distributed_agents_parameters(self):
+        """Test that agents receive correct parameters."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
+        self.assertEqual(agent_pop.agents[1].CRRA, 4.0)
+        self.assertEqual(agent_pop.agents[2].CRRA, 6.0)
+
+    def test_create_distributed_agents_seeds(self):
+        """Test that agents receive different random seeds."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists, seed=42)
+        agent_pop.create_distributed_agents()
+        seeds = [agent.seed for agent in agent_pop.agents]
+        # All seeds should be different
+        self.assertEqual(len(seeds), len(set(seeds)))
+
+    def test_create_database(self):
+        """Test creation of agent database."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        agent_pop.create_database()
+        import pandas as pd
+
+        self.assertIsInstance(agent_pop.agent_database, pd.DataFrame)
+        self.assertEqual(len(agent_pop.agent_database), 3)
+        self.assertIn("agents", agent_pop.agent_database.columns)
+        self.assertIn("CRRA", agent_pop.agent_database.columns)
+
+    def test_solve(self):
+        """Test that solve method works on all agents."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        agent_pop.solve()
+        # Check that all agents have solutions
+        for agent in agent_pop.agents:
+            self.assertTrue(hasattr(agent, "solution"))
+            self.assertIsNotNone(agent.solution)
+
+    def test_unpack_solutions(self):
+        """Test unpacking solutions from agents."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        agent_pop.solve()
+        agent_pop.unpack_solutions()
+        self.assertEqual(len(agent_pop.solution), 3)
+        for solution in agent_pop.solution:
+            self.assertIsNotNone(solution)
+
+    def test_initialize_sim(self):
+        """Test initialization of simulation for all agents."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        agent_pop.solve()
+        agent_pop.initialize_sim()
+        # Check that all agents have t_sim initialized
+        for agent in agent_pop.agents:
+            self.assertTrue(hasattr(agent, "t_sim"))
+            self.assertEqual(agent.t_sim, 0)
+
+    def test_simulate(self):
+        """Test simulation of agent population."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        agent_pop.solve()
+        agent_pop.initialize_sim()
+        agent_pop.simulate()
+        # Check that simulation advanced time
+        for agent in agent_pop.agents:
+            self.assertTrue(agent.t_sim > 0)
+
+    def test_iteration(self):
+        """Test iteration over agents in population."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        count = 0
+        for agent in agent_pop:
+            self.assertIsInstance(agent, IndShockConsumerType)
+            count += 1
+        self.assertEqual(count, 3)
+
+    def test_indexing(self):
+        """Test indexing into agent population."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        first_agent = agent_pop[0]
+        self.assertIsInstance(first_agent, IndShockConsumerType)
+        self.assertEqual(first_agent.CRRA, 2.0)
+
+    def test_negative_indexing(self):
+        """Test negative indexing into agent population."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        agent_pop.create_distributed_agents()
+        last_agent = agent_pop[-1]
+        self.assertIsInstance(last_agent, IndShockConsumerType)
+        self.assertEqual(last_agent.CRRA, 6.0)
+
+    def test_seed_reproducibility(self):
+        """Test that same seed produces reproducible agent populations."""
+        agent_pop1 = AgentPopulation(
+            IndShockConsumerType, self.params_with_lists, seed=42
+        )
+        agent_pop1.create_distributed_agents()
+
+        agent_pop2 = AgentPopulation(
+            IndShockConsumerType, self.params_with_lists, seed=42
+        )
+        agent_pop2.create_distributed_agents()
+
+        # Seeds should be the same for corresponding agents
+        for i in range(3):
+            self.assertEqual(agent_pop1.agents[i].seed, agent_pop2.agents[i].seed)
+
+    def test_different_seeds(self):
+        """Test that different seeds produce different agent populations."""
+        agent_pop1 = AgentPopulation(
+            IndShockConsumerType, self.params_with_lists, seed=42
+        )
+        agent_pop1.create_distributed_agents()
+
+        agent_pop2 = AgentPopulation(
+            IndShockConsumerType, self.params_with_lists, seed=24
+        )
+        agent_pop2.create_distributed_agents()
+
+        # Seeds should be different for corresponding agents
+        seeds_match = sum(
+            agent_pop1.agents[i].seed == agent_pop2.agents[i].seed for i in range(3)
+        )
+        self.assertLess(seeds_match, 3)  # At most some might match by chance
+
+    def test_time_vary_and_time_inv_preserved(self):
+        """Test that time_vary and time_inv attributes are preserved."""
+        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        dummy_agent = IndShockConsumerType()
+        self.assertEqual(agent_pop.time_var, dummy_agent.time_vary)
+        self.assertEqual(agent_pop.time_inv, dummy_agent.time_inv)
+
+
 @pytest.fixture
 def sample_params():
     return Parameters(a=1, b=[2, 3, 4], c=5.0, d=[6.0, 7.0, 8.0], T_cycle=3)
