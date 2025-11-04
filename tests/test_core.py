@@ -356,6 +356,7 @@ class TestParameters:
     def test_add_to_time_vary_nonexistent(self, sample_params):
         """Test adding non-existent parameter to time-varying set issues warning."""
         import warnings
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             sample_params.add_to_time_vary("nonexistent")
@@ -375,6 +376,7 @@ class TestParameters:
     def test_add_to_time_inv_nonexistent(self, sample_params):
         """Test adding non-existent parameter to time-invariant set issues warning."""
         import warnings
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             sample_params.add_to_time_inv("nonexistent")
@@ -432,10 +434,14 @@ class TestParameters:
 
     def test_update_invalid_type(self, sample_params):
         """Test updating with invalid type raises TypeError."""
-        with pytest.raises(TypeError, match="must be a Parameters object or a dictionary"):
+        with pytest.raises(
+            TypeError, match="must be a Parameters object or a dictionary"
+        ):
             sample_params.update([1, 2, 3])
 
-        with pytest.raises(TypeError, match="must be a Parameters object or a dictionary"):
+        with pytest.raises(
+            TypeError, match="must be a Parameters object or a dictionary"
+        ):
             sample_params.update("invalid")
 
     def test_setitem_numpy_array(self):
@@ -456,8 +462,10 @@ class TestParameters:
     def test_setitem_callable(self):
         """Test setting parameters with callable values."""
         params = Parameters(T_cycle=3)
+
         def test_func():
             return 42
+
         params["func_param"] = test_func
         assert params["func_param"] == test_func
         assert "func_param" in params._invariant_params
@@ -502,16 +510,13 @@ class TestParameters:
         params = Parameters(a=[1, 2, 3, 4])
         assert params._length == 4
         # Note: T_cycle parameter is set during init, _length is inferred from lists
-        assert params["T_cycle"] == 1  # Initial value since T_cycle not explicitly provided
+        assert (
+            params["T_cycle"] == 1
+        )  # Initial value since T_cycle not explicitly provided
 
     def test_getitem_age_with_numpy_array(self):
         """Test accessing by age when parameters include numpy arrays."""
-        params = Parameters(
-            a=np.array([1, 2, 3]),
-            b=[4, 5, 6],
-            c=7,
-            T_cycle=3
-        )
+        params = Parameters(a=np.array([1, 2, 3]), b=[4, 5, 6], c=7, T_cycle=3)
         age_params = params[1]
         # Numpy arrays are time-invariant, so the entire array is returned
         assert np.array_equal(age_params["a"], np.array([1, 2, 3]))
@@ -520,11 +525,7 @@ class TestParameters:
 
     def test_getitem_age_with_tuple(self):
         """Test accessing by age when parameters are tuples."""
-        params = Parameters(
-            a=(1, 2, 3),
-            b=4,
-            T_cycle=3
-        )
+        params = Parameters(a=(1, 2, 3), b=4, T_cycle=3)
         age_params = params[2]
         assert age_params["a"] == 3
         assert age_params["b"] == 4
