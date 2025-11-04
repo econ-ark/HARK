@@ -296,6 +296,17 @@ class DistributionClassTests(unittest.TestCase):
 
         dist.draw(1)[0]
 
+    def test_Lognormal_hermite_discretizer(self):
+        dstn = Lognormal(mu=0.5, sigma=0.2)
+        discrete_dstn = dstn.discretize(9, method="hermite")
+        exp_discrete = np.dot(discrete_dstn.pmv, discrete_dstn.atoms.T)
+        self.assertAlmostEqual(dstn.mean(), exp_discrete)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+    def test_Lognormal_from_mean_std(self):
+        dstn = Lognormal(mean=1.3, std=0.4)
+        self.assertAlmostEqual(1.3, dstn.mean())
+
     def test_Normal(self):
         dist = Normal()
 

@@ -406,51 +406,6 @@ def calc_subpop_avg(data, reference, cutoffs, weights=None):
     return slice_avg
 
 
-def kernel_regression(x, y, bot=None, top=None, N=500, h=None):
-    """
-    Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
-    with optionally specified range, number of points, and kernel bandwidth.
-
-    Parameters
-    ----------
-    x : np.array
-        The independent variable in the kernel regression.
-    y : np.array
-        The dependent variable in the kernel regression.
-    bot : float
-        Minimum value of interest in the regression; defaults to min(x).
-    top : float
-        Maximum value of interest in the regression; defaults to max(y).
-    N : int
-        Number of points to compute.
-    h : float
-        The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
-
-    Returns
-    -------
-    regression : LinearInterp
-        A piecewise locally linear kernel regression: y = f(x).
-    """
-    # Fix omitted inputs
-    if bot is None:
-        bot = np.min(x)
-    if top is None:
-        top = np.max(x)
-    if h is None:
-        h = 2.0 * (top - bot) / float(N)  # This is an arbitrary default
-
-    # Construct a local linear approximation
-    x_vec = np.linspace(bot, top, num=N)
-    # Evaluate the kernel for all evaluation points at once
-    weights = epanechnikov_kernel(x[:, None], x_vec[None, :], h)
-    weight_sums = np.sum(weights, axis=0)
-    # Avoid division by zero when weights are extremely small
-    weight_sums[weight_sums == 0] = np.nan
-    y_vec = np.dot(weights.T, y) / weight_sums
-    regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
-    return regression
-
-
 def epanechnikov_kernel(x, ref_x, h=1.0):
     """
     The Epanechnikov kernel, which has been shown to be the most efficient kernel
@@ -496,9 +451,67 @@ def triangle_kernel(x, ref_x, h=1.0):
     """
     u = (x - ref_x) / h  # Normalize distance by bandwidth
     these = np.abs(u) <= 1.0  # Kernel = 0 outside [-1,1]
-    out = np.zeros_like(x)  # Initialize kernel output
+    out = np.zeros_like(u)  # Initialize kernel output
     out[these] = 1.0 - np.abs(u[these])  # Evaluate kernel
     return out
+
+
+kernel_dict = {
+    "epanechnikov": epanechnikov_kernel,
+    "triangle": triangle_kernel,
+    "hat": triangle_kernel,
+}
+
+
+def kernel_regression(x, y, bot=None, top=None, N=500, h=None, kernel="epanechnikov"):
+    """
+    Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
+    with optionally specified range, number of points, and kernel bandwidth.
+
+    Parameters
+    ----------
+    x : np.array
+        The independent variable in the kernel regression.
+    y : np.array
+        The dependent variable in the kernel regression.
+    bot : float
+        Minimum value of interest in the regression; defaults to min(x).
+    top : float
+        Maximum value of interest in the regression; defaults to max(y).
+    N : int
+        Number of points to compute.
+    h : float
+        The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
+
+    Returns
+    -------
+    regression : LinearInterp
+        A piecewise locally linear kernel regression: y = f(x).
+    """
+    # Fix omitted inputs
+    if bot is None:
+        bot = np.min(x)
+    if top is None:
+        top = np.max(x)
+    if h is None:
+        h = 2.0 * (top - bot) / float(N)  # This is an arbitrary default
+
+    # Get kernel if possible
+    try:
+        kern = kernel_dict[kernel]
+    except:
+        raise ValueError("Can't find a kernel named '" + kernel + "'!")
+
+    # Construct a local linear approximation
+    x_vec = np.linspace(bot, top, num=N)
+    # Evaluate the kernel for all evaluation points at once
+    weights = kern(x[:, None], x_vec[None, :], h)
+    weight_sums = np.sum(weights, axis=0)
+    # Avoid division by zero when weights are extremely small
+    weight_sums[weight_sums == 0] = np.nan
+    y_vec = np.dot(weights.T, y) / weight_sums
+    regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
+    return regression
 
 
 def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):

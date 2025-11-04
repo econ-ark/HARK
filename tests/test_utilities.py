@@ -88,6 +88,12 @@ class testKernelRegression(unittest.TestCase):
         out = g(Q)
         self.assertTrue(np.all(np.isreal(out)))
 
+    def test_triangle(self):
+        g = kernel_regression(self.X, self.Y, h=0.25, kernel="hat")
+        Q = 10 * np.random.rand(100)
+        out = g(Q)
+        self.assertTrue(np.all(np.isreal(out)))
+
 
 class testEnvironmentStuff(unittest.TestCase):
     def setUp(self):
