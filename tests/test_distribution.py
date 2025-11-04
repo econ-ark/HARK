@@ -352,6 +352,8 @@ class DistributionClassTests(unittest.TestCase):
         self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
         self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
 
+        discrete_dstn = dstn.discretize(9, endpoints=True)
+
         discrete_dstn = dstn.discretize(9, decomp="sqrt")
         self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
         self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
@@ -364,7 +366,9 @@ class DistributionClassTests(unittest.TestCase):
         self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
         self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
 
-        self.assertRaises(NotImplementedError, dstn.discretize, 7, "well hello there")
+        self.assertRaises(
+            NotImplementedError, dstn.discretize, 7, decomp="well hello there"
+        )
 
     def test_Weibull(self):
         Weibull().draw(1)[0]

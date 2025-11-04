@@ -164,6 +164,7 @@ class testsForCARA(unittest.TestCase):
         g = U.inverse(y, order=(1, 0))
         h = U.inverse(y, order=(0, 1))
         i = U.inverse(y, order=(1, 1))
+        j = U.derinv(y)
         self.assertRaises(ValueError, U.inverse, y, (2, 1))
 
 
@@ -227,7 +228,7 @@ class testsForCobbDouglasCRRA(unittest.TestCase):
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
-class testsForCES:
+class testsForCES(unittest.TestCase):
     def setUp(self):
         self.U = UtilityFuncConstElastSubs(shares=[0.4, 0.5, 0.1], subs=0.3)
         self.x = np.array([12.0, 7.0, 3.0])

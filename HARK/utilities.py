@@ -1001,7 +1001,7 @@ def in_ipynb():
         return False
 
 
-def setup_latex_env_notebook(pf, latexExists):  # pragma: no cover
+def setup_latex_env_notebook(pf, latexExists):  # pragma: nocover
     """This is needed for use of the latex_envs notebook extension
     which allows the use of environments in Markdown.
 
@@ -1115,7 +1115,7 @@ def find_gui():
 
 def benchmark(
     agent, sort_by="tottime", max_print=10, filename="restats", return_output=False
-):  # pragma : no cover
+):  # pragma: nocover
     """
     Profiling tool for HARK models. Calling `benchmark` on agents calls the solver for
     the agents and provides time to solve as well as the top `max_print` function calls
