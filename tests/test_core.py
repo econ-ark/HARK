@@ -300,7 +300,9 @@ class test_agent_population_comprehensive(unittest.TestCase):
 
     def test_create_distributed_agents_seeds(self):
         """Test that agents receive different random seeds."""
-        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists, seed=42)
+        agent_pop = AgentPopulation(
+            IndShockConsumerType, self.params_with_lists, seed=42
+        )
         agent_pop.create_distributed_agents()
         seeds = [agent.seed for agent in agent_pop.agents]
         # All seeds should be different
