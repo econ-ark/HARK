@@ -498,7 +498,7 @@ class MedThruXfunc(MetricObject):
         dcdx = self.cFunc.derivativeX(xLvl, MedShk)
         dcdm = dxdm * dcdx
         dMeddm = (dxdm - dcdm) / self.MedPrice
-        return dcdm, dMeddm
+        return dMeddm
 
     def derivativeY(self, mLvl, pLvl, MedShk):
         """
