@@ -89,6 +89,11 @@ class testSimulatorClass(unittest.TestCase):
         # Verify that it's a Markov matrix
         self.assertTrue(np.all(np.isclose(np.sum(trans_array, axis=1), 1.0)))
 
+        # Find the steady state distribution and long run average consumption
+        self.agent._simulator.find_steady_state()
+        cNrm_avg = self.agent._simulator.get_long_run_average("cNrm")
+        self.assertTrue(np.isreal(cNrm_avg))
+
     def test_make_basic_SSJ(self):
         # Make SSJs w.r.t. interest factor
         dC_dR, dA_dR = self.agent.make_basic_SSJ(
@@ -241,4 +246,3 @@ class testMarkovEvents(unittest.TestCase):
             offset=True,
             T_max=100,
         )
-        pass  # This test runs fine locally but breaks the automated tester

@@ -304,11 +304,14 @@ def add_to_stable_arm_points(
 # Define a dictionary for the tractable buffer stock model
 init_tractable = {
     "cycles": 0,  # infinite horizon
+    "T_cycle": 1,  # only one period repeated indefinitely
     "UnempPrb": 0.00625,  # Probability of becoming permanently unemployed
     "DiscFac": 0.975,  # Intertemporal discount factor
     "Rfree": 1.01,  # Risk-free interest factor on assets
     "PermGroFac": 1.0025,  # Permanent income growth factor (uncompensated)
     "CRRA": 1.0,  # Coefficient of relative risk aversion
+    "kLogInitMean": -3.0,  # Mean of initial log normalized assets
+    "kLogInitStd": 0.0,  # Standard deviation of initial log normalized assets
 }
 
 
@@ -331,9 +334,9 @@ class TractableConsumerType(AgentType):
         "mLowerBnd",
         "mUpperBnd",
     ]
-    shock_vars_ = ["eStateNow"]
-    state_vars = ["bLvl", "mLvl", "aLvl"]
-    poststate_vars = ["aLvl", "eStateNow"]  # For simulation
+    shock_vars_ = ["eState"]
+    state_vars = ["bNrm", "mNrm", "aNrm"]
+    poststate_vars = ["aNrm", "eState"]  # For simulation
     default_ = {"params": init_tractable, "solver": add_to_stable_arm_points}
 
     def pre_solve(self):
@@ -618,14 +621,14 @@ class TractableConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now["aLvl"][which_agents] = Lognormal(
-            self.aLvlInitMean,
-            sigma=self.aLvlInitStd,
+        self.state_now["aNrm"][which_agents] = Lognormal(
+            self.kLogInitMean,
+            sigma=self.kLogInitStd,
             seed=self.RNG.integers(0, 2**31 - 1),
         ).draw(N)
-        self.shocks["eStateNow"] = np.zeros(self.AgentCount)  # Initialize shock array
+        self.shocks["eState"] = np.zeros(self.AgentCount)  # Initialize shock array
         # Agents are born employed
-        self.shocks["eStateNow"][which_agents] = 1.0
+        self.shocks["eState"][which_agents] = 1.0
         # How many periods since each agent was born
         self.t_age[which_agents] = 0
         self.t_cycle[which_agents] = (
@@ -663,12 +666,12 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        employed = self.shocks["eStateNow"] == 1.0
+        employed = self.shocks["eState"] == 1.0
         N = int(np.sum(employed))
         newly_unemployed = Bernoulli(
             self.UnempPrb, seed=self.RNG.integers(0, 2**31 - 1)
         ).draw(N)
-        self.shocks["eStateNow"][employed] = 1.0 - newly_unemployed
+        self.shocks["eState"][employed] = 1.0 - newly_unemployed
 
     def transition(self):
         """
@@ -682,10 +685,12 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        bLvlNow = self.Rfree * self.state_prev["aLvl"]
-        mLvlNow = bLvlNow + self.shocks["eStateNow"]
+        bNrmNow = self.Rfree * self.state_prev["aNrm"]
+        EmpNow = self.shocks["eState"] == 1.0
+        bNrmNow[EmpNow] /= self.PermGroFacCmp
+        mNrmNow = bNrmNow + self.shocks["eState"]
 
-        return bLvlNow, mLvlNow
+        return bNrmNow, mNrmNow
 
     def get_controls(self):
         """
@@ -699,14 +704,14 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        employed = self.shocks["eStateNow"] == 1.0
+        employed = self.shocks["eState"] == 1.0
         unemployed = np.logical_not(employed)
-        cLvlNow = np.zeros(self.AgentCount)
-        cLvlNow[employed] = self.solution[0].cFunc(self.state_now["mLvl"][employed])
-        cLvlNow[unemployed] = self.solution[0].cFunc_U(
-            self.state_now["mLvl"][unemployed]
+        cNrmNow = np.zeros(self.AgentCount)
+        cNrmNow[employed] = self.solution[0].cFunc(self.state_now["mNrm"][employed])
+        cNrmNow[unemployed] = self.solution[0].cFunc_U(
+            self.state_now["mNrm"][unemployed]
         )
-        self.controls["cLvlNow"] = cLvlNow
+        self.controls["cNrm"] = cNrmNow
 
     def get_poststates(self):
         """
@@ -720,5 +725,5 @@ class TractableConsumerType(AgentType):
         -------
         None
         """
-        self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvlNow"]
+        self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
         return None

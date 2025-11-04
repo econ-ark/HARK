@@ -4,6 +4,7 @@ __all__ = [
     "Distribution",
     "IndexDistribution",
     "Lognormal",
+    "LogNormal",
     "MeanOneLogNormal",
     "Normal",
     "MultivariateNormal",
@@ -11,6 +12,8 @@ __all__ = [
     "Weibull",
     "Bernoulli",
     "approx_beta",
+    "make_markov_approx_to_normal",
+    "make_markov_approx_to_normal_by_monte_carlo",
     "approx_lognormal_gauss_hermite",
     "calc_expectation",
     "calc_lognormal_style_pars_from_normal_pars",
@@ -32,6 +35,7 @@ from HARK.distributions.base import (
 )
 from HARK.distributions.continuous import (
     Lognormal,
+    LogNormal,
     MeanOneLogNormal,
     Normal,
     Uniform,
@@ -47,6 +51,8 @@ from HARK.distributions.utils import (
     add_discrete_outcome,
     add_discrete_outcome_constant_mean,
     approx_beta,
+    make_markov_approx_to_normal,
+    make_markov_approx_to_normal_by_monte_carlo,
     approx_lognormal_gauss_hermite,
     calc_expectation,
     calc_lognormal_style_pars_from_normal_pars,

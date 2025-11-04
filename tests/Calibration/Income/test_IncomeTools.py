@@ -19,8 +19,14 @@ from HARK.Calibration.Income.IncomeTools import (
 
 from HARK.Calibration.Income.IncomeProcesses import (
     make_polynomial_TranShkStd,
+    make_polynomial_PermShkStd,
     make_polynomial_PermGroFac,
     BinaryIncShkDstn,
+)
+
+from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
+    get_scf_distr_stats,
+    parse_scf_distr_stats,
 )
 
 
@@ -531,9 +537,17 @@ class testBasicIncomeProcesses(unittest.TestCase):
         self.assertAlmostEqual(TranShkStd[-1], 0.10819, places=4)
 
     def test_PolynomialPermShkStd(self):
-        PermShkStd = make_polynomial_TranShkStd(10, np.array([0.1, 0.001, -1e-5]))
+        PermShkStd = make_polynomial_PermShkStd(10, np.array([0.1, 0.001, -1e-5]))
         self.assertAlmostEqual(PermShkStd[-1], 0.10819, places=4)
 
     def test_PolynomialPermGroFac(self):
         PermGroFac = make_polynomial_PermGroFac(10, np.array([1.01, 0.001, -1e-5]))
         self.assertAlmostEqual(PermGroFac[-1], 1.01819, places=4)
+
+
+class test_SCF_defaults(unittest.TestCase):
+    def test_get_scf(self):
+        output = get_scf_distr_stats()
+
+    def test_parse_scf(self):
+        output = parse_scf_distr_stats()

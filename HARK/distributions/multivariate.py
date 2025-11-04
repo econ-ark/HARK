@@ -130,6 +130,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
 
         multi_rv_frozen.__init__(self)
         Distribution.__init__(self, seed=seed)
+        self.dstn = MultivariateNormal(mu=self.mu, Sigma=self.Sigma)
 
     def mean(self):
         """
@@ -159,11 +160,9 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-
         if (x.shape != self.M) & (x.shape[1] != self.M):
             raise ValueError(f"x must be and {self.M}-dimensional input")
-
-        return MultivariateNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
+        return self.dstn.cdf(np.log(x))
 
     def _pdf(self, x: Union[list, np.ndarray]):
         """
@@ -194,12 +193,11 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         rank_sigma = linalg.matrix_rank(self.Sigma)
 
         pd = np.multiply(
-            (1 / np.prod(x, axis=1)),
+            (1 / np.prod(x, axis=1, keepdims=True)),
             (2 * np.pi) ** (-rank_sigma / 2)
             * pseudo_det ** (-0.5)
             * np.exp(-(1 / 2) * np.multiply(np.log(x) @ inverse_sigma, np.log(x))),
         )
-
         return pd
 
     def _marginal(self, x: Union[np.ndarray, float, list], dim: int):
@@ -211,7 +209,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         x : Union[np.ndarray, float]
             Point at which to evaluate the marginal distribution.
         dim : int
-            Which of the random variables to evaluate (1 or 2).
+            Which of the random variables to evaluate.
 
         Returns
         -------
@@ -220,11 +218,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-
-        x_dim = Lognormal(
-            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
-        )
-
+        x_dim = Lognormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
         return x_dim.pdf(x)
 
     def _marginal_cdf(self, x: Union[np.ndarray, float, list], dim: int):
@@ -236,7 +230,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         x : Union[np.ndarray, float]
             Point at which to evaluate the marginal CDF.
         dim : int
-            Which of the random variables to evaluate (1 or 2).
+            Which of the random variables to evaluate.
 
         Returns
         -------
@@ -245,11 +239,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-
-        x_dim = Lognormal(
-            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
-        )
-
+        x_dim = Lognormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
         return x_dim.cdf(x)
 
     def rvs(self, size: int = 1, random_state=None):
@@ -268,31 +258,39 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         np.ndarray
             Random sample from the distribution.
         """
-
-        Z = MultivariateNormal(mu=self.mu, Sigma=self.Sigma)
-
-        return np.exp(Z.rvs(size, random_state=random_state))
+        return np.exp(self.dstn.rvs(size, random_state=random_state))
 
     def _approx_equiprobable(
         self,
         N: int,
-        tail_bound: Union[float, list, tuple] = None,
         endpoints: bool = False,
+        tail_bound: Union[float, list, tuple] = None,
         decomp: str = "cholesky",
     ):
         """
-        Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
+        Makes a discrete approximation using the equiprobable method to this multi-
+        variate lognormal distribution.
 
         Parameters
         ----------
         N : int
             The number of points in the discrete approximation.
         tail_bound : Union[float, list, tuple], optional
-            The values of the CDF according to which the distribution is truncated. If only a single number is specified, it is the lower tail bound and a symmetric upper bound is chosen. Can make one-tailed approximations with 0.0 or 1.0 as the lower and upper bound respectively. By default the distribution is not truncated.
+            The values of the CDF according to which the distribution is truncated.
+            If only a single number is specified, it is the lower tail bound and a
+            symmetric upper bound is chosen. Can make one-tailed approximations
+            with 0.0 or 1.0 as the lower and upper bound respectively. By default
+            the distribution is not truncated.
         endpoints : bool
-            If endpoints is True, then atoms at the corner points of the truncated region are included. By default, endpoints is False, which is when only the interior points are included.
+            If endpoints is True, then atoms at the corner points of the truncated
+            region are included. By default, endpoints is False, which is when only
+            the interior points are included.
         decomp : str in ["cholesky", "sqrt", "eig"], optional
-            The method of decomposing the covariance matrix. Available options are the Cholesky decomposition, the positive-definite square root, and the eigendecomposition. By default the Cholesky decomposition is used. NOTE: The method of decomposition might affect the expectations of the discretized distribution along each dimension dfferently.
+            The method of decomposing the covariance matrix. Available options are
+            the Cholesky decomposition, the positive-definite square root, and the
+            eigendecomposition. By default the Cholesky decomposition is used.
+            NOTE: The method of decomposition might affect the expectations of the
+            discretized distribution along each dimension dfferently.
 
         Returns
         -------

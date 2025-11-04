@@ -228,6 +228,19 @@ class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
         self.discrete_and_joint.solve()
 
 
+class testPortfolioConsumerTypeDiscreteJointSticky(unittest.TestCase):
+    def test_unusual(self):
+        # Make example of an agent who choosese share on grid, can only change
+        # portfolio sometimes, and treats income dstn as correlated with returns
+        WeirdType = cpm.PortfolioConsumerType(
+            DiscreteShareBool=True,
+            vFuncBool=True,
+            IndepDstnBool=True,
+            AdjustProb=0.3,
+        )
+        WeirdType.solve()
+
+
 class testRiskyReturnDim(PortfolioConsumerTypeTestCase):
     def test_simulation(self):
         # Setup

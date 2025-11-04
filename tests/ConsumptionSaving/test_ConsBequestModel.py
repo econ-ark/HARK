@@ -17,11 +17,10 @@ class testWarmGlowConsumerType(unittest.TestCase):
         mNrm = 10.0
         self.assertAlmostEqual(cFunc(mNrm).tolist(), 5.56409, places=HARK_PRECISION)
 
-    # TODO: Turn this on when solver overhaul branch is merged (needs correct value)
-    # def test_value(self):
-    #     vFunc = self.agent.solution[0].vFunc
-    #     mNrm = 10.0
-    #     self.assertAlmostEqual(vFunc(mNrm), -0.0000, places=HARK_PRECISION)
+    def test_value(self):
+        vFunc = self.agent.solution[0].vFunc
+        mNrm = 10.0
+        self.assertAlmostEqual(vFunc(mNrm), -0.35313, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
@@ -29,6 +28,13 @@ class testWarmGlowConsumerType(unittest.TestCase):
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_cubic(self):
+        CubicType = BequestWarmGlowConsumerType(BeqFac=1.0, CubicBool=True)
+        CubicType.solve()
+        cFunc = CubicType.solution[0].cFunc
+        mNrm = 10.0
+        self.assertAlmostEqual(cFunc(mNrm).tolist(), 5.56409, places=HARK_PRECISION)
 
 
 class testBequestWarmGlowPortfolioType(unittest.TestCase):
@@ -47,11 +53,10 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         mNrm = 10.0
         self.assertAlmostEqual(ShareFunc(mNrm).tolist(), 0.75504, places=HARK_PRECISION)
 
-    # TODO: Turn this on when solver overhaul branch is merged (needs correct value)
-    # def test_value(self):
-    #     vFunc = self.agent.solution[0].vFuncAdj
-    #     mNrm = 10.0
-    #     self.assertAlmostEqual(vFunc(mNrm), -0.0000, places=HARK_PRECISION)
+    def test_value(self):
+        vFunc = self.agent.solution[0].vFuncAdj
+        mNrm = 10.0
+        self.assertAlmostEqual(vFunc(mNrm), -0.15244, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
@@ -59,3 +64,16 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_advanced(self):
+        OtherType = BequestWarmGlowPortfolioType(
+            BeqFac=1.0,
+            BeqFacTerm=1.0,
+            AdjustPrb=0.6,
+            vFuncBool=True,
+            DiscreteShareBool=True,
+        )
+        OtherType.solve()
+        mNrm = 10.0
+        cFunc = OtherType.solution[0].cFuncAdj
+        self.assertAlmostEqual(cFunc(mNrm), 2.18674, places=HARK_PRECISION)

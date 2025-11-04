@@ -52,7 +52,7 @@ class testParallelNelderMead(testMinimizer):
 
 class testNonParallelNelderMead(testMinimizer):
     params = {"minimizer": parallelNelderMead}
-    args = {"P": 1, "ftol": 1e-12}
+    args = {"P": 1, "ftol": 1e-16, "xtol": 1e-16, "maxthreads": 1}
 
 
 class testPNM_read_write(unittest.TestCase):

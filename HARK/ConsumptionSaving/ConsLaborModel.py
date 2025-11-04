@@ -9,7 +9,6 @@ productivity shocks.  Agents choose their quantities of labor and consumption af
 observing both of these shocks, so the transitory shock is a state variable.
 """
 
-import sys
 from copy import copy
 
 import matplotlib.pyplot as plt
@@ -261,19 +260,16 @@ def solve_ConsLaborIntMarg(
         of the transitory productivity shock.
     """
     # Make sure the inputs for this period are valid: CRRA > LbrCost/(1+LbrCost)
-    # and CubicBool = False.  CRRA condition is met automatically when CRRA >= 1.
+    # and CubicBool = False. CRRA condition is met automatically when CRRA >= 1.
     frac = 1.0 / (1.0 + LbrCost)
     if CRRA <= frac * LbrCost:
-        print(
-            "Error: make sure CRRA coefficient is strictly greater than alpha/(1+alpha)."
+        raise ValueError(
+            "CRRA coefficient must be strictly greater than alpha/(1+alpha)."
         )
-        sys.exit()
     if BoroCnstArt is not None:
-        print("Error: Model cannot handle artificial borrowing constraint yet. ")
-        sys.exit()
+        raise ValueError("Model cannot handle artificial borrowing constraint yet.")
     if vFuncBool or CubicBool is True:
-        print("Error: Model cannot handle cubic interpolation yet.")
-        sys.exit()
+        raise ValueError("Model cannot handle cubic interpolation yet.")
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc

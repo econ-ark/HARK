@@ -461,14 +461,14 @@ def CARAutility_inv(u, alpha):
     return -1.0 / alpha * np.log(alpha * (1 - u))
 
 
-def CARAutilityP_inv(u, alpha):
+def CARAutilityP_inv(uP, alpha):
     """
     Evaluates the inverse of constant absolute risk aversion (CARA) marginal
     utility function at marginal utility uP given risk aversion parameter alpha.
 
     Parameters
     ----------
-    u: float
+    uP: float
         Utility value
     alpha: float
         Risk aversion
@@ -479,9 +479,32 @@ def CARAutilityP_inv(u, alpha):
         Consumption value corresponding to uP
     """
 
-    if np.isscalar(u):
-        u = np.asarray(u)
-    return -1.0 / alpha * np.log(u)
+    if np.isscalar(uP):
+        uP = np.asarray(uP)
+    return -1.0 / alpha * np.log(uP)
+
+
+def CARAutilityP_invP(uP, alpha):
+    """
+    Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
+    marginal utility function at marginal utility uP given risk aversion parameter alpha.
+
+    Parameters
+    ----------
+    uP: float
+        Utility value
+    alpha: float
+        Risk aversion
+
+    Returns
+    -------
+    (unnamed): float
+        Consumption value corresponding to uP
+    """
+
+    if np.isscalar(uP):
+        uP = np.asarray(uP)
+    return -1.0 / (alpha * uP)
 
 
 def CARAutility_invP(u, alpha):
@@ -859,6 +882,117 @@ class UtilityFuncCRRA(UtilityFunction):
             return CRRAutility_invP(u, self.CRRA)
         elif order == (1, 1):
             return CRRAutilityP_invP(u, self.CRRA)
+        else:
+            raise ValueError(f"Inverse of order {order} not supported")
+
+    def derinv(self, u, order=(1, 0)):
+        """
+        Short alias for inverse with default order = (1,0). See `self.inverse`.
+        """
+        return self.inverse(u, order)
+
+
+class UtilityFuncCARA(UtilityFunction):
+    """
+    A class for representing a CARA utility function.
+
+    Parameters
+    ----------
+    CARA : float
+        The coefficient of constant absolute risk aversion.
+    """
+
+    distance_criteria = ["CARA"]
+
+    def __init__(self, CARA):
+        self.CARA = CARA
+
+    def __call__(self, c, order=0):
+        """
+        Evaluate the utility function at a given level of consumption c.
+
+        Parameters
+        ----------
+        c : float or np.ndarray
+            Consumption level(s).
+        order : int, optional
+            Order of derivative. For example, `order == 1` returns the
+            first derivative of utility of consumption, and so on. By default 0.
+
+        Returns
+        -------
+        float or np.ndarray
+            Utility (or its derivative) evaluated at given consumption level(s).
+        """
+        if order == 0:
+            return CARAutility(c, self.CARA)
+        else:  # order >= 1
+            return self.derivative(c, order)
+
+    def derivative(self, c, order=1):
+        """
+        The derivative of the utility function at a given level of consumption c.
+
+        Parameters
+        ----------
+        c : float or np.ndarray
+            Consumption level(s).
+        order : int, optional
+            Order of derivative. For example, `order == 1` returns the
+            first derivative of utility of consumption, and so on. By default 1.
+
+        Returns
+        -------
+        float or np.ndarray
+            Derivative of CRRA utility evaluated at given consumption level(s).
+
+        Raises
+        ------
+        ValueError
+            Derivative of order higher than 4 is not supported.
+        """
+        if order == 1:
+            return CARAutilityP(c, self.CARA)
+        elif order == 2:
+            return CARAutilityPP(c, self.CARA)
+        elif order == 3:
+            return CARAutilityPPP(c, self.CARA)
+        else:
+            raise ValueError(f"Derivative of order {order} not supported")
+
+    def inverse(self, u, order=(0, 0)):
+        """
+        The inverse of the utility function at a given level of utility u.
+
+        Parameters
+        ----------
+        u : float or np.ndarray
+            Utility level(s).
+        order : tuple, optional
+            Order of derivatives. For example, `order == (1,1)` represents
+            the first derivative of utility, inverted, and then differentiated
+            once. For a simple mnemonic, order refers to the number of `P`s in
+            the function `CRRAutility[#1]_inv[#2]`. By default (0, 0),
+            which is just the inverse of utility.
+
+        Returns
+        -------
+        float or np.ndarray
+            Inverse of CRRA utility evaluated at given utility level(s).
+
+        Raises
+        ------
+        ValueError
+            Higher order derivatives are not supported.
+        """
+        if order == (0, 0):
+            return CARAutility_inv(u, self.CARA)
+        elif order == (1, 0):
+            return CARAutilityP_inv(u, self.CARA)
+        elif order == (0, 1):
+            return CARAutility_invP(u, self.CARA)
+        elif order == (1, 1):
+            return CARAutilityP_invP(u, self.CARA)
         else:
             raise ValueError(f"Inverse of order {order} not supported")
 

@@ -173,7 +173,6 @@ def parse_ssa_life_table(
     )
     try:
         DeathPrb = tab.loc[zip(years, ages)].sort_values(by="x")
-
     except KeyError as e:
         raise Exception(message).with_traceback(e.__traceback__)
 
@@ -185,5 +184,4 @@ def parse_ssa_life_table(
 
     # Transform from array to list
     LivPrb = list(LivPrb)
-
     return LivPrb
