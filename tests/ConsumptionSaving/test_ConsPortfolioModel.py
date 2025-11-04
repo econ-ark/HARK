@@ -54,6 +54,9 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             places=HARK_PRECISION,
         )
 
+    def test_null_solution(self):
+        soln = cpm.PortfolioSolution()
+
     def test_sim_one_period(self):
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
@@ -235,7 +238,7 @@ class testPortfolioConsumerTypeDiscreteJointSticky(unittest.TestCase):
         WeirdType = cpm.PortfolioConsumerType(
             DiscreteShareBool=True,
             vFuncBool=True,
-            IndepDstnBool=True,
+            IndepDstnBool=False,
             AdjustProb=0.3,
         )
         WeirdType.solve()

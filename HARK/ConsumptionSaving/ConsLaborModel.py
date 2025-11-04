@@ -810,14 +810,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
         for j in range(len(ShkSet)):
             TranShk = ShkSet[j]
-            if bMin is None:
-                bMin_temp = self.solution[t].bNrmMin(TranShk)
-            else:
-                bMin_temp = bMin
-            if bMax is None:
-                bMax_temp = bMin_temp + 20.0
-            else:
-                bMax_temp = bMax
+            bMin_temp = self.solution[t].bNrmMin(TranShk) if bMin is None else bMin
+            bMax_temp = bMin_temp + 20.0 if bMax is None else bMax
 
             B = np.linspace(bMin_temp, bMax_temp, 300)
             C = self.solution[t].cFunc(B, TranShk * np.ones_like(B))
@@ -855,14 +849,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
         for j in range(len(ShkSet)):
             TranShk = ShkSet[j]
-            if bMin is None:
-                bMin_temp = self.solution[t].bNrmMin(TranShk)
-            else:
-                bMin_temp = bMin
-            if bMax is None:
-                bMax_temp = bMin_temp + 20.0
-            else:
-                bMax_temp = bMax
+            bMin_temp = self.solution[t].bNrmMin(TranShk) if bMin is None else bMin
+            bMax_temp = bMin_temp + 20.0 if bMax is None else bMax
 
             B = np.linspace(bMin_temp, bMax_temp, 300)
             L = self.solution[t].LbrFunc(B, TranShk * np.ones_like(B))
