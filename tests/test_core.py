@@ -245,6 +245,304 @@ class TestParameters:
         with pytest.raises(ValueError):
             sample_params["invalid"] = [1, 2]  # Should be length 1 or 3
 
+    def test_iter(self, sample_params):
+        """Test iteration over parameter names."""
+        param_names = list(sample_params)
+        assert "a" in param_names
+        assert "b" in param_names
+        assert "c" in param_names
+        assert "d" in param_names
+        assert "T_cycle" in param_names
+
+    def test_len(self, sample_params):
+        """Test length returns number of parameters."""
+        assert len(sample_params) == 5  # a, b, c, d, T_cycle
+
+    def test_keys(self, sample_params):
+        """Test keys() method returns parameter names."""
+        keys = list(sample_params.keys())
+        assert "a" in keys
+        assert "b" in keys
+        assert "c" in keys
+        assert "d" in keys
+        assert "T_cycle" in keys
+
+    def test_values(self, sample_params):
+        """Test values() method returns parameter values."""
+        values = list(sample_params.values())
+        assert 1 in values
+        assert [2, 3, 4] in values
+        assert 5.0 in values
+        assert [6.0, 7.0, 8.0] in values
+        assert 3 in values
+
+    def test_items(self, sample_params):
+        """Test items() method returns (name, value) pairs."""
+        items = dict(sample_params.items())
+        assert items["a"] == 1
+        assert items["b"] == [2, 3, 4]
+        assert items["c"] == 5.0
+        assert items["d"] == [6.0, 7.0, 8.0]
+        assert items["T_cycle"] == 3
+
+    def test_repr(self, sample_params):
+        """Test __repr__ returns detailed string representation."""
+        repr_str = repr(sample_params)
+        assert "Parameters" in repr_str
+        assert "_length=3" in repr_str
+        assert "_invariant_params" in repr_str
+        assert "_varying_params" in repr_str
+
+    def test_str(self, sample_params):
+        """Test __str__ returns simple string representation."""
+        str_repr = str(sample_params)
+        assert "Parameters" in str_repr
+
+    def test_getattr(self, sample_params):
+        """Test attribute-style access to parameters."""
+        assert sample_params.a == 1
+        assert sample_params.b == [2, 3, 4]
+        assert sample_params.c == 5.0
+        assert sample_params.d == [6.0, 7.0, 8.0]
+
+    def test_getattr_nonexistent(self, sample_params):
+        """Test attribute-style access raises AttributeError for non-existent parameters."""
+        with pytest.raises(AttributeError):
+            _ = sample_params.nonexistent_param
+
+    def test_setattr(self, sample_params):
+        """Test attribute-style setting of parameters."""
+        sample_params.new_param = 42
+        assert sample_params["new_param"] == 42
+        assert "new_param" in sample_params._invariant_params
+
+        sample_params.new_varying = [1, 2, 3]
+        assert sample_params["new_varying"] == [1, 2, 3]
+        assert "new_varying" in sample_params._varying_params
+
+    def test_contains(self, sample_params):
+        """Test membership testing with 'in' operator."""
+        assert "a" in sample_params
+        assert "b" in sample_params
+        assert "nonexistent" not in sample_params
+
+    def test_copy(self, sample_params):
+        """Test deep copy functionality."""
+        copied_params = sample_params.copy()
+
+        # Check that it's a different object
+        assert copied_params is not sample_params
+        assert copied_params._parameters is not sample_params._parameters
+
+        # Check that values are equal
+        assert copied_params["a"] == sample_params["a"]
+        assert copied_params["b"] == sample_params["b"]
+
+        # Check that modifying copy doesn't affect original
+        copied_params["a"] = 999
+        assert sample_params["a"] == 1
+        assert copied_params["a"] == 999
+
+    def test_add_to_time_vary(self, sample_params):
+        """Test adding parameters to time-varying set."""
+        # Initially 'a' is time-invariant
+        assert not sample_params.is_time_varying("a")
+
+        # Add to time-varying
+        sample_params.add_to_time_vary("a")
+        assert sample_params.is_time_varying("a")
+        assert "a" not in sample_params._invariant_params
+
+    def test_add_to_time_vary_nonexistent(self, sample_params):
+        """Test adding non-existent parameter to time-varying set issues warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sample_params.add_to_time_vary("nonexistent")
+            assert len(w) == 1
+            assert "does not exist" in str(w[0].message)
+
+    def test_add_to_time_inv(self, sample_params):
+        """Test adding parameters to time-invariant set."""
+        # Initially 'b' is time-varying
+        assert sample_params.is_time_varying("b")
+
+        # Add to time-invariant
+        sample_params.add_to_time_inv("b")
+        assert not sample_params.is_time_varying("b")
+        assert "b" not in sample_params._varying_params
+
+    def test_add_to_time_inv_nonexistent(self, sample_params):
+        """Test adding non-existent parameter to time-invariant set issues warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sample_params.add_to_time_inv("nonexistent")
+            assert len(w) == 1
+            assert "does not exist" in str(w[0].message)
+
+    def test_del_from_time_vary(self, sample_params):
+        """Test removing parameters from time-varying set."""
+        assert "b" in sample_params._varying_params
+        sample_params.del_from_time_vary("b")
+        assert "b" not in sample_params._varying_params
+
+    def test_del_from_time_inv(self, sample_params):
+        """Test removing parameters from time-invariant set."""
+        assert "a" in sample_params._invariant_params
+        sample_params.del_from_time_inv("a")
+        assert "a" not in sample_params._invariant_params
+
+    def test_to_namedtuple(self, sample_params):
+        """Test conversion to namedtuple."""
+        nt = sample_params.to_namedtuple()
+        assert nt.a == 1
+        assert nt.b == [2, 3, 4]
+        assert nt.c == 5.0
+        assert nt.d == [6.0, 7.0, 8.0]
+        assert nt.T_cycle == 3
+
+    def test_getitem_out_of_bounds(self, sample_params):
+        """Test accessing age index out of bounds raises ValueError."""
+        with pytest.raises(ValueError, match="out of bounds"):
+            _ = sample_params[3]  # Max index is 2 (T_cycle=3)
+
+        with pytest.raises(ValueError, match="out of bounds"):
+            _ = sample_params[10]
+
+    def test_getitem_nonexistent_key(self, sample_params):
+        """Test accessing non-existent parameter raises KeyError."""
+        with pytest.raises(KeyError):
+            _ = sample_params["nonexistent"]
+
+    def test_getitem_wrong_type(self, sample_params):
+        """Test accessing with wrong type raises TypeError."""
+        with pytest.raises(TypeError, match="must be an integer"):
+            _ = sample_params[3.14]
+
+        with pytest.raises(TypeError, match="must be an integer"):
+            _ = sample_params[[1, 2]]
+
+    def test_update_from_dict(self, sample_params):
+        """Test updating from a dictionary."""
+        update_dict = {"a": 999, "new_param": 123}
+        sample_params.update(update_dict)
+        assert sample_params["a"] == 999
+        assert sample_params["new_param"] == 123
+
+    def test_update_invalid_type(self, sample_params):
+        """Test updating with invalid type raises TypeError."""
+        with pytest.raises(
+            TypeError, match="must be a Parameters object or a dictionary"
+        ):
+            sample_params.update([1, 2, 3])
+
+        with pytest.raises(
+            TypeError, match="must be a Parameters object or a dictionary"
+        ):
+            sample_params.update("invalid")
+
+    def test_setitem_numpy_array(self):
+        """Test setting parameters with numpy arrays."""
+        params = Parameters(T_cycle=3)
+        arr = np.array([1.0, 2.0, 3.0])
+        params["arr_param"] = arr
+        assert np.array_equal(params["arr_param"], arr)
+        assert "arr_param" in params._invariant_params
+
+    def test_setitem_boolean(self):
+        """Test setting parameters with boolean values."""
+        params = Parameters(T_cycle=3)
+        params["bool_param"] = True
+        assert params["bool_param"] is True
+        assert "bool_param" in params._invariant_params
+
+    def test_setitem_callable(self):
+        """Test setting parameters with callable values."""
+        params = Parameters(T_cycle=3)
+
+        def test_func():
+            return 42
+
+        params["func_param"] = test_func
+        assert params["func_param"] == test_func
+        assert "func_param" in params._invariant_params
+
+    def test_setitem_none(self):
+        """Test setting parameters with None value."""
+        params = Parameters(T_cycle=3)
+        params["none_param"] = None
+        assert params["none_param"] is None
+        assert "none_param" in params._invariant_params
+
+    def test_setitem_distribution(self):
+        """Test setting parameters with Distribution objects."""
+        params = Parameters(T_cycle=3)
+        dist = Uniform(0, 1)
+        params["dist_param"] = dist
+        assert params["dist_param"] == dist
+        assert "dist_param" in params._invariant_params
+
+    def test_setitem_tuple(self):
+        """Test setting parameters with tuple values."""
+        params = Parameters(T_cycle=3)
+        params["tuple_param"] = (1, 2, 3)
+        assert params["tuple_param"] == (1, 2, 3)
+        assert "tuple_param" in params._varying_params
+
+    def test_setitem_single_element_list(self):
+        """Test setting parameters with single-element list."""
+        params = Parameters(T_cycle=3)
+        params["single_list"] = [42]
+        assert params["single_list"] == 42  # Should be unwrapped
+        assert "single_list" in params._invariant_params
+
+    def test_initialization_no_t_cycle(self):
+        """Test initialization without T_cycle defaults to 1."""
+        params = Parameters(a=1, b=2)
+        assert params._length == 1
+        assert params["T_cycle"] == 1
+
+    def test_initialization_t_cycle_inferred(self):
+        """Test T_cycle is inferred from list length."""
+        params = Parameters(a=[1, 2, 3, 4])
+        assert params._length == 4
+        # Note: T_cycle parameter is set during init, _length is inferred from lists
+        assert (
+            params["T_cycle"] == 1
+        )  # Initial value since T_cycle not explicitly provided
+
+    def test_getitem_age_with_numpy_array(self):
+        """Test accessing by age when parameters include numpy arrays."""
+        params = Parameters(a=np.array([1, 2, 3]), b=[4, 5, 6], c=7, T_cycle=3)
+        age_params = params[1]
+        # Numpy arrays are time-invariant, so the entire array is returned
+        assert np.array_equal(age_params["a"], np.array([1, 2, 3]))
+        assert age_params["b"] == 5
+        assert age_params["c"] == 7
+
+    def test_getitem_age_with_tuple(self):
+        """Test accessing by age when parameters are tuples."""
+        params = Parameters(a=(1, 2, 3), b=4, T_cycle=3)
+        age_params = params[2]
+        assert age_params["a"] == 3
+        assert age_params["b"] == 4
+
+    def test_setitem_unsupported_type(self):
+        """Test setting parameter with unsupported type raises ValueError."""
+        params = Parameters(T_cycle=3)
+        with pytest.raises(ValueError, match="Unsupported type"):
+            params["invalid"] = {"nested": "dict"}
+
+    def test_empty_initialization(self):
+        """Test initialization with no parameters except T_cycle."""
+        params = Parameters(T_cycle=5)
+        assert params._length == 5
+        assert len(params) == 1  # Only T_cycle
+        assert params["T_cycle"] == 5
+
 
 class TestSolveFrom(unittest.TestCase):
     def shorten_params(self, params, length):
