@@ -50,7 +50,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityPP,
 )
-from HARK.utilities import make_assets_grid, get_it_from
+from HARK.utilities import make_assets_grid, get_it_from, NullFunc
 
 __all__ = [
     "AggShockConsumerType",
@@ -2683,11 +2683,17 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         agents = agents if agents is not None else list()
+        temp_dict = init_mrkv_cobb_douglas.copy()
+        temp_dict.update(kwds)
         CobbDouglasMarkovEconomy.__init__(
-            self, agents=agents, tolerance=tolerance, act_T=act_T, **kwds
+            self,
+            agents=agents,
+            tolerance=tolerance,
+            act_T=act_T,
+            reap_vars=[],
+            dyn_vars=[],
+            **temp_dict,
         )
-        self.reap_vars = []
-        self.dyn_vars = []
 
     def update(self):
         SmallOpenEconomy.update(self)
@@ -2700,11 +2706,11 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
     def mill_rule(self):
         MrkvNow = self.MrkvNow_hist[self.Shk_idx]
         temp = SmallOpenEconomy.get_AggShocks(self)
-        temp(MrkvNow=MrkvNow)
+        temp += (MrkvNow,)
         return temp
 
-    def calc_dynamics(self, KtoLnow):
-        return MetricObject()
+    def calc_dynamics(self):
+        return NullFunc()
 
     def make_AggShkHist(self):
         CobbDouglasMarkovEconomy.make_AggShkHist(self)

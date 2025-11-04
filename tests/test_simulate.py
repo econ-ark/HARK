@@ -89,6 +89,11 @@ class testSimulatorClass(unittest.TestCase):
         # Verify that it's a Markov matrix
         self.assertTrue(np.all(np.isclose(np.sum(trans_array, axis=1), 1.0)))
 
+        # Find the steady state distribution and long run average consumption
+        self.agent._simulator.find_steady_state()
+        cNrm_avg = self.agent._simulator.get_long_run_average("cNrm")
+        self.assertTrue(np.isreal(cNrm_avg))
+
     def test_make_basic_SSJ(self):
         # Make SSJs w.r.t. interest factor
         dC_dR, dA_dR = self.agent.make_basic_SSJ(
@@ -97,6 +102,7 @@ class testSimulatorClass(unittest.TestCase):
             self.grid_specs,
             norm="PermShk",
             offset=True,
+            verbose=True,
         )
 
         # Verify that all of the SSJs return near zero (for shocks < 100 periods ahead)
@@ -111,6 +117,7 @@ class testSimulatorClass(unittest.TestCase):
             s=50,
             norm="PermShk",
             offset=True,
+            verbose=True,
         )
         self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=1e-5)))
         self.assertTrue(np.all(np.isclose(resp_A, dA_dR[:, 50], atol=5e-4)))
@@ -223,7 +230,7 @@ class testMarkovEvents(unittest.TestCase):
             "N": 201,
         }
         Mrkv_grid = {"N": 2}
-        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "z": Mrkv_grid}
+        self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid, "zPrev": Mrkv_grid}
 
     def test_simulation(self):
         self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
@@ -231,12 +238,11 @@ class testMarkovEvents(unittest.TestCase):
         self.agent.symulate()
 
     def test_markov_SSJ(self):
-        # dC_dp1, dA_dp1 = self.agent.make_basic_SSJ(
-        #     "Mrkv_p11",
-        #     ["cNrm", "aNrm"],
-        #     self.grid_specs,
-        #     norm="PermShk",
-        #     offset=True,
-        #     T_max=100,
-        # )
-        pass  # This test runs fine locally but breaks the automated tester
+        dC_dp1, dA_dp1 = self.agent.make_basic_SSJ(
+            "Mrkv_p11",
+            ["cNrm", "aNrm"],
+            self.grid_specs,
+            norm="PermShk",
+            offset=True,
+            T_max=100,
+        )

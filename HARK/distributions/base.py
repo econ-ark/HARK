@@ -112,10 +112,7 @@ class Distribution:
             T-length list of arrays of random variable draws each of size n, or
             a single array of size N (if sigma is a scalar).
         """
-
-        mean = self.mean() if callable(self.mean) else self.mean
-        size = (N, mean.size) if mean.size != 1 else N
-        return self.rvs(size=size, random_state=self._rng)
+        return self.rvs(size=N, random_state=self._rng).T
 
     def discretize(
         self, N: int, method: str = "equiprobable", endpoints: bool = False, **kwds: Any

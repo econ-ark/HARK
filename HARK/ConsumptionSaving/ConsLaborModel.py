@@ -9,7 +9,6 @@ productivity shocks.  Agents choose their quantities of labor and consumption af
 observing both of these shocks, so the transitory shock is a state variable.
 """
 
-import sys
 from copy import copy
 
 import matplotlib.pyplot as plt
@@ -37,6 +36,8 @@ from HARK.interpolation import (
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 from HARK.utilities import make_assets_grid
+
+plt.ion()
 
 
 class ConsumerLaborSolution(MetricObject):
@@ -259,19 +260,16 @@ def solve_ConsLaborIntMarg(
         of the transitory productivity shock.
     """
     # Make sure the inputs for this period are valid: CRRA > LbrCost/(1+LbrCost)
-    # and CubicBool = False.  CRRA condition is met automatically when CRRA >= 1.
+    # and CubicBool = False. CRRA condition is met automatically when CRRA >= 1.
     frac = 1.0 / (1.0 + LbrCost)
     if CRRA <= frac * LbrCost:
-        print(
-            "Error: make sure CRRA coefficient is strictly greater than alpha/(1+alpha)."
+        raise ValueError(
+            "CRRA coefficient must be strictly greater than alpha/(1+alpha)."
         )
-        sys.exit()
     if BoroCnstArt is not None:
-        print("Error: Model cannot handle artificial borrowing constraint yet. ")
-        sys.exit()
+        raise ValueError("Model cannot handle artificial borrowing constraint yet.")
     if vFuncBool or CubicBool is True:
-        print("Error: Model cannot handle cubic interpolation yet.")
-        sys.exit()
+        raise ValueError("Model cannot handle cubic interpolation yet.")
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
@@ -812,14 +810,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
         for j in range(len(ShkSet)):
             TranShk = ShkSet[j]
-            if bMin is None:
-                bMin_temp = self.solution[t].bNrmMin(TranShk)
-            else:
-                bMin_temp = bMin
-            if bMax is None:
-                bMax_temp = bMin_temp + 20.0
-            else:
-                bMax_temp = bMax
+            bMin_temp = self.solution[t].bNrmMin(TranShk) if bMin is None else bMin
+            bMax_temp = bMin_temp + 20.0 if bMax is None else bMax
 
             B = np.linspace(bMin_temp, bMax_temp, 300)
             C = self.solution[t].cFunc(B, TranShk * np.ones_like(B))
@@ -828,7 +820,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylabel(r"Normalized consumption level $c_t$")
         plt.ylim([0.0, None])
         plt.xlim(bMin, bMax)
-        plt.show()
+        plt.show(block=False)
 
     def plot_LbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
@@ -857,14 +849,8 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
         for j in range(len(ShkSet)):
             TranShk = ShkSet[j]
-            if bMin is None:
-                bMin_temp = self.solution[t].bNrmMin(TranShk)
-            else:
-                bMin_temp = bMin
-            if bMax is None:
-                bMax_temp = bMin_temp + 20.0
-            else:
-                bMax_temp = bMax
+            bMin_temp = self.solution[t].bNrmMin(TranShk) if bMin is None else bMin
+            bMax_temp = bMin_temp + 20.0 if bMax is None else bMax
 
             B = np.linspace(bMin_temp, bMax_temp, 300)
             L = self.solution[t].LbrFunc(B, TranShk * np.ones_like(B))
@@ -873,7 +859,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylabel(r"Labor supply $\ell_t$")
         plt.ylim([-0.001, 1.001])
         plt.xlim(bMin, bMax)
-        plt.show()
+        plt.show(block=False)
 
 
 ###############################################################################

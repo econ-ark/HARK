@@ -135,76 +135,6 @@ def dudc(c, a, CRRA, share=0.0, intercept=0.0):
     return u * (1 - CRRA) * (1 - share) / c
 
 
-def duda(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * share / (a + intercept)
-
-
-def du2dc2(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
-
-
-def du2dadc(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    w = a + intercept
-    return u * (1 - CRRA) * share * (share - 1) * (CRRA - 1) / (c * w)
-
-
-def du_diff(c, a, CRRA, share=0.0, intercept=0.0):
-    ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
-    dudc = ufac * (1 - share) / c
-
-    if share == 0:
-        return dudc
-    else:
-        duda = ufac * share / (a + intercept)
-
-    return dudc - duda
-
-
-def du2_diff(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
-    ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
-    w = a + intercept
-
-    dudcdc = ufac * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
-    dudadc = ufac * share * (share - 1) * (CRRA - 1) / (c * w)
-
-    return dudcdc - dudadc
-
-
-def du2_jac(c, a, CRRA, share, intercept, vp_a):
-    du2_diag = du2_diff(c, a, CRRA, share, intercept, vp_a)
-    return np.diag(du2_diag)
-
-
-def chi_ratio(c, a, intercept):
-    return c / (a + intercept)
-
-
-def chi_func(chi, CRRA, share):
-    return chi ** (1 - share) * (
-        (1 - share) * chi ** (-share) - share * chi ** (1 - share)
-    ) ** (-1 / CRRA)
-
-
-def euler(c, a, CRRA, share, intercept, vp_a):
-    dufac = du_diff(c, a, CRRA, share, intercept)
-    return dufac - vp_a
-
-
-def euler2(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
-    return euler(c, a, CRRA, share, intercept, vp_a) ** 2
-
-
-def euler2_diff(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
-    return (
-        2
-        * euler(c, a, CRRA, share, intercept, vp_a)
-        * du2_diff(c, a, CRRA, share, intercept)
-    )
-
-
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
     """
     Calculate future realizations of market resources mNrm from the income
@@ -221,34 +151,6 @@ def calc_dvdm_next(shocks, b_nrm, perm_gro_fac, crra, vp_func):
     m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
     perm_shk_fac = shocks["PermShk"] * perm_gro_fac
     return perm_shk_fac ** (-crra) * vp_func(m_nrm)
-
-
-def calc_end_dvda(shocks, a_nrm, share, rfree, dvdb_func):
-    """
-    Compute end-of-period marginal value of assets at values a, conditional
-    on risky asset return S and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    rport = rfree + share * ex_ret  # Portfolio return
-    b_nrm = rport * a_nrm
-
-    # Calculate and return dvda
-    return rport * dvdb_func(b_nrm)
-
-
-def calc_end_dvds(shocks, a_nrm, share, rfree, dvdb_func):
-    """
-    Compute end-of-period marginal value of risky share at values a,
-    conditional on risky asset return S and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    rport = rfree + share * ex_ret  # Portfolio return
-    b_nrm = rport * a_nrm
-
-    # Calculate and return dvds (second term is all zeros)
-    return ex_ret * a_nrm * dvdb_func(b_nrm)
 
 
 def calc_end_dvdx(shocks, a_nrm, share, rfree, dvdb_func):

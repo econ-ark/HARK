@@ -235,7 +235,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     else:
         Lming = np.log(ming)
         Lmaxg = np.log(maxg)
-        Lstep = np.linspace(Lming, Lmaxg, ng)
+        Lgrid = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
     return grid
 
@@ -243,28 +243,6 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
-
-
-def calc_weighted_avg(data, weights):
-    """
-    Generates a weighted average of simulated data.  The Nth row of data is averaged
-    and then weighted by the Nth element of weights in an aggregate average.
-
-    Parameters
-    ----------
-    data : numpy.array
-        An array of data with N rows of J floats
-    weights : numpy.array
-        A length N array of weights for the N rows of data.
-
-    Returns
-    -------
-    weighted_sum : float
-        The weighted sum of the data.
-    """
-    data_avg = np.mean(data, axis=1)
-    weighted_sum = np.dot(data_avg, weights)
-    return weighted_sum
 
 
 def get_percentiles(data, weights=None, percentiles=None, presorted=False):
@@ -428,51 +406,6 @@ def calc_subpop_avg(data, reference, cutoffs, weights=None):
     return slice_avg
 
 
-def kernel_regression(x, y, bot=None, top=None, N=500, h=None):
-    """
-    Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
-    with optionally specified range, number of points, and kernel bandwidth.
-
-    Parameters
-    ----------
-    x : np.array
-        The independent variable in the kernel regression.
-    y : np.array
-        The dependent variable in the kernel regression.
-    bot : float
-        Minimum value of interest in the regression; defaults to min(x).
-    top : float
-        Maximum value of interest in the regression; defaults to max(y).
-    N : int
-        Number of points to compute.
-    h : float
-        The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
-
-    Returns
-    -------
-    regression : LinearInterp
-        A piecewise locally linear kernel regression: y = f(x).
-    """
-    # Fix omitted inputs
-    if bot is None:
-        bot = np.min(x)
-    if top is None:
-        top = np.max(x)
-    if h is None:
-        h = 2.0 * (top - bot) / float(N)  # This is an arbitrary default
-
-    # Construct a local linear approximation
-    x_vec = np.linspace(bot, top, num=N)
-    # Evaluate the kernel for all evaluation points at once
-    weights = epanechnikov_kernel(x[:, None], x_vec[None, :], h)
-    weight_sums = np.sum(weights, axis=0)
-    # Avoid division by zero when weights are extremely small
-    weight_sums[weight_sums == 0] = np.nan
-    y_vec = np.dot(weights.T, y) / weight_sums
-    regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
-    return regression
-
-
 def epanechnikov_kernel(x, ref_x, h=1.0):
     """
     The Epanechnikov kernel, which has been shown to be the most efficient kernel
@@ -518,9 +451,67 @@ def triangle_kernel(x, ref_x, h=1.0):
     """
     u = (x - ref_x) / h  # Normalize distance by bandwidth
     these = np.abs(u) <= 1.0  # Kernel = 0 outside [-1,1]
-    out = np.zeros_like(x)  # Initialize kernel output
+    out = np.zeros_like(u)  # Initialize kernel output
     out[these] = 1.0 - np.abs(u[these])  # Evaluate kernel
     return out
+
+
+kernel_dict = {
+    "epanechnikov": epanechnikov_kernel,
+    "triangle": triangle_kernel,
+    "hat": triangle_kernel,
+}
+
+
+def kernel_regression(x, y, bot=None, top=None, N=500, h=None, kernel="epanechnikov"):
+    """
+    Performs a non-parametric Nadaraya-Watson 1D kernel regression on given data
+    with optionally specified range, number of points, and kernel bandwidth.
+
+    Parameters
+    ----------
+    x : np.array
+        The independent variable in the kernel regression.
+    y : np.array
+        The dependent variable in the kernel regression.
+    bot : float
+        Minimum value of interest in the regression; defaults to min(x).
+    top : float
+        Maximum value of interest in the regression; defaults to max(y).
+    N : int
+        Number of points to compute.
+    h : float
+        The bandwidth of the (Epanechnikov) kernel. To-do: GENERALIZE.
+
+    Returns
+    -------
+    regression : LinearInterp
+        A piecewise locally linear kernel regression: y = f(x).
+    """
+    # Fix omitted inputs
+    if bot is None:
+        bot = np.min(x)
+    if top is None:
+        top = np.max(x)
+    if h is None:
+        h = 2.0 * (top - bot) / float(N)  # This is an arbitrary default
+
+    # Get kernel if possible
+    try:
+        kern = kernel_dict[kernel]
+    except:
+        raise ValueError("Can't find a kernel named '" + kernel + "'!")
+
+    # Construct a local linear approximation
+    x_vec = np.linspace(bot, top, num=N)
+    # Evaluate the kernel for all evaluation points at once
+    weights = kern(x[:, None], x_vec[None, :], h)
+    weight_sums = np.sum(weights, axis=0)
+    # Avoid division by zero when weights are extremely small
+    weight_sums[weight_sums == 0] = np.nan
+    y_vec = np.dot(weights.T, y) / weight_sums
+    regression = interp1d(x_vec, y_vec, bounds_error=False, assume_sorted=True)
+    return regression
 
 
 def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
@@ -549,7 +540,7 @@ def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
 
 
 @numba.njit
-def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
+def jump_to_grid_1D(m_vals, probs, Dist_mGrid):  # pragma: nocover
     """
     Distributes values onto a predefined grid, maintaining the means.
 
@@ -604,7 +595,9 @@ def jump_to_grid_1D(m_vals, probs, Dist_mGrid):
 
 
 @numba.njit
-def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
+def jump_to_grid_2D(
+    m_vals, perm_vals, probs, dist_mGrid, dist_pGrid
+):  # pragma: nocover
     """
     Distributes values onto a predefined grid, maintaining the means. m_vals and perm_vals are realizations of market resources and permanent income while
     dist_mGrid and dist_pGrid are the predefined grids of market resources and permanent income, respectively. That is, m_vals and perm_vals do not necesarily lie on their
@@ -721,7 +714,7 @@ def jump_to_grid_2D(m_vals, perm_vals, probs, dist_mGrid, dist_pGrid):
 @numba.njit(parallel=True)
 def gen_tran_matrix_1D(
     dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
-):
+):  # pragma: nocover
     """
     Computes Transition Matrix across normalized market resources.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -774,7 +767,7 @@ def gen_tran_matrix_1D(
 @numba.njit(parallel=True)
 def gen_tran_matrix_2D(
     dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
-):
+):  # pragma: nocover
     """
     Computes Transition Matrix over normalized market resources and permanent income.
     This function is built to non-stochastic simulate the IndShockConsumerType.
@@ -857,6 +850,8 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     """
     import matplotlib.pyplot as plt
 
+    plt.ion()
+
     if type(functions) == list:
         function_list = functions
     else:
@@ -869,7 +864,7 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
-    plt.show()
+    plt.show(block=False)
 
 
 def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
@@ -895,6 +890,8 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     """
     import matplotlib.pyplot as plt
 
+    plt.ion()
+
     if type(functions) == list:
         function_list = functions
     else:
@@ -908,7 +905,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
     plt.xlim([bottom, top])
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
-    plt.show()
+    plt.show(block=False)
 
 
 ###############################################################################
@@ -941,7 +938,7 @@ def determine_platform():
     return pf
 
 
-def test_latex_installation(pf):
+def test_latex_installation(pf):  # pragma: no cover
     """Test to check if latex is installed on the machine.
 
     Parameters
@@ -1004,7 +1001,7 @@ def in_ipynb():
         return False
 
 
-def setup_latex_env_notebook(pf, latexExists):
+def setup_latex_env_notebook(pf, latexExists):  # pragma: nocover
     """This is needed for use of the latex_envs notebook extension
     which allows the use of environments in Markdown.
 
@@ -1117,8 +1114,8 @@ def find_gui():
 
 
 def benchmark(
-    agent_type, sort_by="tottime", max_print=10, filename="restats", return_output=False
-):
+    agent, sort_by="tottime", max_print=10, filename="restats", return_output=False
+):  # pragma: nocover
     """
     Profiling tool for HARK models. Calling `benchmark` on agents calls the solver for
     the agents and provides time to solve as well as the top `max_print` function calls
@@ -1130,7 +1127,7 @@ def benchmark(
 
     Parameters
     ----------
-    agent_type: AgentType
+    agent: AgentType
             A HARK AgentType with a solve() method.
     sort_by: string
             A string to sort the stats by.
@@ -1146,7 +1143,6 @@ def benchmark(
     stats: Stats (optional)
           Profiling object with call statistics.
     """
-    agent = agent_type
     cProfile.run("agent.solve()", filename)
     stats = pstats.Stats(filename)
     stats.strip_dirs()

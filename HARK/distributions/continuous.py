@@ -4,7 +4,6 @@ import numpy as np
 from scipy.special import erfc
 from scipy.stats import (
     rv_continuous,
-    multivariate_normal,
     norm,
     lognorm,
     uniform,
@@ -140,75 +139,6 @@ class Normal(ContinuousFrozenDistribution):
             seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
             limit=limit,
         )
-
-
-class MultivariateNormal(ContinuousFrozenDistribution):
-    """
-    Class for representing multivariate normal distributions in HARK. With no
-    parameters passed, it defaults to a standard normal distribution represented
-    as a MultivariateNormal instance. Currently lacks any discretization method.
-
-    Parameters
-    ----------
-    mu : [float] or np.array
-        Vector of means of each dimension of the distribution.
-    sigma : [[float]] or np.array
-        Symmetric, positive semidefinite covariance matrix for the distribution.
-    seed: int
-        Seed for the RNG.
-    """
-
-    def __init__(
-        self,
-        mu=np.array([0.0]),
-        sigma=np.array([[1.0]]),
-        seed=0,
-    ):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        self.seed = seed
-        self.reset()
-
-    def reset(self):
-        self.dstn = multivariate_normal(mean=self.mu, cov=self.sigma, seed=self.seed)
-
-    def draw(self, N=1):
-        return self.dstn.rvs(size=N).T
-
-
-class MultivariateLognormal(ContinuousFrozenDistribution):
-    """
-    Class for representing multivariate lognormal distributions in HARK. With no
-    parameters passed, it defaults to a standard normal distribution represented
-    as a MultivariateLognormal instance. Currently lacks any discretization method.
-
-    Parameters
-    ----------
-    mu : [float] or np.array
-        Vector of means of the underling normal of each dimension of the distribution.
-    sigma : [[float]] or np.array
-        Symmetric, positive semidefinite covariance matrix for the underlying normal
-        distribution.
-    seed: int
-        Seed for the RNG.
-    """
-
-    def __init__(
-        self,
-        mu=np.array([0.0]),
-        sigma=np.array([[1.0]]),
-        seed=0,
-    ):
-        self.mu = np.array(mu)
-        self.sigma = np.array(sigma)
-        self.seed = seed
-        self.reset()
-
-    def reset(self):
-        self.dstn = multivariate_normal(mean=self.mu, cov=self.sigma, seed=self.seed)
-
-    def draw(self, N=1):
-        return np.exp(self.dstn.rvs(size=N).T)
 
 
 class Lognormal(ContinuousFrozenDistribution):
@@ -465,6 +395,9 @@ class Lognormal(ContinuousFrozenDistribution):
         sigma = np.sqrt(np.log(1.0 + variance / mean_squared))
 
         return cls(mu=mu, sigma=sigma, seed=seed)
+
+
+LogNormal = Lognormal
 
 
 class MeanOneLogNormal(Lognormal):

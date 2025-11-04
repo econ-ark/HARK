@@ -17,6 +17,18 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
         self.pcct.solve()
 
 
+class StickyPortfolioConsumerType(unittest.TestCase):
+    def setUp(self):
+        # Create sticky portfolio choice consumer type
+        self.pcct = cpm.PortfolioConsumerType(AdjProb=0.5)
+        self.pcct.cycles = 0
+
+        # Solve the model under the given parameters
+
+    def test_solver(self):
+        self.pcct.solve()
+
+
 class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
     def test_RiskyShareFunc(self):
         self.assertAlmostEqual(
@@ -41,6 +53,9 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             0.84985,
             places=HARK_PRECISION,
         )
+
+    def test_null_solution(self):
+        soln = cpm.PortfolioSolution()
 
     def test_sim_one_period(self):
         self.pcct.T_sim = 30
@@ -214,6 +229,19 @@ class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
 
         # Solve model under given parameters
         self.discrete_and_joint.solve()
+
+
+class testPortfolioConsumerTypeDiscreteJointSticky(unittest.TestCase):
+    def test_unusual(self):
+        # Make example of an agent who choosese share on grid, can only change
+        # portfolio sometimes, and treats income dstn as correlated with returns
+        WeirdType = cpm.PortfolioConsumerType(
+            DiscreteShareBool=True,
+            vFuncBool=True,
+            IndepDstnBool=False,
+            AdjustProb=0.3,
+        )
+        WeirdType.solve()
 
 
 class testRiskyReturnDim(PortfolioConsumerTypeTestCase):

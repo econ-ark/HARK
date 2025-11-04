@@ -107,5 +107,14 @@ class testPersistentShockConsumerType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(np.mean(self.agent.history["mLvl"]), 1.20439, places=HARK_PRECISION)
+    def test_cubic(self):
+        CubicType = PersistentShockConsumerType(CubicBool=True)
+        CubicType.solve()
+        CubicType.unpack("cFunc")
+        self.assertAlmostEqual(
+            CubicType.cFunc[0](5.0, 2.0), 3.48222, places=HARK_PRECISION
+        )
+
+    def test_IH_constructors(self):
+        self.agent.cycles = 0
+        self.agent.construct()

@@ -457,8 +457,9 @@ def solve_one_period_ConsMarkov(
 
             # Construct the end-of-period value function
             aNrm_temp = np.insert(aNrmNext, 0, BoroCnstNat)
-            BegOfPrd_vNvrsFunc = CubicInterp(
-                aNrm_temp, BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext
+            BegOfPrd_vNvrsFunc = LinearInterp(
+                aNrm_temp,
+                BegOfPrd_vNvrsNext,
             )
             BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
             BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
@@ -643,10 +644,10 @@ def solve_one_period_ConsMarkov(
                 vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
             )
             # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
-            vNvrsFuncNow = CubicInterp(
+            vNvrsFuncNow = LinearInterp(
                 mNrm_temp,
                 vNvrs_now,
-                vNvrsP_now,
+                # vNvrsP_now,
             )  # MPCminNvrs * hNrmNow_i, MPCminNvrs)
             # The bounding function for the pseudo-inverse value function is incorrect.
             # TODO: Resolve this strange issue; extrapolation is suppressed for now.
@@ -889,9 +890,9 @@ class MarkovConsumerType(IndShockConsumerType):
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         IndShockConsumerType.initialize_sim(self)
-        if (
-            self.global_markov
-        ):  # Need to initialize markov state to be the same for all agents
+
+        # Need to initialize markov state to be the same for all agents
+        if self.global_markov:
             base_draw = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"] = np.ones(self.AgentCount) * np.searchsorted(
@@ -962,9 +963,8 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        dont_change = (
-            self.t_age == 0
-        )  # Don't change Markov state for those who were just born (unless global_markov)
+        # Don't change Markov state for those who were just born (unless global_markov)
+        dont_change = self.t_age == 0
         if self.t_sim == 0:  # Respect initial distribution of Markov states
             dont_change[:] = True
 

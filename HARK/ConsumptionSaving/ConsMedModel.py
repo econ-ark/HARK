@@ -30,7 +30,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
 from HARK.distributions import (
     Lognormal,
-    MultivariateLognormal,
+    MultivariateLogNormal,
     add_discrete_outcome_constant_mean,
     expected,
 )
@@ -498,7 +498,7 @@ class MedThruXfunc(MetricObject):
         dcdx = self.cFunc.derivativeX(xLvl, MedShk)
         dcdm = dxdm * dcdx
         dMeddm = (dxdm - dcdm) / self.MedPrice
-        return dcdm, dMeddm
+        return dMeddm
 
     def derivativeY(self, mLvl, pLvl, MedShk):
         """
@@ -682,7 +682,7 @@ def make_continuous_MedShockDstn(
         S = np.array([[s1, diag], [diag, s2]])
         M = np.array([MedCostLogMean[t], MedShkLogMean[t]])
         seed_t = RNG.integers(0, 2**31 - 1)
-        dstn_t = MultivariateLognormal(mu=M, sigma=S, seed=seed_t)
+        dstn_t = MultivariateLogNormal(mu=M, Sigma=S, seed=seed_t)
         MedShockDstn.append(dstn_t)
     return MedShockDstn
 
