@@ -787,31 +787,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
     def pre_solve(self):
         self.construct("solution_terminal")
 
-    def update_income_process(self):
-        self.update(
-            "IncShkDstn",
-            "PermShkDstn",
-            "TranShkDstn",
-            "pLvlPctiles",
-            "pLvlNextFunc",
-            "pLvlGrid",
-        )
-
-    def update_pLvlNextFunc(self):
-        """
-        Update the function that maps this period's permanent income level to next
-        period's expected permanent income level.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("pLvlNextFunc")
-
     def install_retirement_func(self):
         """
         Installs a special pLvlNextFunc representing retirement in the correct
@@ -832,21 +807,6 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             return
         t = self.T_retire
         self.pLvlNextFunc[t] = self.pLvlNextFuncRet
-
-    def update_pLvlGrid(self):
-        """
-        Update the grid of persistent income levels.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("pLvlPctiles", "pLvlGrid")
-        self.add_to_time_vary("pLvlGrid")
 
     def sim_birth(self, which_agents):
         """

@@ -1342,26 +1342,6 @@ class PerfForesightConsumerType(AgentType):
 
         return
 
-    def unpack_cFunc(self):
-        """DEPRECATED: Use solution.unpack('cFunc') instead.
-        "Unpacks" the consumption functions into their own field for easier access.
-        After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
-        creates a (time varying) attribute cFunc that contains a list of consumption
-        functions.
-        Parameters
-        ----------
-        none
-        Returns
-        -------
-        none
-        """
-        _log.critical(
-            "unpack_cFunc is deprecated and it will soon be removed, "
-            "please use unpack('cFunc') instead."
-        )
-        self.unpack("cFunc")
-
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now["PlvlAgg"] = 1.0
