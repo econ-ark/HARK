@@ -942,6 +942,28 @@ class TestParameters:
         assert "list_param" in params._invariant_params
         assert "array_param" in params._varying_params
 
+    def test_2d_array_at_t_cycle_1(self):
+        """Test that 2D array with shape (1, n) at T_cycle=1 is time-varying."""
+        # Edge case: T_cycle=1 with 2D array shape (1, 5)
+        arr_2d = np.array([[1.0, 2.0, 3.0, 4.0, 5.0]])
+        params = Parameters(T_cycle=1, matrix=arr_2d)
+
+        # Should be time-varying since first dim matches T_cycle
+        assert "matrix" in params._varying_params
+        assert "matrix" not in params._invariant_params
+
+    def test_validate_0d_array(self):
+        """Test that validate() catches 0-dimensional arrays marked as time-varying."""
+        params = Parameters(T_cycle=3, beta=0.95)
+
+        # Manually add a 0-dimensional array as time-varying (invalid state)
+        params._parameters["scalar_array"] = np.array(5.0)  # 0-dimensional
+        params._varying_params.add("scalar_array")
+
+        # Should fail validation
+        with pytest.raises(ValueError, match="0-dimensional array"):
+            params.validate()
+
 
 class TestSolveWithParameters(unittest.TestCase):
     """Test solving an agent with Parameters object for params."""

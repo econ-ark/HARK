@@ -198,9 +198,9 @@ class Parameters:
             If the key is neither an integer nor a string.
         """
         if isinstance(item_or_key, int):
-            if item_or_key >= self._length:
+            if item_or_key < 0 or item_or_key >= self._length:
                 raise ValueError(
-                    f"Age {item_or_key} is out of bounds (max: {self._length - 1})."
+                    f"Age {item_or_key} is out of bounds (valid: 0-{self._length - 1})."
                 )
 
             params = {key: self._parameters[key] for key in self._invariant_params}
@@ -256,7 +256,7 @@ class Parameters:
 
         # Check for 2D numpy arrays with time-varying first dimension
         if isinstance(value, np.ndarray) and value.ndim >= 2:
-            if value.shape[0] == self._length and self._length > 1:
+            if value.shape[0] == self._length:
                 self._varying_params.add(key)
                 self._invariant_params.discard(key)
             else:
@@ -563,23 +563,7 @@ class Parameters:
         >>> age_1_params.beta
         0.96
         """
-        if age >= self._length or age < 0:
-            raise ValueError(
-                f"Age {age} is out of bounds (valid: 0-{self._length - 1})."
-            )
-
-        params = {key: self._parameters[key] for key in self._invariant_params}
-        params.update(
-            {
-                key: (
-                    self._parameters[key][age]
-                    if isinstance(self._parameters[key], (list, tuple, np.ndarray))
-                    else self._parameters[key]
-                )
-                for key in self._varying_params
-            }
-        )
-        return Parameters(**params)
+        return self[age]
 
     def validate(self) -> None:
         """
@@ -610,7 +594,12 @@ class Parameters:
                         f"Parameter '{param}' has length {len(value)}, expected {self._length}"
                     )
             elif isinstance(value, np.ndarray):
-                if value.ndim >= 2:
+                if value.ndim == 0:
+                    errors.append(
+                        f"Parameter '{param}' is a 0-dimensional array (scalar), "
+                        "which should not be time-varying"
+                    )
+                elif value.ndim >= 2:
                     if value.shape[0] != self._length:
                         errors.append(
                             f"Parameter '{param}' has first dimension {value.shape[0]}, expected {self._length}"
