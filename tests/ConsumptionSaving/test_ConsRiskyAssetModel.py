@@ -25,6 +25,10 @@ class testBasicRiskyAssetConsumerType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
+    def test_zero_inc_unemp(self):
+        AltType = IndShockRiskyAssetConsumerType(IncUnemp=0.0)
+        AltType.solve()
+
 
 class testCubicRiskyAssetConsumerType(unittest.TestCase):
     def setUp(self):

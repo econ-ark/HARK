@@ -332,15 +332,17 @@ def parallelNelderMead(
 
     # Make sure degree of parallelization is not illegal
     if P > N - 1:
-        print(
+        warnings.warn(
             "Requested degree of simplex parallelization is "
             + str(P)
             + ", but dimension of optimization problem is only "
             + str(N - 1)
             + ".",
         )
-        print("Degree of parallelization has been reduced to " + str(N - 1) + ".")
-        P = N - 1
+        warnings.warn(
+            "Degree of parallelization has been reduced to " + str(N - 1) + "."
+        )
+        P = N - 2
 
     # Create the pool of worker processes
     cpu_cores = multiprocessing.cpu_count()  # Total number of available CPU cores

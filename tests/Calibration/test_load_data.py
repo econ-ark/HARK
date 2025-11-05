@@ -40,6 +40,9 @@ class test_cpi_deflators(unittest.TestCase):
         defl_diff_year = cpi_deflator(1998, 2019)
         self.assertAlmostEqual(defl_diff_year[0], 1.57202505)
 
+    def test_invalid_years(self):
+        self.assertRaises(KeyError, cpi_deflator, 1756, 2058)
+
 
 # %% Tests for Survey of Consumer finances initial distributions
 class test_SCF_dists(unittest.TestCase):
