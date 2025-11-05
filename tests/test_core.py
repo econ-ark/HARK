@@ -194,10 +194,15 @@ class test_agent_population_comprehensive(unittest.TestCase):
         self.params_with_dist["CRRA"] = Uniform(2.0, 10)
         self.params_with_dist["DiscFac"] = Uniform(0.9, 0.99)
 
-        # Parameters with list of lists (ex-ante heterogeneous agents)
+        # Parameters with DataArray (ex-ante heterogeneous agents)
+        # Use xarray.DataArray with 'agent' dimension for distributed parameters
+        from xarray import DataArray
+
         self.params_with_lists = init_idiosyncratic_shocks.copy()
-        self.params_with_lists["CRRA"] = [2.0, 4.0, 6.0]
-        self.params_with_lists["DiscFac"] = [0.95, 0.96, 0.97]
+        self.params_with_lists["CRRA"] = DataArray([2.0, 4.0, 6.0], dims=("agent",))
+        self.params_with_lists["DiscFac"] = DataArray(
+            [0.95, 0.96, 0.97], dims=("agent",)
+        )
 
         # Parameters with time-varying lists
         self.params_time_varying = init_idiosyncratic_shocks.copy()
@@ -269,13 +274,13 @@ class test_agent_population_comprehensive(unittest.TestCase):
     def test_parse_parameters(self):
         """Test parameter parsing for distributed agents."""
         agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
-        agent_pop._AgentPopulation__parse_parameters__()
-        self.assertEqual(len(agent_pop.population_parameters), 3)
-        self.assertIsInstance(agent_pop.population_parameters[0], dict)
-        # Check that CRRA values are correctly assigned
-        self.assertEqual(agent_pop.population_parameters[0]["CRRA"], 2.0)
-        self.assertEqual(agent_pop.population_parameters[1]["CRRA"], 4.0)
-        self.assertEqual(agent_pop.population_parameters[2]["CRRA"], 6.0)
+        agent_pop.create_distributed_agents()
+        # After creating agents, check that they received correct CRRA values
+        self.assertEqual(len(agent_pop.agents), 3)
+        # Check that CRRA values are correctly assigned to each agent
+        self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
+        self.assertEqual(agent_pop.agents[1].CRRA, 4.0)
+        self.assertEqual(agent_pop.agents[2].CRRA, 6.0)
 
     def test_create_distributed_agents_count(self):
         """Test that create_distributed_agents creates correct number of agents."""
@@ -342,7 +347,11 @@ class test_agent_population_comprehensive(unittest.TestCase):
 
     def test_initialize_sim(self):
         """Test initialization of simulation for all agents."""
-        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        # Add simulation parameters
+        params = self.params_with_lists.copy()
+        params["T_sim"] = 100
+        params["AgentCount"] = 10
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
         agent_pop.create_distributed_agents()
         agent_pop.solve()
         agent_pop.initialize_sim()
@@ -353,7 +362,11 @@ class test_agent_population_comprehensive(unittest.TestCase):
 
     def test_simulate(self):
         """Test simulation of agent population."""
-        agent_pop = AgentPopulation(IndShockConsumerType, self.params_with_lists)
+        # Add simulation parameters
+        params = self.params_with_lists.copy()
+        params["T_sim"] = 100
+        params["AgentCount"] = 10
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
         agent_pop.create_distributed_agents()
         agent_pop.solve()
         agent_pop.initialize_sim()
