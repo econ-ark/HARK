@@ -544,6 +544,52 @@ class TestParameters:
         assert params["T_cycle"] == 5
 
 
+class TestSolveWithParameters(unittest.TestCase):
+    """Test solving an agent with Parameters object for params."""
+
+    def test_solve_agent_with_parameters(self):
+        """Test that an agent can be solved when its params are a Parameters object."""
+        # Start with the default params for IndShockConsumerType
+        base_params = init_idiosyncratic_shocks.copy()
+
+        # Create a Parameters object with time-varying parameters
+        # This mimics what a user would do when creating an agent with Parameters
+        params_obj = Parameters(
+            T_cycle=3,
+            PermGroFac=[1.05, 1.10, 1.3],
+            LivPrb=[0.95, 0.9, 0.85],
+            PermShkStd=[0.1, 0.1, 0.1],
+            TranShkStd=[0.1, 0.1, 0.1],
+            Rfree=[1.03, 1.03, 1.03],
+        )
+
+        # Update base params with the Parameters object
+        base_params.update(params_obj.to_dict())
+
+        # Convert Parameters to dict for agent initialization
+        # (since agents expect **kwargs, we need to unpack the Parameters)
+        agent = IndShockConsumerType(**base_params)
+
+        # Solve the agent
+        agent.solve()
+
+        # Verify solution exists and has correct length
+        # T_cycle=3 means 3 periods + 1 terminal = 4 solutions
+        self.assertEqual(len(agent.solution), 4)
+
+        # Verify each solution is a valid ConsumerSolution
+        for solution in agent.solution:
+            self.assertTrue(hasattr(solution, "cFunc"))
+
+        # Verify the agent can evaluate consumption at some market resources level
+        # This confirms the solution is actually usable
+        m = 10.0  # Use higher value to avoid borrowing constraint
+        for t in range(3):
+            c = agent.solution[t].cFunc(m)
+            self.assertGreater(c, 0)
+            self.assertLess(c, m)  # Consumption should be less than resources when away from constraint
+
+
 class TestSolveFrom(unittest.TestCase):
     def shorten_params(self, params, length):
         par = deepcopy(params)
