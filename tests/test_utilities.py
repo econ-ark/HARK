@@ -17,6 +17,7 @@ from HARK.utilities import (
     find_gui,
     make_figs,
     files_in_dir,
+    get_percentiles,
     NullFunc,
 )
 
@@ -58,6 +59,10 @@ class testGetLorenzShares(unittest.TestCase):
         self.assertAlmostEqual(out.size, 4)
         self.assertTrue(np.all(out[1:] >= out[:-1]))
 
+        self.assertRaises(
+            ValueError, get_lorenz_shares, self.data, percentiles=[0.2, 1.1]
+        )
+
     def test_lorenz_sorteds(self):
         out = get_lorenz_shares(
             np.sort(self.data), percentiles=[0.2, 0.4], presorted=True
@@ -73,6 +78,19 @@ class testSubpopAvg(unittest.TestCase):
         my_cuts = [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
         cond_avgs = calc_subpop_avg(my_data, my_ref, my_cuts)
         self.assertTrue(len(cond_avgs), len(my_cuts))
+
+
+class testGetPercentiles(unittest.TestCase):
+    def test_default(self):
+        X = np.array([5.0])
+        out = get_percentiles(X)
+        self.assertTrue(np.isnan(out))
+
+        Y = np.sort(np.random.rand(100))
+        out = get_percentiles(Y, percentiles=[0.2, 0.5, 0.8], presorted=True)
+        self.assertTrue(out.size == 3)
+
+        self.assertRaises(ValueError, get_percentiles, Y, percentiles=[0.5, 1.1])
 
 
 class testKernelRegression(unittest.TestCase):
@@ -95,6 +113,11 @@ class testKernelRegression(unittest.TestCase):
         Q = 10 * np.random.rand(100)
         out = g(Q)
         self.assertTrue(np.all(np.isreal(out)))
+
+    def test_inextant(self):
+        self.assertRaises(
+            ValueError, kernel_regression, self.X, self.Y, h=0.25, kernel="hate"
+        )
 
 
 class testEnvironmentStuff(unittest.TestCase):
