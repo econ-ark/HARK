@@ -587,7 +587,9 @@ class TestSolveWithParameters(unittest.TestCase):
         for t in range(3):
             c = agent.solution[t].cFunc(m)
             self.assertGreater(c, 0)
-            self.assertLess(c, m)  # Consumption should be less than resources when away from constraint
+            self.assertLess(
+                c, m
+            )  # Consumption should be less than resources when away from constraint
 
 
 class TestSolveFrom(unittest.TestCase):
