@@ -13,7 +13,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
 )
 from HARK.core import AgentPopulation, AgentType, Parameters, distribute_params
-from HARK.distributions import Uniform
+from HARK.distributions import Distribution, Uniform
 from HARK.metric import MetricObject, distance_metric
 
 
@@ -548,29 +548,75 @@ class TestSolveWithParameters(unittest.TestCase):
     """Test solving an agent with Parameters object for params."""
 
     def test_solve_agent_with_parameters(self):
-        """Test that an agent can be solved when its params are a Parameters object."""
+        """Test that an agent can be solved when agent.params is a Parameters object.
+
+        This tests the special code path in solve_agent() that checks:
+        if hasattr(agent, "params") and isinstance(agent.params, Parameters):
+        """
         # Start with the default params for IndShockConsumerType
         base_params = init_idiosyncratic_shocks.copy()
-
-        # Create a Parameters object with time-varying parameters
-        # This mimics what a user would do when creating an agent with Parameters
-        params_obj = Parameters(
-            T_cycle=3,
-            PermGroFac=[1.05, 1.10, 1.3],
-            LivPrb=[0.95, 0.9, 0.85],
-            PermShkStd=[0.1, 0.1, 0.1],
-            TranShkStd=[0.1, 0.1, 0.1],
-            Rfree=[1.03, 1.03, 1.03],
+        base_params.update(
+            {
+                "T_cycle": 3,
+                "PermGroFac": [1.05, 1.10, 1.3],
+                "LivPrb": [0.95, 0.9, 0.85],
+                "PermShkStd": [0.1, 0.1, 0.1],
+                "TranShkStd": [0.1, 0.1, 0.1],
+                "Rfree": [1.03, 1.03, 1.03],
+            }
         )
 
-        # Update base params with the Parameters object
-        base_params.update(params_obj.to_dict())
-
-        # Convert Parameters to dict for agent initialization
-        # (since agents expect **kwargs, we need to unpack the Parameters)
+        # Create agent with regular dict params first
         agent = IndShockConsumerType(**base_params)
 
-        # Solve the agent
+        # Now create a Parameters object with the agent's parameters
+        # We can only include types that Parameters supports:
+        # int, float, np.ndarray, None, Distribution, bool, Callable, list, tuple
+        # But we also need to exclude IndexDistribution which Parameters treats as
+        # time-invariant but should be time-varying
+        from HARK.distributions import IndexDistribution
+
+        supported_types = (
+            int,
+            float,
+            np.ndarray,
+            type(None),
+            Distribution,
+            bool,
+            list,
+            tuple,
+        )
+
+        params_for_obj = {}
+        for k, v in agent.parameters.items():
+            # Skip constructors dict and other unsupported types
+            if k == "constructors":
+                continue
+            # Convert IndexDistribution to a list for each period
+            if isinstance(v, IndexDistribution):
+                # IndexDistribution needs to be converted to a list
+                # Get the distribution for each period
+                v_list = [v[i] for i in range(agent.T_cycle)]
+                params_for_obj[k] = v_list
+            # Check if it's a callable (but not a class/type)
+            elif callable(v) and not isinstance(v, type):
+                params_for_obj[k] = v
+            elif isinstance(v, supported_types):
+                params_for_obj[k] = v
+            # Skip other types (like ConsumerSolution objects)
+
+        params_obj = Parameters(**params_for_obj)
+
+        # Set agent.params to the Parameters object
+        # This triggers the special code path in solve_agent()
+        agent.params = params_obj
+
+        # The agent needs to have distributions and other things constructed
+        # These should already be set up from the initialization, but let's verify
+        # The key distributions that need to be available are already on the agent
+        # from the normal initialization process
+
+        # Solve the agent - this should use the Parameters-aware code path
         agent.solve()
 
         # Verify solution exists and has correct length
