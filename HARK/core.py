@@ -35,6 +35,7 @@ from HARK.SSJutils import (
     make_basic_SSJ_matrices,
     calc_shock_response_manually,
 )
+from HARK.metric import MetricObject
 
 logging.basicConfig(format="%(message)s")
 _log = logging.getLogger("HARK")
@@ -184,7 +185,17 @@ class Parameters:
             raise ValueError(f"Parameter name must be a string, got {type(key)}")
 
         if isinstance(
-            value, (int, float, np.ndarray, type(None), Distribution, bool, Callable)
+            value,
+            (
+                int,
+                float,
+                np.ndarray,
+                type(None),
+                Distribution,
+                bool,
+                Callable,
+                MetricObject,
+            ),
         ):
             self._invariant_params.add(key)
             self._varying_params.discard(key)
@@ -620,7 +631,7 @@ class Model:
                     if force:
                         continue
                     else:
-                        raise ValueError("No constructor found for " + key) from None
+                        raise KeyError("No constructor found for " + key) from None
 
                 # If this constructor is None, do nothing and mark it as completed;
                 # this includes restoring the previous value if it exists
@@ -748,9 +759,25 @@ class Model:
         for key in keys:
             has_val = hasattr(self, key) or (key in self.parameters)
 
-            # Get the constructor function if possible
             try:
                 constructor = self.constructors[key]
+            except:
+                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
+                continue
+
+            # Get the constructor function if possible
+            if isinstance(constructor, get_it_from):
+                parent_name = self.constructors[key].name
+                out += (
+                    noyes[int(has_val)]
+                    + " "
+                    + key
+                    + " : get it from "
+                    + parent_name
+                    + "\n"
+                )
+                continue
+            else:
                 out += (
                     noyes[int(has_val)]
                     + " "
@@ -759,20 +786,6 @@ class Model:
                     + constructor.__name__
                     + "\n"
                 )
-            except:
-                if isinstance(constructor, get_it_from):
-                    parent_name = self.constructors[key].name
-                    out += (
-                        noyes[int(has_val)]
-                        + " "
-                        + key
-                        + " : get it from "
-                        + parent_name
-                        + "\n"
-                    )
-                else:
-                    out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
-                continue
 
             # Get constructor argument names
             arg_names = get_arg_names(constructor)
@@ -1437,7 +1450,7 @@ class AgentType(Model):
         who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
-    def sim_birth(self, which_agents):
+    def sim_birth(self, which_agents):  # pragma: nocover
         """
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
@@ -1451,10 +1464,9 @@ class AgentType(Model):
         -------
         None
         """
-        print("AgentType subclass must define method sim_birth!")
-        return None
+        raise Exception("AgentType subclass must define method sim_birth!")
 
-    def get_shocks(self):
+    def get_shocks(self):  # pragma: nocover
         """
         Gets values of shock variables for the current period.  Does nothing by default, but can
         be overwritten by subclasses of AgentType.
@@ -1511,7 +1523,7 @@ class AgentType(Model):
             if i < len(new_states):
                 self.state_now[var] = new_states[i]
 
-    def transition(self):
+    def transition(self):  # pragma: nocover
         """
 
         Parameters
@@ -1529,7 +1541,7 @@ class AgentType(Model):
         """
         return ()
 
-    def get_controls(self):
+    def get_controls(self):  # pragma: nocover
         """
         Gets values of control variables for the current period, probably by using current states.
         Does nothing by default, but can be overwritten by subclasses of AgentType.
@@ -1827,8 +1839,8 @@ def solve_one_cycle(agent, solution_last, from_t):
 
     # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
     # if so, take advantage of it. Else, use the old method
-    if hasattr(agent, "params") and isinstance(agent.params, Parameters):
-        T = agent.params._length if from_t is None else from_t
+    if hasattr(agent, "parameters") and isinstance(agent.parameters, Parameters):
+        T = agent.parameters._length if from_t is None else from_t
 
         # Initialize the solution for this cycle, then iterate on periods
         solution_cycle = []
@@ -1848,7 +1860,7 @@ def solve_one_cycle(agent, solution_last, from_t):
                 these_args = get_arg_names(solve_one_period)
 
             # Make a temporary dictionary for this period
-            temp_pars = agent.params[k]
+            temp_pars = agent.parameters[k]
             temp_dict = {
                 name: solution_next if name == "solution_next" else temp_pars[name]
                 for name in these_args

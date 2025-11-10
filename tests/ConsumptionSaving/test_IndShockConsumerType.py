@@ -238,7 +238,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         # This test is commented out because it was trivialized by revisions to the "worst income shock" code.
         # The bottom x value of the unconstrained consumption function will definitely be zero, so this is pointless.
 
-        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
+        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "who_dies"]
         IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
@@ -307,7 +307,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
     def test_lifecyle(self):
         LifecycleExample = IndShockConsumerType(**LifecycleDict)
         LifecycleExample.cycles = 1
-        LifecycleExample.solve()
+        LifecycleExample.solve(verbose=True)
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
