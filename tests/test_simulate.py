@@ -246,3 +246,12 @@ class testMarkovEvents(unittest.TestCase):
             offset=True,
             T_max=100,
         )
+
+    def test_common(self):
+        self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
+        self.agent.initialize_sym(common="Mrkv")
+        self.agent.symulate()
+
+        Mrkv_hist = self.agent.hystory["Mrkv"]
+        for t in range(self.agent.T_sim):
+            self.assertTrue(np.all(Mrkv_hist[t, :] == Mrkv_hist[t, 0]))

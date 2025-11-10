@@ -8,6 +8,7 @@ import numpy as np
 
 from HARK.rewards import (
     CRRAutility,
+    CRRAutility_inv,
     CRRAutilityP,
     CRRAutilityPP,
     CRRAutilityPPP,
@@ -25,6 +26,7 @@ from HARK.rewards import (
     UtilityFuncCobbDouglas,
     UtilityFuncCobbDouglasCRRA,
     UtilityFuncConstElastSubs,
+    UtilityFunction,
 )
 
 
@@ -243,3 +245,25 @@ class testsForCES(unittest.TestCase):
         b = U.derivative(x, 0)
         c = U.derivative(x, 1)
         d = U.derivative(x, 2)
+
+
+class testsForUtilityFunction(unittest.TestCase):
+    def test_valid(self):
+        u = lambda c: CRRAutility(c, 3.0)
+        uP = lambda c: CRRAutilityP(c, 3.0)
+        uinv = lambda x: CRRAutility_inv(x, 3.0)
+        U = UtilityFunction(u, uP, uinv)
+
+        x = 5.0
+        a = U(x)
+        b = U.der(x)
+        c = U.inv(-x)
+
+    def test_invalid(self):
+        u = lambda c: CRRAutility(c, 3.0)
+        U = UtilityFunction(u)
+
+        x = 5.0
+        a = U(x)
+        self.assertRaises(NotImplementedError, U.der, x)
+        self.assertRaises(NotImplementedError, U.inv, -x)

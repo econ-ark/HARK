@@ -729,12 +729,12 @@ class UtilityFunction(MetricObject):
         return self.eval_func(*args, **kwargs)
 
     def derivative(self, *args, **kwargs):
-        if not hasattr(self, "der_func") or self.der_func is None:
+        if self.der_func is None:
             raise NotImplementedError("No derivative function available")
         return self.der_func(*args, **kwargs)
 
     def inverse(self, *args, **kwargs):
-        if not hasattr(self, "inv_func") or self.inv_func is None:
+        if self.inv_func is None:
             raise NotImplementedError("No inverse function available")
         return self.inv_func(*args, **kwargs)
 
