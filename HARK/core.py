@@ -2052,7 +2052,7 @@ class Market(Model):
                 print(
                     "**** WARNING: could not execute multi_thread_commands in HARK.core.Market.solve_agents() ",
                     "so using the serial version instead. This will likely be slower. "
-                    "The multiTreadCommands() functions failed with the following error:",
+                    "The multi_thread_commands() functions failed with the following error:",
                     "\n",
                     sys.exc_info()[0],
                     ":",

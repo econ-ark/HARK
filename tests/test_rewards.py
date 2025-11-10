@@ -87,6 +87,7 @@ class testsForCRRA(unittest.TestCase):
         e = U(x, order=3)
         f = U(x, order=4)
         self.assertRaises(ValueError, U, x, 5)
+        self.assertRaises(ValueError, U.inverse, x, (2, 1))
 
 
 class testsForCARA(unittest.TestCase):
@@ -209,6 +210,7 @@ class testsForCobbDouglas(unittest.TestCase):
         a = U(x, y)
         b = U.derivative(x, y, axis=0)
         c = U.derivative(x, y, axis=1)
+        d = U.inverse(x, y)
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
@@ -225,6 +227,7 @@ class testsForCobbDouglasCRRA(unittest.TestCase):
         a = U(x, y)
         b = U.derivative(x, y, axis=0)
         c = U.derivative(x, y, axis=1)
+        d = U.inverse(x, y)
         self.assertRaises(ValueError, U.derivative, x, y, 2)
 
 
