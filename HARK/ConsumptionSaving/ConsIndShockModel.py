@@ -1295,6 +1295,7 @@ class PerfForesightConsumerType(AgentType):
         constraint and MaxKinks attribute (only relevant in constrained, infinite
         horizon problems).
         """
+        self.check_restrictions()
         self.construct("solution_terminal")  # Solve the terminal period problem
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
@@ -1321,7 +1322,7 @@ class PerfForesightConsumerType(AgentType):
         A method to check that various restrictions are met for the model class.
         """
         if self.DiscFac < 0:
-            raise Exception("DiscFac is below zero with value: " + str(self.DiscFac))
+            raise ValueError("DiscFac is below zero with value: " + str(self.DiscFac))
 
         return
 
@@ -1809,7 +1810,7 @@ class PerfForesightConsumerType(AgentType):
         elif self.conditions["FHWC"]:
             GIC_message = "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
-            pass
+            pass  # pragma: nocover
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
 
@@ -1839,27 +1840,23 @@ class PerfForesightConsumerType(AgentType):
             return
 
         infinite_horizon = self.cycles == 0
-        single_period = self.T_cycle = 1
+        single_period = self.T_cycle == 1
         if not infinite_horizon:
-            _log.warning(
+            raise ValueError(
                 "The calc_stable_points method works only for infinite horizon models."
             )
-            return
         if not single_period:
-            _log.warning(
+            raise ValueError(
                 "The calc_stable_points method works only with a single infinitely repeated period."
             )
-            return
         if not hasattr(self, "conditions"):
-            _log.warning(
-                "The calc_limiting_values method must be run before the calc_stable_points method."
+            raise ValueError(
+                "The check_conditions method must be run before the calc_stable_points method."
             )
-            return
         if not hasattr(self, "solution"):
-            _log.warning(
+            raise ValueError(
                 "The solve method must be run before the calc_stable_points method."
             )
-            return
 
         # Extract balanced growth and delta m_t+1 = 0 functions
         BalGroFunc = self.bilt["BalGroFunc"]
@@ -2304,6 +2301,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
+        self.check_restrictions()
         self.construct("solution_terminal")
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
@@ -2911,7 +2909,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."

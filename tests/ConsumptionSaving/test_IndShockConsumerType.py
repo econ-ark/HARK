@@ -65,6 +65,14 @@ class testIndShockConsumerType(unittest.TestCase):
             places=HARK_PRECISION,
         )
 
+        self.assertRaises(ValueError, LifecycleExample.calc_stable_points)
+
+    def test_invalid_calc_stable_points(self):
+        TestType = IndShockConsumerType(cycles=0)
+        self.assertRaises(ValueError, TestType.calc_stable_points)
+        TestType.check_conditions()
+        self.assertRaises(ValueError, TestType.calc_stable_points)
+
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
@@ -80,6 +88,36 @@ class testIndShockConsumerType(unittest.TestCase):
         a2 = IndShockConsumerType(seed=200)
 
         self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
+
+    def test_check_conditions(self):
+        TestType = IndShockConsumerType(cycles=0, quiet=False, verbose=False)
+        TestType.check_conditions()
+
+        # make DiscFac way too big
+        TestType = IndShockConsumerType(cycles=0, DiscFac=1.06)
+        TestType.check_conditions()
+
+        # make PermGroFac big
+        TestType = IndShockConsumerType(cycles=0, DiscFac=0.96, PermGroFac=[1.1])
+        TestType.check_conditions()
+
+        # make Rfree too big
+        TestType = IndShockConsumerType(cycles=0, Rfree=[1.1])
+        TestType.check_conditions()
+
+        # Make unemployment very likely
+        TestType = IndShockConsumerType(
+            cycles=0, Rfree=[0.93], IncUnemp=0.0, UnempPrb=0.99
+        )
+        TestType.check_conditions()
+
+        # Use log utility
+        TestType = IndShockConsumerType(cycles=0, CRRA=1.0)
+        TestType.check_conditions()
+
+    def test_invalid_beta(self):
+        TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
+        self.assertRaises(ValueError, TestType.solve)
 
 
 class testBufferStock(unittest.TestCase):
@@ -404,6 +442,8 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         self.assertAlmostEqual(
             CyclicalExample.state_now["aLvl"][1], 3.90015, places=HARK_PRECISION
         )
+
+        self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
 
 
 # %% Tests of 'stable points'
