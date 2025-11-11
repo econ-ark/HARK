@@ -7,9 +7,8 @@ model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
 
-# Set logging and define basic functions
+# Import basic modules
 import inspect
-import logging
 import sys
 from collections import namedtuple
 from copy import copy, deepcopy
@@ -37,33 +36,18 @@ from HARK.SSJutils import (
 )
 from HARK.metric import MetricObject
 
-logging.basicConfig(format="%(message)s")
-_log = logging.getLogger("HARK")
-_log.setLevel(logging.ERROR)
-
-
-def disable_logging():
-    _log.disabled = True
-
-
-def enable_logging():
-    _log.disabled = False
-
-
-def warnings():
-    _log.setLevel(logging.WARNING)
-
-
-def quiet():
-    _log.setLevel(logging.ERROR)
-
-
-def verbose():
-    _log.setLevel(logging.INFO)
-
-
-def set_verbosity_level(level):
-    _log.setLevel(level)
+__all__ = [
+    "AgentType",
+    "Market",
+    "Parameters",
+    "Model",
+    "AgentPopulation",
+    "multi_thread_commands",
+    "multi_thread_commands_fake",
+    "NullFunc",
+    "make_one_period_oo_solver",
+    "distribute_params",
+]
 
 
 class Parameters:
@@ -922,7 +906,6 @@ class AgentType(Model):
         self.tolerance = tolerance  # NOQA
         self.verbose = verbose
         self.quiet = quiet
-        set_verbosity_level((4 - verbose) * 10)
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
         self.state_now = {sv: None for sv in self.state_vars}
@@ -2326,8 +2309,6 @@ def distribute_params(agent, param_name, param_count, distribution):
         agent_set[j].assign_parameters(
             **{"AgentCount": int(agent.AgentCount * param_dist.pmv[j])}
         )
-        # agent_set[j].__dict__[param_name] = param_dist.atoms[j]
-
         agent_set[j].assign_parameters(**{param_name: param_dist.atoms[0, j]})
 
     return agent_set

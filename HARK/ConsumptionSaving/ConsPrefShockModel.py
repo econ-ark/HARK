@@ -269,9 +269,8 @@ def solve_one_period_ConsPrefShock(
     # for each value of PrefShk, interpolated across those values.
     if CubicBool:
         # This is not yet supported, not sure why we never got to it
-        raise (
-            ValueError,
-            "Cubic interpolation is not yet supported by the preference shock model!",
+        raise ValueError(
+            "Cubic interpolation is not yet supported by the preference shock model!"
         )
 
     # Make the preference-shock specific consumption functions
@@ -303,10 +302,7 @@ def solve_one_period_ConsPrefShock(
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
 
     # Define this period's marginal marginal value function
-    if CubicBool:
-        pass  # This is impossible to reach right now
-    else:
-        vPPfuncNow = NullFunc()  # Dummy object
+    vPPfuncNow = NullFunc()  # Dummy object, cubic interpolation not implemented
 
     # Construct this period's value function if requested
     if vFuncBool:
@@ -580,9 +576,8 @@ def solve_one_period_ConsKinkyPref(
     # for each value of PrefShk, interpolated across those values.
     if CubicBool:
         # This is not yet supported, not sure why we never got to it
-        raise (
-            ValueError,
-            "Cubic interpolation is not yet supported by the preference shock model!",
+        raise ValueError(
+            "Cubic interpolation is not yet supported by the preference shock model!"
         )
 
     # Make the preference-shock specific consumption functions
@@ -614,10 +609,7 @@ def solve_one_period_ConsKinkyPref(
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
 
     # Define this period's marginal marginal value function
-    if CubicBool:
-        pass  # This is impossible to reach right now
-    else:
-        vPPfuncNow = NullFunc()  # Dummy object
+    vPPfuncNow = NullFunc()  # Dummy object, cubic interpolation not implemented
 
     # Construct this period's value function if requested
     if vFuncBool:
@@ -997,7 +989,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         self.controls["cNrm"] = cNrmNow
         return None
 
-    def calc_bounding_values(self):
+    def calc_bounding_values(self):  # pragma: nocover
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -1018,7 +1010,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -1042,10 +1034,6 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
 
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 

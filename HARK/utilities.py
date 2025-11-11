@@ -908,7 +908,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
 ###############################################################################
 
 
-def determine_platform():
+def determine_platform():  # pragma: nocover
     """
     Utility function to return the platform currenlty in use.
 

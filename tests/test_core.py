@@ -18,6 +18,8 @@ from HARK.core import (
     AgentType,
     Parameters,
     distribute_params,
+)
+from HARK import (
     disable_logging,
     enable_logging,
     warnings,
@@ -92,6 +94,12 @@ class test_distance_metric(unittest.TestCase):
 
         # sanity check - same objects
         self.assertEqual(distance_metric(self.obj_a, self.obj_a), 0.0)
+
+    def test_incompatible(self):
+        f = lambda x: x + 5.0
+        self.assertAlmostEqual(distance_metric(self.obj_a, f), 1000.0)
+        A = AgentType()
+        self.assertAlmostEqual(distance_metric(self.obj_a, A), 1000.0)
 
 
 class test_MetricObject(unittest.TestCase):

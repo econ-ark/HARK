@@ -35,10 +35,17 @@ class testPrefShockConsumerType(unittest.TestCase):
             places=HARK_PRECISION,
         )
 
+        other = PrefShockConsumerType()
+        other.solve()  # this covers the "no vFunc" case
+
     def test_vFunc(self):
         vFunc = self.agent.solution[0].vFunc
         mNrm = 5.0
         self.assertAlmostEqual(vFunc(mNrm), -13.93642, places=HARK_PRECISION)
+
+    def test_invalid_cases(self):
+        BrokenType = PrefShockConsumerType(CubicBool=True)
+        self.assertRaises(ValueError, BrokenType.solve)
 
     def test_simulation(self):
         self.agent.T_sim = 10
@@ -61,8 +68,7 @@ class testPrefShockConsumerType(unittest.TestCase):
 
 class testKinkyPrefConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = KinkyPrefConsumerType(vFuncBool=True)
-        self.agent.cycles = 0  # Infinite horizon
+        self.agent = KinkyPrefConsumerType(vFuncBool=True, cycles=0)
         self.agent.solve()
 
     def test_solution(self):
@@ -82,6 +88,9 @@ class testKinkyPrefConsumerType(unittest.TestCase):
         k = self.agent.solution[0].cFunc.derivativeX(m, np.ones_like(m))
         self.assertAlmostEqual(k[5], 0.91443, places=HARK_PRECISION)
 
+        other = KinkyPrefConsumerType()
+        other.solve()  # this covers the "no vFunc" case
+
     def test_vFunc(self):
         vFunc = self.agent.solution[0].vFunc
         mNrm = 5.0
@@ -95,3 +104,10 @@ class testKinkyPrefConsumerType(unittest.TestCase):
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.agent.history["cNrm"][0][5], 0.77171, place = HARK_PRECISION)
+
+    def test_invalid_cases(self):
+        EasyType = KinkyPrefConsumerType(Rboro=self.agent.Rsave, cycles=0)
+        EasyType.solve()
+
+        BrokenType = KinkyPrefConsumerType(CubicBool=True)
+        self.assertRaises(ValueError, BrokenType.solve)
