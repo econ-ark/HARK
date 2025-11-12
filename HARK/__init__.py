@@ -14,9 +14,7 @@ The user can set it to "verbose" to get more information, or "quiet" to supress 
 import logging
 
 logging.basicConfig(format="%(message)s")
-
 _log = logging.getLogger("HARK")
-
 _log.setLevel(logging.ERROR)
 
 

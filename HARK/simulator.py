@@ -67,7 +67,7 @@ class ModelEvent:
         """
         This method should be filled in by each subclass.
         """
-        pass
+        pass  # pragma: nocover
 
     def reset(self):
         self.data = {}
@@ -297,7 +297,7 @@ class RandomEvent(ModelEvent):
 class RandomIndexedEvent(RandomEvent):
     """
     Class for representing the realization of random variables for an agent,
-    consisting of a list of shock distributions, and index for the list, and the
+    consisting of a list of shock distributions, an index for the list, and the
     variables to which the results are assigned.
 
     Parameters

@@ -148,7 +148,7 @@ class MedShockPolicyFunc(MetricObject):
         # Construct the consumption function and medical care function
         if xLvlCubicBool:
             if MedShkCubicBool:
-                raise NotImplementedError()("Bicubic interpolation not yet implemented")
+                raise NotImplementedError("Bicubic interpolation not yet implemented")
             else:
                 xLvlGrid_tiled = np.tile(
                     np.reshape(xLvlGrid, (xLvlGrid.size, 1)), (1, MedShkGrid.size)
@@ -2018,9 +2018,9 @@ med_ext_marg_constructors = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
-    "BeqParamDict": reformat_bequest_motive,
     "BeqFac": get_it_from("BeqParamDict"),
     "BeqShift": get_it_from("BeqParamDict"),
+    "BeqParamDict": reformat_bequest_motive,
     "aNrmGrid": make_assets_grid,
     "mNrmGrid": make_market_resources_grid,
     "kLvlGrid": make_capital_grid,
