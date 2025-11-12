@@ -298,6 +298,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         plot_funcs(MyType.cFunc, 0.0, 10.0, legend_kwds={"labels": ["cFunc"]})
         plot_funcs(MyType.cFunc[0], 0.0, 10.0)
         plot_funcs_der(MyType.cFunc, 0.0, 10.0, legend_kwds={"labels": ["MPC"]})
+        plot_funcs_der(MyType.cFunc[0], 0.0, 10.0)
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary

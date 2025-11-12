@@ -160,7 +160,7 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     # Set up post decision state grid:
     if aXtraNestFac == -1:
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif aXtraNestFac >= 0:
+    elif (aXtraNestFac >= 0) and type(aXtraNestFac) is int:
         aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=aXtraNestFac
         )
