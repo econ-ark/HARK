@@ -47,5 +47,8 @@ class testKinkedRConsumerType(unittest.TestCase):
     def test_calc_bounding_values(self):
         KinkyExample = KinkedRconsumerType(cycles=0)
         KinkyExample.calc_bounding_values()
-        print(KinkyExample.MPCmax)
-        print(KinkyExample.MPCmin)
+
+    def test_default(self):
+        BoopType = KinkedRconsumerType()
+        BasicType = KinkedRconsumerType(Rboro=BoopType.Rsave)
+        BasicType.solve()

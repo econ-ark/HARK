@@ -792,8 +792,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         Installs a special pLvlNextFunc representing retirement in the correct
         element of self.pLvlNextFunc.  Draws on the attributes T_retire and
         pLvlNextFuncRet.  If T_retire is zero or pLvlNextFuncRet does not
-        exist, this method does nothing.  Should only be called from within the
-        method update_pLvlNextFunc, which ensures that time is flowing forward.
+        exist, this method does nothing.
 
         Parameters
         ----------
@@ -1017,23 +1016,23 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     pLvlNextFunc: Constructor, (:math:`\Gamma`)
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_explicit_perminc_pLvlNextFunc`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_explicit_perminc_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
 
     Solving Parameters
     ------------------

@@ -95,6 +95,8 @@ class testSimulatorClass(unittest.TestCase):
         self.assertTrue(np.isreal(cNrm_avg))
 
     def test_make_basic_SSJ(self):
+        self.agent.initialize_sym()  # trigger storing backup
+
         # Make SSJs w.r.t. interest factor
         dC_dR, dA_dR = self.agent.make_basic_SSJ(
             "Rfree",
@@ -122,8 +124,88 @@ class testSimulatorClass(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=1e-5)))
         self.assertTrue(np.all(np.isclose(resp_A, dA_dR[:, 50], atol=5e-4)))
 
+    def test_SSJ_no_list(self):
+        dC_dR = self.agent.make_basic_SSJ(
+            "BoroCnstArt",
+            "cNrm",
+            self.grid_specs,
+            norm="PermShk",
+            offset=True,
+            eps=-0.001,
+        )
+
+        dC_dsigma_psi = self.agent.make_basic_SSJ(
+            "PermShkStd",
+            "cNrm",
+            self.grid_specs,
+            norm="PermShk",
+            offset=True,
+            eps=-0.001,
+            construct=["IncShkDstn", "PermShkDstn", "TranShkDstn"],
+        )
+
     def test_describe_model(self):
         self.agent.describe_model()  # check that it doesn't crash
+
+    def test_SSJ_errors(self):
+        # Not infinite horizon
+        MyType = IndShockConsumerType()
+        self.assertRaises(ValueError, MyType.make_basic_SSJ, "Rfree", "cNrm", None)
+
+        # No grid provided
+        MyType = IndShockConsumerType(cycles=0)
+        self.assertRaises(
+            ValueError,
+            MyType.make_basic_SSJ,
+            "Rfree",
+            "cNrm",
+            {"kNrm": self.grid_specs["kNrm"]},
+        )
+
+        # Non-existent shock
+        self.assertRaises(
+            ValueError, MyType.make_basic_SSJ, "Rboro", "cNrm", self.grid_specs
+        )
+
+        # Invalid shock
+        self.assertRaises(
+            TypeError, MyType.make_basic_SSJ, "IncShkDstn", "cNrm", self.grid_specs
+        )
+
+    def test_MSR_errors(self):
+        # Not infinite horizon
+        MyType = IndShockConsumerType()
+        self.assertRaises(
+            ValueError, MyType.calc_impulse_response_manually, "Rfree", "cNrm", None
+        )
+
+        # No grid provided
+        MyType = IndShockConsumerType(cycles=0)
+        self.assertRaises(
+            ValueError,
+            MyType.calc_impulse_response_manually,
+            "Rfree",
+            "cNrm",
+            {"kNrm": self.grid_specs["kNrm"]},
+        )
+
+        # Non-existent shock
+        self.assertRaises(
+            ValueError,
+            MyType.calc_impulse_response_manually,
+            "Rboro",
+            "cNrm",
+            self.grid_specs,
+        )
+
+        # Invalid shock
+        self.assertRaises(
+            TypeError,
+            MyType.calc_impulse_response_manually,
+            "IncShkDstn",
+            "cNrm",
+            self.grid_specs,
+        )
 
 
 class testGridSimulation(unittest.TestCase):
@@ -246,3 +328,12 @@ class testMarkovEvents(unittest.TestCase):
             offset=True,
             T_max=100,
         )
+
+    def test_common(self):
+        self.agent.track_vars = ["aNrm", "cNrm", "Mrkv"]
+        self.agent.initialize_sym(common="Mrkv")
+        self.agent.symulate()
+
+        Mrkv_hist = self.agent.hystory["Mrkv"]
+        for t in range(self.agent.T_sim):
+            self.assertTrue(np.all(Mrkv_hist[t, :] == Mrkv_hist[t, 0]))

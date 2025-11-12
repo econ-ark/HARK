@@ -27,3 +27,16 @@ class test_LaborIntMargConsumerType(unittest.TestCase):
         self.model.solve()
         self.model.plot_cFunc(0)
         self.model.plot_LbrFunc(0)
+
+    def test_invalid_parameters(self):
+        BadType = LaborIntMargConsumerType(CRRA=0.1)
+        self.assertRaises(ValueError, BadType.solve)
+
+        BadType = LaborIntMargConsumerType(BoroCnstArt=0.0)
+        self.assertRaises(ValueError, BadType.solve)
+
+        BadType = LaborIntMargConsumerType(CubicBool=True)
+        self.assertRaises(ValueError, BadType.solve)
+
+        BadType = LaborIntMargConsumerType(vFuncBool=True)
+        self.assertRaises(ValueError, BadType.solve)

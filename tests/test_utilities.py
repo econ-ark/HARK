@@ -19,6 +19,7 @@ from HARK.utilities import (
     files_in_dir,
     get_percentiles,
     NullFunc,
+    apply_fun_to_vals,
 )
 
 
@@ -109,7 +110,7 @@ class testKernelRegression(unittest.TestCase):
         self.assertTrue(np.all(np.isreal(out)))
 
     def test_triangle(self):
-        g = kernel_regression(self.X, self.Y, h=0.25, kernel="hat")
+        g = kernel_regression(self.X, self.Y, kernel="hat")
         Q = 10 * np.random.rand(100)
         out = g(Q)
         self.assertTrue(np.all(np.isreal(out)))
@@ -146,6 +147,9 @@ class testEtc(unittest.TestCase):
         test = np.unique(np.diff(aXtraGrid).round(decimals=3))
         self.assertEqual(test.size, 1)
 
+        params["aXtraNestFac"] = 2.5  # invalid
+        self.assertRaises(ValueError, make_assets_grid, **params)
+
     def test_make_figs(self):
         # Test the make_figs() function with a trivial output
         plt.figure()
@@ -163,3 +167,23 @@ class testEtc(unittest.TestCase):
         self.assertAlmostEqual(f.distance(f), 0.0)
         self.assertAlmostEqual(f.distance(np), 1000.0)
         self.assertAlmostEqual(f.distance(5), 1000.0)
+
+    def test_apply_func_to_vals(self):
+        def temp_func(x, y, z):
+            return 3 * x + 4 * y + 2 * z
+
+        W = np.random.rand(100)
+        X = np.random.rand(100)
+        Y = np.random.rand(100)
+        Z = np.random.rand(100)
+
+        my_dict = {
+            "w": W,
+            "x": X,
+            "y": Y,
+            "z": Z,
+        }
+
+        vals = temp_func(X, Y, Z)
+        out = apply_fun_to_vals(temp_func, my_dict)
+        self.assertTrue(np.all(vals == out))
