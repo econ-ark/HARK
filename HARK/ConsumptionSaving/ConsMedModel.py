@@ -679,7 +679,7 @@ def make_continuous_MedShockDstn(
         s1 = MedCostLogStd[t]
         s2 = MedShkLogStd[t]
         diag = MedCorr[t] * s1 * s2
-        S = np.array([[s1, diag], [diag, s2]])
+        S = np.array([[s1**2, diag], [diag, s2**2]])
         M = np.array([MedCostLogMean[t], MedShkLogMean[t]])
         seed_t = RNG.integers(0, 2**31 - 1)
         dstn_t = MultivariateLogNormal(mu=M, Sigma=S, seed=seed_t)
