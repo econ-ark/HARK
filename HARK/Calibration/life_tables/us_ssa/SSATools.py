@@ -112,7 +112,7 @@ def parse_ssa_life_table(
     abb = "F" if female else "M"
 
     # Find year - age combinations that we need
-    assert age_min >= age_max, "The maximum age can not be lower than the minimum age."
+    assert age_max >= age_min, "The maximum age can not be lower than the minimum age."
     if terminal:
         ages = np.arange(age_min, age_max + 1)
     else:

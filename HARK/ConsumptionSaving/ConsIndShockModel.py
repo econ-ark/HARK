@@ -3003,7 +3003,7 @@ dist_params = income_wealth_dists_from_scf(
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
 liv_prb = parse_ssa_life_table(
-    female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age - 1
+    female=False, cross_sec=True, year=2004, age_min=birth_age, age_max=death_age
 )
 
 # Parameters related to the number of periods implied by the calibration
