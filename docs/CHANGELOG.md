@@ -40,7 +40,7 @@ There are some breaking changes:
 - Fixed share model has been combined with RiskyAssetConsumerType's PortfolioBool=False option. [#1607](https://github.com/econ-ark/HARK/pull/1607)
 - Deprecate HARK.parallel, moving the three functions there to HARK.core. [#1614](https://github.com/econ-ark/HARK/pull/1614)
 - Test coverage expanded to cover almost all content #1606 #1610 #1617 #1619 #1623 #1624 #1625 #1626 #1628
-- Consumption-saving models now aliased at HARK.models and HARK.ConsumptionSaving; some calibration tools also aliased at HARK.Calibration [#1629]()
+- Consumption-saving models now aliased at HARK.models and HARK.ConsumptionSaving; some calibration tools also aliased at HARK.Calibration [#1629](https://github.com/econ-ark/HARK/pull/1629)
 
 ### 0.16.1
 
