@@ -1176,6 +1176,9 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         "model": "ConsIndShock.yaml",
     }
 
+    def pre_solve(self):
+        self.construct("solution_terminal")
+
     def check_conditions(self, verbose=None):
         raise NotImplementedError()
 

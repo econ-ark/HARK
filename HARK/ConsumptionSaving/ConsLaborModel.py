@@ -693,6 +693,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     time_vary_ += ["WageRte", "LbrCost", "TranShkGrid"]
     time_inv_ = copy(IndShockConsumerType.time_inv_)
 
+    def pre_solve(self):
+        self.construct("solution_terminal")
+
     def calc_bounding_values(self):  # pragma: nocover
         """
         NOT YET IMPLEMENTED FOR THIS CLASS
