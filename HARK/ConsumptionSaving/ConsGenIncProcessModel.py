@@ -906,6 +906,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # moves now to prev
         AgentType.get_poststates(self)
 
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
+
 
 ###############################################################################
 

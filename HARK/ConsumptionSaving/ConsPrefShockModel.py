@@ -803,15 +803,15 @@ class PrefShockConsumerType(IndShockConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     PrefShkDstn: Constructor, :math:`\eta`
         The agent's preference shock distributions.
 
-        It's default constuctor is :func:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
+        Its default constuctor is :func:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
 
     Solving Parameters
     ------------------
@@ -1035,6 +1035,12 @@ class PrefShockConsumerType(IndShockConsumerType):
         None
 
         """
+        raise NotImplementedError()
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
         raise NotImplementedError()
 
 
