@@ -54,7 +54,7 @@ def distance_arrays(arr_a, arr_b):
     """
     shape_A = arr_a.shape
     shape_B = arr_b.shape
-    if shape_A == shape_A:
+    if shape_A == shape_B:
         return np.max(np.abs(arr_a - arr_b))
 
     if len(shape_A) != len(shape_B):
