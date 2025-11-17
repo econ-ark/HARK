@@ -137,6 +137,14 @@ nbsphinx_prolog = r"""
       <a href="{{ env.docname.split('/')|last|e + '.ipynb' }}" class="reference download internal" download>Download notebook</a>.
     </div>
 """
+
+nbsphinx_thumbnails = {
+    "../examples/Gentle-Intro/Constructors-Intro": "images/constructors-thumbnail.jpg",
+    "../examples/Gentle-Intro/Model-List": "images/directory-thumbnail.png",
+    "../examples/Gentle-Intro/AgentType-Intro": "images/elements-thumbnail.jpg",
+    "../examples/Gentle-Intro/Market-Intro": "images/market-thumbnail.jpg",
+}
+
 myst_enable_extensions = [
     "colon_fence",
 ]
