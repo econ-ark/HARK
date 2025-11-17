@@ -19,6 +19,7 @@ There are some breaking changes:
 - The removal of TimeVaryingDiscreteDistribution; use IndexDistribution instead, and see #1592.
 - FixedPortfolioShareRiskyAssetConsumerType is removed, but now incorporated as RiskyAssetConsumerType with PortfolioBool=False. Default behavior of latter class is unchanged; see #1607.
 - The content of HARK.parallel has been moved to HARK.core, and the former is deprecated. Import from HARK.core and see #1614.
+- parse_ssa_life_table now returns one fewer survival probability by default, to match output length of parse_income_spec. Pass terminal=True to restore old behavior and see #1629.
 
 #### Major Changes
 
