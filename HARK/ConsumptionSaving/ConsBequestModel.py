@@ -1176,6 +1176,12 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         "model": "ConsIndShock.yaml",
     }
 
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
+
 
 ###############################################################################
 
