@@ -173,8 +173,8 @@ class IndShockSolution(MetricObject):
         vNvrsP=None,
         MPCminNvrs=None,
     ):
-        self.mNrm = (mNrm if mNrm is not None else np.linspace(0, 1),)
-        self.cNrm = (cNrm if cNrm is not None else np.linspace(0, 1),)
+        self.mNrm = mNrm if mNrm is not None else np.linspace(0, 1)
+        self.cNrm = cNrm if cNrm is not None else np.linspace(0, 1)
         self.cFuncLimitIntercept = cFuncLimitIntercept
         self.cFuncLimitSlope = cFuncLimitSlope
         self.mNrmMin = mNrmMin
