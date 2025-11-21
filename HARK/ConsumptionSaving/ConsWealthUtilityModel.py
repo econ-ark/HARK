@@ -20,6 +20,7 @@ from HARK.distributions import expected
 from HARK.interpolation import (
     LinearInterp,
     LowerEnvelope,
+    ValueFuncCRRA,
     MargValueFuncCRRA,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -153,6 +154,16 @@ def calc_dvdm_next(shocks, a_nrm, G, R, rho, vp_func):
     return perm_shk_fac ** (-rho) * vp_func(m_nrm)
 
 
+def calc_v_next(shocks, a_nrm, G, R, rho, v_func):
+    """
+    Evaluate realizations of value of market resources next period, based on the
+    income distribution S and values of end-of-period assets a_nrm.
+    """
+    m_nrm = calc_m_nrm_next(shocks, a_nrm, G, R)
+    v_next = v_func(m_nrm)
+    return (shocks["PermShk"] * G) ** (1.0 - rho) * v_next
+
+
 def solve_one_period_WealthUtility(
     solution_next,
     IncShkDstn,
@@ -213,6 +224,12 @@ def solve_one_period_WealthUtility(
         Solution to this period's problem, including the consumption function cFunc.
 
     """
+    # Raise an error if cubic interpolation was requested
+    if CubicBool:
+        raise NotImplementedError(
+            "Cubic interpolation hasn't been programmed for the wealth in utility model yet."
+        )
+
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
@@ -270,7 +287,18 @@ def solve_one_period_WealthUtility(
     vPfuncNow = MargValueFuncCRRA(dudc_nvrs_func_now, CRRA)
 
     # Add the value function if requested
-    vFuncNow = NullFunc()
+    if vFuncBool:
+        EndOfPrd_v = expected(
+            calc_v_next, IncShkDstn, args=(a_temp, PermGroFac, Rfree, CRRA, vFuncNext)
+        )
+        EndOfPrd_v *= DiscFacEff
+        u_now = utility(c_temp, a_temp, CRRA, WealthShare, WealthShift)
+        v_now = u_now + EndOfPrd_v
+        vNvrs_now = np.insert(uFunc.inverse(v_now), 0, 0.0)
+        vNvrsFunc = LinearInterp(np.insert(m_temp, 0, mNrmMinNow), vNvrs_now)
+        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA)
+    else:
+        vFuncNow = NullFunc()
 
     # Package and return the solution
     solution_now = ConsumerSolution(
