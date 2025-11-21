@@ -1980,19 +1980,19 @@ class IndShockConsumerType(PerfForesightConsumerType):
     r"""
     A consumer type with idiosyncratic shocks to permanent and transitory income.
     Their problem is defined by a sequence of income distributions, survival probabilities
-    (:math:`1-\mathsf{D}`), and permanent income growth rates (:math:`\Gamma`), as well
+    (:math:`\mathsf{S}`), and permanent income growth rates (:math:`\Gamma`), as well
     as time invariant values for risk aversion (:math:`\rho`), discount factor (:math:`\beta`),
     the interest rate (:math:`\mathsf{R}`), the grid of end-of-period assets, and an artificial
     borrowing constraint (:math:`\underline{a}`).
 
     .. math::
         \newcommand{\CRRA}{\rho}
-        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\LivPrb}{\mathsf{S}}
         \newcommand{\PermGroFac}{\Gamma}
         \newcommand{\Rfree}{\mathsf{R}}
         \newcommand{\DiscFac}{\beta}
         \begin{align*}
-        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac \LivPrb_{t+1} \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
         & \text{s.t.}  \\
         a_t &= m_t - c_t, \\
         a_t &\geq \underline{a}, \\
@@ -2008,11 +2008,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
