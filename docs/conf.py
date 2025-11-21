@@ -139,10 +139,10 @@ nbsphinx_prolog = r"""
 """
 
 nbsphinx_thumbnails = {
-    "../examples/Gentle-Intro/Constructors-Intro": "docs/images/constructors_thumbnail.jpg",
-    "../examples/Gentle-Intro/Model-List": "docs/images/directory_thumbnail.png",
-    "../examples/Gentle-Intro/AgentType-Intro": "docs/images/elements_thumbnail.jpg",
-    "../examples/Gentle-Intro/Market-Intro": "docs/images/market_thumbnail.jpg",
+    "../examples/Gentle-Intro/Constructors-Intro": "./images/constructors_thumbnail.jpg",
+    "../examples/Gentle-Intro/Model-List": "./images/directory_thumbnail.png",
+    "../examples/Gentle-Intro/AgentType-Intro": "./images/elements_thumbnail.jpg",
+    "../examples/Gentle-Intro/Market-Intro": "./images/market_thumbnail.jpg",
 }
 
 myst_enable_extensions = [
