@@ -559,22 +559,22 @@ def load_nelder_mead_data(name):
         my_reader = csv.reader(f, delimiter=",")
 
         # Get the shape of the simplex and initialize it
-        my_shape_txt = my_reader.next()
+        my_shape_txt = next(my_reader)
         N = int(my_shape_txt[0])
         K = int(my_shape_txt[1])
         simplex = np.zeros((N, K)) + np.nan
 
         # Get number of iterations and cumulative evaluations from the next line
-        my_nums_txt = my_reader.next()
+        my_nums_txt = next(my_reader)
         iters = int(my_nums_txt[0])
         evals = int(my_nums_txt[1])
 
         # Read one line per point of the simplex
         for n in range(N):
-            simplex[n, :] = np.array(my_reader.next(), dtype=float)
+            simplex[n, :] = np.array(next(my_reader), dtype=float)
 
         # Read the final line to get function values
-        fvals = np.array(my_reader.next(), dtype=float)
+        fvals = np.array(next(my_reader), dtype=float)
 
     return simplex, fvals, iters, evals
 
