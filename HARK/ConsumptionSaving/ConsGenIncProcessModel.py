@@ -1122,17 +1122,10 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    IncShkDstn_default = GenIncProcessConsumerType_IncShkDstn_default
-    aXtraGrid_default = GenIncProcessConsumerType_aXtraGrid_default
-    pLvlNextFunc_default = GenIncProcessConsumerType_pLvlNextFunc_default
-    pLvlGrid_default = GenIncProcessConsumerType_pLvlGrid_default
-    pLvlPctiles_default = GenIncProcessConsumerType_pLvlPctiles_default
-    solving_default = GenIncProcessConsumerType_solving_default
-    simulation_default = GenIncProcessConsumerType_simulation_default
-
     default_ = {
         "params": init_explicit_perm_inc,
         "solver": solve_one_period_ConsGenIncProcess,
+        "model": "ConsGenIncProcess.yaml",
     }
 
 
@@ -1331,15 +1324,8 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    IncShkDstn_default = PersistentShockConsumerType_IncShkDstn_default
-    aXtraGrid_default = PersistentShockConsumerType_aXtraGrid_default
-    pLvlNextFunc_default = PersistentShockConsumerType_pLvlNextFunc_default
-    pLvlGrid_default = PersistentShockConsumerType_pLvlGrid_default
-    pLvlPctiles_default = PersistentShockConsumerType_pLvlPctiles_default
-    solving_default = PersistentShockConsumerType_solving_default
-    simulation_default = PersistentShockConsumerType_simulation_default
-
     default_ = {
         "params": init_persistent_shocks,
         "solver": solve_one_period_ConsGenIncProcess,
+        "model": "ConsGenIncProcess.yaml",
     }

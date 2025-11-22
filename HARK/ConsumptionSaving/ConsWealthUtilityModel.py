@@ -20,13 +20,21 @@ from HARK.distributions import expected
 from HARK.interpolation import (
     LinearInterp,
     LowerEnvelope,
+    LowerEnvelope2D,
     ValueFuncCRRA,
     MargValueFuncCRRA,
+    UpperEnvelope,
+    BilinearInterp,
+    VariableLowerBoundFunc2D,
+    LinearInterpOnInterp1D,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
     get_PermShkDstn_from_IncShkDstn,
     get_TranShkDstn_from_IncShkDstn,
+    make_AR1_style_pLvlNextFunc,
+    make_pLvlGrid_by_simulation,
+    make_basic_pLvlPctiles,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     calc_boro_const_nat,
@@ -36,6 +44,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     ConsumerSolution,
     make_basic_CRRA_solution_terminal,
+)
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
+    make_2D_CRRA_solution_terminal,
+    GenIncProcessConsumerType,
 )
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc, make_assets_grid
@@ -459,3 +471,427 @@ class WealthUtilityConsumerType(IndShockConsumerType):
 
     def calc_limiting_values(self):  # pragma: nocover
         raise NotImplementedError()
+
+
+###############################################################################
+
+
+def solve_one_period_CapitalistSpirit(
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    WealthCurve,
+    WealthFac,
+    WealthShift,
+    Rfree,
+    pLvlNextFunc,
+    BoroCnstArt,
+    aXtraGrid,
+    pLvlGrid,
+    vFuncBool,
+    CubicBool,
+):
+    """
+    Solves one one period problem of a consumer who experiences persistent and
+    transitory shocks to his income. Unlike in ConsIndShock, consumers do not
+    necessarily have the same predicted level of p next period as this period
+    (after controlling for growth).  Instead, they have  a function that translates
+    current persistent income into expected next period persistent income (subject
+    to shocks).
+
+    Moreover, the agent's preferences follow the "capitalist spirit" model, so that
+    end-of-period assets yield additively separable CRRA utility with a *lower*
+    coefficient than for consumption. This causes the saving rate to increase as
+    wealth increases, eventually approaching 100%.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete
+        approximation to the income process between the period being solved
+        and the one immediately following (in solution_next). Order: event
+        probabilities, persistent shocks, transitory shocks.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion for consumption.
+    WealthCurve : float
+        Ratio of CRRA for consumption to CRRA for wealth. Must be strictly between
+        zero and one.
+    WealthFac : float
+        Weighting factor on utility of wealth relative to utility of consumption.
+        Should be non-negative.
+    WealthShift : float
+        Shifter for wealth when calculating utility. Should be non-negative.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    pLvlNextFunc : float
+        Expected persistent income next period as a function of current pLvl.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period (normalized) asset values-- assets
+        above the absolute minimum acceptable level.
+    pLvlGrid: np.array
+        Array of persistent income levels at which to solve the problem.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
+
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        Solution to this period's consumption-saving problem.
+    """
+    if WealthCurve >= 1.0:
+        raise ValueError("WealthCurve must be less than 1!")
+    if WealthCurve <= 0.0:
+        raise ValueError("WealthCurve must be greater than 0!")
+    if WealthFac < 0.0:
+        raise ValueError("WealthFac cannot be negative!")
+    if WealthShift < 0.0:
+        raise ValueError("WealthShift cannot be negative!")
+
+    # Define the utility functions for this period
+    uFuncCon = UtilityFuncCRRA(CRRA)
+    DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
+    CRRAwealth = CRRA * WealthCurve
+
+    # Unpack next period's income shock distribution
+    ShkPrbsNext = IncShkDstn.pmv
+    PermShkValsNext = IncShkDstn.atoms[0]
+    TranShkValsNext = IncShkDstn.atoms[1]
+    PermShkMinNext = np.min(PermShkValsNext)
+    TranShkMinNext = np.min(TranShkValsNext)
+
+    # Calculate the probability that we get the worst possible income draw
+    IncNext = PermShkValsNext * TranShkValsNext
+    WorstIncNext = PermShkMinNext * TranShkMinNext
+    WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+    # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
+
+    # Unpack next period's (marginal) value function
+    vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
+    vPfuncNext = solution_next.vPfunc
+    mLvlMinNext = solution_next.mLvlMin
+    hLvlNext = solution_next.hLvl
+
+    # Define some functions for calculating future expectations
+    def calc_pLvl_next(S, p):
+        return pLvlNextFunc(p) * S["PermShk"]
+
+    def calc_mLvl_next(S, a, p_next):
+        return Rfree * a + p_next * S["TranShk"]
+
+    def calc_hLvl(S, p):
+        pLvl_next = pLvlNextFunc(p) * S["PermShk"]
+        hLvl = S["TranShk"] * pLvl_next + hLvlNext(pLvl_next)
+        return hLvl
+
+    def calc_v_next(S, a, p):
+        pLvl_next = calc_pLvl_next(S, p)
+        mLvl_next = calc_mLvl_next(S, a, pLvl_next)
+        v_next = vFuncNext(mLvl_next, pLvl_next)
+        return v_next
+
+    def calc_vP_next(S, a, p):
+        pLvl_next = pLvlNextFunc(p) * S["PermShk"]
+        mLvl_next = calc_mLvl_next(S, a, pLvl_next)
+        vP_next = vPfuncNext(mLvl_next, pLvl_next)
+        return vP_next
+
+    # Construct human wealth level as a function of productivity pLvl
+    hLvlGrid = 1.0 / Rfree * expected(calc_hLvl, IncShkDstn, args=(pLvlGrid))
+    hLvlNow = LinearInterp(np.insert(pLvlGrid, 0, 0.0), np.insert(hLvlGrid, 0, 0.0))
+
+    # Make temporary grids of income shocks and next period income values
+    ShkCount = TranShkValsNext.size
+    pLvlCount = pLvlGrid.size
+    PermShkVals_temp = np.tile(
+        np.reshape(PermShkValsNext, (1, ShkCount)), (pLvlCount, 1)
+    )
+    TranShkVals_temp = np.tile(
+        np.reshape(TranShkValsNext, (1, ShkCount)), (pLvlCount, 1)
+    )
+    pLvlNext_temp = (
+        np.tile(
+            np.reshape(pLvlNextFunc(pLvlGrid), (pLvlCount, 1)),
+            (1, ShkCount),
+        )
+        * PermShkVals_temp
+    )
+
+    # Find the natural borrowing constraint for each persistent income level
+    aLvlMin_candidates = (
+        mLvlMinNext(pLvlNext_temp) - TranShkVals_temp * pLvlNext_temp
+    ) / Rfree
+    aLvlMinNow = np.max(aLvlMin_candidates, axis=1)
+    aLvlMinNow = np.maximum(aLvlMinNow, -WealthShift)
+    BoroCnstNat = LinearInterp(
+        np.insert(pLvlGrid, 0, 0.0), np.insert(aLvlMinNow, 0, 0.0)
+    )
+
+    # Define the minimum allowable mLvl by pLvl as the greater of the natural and artificial borrowing constraints
+    if BoroCnstArt is not None:
+        BoroCnstArt = LinearInterp(np.array([0.0, 1.0]), np.array([0.0, BoroCnstArt]))
+        mLvlMinNow = UpperEnvelope(BoroCnstArt, BoroCnstNat)
+    else:
+        mLvlMinNow = BoroCnstNat
+
+    # Define the constrained consumption function as "consume all" shifted by mLvlMin
+    cFuncNowCnstBase = BilinearInterp(
+        np.array([[0.0, 0.0], [1.0, 1.0]]),
+        np.array([0.0, 1.0]),
+        np.array([0.0, 1.0]),
+    )
+    cFuncNowCnst = VariableLowerBoundFunc2D(cFuncNowCnstBase, mLvlMinNow)
+
+    # Define grids of pLvl and aLvl on which to compute future expectations
+    pLvlCount = pLvlGrid.size
+    aNrmCount = aXtraGrid.size
+    pLvlNow = np.tile(pLvlGrid, (aNrmCount, 1)).transpose()
+    aLvlNow = np.tile(aXtraGrid, (pLvlCount, 1)) * pLvlNow + BoroCnstNat(pLvlNow)
+    # shape = (pLvlCount,aNrmCount)
+    if pLvlGrid[0] == 0.0:  # aLvl turns out badly if pLvl is 0 at bottom
+        aLvlNow[0, :] = aXtraGrid
+
+    # Calculate end-of-period marginal value of assets
+    EndOfPrd_vP = (
+        DiscFacEff * Rfree * expected(calc_vP_next, IncShkDstn, args=(aLvlNow, pLvlNow))
+    )
+
+    # Add in marginal utility of assets through the capitalist spirit function
+    dvda = EndOfPrd_vP + WealthFac * (aLvlNow + WealthShift) ** (-CRRAwealth)
+
+    # Solve the first order condition to get optimal consumption, then find the
+    # endogenous gridpoints
+    cLvlNow = uFuncCon.derinv(dvda, order=(1, 0))
+    mLvlNow = cLvlNow + aLvlNow
+
+    # Limiting consumption is zero as m approaches mNrmMin
+    c_for_interpolation = np.concatenate((np.zeros((pLvlCount, 1)), cLvlNow), axis=-1)
+    m_for_interpolation = np.concatenate(
+        (
+            BoroCnstNat(np.reshape(pLvlGrid, (pLvlCount, 1))),
+            mLvlNow,
+        ),
+        axis=-1,
+    )
+
+    # Make an array of corresponding pLvl values, adding an additional column for
+    # the mLvl points at the lower boundary
+    p_for_interpolation = np.concatenate(
+        (np.reshape(pLvlGrid, (pLvlCount, 1)), pLvlNow), axis=-1
+    )
+
+    # Build the set of cFuncs by pLvl, gathered in a list
+    cFunc_by_pLvl_list = []  # list of consumption functions for each pLvl
+
+    # Loop over pLvl values and make an mLvl for each one
+    for j in range(p_for_interpolation.shape[0]):
+        pLvl_j = p_for_interpolation[j, 0]
+        m_temp = m_for_interpolation[j, :] - BoroCnstNat(pLvl_j)
+
+        # Make a linear consumption function for this pLvl
+        c_temp = c_for_interpolation[j, :]
+        if pLvl_j > 0:
+            cFunc_by_pLvl_list.append(
+                LinearInterp(
+                    m_temp,
+                    c_temp,
+                    lower_extrap=True,
+                )
+            )
+        else:
+            cFunc_by_pLvl_list.append(LinearInterp(m_temp, c_temp, lower_extrap=True))
+
+    # Combine all linear cFuncs into one function
+    pLvl_list = p_for_interpolation[:, 0]
+    cFuncUncBase = LinearInterpOnInterp1D(cFunc_by_pLvl_list, pLvl_list)
+    cFuncNowUnc = VariableLowerBoundFunc2D(cFuncUncBase, BoroCnstNat)
+    # Re-adjust for lower bound of natural borrowing constraint
+
+    # Combine the constrained and unconstrained functions into the true consumption function
+    cFuncNow = LowerEnvelope2D(cFuncNowUnc, cFuncNowCnst)
+
+    # Make the marginal value function
+    vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
+
+    # Dummy out the value and marginal value functions
+    vPPfuncNow = NullFunc()
+    vFuncNow = NullFunc()
+
+    # Package and return the solution object
+    solution_now = ConsumerSolution(
+        cFunc=cFuncNow,
+        vFunc=vFuncNow,
+        vPfunc=vPfuncNow,
+        vPPfunc=vPPfuncNow,
+        mNrmMin=0.0,  # Not a normalized model, mLvlMin will be added below
+        hNrm=0.0,  # Not a normalized model, hLvl will be added below
+        MPCmax=0.0,  # This should be a function, need to make it
+    )
+    solution_now.hLvl = hLvlNow
+    solution_now.mLvlMin = mLvlMinNow
+    return solution_now
+
+
+###############################################################################
+
+
+# Make a constructor dictionary for the capitalist spirit consumer type
+CapitalistSpirit_constructors_default = {
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "aXtraGrid": make_assets_grid,
+    "pLvlPctiles": make_basic_pLvlPctiles,
+    "pLvlGrid": make_pLvlGrid_by_simulation,
+    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
+    "solution_terminal": make_2D_CRRA_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+CapitalistSpirit_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+CapitalistSpirit_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.4,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
+CapitalistSpirit_IncShkDstn_default = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+}
+
+# Default parameters to make aXtraGrid using make_assets_grid
+CapitalistSpirit_aXtraGrid_default = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 50.0,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 72,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make pLvlGrid using make_basic_pLvlPctiles
+CapitalistSpirit_pLvlPctiles_default = {
+    "pLvlPctiles_count": 19,  # Number of points in the "body" of the grid
+    "pLvlPctiles_bound": [0.05, 0.95],  # Percentile bounds of the "body"
+    "pLvlPctiles_tail_count": 4,  # Number of points in each tail of the grid
+    "pLvlPctiles_tail_order": np.e,  # Scaling factor for points in each tail
+}
+
+# Default parameters to make pLvlGrid using make_pLvlGrid_by_simulation
+CapitalistSpirit_pLvlGrid_default = {
+    "pLvlExtra": None,  # Additional permanent income points to automatically add to the grid, optional
+}
+
+CapitalistSpirit_pLvlNextFunc_default = {
+    "PrstIncCorr": 0.98,  # Persistence factor for "permanent" shocks
+    "PermGroFac": [1.00],  # Expected permanent income growth factor
+}
+
+# Make a dictionary to specify a general income process consumer type
+CapitalistSpirit_solving_default = {
+    # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "cycles": 1,  # Finite, non-cyclic model
+    "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "constructors": CapitalistSpirit_constructors_default,  # See dictionary above
+    # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
+    "Rfree": [1.03],  # Interest factor on retained assets
+    "DiscFac": 0.96,  # Intertemporal discount factor
+    "LivPrb": [0.98],  # Survival probability after each period
+    "WealthFac": 1.0,  # Relative weight on utility of wealth
+    "WealthShift": 0.0,  # Additive shifter for wealth in utility function
+    "WealthCurve": 0.8,  # Ratio of CRRA for wealth to CRRA for consumption
+    "BoroCnstArt": 0.0,  # Artificial borrowing constraint
+    "vFuncBool": False,  # Whether to calculate the value function during solution
+    "CubicBool": False,  # Whether to use cubic spline interpolation when True
+    # (Uses linear spline interpolation for cFunc when False)
+}
+CapitalistSpirit_simulation_default = {
+    # PARAMETERS REQUIRED TO SIMULATE THE MODEL
+    "AgentCount": 10000,  # Number of agents of this type
+    "T_age": None,  # Age after which simulated agents are automatically killed
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    # (The portion of PermGroFac attributable to aggregate productivity growth)
+    "NewbornTransShk": False,  # Whether Newborns have transitory shock
+    # ADDITIONAL OPTIONAL PARAMETERS
+    "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
+    # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+}
+CapitalistSpirit_default = {}
+CapitalistSpirit_default.update(CapitalistSpirit_kNrmInitDstn_default)
+CapitalistSpirit_default.update(CapitalistSpirit_pLvlInitDstn_default)
+CapitalistSpirit_default.update(CapitalistSpirit_IncShkDstn_default)
+CapitalistSpirit_default.update(CapitalistSpirit_aXtraGrid_default)
+CapitalistSpirit_default.update(CapitalistSpirit_pLvlNextFunc_default)
+CapitalistSpirit_default.update(CapitalistSpirit_pLvlGrid_default)
+CapitalistSpirit_default.update(CapitalistSpirit_pLvlPctiles_default)
+CapitalistSpirit_default.update(CapitalistSpirit_solving_default)
+CapitalistSpirit_default.update(CapitalistSpirit_simulation_default)
+init_capitalist_spirit = CapitalistSpirit_default
+
+
+class CapitalistSpiritConsumerType(GenIncProcessConsumerType):
+    r"""
+    Class for representing consumers who have "capitalist spirit" preferences,
+    yielding CRRA utility from consumption and wealth, additively. Importantly,
+    the risk version coefficient for wealth is *lower* than for consumption, so
+    the agent's saving rate approaches 100% as they become arbitrarily rich.
+
+    .. math::
+        \begin{eqnarray*}
+        V_t(M_t,P_t) &=& \max_{C_t} U(C_t, A_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+        A_t &=& M_t - C_t, \\
+        A_t/P_t &\geq& \underline{a}, \\
+        M_{t+1} &=& R A_t + \theta_{t+1}, \\
+        p_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
+        \mathbb{E} [F_{t+1}] &=& 1, \\
+        U(C) &=& \frac{C^{1-\rho}}{1-\rho} + \alpha \frac{(A + \omega)^{1-\nu}}{1-\nu}, \\
+        log(G_{t+1} (x)) &=&\varphi log(x) + (1-\varphi) log(\overline{P}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
+        \overline{P}_{t+1} &=& \overline{P}_{t} \Gamma_{t+1} \\
+        \end{eqnarray*}
+    """
+
+    time_inv_ = GenIncProcessConsumerType.time_inv_ + [
+        "WealthCurve",
+        "WealthFac",
+        "WealthShift",
+    ]
+
+    default_ = {
+        "params": init_capitalist_spirit,
+        "solver": solve_one_period_CapitalistSpirit,
+        "model": "ConsGenIncProcess.yaml",
+    }
