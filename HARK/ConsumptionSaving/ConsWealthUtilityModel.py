@@ -20,6 +20,7 @@ from HARK.distributions import expected
 from HARK.interpolation import (
     ConstantFunction,
     LinearInterp,
+    CubicInterp,
     LowerEnvelope,
     LowerEnvelope2D,
     ValueFuncCRRA,
@@ -49,7 +50,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     GenIncProcessConsumerType,
 )
-from HARK.rewards import UtilityFuncCRRA
+from HARK.rewards import UtilityFuncCRRA, CRRAutility
 from HARK.utilities import NullFunc, make_assets_grid
 
 
@@ -646,6 +647,12 @@ def solve_one_period_CapitalistSpirit(
     uFuncCon = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
     CRRAwealth = CRRA * WealthCurve
+    uFuncWealth = lambda a: WealthFac * CRRAutility(a + WealthShift, rho=CRRAwealth)
+
+    if vFuncBool and (CRRA >= 1.0) and (CRRAwealth < 1.0):
+        raise ValueError(
+            "Can't construct a good representation of value function when rho > 1 > nu!"
+        )
 
     # Unpack next period's income shock distribution
     ShkPrbsNext = IncShkDstn.pmv
@@ -753,6 +760,61 @@ def solve_one_period_CapitalistSpirit(
     # Add in marginal utility of assets through the capitalist spirit function
     dvda = EndOfPrd_vP + WealthFac * (aLvlNow + WealthShift) ** (-CRRAwealth)
 
+    # If the value function has been requested, construct the end-of-period vFunc
+    if vFuncBool:
+        # Compute expected value from end-of-period states
+        EndOfPrd_v = expected(calc_v_next, IncShkDstn, args=(aLvlNow, pLvlNow))
+        EndOfPrd_v *= DiscFacEff
+
+        # Transformed value through inverse utility function to "decurve" it
+        EndOfPrd_vNvrs = uFuncCon.inv(EndOfPrd_v)
+        EndOfPrd_vNvrsP = EndOfPrd_vP * uFuncCon.derinv(EndOfPrd_v, order=(0, 1))
+
+        # Add points at mLvl=zero
+        EndOfPrd_vNvrs = np.concatenate(
+            (np.zeros((pLvlCount, 1)), EndOfPrd_vNvrs), axis=1
+        )
+        EndOfPrd_vNvrsP = np.concatenate(
+            (
+                np.reshape(EndOfPrd_vNvrsP[:, 0], (pLvlCount, 1)),
+                EndOfPrd_vNvrsP,
+            ),
+            axis=1,
+        )
+        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
+
+        # Make a temporary aLvl grid for interpolating the end-of-period value function
+        aLvl_temp = np.concatenate(
+            (
+                np.reshape(BoroCnstNat(pLvlGrid), (pLvlGrid.size, 1)),
+                aLvlNow,
+            ),
+            axis=1,
+        )
+
+        # Make an end-of-period value function for each persistent income level in the grid
+        EndOfPrd_vNvrsFunc_list = []
+        for p in range(pLvlCount):
+            EndOfPrd_vNvrsFunc_list.append(
+                CubicInterp(
+                    aLvl_temp[p, :] - BoroCnstNat(pLvlGrid[p]),
+                    EndOfPrd_vNvrs[p, :],
+                    EndOfPrd_vNvrsP[p, :],
+                )
+            )
+        EndOfPrd_vNvrsFuncBase = LinearInterpOnInterp1D(
+            EndOfPrd_vNvrsFunc_list, pLvlGrid
+        )
+
+        # Re-adjust the combined end-of-period value function to account for the
+        # natural borrowing constraint shifter and "re-curve" it
+        EndOfPrd_vNvrsFunc = VariableLowerBoundFunc2D(
+            EndOfPrd_vNvrsFuncBase, BoroCnstNat
+        )
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        if isinstance(vFuncNext, ConstantFunction):
+            EndOfPrd_vFunc = ConstantFunction(vFuncNext.value)
+
     # Solve the first order condition to get optimal consumption, then find the
     # endogenous gridpoints
     cLvlNow = uFuncCon.derinv(dvda, order=(1, 0))
@@ -807,9 +869,58 @@ def solve_one_period_CapitalistSpirit(
     # Make the marginal value function
     vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
 
-    # Dummy out the value and marginal value functions
+    # If the value function has been requested, construct it now
+    if vFuncBool:
+        # Compute expected value and marginal value on a grid of market resources
+        # Tile pLvl across m values
+        pLvl_temp = np.tile(pLvlGrid, (aNrmCount, 1))
+        mLvl_temp = (
+            np.tile(mLvlMinNow(pLvlGrid), (aNrmCount, 1))
+            + np.tile(np.reshape(aXtraGrid, (aNrmCount, 1)), (1, pLvlCount)) * pLvl_temp
+        )
+        cLvl_temp = cFuncNow(mLvl_temp, pLvl_temp)
+        aLvl_temp = mLvl_temp - cLvl_temp
+        u_now = uFuncCon(cLvl_temp) + uFuncWealth(aLvl_temp)
+        v_temp = u_now + EndOfPrd_vFunc(aLvl_temp, pLvl_temp)
+        vP_temp = uFuncCon.der(cLvl_temp)
+
+        # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
+        vNvrs_temp = uFuncCon.inv(v_temp)  # value transformed through inverse utility
+        vNvrsP_temp = vP_temp * uFuncCon.derinv(v_temp, order=(0, 1))
+
+        # Add data at the lower bound of m
+        mLvl_temp = np.concatenate(
+            (np.reshape(mLvlMinNow(pLvlGrid), (1, pLvlCount)), mLvl_temp), axis=0
+        )
+        vNvrs_temp = np.concatenate((np.zeros((1, pLvlCount)), vNvrs_temp), axis=0)
+        vNvrsP_temp = np.concatenate(
+            (np.reshape(vNvrsP_temp[0, :], (1, vNvrsP_temp.shape[1])), vNvrsP_temp),
+            axis=0,
+        )
+
+        # Construct the pseudo-inverse value function
+        vNvrsFunc_list = []
+        for j in range(pLvlCount):
+            pLvl = pLvlGrid[j]
+            vNvrsFunc_list.append(
+                CubicInterp(
+                    mLvl_temp[:, j] - mLvlMinNow(pLvl),
+                    vNvrs_temp[:, j],
+                    vNvrsP_temp[:, j],
+                )
+            )
+        # Value function "shifted"
+        vNvrsFuncBase = LinearInterpOnInterp1D(vNvrsFunc_list, pLvlGrid)
+        vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, mLvlMinNow)
+
+        # "Re-curve" the pseudo-inverse value function into the value function
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+
+    else:
+        vFuncNow = NullFunc()
+
+    # Dummy out the marginal marginal value function
     vPPfuncNow = NullFunc()
-    vFuncNow = NullFunc()
 
     # Package and return the solution object
     solution_now = ConsumerSolution(

@@ -509,9 +509,10 @@ def solve_one_period_ConsGenIncProcess(
                     MPCminNvrs,
                 )
             )
+        # Value function "shifted"
         vNvrsFuncBase = LinearInterpOnInterp1D(
             vNvrsFunc_list, np.insert(pLvlGrid, 0, 0.0)
-        )  # Value function "shifted"
+        )
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
