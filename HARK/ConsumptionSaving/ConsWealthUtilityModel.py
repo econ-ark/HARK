@@ -472,8 +472,8 @@ WealthUtility_solving_default = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "WealthShare": 0.5,  # Share of wealth in Cobb-Douglas aggregator in utility function
-    "WealthShift": 0.1,  # Shifter for wealth in utility function
+    "WealthShare": 0.2,  # Share of wealth in Cobb-Douglas aggregator in utility function
+    "WealthShift": 0.0,  # Shifter for wealth in utility function
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
 }
@@ -515,16 +515,18 @@ class WealthUtilityConsumerType(IndShockConsumerType):
         \newcommand{\DiscFac}{\beta}
         \newcommand{\WealthShare}{\alpha}
         \newcommand{\WealthShift}{\omega}
+
+        \begin{equation*}
+        v_t(m_t) = \max_{c_t}u(x_t) + \DiscFac \LivPrb_{t} \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right] ~~\text{s.t.}
+        \end{equation*}
         \begin{align*}
-        v_t(m_t) &= \max_{c_t}u(x_t) + \DiscFac \LivPrb_{t+1} \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
-        & \text{s.t.}  \\
-        x_t &= (a_t + \WealthShift)^\WealthShare c_t^{1-\WealthShare}, \\
-        a_t &= m_t - c_t, \\
-        a_t &\geq \underline{a}, \\
-        m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
-        (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}
+        x_t &=& (a_t + \WealthShift)^\WealthShare c_t^{1-\WealthShare}, \\
+        a_t &=& m_t - c_t, \\
+        a_t &\geq& \underline{a}, \\
+        m_{t+1} &=& a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
+        \mathbb{E}[\psi] &=& 1, \\
+        u(x) &=& \frac{x^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
 
     """
