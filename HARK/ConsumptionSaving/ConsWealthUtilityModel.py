@@ -18,11 +18,13 @@ from copy import deepcopy
 
 from HARK.distributions import expected
 from HARK.interpolation import (
+    ConstantFunction,
     LinearInterp,
     LowerEnvelope,
     LowerEnvelope2D,
     ValueFuncCRRA,
     MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
     UpperEnvelope,
     BilinearInterp,
     VariableLowerBoundFunc2D,
@@ -43,14 +45,91 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_pLvl_init_dstn,
     IndShockConsumerType,
     ConsumerSolution,
-    make_basic_CRRA_solution_terminal,
 )
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
-    make_2D_CRRA_solution_terminal,
     GenIncProcessConsumerType,
 )
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc, make_assets_grid
+
+
+def make_terminal_solution_for_wealth_in_utility(CRRA, WealthShare, WealthShift):
+    """
+    Construct the terminal period solution for a consumption-saving model with
+    CRRA utility over a composite of wealth and consumption.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion.
+    WealthShare : float
+        Wealth's share in the Cobb-Douglas aggregator.
+    WealthShift : float
+        Additive shifter for wealth in the Cobb-Douglas aggregator.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
+    """
+    if (WealthShift > 0.0) and (WealthShare > 0.0):
+        m_cusp = (1 - WealthShare) / WealthShare * WealthShift
+        m_terminal = np.array([0.0, m_cusp, m_cusp + 1.0])
+        c_terminal = np.array([0.0, m_cusp, m_cusp + (1.0 - WealthShare)])
+    else:
+        m_terminal = np.array([0.0, 1.0])
+        c_terminal = np.array([0.0, 1.0 - WealthShare])
+
+    cFunc_terminal = LinearInterp(m_terminal, c_terminal)
+    vFunc_terminal = ValueFuncCRRA(cFunc_terminal, CRRA)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=0.0,
+        hNrm=0.0,
+        MPCmin=1.0 - WealthShare,
+        MPCmax=1.0,
+    )
+    return solution_terminal
+
+
+def make_2D_CRRA_solution_empty(CRRA):
+    """
+    Construct the pseudo-terminal period solution for a consumption-saving model with CRRA
+    utility and two state variables: levels of market resources and permanent income.
+    All functions return zero everywhere.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion. This is the only relevant parameter.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
+    """
+    cFunc_terminal = ConstantFunction(0.0)
+    vFunc_terminal = ConstantFunction(0.0)
+    vPfunc_terminal = ConstantFunction(0.0)
+    vPPfunc_terminal = ConstantFunction(0.0)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=ConstantFunction(0.0),
+        hNrm=ConstantFunction(0.0),
+        MPCmin=1.0,
+        MPCmax=1.0,
+    )
+    solution_terminal.hLvl = solution_terminal.hNrm
+    solution_terminal.mLvlMin = solution_terminal.mNrmMin
+    return solution_terminal
 
 
 class ChiFromOmegaFunction:
@@ -333,7 +412,7 @@ WealthUtility_constructors_default = {
     "ChiFunc": make_ChiFromOmega_function,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
-    "solution_terminal": make_basic_CRRA_solution_terminal,
+    "solution_terminal": make_terminal_solution_for_wealth_in_utility,
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -384,6 +463,7 @@ WealthUtility_solving_default = {
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": WealthUtility_constructors_default,  # See dictionary above
+    "pseudo_terminal": False,  # solution_terminal really is part of solution
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": [1.03],  # Return factor on risk free asset
@@ -758,7 +838,7 @@ CapitalistSpirit_constructors_default = {
     "pLvlPctiles": make_basic_pLvlPctiles,
     "pLvlGrid": make_pLvlGrid_by_simulation,
     "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
-    "solution_terminal": make_2D_CRRA_solution_terminal,
+    "solution_terminal": make_2D_CRRA_solution_empty,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
@@ -822,7 +902,7 @@ CapitalistSpirit_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "pseudo_terminal": False,  # Terminal period really does exist
+    "pseudo_terminal": True,  # solution_terminal is not actually part of solution
     "constructors": CapitalistSpirit_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
