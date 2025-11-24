@@ -134,10 +134,8 @@ def solve_one_period_ConsGenIncProcess(
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, persistent shocks, transitory shocks.
+        A discrete approximation to the income shocks between the period being
+        solved and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.

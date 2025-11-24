@@ -594,10 +594,8 @@ def solve_one_period_CapitalistSpirit(
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, persistent shocks, transitory shocks.
+        A discrete approximation to the income shocks between the period being
+        solved and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -1028,8 +1026,8 @@ CapitalistSpirit_solving_default = {
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
 }
+
 CapitalistSpirit_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
