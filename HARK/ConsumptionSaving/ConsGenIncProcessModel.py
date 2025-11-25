@@ -1217,28 +1217,22 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         \overline{P}_{t+1} &=& \overline{P}_{t} \Gamma_{t+1} \\
         \end{eqnarray*}
 
-
     Constructors
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
         Its default constructor is :func:`HARK.utilities.make_assets_grid`
     pLvlNextFunc: Constructor, (:math:`\Gamma`, :math:`\varphi`)
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_AR1_style_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
 
     Solving Parameters
@@ -1249,7 +1243,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
-    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+    Rfree: list[float], time varying, :math:`\mathsf{R}`
         Risk Free interest rate. Pass a list of floats to make Rfree time varying.
     DiscFac: float, :math:`\beta`
         Intertemporal discount factor.
@@ -1289,13 +1283,13 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).

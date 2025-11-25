@@ -514,7 +514,7 @@ class WealthUtilityConsumerType(IndShockConsumerType):
         \newcommand{\Rfree}{\mathsf{R}}
         \newcommand{\DiscFac}{\beta}
         \newcommand{\WealthShare}{\alpha}
-        \newcommand{\WealthShift}{\omega}
+        \newcommand{\WealthShift}{\xi}
 
         \begin{equation*}
         v_t(m_t) = \max_{c_t}u(x_t) + \DiscFac \LivPrb_{t} \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right] ~~\text{s.t.}
@@ -529,6 +529,99 @@ class WealthUtilityConsumerType(IndShockConsumerType):
         u(x) &=& \frac{x^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
 
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    WealthShift : float, :math:`\xi`
+        Additive shifter for wealth in the utility function.
+    WeathShare : float, :math:`\alpha`
+        Cobb-Douglas share for wealth in the utility function.
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+    BoroCnstArt: float, :math:`\underline{a}`
+        The minimum Asset/Perminant Income ratio, None to ignore.
+    vFuncBool: bool
+        Whether to calculate the value function during solution.
+    CubicBool: bool
+        Whether to use cubic spline interpoliation.
+
+    Simulation Parameters
+    ---------------------
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'PermShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+
+        PermShk is the agent's permanent income shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        aNrm is the normalized assets
+
+        bNrm is the normalized resources without this period's labor income
+
+        cNrm is the normalized consumption
+
+        mNrm is the normalized market resources
+
+        pLvl is the permanent income level
+
+        who_dies is the array of which agents died
+    aNrmInitMean: float
+        Mean of Log initial Normalized Assets.
+    aNrmInitStd: float
+        Std of Log initial Normalized Assets.
+    pLvlInitMean: float
+        Mean of Log initial permanent income.
+    pLvlInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
     time_inv_ = deepcopy(IndShockConsumerType.time_inv_)
@@ -1069,10 +1162,115 @@ class CapitalistSpiritConsumerType(GenIncProcessConsumerType):
         p_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
         \mathbb{E} [F_{t+1}] &=& 1, \\
-        U(C) &=& \frac{C^{1-\rho}}{1-\rho} + \alpha \frac{(A + \omega)^{1-\nu}}{1-\nu}, \\
+        U(C) &=& \frac{C^{1-\rho}}{1-\rho} + \alpha \frac{(A + \xi)^{1-\nu}}{1-\nu}, \\
         log(G_{t+1} (x)) &=&\varphi log(x) + (1-\varphi) log(\overline{P}_{t})+log(\Gamma_{t+1}) + log(\psi_{t+1}), \\
         \overline{P}_{t+1} &=& \overline{P}_{t} \Gamma_{t+1} \\
         \end{eqnarray*}
+
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
+    pLvlNextFunc: Constructor, (:math:`\Gamma`, :math:`\varphi`)
+        An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_AR1_style_pLvlNextFunc`
+    pLvlGrid: Constructor
+        The agent's pLvl grid
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
+    pLvlPctiles: Constructor
+        The agents income level percentile grid
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, :math:`\rho`
+        Coefficient of Relative Risk Aversion.
+    WealthFac : float, :math:`\alpha`
+        Weighting factor on utility of wealth.
+    WealthShift : float :math:`\xi`
+        Additive shifter for wealth in utility function.
+    WealthCurve : float
+        CRRA for wealth as a proportion of ordinary CRRA; must be in (0,1): CRRAwealth = WealthCurve *CRRA.
+    Rfree: list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+    BoroCnstArt: float, :math:`\underline{a}`
+        The minimum Asset/Perminant Income ratio, None to ignore.
+    vFuncBool: bool
+        Whether to calculate the value function during solution.
+    CubicBool: bool
+        Whether to use cubic spline interpoliation.
+
+    Simulation Parameters
+    ---------------------
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'PermShk', 'TranShk', 'aLvl', 'cLvl', 'mLvl', 'pLvl', and 'who_dies'.
+
+        PermShk is the agent's permanent income shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        cLvl is the nominal consumption level
+
+        mLvl is the nominal market resources
+
+        pLvl is the permanent income level
+
+        who_dies is the array of which agents died
+    kLogInitMean: float
+        Mean of Log initial Normalized Assets.
+    kLogInitStd: float
+        Std of Log initial Normalized Assets.
+    pLogInitMean: float
+        Mean of Log initial permanent income.
+    pLogInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Unlike other models with this solution type, this model's variables are NOT normalized.
+        The solution functions also depend on the permanent income level. For example, :math:`C=\text{cFunc}(M,P)`.
+        hNrm has been replaced by hLvl which is a function of permanent income.
+        MPC max has not yet been implemented for this class. It will be a function of permanent income.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
+
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
     time_inv_ = GenIncProcessConsumerType.time_inv_ + [

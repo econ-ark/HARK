@@ -866,8 +866,7 @@ def solve_one_period_ConsKinkedR(
         An indicator for whether the value function should be computed and
         included in the reported solution.
     CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
+        An indicator for whether the solver should use cubic or linear interpolation.
 
     Returns
     -------
@@ -1992,14 +1991,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
         \newcommand{\Rfree}{\mathsf{R}}
         \newcommand{\DiscFac}{\beta}
         \begin{align*}
-        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac \LivPrb_{t+1} \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
         & \text{s.t.}  \\
         a_t &= m_t - c_t, \\
         a_t &\geq \underline{a}, \\
         m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
 
 
@@ -2719,8 +2718,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     interest rates for saving (:math:`\mathsf{R}_{save}`) and borrowing
     (:math:`\mathsf{R}_{boro}`).
 
-    Solver for this class is currently only compatible with linear spline interpolation.
-
     .. math::
         \newcommand{\CRRA}{\rho}
         \newcommand{\DiePrb}{\mathsf{D}}
@@ -2743,17 +2740,14 @@ class KinkedRconsumerType(IndShockConsumerType):
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
-
     Constructors
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
