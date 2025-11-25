@@ -3,13 +3,13 @@ name: HARK build on MacOS, Ubuntu and Windows
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/workflows/documentation.yml"
       - "docs/**"
   pull_request:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/workflows/documentation.yml"
       - "docs/**"
