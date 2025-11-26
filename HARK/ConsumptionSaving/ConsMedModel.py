@@ -679,7 +679,7 @@ def make_continuous_MedShockDstn(
         s1 = MedCostLogStd[t]
         s2 = MedShkLogStd[t]
         diag = MedCorr[t] * s1 * s2
-        S = np.array([[s1, diag], [diag, s2]])
+        S = np.array([[s1**2, diag], [diag, s2**2]])
         M = np.array([MedCostLogMean[t], MedShkLogMean[t]])
         seed_t = RNG.integers(0, 2**31 - 1)
         dstn_t = MultivariateLogNormal(mu=M, Sigma=S, seed=seed_t)
@@ -1868,9 +1868,8 @@ def solve_one_period_ConsMedExtMarg(
         vNvrsFuncMid_by_pLvl.append(vNvrsFunc_j)
 
     # Make a grid of (log) medical expenses (and probs), cross it with (mLvl,pLvl)
-    bot = MedCostLogMean + MedCostBot * MedCostLogStd
-    top = MedCostLogMean + MedCostTop * MedCostLogStd
-    MedCostLogGrid = np.linspace(bot, top, MedCostCount)
+    MedCostBaseGrid = np.linspace(MedCostBot, MedCostTop, MedCostCount)
+    MedCostLogGrid = MedCostLogMean + MedCostBaseGrid * MedCostLogStd
     MedCostGrid = np.exp(MedCostLogGrid)
     mLvl_base = np.dot(
         np.reshape(mNrmGrid, (mNrmGrid.size, 1)), np.reshape(pLvl, (1, pLvlCount))
@@ -1880,7 +1879,7 @@ def solve_one_period_ConsMedExtMarg(
     bLvl_if_not = mLvl_base
 
     # Calculate mean (log) utility shock for each MedCost gridpoint, and conditional stdev
-    MedShkLog_cond_mean = MedShkLogMean + MedCorr * MedShkLogStd * MedCostLogGrid
+    MedShkLog_cond_mean = MedShkLogMean + MedCorr * MedShkLogStd * MedCostBaseGrid
     MedShkLog_cond_mean = np.reshape(MedShkLog_cond_mean, (1, MedCostCount))
     MedShkLog_cond_std = np.sqrt(MedShkLogStd**2 * (1.0 - MedCorr**2))
     MedShk_cond_mean = np.exp(MedShkLog_cond_mean + 0.5 * MedShkLog_cond_std**2)

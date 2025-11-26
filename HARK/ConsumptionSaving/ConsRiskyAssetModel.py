@@ -592,6 +592,12 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         self.controls["Share"] = ShareNow
         self.MPCnow = MPCnow
 
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
+
 
 # This is to preserve compatibility with old name
 RiskyAssetConsumerType = IndShockRiskyAssetConsumerType

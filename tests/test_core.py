@@ -66,8 +66,13 @@ class test_distance_metric(unittest.TestCase):
         )
         # different length
         self.assertEqual(
-            distance_metric(np.array(self.list_b).reshape(1, 3), np.array(self.list_c)),
+            distance_metric(np.array(self.list_a), np.array(self.list_c)),
             1.0,
+        )
+        # different dimensions
+        self.assertEqual(
+            distance_metric(np.array(self.list_a).reshape(1, 3), np.array(self.list_b)),
+            10000.0,
         )
         # sanity check, same objects
         self.assertEqual(

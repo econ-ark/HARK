@@ -130,7 +130,7 @@ class testMedExtMargConsumerType(unittest.TestCase):
         pLvl = 2.0
         self.assertAlmostEqual(cFunc(mLvl, pLvl).tolist(), 10.0, places=HARK_PRECISION)
         self.assertAlmostEqual(
-            MedFunc(mLvl, pLvl).tolist(), 0.48063, places=HARK_PRECISION
+            MedFunc(mLvl, pLvl).tolist(), 0.52176, places=HARK_PRECISION
         )
 
     def test_value(self):
@@ -138,7 +138,7 @@ class testMedExtMargConsumerType(unittest.TestCase):
         pLvl_idx = len(self.agent.solution[0].vFunc_by_pLvl) // 2
         vFunc = self.agent.solution[0].vFunc_by_pLvl[pLvl_idx]
         mLvl = 10.0
-        self.assertAlmostEqual(vFunc(mLvl), -1.08164, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mLvl), -1.23397, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10

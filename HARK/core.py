@@ -1185,7 +1185,14 @@ class AgentType(Model):
             self.__dict__[parameter].append(solution_t.__dict__[parameter])
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False, presolve=True, from_solution=None, from_t=None):
+    def solve(
+        self,
+        verbose=False,
+        presolve=True,
+        postsolve=True,
+        from_solution=None,
+        from_t=None,
+    ):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -1197,6 +1204,8 @@ class AgentType(Model):
             If True, solution progress is printed to screen. Default False.
         presolve : bool, optional
             If True (default), the pre_solve method is run before solving.
+        postsolve : bool, optional
+            If True (default), the post_solve method is run after solving.
         from_solution: Solution
             If different from None, will be used as the starting point of backward
             induction, instead of self.solution_terminal.
@@ -1225,7 +1234,8 @@ class AgentType(Model):
                 from_solution,
                 from_t,
             )  # Solve the model by backward induction
-            self.post_solve()  # Do post-solution stuff
+            if postsolve:
+                self.post_solve()  # Do post-solution stuff
 
     def reset_rng(self):
         """

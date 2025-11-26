@@ -1297,8 +1297,7 @@ class PerfForesightConsumerType(AgentType):
         """
         self.check_restrictions()
         self.construct("solution_terminal")  # Solve the terminal period problem
-        if not self.quiet:
-            self.check_conditions(verbose=self.verbose)
+        self.check_conditions(verbose=self.verbose)
 
     def post_solve(self):
         """
@@ -1323,8 +1322,6 @@ class PerfForesightConsumerType(AgentType):
         """
         if self.DiscFac < 0:
             raise ValueError("DiscFac is below zero with value: " + str(self.DiscFac))
-
-        return
 
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
@@ -2932,11 +2929,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         Returns
         -------
         None
-
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 
@@ -2972,8 +2964,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         """
-        # raise NotImplementedError()
-
         pass
 
 
