@@ -86,7 +86,6 @@ source_suffix = [
 
 # HTML writer configuration
 html_theme = "pydata_sphinx_theme"
-html_static_path = []
 html_css_files = ["override-nbsphinx-gallery.css"]
 html_theme_options = {
     "use_edit_page_button": True,
@@ -130,19 +129,19 @@ nbsphinx_prolog = r"""
 
     <div class="admonition note">
       This page was generated from
-      <a class="reference external" href="https://github.com/econ-ark/HARK/tree/master/{{ docname|e }}">{{ docname|e }}</a>.
+      <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/{{ docname|e }}">{{ docname|e }}</a>.
       <br />
       Interactive online version:
-      <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+      <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath={{ docname|e }}"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
       <a href="{{ env.docname.split('/')|last|e + '.ipynb' }}" class="reference download internal" download>Download notebook</a>.
     </div>
 """
 
 nbsphinx_thumbnails = {
-    "../examples/Gentle-Intro/Constructors-Intro": "images/constructors-thumbnail.jpg",
-    "../examples/Gentle-Intro/Model-List": "images/directory-thumbnail.png",
-    "../examples/Gentle-Intro/AgentType-Intro": "images/elements-thumbnail.jpg",
-    "../examples/Gentle-Intro/Market-Intro": "images/market-thumbnail.jpg",
+    "examples/Gentle-Intro/Constructors-Intro": "docs/images/constructors_thumbnail.jpg",
+    "examples/Gentle-Intro/Model-List": "docs/images/directory_thumbnail.png",
+    "examples/Gentle-Intro/AgentType-Intro": "docs/images/elements_thumbnail.jpg",
+    "examples/Gentle-Intro/Market-Intro": "docs/images/market_thumbnail.jpg",
 }
 
 myst_enable_extensions = [
@@ -153,7 +152,7 @@ html_context = {
     "github_url": "https://github.com",
     "github_user": "econ-ark",
     "github_repo": "hark",
-    "github_version": "master",
+    "github_version": "main",
     "doc_path": "docs/",
 }
 
