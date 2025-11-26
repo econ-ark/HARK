@@ -19,9 +19,25 @@ def distance_lists(list_a, list_b):
 def distance_dicts(dict_a, dict_b):
     """
     If both inputs are dictionaries, call distance on the list of its elements.
+    If both dictionaries have matching distance_criteria entries, compare only those keys.
     If they do not have the same keys, return 1000 and raise a warning. Nothing
     in HARK should ever hit that warning.
     """
+    # Check whether the dictionaries have matching distance_criteria
+    if ("distance_criteria" in dict_a.keys()) and (
+        "distance_criteria" in dict_b.keys()
+    ):
+        crit_a = dict_a["distance_criteria"]
+        crit_b = dict_b["distance_criteria"]
+        if len(crit_a) == len(crit_b):
+            check = [crit_a[j] == crit_b[j] for j in range(len(crit_a))]
+            if np.all(check):
+                # Compare only their distance_criteria
+                return np.max(
+                    [distance_metric(dict_a[key], dict_b[key]) for key in crit_a]
+                )
+
+    # Otherwise, compare all their keys
     if set(dict_a.keys()) != set(dict_b.keys()):
         warn("Dictionaries with keys that do not match are being compared.")
         return 1000.0
@@ -31,12 +47,21 @@ def distance_dicts(dict_a, dict_b):
 def distance_arrays(arr_a, arr_b):
     """
     If both inputs are array-like, return the maximum absolute difference b/w
-    corresponding elements (if same shape); return difference in size if shapes
-    do not align.
+    corresponding elements (if same shape). If they don't even have the same number
+    of dimensions, return 10000 times the difference in dimensions. If they have
+    the same number of dimensions but different shapes, return the sum of differences
+    in size for each dimension.
     """
-    if arr_a.shape == arr_b.shape:
+    shape_A = arr_a.shape
+    shape_B = arr_b.shape
+    if shape_A == shape_B:
         return np.max(np.abs(arr_a - arr_b))
-    return np.abs(arr_a.size - arr_b.size)
+
+    if len(shape_A) != len(shape_B):
+        return 10000 * np.abs(len(shape_A) - len(shape_B))
+
+    dim_diffs = np.abs(np.array(shape_A) - np.array(shape_B))
+    return np.sum(dim_diffs)
 
 
 def distance_class(cls_a, cls_b):

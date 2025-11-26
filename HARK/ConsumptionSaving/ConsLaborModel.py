@@ -588,15 +588,15 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     LbrCost: Constructor, :math:`\alpha`
         The agent's labor cost function.
 
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`
 
     Solving Parameters
     ------------------
@@ -692,6 +692,9 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     time_vary_ = copy(IndShockConsumerType.time_vary_)
     time_vary_ += ["WageRte", "LbrCost", "TranShkGrid"]
     time_inv_ = copy(IndShockConsumerType.time_inv_)
+
+    def pre_solve(self):
+        self.construct("solution_terminal")
 
     def calc_bounding_values(self):  # pragma: nocover
         """
@@ -860,6 +863,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylim([-0.001, 1.001])
         plt.xlim(bMin, bMax)
         plt.show(block=False)
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
 
 
 ###############################################################################

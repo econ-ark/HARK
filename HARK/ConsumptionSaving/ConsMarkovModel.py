@@ -1142,10 +1142,11 @@ class MarkovConsumerType(IndShockConsumerType):
         Returns
         -------
         None
-
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
         """
+        raise NotImplementedError()
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
         raise NotImplementedError()
