@@ -602,7 +602,7 @@ class BasicHealthConsumerType(AgentType):
         """
         # Calculate agent-specific death probability
         phi = np.array(self.DieProbMax)[self.t_cycle]
-        DieProb = phi / (1.0 + self.state_now["hLvl"])
+        DieProb = phi / (1.0 + self.state_now["HLvl"])
 
         # Draw mortality shocks and mark who dies
         N = self.AgentCount
