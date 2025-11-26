@@ -604,6 +604,10 @@ class Parameters:
                         errors.append(
                             f"Parameter '{param}' has length {len(value)}, expected {self._length}"
                         )
+                elif value.ndim == 0:
+                    errors.append(
+                        f"Parameter '{param}' is a 0-dimensional numpy array, expected length {self._length}"
+                    )
 
         if errors:
             raise ValueError(
