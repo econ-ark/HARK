@@ -41,6 +41,9 @@ There are some breaking changes:
 - Deprecate HARK.parallel, moving the three functions there to HARK.core. [#1614](https://github.com/econ-ark/HARK/pull/1614)
 - Test coverage expanded to cover almost all content #1606 #1610 #1617 #1619 #1623 #1624 #1625 #1626 #1628
 - Consumption-saving models now aliased at HARK.models and HARK.ConsumptionSaving; some calibration tools also aliased at HARK.Calibration [#1629](https://github.com/econ-ark/HARK/pull/1629)
+- AgentType.solve() can be passed postsolve=False to skip post-processing call to post_solve(). [#1631](https://github.com/econ-ark/HARK/pull/1631)
+- The /examples directory can be copied to a directory of user's choice with HARK.install_examples() [#1630](https://github.com/econ-ark/HARK/pull/1630)
+- Improved and expanded features for Parameters class in HARK.core [#1627](https://github.com/econ-ark/HARK/pull/1627)
 
 ### 0.16.1
 
