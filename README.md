@@ -75,6 +75,16 @@ Install from [PyPi](https://pypi.org/) by running:
 
 `pip install econ-ark`
 
+Once HARK is installed, you can copy its example notebooks into a local working directory of your choice from within a Python environment:
+
+```python
+from HARK import install_examples
+
+install_examples()
+```
+
+Follow the simple prompts to make an examples subdirectory inside the directory you specify. We recommend starting with /examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb.
+
 ## Usage
 
 We start with almost the simplest possible consumption model: A consumer with CRRA utility
@@ -96,37 +106,23 @@ The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wi
 To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate parameters:
 
 ```python
-import HARK
+from HARK.models import PerfForesightConsumerType
 
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-
-PF_params = {
-    "CRRA": 2.5,  # Relative risk aversion
-    "DiscFac": 0.96,  # Discount factor
-    "Rfree": 1.03,  # Risk free interest factor
-    "LivPrb": [0.98],  # Survival probability
-    "PermGroFac": [1.01],  # Income growth factor
-    "T_cycle": 1,
-    "cycles": 0,
-    "AgentCount": 10000,
-}
-
-# Create an instance of a Perfect Foresight agent with the above parameters
-PFexample = PerfForesightConsumerType(**PF_params)
+# Create an instance of a Perfect Foresight agent with otherwise default parameters
+PFexample = PerfForesightConsumerType(cycles=0)
 ```
-The parameter `T_cycle` sets the length of the period cycle. Lists of time-varying parameters must have this length. With `cycles=0` the single cycle repeats forever. If a parameter `T_age` is provided, each agent is removed from the simulation when their `t_age` counter reaches this value.
+With `cycles=0`, the default parameters yield a single period cycle that repeats forever.
 
-
-Once the model is created, ask the the agent to solve the problem with `.solve()`:
+Once the model is created, ask the the agent to solve the problem with  its `solve()` method:
 
 ```python
 # Tell the agent to solve the problem
 PFexample.solve()
 ```
 
-Solving the problem populates the agent's `.solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**.
+Solving the problem populates the agent's `solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**.
 
-You can retrieve the solution's consumption function from the `.cFunc` attribute:
+You can retrieve the solution's consumption function from the `cFunc` attribute:
 
 ```python
 # Retrieve the consumption function of the solution
@@ -143,6 +139,8 @@ PFexample.solution[0].hNrm
 For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
 For more examples please visit the [examples](https://docs.econ-ark.org/docs/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+
+The examples can also be copied to a local working directory for you to run and investigate; see the Install section above.
 
 ## Citation
 
@@ -236,12 +234,6 @@ To install for development see the [Quickstart Guide](https://docs.econ-ark.org/
 
 For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/docs/guides/contributing.html).
 This is the guide that collaborators follow in maintaining the Econ-ARK project.
-
-## Migration notes
-
-- Distributions: `TimeVaryingDiscreteDistribution` has been consolidated into `IndexDistribution`.
-  - If you previously constructed a time-indexed list of discrete distributions via `TimeVaryingDiscreteDistribution([...])`, use `IndexDistribution(distributions=[...])` instead.
-  - Existing `IndexDistribution(engine=..., conditional=...)` usage is unchanged.
 
 ## Disclaimer
 
