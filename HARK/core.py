@@ -71,7 +71,14 @@ class Parameters:
         The internal dictionary storing all parameters.
     """
 
-    __slots__ = ("_length", "_invariant_params", "_varying_params", "_parameters")
+    __slots__ = (
+        "_length",
+        "_invariant_params",
+        "_varying_params",
+        "_parameters",
+        "_frozen",
+        "_namedtuple_cache",
+    )
 
     def __init__(self, **parameters: Any) -> None:
         """
@@ -79,16 +86,72 @@ class Parameters:
 
         Parameters
         ----------
+        T_cycle : int, optional
+            The number of time periods in the model cycle (default: 1).
+            Must be >= 1.
+        frozen : bool, optional
+            If True, the Parameters object will be immutable after initialization
+            (default: False).
+        _time_inv : List[str], optional
+            List of parameter names to explicitly mark as time-invariant,
+            overriding automatic inference.
+        _time_vary : List[str], optional
+            List of parameter names to explicitly mark as time-varying,
+            overriding automatic inference.
         **parameters : Any
             Any number of parameters in the form key=value.
+
+        Raises
+        ------
+        ValueError
+            If T_cycle is less than 1.
+
+        Notes
+        -----
+        Automatic time-variance inference rules:
+        - Scalars (int, float, bool, None) are time-invariant
+        - NumPy arrays are time-invariant (use lists/tuples for time-varying)
+        - Single-element lists/tuples [x] are unwrapped to x and time-invariant
+        - Multi-element lists/tuples are time-varying if length matches T_cycle
+        - 2D arrays with first dimension matching T_cycle are time-varying
+        - Distributions and Callables are time-invariant
+
+        Use _time_inv or _time_vary to override automatic inference when needed.
         """
+        # Extract special parameters
         self._length: int = parameters.pop("T_cycle", 1)
+        frozen: bool = parameters.pop("frozen", False)
+        time_inv_override: List[str] = parameters.pop("_time_inv", [])
+        time_vary_override: List[str] = parameters.pop("_time_vary", [])
+
+        # Validate T_cycle
+        if self._length < 1:
+            raise ValueError(f"T_cycle must be >= 1, got {self._length}")
+
+        # Initialize internal state
         self._invariant_params: Set[str] = set()
         self._varying_params: Set[str] = set()
         self._parameters: Dict[str, Any] = {"T_cycle": self._length}
+        self._frozen: bool = False  # Set to False initially to allow setup
+        self._namedtuple_cache: Optional[type] = None
 
+        # Set parameters using automatic inference
         for key, value in parameters.items():
             self[key] = value
+
+        # Apply explicit overrides
+        for param in time_inv_override:
+            if param in self._parameters:
+                self._invariant_params.add(param)
+                self._varying_params.discard(param)
+
+        for param in time_vary_override:
+            if param in self._parameters:
+                self._varying_params.add(param)
+                self._invariant_params.discard(param)
+
+        # Freeze if requested
+        self._frozen = frozen
 
     def __getitem__(self, item_or_key: Union[int, str]) -> Union["Parameters", Any]:
         """
@@ -120,9 +183,9 @@ class Parameters:
             If the key is neither an integer nor a string.
         """
         if isinstance(item_or_key, int):
-            if item_or_key >= self._length:
+            if item_or_key < 0 or item_or_key >= self._length:
                 raise ValueError(
-                    f"Age {item_or_key} is out of bounds (max: {self._length - 1})."
+                    f"Age {item_or_key} is out of bounds (valid: 0-{self._length - 1})."
                 )
 
             params = {key: self._parameters[key] for key in self._invariant_params}
@@ -152,6 +215,9 @@ class Parameters:
         is a list or tuple of length greater than 1, the length of the list or
         tuple must match the `_length` attribute of the Parameters object.
 
+        2D numpy arrays with first dimension matching T_cycle are treated as
+        time-varying parameters.
+
         Parameters
         ----------
         key : str
@@ -164,11 +230,24 @@ class Parameters:
         ValueError:
             If the parameter name is not a string or if the value type is unsupported.
             If the parameter value is inconsistent with the current model length.
+        RuntimeError:
+            If the Parameters object is frozen.
         """
+        if self._frozen:
+            raise RuntimeError("Cannot modify frozen Parameters object")
+
         if not isinstance(key, str):
             raise ValueError(f"Parameter name must be a string, got {type(key)}")
 
-        if isinstance(
+        # Check for 2D numpy arrays with time-varying first dimension
+        if isinstance(value, np.ndarray) and value.ndim >= 2:
+            if value.shape[0] == self._length:
+                self._varying_params.add(key)
+                self._invariant_params.discard(key)
+            else:
+                self._invariant_params.add(key)
+                self._varying_params.discard(key)
+        elif isinstance(
             value,
             (
                 int,
@@ -239,12 +318,16 @@ class Parameters:
         """
         Convert parameters to a namedtuple.
 
+        The namedtuple class is cached for efficiency on repeated calls.
+
         Returns
         -------
         namedtuple
             A namedtuple containing all parameters.
         """
-        return namedtuple("Parameters", self.keys())(**self.to_dict())
+        if self._namedtuple_cache is None:
+            self._namedtuple_cache = namedtuple("Parameters", self.keys())
+        return self._namedtuple_cache(**self.to_dict())
 
     def update(self, other: Union["Parameters", Dict[str, Any]]) -> None:
         """
@@ -445,6 +528,91 @@ class Parameters:
             True if the parameter is time-varying, False otherwise.
         """
         return key in self._varying_params
+
+    def at_age(self, age: int) -> "Parameters":
+        """
+        Get parameters for a specific age.
+
+        This is an alternative to integer indexing (params[age]) that is more
+        explicit and avoids potential confusion with dictionary-style access.
+
+        Parameters
+        ----------
+        age : int
+            The age index to retrieve parameters for.
+
+        Returns
+        -------
+        Parameters
+            A new Parameters object with parameters for the specified age.
+
+        Raises
+        ------
+        ValueError
+            If the age index is out of bounds.
+
+        Examples
+        --------
+        >>> params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97], sigma=2.0)
+        >>> age_1_params = params.at_age(1)
+        >>> age_1_params.beta
+        0.96
+        """
+        return self[age]
+
+    def validate(self) -> None:
+        """
+        Validate parameter consistency.
+
+        Checks that all time-varying parameters have length matching T_cycle.
+        This is useful after manual modifications or when parameters are set
+        programmatically.
+
+        Raises
+        ------
+        ValueError
+            If any time-varying parameter has incorrect length.
+
+        Examples
+        --------
+        >>> params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97])
+        >>> params.validate()  # Passes
+        >>> params.add_to_time_vary("beta")
+        >>> params.validate()  # Still passes
+        """
+        errors = []
+        for param in self._varying_params:
+            value = self._parameters[param]
+            if isinstance(value, (list, tuple)):
+                if len(value) != self._length:
+                    errors.append(
+                        f"Parameter '{param}' has length {len(value)}, expected {self._length}"
+                    )
+            elif isinstance(value, np.ndarray):
+                if value.ndim == 0:
+                    errors.append(
+                        f"Parameter '{param}' is a 0-dimensional array (scalar), "
+                        "which should not be time-varying"
+                    )
+                elif value.ndim >= 2:
+                    if value.shape[0] != self._length:
+                        errors.append(
+                            f"Parameter '{param}' has first dimension {value.shape[0]}, expected {self._length}"
+                        )
+                elif value.ndim == 1:
+                    if len(value) != self._length:
+                        errors.append(
+                            f"Parameter '{param}' has length {len(value)}, expected {self._length}"
+                        )
+                elif value.ndim == 0:
+                    errors.append(
+                        f"Parameter '{param}' is a 0-dimensional numpy array, expected length {self._length}"
+                    )
+
+        if errors:
+            raise ValueError(
+                "Parameter validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+            )
 
 
 class Model:
