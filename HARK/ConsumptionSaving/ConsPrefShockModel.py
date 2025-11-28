@@ -15,7 +15,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     KinkedRconsumerType,
     make_assets_grid,
-    make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -26,11 +25,13 @@ from HARK.Calibration.Income.IncomeProcesses import (
 )
 from HARK.distributions import MeanOneLogNormal, expected
 from HARK.interpolation import (
+    IdentityFunction,
     CubicInterp,
     LinearInterp,
     LinearInterpOnInterp1D,
     LowerEnvelope,
     MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA
@@ -40,6 +41,39 @@ __all__ = [
     "KinkyPrefConsumerType",
     "make_lognormal_PrefShkDstn",
 ]
+
+
+def make_pref_shock_solution_terminal(CRRA):
+    """
+    Construct the terminal period solution for a consumption-saving model with
+    CRRA utility and two state variables. The consumption function depends *only*
+    on the first dimension, representing market resources.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion. This is the only relevant parameter.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
+    """
+    cFunc_terminal = IdentityFunction(i_dim=0, n_dims=2)  # c=m at t=T
+    vFunc_terminal = ValueFuncCRRA(cFunc_terminal, CRRA)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=0.0,
+        hNrm=0.0,
+        MPCmin=1.0,
+        MPCmax=1.0,
+    )
+    return solution_terminal
 
 
 def make_lognormal_PrefShkDstn(
@@ -682,7 +716,7 @@ PrefShockConsumerType_constructors_default = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "PrefShkDstn": make_lognormal_PrefShkDstn,
-    "solution_terminal": make_basic_CRRA_solution_terminal,
+    "solution_terminal": make_pref_shock_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
