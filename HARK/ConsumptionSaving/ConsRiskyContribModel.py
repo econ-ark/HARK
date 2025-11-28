@@ -165,7 +165,7 @@ def make_mNrm_grid(mNrmMin, mNrmMax, mNrmCount, mNrmNestFac):
     return mNrmGrid
 
 
-def make_solution_terminal_risky_contrib(CRRA, tau):
+def make_solution_terminal_risky_contrib(CRRA, WithdrawTax):
     """
     Solves the terminal period. The solution is trivial.
     Cns: agent will consume all of his liquid resources.
@@ -176,8 +176,8 @@ def make_solution_terminal_risky_contrib(CRRA, tau):
     ----------
     CRRA : float
         Coefficient of relative risk aversion.
-    tau : float
-        Tax rate of some kind.
+    WithdrawTax : float
+        Tax penalty for withdrawing from the risky asset.
 
     Returns
     -------
@@ -231,16 +231,18 @@ def make_solution_terminal_risky_contrib(CRRA, tau):
 
     # Find the withdrawal penalty. If it is time-varying, assume it takes
     # the same value as in the last non-terminal period
-    if type(tau) is list:
-        tau = tau[-1]
+    if type(WithdrawTax) is list:
+        WithdrawTax = WithdrawTax[-1]
     else:
-        tau = tau
+        WithdrawTax = WithdrawTax
 
     # Value and marginal value function of the adjusting agent
-    vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + tau), CRRA)
-    dvdmFunc_Reb_Adj_term = MargValueFuncCRRA(lambda m, n: m + n / (1 + tau), CRRA)
+    vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + WithdrawTax), CRRA)
+    dvdmFunc_Reb_Adj_term = MargValueFuncCRRA(
+        lambda m, n: m + n / (1 + WithdrawTax), CRRA
+    )
     # A marginal unit of n will be withdrawn and put into m. Then consumed.
-    dvdnFunc_Reb_Adj_term = lambda m, n: dvdmFunc_Reb_Adj_term(m, n) / (1 + tau)
+    dvdnFunc_Reb_Adj_term = lambda m, n: dvdmFunc_Reb_Adj_term(m, n) / (1 + WithdrawTax)
 
     Reb_stage_sol = RiskyContribRebSolution(
         # Rebalancing stage
@@ -1312,7 +1314,14 @@ def solve_RiskyContrib_Sha(
 
 # Solver for the asset rebalancing stage
 def solve_RiskyContrib_Reb(
-    solution_next, CRRA, tau, nNrmGrid, mNrmGrid, dfracGrid, vFuncBool, **unused_params
+    solution_next,
+    CRRA,
+    WithdrawTax,
+    nNrmGrid,
+    mNrmGrid,
+    dfracGrid,
+    vFuncBool,
+    **unused_params,
 ):
     """
     Solves the asset-rebalancing-stage of the agent's problem
@@ -1323,7 +1332,7 @@ def solve_RiskyContrib_Reb(
         Solution to the income-contribution-share stage problem that follows.
     CRRA : float
         Coefficient of relative risk aversion.
-    tau : float
+    WithdrawTax : float
         Tax rate on risky asset withdrawals.
     nNrmGrid : numpy array
         Exogenous grid for risky resources.
@@ -1376,14 +1385,14 @@ def solve_RiskyContrib_Reb(
     )
 
     # Get post-rebalancing assets.
-    m_tilde, n_tilde = rebalance_assets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
+    m_tilde, n_tilde = rebalance_assets(d_tiled, mNrm_tiled, nNrm_tiled, WithdrawTax)
 
     # Now the marginals, in inverse space
     dvdmNvrs = dvdmFunc_Adj_next.cFunc(m_tilde, n_tilde)
     dvdnNvrs = dvdnFunc_Adj_next.cFunc(m_tilde, n_tilde)
 
-    # Pre-evaluate the inverse of (1-tau)
-    taxNvrs = uPinv(1 - tau)
+    # Pre-evaluate the inverse of (1-WithdrawTax)
+    taxNvrs = uPinv(1 - WithdrawTax)
     # Create a tiled array of the tax
     taxNvrs_tiled = np.tile(
         np.reshape(
@@ -1434,7 +1443,9 @@ def solve_RiskyContrib_Reb(
     dfrac_opt[constrained_top] = dfracGrid[-1]
 
     # Find m_tilde and n_tilde
-    mtil_opt, ntil_opt = rebalance_assets(dfrac_opt, mNrm_tiled[0], nNrm_tiled[0], tau)
+    mtil_opt, ntil_opt = rebalance_assets(
+        dfrac_opt, mNrm_tiled[0], nNrm_tiled[0], WithdrawTax
+    )
 
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
@@ -1446,7 +1457,7 @@ def solve_RiskyContrib_Reb(
     # An additional unit of n kept in n
     marg_n = dvdnFunc_Adj_next(mtil_opt, ntil_opt)
     # An additional unit of n withdrawn to m
-    marg_n_to_m = marg_m * (1 - tau)
+    marg_n_to_m = marg_m * (1 - WithdrawTax)
 
     # Marginal value is the maximum of the marginals in their possible uses
     dvdm_Adj = np.maximum(marg_m, marg_n)
@@ -1504,7 +1515,7 @@ def solveRiskyContrib(
     CRRA,
     Rfree,
     PermGroFac,
-    tau,
+    WithdrawTax,
     BoroCnstArt,
     aXtraGrid,
     nNrmGrid,
@@ -1544,7 +1555,7 @@ def solveRiskyContrib(
         Risk-free return factor.
     PermGroFac : float
         Deterministic permanent income growth factor.
-    tau : float
+    WithdrawTax : float
         Tax rate on risky asset withdrawals.
     BoroCnstArt : float
         Minimum allowed market resources (must be 0).
@@ -1588,7 +1599,7 @@ def solveRiskyContrib(
         "CRRA": CRRA,
         "Rfree": Rfree,
         "PermGroFac": PermGroFac,
-        "tau": tau,
+        "WithdrawTax": WithdrawTax,
         "BoroCnstArt": BoroCnstArt,
         "aXtraGrid": aXtraGrid,
         "nNrmGrid": nNrmGrid,
@@ -1659,6 +1670,7 @@ risky_contrib_params = {
     # averse and impatient agents
     "CRRA": 5.0,
     "DiscFac": 0.90,
+    "WithdrawTax": [0.1],
     # Artificial borrowing constraint must be on
     "BoroCnstArt": 0.0,
     # Grids go up high wealth/P ratios and are less clustered at the bottom.
@@ -1746,7 +1758,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         "RiskyDstn",
         "dfracGrid",
     ]
-    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["tau", "AdjustPrb"]
+    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["WithdrawTax", "AdjustPrb"]
 
     # The new state variables (over those in ConsIndShock) are:
     # - nNrm: start-of-period risky resources.
@@ -1953,12 +1965,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Post-states are assets after rebalancing
 
-        if "tau" not in self.time_vary:
+        if "WithdrawTax" not in self.time_vary:
             mNrmTilde, nNrmTilde = rebalance_assets(
                 self.controls["dfrac"],
                 self.state_now["mNrm"],
                 self.state_now["nNrm"],
-                self.tau,
+                self.WithdrawTax,
             )
 
         else:
@@ -1972,13 +1984,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 these = t == self.t_cycle
 
                 if np.sum(these) > 0:
-                    tau = self.tau[t]
+                    WithdrawTax = self.WithdrawTax[t]
 
                     mNrmTilde[these], nNrmTilde[these] = rebalance_assets(
                         self.controls["dfrac"][these],
                         self.state_now["mNrm"][these],
                         self.state_now["nNrm"][these],
-                        tau,
+                        WithdrawTax,
                     )
 
         self.state_now["mNrmTilde"] = mNrmTilde
