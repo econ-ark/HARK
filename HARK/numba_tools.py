@@ -2,18 +2,18 @@ import numpy as np
 from numba import njit
 
 from HARK.rewards import (
-    CRRAutility,
+    CRRAutility_X,
     CRRAutility_inv,
     CRRAutility_invP,
-    CRRAutilityP,
+    CRRAutilityP_X,
     CRRAutilityP_inv,
     CRRAutilityP_invP,
-    CRRAutilityPP,
+    CRRAutilityPP_X,
 )
 
-CRRAutility = njit(CRRAutility, cache=True)
-CRRAutilityP = njit(CRRAutilityP, cache=True)
-CRRAutilityPP = njit(CRRAutilityPP, cache=True)
+CRRAutility = njit(CRRAutility_X, cache=True)
+CRRAutilityP = njit(CRRAutilityP_X, cache=True)
+CRRAutilityPP = njit(CRRAutilityPP_X, cache=True)
 CRRAutilityP_inv = njit(CRRAutilityP_inv, cache=True)
 CRRAutility_invP = njit(CRRAutility_invP, cache=True)
 CRRAutility_inv = njit(CRRAutility_inv, cache=True)
