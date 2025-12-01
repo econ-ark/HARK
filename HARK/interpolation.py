@@ -1042,7 +1042,7 @@ class CubicInterp(HARKinterpolator1D):
         """
 
         m = len(x)
-        pos = np.searchsorted(self.x_list, x)
+        pos = np.searchsorted(self.x_list, x, side="right")
         y = np.zeros(m)
         if y.size > 0:
             out_bot = pos == 0
@@ -1070,7 +1070,6 @@ class CubicInterp(HARKinterpolator1D):
                 - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
             )
 
-            y[x == self.x_list[0]] = self.y_list[0]
         return y
 
     def _der(self, x):
@@ -1080,7 +1079,7 @@ class CubicInterp(HARKinterpolator1D):
         """
 
         m = len(x)
-        pos = np.searchsorted(self.x_list, x)
+        pos = np.searchsorted(self.x_list, x, side="right")
         dydx = np.zeros(m)
         if dydx.size > 0:
             out_bot = pos == 0
@@ -1112,7 +1111,7 @@ class CubicInterp(HARKinterpolator1D):
         x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         """
         m = len(x)
-        pos = np.searchsorted(self.x_list, x)
+        pos = np.searchsorted(self.x_list, x, side="right")
         y = np.zeros(m)
         dydx = np.zeros(m)
         if y.size > 0:
