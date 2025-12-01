@@ -18,7 +18,7 @@ from tests import HARK_PRECISION
 
 class testAggShockConsumerType(unittest.TestCase):
     def setUp(self):
-        agent = AggShockConsumerType()
+        agent = AggShockConsumerType(seed=0)
         agent.AgentCount = 900  # Very low number of agents for the sake of speed
         agent.cycles = 0
 
@@ -31,7 +31,7 @@ class testAggShockConsumerType(unittest.TestCase):
         )
 
         # Make an economy with those agents living in it
-        self.economy = CobbDouglasEconomy(agents=self.agents)
+        self.economy = CobbDouglasEconomy(agents=self.agents, seed=0)
 
     def test_distribute_params(self):
         self.assertEqual(self.agents[1].AgentCount, 300)
@@ -68,9 +68,9 @@ class testAggShockConsumerType(unittest.TestCase):
 class testAggShockMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         # Make one agent type and an economy for it to live in
-        self.agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000)
+        self.agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
         self.agent.IncShkDstn = [2 * [self.agent.IncShkDstn[0]]]  ## see #557
-        self.economy = CobbDouglasMarkovEconomy(agents=[self.agent])
+        self.economy = CobbDouglasMarkovEconomy(agents=[self.agent], seed=0)
 
     def test_agent(self):
         # Have one consumer type inherit relevant objects from the economy,

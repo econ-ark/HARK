@@ -46,7 +46,7 @@ class Bernoulli(DiscreteFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, p=0.5, seed=0):
+    def __init__(self, p=0.5, seed=None):
         self.p = np.asarray(p)
         # Set up the RNG
         super().__init__(stats.bernoulli, p=self.p, seed=seed)

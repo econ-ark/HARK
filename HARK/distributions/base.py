@@ -3,14 +3,31 @@ from typing import Any, Optional
 import numpy as np
 from numpy import random
 
+MAX_INT32 = 2**31 - 1
+
+
+def random_seed():
+    """
+    Generate a random seed for use in random number generation. This random seed
+    is derived from the system clock and other variables, and is therefore
+    different every time the code is run.
+    For discussion on random number generation and random seeds, see
+    https://docs.scipy.org/doc/scipy/tutorial/stats.html#random-number-generation
+    Parameters
+    ----------
+    None
+    Returns
+    -------
+    seed : int
+        Random seed.
+    """
+    return random.SeedSequence().entropy
+
 
 class Distribution:
     """
     Base class for all probability distributions
     with seed and random number generator.
-
-    For discussion on random number generation and random seeds, see
-    https://docs.scipy.org/doc/scipy/tutorial/stats.html#random-number-generation
 
     Parameters
     ----------
@@ -18,7 +35,7 @@ class Distribution:
         Seed for random number generator.
     """
 
-    def __init__(self, seed: Optional[int] = 0) -> None:
+    def __init__(self, seed: Optional[int] = None) -> None:
         """
         Generic distribution class with seed management.
 
@@ -33,16 +50,7 @@ class Distribution:
         ValueError
             Seed must be an integer type.
         """
-        if seed is None:
-            # generate random seed
-            _seed: int = random.SeedSequence().entropy
-        elif isinstance(seed, (int, np.integer)):
-            _seed = seed
-        else:
-            raise ValueError("seed must be an integer")
-
-        self._seed: int = _seed
-        self._rng: random.Generator = random.default_rng(self._seed)
+        self.seed = seed
 
         # Bounds of distribution support should be overwritten by subclasses
         self.infimum = np.array([])
@@ -58,7 +66,7 @@ class Distribution:
         int
             Seed.
         """
-        return self._seed  # type: ignore
+        return self._seed
 
     @seed.setter
     def seed(self, seed: int) -> None:
@@ -71,11 +79,16 @@ class Distribution:
             Seed for random number generator.
         """
 
-        if isinstance(seed, (int, np.integer)):
+        if seed is None:
+            # random seed from entropy
+            self._seed = random_seed()
+        elif isinstance(seed, (int, np.integer)):
             self._seed = seed
-            self._rng = random.default_rng(seed)
         else:
             raise ValueError("seed must be an integer")
+
+        # set random number generator with seed
+        self._rng = random.default_rng(self._seed)
 
     def reset(self) -> None:
         """
@@ -90,9 +103,9 @@ class Distribution:
 
     def random_seed(self) -> None:
         """
-        Generate a new random seed for this distribution.
+        Generate a new random seed derived from the random seed in this distribution.
         """
-        self.seed = random.SeedSequence().entropy
+        return self._rng.integers(0, MAX_INT32, dtype=np.int32)
 
     def draw(self, N: int) -> np.ndarray:
         """
@@ -242,7 +255,7 @@ class IndexDistribution(Distribution):
     engine = None
 
     def __init__(
-        self, engine=None, conditional=None, distributions=None, RNG=None, seed=0
+        self, engine=None, conditional=None, distributions=None, RNG=None, seed=None
     ):
         if RNG is None:
             # Set up the RNG
@@ -283,14 +296,10 @@ class IndexDistribution(Distribution):
             # Create and store all the conditional distributions
             for y in range(len(item0)):
                 cond = {key: val[y] for (key, val) in self.conditional.items()}
-                self.dstns.append(
-                    self.engine(seed=self._rng.integers(0, 2**31 - 1), **cond)
-                )
+                self.dstns.append(self.engine(seed=self.random_seed(), **cond))
 
         elif type(item0) is float:
-            self.dstns = [
-                self.engine(seed=self._rng.integers(0, 2**31 - 1), **self.conditional)
-            ]
+            self.dstns = [self.engine(seed=self.random_seed(), **self.conditional)]
 
         else:
             raise (
@@ -384,9 +393,7 @@ class IndexDistribution(Distribution):
             # degenerate case. Treat the parameterization as constant.
             N = condition.size
 
-            return self.engine(
-                seed=self._rng.integers(0, 2**31 - 1), **self.conditional
-            ).draw(N)
+            return self.engine(seed=self.random_seed(), **self.conditional).draw(N)
 
         if type(item0) is list:
             # conditions are indices into list
