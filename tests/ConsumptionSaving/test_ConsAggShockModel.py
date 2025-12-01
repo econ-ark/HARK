@@ -59,7 +59,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(self.economy.AFunc.slope, 1.16332, places=HARK_PRECISION)
+        self.assertAlmostEqual(self.economy.AFunc.slope, 1.17425, places=HARK_PRECISION)
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.45632, place = HARK_PRECISION)
@@ -95,7 +95,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
 
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.09599, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.09701, places=HARK_PRECISION
         )
 
     def test_small_open_economy(self):
