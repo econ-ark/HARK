@@ -39,8 +39,9 @@ class testWarmGlowConsumerType(unittest.TestCase):
 
 class testBequestWarmGlowPortfolioType(unittest.TestCase):
     def setUp(self):
-        self.agent = BequestWarmGlowPortfolioType(BeqFac=1.0, BeqFacTerm=1.0)
-        self.agent.vFuncBool = True
+        self.agent = BequestWarmGlowPortfolioType(
+            BeqFac=1.0, BeqFacTerm=1.0, vFuncBool=True
+        )
         self.agent.solve()
 
     def test_consumption(self):
@@ -65,6 +66,10 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
+    def test_no_value(self):
+        basic_type = BequestWarmGlowPortfolioType(BeqFac=1.0, BeqFacTerm=1.0)
+        basic_type.solve()  # this just covers a trivial case
+
     def test_advanced(self):
         OtherType = BequestWarmGlowPortfolioType(
             BeqFac=1.0,
@@ -77,3 +82,10 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         mNrm = 10.0
         cFunc = OtherType.solution[0].cFuncAdj
         self.assertAlmostEqual(cFunc(mNrm), 2.18674, places=HARK_PRECISION)
+
+    def test_invalid(self):
+        BadType = BequestWarmGlowPortfolioType(BeqFac=1.0, BoroCnstArt=-1.0)
+        self.assertRaises(ValueError, BadType.solve)
+
+        BadType = BequestWarmGlowPortfolioType(DiscreteShareBool=True, vFuncBool=False)
+        self.assertRaises(ValueError, BadType.solve)

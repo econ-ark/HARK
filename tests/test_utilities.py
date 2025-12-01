@@ -16,6 +16,10 @@ from HARK.utilities import (
     in_ipynb,
     find_gui,
     make_figs,
+    files_in_dir,
+    get_percentiles,
+    NullFunc,
+    apply_fun_to_vals,
 )
 
 
@@ -56,6 +60,10 @@ class testGetLorenzShares(unittest.TestCase):
         self.assertAlmostEqual(out.size, 4)
         self.assertTrue(np.all(out[1:] >= out[:-1]))
 
+        self.assertRaises(
+            ValueError, get_lorenz_shares, self.data, percentiles=[0.2, 1.1]
+        )
+
     def test_lorenz_sorteds(self):
         out = get_lorenz_shares(
             np.sort(self.data), percentiles=[0.2, 0.4], presorted=True
@@ -71,6 +79,19 @@ class testSubpopAvg(unittest.TestCase):
         my_cuts = [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
         cond_avgs = calc_subpop_avg(my_data, my_ref, my_cuts)
         self.assertTrue(len(cond_avgs), len(my_cuts))
+
+
+class testGetPercentiles(unittest.TestCase):
+    def test_default(self):
+        X = np.array([5.0])
+        out = get_percentiles(X)
+        self.assertTrue(np.isnan(out))
+
+        Y = np.sort(np.random.rand(100))
+        out = get_percentiles(Y, percentiles=[0.2, 0.5, 0.8], presorted=True)
+        self.assertTrue(out.size == 3)
+
+        self.assertRaises(ValueError, get_percentiles, Y, percentiles=[0.5, 1.1])
 
 
 class testKernelRegression(unittest.TestCase):
@@ -89,10 +110,15 @@ class testKernelRegression(unittest.TestCase):
         self.assertTrue(np.all(np.isreal(out)))
 
     def test_triangle(self):
-        g = kernel_regression(self.X, self.Y, h=0.25, kernel="hat")
+        g = kernel_regression(self.X, self.Y, kernel="hat")
         Q = 10 * np.random.rand(100)
         out = g(Q)
         self.assertTrue(np.all(np.isreal(out)))
+
+    def test_inextant(self):
+        self.assertRaises(
+            ValueError, kernel_regression, self.X, self.Y, h=0.25, kernel="hate"
+        )
 
 
 class testEnvironmentStuff(unittest.TestCase):
@@ -121,9 +147,43 @@ class testEtc(unittest.TestCase):
         test = np.unique(np.diff(aXtraGrid).round(decimals=3))
         self.assertEqual(test.size, 1)
 
+        params["aXtraNestFac"] = 2.5  # invalid
+        self.assertRaises(ValueError, make_assets_grid, **params)
+
     def test_make_figs(self):
         # Test the make_figs() function with a trivial output
         plt.figure()
         plt.plot(np.linspace(1, 5, 40), np.linspace(4, 8, 40))
         make_figs("test", True, False, target_dir="")
         plt.clf()
+
+    def test_files_in_dir(self):
+        some_list = files_in_dir(".")
+
+    def test_NullFunc(self):
+        f = NullFunc()
+        self.assertTrue(f() is None)
+        self.assertTrue(np.isnan(f(5.0)))
+        self.assertAlmostEqual(f.distance(f), 0.0)
+        self.assertAlmostEqual(f.distance(np), 1000.0)
+        self.assertAlmostEqual(f.distance(5), 1000.0)
+
+    def test_apply_func_to_vals(self):
+        def temp_func(x, y, z):
+            return 3 * x + 4 * y + 2 * z
+
+        W = np.random.rand(100)
+        X = np.random.rand(100)
+        Y = np.random.rand(100)
+        Z = np.random.rand(100)
+
+        my_dict = {
+            "w": W,
+            "x": X,
+            "y": Y,
+            "z": Z,
+        }
+
+        vals = temp_func(X, Y, Z)
+        out = apply_fun_to_vals(temp_func, my_dict)
+        self.assertTrue(np.all(vals == out))

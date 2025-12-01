@@ -22,6 +22,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_polynomial_PermShkStd,
     make_polynomial_PermGroFac,
     BinaryIncShkDstn,
+    make_trivial_pLvlNextFunc,
+    make_PermGroFac_from_ind_and_agg,
 )
 
 from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
@@ -543,6 +545,18 @@ class testBasicIncomeProcesses(unittest.TestCase):
     def test_PolynomialPermGroFac(self):
         PermGroFac = make_polynomial_PermGroFac(10, np.array([1.01, 0.001, -1e-5]))
         self.assertAlmostEqual(PermGroFac[-1], 1.01819, places=4)
+
+    def test_make_trivial(self):
+        pLvlNextfunc = make_trivial_pLvlNextFunc(10)
+        self.assertAlmostEqual(len(pLvlNextfunc), 10)
+
+    def test_make_PermGroFac(self):
+        PermGroFacInd = 5 * [1.01] + 5 * [1.02]
+        PermGroFacAgg = 1.001
+        PermGroFac = make_PermGroFac_from_ind_and_agg(PermGroFacInd, PermGroFacAgg)
+        self.assertAlmostEqual(len(PermGroFac), 10)
+        self.assertAlmostEqual(PermGroFac[0], 1.011, places=4)
+        self.assertAlmostEqual(PermGroFac[-1], 1.021, places=4)
 
 
 class test_SCF_defaults(unittest.TestCase):

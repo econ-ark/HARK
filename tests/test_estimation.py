@@ -47,12 +47,17 @@ class testNelderMead(testMinimizer):
 
 class testParallelNelderMead(testMinimizer):
     params = {"minimizer": parallelNelderMead}
-    args = {"P": 2, "ftol": 1e-12}
+    args = {"P": 2, "ftol": 1e-16}
 
 
 class testNonParallelNelderMead(testMinimizer):
     params = {"minimizer": parallelNelderMead}
     args = {"P": 1, "ftol": 1e-16, "xtol": 1e-16, "maxthreads": 1}
+
+
+class testExcessParallelNelderMead(testMinimizer):
+    params = {"minimizer": parallelNelderMead}
+    args = {"P": 20, "ftol": 1e-16, "xtol": 1e-16}
 
 
 class testPNM_read_write(unittest.TestCase):

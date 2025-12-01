@@ -155,9 +155,18 @@ If you don't already have one, you should designate a place on your computer whe
 For example, it is common to just create a folder `GitHub` in your home user directory. Inside `GitHub` you should create folders
 corresponding to the GitHub ID's of users whose work you want to obtain; for example, `GitHub/econ-ark`. Inside the `econ-ark` directory you can obtain a number of different resources.
 
-### Demonstrations And Illustrations
+### Examples, Demonstrations, And Illustrations
 
-Most of the modules in HARK are just collections of tools. To look at a demonstrations, check repository: \* [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
+To copy HARK's example and documentation notebooks into a local working directory, run the following two lines in a Python environment:
+
+```python
+from HARK import install_examples
+install_examples()
+```
+
+You will be prompted to choose a local directory into which an examples subdirectory will be created. This will contain many Jupyter notebooks with guides, examples, and documentation for HARK.
+
+To look at demonstrations, check repository: \* [DemARK](https://github.com/econ-ark/DemARK): Demonstrations of the use of HARK
 
 You will want to obtain your own local copy of these repos using:
 

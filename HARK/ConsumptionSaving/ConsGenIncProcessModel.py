@@ -654,13 +654,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     .. math::
         \begin{eqnarray*}
-        V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+        V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
         A_t &=& M_t - C_t, \\
         A_t/P_t &\geq& \underline{a}, \\
-        M_{t+1} &=& R A_t + \theta_{t+1}, \\
+        M_{t+1} &=& R_{t+1} A_t + \theta_{t+1}, \\
         P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
-        \mathbb{E} [F_{t+1}] &=& 1, \\
+        \mathbb{E} [\psi_{t+1}] &=& 1, \\
         U(C) &=& \frac{C^{1-\rho}}{1-\rho}. \\
         \end{eqnarray*}
 
@@ -696,11 +696,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
-    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}_t`
         Risk Free interest rate. Pass a list of floats to make Rfree time varying.
     DiscFac: float, :math:`\beta`
         Intertemporal discount factor.
-    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+    LivPrb: list[float], time varying, :math:`\mathsf{S}_t`
         Survival probability after each period.
     BoroCnstArt: float, :math:`\underline{a}`
         The minimum Asset/Perminant Income ratio, None to ignore.
@@ -792,8 +792,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         Installs a special pLvlNextFunc representing retirement in the correct
         element of self.pLvlNextFunc.  Draws on the attributes T_retire and
         pLvlNextFuncRet.  If T_retire is zero or pLvlNextFuncRet does not
-        exist, this method does nothing.  Should only be called from within the
-        method update_pLvlNextFunc, which ensures that time is flowing forward.
+        exist, this method does nothing.
 
         Parameters
         ----------
@@ -907,6 +906,12 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         # moves now to prev
         AgentType.get_poststates(self)
 
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
+
 
 ###############################################################################
 
@@ -1017,23 +1022,23 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     pLvlNextFunc: Constructor, (:math:`\Gamma`)
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_explicit_perminc_pLvlNextFunc`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_explicit_perminc_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
 
     Solving Parameters
     ------------------

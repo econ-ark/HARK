@@ -120,9 +120,19 @@ class test_ConsMarkovSolver(unittest.TestCase):
     def test_simulation(self):
         self.model.solve()
         self.model.T_sim = 120
+        self.model.T_age = 100
         self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
         self.model.track_vars = ["mNrm", "cNrm"]
         self.model.make_shock_history()  # This is optional
+        self.model.initialize_sim()
+        self.model.simulate()
+
+    def test_global_markov(self):
+        self.model.solve()
+        self.model.assign_parameters(
+            T_sim=120, global_markov=True, MrkvPrbsInit=[0.25, 0.25, 0.25, 0.25]
+        )
+        self.model.track_vars = ["mNrm", "cNrm"]
         self.model.initialize_sim()
         self.model.simulate()
 
@@ -243,3 +253,10 @@ class testRatchet(unittest.TestCase):
         self.assertAlmostEqual(MrkvArray[0][3, 3], 0.6)
         self.assertAlmostEqual(MrkvArray[1][0, 1], 0.4)
         self.assertAlmostEqual(MrkvArray[1][3, 3], 0.9)
+
+    def test_errors(self):
+        some_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.2, 0.1])]
+        self.assertRaises(ValueError, make_ratchet_markov, 3, some_probs)
+
+        weird_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.3])]
+        self.assertRaises(ValueError, make_ratchet_markov, 2, weird_probs)

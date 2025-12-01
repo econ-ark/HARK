@@ -263,13 +263,13 @@ def solve_ConsLaborIntMarg(
     # and CubicBool = False. CRRA condition is met automatically when CRRA >= 1.
     frac = 1.0 / (1.0 + LbrCost)
     if CRRA <= frac * LbrCost:
-        raise ValueError(
-            "CRRA coefficient must be strictly greater than alpha/(1+alpha)."
-        )
+        raise ValueError("CRRA must be strictly greater than alpha/(1+alpha).")
     if BoroCnstArt is not None:
         raise ValueError("Model cannot handle artificial borrowing constraint yet.")
-    if vFuncBool or CubicBool is True:
+    if CubicBool is True:
         raise ValueError("Model cannot handle cubic interpolation yet.")
+    if vFuncBool is True:
+        raise ValueError("Model cannot compute the value function yet.")
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
@@ -588,15 +588,15 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     LbrCost: Constructor, :math:`\alpha`
         The agent's labor cost function.
 
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`
 
     Solving Parameters
     ------------------
@@ -693,13 +693,16 @@ class LaborIntMargConsumerType(IndShockConsumerType):
     time_vary_ += ["WageRte", "LbrCost", "TranShkGrid"]
     time_inv_ = copy(IndShockConsumerType.time_inv_)
 
-    def calc_bounding_values(self):
+    def pre_solve(self):
+        self.construct("solution_terminal")
+
+    def calc_bounding_values(self):  # pragma: nocover
         """
         NOT YET IMPLEMENTED FOR THIS CLASS
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         NOT YET IMPLEMENTED FOR THIS CLASS
         """
@@ -860,6 +863,12 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         plt.ylim([-0.001, 1.001])
         plt.xlim(bMin, bMax)
         plt.show(block=False)
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
 
 
 ###############################################################################

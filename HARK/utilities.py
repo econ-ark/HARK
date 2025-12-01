@@ -101,13 +101,10 @@ class NullFunc:
             The distance between self and other.  Returns 0 if other is also a
             NullFunc; otherwise returns an arbitrary high number.
         """
-        try:
-            if other.__class__ is self.__class__:
-                return 0.0
-            else:
-                return 1000.0
-        except:
-            return 10000.0
+        if other.__class__ is self.__class__:
+            return 0.0
+        else:
+            return 1000.0
 
 
 def apply_fun_to_vals(fun, vals):
@@ -163,7 +160,7 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
     # Set up post decision state grid:
     if aXtraNestFac == -1:
         aXtraGrid = np.linspace(aXtraMin, aXtraMax, aXtraCount)
-    elif aXtraNestFac >= 0:
+    elif (aXtraNestFac >= 0) and type(aXtraNestFac) is int:
         aXtraGrid = make_grid_exp_mult(
             ming=aXtraMin, maxg=aXtraMax, ng=aXtraCount, timestonest=aXtraNestFac
         )
@@ -911,7 +908,7 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
 ###############################################################################
 
 
-def determine_platform():
+def determine_platform():  # pragma: nocover
     """
     Utility function to return the platform currenlty in use.
 
@@ -1159,7 +1156,7 @@ def mround(match):
     return f"{float(match.group()):.5f}"
 
 
-def round_in_file(filename):
+def round_in_file(filename):  # pragma: nocover
     with open(filename, "r+") as file:
         filetext = file.read()
         filetext = re.sub(simpledec, mround, filetext)

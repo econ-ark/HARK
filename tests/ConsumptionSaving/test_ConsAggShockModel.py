@@ -51,7 +51,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.act_T = 400  # Short simulation history
         self.economy.max_loops = 3  # Give up quickly for the sake of time
         self.economy.make_AggShkHist()  # Simulate a history of aggregate shocks
-        self.economy.verbose = False  # Turn off printed messages
+        self.economy.verbose = True  # Turn on printed messages
 
         # Give data about the economy to all the agents in it
         for this_type in self.economy.agents:

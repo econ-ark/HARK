@@ -7,6 +7,7 @@ examples/Gentle-Intro/Methods-Intro.ipynb
 examples/Gentle-Intro/Model-List.ipynb
 examples/Gentle-Intro/AgentType-Intro.ipynb
 examples/Gentle-Intro/Market-Intro.ipynb
+examples/TractableBufferStockModel/TractableConsumerType.ipynb
 examples/ConsHealthModel/BasicHealthConsumerType.ipynb
 examples/ConsIndShockModel/PerfForesightConsumerType.ipynb
 examples/ConsIndShockModel/IndShockConsumerType.ipynb
@@ -31,4 +32,5 @@ examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
 examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
 examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
 examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
+examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb
 examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
