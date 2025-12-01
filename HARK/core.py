@@ -1181,7 +1181,11 @@ class AgentType(Model):
         none
         """
         # Use list comprehension for better performance instead of loop with append
-        setattr(self, parameter, [solution_t.__dict__[parameter] for solution_t in self.solution])
+        setattr(
+            self,
+            parameter,
+            [solution_t.__dict__[parameter] for solution_t in self.solution],
+        )
         self.add_to_time_vary(parameter)
 
     def solve(
