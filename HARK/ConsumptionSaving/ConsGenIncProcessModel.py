@@ -653,13 +653,13 @@ class GenIncProcessConsumerType(IndShockConsumerType):
 
     .. math::
         \begin{eqnarray*}
-        V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+        V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
         A_t &=& M_t - C_t, \\
         A_t/P_t &\geq& \underline{a}, \\
-        M_{t+1} &=& R A_t + \theta_{t+1}, \\
+        M_{t+1} &=& R_{t+1} A_t + \theta_{t+1}, \\
         P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
-        \mathbb{E} [F_{t+1}] &=& 1, \\
+        \mathbb{E} [\psi_{t+1}] &=& 1, \\
         U(C) &=& \frac{C^{1-\rho}}{1-\rho}. \\
         \end{eqnarray*}
 
@@ -695,11 +695,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
-    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}_t`
         Risk Free interest rate. Pass a list of floats to make Rfree time varying.
     DiscFac: float, :math:`\beta`
         Intertemporal discount factor.
-    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+    LivPrb: list[float], time varying, :math:`\mathsf{S}_t`
         Survival probability after each period.
     BoroCnstArt: float, :math:`\underline{a}`
         The minimum Asset/Perminant Income ratio, None to ignore.

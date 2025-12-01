@@ -859,6 +859,168 @@ class TestParameters:
         assert len(params) == 1  # Only T_cycle
         assert params["T_cycle"] == 5
 
+    def test_t_cycle_validation(self):
+        """Test that T_cycle must be >= 1."""
+        with pytest.raises(ValueError, match="T_cycle must be >= 1"):
+            Parameters(T_cycle=0)
+
+        with pytest.raises(ValueError, match="T_cycle must be >= 1"):
+            Parameters(T_cycle=-1)
+
+        # T_cycle=1 should work
+        params = Parameters(T_cycle=1)
+        assert params._length == 1
+
+    def test_explicit_time_inv_override(self):
+        """Test explicitly marking parameters as time-invariant."""
+        # Normally, a list would be time-varying
+        params = Parameters(
+            T_cycle=3, asset_list=["stocks", "bonds", "cash"], _time_inv=["asset_list"]
+        )
+        assert "asset_list" in params._invariant_params
+        assert "asset_list" not in params._varying_params
+        assert params["asset_list"] == ["stocks", "bonds", "cash"]
+
+    def test_explicit_time_vary_override(self):
+        """Test explicitly marking parameters as time-varying."""
+        # Normally, a numpy array would be time-invariant
+        params = Parameters(
+            T_cycle=3, values=np.array([1, 2, 3]), _time_vary=["values"]
+        )
+        assert "values" in params._varying_params
+        assert "values" not in params._invariant_params
+
+    def test_frozen_mode(self):
+        """Test that frozen Parameters cannot be modified."""
+        params = Parameters(T_cycle=3, a=1, b=[2, 3, 4], frozen=True)
+
+        # Attempt to modify should raise RuntimeError
+        with pytest.raises(RuntimeError, match="Cannot modify frozen"):
+            params["c"] = 5
+
+        with pytest.raises(RuntimeError, match="Cannot modify frozen"):
+            params["a"] = 10
+
+        with pytest.raises(RuntimeError, match="Cannot modify frozen"):
+            params.new_attr = 20
+
+    def test_frozen_allows_read(self):
+        """Test that frozen Parameters can still be read."""
+        params = Parameters(T_cycle=3, a=1, b=[2, 3, 4], frozen=True)
+        assert params["a"] == 1
+        assert params.a == 1
+        assert params["b"] == [2, 3, 4]
+
+    def test_at_age_method(self):
+        """Test the at_age() method."""
+        params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97], sigma=2.0)
+
+        # Get parameters for age 0
+        age_0 = params.at_age(0)
+        assert age_0.beta == 0.95
+        assert age_0.sigma == 2.0
+
+        # Get parameters for age 1
+        age_1 = params.at_age(1)
+        assert age_1.beta == 0.96
+        assert age_1.sigma == 2.0
+
+        # Get parameters for age 2
+        age_2 = params.at_age(2)
+        assert age_2.beta == 0.97
+        assert age_2.sigma == 2.0
+
+    def test_at_age_out_of_bounds(self):
+        """Test that at_age() raises ValueError for invalid age."""
+        params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97])
+
+        with pytest.raises(ValueError, match="out of bounds"):
+            params.at_age(3)
+
+        with pytest.raises(ValueError, match="out of bounds"):
+            params.at_age(-1)
+
+    def test_validate_success(self):
+        """Test validate() passes for valid parameters."""
+        params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97], sigma=2.0)
+        params.validate()  # Should not raise
+
+    def test_validate_failure_wrong_length(self):
+        """Test validate() fails for mismatched lengths."""
+        params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97])
+        # Manually add a time-varying parameter with wrong length
+        params._parameters["gamma"] = [1.0, 2.0]  # Wrong length
+        params._varying_params.add("gamma")
+
+        with pytest.raises(ValueError, match="validation failed"):
+            params.validate()
+
+    def test_2d_array_time_varying(self):
+        """Test that 2D numpy arrays with first dim = T_cycle are time-varying."""
+        # 2D array with shape (3, 2) where first dim matches T_cycle
+        arr_2d = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        params = Parameters(T_cycle=3, matrix=arr_2d)
+
+        assert "matrix" in params._varying_params
+        assert "matrix" not in params._invariant_params
+        assert np.array_equal(params["matrix"], arr_2d)
+
+    def test_2d_array_time_invariant(self):
+        """Test that 2D numpy arrays with first dim != T_cycle are time-invariant."""
+        # 2D array with shape (2, 3) where first dim doesn't match T_cycle
+        arr_2d = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+        params = Parameters(T_cycle=3, matrix=arr_2d)
+
+        assert "matrix" in params._invariant_params
+        assert "matrix" not in params._varying_params
+
+    def test_namedtuple_caching(self):
+        """Test that to_namedtuple() caches the namedtuple class."""
+        params = Parameters(T_cycle=3, a=1, b=2)
+
+        # First call should create cache
+        nt1 = params.to_namedtuple()
+        assert params._namedtuple_cache is not None
+
+        # Second call should use cached class
+        nt2 = params.to_namedtuple()
+        assert type(nt1) is type(nt2)  # Same class
+
+    def test_combined_explicit_overrides(self):
+        """Test using both _time_inv and _time_vary together."""
+        params = Parameters(
+            T_cycle=3,
+            list_param=[1, 2, 3],  # Would be time-varying
+            array_param=np.array([4, 5, 6]),  # Would be time-invariant
+            _time_inv=["list_param"],
+            _time_vary=["array_param"],
+        )
+
+        assert "list_param" in params._invariant_params
+        assert "array_param" in params._varying_params
+
+    def test_2d_array_at_t_cycle_1(self):
+        """Test that 2D array with shape (1, n) at T_cycle=1 is time-varying."""
+        # Edge case: T_cycle=1 with 2D array shape (1, 5)
+        arr_2d = np.array([[1.0, 2.0, 3.0, 4.0, 5.0]])
+        params = Parameters(T_cycle=1, matrix=arr_2d)
+
+        # Should be time-varying since first dim matches T_cycle
+        assert "matrix" in params._varying_params
+        assert "matrix" not in params._invariant_params
+
+    def test_validate_0d_array(self):
+        """Test that validate() catches 0-dimensional arrays marked as time-varying."""
+        params = Parameters(T_cycle=3, beta=0.95)
+
+        # Manually add a 0-dimensional array as time-varying (invalid state)
+        params._parameters["scalar_array"] = np.array(5.0)  # 0-dimensional
+        params._varying_params.add("scalar_array")
+
+        # Should fail validation
+        with pytest.raises(ValueError, match="0-dimensional array"):
+            params.validate()
+
 
 class TestSolveWithParameters(unittest.TestCase):
     """Test solving an agent with Parameters object for params."""
