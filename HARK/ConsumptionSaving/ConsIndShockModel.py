@@ -13,9 +13,14 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
+import warnings
 from copy import copy
 
 import numpy as np
+
+# Small epsilon value used to avoid division by zero when CRRA == 1.0
+# This is a temporary workaround until proper limit calculation is implemented
+CRRA_EPSILON = 1e-8
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
     parse_income_spec,
@@ -375,16 +380,15 @@ def solve_one_period_ConsPF(
     vNvrsNow = uFunc.inverse(vNow)
 
     # Handle CRRA=1.0 case to avoid division by zero
-    if CRRA == 1.0:
+    if np.isclose(CRRA, 1.0):
         # When CRRA=1.0, use a small epsilon to avoid division by zero
         # This is a temporary fix until proper limit calculation is implemented
-        import warnings
         warnings.warn(
-            "CRRA=1.0 detected. Using CRRA=1.0+1e-8 to avoid division by zero. "
+            "CRRA=1.0 detected. Using CRRA=1.0+epsilon to avoid division by zero. "
             "This is a temporary workaround.",
-            UserWarning
+            UserWarning,
         )
-        CRRA_safe = 1.0 + 1e-8
+        CRRA_safe = 1.0 + CRRA_EPSILON
         vNvrsSlopeMin = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
     else:
         vNvrsSlopeMin = MPCminNow ** (-CRRA / (1.0 - CRRA))
@@ -802,9 +806,9 @@ def solve_one_period_ConsIndShock(
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
 
         # Handle CRRA=1.0 case to avoid division by zero
-        if CRRA == 1.0:
+        if np.isclose(CRRA, 1.0):
             # When CRRA=1.0, use a small epsilon to avoid division by zero
-            CRRA_safe = 1.0 + 1e-8
+            CRRA_safe = 1.0 + CRRA_EPSILON
             vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA_safe / (1.0 - CRRA_safe)))
             MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
         else:
@@ -1077,9 +1081,9 @@ def solve_one_period_ConsKinkedR(
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
 
         # Handle CRRA=1.0 case to avoid division by zero
-        if CRRA == 1.0:
+        if np.isclose(CRRA, 1.0):
             # When CRRA=1.0, use a small epsilon to avoid division by zero
-            CRRA_safe = 1.0 + 1e-8
+            CRRA_safe = 1.0 + CRRA_EPSILON
             vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA_safe / (1.0 - CRRA_safe)))
             MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
         else:

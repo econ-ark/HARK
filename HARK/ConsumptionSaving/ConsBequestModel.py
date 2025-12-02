@@ -10,7 +10,12 @@ It currently solves two types of models:
     2) A portfolio choice model with a terminal and/or accidental bequest motive.
 """
 
+
 import numpy as np
+
+# Small epsilon value used to avoid division by zero when CRRA == 1.0
+# This is a temporary workaround until proper limit calculation is implemented
+CRRA_EPSILON = 1e-8
 
 from HARK import NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -419,11 +424,11 @@ def solve_one_period_ConsWarmBequest(
         vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
         # Handle CRRA=1.0 case to avoid division by zero
 
-        if CRRA == 1.0:
+        if np.isclose(CRRA, 1.0):
 
             # When CRRA=1.0, use a small epsilon to avoid division by zero
 
-            CRRA_safe = 1.0 + 1e-8
+            CRRA_safe = 1.0 + CRRA_EPSILON
 
             MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
 
