@@ -537,7 +537,7 @@ class testPerfMITShk(unittest.TestCase):
             def __init__(self, cycles=0, **kwds):
                 IndShockConsumerType.__init__(self, cycles=0, **kwds)
 
-            def get_Rfree(self):
+            def get_Rport(self):
                 """
                 Returns an array of size self.AgentCount with self.Rfree in every entry.
                 Parameters
@@ -567,7 +567,7 @@ class testPerfMITShk(unittest.TestCase):
             def transition(self):
                 pLvlPrev = self.state_prev["pLvl"]
                 aNrmPrev = self.state_prev["aNrm"]
-                RfreeNow = self.get_Rfree()
+                RfreeNow = self.get_Rport()
 
                 # Calculate new states: normalized market resources and permanent income level
                 pLvlNow = (

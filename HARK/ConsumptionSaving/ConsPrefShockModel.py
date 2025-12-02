@@ -1279,5 +1279,5 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
     def pre_solve(self):
         self.construct("solution_terminal")
 
-    def get_Rfree(self):  # Specify which get_Rfree to use
-        return KinkedRconsumerType.get_Rfree(self)
+    def get_Rport(self):  # Specify which get_Rport to use
+        return KinkedRconsumerType.get_Rport(self)
