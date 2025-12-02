@@ -3,15 +3,17 @@ __all__ = [
     "DiscreteDistributionLabeled",
     "Distribution",
     "IndexDistribution",
-    "TimeVaryingDiscreteDistribution",
     "Lognormal",
+    "LogNormal",
     "MeanOneLogNormal",
     "Normal",
+    "MultivariateNormal",
+    "MultivariateLogNormal",
     "Weibull",
     "Bernoulli",
-    "MultivariateLogNormal",
-    "MultivariateNormal",
     "approx_beta",
+    "make_markov_approx_to_normal",
+    "make_markov_approx_to_normal_by_monte_carlo",
     "approx_lognormal_gauss_hermite",
     "calc_expectation",
     "calc_lognormal_style_pars_from_normal_pars",
@@ -21,6 +23,7 @@ __all__ = [
     "expected",
     "Uniform",
     "MarkovProcess",
+    "add_discrete_outcome",
     "add_discrete_outcome_constant_mean",
     "make_tauchen_ar1",
 ]
@@ -29,10 +32,10 @@ from HARK.distributions.base import (
     Distribution,
     IndexDistribution,
     MarkovProcess,
-    TimeVaryingDiscreteDistribution,
 )
 from HARK.distributions.continuous import (
     Lognormal,
+    LogNormal,
     MeanOneLogNormal,
     Normal,
     Uniform,
@@ -45,8 +48,11 @@ from HARK.distributions.discrete import (
 )
 from HARK.distributions.multivariate import MultivariateLogNormal, MultivariateNormal
 from HARK.distributions.utils import (
+    add_discrete_outcome,
     add_discrete_outcome_constant_mean,
     approx_beta,
+    make_markov_approx_to_normal,
+    make_markov_approx_to_normal_by_monte_carlo,
     approx_lognormal_gauss_hermite,
     calc_expectation,
     calc_lognormal_style_pars_from_normal_pars,

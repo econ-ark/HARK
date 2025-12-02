@@ -15,7 +15,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     KinkedRconsumerType,
     make_assets_grid,
-    make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -26,11 +25,13 @@ from HARK.Calibration.Income.IncomeProcesses import (
 )
 from HARK.distributions import MeanOneLogNormal, expected
 from HARK.interpolation import (
+    IdentityFunction,
     CubicInterp,
     LinearInterp,
     LinearInterpOnInterp1D,
     LowerEnvelope,
     MargValueFuncCRRA,
+    MargMargValueFuncCRRA,
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA
@@ -40,6 +41,39 @@ __all__ = [
     "KinkyPrefConsumerType",
     "make_lognormal_PrefShkDstn",
 ]
+
+
+def make_pref_shock_solution_terminal(CRRA):
+    """
+    Construct the terminal period solution for a consumption-saving model with
+    CRRA utility and two state variables. The consumption function depends *only*
+    on the first dimension, representing market resources.
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion. This is the only relevant parameter.
+
+    Returns
+    -------
+    solution_terminal : ConsumerSolution
+        Terminal period solution for someone with the given CRRA.
+    """
+    cFunc_terminal = IdentityFunction(i_dim=0, n_dims=2)  # c=m at t=T
+    vFunc_terminal = ValueFuncCRRA(cFunc_terminal, CRRA)
+    vPfunc_terminal = MargValueFuncCRRA(cFunc_terminal, CRRA)
+    vPPfunc_terminal = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+    solution_terminal = ConsumerSolution(
+        cFunc=cFunc_terminal,
+        vFunc=vFunc_terminal,
+        vPfunc=vPfunc_terminal,
+        vPPfunc=vPPfunc_terminal,
+        mNrmMin=0.0,
+        hNrm=0.0,
+        MPCmin=1.0,
+        MPCmax=1.0,
+    )
+    return solution_terminal
 
 
 def make_lognormal_PrefShkDstn(
@@ -269,9 +303,8 @@ def solve_one_period_ConsPrefShock(
     # for each value of PrefShk, interpolated across those values.
     if CubicBool:
         # This is not yet supported, not sure why we never got to it
-        raise (
-            ValueError,
-            "Cubic interpolation is not yet supported by the preference shock model!",
+        raise ValueError(
+            "Cubic interpolation is not yet supported by the preference shock model!"
         )
 
     # Make the preference-shock specific consumption functions
@@ -303,10 +336,7 @@ def solve_one_period_ConsPrefShock(
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
 
     # Define this period's marginal marginal value function
-    if CubicBool:
-        pass  # This is impossible to reach right now
-    else:
-        vPPfuncNow = NullFunc()  # Dummy object
+    vPPfuncNow = NullFunc()  # Dummy object, cubic interpolation not implemented
 
     # Construct this period's value function if requested
     if vFuncBool:
@@ -586,9 +616,8 @@ def solve_one_period_ConsKinkyPref(
     # for each value of PrefShk, interpolated across those values.
     if CubicBool:
         # This is not yet supported, not sure why we never got to it
-        raise (
-            ValueError,
-            "Cubic interpolation is not yet supported by the preference shock model!",
+        raise ValueError(
+            "Cubic interpolation is not yet supported by the preference shock model!"
         )
 
     # Make the preference-shock specific consumption functions
@@ -620,10 +649,7 @@ def solve_one_period_ConsKinkyPref(
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
 
     # Define this period's marginal marginal value function
-    if CubicBool:
-        pass  # This is impossible to reach right now
-    else:
-        vPPfuncNow = NullFunc()  # Dummy object
+    vPPfuncNow = NullFunc()  # Dummy object, cubic interpolation not implemented
 
     # Construct this period's value function if requested
     if vFuncBool:
@@ -702,7 +728,7 @@ PrefShockConsumerType_constructors_default = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "PrefShkDstn": make_lognormal_PrefShkDstn,
-    "solution_terminal": make_basic_CRRA_solution_terminal,
+    "solution_terminal": make_pref_shock_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
@@ -823,15 +849,15 @@ class PrefShockConsumerType(IndShockConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     PrefShkDstn: Constructor, :math:`\eta`
         The agent's preference shock distributions.
 
-        It's default constuctor is :func:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
+        Its default constuctor is :func:`HARK.ConsumptionSaving.ConsPrefShockModel.make_lognormal_PrefShkDstn`
 
     Solving Parameters
     ------------------
@@ -1009,7 +1035,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         self.controls["cNrm"] = cNrmNow
         return None
 
-    def calc_bounding_values(self):
+    def calc_bounding_values(self):  # pragma: nocover
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -1030,7 +1056,7 @@ class PrefShockConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -1054,11 +1080,13 @@ class PrefShockConsumerType(IndShockConsumerType):
         -------
         None
 
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
         """
+        raise NotImplementedError()
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
         raise NotImplementedError()
 
 

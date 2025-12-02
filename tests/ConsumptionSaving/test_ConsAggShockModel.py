@@ -8,6 +8,7 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
     AggShockMarkovConsumerType,
     CobbDouglasEconomy,
     CobbDouglasMarkovEconomy,
+    SmallOpenMarkovEconomy,
     KrusellSmithEconomy,
     KrusellSmithType,
 )
@@ -50,7 +51,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.act_T = 400  # Short simulation history
         self.economy.max_loops = 3  # Give up quickly for the sake of time
         self.economy.make_AggShkHist()  # Simulate a history of aggregate shocks
-        self.economy.verbose = False  # Turn off printed messages
+        self.economy.verbose = True  # Turn on printed messages
 
         # Give data about the economy to all the agents in it
         for this_type in self.economy.agents:
@@ -67,9 +68,7 @@ class testAggShockConsumerType(unittest.TestCase):
 class testAggShockMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         # Make one agent type and an economy for it to live in
-        self.agent = AggShockMarkovConsumerType()
-        self.agent.cycles = 0
-        self.agent.AgentCount = 1000  # Low number of simulated agents
+        self.agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000)
         self.agent.IncShkDstn = [2 * [self.agent.IncShkDstn[0]]]  ## see #557
         self.economy = CobbDouglasMarkovEconomy(agents=[self.agent])
 
@@ -87,7 +86,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
     def test_economy(self):
         # Adjust the economy so that it (fake) solves quickly
         self.economy.act_T = 500  # Short simulation history
-        self.economy.max_loops = 3  # Just quiet solving early
+        self.economy.max_loops = 3  # Just quit solving early
         self.economy.verbose = False  # Turn off printed messages
 
         self.agent.get_economy_data(self.economy)
@@ -99,8 +98,12 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
             self.economy.AFunc[0].slope, 1.09599, places=HARK_PRECISION
         )
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.economy.history["AaggNow"][5], 9.46776, place = HARK_PRECISION)
+    def test_small_open_economy(self):
+        SOE = SmallOpenMarkovEconomy(agents=[self.agent], Rfree=1.02, wRte=1.0)
+        self.agent.get_economy_data(SOE)
+        SOE.make_AggShkHist()  # Make a simulated history of aggregate shocks
+        SOE.max_loops = 3
+        SOE.solve()
 
 
 class KrusellSmithTestCase(unittest.TestCase):

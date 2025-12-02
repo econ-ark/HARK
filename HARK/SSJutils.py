@@ -376,7 +376,7 @@ def calc_shock_response_manually(
     Returns
     -------
     dYdX : np.array or [np.array]
-        One or more vectors of length
+        One or more vectors of length T_max.
     """
     if (agent.cycles > 0) or (agent.T_cycle != 1):
         raise ValueError(
@@ -562,7 +562,7 @@ def calc_shock_response_manually(
 
 
 @njit
-def calc_derivs_of_state_dstns(T, J, trans_by_t, trans_LR, SS_dstn):
+def calc_derivs_of_state_dstns(T, J, trans_by_t, trans_LR, SS_dstn):  # pragma: no cover
     """
     Numba-compatible helper function to calculate the derivative of the state
     distribution by period.
@@ -595,7 +595,7 @@ def calc_derivs_of_state_dstns(T, J, trans_by_t, trans_LR, SS_dstn):
 
 
 @njit
-def calc_derivs_of_policy_funcs(T, Y_by_t, Y_LR, Y_grid, SS_dstn):
+def calc_derivs_of_policy_funcs(T, Y_by_t, Y_LR, Y_grid, SS_dstn):  # pragma: no cover
     """
     Numba-compatible helper function to calculate the derivative of an outcome
     function in each period.
@@ -628,7 +628,7 @@ def calc_derivs_of_policy_funcs(T, Y_by_t, Y_LR, Y_grid, SS_dstn):
 
 
 @njit
-def make_fake_news_matrices(T, J, dY, D_dstn, trans_LR, E):
+def make_fake_news_matrices(T, J, dY, D_dstn, trans_LR, E):  # pragma: no cover
     """
     Numba-compatible function to calculate the fake news array from first order
     perturbation information.
@@ -664,7 +664,7 @@ def make_fake_news_matrices(T, J, dY, D_dstn, trans_LR, E):
 
 
 @njit
-def calc_ssj_from_fake_news_matrices(T, J, FN, dx):
+def calc_ssj_from_fake_news_matrices(T, J, FN, dx):  # pragma: no cover
     """
     Numba-compatible function to calculate the HA-SSJ from fake news matrices.
 

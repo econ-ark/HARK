@@ -3,13 +3,13 @@ name: Test examples as a cron job
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/workflows/documentation.yml"
       - "docs/**"
   pull_request:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/workflows/documentation.yml"
       - "docs/**"

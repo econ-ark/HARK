@@ -158,8 +158,8 @@ class IndShockSolution(MetricObject):
 
     def __init__(
         self,
-        mNrm=np.linspace(0, 1),
-        cNrm=np.linspace(0, 1),
+        mNrm=None,
+        cNrm=None,
         cFuncLimitIntercept=None,
         cFuncLimitSlope=None,
         mNrmMin=0.0,
@@ -173,8 +173,8 @@ class IndShockSolution(MetricObject):
         vNvrsP=None,
         MPCminNvrs=None,
     ):
-        self.mNrm = mNrm
-        self.cNrm = cNrm
+        self.mNrm = mNrm if mNrm is not None else np.linspace(0, 1)
+        self.cNrm = cNrm if cNrm is not None else np.linspace(0, 1)
         self.cFuncLimitIntercept = cFuncLimitIntercept
         self.cFuncLimitSlope = cFuncLimitSlope
         self.mNrmMin = mNrmMin
@@ -210,7 +210,7 @@ def make_solution_terminal_fast(solution_terminal_class, CRRA):
 
 
 @njit(cache=True)
-def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
+def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):  # pragma: nocover
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
@@ -224,7 +224,7 @@ def _find_mNrmStE(m, Rfree, PermGroFac, mNrm, cNrm, Ex_IncNext):
 @njit
 def _add_mNrmStENumba(
     Rfree, PermGroFac, mNrm, cNrm, mNrmMin, Ex_IncNext, _find_mNrmStE
-):
+):  # pragma: nocover
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -261,7 +261,7 @@ def _solveConsPerfForesightNumba(
     cNrmNext,
     hNrmNext,
     MPCminNext,
-):
+):  # pragma: nocover
     """
     Makes the (linear) consumption function for this period.
     """
@@ -427,12 +427,12 @@ class ConsPerfForesightSolverFast(ConsPerfForesightSolver):
 
 
 @njit(cache=True)
-def _np_tile(A, reps):
+def _np_tile(A, reps):  # pragma: nocover
     return A.repeat(reps[0]).reshape(A.size, -1).transpose()
 
 
 @njit(cache=True)
-def _np_insert(arr, obj, values, axis=-1):
+def _np_insert(arr, obj, values, axis=-1):  # pragma: nocover
     return np.append(np.array(values), arr)
 
 
@@ -452,7 +452,7 @@ def _prepare_to_solveConsIndShockNumba(
     PermShkValsNext,
     TranShkValsNext,
     ShkPrbsNext,
-):
+):  # pragma: nocover
     """
     Unpacks some of the inputs (and calculates simple objects based on them),
     storing the results in self for use by other methods.  These include:
@@ -560,7 +560,7 @@ def _solveConsIndShockLinearNumba(
     BoroCnstNat,
     cFuncInterceptNext,
     cFuncSlopeNext,
-):
+):  # pragma: nocover
     """
     Calculate end-of-period marginal value of assets at each point in aNrmNow.
     Does so by taking a weighted sum of next period marginal values across
@@ -718,7 +718,7 @@ def _solveConsIndShockCubicNumba(
     aNrmNow,
     BoroCnstNat,
     MPCmaxNow,
-):
+):  # pragma: nocover
     mNrmCnst = np.array([mNrmMinNext, mNrmMinNext + 1])
     cNrmCnst = np.array([0.0, 1.0])
     cFuncNextCnst, MPCNextCnst = linear_interp_deriv_fast(
@@ -775,7 +775,9 @@ def _solveConsIndShockCubicNumba(
 
 
 @njit(cache=True)
-def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrmNow):
+def _cFuncCubic(
+    aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrmNow
+):  # pragma: nocover
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
@@ -790,7 +792,9 @@ def _cFuncCubic(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCNow, MPCminNow, hNrm
 
 
 @njit(cache=True)
-def _cFuncLinear(aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow):
+def _cFuncLinear(
+    aXtraGrid, mNrmMinNow, mNrmNow, cNrmNow, MPCminNow, hNrmNow
+):  # pragma: nocover
     mNrmGrid = mNrmMinNow + aXtraGrid
     mNrmCnst = np.array([mNrmMinNow, mNrmMinNow + 1])
     cNrmCnst = np.array([0.0, 1.0])
@@ -825,7 +829,7 @@ def _add_vFuncNumba(
     mNrmMinNow,
     MPCmaxEff,
     MPCminNow,
-):
+):  # pragma: nocover
     """
     Construct the end-of-period value function for this period, storing it
     as an attribute of self for use by other methods.
@@ -915,7 +919,7 @@ def _add_mNrmStEIndNumba(
     MPCmin,
     hNrm,
     _searchfunc,
-):
+):  # pragma: nocover
     """
     Finds steady state (normalized) market resources and adds it to the
     solution.  This is the level of market resources such that the expectation
@@ -942,7 +946,7 @@ def _add_mNrmStEIndNumba(
 @njit(cache=True)
 def _find_mNrmStELinear(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
-):
+):  # pragma: nocover
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 
@@ -962,7 +966,7 @@ def _find_mNrmStELinear(
 @njit(cache=True)
 def _find_mNrmStECubic(
     m, PermGroFac, Rfree, Ex_IncNext, mNrmMin, mNrm, cNrm, MPC, MPCmin, hNrm
-):
+):  # pragma: nocover
     # Make a linear function of all combinations of c and m that yield mNext = mNow
     mZeroChange = (1.0 - PermGroFac / Rfree) * m + (PermGroFac / Rfree) * Ex_IncNext
 

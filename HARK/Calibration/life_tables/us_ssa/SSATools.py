@@ -51,7 +51,13 @@ def get_ssa_life_tables():
 
 
 def parse_ssa_life_table(
-    min_age, max_age, female=True, cohort=None, cross_sec=False, year=None
+    age_min,
+    age_max,
+    female=True,
+    cohort=None,
+    cross_sec=False,
+    year=None,
+    terminal=False,
 ):
     """
     Reads (year,age)-specifc death probabilities form SSA life tables and
@@ -71,9 +77,9 @@ def parse_ssa_life_table(
 
     Parameters
     ----------
-    min_age : int
+    age_min : int
         Minimum age for survival probabilities.
-    max_age : int
+    age_max : int
         Maximum age for survival probabilities.
     female : bool, optional
         Boolean indicating wether to use female or male survival probabilities.
@@ -85,8 +91,11 @@ def parse_ssa_life_table(
         Boolean indicating whether the cross-sectional method should be used.
         The default is False (using the longitudinal method).
     year : int, optional
-        If cross-sectional probabilities are requestedm this is the year at
+        If cross-sectional probabilities are requested, this is the year at
         which they will be taken. The default is None.
+    terminal : bool, optional
+        Indicator for whether the mortality probability for age_max should be
+        included (default False). Default behavior matches format of parse_income_spec.
 
     Returns
     -------
@@ -103,8 +112,12 @@ def parse_ssa_life_table(
     abb = "F" if female else "M"
 
     # Find year - age combinations that we need
-    assert max_age >= min_age, "The maximum age can not be lower than the minimum age."
-    ages = np.arange(min_age, max_age + 1)
+    assert age_max >= age_min, "The maximum age can not be lower than the minimum age."
+    if terminal:
+        ages = np.arange(age_min, age_max + 1)
+    else:
+        ages = np.arange(age_min, age_max)
+    age_count = ages.size
 
     if cross_sec:
         if year is None:
@@ -173,7 +186,6 @@ def parse_ssa_life_table(
     )
     try:
         DeathPrb = tab.loc[zip(years, ages)].sort_values(by="x")
-
     except KeyError as e:
         raise Exception(message).with_traceback(e.__traceback__)
 
@@ -181,9 +193,8 @@ def parse_ssa_life_table(
     LivPrb = 1 - DeathPrb["q(x)"].to_numpy()
 
     # Make sure we got all the probabilities
-    assert len(LivPrb) == max_age - min_age + 1, message
+    assert len(LivPrb) == age_count, message
 
     # Transform from array to list
     LivPrb = list(LivPrb)
-
     return LivPrb

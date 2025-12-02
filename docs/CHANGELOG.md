@@ -8,6 +8,43 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.16.2(dev)
+
+Release Date: TBD
+
+#### Release Notes
+
+There are some breaking changes:
+
+- The removal of TimeVaryingDiscreteDistribution; use IndexDistribution instead, and see #1592.
+- FixedPortfolioShareRiskyAssetConsumerType is removed, but now incorporated as RiskyAssetConsumerType with PortfolioBool=False. Default behavior of latter class is unchanged; see #1607.
+- The content of HARK.parallel has been moved to HARK.core, and the former is deprecated. Import from HARK.core and see #1614.
+- parse_ssa_life_table now returns one fewer survival probability by default, to match output length of parse_income_spec. Pass terminal=True to restore old behavior and see #1629.
+
+#### Major Changes
+
+- Basic health investment model added in new module ConsHealthModel. [#1567](https://github.com/econ-ark/HARK/pull/1567)
+- Extensive margin medical care choice model added to ConsMedModel. [#1595](https://github.com/econ-ark/HARK/pull/1595)
+
+#### Minor Changes
+
+- Turns off use_infimum feature in ConsIndShock solver because it did not work properly when vFunc=True [#1589](https://github.com/econ-ark/HARK/pull/1589)
+- Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
+- Krusell-Smith model guide added to documentation. [#1594](https://github.com/econ-ark/HARK/pull/1594)
+- Added additional options and simplified syntax for non-default constructors when instantiating agents. [#1591](https://github.com/econ-ark/HARK/pull/1591)
+- Added options for custom indexer and pre-computation of coefficients to LinearInterp. [#1593](https://github.com/econ-ark/HARK/pull/1593)
+- Fixed bug that prevented combine_indep_dstn from working with Bernoulli distributions. [#1581](https://github.com/econ-ark/HARK/pull/1581)
+- Introductory / instructional notebooks significantly expanded. [#1597](https://github.com/econ-ark/HARK/pull/1597)
+- Lognormal discrete approximation math has been simplified. [#1598](https://github.com/econ-ark/HARK/pull/1598)
+- Directory structure for consumption-saving examples regularized. [#1596](https://github.com/econ-ark/HARK/pull/1596)
+- Fixed share model has been combined with RiskyAssetConsumerType's PortfolioBool=False option. [#1607](https://github.com/econ-ark/HARK/pull/1607)
+- Deprecate HARK.parallel, moving the three functions there to HARK.core. [#1614](https://github.com/econ-ark/HARK/pull/1614)
+- Test coverage expanded to cover almost all content #1606 #1610 #1617 #1619 #1623 #1624 #1625 #1626 #1628
+- Consumption-saving models now aliased at HARK.models and HARK.ConsumptionSaving; some calibration tools also aliased at HARK.Calibration [#1629](https://github.com/econ-ark/HARK/pull/1629)
+- AgentType.solve() can be passed postsolve=False to skip post-processing call to post_solve(). [#1631](https://github.com/econ-ark/HARK/pull/1631)
+- The /examples directory can be copied to a directory of user's choice with HARK.install_examples() [#1630](https://github.com/econ-ark/HARK/pull/1630)
+- Improved and expanded features for Parameters class in HARK.core [#1627](https://github.com/econ-ark/HARK/pull/1627)
+
 ### 0.16.1
 
 Release Date: July 24, 2025

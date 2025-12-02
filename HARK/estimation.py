@@ -11,9 +11,9 @@ from time import time  # Used to time execution
 import estimagic as em
 import numpy as np  # Numerical Python
 from joblib import Parallel, delayed
-from scipy.optimize import fmin, fmin_powell
+from scipy.optimize import fmin, fmin_powell  # off-the-shelf minimizers
 
-from HARK.core import AgentType  # Minimizers
+from HARK.core import AgentType
 
 __all__ = [
     "minimize_nelder_mead",
@@ -216,8 +216,8 @@ def parallelNelderMead(
     guess,
     perturb=None,
     P=1,
-    ftol=0.000001,
-    xtol=0.00000001,
+    ftol=1e-8,
+    xtol=1e-8,
     maxiter=np.inf,
     maxeval=np.inf,
     r_param=1.0,
@@ -308,7 +308,7 @@ def parallelNelderMead(
     else:
         if perturb is None:  # Default: perturb each parameter by 10%
             perturb = 0.1 * guess
-            guess[guess == 0] = 0.1
+            perturb[guess == 0] = 0.1
 
         params_to_opt = np.where(perturb != 0)[
             0
@@ -332,15 +332,17 @@ def parallelNelderMead(
 
     # Make sure degree of parallelization is not illegal
     if P > N - 1:
-        print(
+        warnings.warn(
             "Requested degree of simplex parallelization is "
             + str(P)
             + ", but dimension of optimization problem is only "
             + str(N - 1)
             + ".",
         )
-        print("Degree of parallelization has been reduced to " + str(N - 1) + ".")
-        P = N - 1
+        warnings.warn(
+            "Degree of parallelization has been reduced to " + str(N - 1) + "."
+        )
+        P = N - 2
 
     # Create the pool of worker processes
     cpu_cores = multiprocessing.cpu_count()  # Total number of available CPU cores
@@ -348,11 +350,17 @@ def parallelNelderMead(
     if maxthreads is not None:  # Cap the number of cores if desired
         cores_to_use = min(cores_to_use, maxthreads)
     parallel = Parallel(n_jobs=cores_to_use)
+    use_parallel = cores_to_use > 1
 
     # Begin a new Nelder-Mead search
     if not resume:
         temp_simplex = list(simplex)  # Evaluate the initial simplex
-        fvals = np.array(parallel(delayed(obj_func)(params) for params in temp_simplex))
+        if use_parallel:
+            fvals = np.array(
+                parallel(delayed(obj_func)(params) for params in temp_simplex)
+            )
+        else:
+            fvals = np.array([obj_func(params) for params in temp_simplex])
         evals += N
         # Reorder the initial simplex
         order = np.argsort(fvals)
@@ -398,17 +406,25 @@ def parallelNelderMead(
             print("Beginning iteration #" + str(iters) + " now.")
 
         # Update the P worst points of the simplex
-        output = parallel(
-            delayed(parallel_nelder_mead_worker)(
-                obj_func,
-                simplex,
-                fvals,
-                j,
-                P,
-                opt_params,
+        if use_parallel:
+            output = parallel(
+                delayed(parallel_nelder_mead_worker)(
+                    obj_func,
+                    simplex,
+                    fvals,
+                    j,
+                    P,
+                    opt_params,
+                )
+                for j in j_list
             )
-            for j in j_list
-        )
+        else:
+            output = [
+                parallel_nelder_mead_worker(obj_func, simplex, fvals, j, P, opt_params)
+                for j in j_list
+            ]
+
+        # Extract the output for each node
         new_subsimplex = np.zeros((P, K)) + np.nan
         new_vals = np.zeros(P) + np.nan
         new_evals = 0
@@ -428,10 +444,15 @@ def parallelNelderMead(
                 s_param * np.tile(simplex[0, :], (N, 1)) + (1.0 - s_param) * simplex
             )
             temp_simplex = list(simplex[1:N, :])
-            fvals = np.array(
-                [fvals[0]]
-                + parallel(delayed(obj_func)(params) for params in temp_simplex),
-            )
+            if use_parallel:
+                fvals = np.array(
+                    [fvals[0]]
+                    + parallel(delayed(obj_func)(params) for params in temp_simplex),
+                )
+            else:
+                fvals = np.array(
+                    [fvals[0]] + [obj_func(params) for params in temp_simplex]
+                )
             new_evals += N - 1
             evals += N - 1
         else:
@@ -496,7 +517,7 @@ def parallelNelderMead(
 
     # Return the results
     xopt = simplex[0, :]
-    return xopt, fmin
+    return xopt
 
 
 def save_nelder_mead_data(name, simplex, fvals, iters, evals):
@@ -522,9 +543,8 @@ def save_nelder_mead_data(name, simplex, fvals, iters, evals):
 
     """
     N = simplex.shape[0]  # Number of points in simplex
-    K = simplex.shape[1]  # Total number of parameters
 
-    with open(name + ".txt", "w") as f:
+    with open(name + ".txt", "w", newline="") as f:
         my_writer = csv.writer(f, delimiter=",")
         my_writer.writerow(simplex.shape)
         my_writer.writerow([iters, evals])
@@ -555,26 +575,26 @@ def load_nelder_mead_data(name):
 
     """
     # Open the Nelder-Mead progress file
-    with open(name + ".txt") as f:
+    with open(name + ".txt", newline="") as f:
         my_reader = csv.reader(f, delimiter=",")
 
         # Get the shape of the simplex and initialize it
-        my_shape_txt = my_reader.next()
+        my_shape_txt = my_reader.__next__()
         N = int(my_shape_txt[0])
         K = int(my_shape_txt[1])
         simplex = np.zeros((N, K)) + np.nan
 
         # Get number of iterations and cumulative evaluations from the next line
-        my_nums_txt = my_reader.next()
+        my_nums_txt = my_reader.__next__()
         iters = int(my_nums_txt[0])
         evals = int(my_nums_txt[1])
 
         # Read one line per point of the simplex
         for n in range(N):
-            simplex[n, :] = np.array(my_reader.next(), dtype=float)
+            simplex[n, :] = np.array(my_reader.__next__(), dtype=float)
 
         # Read the final line to get function values
-        fvals = np.array(my_reader.next(), dtype=float)
+        fvals = np.array(my_reader.__next__(), dtype=float)
 
     return simplex, fvals, iters, evals
 

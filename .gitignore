@@ -293,3 +293,4 @@ spyproject
 
 # 20240608: CDC added *private* to avoid accidentally uploading private material
 *private*
+uv.lock

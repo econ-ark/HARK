@@ -7,9 +7,8 @@ model adds an additional layer, endogenizing some of the inputs to the micro
 problem by finding a general equilibrium dynamic rule.
 """
 
-# Set logging and define basic functions
+# Import basic modules
 import inspect
-import logging
 import sys
 from collections import namedtuple
 from copy import copy, deepcopy
@@ -17,6 +16,8 @@ from dataclasses import dataclass, field
 from time import time
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Union
 from warnings import warn
+import multiprocessing
+from joblib import Parallel, delayed
 
 import numpy as np
 import pandas as pd
@@ -25,44 +26,28 @@ from xarray import DataArray
 from HARK.distributions import (
     Distribution,
     IndexDistribution,
-    TimeVaryingDiscreteDistribution,
     combine_indep_dstns,
 )
-from HARK.parallel import multi_thread_commands, multi_thread_commands_fake
-from HARK.utilities import NullFunc, get_arg_names
+from HARK.utilities import NullFunc, get_arg_names, get_it_from
 from HARK.simulator import make_simulator_from_agent
 from HARK.SSJutils import (
     make_basic_SSJ_matrices,
     calc_shock_response_manually,
 )
+from HARK.metric import MetricObject
 
-logging.basicConfig(format="%(message)s")
-_log = logging.getLogger("HARK")
-_log.setLevel(logging.ERROR)
-
-
-def disable_logging():
-    _log.disabled = True
-
-
-def enable_logging():
-    _log.disabled = False
-
-
-def warnings():
-    _log.setLevel(logging.WARNING)
-
-
-def quiet():
-    _log.setLevel(logging.ERROR)
-
-
-def verbose():
-    _log.setLevel(logging.INFO)
-
-
-def set_verbosity_level(level):
-    _log.setLevel(level)
+__all__ = [
+    "AgentType",
+    "Market",
+    "Parameters",
+    "Model",
+    "AgentPopulation",
+    "multi_thread_commands",
+    "multi_thread_commands_fake",
+    "NullFunc",
+    "make_one_period_oo_solver",
+    "distribute_params",
+]
 
 
 class Parameters:
@@ -86,7 +71,14 @@ class Parameters:
         The internal dictionary storing all parameters.
     """
 
-    __slots__ = ("_length", "_invariant_params", "_varying_params", "_parameters")
+    __slots__ = (
+        "_length",
+        "_invariant_params",
+        "_varying_params",
+        "_parameters",
+        "_frozen",
+        "_namedtuple_cache",
+    )
 
     def __init__(self, **parameters: Any) -> None:
         """
@@ -94,16 +86,72 @@ class Parameters:
 
         Parameters
         ----------
+        T_cycle : int, optional
+            The number of time periods in the model cycle (default: 1).
+            Must be >= 1.
+        frozen : bool, optional
+            If True, the Parameters object will be immutable after initialization
+            (default: False).
+        _time_inv : List[str], optional
+            List of parameter names to explicitly mark as time-invariant,
+            overriding automatic inference.
+        _time_vary : List[str], optional
+            List of parameter names to explicitly mark as time-varying,
+            overriding automatic inference.
         **parameters : Any
             Any number of parameters in the form key=value.
+
+        Raises
+        ------
+        ValueError
+            If T_cycle is less than 1.
+
+        Notes
+        -----
+        Automatic time-variance inference rules:
+        - Scalars (int, float, bool, None) are time-invariant
+        - NumPy arrays are time-invariant (use lists/tuples for time-varying)
+        - Single-element lists/tuples [x] are unwrapped to x and time-invariant
+        - Multi-element lists/tuples are time-varying if length matches T_cycle
+        - 2D arrays with first dimension matching T_cycle are time-varying
+        - Distributions and Callables are time-invariant
+
+        Use _time_inv or _time_vary to override automatic inference when needed.
         """
+        # Extract special parameters
         self._length: int = parameters.pop("T_cycle", 1)
+        frozen: bool = parameters.pop("frozen", False)
+        time_inv_override: List[str] = parameters.pop("_time_inv", [])
+        time_vary_override: List[str] = parameters.pop("_time_vary", [])
+
+        # Validate T_cycle
+        if self._length < 1:
+            raise ValueError(f"T_cycle must be >= 1, got {self._length}")
+
+        # Initialize internal state
         self._invariant_params: Set[str] = set()
         self._varying_params: Set[str] = set()
         self._parameters: Dict[str, Any] = {"T_cycle": self._length}
+        self._frozen: bool = False  # Set to False initially to allow setup
+        self._namedtuple_cache: Optional[type] = None
 
+        # Set parameters using automatic inference
         for key, value in parameters.items():
             self[key] = value
+
+        # Apply explicit overrides
+        for param in time_inv_override:
+            if param in self._parameters:
+                self._invariant_params.add(param)
+                self._varying_params.discard(param)
+
+        for param in time_vary_override:
+            if param in self._parameters:
+                self._varying_params.add(param)
+                self._invariant_params.discard(param)
+
+        # Freeze if requested
+        self._frozen = frozen
 
     def __getitem__(self, item_or_key: Union[int, str]) -> Union["Parameters", Any]:
         """
@@ -135,9 +183,9 @@ class Parameters:
             If the key is neither an integer nor a string.
         """
         if isinstance(item_or_key, int):
-            if item_or_key >= self._length:
+            if item_or_key < 0 or item_or_key >= self._length:
                 raise ValueError(
-                    f"Age {item_or_key} is out of bounds (max: {self._length - 1})."
+                    f"Age {item_or_key} is out of bounds (valid: 0-{self._length - 1})."
                 )
 
             params = {key: self._parameters[key] for key in self._invariant_params}
@@ -167,6 +215,9 @@ class Parameters:
         is a list or tuple of length greater than 1, the length of the list or
         tuple must match the `_length` attribute of the Parameters object.
 
+        2D numpy arrays with first dimension matching T_cycle are treated as
+        time-varying parameters.
+
         Parameters
         ----------
         key : str
@@ -179,12 +230,35 @@ class Parameters:
         ValueError:
             If the parameter name is not a string or if the value type is unsupported.
             If the parameter value is inconsistent with the current model length.
+        RuntimeError:
+            If the Parameters object is frozen.
         """
+        if self._frozen:
+            raise RuntimeError("Cannot modify frozen Parameters object")
+
         if not isinstance(key, str):
             raise ValueError(f"Parameter name must be a string, got {type(key)}")
 
-        if isinstance(
-            value, (int, float, np.ndarray, type(None), Distribution, bool, Callable)
+        # Check for 2D numpy arrays with time-varying first dimension
+        if isinstance(value, np.ndarray) and value.ndim >= 2:
+            if value.shape[0] == self._length:
+                self._varying_params.add(key)
+                self._invariant_params.discard(key)
+            else:
+                self._invariant_params.add(key)
+                self._varying_params.discard(key)
+        elif isinstance(
+            value,
+            (
+                int,
+                float,
+                np.ndarray,
+                type(None),
+                Distribution,
+                bool,
+                Callable,
+                MetricObject,
+            ),
         ):
             self._invariant_params.add(key)
             self._varying_params.discard(key)
@@ -244,12 +318,16 @@ class Parameters:
         """
         Convert parameters to a namedtuple.
 
+        The namedtuple class is cached for efficiency on repeated calls.
+
         Returns
         -------
         namedtuple
             A namedtuple containing all parameters.
         """
-        return namedtuple("Parameters", self.keys())(**self.to_dict())
+        if self._namedtuple_cache is None:
+            self._namedtuple_cache = namedtuple("Parameters", self.keys())
+        return self._namedtuple_cache(**self.to_dict())
 
     def update(self, other: Union["Parameters", Dict[str, Any]]) -> None:
         """
@@ -451,6 +529,91 @@ class Parameters:
         """
         return key in self._varying_params
 
+    def at_age(self, age: int) -> "Parameters":
+        """
+        Get parameters for a specific age.
+
+        This is an alternative to integer indexing (params[age]) that is more
+        explicit and avoids potential confusion with dictionary-style access.
+
+        Parameters
+        ----------
+        age : int
+            The age index to retrieve parameters for.
+
+        Returns
+        -------
+        Parameters
+            A new Parameters object with parameters for the specified age.
+
+        Raises
+        ------
+        ValueError
+            If the age index is out of bounds.
+
+        Examples
+        --------
+        >>> params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97], sigma=2.0)
+        >>> age_1_params = params.at_age(1)
+        >>> age_1_params.beta
+        0.96
+        """
+        return self[age]
+
+    def validate(self) -> None:
+        """
+        Validate parameter consistency.
+
+        Checks that all time-varying parameters have length matching T_cycle.
+        This is useful after manual modifications or when parameters are set
+        programmatically.
+
+        Raises
+        ------
+        ValueError
+            If any time-varying parameter has incorrect length.
+
+        Examples
+        --------
+        >>> params = Parameters(T_cycle=3, beta=[0.95, 0.96, 0.97])
+        >>> params.validate()  # Passes
+        >>> params.add_to_time_vary("beta")
+        >>> params.validate()  # Still passes
+        """
+        errors = []
+        for param in self._varying_params:
+            value = self._parameters[param]
+            if isinstance(value, (list, tuple)):
+                if len(value) != self._length:
+                    errors.append(
+                        f"Parameter '{param}' has length {len(value)}, expected {self._length}"
+                    )
+            elif isinstance(value, np.ndarray):
+                if value.ndim == 0:
+                    errors.append(
+                        f"Parameter '{param}' is a 0-dimensional array (scalar), "
+                        "which should not be time-varying"
+                    )
+                elif value.ndim >= 2:
+                    if value.shape[0] != self._length:
+                        errors.append(
+                            f"Parameter '{param}' has first dimension {value.shape[0]}, expected {self._length}"
+                        )
+                elif value.ndim == 1:
+                    if len(value) != self._length:
+                        errors.append(
+                            f"Parameter '{param}' has length {len(value)}, expected {self._length}"
+                        )
+                elif value.ndim == 0:
+                    errors.append(
+                        f"Parameter '{param}' is a 0-dimensional numpy array, expected length {self._length}"
+                    )
+
+        if errors:
+            raise ValueError(
+                "Parameter validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+            )
+
 
 class Model:
     """
@@ -620,7 +783,7 @@ class Model:
                     if force:
                         continue
                     else:
-                        raise ValueError("No constructor found for " + key) from None
+                        raise KeyError("No constructor found for " + key) from None
 
                 # If this constructor is None, do nothing and mark it as completed;
                 # this includes restoring the previous value if it exists
@@ -632,28 +795,43 @@ class Model:
                     anything_accomplished_this_pass = True  # We did something!
                     continue
 
+                # SPECIAL: if the constructor is get_it_from, handle it separately
+                if isinstance(constructor, get_it_from):
+                    try:
+                        parent = getattr(self, constructor.name)
+                        query = key
+                        any_missing = False
+                        missing_args = []
+                    except:
+                        parent = None
+                        query = None
+                        any_missing = True
+                        missing_args = [constructor.name]
+                    temp_dict = {"parent": parent, "query": query}
+
                 # Get the names of arguments for this constructor and try to gather them
-                args_needed = get_arg_names(constructor)
-                has_no_default = {
-                    k: v.default is inspect.Parameter.empty
-                    for k, v in inspect.signature(constructor).parameters.items()
-                }
-                temp_dict = {}
-                any_missing = False
-                missing_args = []
-                for j in range(len(args_needed)):
-                    this_arg = args_needed[j]
-                    if hasattr(self, this_arg):
-                        temp_dict[this_arg] = getattr(self, this_arg)
-                    else:
-                        try:
-                            temp_dict[this_arg] = self.parameters[this_arg]
-                        except:
-                            if has_no_default[this_arg]:
-                                # Record missing key-data pair
-                                any_missing = True
-                                missing_key_data.append((key, this_arg))
-                                missing_args.append(this_arg)
+                else:  # (if it's not the special case of get_it_from)
+                    args_needed = get_arg_names(constructor)
+                    has_no_default = {
+                        k: v.default is inspect.Parameter.empty
+                        for k, v in inspect.signature(constructor).parameters.items()
+                    }
+                    temp_dict = {}
+                    any_missing = False
+                    missing_args = []
+                    for j in range(len(args_needed)):
+                        this_arg = args_needed[j]
+                        if hasattr(self, this_arg):
+                            temp_dict[this_arg] = getattr(self, this_arg)
+                        else:
+                            try:
+                                temp_dict[this_arg] = self.parameters[this_arg]
+                            except:
+                                if has_no_default[this_arg]:
+                                    # Record missing key-data pair
+                                    any_missing = True
+                                    missing_key_data.append((key, this_arg))
+                                    missing_args.append(this_arg)
 
                 # If all of the required data was found, run the constructor and
                 # store the result in parameters (and on self)
@@ -695,7 +873,8 @@ class Model:
                 if keys_complete[i]:
                     continue
                 msg += " " + keys[i] + ","
-                if keys[i] in backup.keys():
+                key = keys[i]
+                if key in backup.keys():
                     setattr(self, key, backup[key])
                     self.parameters[key] = backup[key]
             msg = msg[:-1]
@@ -732,9 +911,25 @@ class Model:
         for key in keys:
             has_val = hasattr(self, key) or (key in self.parameters)
 
-            # Get the constructor function if possible
             try:
                 constructor = self.constructors[key]
+            except:
+                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
+                continue
+
+            # Get the constructor function if possible
+            if isinstance(constructor, get_it_from):
+                parent_name = self.constructors[key].name
+                out += (
+                    noyes[int(has_val)]
+                    + " "
+                    + key
+                    + " : get it from "
+                    + parent_name
+                    + "\n"
+                )
+                continue
+            else:
                 out += (
                     noyes[int(has_val)]
                     + " "
@@ -743,9 +938,6 @@ class Model:
                     + constructor.__name__
                     + "\n"
                 )
-            except:
-                out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
-                continue
 
             # Get constructor argument names
             arg_names = get_arg_names(constructor)
@@ -817,6 +1009,12 @@ class AgentType(Model):
         Indicator for whether this instance's construct() method should be run
         when initialized (default True). When False, an instance of the class
         can be created even if not all of its attributes can be constructed.
+    use_defaults : bool
+        Indicator for whether this instance should use the values in the class'
+        default dictionary to fill in parameters and constructors for those not
+        provided by the user (default True). Setting this to False is useful for
+        situations where the user wants to be absolutely sure that they know what
+        is being passed to the class initializer, without resorting to defaults.
 
     Attributes
     ----------
@@ -844,11 +1042,23 @@ class AgentType(Model):
         quiet=False,
         seed=0,
         construct=True,
+        use_defaults=True,
         **kwds,
     ):
         super().__init__()
-        params = deepcopy(self.default_["params"])
+        params = deepcopy(self.default_["params"]) if use_defaults else {}
         params.update(kwds)
+
+        # Correctly handle constructors that have been passed in kwds
+        if "constructors" in self.default_["params"].keys() and use_defaults:
+            constructors = deepcopy(self.default_["params"]["constructors"])
+        else:
+            constructors = {}
+        if "constructors" in kwds.keys():
+            constructors.update(kwds["constructors"])
+        params["constructors"] = constructors
+
+        # Set model file name if possible
         try:
             self.model_file = copy(self.default_["model"])
         except (KeyError, TypeError):
@@ -864,7 +1074,6 @@ class AgentType(Model):
         self.tolerance = tolerance  # NOQA
         self.verbose = verbose
         self.quiet = quiet
-        set_verbosity_level((4 - verbose) * 10)
         self.seed = seed  # NOQA
         self.track_vars = []  # NOQA
         self.state_now = {sv: None for sv in self.state_vars}
@@ -956,26 +1165,37 @@ class AgentType(Model):
 
     def unpack(self, parameter):
         """
-        Unpacks a parameter from a solution object for easier access.
-        After the model has been solved, the parameters (like consumption function)
-        reside in the attributes of each element of `ConsumerType.solution` (e.g. `cFunc`).  This method creates a (time varying) attribute of the given
-        parameter name that contains a list of functions accessible by `ConsumerType.parameter`.
+        Unpacks an attribute from a solution object for easier access.
+        After the model has been solved, its components (like consumption function)
+        reside in the attributes of each element of `ThisType.solution` (e.g. `cFunc`).
+        This method creates a (time varying) attribute of the given attribute name
+        that contains a list of elements accessible by `ThisType.parameter`.
 
         Parameters
         ----------
         parameter: str
-            Name of the function to unpack from the solution
+            Name of the attribute to unpack from the solution
 
         Returns
         -------
         none
         """
-        setattr(self, parameter, list())
-        for solution_t in self.solution:
-            self.__dict__[parameter].append(solution_t.__dict__[parameter])
+        # Use list comprehension for better performance instead of loop with append
+        setattr(
+            self,
+            parameter,
+            [solution_t.__dict__[parameter] for solution_t in self.solution],
+        )
         self.add_to_time_vary(parameter)
 
-    def solve(self, verbose=False, presolve=True, from_solution=None, from_t=None):
+    def solve(
+        self,
+        verbose=False,
+        presolve=True,
+        postsolve=True,
+        from_solution=None,
+        from_t=None,
+    ):
         """
         Solve the model for this instance of an agent type by backward induction.
         Loops through the sequence of one period problems, passing the solution
@@ -987,6 +1207,8 @@ class AgentType(Model):
             If True, solution progress is printed to screen. Default False.
         presolve : bool, optional
             If True (default), the pre_solve method is run before solving.
+        postsolve : bool, optional
+            If True (default), the post_solve method is run after solving.
         from_solution: Solution
             If different from None, will be used as the starting point of backward
             induction, instead of self.solution_terminal.
@@ -1015,7 +1237,8 @@ class AgentType(Model):
                 from_solution,
                 from_t,
             )  # Solve the model by backward induction
-            self.post_solve()  # Do post-solution stuff
+            if postsolve:
+                self.post_solve()  # Do post-solution stuff
 
     def reset_rng(self):
         """
@@ -1051,7 +1274,7 @@ class AgentType(Model):
                 continue
             if not isinstance(
                 getattr(self, param),
-                (TimeVaryingDiscreteDistribution, IndexDistribution),
+                (IndexDistribution,),
             ):
                 assert type(getattr(self, param)) == list, (
                     param
@@ -1197,7 +1420,7 @@ class AgentType(Model):
         if not hasattr(self, "solution"):
             raise Exception(
                 "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method of the class first."
+                " to run the `solve()` method first."
             )
 
         # Mortality adjusts the agent population
@@ -1219,7 +1442,7 @@ class AgentType(Model):
             self.get_shocks()
         self.get_states()  # Determine each agent's state at decision time
         self.get_controls()  # Determine each agent's choice or control variables based on states
-        self.get_poststates()  # Move now state_now to state_prev
+        self.get_poststates()  # Calculate variables that come *after* decision-time
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period
@@ -1391,7 +1614,7 @@ class AgentType(Model):
         who_dies = np.zeros(self.AgentCount, dtype=bool)
         return who_dies
 
-    def sim_birth(self, which_agents):
+    def sim_birth(self, which_agents):  # pragma: nocover
         """
         Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
         agent indices are to be "born".  Does nothing by default, must be overwritten by a subclass.
@@ -1405,10 +1628,9 @@ class AgentType(Model):
         -------
         None
         """
-        print("AgentType subclass must define method sim_birth!")
-        return None
+        raise Exception("AgentType subclass must define method sim_birth!")
 
-    def get_shocks(self):
+    def get_shocks(self):  # pragma: nocover
         """
         Gets values of shock variables for the current period.  Does nothing by default, but can
         be overwritten by subclasses of AgentType.
@@ -1465,7 +1687,7 @@ class AgentType(Model):
             if i < len(new_states):
                 self.state_now[var] = new_states[i]
 
-    def transition(self):
+    def transition(self):  # pragma: nocover
         """
 
         Parameters
@@ -1481,10 +1703,9 @@ class AgentType(Model):
         endogenous_state: ()
             Tuple with new values of the endogenous states
         """
-
         return ()
 
-    def get_controls(self):
+    def get_controls(self):  # pragma: nocover
         """
         Gets values of control variables for the current period, probably by using current states.
         Does nothing by default, but can be overwritten by subclasses of AgentType.
@@ -1506,9 +1727,6 @@ class AgentType(Model):
         states and controls and maybe market-level events or shock variables.
         Does nothing by
         default, but can be overwritten by subclasses of AgentType.
-
-        DEPRECATED: New models should use the state now/previous rollover
-        functionality instead of poststates.
 
         Parameters
         ----------
@@ -1540,14 +1758,14 @@ class AgentType(Model):
 
     def simulate(self, sim_periods=None):
         """
-        Simulates this agent type for a given number of periods. Defaults to
-        self.T_sim if no input.
-        Records histories of attributes named in self.track_vars in
-        self.history[varname].
+        Simulates this agent type for a given number of periods. Defaults to self.T_sim,
+        or all remaining periods to simulate (T_sim - t_sim). Records histories of
+        attributes named in self.track_vars in self.history[varname].
 
         Parameters
         ----------
-        None
+        sim_periods : int or None
+            Number of periods to simulate. Default is all remaining periods (usually T_sim).
 
         Returns
         -------
@@ -1581,7 +1799,7 @@ class AgentType(Model):
             divide="ignore", over="ignore", under="ignore", invalid="ignore"
         ):
             if sim_periods is None:
-                sim_periods = self.T_sim
+                sim_periods = self.T_sim - self.t_sim
 
             for t in range(sim_periods):
                 self.sim_one_period()
@@ -1785,8 +2003,8 @@ def solve_one_cycle(agent, solution_last, from_t):
 
     # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
     # if so, take advantage of it. Else, use the old method
-    if hasattr(agent, "params") and isinstance(agent.params, Parameters):
-        T = agent.params._length if from_t is None else from_t
+    if hasattr(agent, "parameters") and isinstance(agent.parameters, Parameters):
+        T = agent.parameters._length if from_t is None else from_t
 
         # Initialize the solution for this cycle, then iterate on periods
         solution_cycle = []
@@ -1806,7 +2024,7 @@ def solve_one_cycle(agent, solution_last, from_t):
                 these_args = get_arg_names(solve_one_period)
 
             # Make a temporary dictionary for this period
-            temp_pars = agent.params[k]
+            temp_pars = agent.parameters[k]
             temp_dict = {
                 name: solution_next if name == "solution_next" else temp_pars[name]
                 for name in these_args
@@ -1910,7 +2128,7 @@ class Market(Model):
         A list of all the AgentTypes in this market.
     sow_vars : [string]
         Names of variables generated by the "aggregate market process" that should
-        "sown" to the agents in the market.  Aggregate state, etc.
+        be "sown" to the agents in the market.  Aggregate state, etc.
     reap_vars : [string]
         Names of variables to be collected ("reaped") from agents in the market
         to be used in the "aggregate market process".
@@ -1925,7 +2143,8 @@ class Market(Model):
     dyn_vars : [string]
         Names of variables that constitute a "dynamic rule".
     mill_rule : function
-        A function that takes inputs named in reap_vars and returns a tuple the same size and order as sow_vars.  The "aggregate market process" that
+        A function that takes inputs named in reap_vars and returns a tuple the
+        same size and order as sow_vars.  The "aggregate market process" that
         transforms individual agent actions/states/data into aggregate data to
         be sent back to agents.
     calc_dynamics : function
@@ -2009,7 +2228,7 @@ class Market(Model):
                 print(
                     "**** WARNING: could not execute multi_thread_commands in HARK.core.Market.solve_agents() ",
                     "so using the serial version instead. This will likely be slower. "
-                    "The multiTreadCommands() functions failed with the following error:",
+                    "The multi_thread_commands() functions failed with the following error:",
                     "\n",
                     sys.exc_info()[0],
                     ":",
@@ -2271,8 +2490,6 @@ def distribute_params(agent, param_name, param_count, distribution):
         agent_set[j].assign_parameters(
             **{"AgentCount": int(agent.AgentCount * param_dist.pmv[j])}
         )
-        # agent_set[j].__dict__[param_name] = param_dist.atoms[j]
-
         agent_set[j].assign_parameters(**{param_name: param_dist.atoms[0, j]})
 
     return agent_set
@@ -2554,3 +2771,93 @@ class AgentPopulation:
         Allows for indexing into the population.
         """
         return self.agents[idx]
+
+
+###############################################################################
+
+
+def multi_thread_commands_fake(
+    agent_list: List, command_list: List, num_jobs=None
+) -> None:
+    """
+    Executes the list of commands in command_list for each AgentType in agent_list
+    in an ordinary, single-threaded loop.  Each command should be a method of
+    that AgentType subclass.  This function exists so as to easily disable
+    multithreading, as it uses the same syntax as multi_thread_commands.
+
+    Parameters
+    ----------
+    agent_list : [AgentType]
+        A list of instances of AgentType on which the commands will be run.
+    command_list : [string]
+        A list of commands to run for each AgentType.
+    num_jobs : None
+        Dummy input to match syntax of multi_thread_commands.  Does nothing.
+
+    Returns
+    -------
+    none
+    """
+    for agent in agent_list:
+        for command in command_list:
+            # TODO: Code should be updated to pass in the method name instead of method()
+            getattr(agent, command[:-2])()
+
+
+def multi_thread_commands(agent_list: List, command_list: List, num_jobs=None) -> None:
+    """
+    Executes the list of commands in command_list for each AgentType in agent_list
+    using a multithreaded system. Each command should be a method of that AgentType subclass.
+
+    Parameters
+    ----------
+    agent_list : [AgentType]
+        A list of instances of AgentType on which the commands will be run.
+    command_list : [string]
+        A list of commands to run for each AgentType in agent_list.
+
+    Returns
+    -------
+    None
+    """
+    if len(agent_list) == 1:
+        multi_thread_commands_fake(agent_list, command_list)
+        return None
+
+    # Default number of parallel jobs is the smaller of number of AgentTypes in
+    # the input and the number of available cores.
+    if num_jobs is None:
+        num_jobs = min(len(agent_list), multiprocessing.cpu_count())
+
+    # Send each command in command_list to each of the types in agent_list to be run
+    agent_list_out = Parallel(n_jobs=num_jobs)(
+        delayed(run_commands)(*args)
+        for args in zip(agent_list, len(agent_list) * [command_list])
+    )
+
+    # Replace the original types with the output from the parallel call
+    for j in range(len(agent_list)):
+        agent_list[j] = agent_list_out[j]
+
+
+def run_commands(agent: Any, command_list: List) -> Any:
+    """
+    Executes each command in command_list on a given AgentType.  The commands
+    should be methods of that AgentType's subclass.
+
+    Parameters
+    ----------
+    agent : AgentType
+        An instance of AgentType on which the commands will be run.
+    command_list : [string]
+        A list of commands that the agent should run, as methods.
+
+    Returns
+    -------
+    agent : AgentType
+        The same AgentType instance passed as input, after running the commands.
+    """
+    for command in command_list:
+        # TODO: Code should be updated to pass in the method name instead of method()
+        getattr(agent, command[:-2])()
+    return agent
