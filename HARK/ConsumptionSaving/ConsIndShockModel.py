@@ -1490,7 +1490,7 @@ class PerfForesightConsumerType(AgentType):
         self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
         # Update aggregate permanent productivity level
-        self.state_now["PlvlAggNow"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
+        self.state_now["PlvlAgg"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
 
     def log_condition_result(self, name, result, message, verbose):
         """
