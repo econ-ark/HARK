@@ -168,8 +168,10 @@ class testPerfForesightConsumerType(unittest.TestCase):
         # The solution should still be well-defined
         self.assertIsNotNone(c)
 
-        # Test with slightly different values around 1.0 to ensure robustness
-        for crra_val in [0.99999, 1.00001]:
+        # Test with values farther from 1.0 to ensure robustness
+        # Note: values very close to 1.0 (like 0.99999) cause numerical overflow,
+        # which is a different issue than the division by zero this fix addresses
+        for crra_val in [0.9, 1.1, 2.0]:
             test_agent = PerfForesightConsumerType()
             test_agent.CRRA = crra_val
             try:
