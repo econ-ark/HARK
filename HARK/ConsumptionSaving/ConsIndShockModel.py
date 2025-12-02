@@ -1284,7 +1284,7 @@ class PerfForesightConsumerType(AgentType):
 
     time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars = ["kNrm", "pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
+    state_vars = ["kNrm", "pLvl", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
     distributions = ["kNrmInitDstn", "pLvlInitDstn"]
 
@@ -1346,9 +1346,8 @@ class PerfForesightConsumerType(AgentType):
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
         self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(N)
-        self.state_now["pLvl"][which_agents] = (
-            self.pLvlInitDstn.draw(N) * self.state_now["PlvlAgg"]
-        )
+        self.state_now["pLvl"][which_agents] = self.pLvlInitDstn.draw(N)
+        self.state_now["pLvl"][which_agents] *= self.state_now["PlvlAgg"]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
 
         # Because of the timing of the simulation system, kNrm gets written to
@@ -1443,15 +1442,13 @@ class PerfForesightConsumerType(AgentType):
         # Calculate new states: normalized market resources and permanent income level
         # Updated permanent income level
         pLvlNow = pLvlPrev * self.shocks["PermShk"]
-        # Updated aggregate permanent productivity level
-        PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
         ReffNow = RfreeNow / self.shocks["PermShk"]
         bNrmNow = ReffNow * kNrm  # Bank balances before labor income
         # Market resources after income
         mNrmNow = bNrmNow + self.shocks["TranShk"]
 
-        return kNrm, pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+        return kNrm, pLvlNow, bNrmNow, mNrmNow, None
 
     def get_controls(self):
         """
@@ -1492,6 +1489,8 @@ class PerfForesightConsumerType(AgentType):
         """
         self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
+        # Update aggregate permanent productivity level
+        self.state_now["PlvlAgg"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
 
     def log_condition_result(self, name, result, message, verbose):
         """
@@ -2142,9 +2141,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        NewbornTransShk = (
-            self.NewbornTransShk
-        )  # Whether Newborns have transitory shock. The default is False.
+        # Whether Newborns have transitory shock. The default is False.
+        NewbornTransShk = self.NewbornTransShk
 
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
@@ -2185,7 +2183,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
             TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
-        #        PermShkNow[newborn] = 1.0
+
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0

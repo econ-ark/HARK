@@ -75,7 +75,7 @@ def make_simple_binary_rep_markov(Mrkv_p11, Mrkv_p22):
 
 
 def solve_ConsRepAgent(
-    solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
+    solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprRte, PermGroFac, aXtraGrid
 ):
     """
     Solve one period of the simple representative agent consumption-saving model.
@@ -94,7 +94,7 @@ def solve_ConsRepAgent(
         permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
-    DeprFac : float
+    DeprRte : float
         Depreciation rate for capital.
     PermGroFac : float
         Expected permanent income growth factor at the end of this period.
@@ -135,7 +135,7 @@ def solve_ConsRepAgent(
 
     # Calculate next period's market resources
     KtoLnext = kNrmNext / TranShkVals_tiled
-    RfreeNext = 1.0 - DeprFac + CapShare * KtoLnext ** (CapShare - 1.0)
+    RfreeNext = 1.0 - DeprRte + CapShare * KtoLnext ** (CapShare - 1.0)
     wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
     mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
 
@@ -169,7 +169,7 @@ def solve_ConsRepAgentMarkov(
     CRRA,
     IncShkDstn,
     CapShare,
-    DeprFac,
+    DeprRte,
     PermGroFac,
     aXtraGrid,
 ):
@@ -193,7 +193,7 @@ def solve_ConsRepAgentMarkov(
         Order: event probabilities, permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
-    DeprFac : float
+    DeprRte : float
         Depreciation rate of capital.
     PermGroFac : [float]
         Expected permanent income growth factor for each state we could be in
@@ -241,7 +241,7 @@ def solve_ConsRepAgentMarkov(
 
         # Calculate next period's market resources
         KtoLnext = kNrmNext / TranShkVals_tiled
-        RfreeNext = 1.0 - DeprFac + CapShare * KtoLnext ** (CapShare - 1.0)
+        RfreeNext = 1.0 - DeprRte + CapShare * KtoLnext ** (CapShare - 1.0)
         wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
         mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
 
@@ -341,7 +341,7 @@ init_rep_agent = {
     "LivPrb": [1.0],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "DeprFac": 0.05,  # Depreciation rate for capital
+    "DeprRte": 0.05,  # Depreciation rate for capital
     "CapShare": 0.36,  # Capital's share in Cobb-Douglas production function
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
@@ -372,7 +372,7 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     """
 
-    time_inv_ = ["CRRA", "DiscFac", "CapShare", "DeprFac", "aXtraGrid"]
+    time_inv_ = ["CRRA", "DiscFac", "CapShare", "DeprRte", "aXtraGrid"]
     default_ = {"params": init_rep_agent, "solver": solve_ConsRepAgent}
 
     def pre_solve(self):
@@ -407,7 +407,7 @@ class RepAgentConsumerType(IndShockConsumerType):
             + self.CapShare
             * self.kNrmNow ** (self.CapShare - 1.0)
             * self.shocks["TranShk"] ** (1.0 - self.CapShare)
-            - self.DeprFac
+            - self.DeprRte
         )
         self.wRte = (
             (1.0 - self.CapShare)

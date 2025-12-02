@@ -119,6 +119,19 @@ class testIndShockConsumerType(unittest.TestCase):
         TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
         self.assertRaises(ValueError, TestType.solve)
 
+    def test_replicate_sim(self):
+        TestType = IndShockConsumerType(cycles=0, seed=12022025, T_sim=100)
+        TestType.solve()
+        TestType.initialize_sim()
+        TestType.simulate()
+        A0 = np.mean(TestType.state_now["aLvl"])
+
+        # Make sure a simulation result is replicated when re-run
+        TestType.initialize_sim()
+        TestType.simulate()
+        A1 = np.mean(TestType.state_now["aLvl"])
+        self.assertAlmostEqual(A0, A1)
+
 
 class testBufferStock(unittest.TestCase):
     """Tests of the results of the BufferStock REMARK."""
@@ -573,8 +586,7 @@ class testPerfMITShk(unittest.TestCase):
                 pLvlNow = (
                     pLvlPrev * self.shocks["PermShk"]
                 )  # Updated permanent income level
-                # Updated aggregate permanent productivity level
-                PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
+
                 # "Effective" interest factor on normalized assets
                 ReffNow = RfreeNow / self.shocks["PermShk"]
                 bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
@@ -586,7 +598,7 @@ class testPerfMITShk(unittest.TestCase):
                     mNrmNow = ss.state_now["mNrm"]
                     pLvlNow = ss.state_now["pLvl"]
 
-                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+                return pLvlNow, bNrmNow, mNrmNow, None
 
         listA_g = []
         params = deepcopy(JACDict)
