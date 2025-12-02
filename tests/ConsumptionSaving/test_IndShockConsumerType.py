@@ -119,6 +119,19 @@ class testIndShockConsumerType(unittest.TestCase):
         TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
         self.assertRaises(ValueError, TestType.solve)
 
+    def test_replicate_sim(self):
+        TestType = IndShockConsumerType(cycles=0, seed=12022025, T_sim=100)
+        TestType.solve()
+        TestType.initialize_sim()
+        TestType.simulate()
+        A0 = np.mean(TestType.state_now["aLvl"])
+
+        # Make sure a simulation result is replicated when re-run
+        TestType.initialize_sim()
+        TestType.simulate()
+        A1 = np.mean(TestType.state_now["aLvl"])
+        self.assertAlmostEqual(A0, A1)
+
 
 class testBufferStock(unittest.TestCase):
     """Tests of the results of the BufferStock REMARK."""

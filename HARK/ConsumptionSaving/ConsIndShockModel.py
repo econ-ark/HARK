@@ -2142,9 +2142,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        NewbornTransShk = (
-            self.NewbornTransShk
-        )  # Whether Newborns have transitory shock. The default is False.
+        # Whether Newborns have transitory shock. The default is False.
+        NewbornTransShk = self.NewbornTransShk
 
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
@@ -2185,7 +2184,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
             TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
-        #        PermShkNow[newborn] = 1.0
+
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
