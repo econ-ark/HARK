@@ -15,7 +15,6 @@ API Reference
    tools/incomeprocess
    tools/model
    tools/numba_tools
-   tools/parallel
    tools/rewards
    tools/simulation
    tools/utilities
@@ -28,13 +27,15 @@ API Reference
    ConsumptionSaving/ConsAggShockModel
    ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
+   ConsumptionSaving/ConsHealthModel
    ConsumptionSaving/ConsIndShockModel
    ConsumptionSaving/ConsIndShockModelFast
    ConsumptionSaving/ConsLaborModel
    ConsumptionSaving/ConsMarkovModel
    ConsumptionSaving/ConsMedModel
+   ConsumptionSaving/ConsNewKeynesianModel
    ConsumptionSaving/ConsPortfolioModel
-   ConsumptionSaving/ConsPrefShochModel
+   ConsumptionSaving/ConsPrefShockModel
    ConsumptionSaving/ConsRepAgentModel
    ConsumptionSaving/ConsRiskyAssetModel
    ConsumptionSaving/ConsRiskyContribModel

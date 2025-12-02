@@ -259,56 +259,6 @@ def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
     return b_nrm / (shocks["PermShk"] * perm_gro_fac) + shocks["TranShk"]
 
 
-def calc_dvdm_next(
-    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, vp_func_adj, dvdm_func_fxd
-):
-    """
-    Evaluate realizations of marginal value of market resources next period,
-    based on the income distribution "shocks", values of bank balances bNrm, and
-    values of the risky share z.
-    """
-    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
-    dvdm_adj = vp_func_adj(m_nrm)
-
-    if adjust_prob < 1.0:
-        # Expand to the same dimensions as mNrm
-        share_exp = np.full_like(m_nrm, share)
-        dvdm_fxd = dvdm_func_fxd(m_nrm, share_exp)
-        # Combine by adjustment probability
-        dvdm_next = adjust_prob * dvdm_adj + (1.0 - adjust_prob) * dvdm_fxd
-    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-        dvdm_next = dvdm_adj
-
-    dvdm_next = (shocks["PermShk"] * perm_gro_fac) ** (-crra) * dvdm_next
-    return dvdm_next
-
-
-def calc_dvds_next(
-    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, dvds_func_fxd
-):
-    """
-    Evaluate realizations of marginal value of risky share next period, based
-    on the income distribution "shocks", values of bank balances bNrm, and values of
-    the risky share z.
-    """
-    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
-
-    # No marginal value of shockshare if it's a free choice!
-    dvds_adj = np.zeros_like(m_nrm)
-
-    if adjust_prob < 1.0:
-        # Expand to the same dimensions as mNrm
-        share_exp = np.full_like(m_nrm, share)
-        dvds_fxd = dvds_func_fxd(m_nrm, share_exp)
-        # Combine by adjustment probability
-        dvds_next = adjust_prob * dvds_adj + (1.0 - adjust_prob) * dvds_fxd
-    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-        dvds_next = dvds_adj
-
-    dvds_next = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * dvds_next
-    return dvds_next
-
-
 def calc_dvdx_next(
     shocks,
     b_nrm,
@@ -347,41 +297,6 @@ def calc_dvdx_next(
     dvds = perm_shk_fac ** (1.0 - crra) * dvds
 
     return dvdm, dvds
-
-
-def calc_end_of_prd_dvda(shocks, a_nrm, share, rfree, dvdb_func):
-    """
-    Compute end-of-period marginal value of assets at values a, conditional
-    on risky asset return shocks and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    r_port = rfree + share * ex_ret  # Portfolio return
-    b_nrm = r_port * a_nrm
-
-    # Ensure shape concordance
-    share_exp = np.full_like(b_nrm, share)
-
-    # Calculate and return dvda
-    return r_port * dvdb_func(b_nrm, share_exp)
-
-
-def calc_end_of_prd_dvds(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
-    """
-    Compute end-of-period marginal value of risky share at values a, conditional
-    on risky asset return shocks and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    r_port = rfree + share * ex_ret  # Portfolio return
-    b_nrm = r_port * a_nrm
-
-    # Make the shares match the dimension of b, so that it can be vectorized
-    share_exp = np.full_like(b_nrm, share)
-
-    # Calculate and return dvds
-
-    return ex_ret * a_nrm * dvdb_func(b_nrm, share_exp) + dvds_func(b_nrm, share_exp)
 
 
 def calc_end_of_prd_dvdx(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
@@ -1082,13 +997,14 @@ PortfolioConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # Whether there is actually portfolio choice
+    "PortfolioBool": True,  # This *must* be set to True; only exists because of inheritance
     "PortfolioBisect": False,  # What does this do?
     "IndepDstnBool": True,  # Whether return and income shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "RiskyShareFixed": None,  # This does nothing in this model; only exists because of inheritance
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
 PortfolioConsumerType_simulation_default = {
@@ -1148,19 +1064,19 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     ShareGrid: Constructor
         The agent's risky asset share grid
 
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
     RiskyDstn: Constructor, :math:`\phi`
         The agent's asset shock distribution for risky assets.
 
-        It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
+        Its default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
 
     Solving Parameters
     ------------------
@@ -1345,5 +1261,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
 
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
 
-###############################################################################
+    def calc_limiting_values(self):
+        raise NotImplementedError()

@@ -10,7 +10,7 @@ from numba import njit
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
 from typing import Callable
-from HARK.utilities import NullFunc
+from HARK.utilities import NullFunc, make_exponential_grid
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import eigs
@@ -67,7 +67,7 @@ class ModelEvent:
         """
         This method should be filled in by each subclass.
         """
-        pass
+        pass  # pragma: nocover
 
     def reset(self):
         self.data = {}
@@ -297,7 +297,7 @@ class RandomEvent(ModelEvent):
 class RandomIndexedEvent(RandomEvent):
     """
     Class for representing the realization of random variables for an agent,
-    consisting of a list of shock distributions, and index for the list, and the
+    consisting of a list of shock distributions, an index for the list, and the
     variables to which the results are assigned.
 
     Parameters
@@ -661,7 +661,7 @@ class SimBlock:
                 bot = spec["min"]
                 top = spec["max"]
                 N = spec["N"]
-                new_grid = np.linspace(0.0, 1.0, N) ** Q * (top - bot) + bot
+                new_grid = make_exponential_grid(bot, top, N, Q)
                 is_cont = True
                 grid_orders[var] = Q
             elif "N" in spec:
@@ -1473,7 +1473,7 @@ class AgentSimulator:
             for name in outcomes:
                 dstn_sizes = np.array([dstn.size for dstn in history_dstn[name]])
                 if np.all(dstn_sizes == dstn_sizes[0]):
-                    history_dstn[name] = np.concatenate(history_dstn[name], axis=1)
+                    history_dstn[name] = np.stack(history_dstn[name], axis=1)
 
         # Store results as attributes of self
         self.state_dstn_by_age = state_dstn_by_age
@@ -1776,12 +1776,23 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
                 new_param_dict[name] = getattr(agent.solution[t], name)
             elif name in time_vary:
                 s = (t_cycle - 1) if name in offset else t_cycle
-                new_param_dict[name] = getattr(agent, name)[s]
+                try:
+                    new_param_dict[name] = getattr(agent, name)[s]
+                except:
+                    raise ValueError(
+                        "Couldn't get a value for time-varying object "
+                        + name
+                        + " at time index "
+                        + str(s)
+                        + "!"
+                    )
             elif name in time_inv:
                 continue
             else:
                 raise ValueError(
-                    "Couldn't get a value for time-varying object " + name + "!"
+                    "The object called "
+                    + name
+                    + " is not named in time_inv nor time_vary!"
                 )
 
         # Fill in content for this period, then add it to the list
@@ -2868,7 +2879,9 @@ def format_block_statement(statement):
 
 
 @njit
-def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
+def aggregate_blobs_onto_polynomial_grid(
+    vals, pmv, origins, grid, J, Q
+):  # pragma: no cover
     """
     Numba-compatible helper function for casting "probability blobs" onto a discretized
     grid of outcome values, based on their origin in the arrival state space. This
@@ -2903,7 +2916,9 @@ def aggregate_blobs_onto_polynomial_grid(vals, pmv, origins, grid, J, Q):
 
 
 @njit
-def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
+def aggregate_blobs_onto_polynomial_grid_alt(
+    vals, pmv, origins, grid, J, Q
+):  # pragma: no cover
     """
     Numba-compatible helper function for casting "probability blobs" onto a discretized
     grid of outcome values, based on their origin in the arrival state space. This
@@ -2947,7 +2962,7 @@ def aggregate_blobs_onto_polynomial_grid_alt(vals, pmv, origins, grid, J, Q):
 
 
 @njit
-def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
+def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):  # pragma: no cover
     """
     Numba-compatible helper function for allocating "probability blobs" to a grid
     over a discrete state-- the state itself is truly discrete.
@@ -2963,7 +2978,9 @@ def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):
 
 
 @njit
-def calc_overall_trans_probs(out, idx, alpha, binary, offset, pmv, origins):
+def calc_overall_trans_probs(
+    out, idx, alpha, binary, offset, pmv, origins
+):  # pragma: no cover
     """
     Numba-compatible helper function for combining transition probabilities from
     the arrival state space to *multiple* continuation variables into a single

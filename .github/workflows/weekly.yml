@@ -1,0 +1,32 @@
+name: Weekly cron jobs for coverage
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 0"
+jobs:
+  cron:
+    # Do not attempt to upload nightly through forks
+    if: github.repository_owner == 'econ-ark'
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install dependencies and editable install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run code coverage
+        run: |
+          pytest --cov=HARK --cov-report=html -n auto
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        id: cov-upload-zip
+        with:
+          name: docs_html
+          path: htmlcov
+
+      - run: echo "::notice::https://remote-unzip.deno.dev/${{ github.repository }}/artifacts/${{ steps.cov-upload-zip.outputs.artifact-id }}"

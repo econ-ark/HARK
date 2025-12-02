@@ -6,8 +6,7 @@ from tests import HARK_PRECISION
 
 class testKinkedRConsumerType(unittest.TestCase):
     def test_liquidity_constraint(self):
-        KinkyExample = KinkedRconsumerType()
-        KinkyExample.cycles = 0
+        KinkyExample = KinkedRconsumerType(cycles=0)
 
         # The consumer cannot borrow more than 0.4
         # times their permanent income
@@ -34,3 +33,22 @@ class testKinkedRConsumerType(unittest.TestCase):
         self.assertAlmostEqual(
             KinkyExample.solution[0].cFunc(4).tolist(), 1.33927, places=HARK_PRECISION
         )
+
+    def test_cubic_and_vFunc(self):
+        CubicExample = KinkedRconsumerType(cycles=0, vFuncBool=True, CubicBool=True)
+        CubicExample.solve()
+        cFunc = CubicExample.solution[0].cFunc
+        vFunc = CubicExample.solution[0].vFunc
+
+        m = 3.0
+        self.assertAlmostEqual(cFunc(m), 1.25611, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(m), -15.3711, places=HARK_PRECISION)
+
+    def test_calc_bounding_values(self):
+        KinkyExample = KinkedRconsumerType(cycles=0)
+        KinkyExample.calc_bounding_values()
+
+    def test_default(self):
+        BoopType = KinkedRconsumerType()
+        BasicType = KinkedRconsumerType(Rboro=BoopType.Rsave)
+        BasicType.solve()

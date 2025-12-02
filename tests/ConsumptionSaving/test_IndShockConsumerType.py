@@ -8,6 +8,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
+from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
 
 
@@ -50,19 +51,27 @@ class testIndShockConsumerType(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[0].cFunc(1).tolist(),
-            0.75074,
+            0.75062,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[1].cFunc(1).tolist(),
-            0.75876,
+            0.75863,
             places=HARK_PRECISION,
         )
         self.assertAlmostEqual(
             LifecycleExample.solution[2].cFunc(1).tolist(),
-            0.76824,
+            0.76812,
             places=HARK_PRECISION,
         )
+
+        self.assertRaises(ValueError, LifecycleExample.calc_stable_points)
+
+    def test_invalid_calc_stable_points(self):
+        TestType = IndShockConsumerType(cycles=0)
+        self.assertRaises(ValueError, TestType.calc_stable_points)
+        TestType.check_conditions()
+        self.assertRaises(ValueError, TestType.calc_stable_points)
 
     def test_simulated_values(self):
         self.agent.initialize_sim()
@@ -79,6 +88,36 @@ class testIndShockConsumerType(unittest.TestCase):
         a2 = IndShockConsumerType(seed=200)
 
         self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
+
+    def test_check_conditions(self):
+        TestType = IndShockConsumerType(cycles=0, quiet=False, verbose=False)
+        TestType.check_conditions()
+
+        # make DiscFac way too big
+        TestType = IndShockConsumerType(cycles=0, DiscFac=1.06)
+        TestType.check_conditions()
+
+        # make PermGroFac big
+        TestType = IndShockConsumerType(cycles=0, DiscFac=0.96, PermGroFac=[1.1])
+        TestType.check_conditions()
+
+        # make Rfree too big
+        TestType = IndShockConsumerType(cycles=0, Rfree=[1.1])
+        TestType.check_conditions()
+
+        # Make unemployment very likely
+        TestType = IndShockConsumerType(
+            cycles=0, Rfree=[0.93], IncUnemp=0.0, UnempPrb=0.99
+        )
+        TestType.check_conditions()
+
+        # Use log utility
+        TestType = IndShockConsumerType(cycles=0, CRRA=1.0)
+        TestType.check_conditions()
+
+    def test_invalid_beta(self):
+        TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
+        self.assertRaises(ValueError, TestType.solve)
 
 
 class testBufferStock(unittest.TestCase):
@@ -147,7 +186,7 @@ class testBufferStock(unittest.TestCase):
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(**self.base_params)
         baseEx_inf.assign_parameters(cycles=0)
-        baseEx_inf.solve()
+        baseEx_inf.solve(verbose=True)
         baseEx_inf.unpack("cFunc")
 
         m1 = np.linspace(
@@ -227,7 +266,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         IndShockExample.solve()
 
         self.assertAlmostEqual(
-            IndShockExample.solution[0].mNrmStE, 1.54765, places=HARK_PRECISION
+            IndShockExample.solution[0].mNrmStE, 1.54882, places=HARK_PRECISION
         )
         # self.assertAlmostEqual(
         #    IndShockExample.solution[0].cFunc.functions[0].x_list[0],
@@ -237,7 +276,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         # This test is commented out because it was trivialized by revisions to the "worst income shock" code.
         # The bottom x value of the unconstrained consumption function will definitely be zero, so this is pointless.
 
-        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
+        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "who_dies"]
         IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
@@ -251,6 +290,15 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         self.assertAlmostEqual(
             IndShockExample.eulerErrorFunc(5.0), -5.9e-5, places=HARK_PRECISION
         )
+
+    def test_plotting(self):
+        MyType = self.IndShockExample
+        MyType.solve()
+        MyType.unpack("cFunc")
+        plot_funcs(MyType.cFunc, 0.0, 10.0, legend_kwds={"labels": ["cFunc"]})
+        plot_funcs(MyType.cFunc[0], 0.0, 10.0)
+        plot_funcs_der(MyType.cFunc, 0.0, 10.0, legend_kwds={"labels": ["MPC"]})
+        plot_funcs_der(MyType.cFunc[0], 0.0, 10.0)
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
@@ -298,7 +346,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
     def test_lifecyle(self):
         LifecycleExample = IndShockConsumerType(**LifecycleDict)
         LifecycleExample.cycles = 1
-        LifecycleExample.solve()
+        LifecycleExample.solve(verbose=True)
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
@@ -311,7 +359,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
 
         self.assertAlmostEqual(
             LifecycleExample.solution[5].cFunc(3).tolist(),
-            2.13004,
+            2.12998,
             places=HARK_PRECISION,
         )
 
@@ -385,7 +433,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
 
         self.assertAlmostEqual(
             CyclicalExample.solution[3].cFunc(3).tolist(),
-            1.59597,
+            1.59584,
             places=HARK_PRECISION,
         )
 
@@ -393,8 +441,10 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 3.8924, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 3.90015, places=HARK_PRECISION
         )
+
+        self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
 
 
 # %% Tests of 'stable points'

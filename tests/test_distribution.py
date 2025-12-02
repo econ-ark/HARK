@@ -20,9 +20,13 @@ from HARK.distributions import (
     combine_indep_dstns,
     distr_of_function,
     expected,
+    approx_beta,
+    make_markov_approx_to_normal,
+    make_markov_approx_to_normal_by_monte_carlo,
     make_tauchen_ar1,
     MultivariateNormal,
     MultivariateLogNormal,
+    approx_lognormal_gauss_hermite,
 )
 from tests import HARK_PRECISION
 
@@ -296,6 +300,17 @@ class DistributionClassTests(unittest.TestCase):
 
         dist.draw(1)[0]
 
+    def test_Lognormal_hermite_discretizer(self):
+        dstn = Lognormal(mu=0.5, sigma=0.2)
+        discrete_dstn = dstn.discretize(9, method="hermite")
+        exp_discrete = np.dot(discrete_dstn.pmv, discrete_dstn.atoms.T)
+        self.assertAlmostEqual(dstn.mean(), exp_discrete)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+    def test_Lognormal_from_mean_std(self):
+        dstn = Lognormal(mean=1.3, std=0.4)
+        self.assertAlmostEqual(1.3, dstn.mean())
+
     def test_Normal(self):
         dist = Normal()
 
@@ -307,25 +322,53 @@ class DistributionClassTests(unittest.TestCase):
         dist.draw(1)[0]
 
     def test_MultivariateNormal(self):
-        # Are these tests generator/backend specific?
         dist = MultivariateNormal()
-
-        # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
-        # )
-
         dist.draw(100)
         dist.reset()
-
-        # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
-        # )
 
     def test_MultivariateLogNormal(self):
-        dist = MultivariateLogNormal()
+        dstn = MultivariateLogNormal(mu=[-0.2, 0.3], Sigma=[[1.0, 0.3], [0.3, 1.0]])
+        X = np.random.rand(100, 2)
 
-        dist.draw(100)
-        dist.reset()
+        dstn.draw(100)
+        dstn.reset()
+
+        cdf_vals = dstn._cdf(X)
+        self.assertTrue(np.all(cdf_vals <= 1.0))
+        self.assertTrue(np.all(cdf_vals >= 0.0))
+        self.assertRaises(ValueError, dstn._cdf, X.T)
+
+        pdf_vals = dstn._pdf(X)
+        self.assertTrue(np.all(pdf_vals >= 0.0))
+
+        marg_pdf = dstn._marginal(X, dim=0)
+        self.assertTrue(np.all(marg_pdf >= 0.0))
+
+        marg_cdf = dstn._marginal_cdf(X, dim=1)
+        self.assertTrue(np.all(marg_cdf <= 1.0))
+        self.assertTrue(np.all(marg_cdf >= 0.0))
+
+        discrete_dstn = dstn.discretize(9)
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = dstn.discretize(9, endpoints=True)
+
+        discrete_dstn = dstn.discretize(9, decomp="sqrt")
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = dstn.discretize(9, decomp="eig")
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = MultivariateLogNormal().discretize(9)
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        self.assertRaises(
+            NotImplementedError, dstn.discretize, 7, decomp="well hello there"
+        )
 
     def test_Weibull(self):
         Weibull().draw(1)[0]
@@ -351,6 +394,47 @@ class DistributionClassTests(unittest.TestCase):
 
     def test_Bernoulli(self):
         Bernoulli().draw(1)[0]
+
+    def test_Bernoulli_combine_indep_dstns(self):
+        """Test that combine_indep_dstns works with Bernoulli distributions"""
+        # Test 1: Single Bernoulli distribution
+        b = Bernoulli(p=0.3)
+        result = combine_indep_dstns(b)
+
+        # Result should be essentially the same as the input
+        self.assertEqual(len(result.pmv), 2)
+        self.assertAlmostEqual(result.pmv[0], 0.7)  # P(0)
+        self.assertAlmostEqual(result.pmv[1], 0.3)  # P(1)
+
+        # Test 2: Two independent Bernoulli distributions
+        b1 = Bernoulli(p=0.3)
+        b2 = Bernoulli(p=0.4)
+        result = combine_indep_dstns(b1, b2)
+
+        # Should have 4 outcomes: (0,0), (0,1), (1,0), (1,1)
+        self.assertEqual(len(result.pmv), 4)
+        self.assertEqual(result.atoms.shape, (2, 4))  # 2 variables, 4 outcomes
+
+        # Check probabilities
+        expected_probs = [
+            0.7 * 0.6,
+            0.7 * 0.4,
+            0.3 * 0.6,
+            0.3 * 0.4,
+        ]  # P(0,0), P(0,1), P(1,0), P(1,1)
+        for i, expected_prob in enumerate(expected_probs):
+            self.assertAlmostEqual(result.pmv[i], expected_prob, places=5)
+
+    def test_Bernoulli_labeled_combine_indep_dstns(self):
+        """Test that combine_indep_dstns works with labeled Bernoulli distributions"""
+        b = Bernoulli(p=0.5)
+        bl = DiscreteDistributionLabeled.from_unlabeled(b, var_names="b")
+        result = combine_indep_dstns(bl)
+
+        # Result should be essentially the same as the input
+        self.assertEqual(len(result.pmv), 2)
+        self.assertAlmostEqual(result.pmv[0], 0.5)  # P(0)
+        self.assertAlmostEqual(result.pmv[1], 0.5)  # P(1)
 
 
 class IndexDistributionClassTests(unittest.TestCase):
@@ -693,3 +777,83 @@ class TestTauchenAR1(unittest.TestCase):
                         alternative[1][:, i] * standard[1][:, i - 1],
                     )
                 )
+
+
+class test_assorted_functions(unittest.TestCase):
+    def test_approx_beta(self):
+        dstn = approx_beta(15, 0.5, 2.0)
+        self.assertTrue(isinstance(dstn, DiscreteDistribution))
+        self.assertAlmostEqual(np.sum(dstn.pmv), 1.0)
+
+    def test_make_markov_approx_to_normal(self):
+        X = np.linspace(-4.0, 6.0, 50)
+        vec = make_markov_approx_to_normal(X, 0.9, 1.3)
+        self.assertAlmostEqual(np.sum(vec), 1.0)
+        self.assertAlmostEqual(np.dot(X, vec), 0.9)
+
+    def test_make_markov_approx_to_normal_by_MC(self):
+        X = np.linspace(-4.0, 6.0, 25)
+        vec = make_markov_approx_to_normal_by_monte_carlo(X, 0.9, 1.3)
+        self.assertAlmostEqual(np.sum(vec), 1.0)
+        self.assertAlmostEqual(vec.size, 25)
+
+
+class testsForDCEGM(unittest.TestCase):
+    def setUp(self):
+        # setup the parameters to loop over
+        self.mu_normals = np.linspace(-3.0, 2.0, 50)
+        self.std_normals = np.linspace(0.01, 2.0, 50)
+
+    def test_mu_normal(self):
+        for mu_normal in self.mu_normals:
+            for std_normal in self.std_normals:
+                d = Normal(mu_normal).discretize(40, method="hermite")
+                self.assertTrue(sum(d.pmv * d.atoms[0, :]) - mu_normal < 1e-12)
+
+    def test_mu_lognormal_from_normal(self):
+        for mu_normal in self.mu_normals:
+            for std_normal in self.std_normals:
+                d = approx_lognormal_gauss_hermite(40, mu_normal, std_normal)
+                self.assertTrue(
+                    abs(
+                        sum(d.pmv * d.atoms[0, :])
+                        - calc_lognormal_style_pars_from_normal_pars(
+                            mu_normal, std_normal
+                        )[0]
+                    )
+                    < 1e-12
+                )
+
+
+class test_MVNormalApprox(unittest.TestCase):
+    def setUp(self):
+        N = 5
+
+        # 2-D distribution
+        self.mu2 = np.array([5, -10])
+        self.Sigma2 = np.array([[2, -0.6], [-0.6, 1]])
+        self.dist2D = MultivariateNormal(self.mu2, self.Sigma2)
+        self.dist2D_approx = self.dist2D.discretize(N, method="hermite")
+
+        # 3-D Distribution
+        self.mu3 = np.array([5, -10, 0])
+        self.Sigma3 = np.array([[2, -0.6, 0.1], [-0.6, 1, 0.2], [0.1, 0.2, 3]])
+        self.dist3D = MultivariateNormal(self.mu3, self.Sigma3)
+        self.dist3D_approx = self.dist3D.discretize(N, method="hermite")
+
+    def test_means(self):
+        mu_2D = calc_expectation(self.dist2D_approx)
+        self.assertTrue(np.allclose(mu_2D, self.mu2, rtol=1e-5))
+
+        mu_3D = calc_expectation(self.dist3D_approx)
+        self.assertTrue(np.allclose(mu_3D, self.mu3, rtol=1e-5))
+
+    def test_VCOV(self):
+        def vcov_fun(X, mu):
+            return np.outer(X - mu, X - mu)
+
+        Sig_2D = calc_expectation(self.dist2D_approx, vcov_fun, self.mu2)
+        self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
+
+        Sig_3D = calc_expectation(self.dist3D_approx, vcov_fun, self.mu3)
+        self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))

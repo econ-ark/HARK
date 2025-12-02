@@ -104,7 +104,7 @@ class testBufferStock(unittest.TestCase):
         baseEx.cycles = 100  # Make this type have a finite horizon (Set T = 100)
 
         baseEx.solve()
-        baseEx.unpack_cFunc()
+        baseEx.unpack("cFunc")
 
         m = np.linspace(0, 9.5, 1000)
 
@@ -131,7 +131,7 @@ class testBufferStock(unittest.TestCase):
         GICRawFailExample = IndShockConsumerTypeFast(**GICRaw_fail_dictionary)
 
         GICRawFailExample.solve()
-        GICRawFailExample.unpack_cFunc()
+        GICRawFailExample.unpack("cFunc")
         m = np.linspace(0, 5, 1000)
         c_m = GICRawFailExample.cFunc[0](m)
 
@@ -144,7 +144,7 @@ class testBufferStock(unittest.TestCase):
         baseEx_inf = IndShockConsumerTypeFast(**self.base_params)
         baseEx_inf.cycles = 0
         baseEx_inf.solve()
-        baseEx_inf.unpack_cFunc()
+        baseEx_inf.unpack("cFunc")
 
         m1 = np.linspace(
             1, baseEx_inf.solution[0].mNrmStE, 50

@@ -214,10 +214,10 @@ class TestIRAModel(unittest.TestCase):
             
             # Test that functions can be called
             test_val = solution.cFunc(1.0)
-            self.assertIsInstance(test_val, (float, np.floating))
+            self.assertIsInstance(test_val, (float, np.floating, np.ndarray))
             
             test_val_ira = solution.cFunc_IRA(1.0)
-            self.assertIsInstance(test_val_ira, (float, np.floating))
+            self.assertIsInstance(test_val_ira, (float, np.floating, np.ndarray))
             
             print("✓ Solution attributes test passed")
             

@@ -1,13 +1,9 @@
 """
-Created on Thu Mar 24 11:01:50 2016
-
-@author: kaufmana
+A few small tests for the tractable buffer stock model.
 """
 
 import unittest
-
 import numpy as np
-
 import HARK.ConsumptionSaving.TractableBufferStockModel as Model
 
 
@@ -54,12 +50,17 @@ class FuncTest(unittest.TestCase):
                 1.53077,
             ]
         )
-        return np.array(test_model.solution[0].cNrm_list), cNrm_list
+        self.cNrm_targ = cNrm_list
+        self.agent = test_model
 
     def test_equalityOfSolutions(self):
-        results = self.setUp()
-        self.assertTrue(np.allclose(results[0], results[1], atol=1e-08))
+        cNrm_model = np.array(self.agent.solution[0].cNrm_list)
+        self.assertTrue(np.allclose(cNrm_model, self.cNrm_targ, atol=1e-08))
 
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_simulation(self):
+        agent = self.agent
+        agent.AgentCount = 1000
+        agent.T_sim = 100
+        agent.track_vars = ["cNrm", "aNrm"]
+        agent.initialize_sim()
+        agent.simulate()

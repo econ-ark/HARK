@@ -14,6 +14,7 @@ import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
+from numba import njit
 
 
 def _isscalar(x):
@@ -101,6 +102,8 @@ class HARKinterpolator1D(MetricObject):
         """
         z = np.asarray(x)
         return (self._der(z.flatten())).reshape(z.shape)
+
+    derivativeX = derivative  # alias
 
     def eval_with_derivative(self, x):
         """
@@ -724,6 +727,11 @@ class ConstantFunction(MetricObject):
         else:
             return 0.0
 
+    def eval_with_derivative(self, x):
+        val = self(x)
+        der = self._der(x)
+        return val, der
+
     # All other derivatives are also zero everywhere, so these methods just point to derivative
     derivative = _der
     derivativeX = derivative
@@ -751,15 +759,33 @@ class LinearInterp(HARKinterpolator1D):
         Intercept of limiting linear function.
     slope_limit : float
         Slope of limiting linear function.
-    lower_extrap : boolean
+    lower_extrap : bool
         Indicator for whether lower extrapolation is allowed.  False means
         f(x) = NaN for x < min(x_list); True means linear extrapolation.
+    pre_compute : bool
+        Indicator for whether interpolation coefficients should be pre-computed
+        and stored as attributes of self (default False). More memory will be used,
+        and instantiation will take slightly longer, but later evaluation will
+        be faster due to less arithmetic.
+    indexer : function or None (default)
+        If provided, a custom function that identifies the index of the interpolant
+        segment for each query point. Should return results identically to the
+        default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
+        WARNING: User is responsible for verifying that their custom indexer is
+        actually correct versus default behavior.
     """
 
     distance_criteria = ["x_list", "y_list"]
 
     def __init__(
-        self, x_list, y_list, intercept_limit=None, slope_limit=None, lower_extrap=False
+        self,
+        x_list,
+        y_list,
+        intercept_limit=None,
+        slope_limit=None,
+        lower_extrap=False,
+        pre_compute=False,
+        indexer=None,
     ):
         # Make the basic linear spline interpolation
         self.x_list = (
@@ -775,6 +801,7 @@ class LinearInterp(HARKinterpolator1D):
         _check_grid_dimensions(1, self.y_list, self.x_list)
         self.lower_extrap = lower_extrap
         self.x_n = self.x_list.size
+        self.indexer = indexer
 
         # Make a decay extrapolation
         if intercept_limit is not None and slope_limit is not None:
@@ -795,6 +822,13 @@ class LinearInterp(HARKinterpolator1D):
         else:
             self.decay_extrap = False
 
+        # Calculate interpolation coefficients now rather than at evaluation time
+        if pre_compute:
+            self.slopes = (self.y_list[1:] - self.y_list[:-1]) / (
+                self.x_list[1:] - self.x_list[:-1]
+            )
+            self.intercepts = self.y_list[:-1] - self.slopes * self.x_list[:-1]
+
     def _evalOrDer(self, x, _eval, _Der):
         """
         Returns the level and/or first derivative of the function at each value in
@@ -813,16 +847,28 @@ class LinearInterp(HARKinterpolator1D):
         -------
         A list including the level and/or derivative of the interpolated function where requested.
         """
+        if self.indexer is None:
+            i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
+        else:
+            i = self.indexer(x)
 
-        i = np.maximum(np.searchsorted(self.x_list[:-1], x), 1)
-        alpha = (x - self.x_list[i - 1]) / (self.x_list[i] - self.x_list[i - 1])
+        if hasattr(self, "slopes"):
+            # Coefficients were pre-computed, use those
+            j = i - 1
+            dydx = self.slopes[j]
+            if _eval:
+                y = self.intercepts[j] + dydx * x
 
-        if _eval:
-            y = (1.0 - alpha) * self.y_list[i - 1] + alpha * self.y_list[i]
-        if _Der:
-            dydx = (self.y_list[i] - self.y_list[i - 1]) / (
-                self.x_list[i] - self.x_list[i - 1]
-            )
+        else:
+            # Find relative weights between endpoints and evaluate interpolation
+            alpha = (x - self.x_list[i - 1]) / (self.x_list[i] - self.x_list[i - 1])
+
+            if _eval:
+                y = (1.0 - alpha) * self.y_list[i - 1] + alpha * self.y_list[i]
+            if _Der:
+                dydx = (self.y_list[i] - self.y_list[i - 1]) / (
+                    self.x_list[i] - self.x_list[i - 1]
+                )
 
         if not self.lower_extrap:
             below_lower_bound = x < self.x_list[0]
@@ -994,57 +1040,35 @@ class CubicInterp(HARKinterpolator1D):
         Returns the level of the interpolated function at each value in x.  Only
         called internally by HARKinterpolator1D.__call__ (etc).
         """
-        if _isscalar(x):
-            pos = np.searchsorted(self.x_list, x)
-            if pos == 0:
-                y = self.coeffs[0, 0] + self.coeffs[0, 1] * (x - self.x_list[0])
-            elif pos < self.n:
-                alpha = (x - self.x_list[pos - 1]) / (
-                    self.x_list[pos] - self.x_list[pos - 1]
-                )
-                y = self.coeffs[pos, 0] + alpha * (
-                    self.coeffs[pos, 1]
-                    + alpha * (self.coeffs[pos, 2] + alpha * self.coeffs[pos, 3])
-                )
-            else:
-                alpha = x - self.x_list[self.n - 1]
-                y = (
-                    self.coeffs[pos, 0]
-                    + x * self.coeffs[pos, 1]
-                    - self.coeffs[pos, 2] * np.exp(alpha * self.coeffs[pos, 3])
-                )
-        else:
-            m = len(x)
-            pos = np.searchsorted(self.x_list, x)
-            y = np.zeros(m)
-            if y.size > 0:
-                out_bot = pos == 0
-                out_top = pos == self.n
-                in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-                # Do the "in bounds" evaluation points
-                i = pos[in_bnds]
-                coeffs_in = self.coeffs[i, :]
-                alpha = (x[in_bnds] - self.x_list[i - 1]) / (
-                    self.x_list[i] - self.x_list[i - 1]
-                )
-                y[in_bnds] = coeffs_in[:, 0] + alpha * (
-                    coeffs_in[:, 1]
-                    + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
-                )
+        m = len(x)
+        pos = np.searchsorted(self.x_list, x, side="right")
+        y = np.zeros(m)
+        if y.size > 0:
+            out_bot = pos == 0
+            out_top = pos == self.n
+            in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-                # Do the "out of bounds" evaluation points
-                y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
-                    x[out_bot] - self.x_list[0]
-                )
-                alpha = x[out_top] - self.x_list[self.n - 1]
-                y[out_top] = (
-                    self.coeffs[self.n, 0]
-                    + x[out_top] * self.coeffs[self.n, 1]
-                    - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
-                )
+            # Do the "in bounds" evaluation points
+            i = pos[in_bnds]
+            coeffs_in = self.coeffs[i, :]
+            alpha = (x[in_bnds] - self.x_list[i - 1]) / (
+                self.x_list[i] - self.x_list[i - 1]
+            )
+            y[in_bnds] = coeffs_in[:, 0] + alpha * (
+                coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
+            )
 
-                y[x == self.x_list[0]] = self.y_list[0]
+            # Do the "out of bounds" evaluation points
+            y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
+                x[out_bot] - self.x_list[0]
+            )
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            y[out_top] = (
+                self.coeffs[self.n, 0]
+                + x[out_top] * self.coeffs[self.n, 1]
+                - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
+            )
 
         return y
 
@@ -1053,50 +1077,32 @@ class CubicInterp(HARKinterpolator1D):
         Returns the first derivative of the interpolated function at each value
         in x. Only called internally by HARKinterpolator1D.derivative (etc).
         """
-        if _isscalar(x):
-            pos = np.searchsorted(self.x_list, x)
-            if pos == 0:
-                dydx = self.coeffs[0, 1]
-            elif pos < self.n:
-                alpha = (x - self.x_list[pos - 1]) / (
-                    self.x_list[pos] - self.x_list[pos - 1]
-                )
-                dydx = (
-                    self.coeffs[pos, 1]
-                    + alpha
-                    * (2 * self.coeffs[pos, 2] + alpha * 3 * self.coeffs[pos, 3])
-                ) / (self.x_list[pos] - self.x_list[pos - 1])
-            else:
-                alpha = x - self.x_list[self.n - 1]
-                dydx = self.coeffs[pos, 1] - self.coeffs[pos, 2] * self.coeffs[
-                    pos, 3
-                ] * np.exp(alpha * self.coeffs[pos, 3])
-        else:
-            m = len(x)
-            pos = np.searchsorted(self.x_list, x)
-            dydx = np.zeros(m)
-            if dydx.size > 0:
-                out_bot = pos == 0
-                out_top = pos == self.n
-                in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-                # Do the "in bounds" evaluation points
-                i = pos[in_bnds]
-                coeffs_in = self.coeffs[i, :]
-                alpha = (x[in_bnds] - self.x_list[i - 1]) / (
-                    self.x_list[i] - self.x_list[i - 1]
-                )
-                dydx[in_bnds] = (
-                    coeffs_in[:, 1]
-                    + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
-                ) / (self.x_list[i] - self.x_list[i - 1])
+        m = len(x)
+        pos = np.searchsorted(self.x_list, x, side="right")
+        dydx = np.zeros(m)
+        if dydx.size > 0:
+            out_bot = pos == 0
+            out_top = pos == self.n
+            in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-                # Do the "out of bounds" evaluation points
-                dydx[out_bot] = self.coeffs[0, 1]
-                alpha = x[out_top] - self.x_list[self.n - 1]
-                dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
-                    self.n, 2
-                ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
+            # Do the "in bounds" evaluation points
+            i = pos[in_bnds]
+            coeffs_in = self.coeffs[i, :]
+            alpha = (x[in_bnds] - self.x_list[i - 1]) / (
+                self.x_list[i] - self.x_list[i - 1]
+            )
+            dydx[in_bnds] = (
+                coeffs_in[:, 1]
+                + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
+            ) / (self.x_list[i] - self.x_list[i - 1])
+
+            # Do the "out of bounds" evaluation points
+            dydx[out_bot] = self.coeffs[0, 1]
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
+                self.n, 2
+            ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
         return dydx
 
     def _evalAndDer(self, x):
@@ -1104,73 +1110,43 @@ class CubicInterp(HARKinterpolator1D):
         Returns the level and first derivative of the function at each value in
         x.  Only called internally by HARKinterpolator1D.eval_and_der (etc).
         """
-        if _isscalar(x):
-            pos = np.searchsorted(self.x_list, x)
-            if pos == 0:
-                y = self.coeffs[0, 0] + self.coeffs[0, 1] * (x - self.x_list[0])
-                dydx = self.coeffs[0, 1]
-            elif pos < self.n:
-                alpha = (x - self.x_list[pos - 1]) / (
-                    self.x_list[pos] - self.x_list[pos - 1]
-                )
-                y = self.coeffs[pos, 0] + alpha * (
-                    self.coeffs[pos, 1]
-                    + alpha * (self.coeffs[pos, 2] + alpha * self.coeffs[pos, 3])
-                )
-                dydx = (
-                    self.coeffs[pos, 1]
-                    + alpha
-                    * (2 * self.coeffs[pos, 2] + alpha * 3 * self.coeffs[pos, 3])
-                ) / (self.x_list[pos] - self.x_list[pos - 1])
-            else:
-                alpha = x - self.x_list[self.n - 1]
-                y = (
-                    self.coeffs[pos, 0]
-                    + x * self.coeffs[pos, 1]
-                    - self.coeffs[pos, 2] * np.exp(alpha * self.coeffs[pos, 3])
-                )
-                dydx = self.coeffs[pos, 1] - self.coeffs[pos, 2] * self.coeffs[
-                    pos, 3
-                ] * np.exp(alpha * self.coeffs[pos, 3])
-        else:
-            m = len(x)
-            pos = np.searchsorted(self.x_list, x)
-            y = np.zeros(m)
-            dydx = np.zeros(m)
-            if y.size > 0:
-                out_bot = pos == 0
-                out_top = pos == self.n
-                in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
+        m = len(x)
+        pos = np.searchsorted(self.x_list, x, side="right")
+        y = np.zeros(m)
+        dydx = np.zeros(m)
+        if y.size > 0:
+            out_bot = pos == 0
+            out_top = pos == self.n
+            in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-                # Do the "in bounds" evaluation points
-                i = pos[in_bnds]
-                coeffs_in = self.coeffs[i, :]
-                alpha = (x[in_bnds] - self.x_list[i - 1]) / (
-                    self.x_list[i] - self.x_list[i - 1]
-                )
-                y[in_bnds] = coeffs_in[:, 0] + alpha * (
-                    coeffs_in[:, 1]
-                    + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
-                )
-                dydx[in_bnds] = (
-                    coeffs_in[:, 1]
-                    + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
-                ) / (self.x_list[i] - self.x_list[i - 1])
+            # Do the "in bounds" evaluation points
+            i = pos[in_bnds]
+            coeffs_in = self.coeffs[i, :]
+            alpha = (x[in_bnds] - self.x_list[i - 1]) / (
+                self.x_list[i] - self.x_list[i - 1]
+            )
+            y[in_bnds] = coeffs_in[:, 0] + alpha * (
+                coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
+            )
+            dydx[in_bnds] = (
+                coeffs_in[:, 1]
+                + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
+            ) / (self.x_list[i] - self.x_list[i - 1])
 
-                # Do the "out of bounds" evaluation points
-                y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
-                    x[out_bot] - self.x_list[0]
-                )
-                dydx[out_bot] = self.coeffs[0, 1]
-                alpha = x[out_top] - self.x_list[self.n - 1]
-                y[out_top] = (
-                    self.coeffs[self.n, 0]
-                    + x[out_top] * self.coeffs[self.n, 1]
-                    - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
-                )
-                dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
-                    self.n, 2
-                ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
+            # Do the "out of bounds" evaluation points
+            y[out_bot] = self.coeffs[0, 0] + self.coeffs[0, 1] * (
+                x[out_bot] - self.x_list[0]
+            )
+            dydx[out_bot] = self.coeffs[0, 1]
+            alpha = x[out_top] - self.x_list[self.n - 1]
+            y[out_top] = (
+                self.coeffs[self.n, 0]
+                + x[out_top] * self.coeffs[self.n, 1]
+                - self.coeffs[self.n, 2] * np.exp(alpha * self.coeffs[self.n, 3])
+            )
+            dydx[out_top] = self.coeffs[self.n, 1] - self.coeffs[
+                self.n, 2
+            ] * self.coeffs[self.n, 3] * np.exp(alpha * self.coeffs[self.n, 3])
         return y, dydx
 
 
@@ -1426,16 +1402,12 @@ class BilinearInterp(HARKinterpolator2D):
         Returns the level of the interpolated function at each value in x,y.
         Only called internally by HARKinterpolator2D.__call__ (etc).
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
         alpha = (x - self.x_list[x_pos - 1]) / (
             self.x_list[x_pos] - self.x_list[x_pos - 1]
         )
@@ -1455,16 +1427,12 @@ class BilinearInterp(HARKinterpolator2D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
         beta = (y - self.y_list[y_pos - 1]) / (
             self.y_list[y_pos] - self.y_list[y_pos - 1]
         )
@@ -1485,16 +1453,12 @@ class BilinearInterp(HARKinterpolator2D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeY.
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
         alpha = (x - self.x_list[x_pos - 1]) / (
             self.x_list[x_pos] - self.x_list[x_pos - 1]
         )
@@ -1584,20 +1548,15 @@ class TrilinearInterp(HARKinterpolator3D):
         Returns the level of the interpolated function at each value in x,y,z.
         Only called internally by HARKinterpolator3D.__call__ (etc).
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         alpha = (x - self.x_list[x_pos - 1]) / (
             self.x_list[x_pos] - self.x_list[x_pos - 1]
         )
@@ -1636,20 +1595,15 @@ class TrilinearInterp(HARKinterpolator3D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         beta = (y - self.y_list[y_pos - 1]) / (
             self.y_list[y_pos] - self.y_list[y_pos - 1]
         )
@@ -1679,20 +1633,15 @@ class TrilinearInterp(HARKinterpolator3D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         alpha = (x - self.x_list[x_pos - 1]) / (
             self.x_list[x_pos] - self.x_list[x_pos - 1]
         )
@@ -1722,20 +1671,15 @@ class TrilinearInterp(HARKinterpolator3D):
         Returns the derivative with respect to z of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
         """
-        if _isscalar(x):
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         alpha = (x - self.x_list[x_pos - 1]) / (
             self.x_list[x_pos] - self.x_list[x_pos - 1]
         )
@@ -1852,24 +1796,18 @@ class QuadlinearInterp(HARKinterpolator4D):
         Returns the level of the interpolated function at each value in x,y,z.
         Only called internally by HARKinterpolator4D.__call__ (etc).
         """
-        if _isscalar(w):
-            w_pos = max(min(self.wSearchFunc(self.w_list, w), self.w_n - 1), 1)
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            w_pos = self.wSearchFunc(self.w_list, w)
-            w_pos[w_pos < 1] = 1
-            w_pos[w_pos > self.w_n - 1] = self.w_n - 1
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        w_pos = self.wSearchFunc(self.w_list, w)
+        w_pos[w_pos < 1] = 1
+        w_pos[w_pos > self.w_n - 1] = self.w_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         i = w_pos  # for convenience
         j = x_pos
         k = y_pos
@@ -1916,24 +1854,18 @@ class QuadlinearInterp(HARKinterpolator4D):
         Returns the derivative with respect to w of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeW.
         """
-        if _isscalar(w):
-            w_pos = max(min(self.wSearchFunc(self.w_list, w), self.w_n - 1), 1)
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            w_pos = self.wSearchFunc(self.w_list, w)
-            w_pos[w_pos < 1] = 1
-            w_pos[w_pos > self.w_n - 1] = self.w_n - 1
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        w_pos = self.wSearchFunc(self.w_list, w)
+        w_pos[w_pos < 1] = 1
+        w_pos[w_pos > self.w_n - 1] = self.w_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         i = w_pos  # for convenience
         j = x_pos
         k = y_pos
@@ -1985,24 +1917,18 @@ class QuadlinearInterp(HARKinterpolator4D):
         Returns the derivative with respect to x of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeX.
         """
-        if _isscalar(w):
-            w_pos = max(min(self.wSearchFunc(self.w_list, w), self.w_n - 1), 1)
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            w_pos = self.wSearchFunc(self.w_list, w)
-            w_pos[w_pos < 1] = 1
-            w_pos[w_pos > self.w_n - 1] = self.w_n - 1
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        w_pos = self.wSearchFunc(self.w_list, w)
+        w_pos[w_pos < 1] = 1
+        w_pos[w_pos > self.w_n - 1] = self.w_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         i = w_pos  # for convenience
         j = x_pos
         k = y_pos
@@ -2054,24 +1980,18 @@ class QuadlinearInterp(HARKinterpolator4D):
         Returns the derivative with respect to y of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeY.
         """
-        if _isscalar(w):
-            w_pos = max(min(self.wSearchFunc(self.w_list, w), self.w_n - 1), 1)
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            w_pos = self.wSearchFunc(self.w_list, w)
-            w_pos[w_pos < 1] = 1
-            w_pos[w_pos > self.w_n - 1] = self.w_n - 1
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        w_pos = self.wSearchFunc(self.w_list, w)
+        w_pos[w_pos < 1] = 1
+        w_pos[w_pos > self.w_n - 1] = self.w_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         i = w_pos  # for convenience
         j = x_pos
         k = y_pos
@@ -2123,24 +2043,18 @@ class QuadlinearInterp(HARKinterpolator4D):
         Returns the derivative with respect to z of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeZ.
         """
-        if _isscalar(w):
-            w_pos = max(min(self.wSearchFunc(self.w_list, w), self.w_n - 1), 1)
-            x_pos = max(min(self.xSearchFunc(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(self.ySearchFunc(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(self.zSearchFunc(self.z_list, z), self.z_n - 1), 1)
-        else:
-            w_pos = self.wSearchFunc(self.w_list, w)
-            w_pos[w_pos < 1] = 1
-            w_pos[w_pos > self.w_n - 1] = self.w_n - 1
-            x_pos = self.xSearchFunc(self.x_list, x)
-            x_pos[x_pos < 1] = 1
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = self.ySearchFunc(self.y_list, y)
-            y_pos[y_pos < 1] = 1
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            z_pos = self.zSearchFunc(self.z_list, z)
-            z_pos[z_pos < 1] = 1
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        w_pos = self.wSearchFunc(self.w_list, w)
+        w_pos[w_pos < 1] = 1
+        w_pos[w_pos > self.w_n - 1] = self.w_n - 1
+        x_pos = self.xSearchFunc(self.x_list, x)
+        x_pos[x_pos < 1] = 1
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = self.ySearchFunc(self.y_list, y)
+        y_pos[y_pos < 1] = 1
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        z_pos = self.zSearchFunc(self.z_list, z)
+        z_pos[z_pos < 1] = 1
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
         i = w_pos  # for convenience
         j = x_pos
         k = y_pos
@@ -2223,15 +2137,11 @@ class LowerEnvelope(HARKinterpolator1D):
         Returns the level of the function at each value in x as the minimum among
         all of the functions.  Only called internally by HARKinterpolator1D.__call__.
         """
-
-        if _isscalar(x):
-            y = self.compare([f(x) for f in self.functions])
-        else:
-            m = len(x)
-            fx = np.zeros((m, self.funcCount))
-            for j in range(self.funcCount):
-                fx[:, j] = self.functions[j](x)
-            y = self.compare(fx, axis=1)
+        m = len(x)
+        fx = np.zeros((m, self.funcCount))
+        for j in range(self.funcCount):
+            fx[:, j] = self.functions[j](x)
+        y = self.compare(fx, axis=1)
         return y
 
     def _der(self, x):
@@ -2254,7 +2164,7 @@ class LowerEnvelope(HARKinterpolator1D):
         i = self.argcompare(fx, axis=1)
         y = fx[np.arange(m), i]
         dydx = np.zeros_like(y)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dydx[c] = self.functions[j].derivative(x[c])
         return y, dydx
@@ -2294,14 +2204,11 @@ class UpperEnvelope(HARKinterpolator1D):
         Returns the level of the function at each value in x as the maximum among
         all of the functions.  Only called internally by HARKinterpolator1D.__call__.
         """
-        if _isscalar(x):
-            y = self.compare([f(x) for f in self.functions])
-        else:
-            m = len(x)
-            fx = np.zeros((m, self.funcCount))
-            for j in range(self.funcCount):
-                fx[:, j] = self.functions[j](x)
-            y = self.compare(fx, axis=1)
+        m = len(x)
+        fx = np.zeros((m, self.funcCount))
+        for j in range(self.funcCount):
+            fx[:, j] = self.functions[j](x)
+        y = self.compare(fx, axis=1)
         return y
 
     def _der(self, x):
@@ -2324,7 +2231,7 @@ class UpperEnvelope(HARKinterpolator1D):
         i = self.argcompare(fx, axis=1)
         y = fx[np.arange(m), i]
         dydx = np.zeros_like(y)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dydx[c] = self.functions[j].derivative(x[c])
         return y, dydx
@@ -2365,14 +2272,11 @@ class LowerEnvelope2D(HARKinterpolator2D):
         among all of the functions.  Only called internally by
         HARKinterpolator2D.__call__.
         """
-        if _isscalar(x):
-            f = self.compare([f(x, y) for f in self.functions])
-        else:
-            m = len(x)
-            temp = np.zeros((m, self.funcCount))
-            for j in range(self.funcCount):
-                temp[:, j] = self.functions[j](x, y)
-            f = self.compare(temp, axis=1)
+        m = len(x)
+        temp = np.zeros((m, self.funcCount))
+        for j in range(self.funcCount):
+            temp[:, j] = self.functions[j](x, y)
+        f = self.compare(temp, axis=1)
         return f
 
     def _derX(self, x, y):
@@ -2386,7 +2290,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
             temp[:, j] = self.functions[j](x, y)
         i = self.argcompare(temp, axis=1)
         dfdx = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdx[c] = self.functions[j].derivativeX(x[c], y[c])
         return dfdx
@@ -2403,7 +2307,7 @@ class LowerEnvelope2D(HARKinterpolator2D):
         i = self.argcompare(temp, axis=1)
         y = temp[np.arange(m), i]
         dfdy = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdy[c] = self.functions[j].derivativeY(x[c], y[c])
         return dfdy
@@ -2444,14 +2348,11 @@ class LowerEnvelope3D(HARKinterpolator3D):
         among all of the functions.  Only called internally by
         HARKinterpolator3D.__call__.
         """
-        if _isscalar(x):
-            f = self.compare([f(x, y, z) for f in self.functions])
-        else:
-            m = len(x)
-            temp = np.zeros((m, self.funcCount))
-            for j in range(self.funcCount):
-                temp[:, j] = self.functions[j](x, y, z)
-            f = self.compare(temp, axis=1)
+        m = len(x)
+        temp = np.zeros((m, self.funcCount))
+        for j in range(self.funcCount):
+            temp[:, j] = self.functions[j](x, y, z)
+        f = self.compare(temp, axis=1)
         return f
 
     def _derX(self, x, y, z):
@@ -2465,7 +2366,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
             temp[:, j] = self.functions[j](x, y, z)
         i = self.argcompare(temp, axis=1)
         dfdx = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdx[c] = self.functions[j].derivativeX(x[c], y[c], z[c])
         return dfdx
@@ -2482,7 +2383,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         i = self.argcompare(temp, axis=1)
         y = temp[np.arange(m), i]
         dfdy = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdy[c] = self.functions[j].derivativeY(x[c], y[c], z[c])
         return dfdy
@@ -2499,7 +2400,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         i = self.argcompare(temp, axis=1)
         y = temp[np.arange(m), i]
         dfdz = np.zeros_like(x)
-        for j in range(self.funcCount):
+        for j in np.unique(i):
             c = i == j
             dfdz[c] = self.functions[j].derivativeZ(x[c], y[c], z[c])
         return dfdz
@@ -2738,30 +2639,21 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         Returns the level of the interpolated function at each value in x,y.
         Only called internally by HARKinterpolator2D.__call__ (etc).
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            f = (1 - alpha) * self.xInterpolators[y_pos - 1](
-                x
-            ) + alpha * self.xInterpolators[y_pos](x)
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            f = np.zeros(m) + np.nan
-            if y.size > 0:
-                for i in range(1, self.y_n):
-                    c = y_pos == i
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        f[c] = (1 - alpha) * self.xInterpolators[i - 1](
-                            x[c]
-                        ) + alpha * self.xInterpolators[i](x[c])
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        f = np.zeros(m) + np.nan
+        if y.size > 0:
+            for i in range(1, self.y_n):
+                c = y_pos == i
+                if np.any(c):
+                    alpha = (y[c] - self.y_list[i - 1]) / (
+                        self.y_list[i] - self.y_list[i - 1]
+                    )
+                    f[c] = (1 - alpha) * self.xInterpolators[i - 1](
+                        x[c]
+                    ) + alpha * self.xInterpolators[i](x[c])
         return f
 
     def _derX(self, x, y):
@@ -2769,30 +2661,21 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            dfdx = (1 - alpha) * self.xInterpolators[y_pos - 1]._der(
-                x
-            ) + alpha * self.xInterpolators[y_pos]._der(x)
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            dfdx = np.zeros(m) + np.nan
-            if y.size > 0:
-                for i in range(1, self.y_n):
-                    c = y_pos == i
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        dfdx[c] = (1 - alpha) * self.xInterpolators[i - 1]._der(
-                            x[c]
-                        ) + alpha * self.xInterpolators[i]._der(x[c])
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        dfdx = np.zeros(m) + np.nan
+        if y.size > 0:
+            for i in range(1, self.y_n):
+                c = y_pos == i
+                if np.any(c):
+                    alpha = (y[c] - self.y_list[i - 1]) / (
+                        self.y_list[i] - self.y_list[i - 1]
+                    )
+                    dfdx[c] = (1 - alpha) * self.xInterpolators[i - 1]._der(
+                        x[c]
+                    ) + alpha * self.xInterpolators[i]._der(x[c])
         return dfdx
 
     def _derY(self, x, y):
@@ -2800,25 +2683,18 @@ class LinearInterpOnInterp1D(HARKinterpolator2D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y. Only called internally by HARKinterpolator2D.derivativeY.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            dfdy = (
-                self.xInterpolators[y_pos](x) - self.xInterpolators[y_pos - 1](x)
-            ) / (self.y_list[y_pos] - self.y_list[y_pos - 1])
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            dfdy = np.zeros(m) + np.nan
-            if y.size > 0:
-                for i in range(1, self.y_n):
-                    c = y_pos == i
-                    if np.any(c):
-                        dfdy[c] = (
-                            self.xInterpolators[i](x[c])
-                            - self.xInterpolators[i - 1](x[c])
-                        ) / (self.y_list[i] - self.y_list[i - 1])
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        dfdy = np.zeros(m) + np.nan
+        if y.size > 0:
+            for i in range(1, self.y_n):
+                c = y_pos == i
+                if np.any(c):
+                    dfdy[c] = (
+                        self.xInterpolators[i](x[c]) - self.xInterpolators[i - 1](x[c])
+                    ) / (self.y_list[i] - self.y_list[i - 1])
         return dfdy
 
 
@@ -2855,202 +2731,127 @@ class BilinearInterpOnInterp1D(HARKinterpolator3D):
         """
         Returns the level of the interpolated function at each value in x,y,z.
         Only called internally by HARKinterpolator3D.__call__ (etc).
+
+        Optimized to avoid nested loops by processing all unique (i,j) combinations
+        with vectorized operations.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+
+        f = np.full(m, np.nan)
+
+        # Find unique combinations of (y_pos, z_pos) to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            alpha = (y[c] - self.y_list[i - 1]) / (self.y_list[i] - self.y_list[i - 1])
+            beta = (z[c] - self.z_list[j - 1]) / (self.z_list[j] - self.z_list[j - 1])
+            f[c] = (
+                (1 - alpha) * (1 - beta) * self.xInterpolators[i - 1][j - 1](x[c])
+                + (1 - alpha) * beta * self.xInterpolators[i - 1][j](x[c])
+                + alpha * (1 - beta) * self.xInterpolators[i][j - 1](x[c])
+                + alpha * beta * self.xInterpolators[i][j](x[c])
             )
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            f = (
-                (1 - alpha) * (1 - beta) * self.xInterpolators[y_pos - 1][z_pos - 1](x)
-                + (1 - alpha) * beta * self.xInterpolators[y_pos - 1][z_pos](x)
-                + alpha * (1 - beta) * self.xInterpolators[y_pos][z_pos - 1](x)
-                + alpha * beta * self.xInterpolators[y_pos][z_pos](x)
-            )
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            f = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
-                        )
-                        f[c] = (
-                            (1 - alpha)
-                            * (1 - beta)
-                            * self.xInterpolators[i - 1][j - 1](x[c])
-                            + (1 - alpha) * beta * self.xInterpolators[i - 1][j](x[c])
-                            + alpha * (1 - beta) * self.xInterpolators[i][j - 1](x[c])
-                            + alpha * beta * self.xInterpolators[i][j](x[c])
-                        )
         return f
 
     def _derX(self, x, y, z):
         """
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
+
+        Optimized to avoid nested loops by processing unique (i,j) combinations.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+
+        dfdx = np.full(m, np.nan)
+
+        # Find unique combinations to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            alpha = (y[c] - self.y_list[i - 1]) / (self.y_list[i] - self.y_list[i - 1])
+            beta = (z[c] - self.z_list[j - 1]) / (self.z_list[j] - self.z_list[j - 1])
+            dfdx[c] = (
+                (1 - alpha) * (1 - beta) * self.xInterpolators[i - 1][j - 1]._der(x[c])
+                + (1 - alpha) * beta * self.xInterpolators[i - 1][j]._der(x[c])
+                + alpha * (1 - beta) * self.xInterpolators[i][j - 1]._der(x[c])
+                + alpha * beta * self.xInterpolators[i][j]._der(x[c])
             )
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdx = (
-                (1 - alpha)
-                * (1 - beta)
-                * self.xInterpolators[y_pos - 1][z_pos - 1]._der(x)
-                + (1 - alpha) * beta * self.xInterpolators[y_pos - 1][z_pos]._der(x)
-                + alpha * (1 - beta) * self.xInterpolators[y_pos][z_pos - 1]._der(x)
-                + alpha * beta * self.xInterpolators[y_pos][z_pos]._der(x)
-            )
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdx = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
-                        )
-                        dfdx[c] = (
-                            (1 - alpha)
-                            * (1 - beta)
-                            * self.xInterpolators[i - 1][j - 1]._der(x[c])
-                            + (1 - alpha)
-                            * beta
-                            * self.xInterpolators[i - 1][j]._der(x[c])
-                            + alpha
-                            * (1 - beta)
-                            * self.xInterpolators[i][j - 1]._der(x[c])
-                            + alpha * beta * self.xInterpolators[i][j]._der(x[c])
-                        )
         return dfdx
 
     def _derY(self, x, y, z):
         """
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
+
+        Optimized to avoid nested loops by processing unique (i,j) combinations.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdy = (
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+
+        dfdy = np.full(m, np.nan)
+
+        # Find unique combinations to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            beta = (z[c] - self.z_list[j - 1]) / (self.z_list[j] - self.z_list[j - 1])
+            dfdy[c] = (
                 (
-                    (1 - beta) * self.xInterpolators[y_pos][z_pos - 1](x)
-                    + beta * self.xInterpolators[y_pos][z_pos](x)
+                    (1 - beta) * self.xInterpolators[i][j - 1](x[c])
+                    + beta * self.xInterpolators[i][j](x[c])
                 )
                 - (
-                    (1 - beta) * self.xInterpolators[y_pos - 1][z_pos - 1](x)
-                    + beta * self.xInterpolators[y_pos - 1][z_pos](x)
+                    (1 - beta) * self.xInterpolators[i - 1][j - 1](x[c])
+                    + beta * self.xInterpolators[i - 1][j](x[c])
                 )
-            ) / (self.y_list[y_pos] - self.y_list[y_pos - 1])
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdy = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
-                        )
-                        dfdy[c] = (
-                            (
-                                (1 - beta) * self.xInterpolators[i][j - 1](x[c])
-                                + beta * self.xInterpolators[i][j](x[c])
-                            )
-                            - (
-                                (1 - beta) * self.xInterpolators[i - 1][j - 1](x[c])
-                                + beta * self.xInterpolators[i - 1][j](x[c])
-                            )
-                        ) / (self.y_list[i] - self.y_list[i - 1])
+            ) / (self.y_list[i] - self.y_list[i - 1])
         return dfdy
 
     def _derZ(self, x, y, z):
         """
         Returns the derivative with respect to z of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
+
+        Optimized to avoid nested loops by processing unique (i,j) combinations.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            dfdz = (
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos = np.clip(y_pos, 1, self.y_n - 1)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos = np.clip(z_pos, 1, self.z_n - 1)
+
+        dfdz = np.full(m, np.nan)
+
+        # Find unique combinations to avoid redundant computations
+        unique_pairs = np.unique(np.column_stack((y_pos, z_pos)), axis=0)
+
+        for i, j in unique_pairs:
+            c = (i == y_pos) & (j == z_pos)
+            alpha = (y[c] - self.y_list[i - 1]) / (self.y_list[i] - self.y_list[i - 1])
+            dfdz[c] = (
                 (
-                    (1 - alpha) * self.xInterpolators[y_pos - 1][z_pos](x)
-                    + alpha * self.xInterpolators[y_pos][z_pos](x)
+                    (1 - alpha) * self.xInterpolators[i - 1][j](x[c])
+                    + alpha * self.xInterpolators[i][j](x[c])
                 )
                 - (
-                    (1 - alpha) * self.xInterpolators[y_pos - 1][z_pos - 1](x)
-                    + alpha * self.xInterpolators[y_pos][z_pos - 1](x)
+                    (1 - alpha) * self.xInterpolators[i - 1][j - 1](x[c])
+                    + alpha * self.xInterpolators[i][j - 1](x[c])
                 )
-            ) / (self.z_list[z_pos] - self.z_list[z_pos - 1])
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdz = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        dfdz[c] = (
-                            (
-                                (1 - alpha) * self.xInterpolators[i - 1][j](x[c])
-                                + alpha * self.xInterpolators[i][j](x[c])
-                            )
-                            - (
-                                (1 - alpha) * self.xInterpolators[i - 1][j - 1](x[c])
-                                + alpha * self.xInterpolators[i][j - 1](x[c])
-                            )
-                        ) / (self.z_list[j] - self.z_list[j - 1])
+            ) / (self.z_list[j] - self.z_list[j - 1])
         return dfdz
 
 
@@ -3091,111 +2892,63 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         Returns the level of the interpolated function at each value in w,x,y,z.
         Only called internally by HARKinterpolator4D.__call__ (etc).
         """
-        if _isscalar(w):
-            x_pos = max(min(np.searchsorted(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (x - self.x_list[x_pos - 1]) / (
-                self.x_list[x_pos] - self.x_list[x_pos - 1]
-            )
-            beta = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            gamma = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            f = (
-                (1 - alpha)
-                * (1 - beta)
-                * (1 - gamma)
-                * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos - 1](w)
-                + (1 - alpha)
-                * (1 - beta)
-                * gamma
-                * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos](w)
-                + (1 - alpha)
-                * beta
-                * (1 - gamma)
-                * self.wInterpolators[x_pos - 1][y_pos][z_pos - 1](w)
-                + (1 - alpha)
-                * beta
-                * gamma
-                * self.wInterpolators[x_pos - 1][y_pos][z_pos](w)
-                + alpha
-                * (1 - beta)
-                * (1 - gamma)
-                * self.wInterpolators[x_pos][y_pos - 1][z_pos - 1](w)
-                + alpha
-                * (1 - beta)
-                * gamma
-                * self.wInterpolators[x_pos][y_pos - 1][z_pos](w)
-                + alpha
-                * beta
-                * (1 - gamma)
-                * self.wInterpolators[x_pos][y_pos][z_pos - 1](w)
-                + alpha * beta * gamma * self.wInterpolators[x_pos][y_pos][z_pos](w)
-            )
-        else:
-            m = len(x)
-            x_pos = np.searchsorted(self.x_list, x)
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            f = np.zeros(m) + np.nan
-            for i in range(1, self.x_n):
-                for j in range(1, self.y_n):
-                    for k in range(1, self.z_n):
-                        c = np.logical_and(
-                            np.logical_and(i == x_pos, j == y_pos), k == z_pos
+        m = len(x)
+        x_pos = np.searchsorted(self.x_list, x)
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        f = np.zeros(m) + np.nan
+        for i in range(1, self.x_n):
+            for j in range(1, self.y_n):
+                for k in range(1, self.z_n):
+                    c = np.logical_and(
+                        np.logical_and(i == x_pos, j == y_pos), k == z_pos
+                    )
+                    if np.any(c):
+                        alpha = (x[c] - self.x_list[i - 1]) / (
+                            self.x_list[i] - self.x_list[i - 1]
                         )
-                        if np.any(c):
-                            alpha = (x[c] - self.x_list[i - 1]) / (
-                                self.x_list[i] - self.x_list[i - 1]
-                            )
-                            beta = (y[c] - self.y_list[j - 1]) / (
-                                self.y_list[j] - self.y_list[j - 1]
-                            )
-                            gamma = (z[c] - self.z_list[k - 1]) / (
-                                self.z_list[k] - self.z_list[k - 1]
-                            )
-                            f[c] = (
-                                (1 - alpha)
-                                * (1 - beta)
-                                * (1 - gamma)
-                                * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
-                                + (1 - alpha)
-                                * (1 - beta)
-                                * gamma
-                                * self.wInterpolators[i - 1][j - 1][k](w[c])
-                                + (1 - alpha)
-                                * beta
-                                * (1 - gamma)
-                                * self.wInterpolators[i - 1][j][k - 1](w[c])
-                                + (1 - alpha)
-                                * beta
-                                * gamma
-                                * self.wInterpolators[i - 1][j][k](w[c])
-                                + alpha
-                                * (1 - beta)
-                                * (1 - gamma)
-                                * self.wInterpolators[i][j - 1][k - 1](w[c])
-                                + alpha
-                                * (1 - beta)
-                                * gamma
-                                * self.wInterpolators[i][j - 1][k](w[c])
-                                + alpha
-                                * beta
-                                * (1 - gamma)
-                                * self.wInterpolators[i][j][k - 1](w[c])
-                                + alpha
-                                * beta
-                                * gamma
-                                * self.wInterpolators[i][j][k](w[c])
-                            )
+                        beta = (y[c] - self.y_list[j - 1]) / (
+                            self.y_list[j] - self.y_list[j - 1]
+                        )
+                        gamma = (z[c] - self.z_list[k - 1]) / (
+                            self.z_list[k] - self.z_list[k - 1]
+                        )
+                        f[c] = (
+                            (1 - alpha)
+                            * (1 - beta)
+                            * (1 - gamma)
+                            * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
+                            + (1 - alpha)
+                            * (1 - beta)
+                            * gamma
+                            * self.wInterpolators[i - 1][j - 1][k](w[c])
+                            + (1 - alpha)
+                            * beta
+                            * (1 - gamma)
+                            * self.wInterpolators[i - 1][j][k - 1](w[c])
+                            + (1 - alpha)
+                            * beta
+                            * gamma
+                            * self.wInterpolators[i - 1][j][k](w[c])
+                            + alpha
+                            * (1 - beta)
+                            * (1 - gamma)
+                            * self.wInterpolators[i][j - 1][k - 1](w[c])
+                            + alpha
+                            * (1 - beta)
+                            * gamma
+                            * self.wInterpolators[i][j - 1][k](w[c])
+                            + alpha
+                            * beta
+                            * (1 - gamma)
+                            * self.wInterpolators[i][j][k - 1](w[c])
+                            + alpha * beta * gamma * self.wInterpolators[i][j][k](w[c])
+                        )
         return f
 
     def _derW(self, w, x, y, z):
@@ -3203,114 +2956,66 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         Returns the derivative with respect to w of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeW.
         """
-        if _isscalar(w):
-            x_pos = max(min(np.searchsorted(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (x - self.x_list[x_pos - 1]) / (
-                self.x_list[x_pos] - self.x_list[x_pos - 1]
-            )
-            beta = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            gamma = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdw = (
-                (1 - alpha)
-                * (1 - beta)
-                * (1 - gamma)
-                * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos - 1]._der(w)
-                + (1 - alpha)
-                * (1 - beta)
-                * gamma
-                * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos]._der(w)
-                + (1 - alpha)
-                * beta
-                * (1 - gamma)
-                * self.wInterpolators[x_pos - 1][y_pos][z_pos - 1]._der(w)
-                + (1 - alpha)
-                * beta
-                * gamma
-                * self.wInterpolators[x_pos - 1][y_pos][z_pos]._der(w)
-                + alpha
-                * (1 - beta)
-                * (1 - gamma)
-                * self.wInterpolators[x_pos][y_pos - 1][z_pos - 1]._der(w)
-                + alpha
-                * (1 - beta)
-                * gamma
-                * self.wInterpolators[x_pos][y_pos - 1][z_pos]._der(w)
-                + alpha
-                * beta
-                * (1 - gamma)
-                * self.wInterpolators[x_pos][y_pos][z_pos - 1]._der(w)
-                + alpha
-                * beta
-                * gamma
-                * self.wInterpolators[x_pos][y_pos][z_pos]._der(w)
-            )
-        else:
-            m = len(x)
-            x_pos = np.searchsorted(self.x_list, x)
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdw = np.zeros(m) + np.nan
-            for i in range(1, self.x_n):
-                for j in range(1, self.y_n):
-                    for k in range(1, self.z_n):
-                        c = np.logical_and(
-                            np.logical_and(i == x_pos, j == y_pos), k == z_pos
+        m = len(x)
+        x_pos = np.searchsorted(self.x_list, x)
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdw = np.zeros(m) + np.nan
+        for i in range(1, self.x_n):
+            for j in range(1, self.y_n):
+                for k in range(1, self.z_n):
+                    c = np.logical_and(
+                        np.logical_and(i == x_pos, j == y_pos), k == z_pos
+                    )
+                    if np.any(c):
+                        alpha = (x[c] - self.x_list[i - 1]) / (
+                            self.x_list[i] - self.x_list[i - 1]
                         )
-                        if np.any(c):
-                            alpha = (x[c] - self.x_list[i - 1]) / (
-                                self.x_list[i] - self.x_list[i - 1]
-                            )
-                            beta = (y[c] - self.y_list[j - 1]) / (
-                                self.y_list[j] - self.y_list[j - 1]
-                            )
-                            gamma = (z[c] - self.z_list[k - 1]) / (
-                                self.z_list[k] - self.z_list[k - 1]
-                            )
-                            dfdw[c] = (
-                                (1 - alpha)
-                                * (1 - beta)
-                                * (1 - gamma)
-                                * self.wInterpolators[i - 1][j - 1][k - 1]._der(w[c])
-                                + (1 - alpha)
-                                * (1 - beta)
-                                * gamma
-                                * self.wInterpolators[i - 1][j - 1][k]._der(w[c])
-                                + (1 - alpha)
-                                * beta
-                                * (1 - gamma)
-                                * self.wInterpolators[i - 1][j][k - 1]._der(w[c])
-                                + (1 - alpha)
-                                * beta
-                                * gamma
-                                * self.wInterpolators[i - 1][j][k]._der(w[c])
-                                + alpha
-                                * (1 - beta)
-                                * (1 - gamma)
-                                * self.wInterpolators[i][j - 1][k - 1]._der(w[c])
-                                + alpha
-                                * (1 - beta)
-                                * gamma
-                                * self.wInterpolators[i][j - 1][k]._der(w[c])
-                                + alpha
-                                * beta
-                                * (1 - gamma)
-                                * self.wInterpolators[i][j][k - 1]._der(w[c])
-                                + alpha
-                                * beta
-                                * gamma
-                                * self.wInterpolators[i][j][k]._der(w[c])
-                            )
+                        beta = (y[c] - self.y_list[j - 1]) / (
+                            self.y_list[j] - self.y_list[j - 1]
+                        )
+                        gamma = (z[c] - self.z_list[k - 1]) / (
+                            self.z_list[k] - self.z_list[k - 1]
+                        )
+                        dfdw[c] = (
+                            (1 - alpha)
+                            * (1 - beta)
+                            * (1 - gamma)
+                            * self.wInterpolators[i - 1][j - 1][k - 1]._der(w[c])
+                            + (1 - alpha)
+                            * (1 - beta)
+                            * gamma
+                            * self.wInterpolators[i - 1][j - 1][k]._der(w[c])
+                            + (1 - alpha)
+                            * beta
+                            * (1 - gamma)
+                            * self.wInterpolators[i - 1][j][k - 1]._der(w[c])
+                            + (1 - alpha)
+                            * beta
+                            * gamma
+                            * self.wInterpolators[i - 1][j][k]._der(w[c])
+                            + alpha
+                            * (1 - beta)
+                            * (1 - gamma)
+                            * self.wInterpolators[i][j - 1][k - 1]._der(w[c])
+                            + alpha
+                            * (1 - beta)
+                            * gamma
+                            * self.wInterpolators[i][j - 1][k]._der(w[c])
+                            + alpha
+                            * beta
+                            * (1 - gamma)
+                            * self.wInterpolators[i][j][k - 1]._der(w[c])
+                            + alpha
+                            * beta
+                            * gamma
+                            * self.wInterpolators[i][j][k]._der(w[c])
+                        )
         return dfdw
 
     def _derX(self, w, x, y, z):
@@ -3318,94 +3023,55 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         Returns the derivative with respect to x of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeX.
         """
-        if _isscalar(w):
-            x_pos = max(min(np.searchsorted(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            beta = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            gamma = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdx = (
-                (
-                    (1 - beta)
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos][y_pos - 1][z_pos - 1](w)
-                    + (1 - beta)
-                    * gamma
-                    * self.wInterpolators[x_pos][y_pos - 1][z_pos](w)
-                    + beta
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos][y_pos][z_pos - 1](w)
-                    + beta * gamma * self.wInterpolators[x_pos][y_pos][z_pos](w)
-                )
-                - (
-                    (1 - beta)
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos - 1](w)
-                    + (1 - beta)
-                    * gamma
-                    * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos](w)
-                    + beta
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos - 1][y_pos][z_pos - 1](w)
-                    + beta * gamma * self.wInterpolators[x_pos - 1][y_pos][z_pos](w)
-                )
-            ) / (self.x_list[x_pos] - self.x_list[x_pos - 1])
-        else:
-            m = len(x)
-            x_pos = np.searchsorted(self.x_list, x)
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdx = np.zeros(m) + np.nan
-            for i in range(1, self.x_n):
-                for j in range(1, self.y_n):
-                    for k in range(1, self.z_n):
-                        c = np.logical_and(
-                            np.logical_and(i == x_pos, j == y_pos), k == z_pos
+        m = len(x)
+        x_pos = np.searchsorted(self.x_list, x)
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdx = np.zeros(m) + np.nan
+        for i in range(1, self.x_n):
+            for j in range(1, self.y_n):
+                for k in range(1, self.z_n):
+                    c = np.logical_and(
+                        np.logical_and(i == x_pos, j == y_pos), k == z_pos
+                    )
+                    if np.any(c):
+                        beta = (y[c] - self.y_list[j - 1]) / (
+                            self.y_list[j] - self.y_list[j - 1]
                         )
-                        if np.any(c):
-                            beta = (y[c] - self.y_list[j - 1]) / (
-                                self.y_list[j] - self.y_list[j - 1]
+                        gamma = (z[c] - self.z_list[k - 1]) / (
+                            self.z_list[k] - self.z_list[k - 1]
+                        )
+                        dfdx[c] = (
+                            (
+                                (1 - beta)
+                                * (1 - gamma)
+                                * self.wInterpolators[i][j - 1][k - 1](w[c])
+                                + (1 - beta)
+                                * gamma
+                                * self.wInterpolators[i][j - 1][k](w[c])
+                                + beta
+                                * (1 - gamma)
+                                * self.wInterpolators[i][j][k - 1](w[c])
+                                + beta * gamma * self.wInterpolators[i][j][k](w[c])
                             )
-                            gamma = (z[c] - self.z_list[k - 1]) / (
-                                self.z_list[k] - self.z_list[k - 1]
+                            - (
+                                (1 - beta)
+                                * (1 - gamma)
+                                * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
+                                + (1 - beta)
+                                * gamma
+                                * self.wInterpolators[i - 1][j - 1][k](w[c])
+                                + beta
+                                * (1 - gamma)
+                                * self.wInterpolators[i - 1][j][k - 1](w[c])
+                                + beta * gamma * self.wInterpolators[i - 1][j][k](w[c])
                             )
-                            dfdx[c] = (
-                                (
-                                    (1 - beta)
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i][j - 1][k - 1](w[c])
-                                    + (1 - beta)
-                                    * gamma
-                                    * self.wInterpolators[i][j - 1][k](w[c])
-                                    + beta
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i][j][k - 1](w[c])
-                                    + beta * gamma * self.wInterpolators[i][j][k](w[c])
-                                )
-                                - (
-                                    (1 - beta)
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
-                                    + (1 - beta)
-                                    * gamma
-                                    * self.wInterpolators[i - 1][j - 1][k](w[c])
-                                    + beta
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i - 1][j][k - 1](w[c])
-                                    + beta
-                                    * gamma
-                                    * self.wInterpolators[i - 1][j][k](w[c])
-                                )
-                            ) / (self.x_list[i] - self.x_list[i - 1])
+                        ) / (self.x_list[i] - self.x_list[i - 1])
         return dfdx
 
     def _derY(self, w, x, y, z):
@@ -3413,94 +3079,55 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         Returns the derivative with respect to y of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeY.
         """
-        if _isscalar(w):
-            x_pos = max(min(np.searchsorted(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (x - self.x_list[x_pos - 1]) / (
-                self.y_list[x_pos] - self.x_list[x_pos - 1]
-            )
-            gamma = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdy = (
-                (
-                    (1 - alpha)
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos - 1][y_pos][z_pos - 1](w)
-                    + (1 - alpha)
-                    * gamma
-                    * self.wInterpolators[x_pos - 1][y_pos][z_pos](w)
-                    + alpha
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos][y_pos][z_pos - 1](w)
-                    + alpha * gamma * self.wInterpolators[x_pos][y_pos][z_pos](w)
-                )
-                - (
-                    (1 - alpha)
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos - 1](w)
-                    + (1 - alpha)
-                    * gamma
-                    * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos](w)
-                    + alpha
-                    * (1 - gamma)
-                    * self.wInterpolators[x_pos][y_pos - 1][z_pos - 1](w)
-                    + alpha * gamma * self.wInterpolators[x_pos][y_pos - 1][z_pos](w)
-                )
-            ) / (self.y_list[y_pos] - self.y_list[y_pos - 1])
-        else:
-            m = len(x)
-            x_pos = np.searchsorted(self.x_list, x)
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdy = np.zeros(m) + np.nan
-            for i in range(1, self.x_n):
-                for j in range(1, self.y_n):
-                    for k in range(1, self.z_n):
-                        c = np.logical_and(
-                            np.logical_and(i == x_pos, j == y_pos), k == z_pos
+        m = len(x)
+        x_pos = np.searchsorted(self.x_list, x)
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdy = np.zeros(m) + np.nan
+        for i in range(1, self.x_n):
+            for j in range(1, self.y_n):
+                for k in range(1, self.z_n):
+                    c = np.logical_and(
+                        np.logical_and(i == x_pos, j == y_pos), k == z_pos
+                    )
+                    if np.any(c):
+                        alpha = (x[c] - self.x_list[i - 1]) / (
+                            self.x_list[i] - self.x_list[i - 1]
                         )
-                        if np.any(c):
-                            alpha = (x[c] - self.x_list[i - 1]) / (
-                                self.x_list[i] - self.x_list[i - 1]
+                        gamma = (z[c] - self.z_list[k - 1]) / (
+                            self.z_list[k] - self.z_list[k - 1]
+                        )
+                        dfdy[c] = (
+                            (
+                                (1 - alpha)
+                                * (1 - gamma)
+                                * self.wInterpolators[i - 1][j][k - 1](w[c])
+                                + (1 - alpha)
+                                * gamma
+                                * self.wInterpolators[i - 1][j][k](w[c])
+                                + alpha
+                                * (1 - gamma)
+                                * self.wInterpolators[i][j][k - 1](w[c])
+                                + alpha * gamma * self.wInterpolators[i][j][k](w[c])
                             )
-                            gamma = (z[c] - self.z_list[k - 1]) / (
-                                self.z_list[k] - self.z_list[k - 1]
+                            - (
+                                (1 - alpha)
+                                * (1 - gamma)
+                                * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
+                                + (1 - alpha)
+                                * gamma
+                                * self.wInterpolators[i - 1][j - 1][k](w[c])
+                                + alpha
+                                * (1 - gamma)
+                                * self.wInterpolators[i][j - 1][k - 1](w[c])
+                                + alpha * gamma * self.wInterpolators[i][j - 1][k](w[c])
                             )
-                            dfdy[c] = (
-                                (
-                                    (1 - alpha)
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i - 1][j][k - 1](w[c])
-                                    + (1 - alpha)
-                                    * gamma
-                                    * self.wInterpolators[i - 1][j][k](w[c])
-                                    + alpha
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i][j][k - 1](w[c])
-                                    + alpha * gamma * self.wInterpolators[i][j][k](w[c])
-                                )
-                                - (
-                                    (1 - alpha)
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
-                                    + (1 - alpha)
-                                    * gamma
-                                    * self.wInterpolators[i - 1][j - 1][k](w[c])
-                                    + alpha
-                                    * (1 - gamma)
-                                    * self.wInterpolators[i][j - 1][k - 1](w[c])
-                                    + alpha
-                                    * gamma
-                                    * self.wInterpolators[i][j - 1][k](w[c])
-                                )
-                            ) / (self.y_list[j] - self.y_list[j - 1])
+                        ) / (self.y_list[j] - self.y_list[j - 1])
         return dfdy
 
     def _derZ(self, w, x, y, z):
@@ -3508,94 +3135,55 @@ class TrilinearInterpOnInterp1D(HARKinterpolator4D):
         Returns the derivative with respect to z of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeZ.
         """
-        if _isscalar(w):
-            x_pos = max(min(np.searchsorted(self.x_list, x), self.x_n - 1), 1)
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (x - self.x_list[x_pos - 1]) / (
-                self.y_list[x_pos] - self.x_list[x_pos - 1]
-            )
-            beta = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            dfdz = (
-                (
-                    (1 - alpha)
-                    * (1 - beta)
-                    * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos](w)
-                    + (1 - alpha)
-                    * beta
-                    * self.wInterpolators[x_pos - 1][y_pos][z_pos](w)
-                    + alpha
-                    * (1 - beta)
-                    * self.wInterpolators[x_pos][y_pos - 1][z_pos](w)
-                    + alpha * beta * self.wInterpolators[x_pos][y_pos][z_pos](w)
-                )
-                - (
-                    (1 - alpha)
-                    * (1 - beta)
-                    * self.wInterpolators[x_pos - 1][y_pos - 1][z_pos - 1](w)
-                    + (1 - alpha)
-                    * beta
-                    * self.wInterpolators[x_pos - 1][y_pos][z_pos - 1](w)
-                    + alpha
-                    * (1 - beta)
-                    * self.wInterpolators[x_pos][y_pos - 1][z_pos - 1](w)
-                    + alpha * beta * self.wInterpolators[x_pos][y_pos][z_pos - 1](w)
-                )
-            ) / (self.z_list[z_pos] - self.z_list[z_pos - 1])
-        else:
-            m = len(x)
-            x_pos = np.searchsorted(self.x_list, x)
-            x_pos[x_pos > self.x_n - 1] = self.x_n - 1
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdz = np.zeros(m) + np.nan
-            for i in range(1, self.x_n):
-                for j in range(1, self.y_n):
-                    for k in range(1, self.z_n):
-                        c = np.logical_and(
-                            np.logical_and(i == x_pos, j == y_pos), k == z_pos
+        m = len(x)
+        x_pos = np.searchsorted(self.x_list, x)
+        x_pos[x_pos > self.x_n - 1] = self.x_n - 1
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdz = np.zeros(m) + np.nan
+        for i in range(1, self.x_n):
+            for j in range(1, self.y_n):
+                for k in range(1, self.z_n):
+                    c = np.logical_and(
+                        np.logical_and(i == x_pos, j == y_pos), k == z_pos
+                    )
+                    if np.any(c):
+                        alpha = (x[c] - self.x_list[i - 1]) / (
+                            self.x_list[i] - self.x_list[i - 1]
                         )
-                        if np.any(c):
-                            alpha = (x[c] - self.x_list[i - 1]) / (
-                                self.x_list[i] - self.x_list[i - 1]
+                        beta = (y[c] - self.y_list[j - 1]) / (
+                            self.y_list[j] - self.y_list[j - 1]
+                        )
+                        dfdz[c] = (
+                            (
+                                (1 - alpha)
+                                * (1 - beta)
+                                * self.wInterpolators[i - 1][j - 1][k](w[c])
+                                + (1 - alpha)
+                                * beta
+                                * self.wInterpolators[i - 1][j][k](w[c])
+                                + alpha
+                                * (1 - beta)
+                                * self.wInterpolators[i][j - 1][k](w[c])
+                                + alpha * beta * self.wInterpolators[i][j][k](w[c])
                             )
-                            beta = (y[c] - self.y_list[j - 1]) / (
-                                self.y_list[j] - self.y_list[j - 1]
+                            - (
+                                (1 - alpha)
+                                * (1 - beta)
+                                * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
+                                + (1 - alpha)
+                                * beta
+                                * self.wInterpolators[i - 1][j][k - 1](w[c])
+                                + alpha
+                                * (1 - beta)
+                                * self.wInterpolators[i][j - 1][k - 1](w[c])
+                                + alpha * beta * self.wInterpolators[i][j][k - 1](w[c])
                             )
-                            dfdz[c] = (
-                                (
-                                    (1 - alpha)
-                                    * (1 - beta)
-                                    * self.wInterpolators[i - 1][j - 1][k](w[c])
-                                    + (1 - alpha)
-                                    * beta
-                                    * self.wInterpolators[i - 1][j][k](w[c])
-                                    + alpha
-                                    * (1 - beta)
-                                    * self.wInterpolators[i][j - 1][k](w[c])
-                                    + alpha * beta * self.wInterpolators[i][j][k](w[c])
-                                )
-                                - (
-                                    (1 - alpha)
-                                    * (1 - beta)
-                                    * self.wInterpolators[i - 1][j - 1][k - 1](w[c])
-                                    + (1 - alpha)
-                                    * beta
-                                    * self.wInterpolators[i - 1][j][k - 1](w[c])
-                                    + alpha
-                                    * (1 - beta)
-                                    * self.wInterpolators[i][j - 1][k - 1](w[c])
-                                    + alpha
-                                    * beta
-                                    * self.wInterpolators[i][j][k - 1](w[c])
-                                )
-                            ) / (self.z_list[k] - self.z_list[k - 1])
+                        ) / (self.z_list[k] - self.z_list[k - 1])
         return dfdz
 
 
@@ -3632,30 +3220,21 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         Returns the level of the interpolated function at each value in x,y,z.
         Only called internally by HARKinterpolator3D.__call__ (etc).
         """
-        if _isscalar(x):
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            f = (1 - alpha) * self.xyInterpolators[z_pos - 1](
-                x, y
-            ) + alpha * self.xyInterpolators[z_pos](x, y)
-        else:
-            m = len(x)
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            f = np.zeros(m) + np.nan
-            if x.size > 0:
-                for i in range(1, self.z_n):
-                    c = z_pos == i
-                    if np.any(c):
-                        alpha = (z[c] - self.z_list[i - 1]) / (
-                            self.z_list[i] - self.z_list[i - 1]
-                        )
-                        f[c] = (1 - alpha) * self.xyInterpolators[i - 1](
-                            x[c], y[c]
-                        ) + alpha * self.xyInterpolators[i](x[c], y[c])
+        m = len(x)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        f = np.zeros(m) + np.nan
+        if x.size > 0:
+            for i in range(1, self.z_n):
+                c = z_pos == i
+                if np.any(c):
+                    alpha = (z[c] - self.z_list[i - 1]) / (
+                        self.z_list[i] - self.z_list[i - 1]
+                    )
+                    f[c] = (1 - alpha) * self.xyInterpolators[i - 1](
+                        x[c], y[c]
+                    ) + alpha * self.xyInterpolators[i](x[c], y[c])
         return f
 
     def _derX(self, x, y, z):
@@ -3663,30 +3242,21 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         Returns the derivative with respect to x of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeX.
         """
-        if _isscalar(x):
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdx = (1 - alpha) * self.xyInterpolators[z_pos - 1].derivativeX(
-                x, y
-            ) + alpha * self.xyInterpolators[z_pos].derivativeX(x, y)
-        else:
-            m = len(x)
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdx = np.zeros(m) + np.nan
-            if x.size > 0:
-                for i in range(1, self.z_n):
-                    c = z_pos == i
-                    if np.any(c):
-                        alpha = (z[c] - self.z_list[i - 1]) / (
-                            self.z_list[i] - self.z_list[i - 1]
-                        )
-                        dfdx[c] = (1 - alpha) * self.xyInterpolators[i - 1].derivativeX(
-                            x[c], y[c]
-                        ) + alpha * self.xyInterpolators[i].derivativeX(x[c], y[c])
+        m = len(x)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdx = np.zeros(m) + np.nan
+        if x.size > 0:
+            for i in range(1, self.z_n):
+                c = z_pos == i
+                if np.any(c):
+                    alpha = (z[c] - self.z_list[i - 1]) / (
+                        self.z_list[i] - self.z_list[i - 1]
+                    )
+                    dfdx[c] = (1 - alpha) * self.xyInterpolators[i - 1].derivativeX(
+                        x[c], y[c]
+                    ) + alpha * self.xyInterpolators[i].derivativeX(x[c], y[c])
         return dfdx
 
     def _derY(self, x, y, z):
@@ -3694,30 +3264,21 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         Returns the derivative with respect to y of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeY.
         """
-        if _isscalar(x):
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdy = (1 - alpha) * self.xyInterpolators[z_pos - 1].derivativeY(
-                x, y
-            ) + alpha * self.xyInterpolators[z_pos].derivativeY(x, y)
-        else:
-            m = len(x)
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdy = np.zeros(m) + np.nan
-            if x.size > 0:
-                for i in range(1, self.z_n):
-                    c = z_pos == i
-                    if np.any(c):
-                        alpha = (z[c] - self.z_list[i - 1]) / (
-                            self.z_list[i] - self.z_list[i - 1]
-                        )
-                        dfdy[c] = (1 - alpha) * self.xyInterpolators[i - 1].derivativeY(
-                            x[c], y[c]
-                        ) + alpha * self.xyInterpolators[i].derivativeY(x[c], y[c])
+        m = len(x)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdy = np.zeros(m) + np.nan
+        if x.size > 0:
+            for i in range(1, self.z_n):
+                c = z_pos == i
+                if np.any(c):
+                    alpha = (z[c] - self.z_list[i - 1]) / (
+                        self.z_list[i] - self.z_list[i - 1]
+                    )
+                    dfdy[c] = (1 - alpha) * self.xyInterpolators[i - 1].derivativeY(
+                        x[c], y[c]
+                    ) + alpha * self.xyInterpolators[i].derivativeY(x[c], y[c])
         return dfdy
 
     def _derZ(self, x, y, z):
@@ -3725,26 +3286,19 @@ class LinearInterpOnInterp2D(HARKinterpolator3D):
         Returns the derivative with respect to z of the interpolated function
         at each value in x,y,z. Only called internally by HARKinterpolator3D.derivativeZ.
         """
-        if _isscalar(x):
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            dfdz = (
-                self.xyInterpolators[z_pos].derivativeX(x, y)
-                - self.xyInterpolators[z_pos - 1].derivativeX(x, y)
-            ) / (self.z_list[z_pos] - self.z_list[z_pos - 1])
-        else:
-            m = len(x)
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdz = np.zeros(m) + np.nan
-            if x.size > 0:
-                for i in range(1, self.z_n):
-                    c = z_pos == i
-                    if np.any(c):
-                        dfdz[c] = (
-                            self.xyInterpolators[i](x[c], y[c])
-                            - self.xyInterpolators[i - 1](x[c], y[c])
-                        ) / (self.z_list[i] - self.z_list[i - 1])
+        m = len(x)
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdz = np.zeros(m) + np.nan
+        if x.size > 0:
+            for i in range(1, self.z_n):
+                c = z_pos == i
+                if np.any(c):
+                    dfdz[c] = (
+                        self.xyInterpolators[i](x[c], y[c])
+                        - self.xyInterpolators[i - 1](x[c], y[c])
+                    ) / (self.z_list[i] - self.z_list[i - 1])
         return dfdz
 
 
@@ -3786,54 +3340,36 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         Returns the level of the interpolated function at each value in x,y,z.
         Only called internally by HARKinterpolator4D.__call__ (etc).
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            f = (
-                (1 - alpha)
-                * (1 - beta)
-                * self.wxInterpolators[y_pos - 1][z_pos - 1](w, x)
-                + (1 - alpha) * beta * self.wxInterpolators[y_pos - 1][z_pos](w, x)
-                + alpha * (1 - beta) * self.wxInterpolators[y_pos][z_pos - 1](w, x)
-                + alpha * beta * self.wxInterpolators[y_pos][z_pos](w, x)
-            )
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            f = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
-                        )
-                        f[c] = (
-                            (1 - alpha)
-                            * (1 - beta)
-                            * self.wxInterpolators[i - 1][j - 1](w[c], x[c])
-                            + (1 - alpha)
-                            * beta
-                            * self.wxInterpolators[i - 1][j](w[c], x[c])
-                            + alpha
-                            * (1 - beta)
-                            * self.wxInterpolators[i][j - 1](w[c], x[c])
-                            + alpha * beta * self.wxInterpolators[i][j](w[c], x[c])
-                        )
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        f = np.zeros(m) + np.nan
+        for i in range(1, self.y_n):
+            for j in range(1, self.z_n):
+                c = np.logical_and(i == y_pos, j == z_pos)
+                if np.any(c):
+                    alpha = (y[c] - self.y_list[i - 1]) / (
+                        self.y_list[i] - self.y_list[i - 1]
+                    )
+                    beta = (z[c] - self.z_list[j - 1]) / (
+                        self.z_list[j] - self.z_list[j - 1]
+                    )
+                    f[c] = (
+                        (1 - alpha)
+                        * (1 - beta)
+                        * self.wxInterpolators[i - 1][j - 1](w[c], x[c])
+                        + (1 - alpha)
+                        * beta
+                        * self.wxInterpolators[i - 1][j](w[c], x[c])
+                        + alpha
+                        * (1 - beta)
+                        * self.wxInterpolators[i][j - 1](w[c], x[c])
+                        + alpha * beta * self.wxInterpolators[i][j](w[c], x[c])
+                    )
         return f
 
     def _derW(self, w, x, y, z):
@@ -3845,60 +3381,38 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         # derivative with respect to w, but that's just a quirk of 4D interpolations
         # beginning with w rather than x.  The derivative wrt the first dimension
         # of an element of wxInterpolators is the w-derivative of the main function.
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdw = (
-                (1 - alpha)
-                * (1 - beta)
-                * self.wxInterpolators[y_pos - 1][z_pos - 1].derivativeX(w, x)
-                + (1 - alpha)
-                * beta
-                * self.wxInterpolators[y_pos - 1][z_pos].derivativeX(w, x)
-                + alpha
-                * (1 - beta)
-                * self.wxInterpolators[y_pos][z_pos - 1].derivativeX(w, x)
-                + alpha * beta * self.wxInterpolators[y_pos][z_pos].derivativeX(w, x)
-            )
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdw = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
-                        )
-                        dfdw[c] = (
-                            (1 - alpha)
-                            * (1 - beta)
-                            * self.wxInterpolators[i - 1][j - 1].derivativeX(w[c], x[c])
-                            + (1 - alpha)
-                            * beta
-                            * self.wxInterpolators[i - 1][j].derivativeX(w[c], x[c])
-                            + alpha
-                            * (1 - beta)
-                            * self.wxInterpolators[i][j - 1].derivativeX(w[c], x[c])
-                            + alpha
-                            * beta
-                            * self.wxInterpolators[i][j].derivativeX(w[c], x[c])
-                        )
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdw = np.zeros(m) + np.nan
+        for i in range(1, self.y_n):
+            for j in range(1, self.z_n):
+                c = np.logical_and(i == y_pos, j == z_pos)
+                if np.any(c):
+                    alpha = (y[c] - self.y_list[i - 1]) / (
+                        self.y_list[i] - self.y_list[i - 1]
+                    )
+                    beta = (z[c] - self.z_list[j - 1]) / (
+                        self.z_list[j] - self.z_list[j - 1]
+                    )
+                    dfdw[c] = (
+                        (1 - alpha)
+                        * (1 - beta)
+                        * self.wxInterpolators[i - 1][j - 1].derivativeX(w[c], x[c])
+                        + (1 - alpha)
+                        * beta
+                        * self.wxInterpolators[i - 1][j].derivativeX(w[c], x[c])
+                        + alpha
+                        * (1 - beta)
+                        * self.wxInterpolators[i][j - 1].derivativeX(w[c], x[c])
+                        + alpha
+                        * beta
+                        * self.wxInterpolators[i][j].derivativeX(w[c], x[c])
+                    )
         return dfdw
 
     def _derX(self, w, x, y, z):
@@ -3910,60 +3424,38 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         # derivative with respect to x, but that's just a quirk of 4D interpolations
         # beginning with w rather than x.  The derivative wrt the second dimension
         # of an element of wxInterpolators is the x-derivative of the main function.
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdx = (
-                (1 - alpha)
-                * (1 - beta)
-                * self.wxInterpolators[y_pos - 1][z_pos - 1].derivativeY(w, x)
-                + (1 - alpha)
-                * beta
-                * self.wxInterpolators[y_pos - 1][z_pos].derivativeY(w, x)
-                + alpha
-                * (1 - beta)
-                * self.wxInterpolators[y_pos][z_pos - 1].derivativeY(w, x)
-                + alpha * beta * self.wxInterpolators[y_pos][z_pos].derivativeY(w, x)
-            )
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdx = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
-                        )
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
-                        )
-                        dfdx[c] = (
-                            (1 - alpha)
-                            * (1 - beta)
-                            * self.wxInterpolators[i - 1][j - 1].derivativeY(w[c], x[c])
-                            + (1 - alpha)
-                            * beta
-                            * self.wxInterpolators[i - 1][j].derivativeY(w[c], x[c])
-                            + alpha
-                            * (1 - beta)
-                            * self.wxInterpolators[i][j - 1].derivativeY(w[c], x[c])
-                            + alpha
-                            * beta
-                            * self.wxInterpolators[i][j].derivativeY(w[c], x[c])
-                        )
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdx = np.zeros(m) + np.nan
+        for i in range(1, self.y_n):
+            for j in range(1, self.z_n):
+                c = np.logical_and(i == y_pos, j == z_pos)
+                if np.any(c):
+                    alpha = (y[c] - self.y_list[i - 1]) / (
+                        self.y_list[i] - self.y_list[i - 1]
+                    )
+                    beta = (z[c] - self.z_list[j - 1]) / (
+                        self.z_list[j] - self.z_list[j - 1]
+                    )
+                    dfdx[c] = (
+                        (1 - alpha)
+                        * (1 - beta)
+                        * self.wxInterpolators[i - 1][j - 1].derivativeY(w[c], x[c])
+                        + (1 - alpha)
+                        * beta
+                        * self.wxInterpolators[i - 1][j].derivativeY(w[c], x[c])
+                        + alpha
+                        * (1 - beta)
+                        * self.wxInterpolators[i][j - 1].derivativeY(w[c], x[c])
+                        + alpha
+                        * beta
+                        * self.wxInterpolators[i][j].derivativeY(w[c], x[c])
+                    )
         return dfdx
 
     def _derY(self, w, x, y, z):
@@ -3971,49 +3463,31 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         Returns the derivative with respect to y of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeY.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            beta = (z - self.z_list[z_pos - 1]) / (
-                self.z_list[z_pos] - self.z_list[z_pos - 1]
-            )
-            dfdy = (
-                (
-                    (1 - beta) * self.wxInterpolators[y_pos][z_pos - 1](w, x)
-                    + beta * self.wxInterpolators[y_pos][z_pos](w, x)
-                )
-                - (
-                    (1 - beta) * self.wxInterpolators[y_pos - 1][z_pos - 1](w, x)
-                    + beta * self.wxInterpolators[y_pos - 1][z_pos](w, x)
-                )
-            ) / (self.y_list[y_pos] - self.y_list[y_pos - 1])
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdy = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        beta = (z[c] - self.z_list[j - 1]) / (
-                            self.z_list[j] - self.z_list[j - 1]
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdy = np.zeros(m) + np.nan
+        for i in range(1, self.y_n):
+            for j in range(1, self.z_n):
+                c = np.logical_and(i == y_pos, j == z_pos)
+                if np.any(c):
+                    beta = (z[c] - self.z_list[j - 1]) / (
+                        self.z_list[j] - self.z_list[j - 1]
+                    )
+                    dfdy[c] = (
+                        (
+                            (1 - beta) * self.wxInterpolators[i][j - 1](w[c], x[c])
+                            + beta * self.wxInterpolators[i][j](w[c], x[c])
                         )
-                        dfdy[c] = (
-                            (
-                                (1 - beta) * self.wxInterpolators[i][j - 1](w[c], x[c])
-                                + beta * self.wxInterpolators[i][j](w[c], x[c])
-                            )
-                            - (
-                                (1 - beta)
-                                * self.wxInterpolators[i - 1][j - 1](w[c], x[c])
-                                + beta * self.wxInterpolators[i - 1][j](w[c], x[c])
-                            )
-                        ) / (self.y_list[i] - self.y_list[i - 1])
+                        - (
+                            (1 - beta) * self.wxInterpolators[i - 1][j - 1](w[c], x[c])
+                            + beta * self.wxInterpolators[i - 1][j](w[c], x[c])
+                        )
+                    ) / (self.y_list[i] - self.y_list[i - 1])
         return dfdy
 
     def _derZ(self, w, x, y, z):
@@ -4021,79 +3495,127 @@ class BilinearInterpOnInterp2D(HARKinterpolator4D):
         Returns the derivative with respect to z of the interpolated function
         at each value in w,x,y,z. Only called internally by HARKinterpolator4D.derivativeZ.
         """
-        if _isscalar(x):
-            y_pos = max(min(np.searchsorted(self.y_list, y), self.y_n - 1), 1)
-            z_pos = max(min(np.searchsorted(self.z_list, z), self.z_n - 1), 1)
-            alpha = (y - self.y_list[y_pos - 1]) / (
-                self.y_list[y_pos] - self.y_list[y_pos - 1]
-            )
-            dfdz = (
-                (
-                    (1 - alpha) * self.wxInterpolators[y_pos - 1][z_pos](w, x)
-                    + alpha * self.wxInterpolators[y_pos][z_pos](w, x)
-                )
-                - (
-                    (1 - alpha) * self.wxInterpolators[y_pos - 1][z_pos - 1](w, x)
-                    + alpha * self.wxInterpolators[y_pos][z_pos - 1](w, x)
-                )
-            ) / (self.z_list[z_pos] - self.z_list[z_pos - 1])
-        else:
-            m = len(x)
-            y_pos = np.searchsorted(self.y_list, y)
-            y_pos[y_pos > self.y_n - 1] = self.y_n - 1
-            y_pos[y_pos < 1] = 1
-            z_pos = np.searchsorted(self.z_list, z)
-            z_pos[z_pos > self.z_n - 1] = self.z_n - 1
-            z_pos[z_pos < 1] = 1
-            dfdz = np.zeros(m) + np.nan
-            for i in range(1, self.y_n):
-                for j in range(1, self.z_n):
-                    c = np.logical_and(i == y_pos, j == z_pos)
-                    if np.any(c):
-                        alpha = (y[c] - self.y_list[i - 1]) / (
-                            self.y_list[i] - self.y_list[i - 1]
+        m = len(x)
+        y_pos = np.searchsorted(self.y_list, y)
+        y_pos[y_pos > self.y_n - 1] = self.y_n - 1
+        y_pos[y_pos < 1] = 1
+        z_pos = np.searchsorted(self.z_list, z)
+        z_pos[z_pos > self.z_n - 1] = self.z_n - 1
+        z_pos[z_pos < 1] = 1
+        dfdz = np.zeros(m) + np.nan
+        for i in range(1, self.y_n):
+            for j in range(1, self.z_n):
+                c = np.logical_and(i == y_pos, j == z_pos)
+                if np.any(c):
+                    alpha = (y[c] - self.y_list[i - 1]) / (
+                        self.y_list[i] - self.y_list[i - 1]
+                    )
+                    dfdz[c] = (
+                        (
+                            (1 - alpha) * self.wxInterpolators[i - 1][j](w[c], x[c])
+                            + alpha * self.wxInterpolators[i][j](w[c], x[c])
                         )
-                        dfdz[c] = (
-                            (
-                                (1 - alpha) * self.wxInterpolators[i - 1][j](w[c], x[c])
-                                + alpha * self.wxInterpolators[i][j](w[c], x[c])
-                            )
-                            - (
-                                (1 - alpha)
-                                * self.wxInterpolators[i - 1][j - 1](w[c], x[c])
-                                + alpha * self.wxInterpolators[i][j - 1](w[c], x[c])
-                            )
-                        ) / (self.z_list[j] - self.z_list[j - 1])
+                        - (
+                            (1 - alpha) * self.wxInterpolators[i - 1][j - 1](w[c], x[c])
+                            + alpha * self.wxInterpolators[i][j - 1](w[c], x[c])
+                        )
+                    ) / (self.z_list[j] - self.z_list[j - 1])
         return dfdz
 
 
 class Curvilinear2DInterp(HARKinterpolator2D):
     """
     A 2D interpolation method for curvilinear or "warped grid" interpolation, as
-    in White (2015).  Used for models with two endogenous states that are solved
-    with the endogenous grid method.
+    in White (2015). Used for models with two endogenous states that are solved
+    with the endogenous grid method. Allows multiple function outputs, but all of
+    the interpolated functions must share a common curvilinear grid.
 
     Parameters
     ----------
-    f_values: numpy.array
-        A 2D array of function values such that f_values[i,j] =
+    f_values: numpy.array or [numpy.array]
+        One or more 2D arrays of function values such that f_values[i,j] =
         f(x_values[i,j],y_values[i,j]).
     x_values: numpy.array
-        A 2D array of x values of the same size as f_values.
+        A 2D array of x values of the same shape as f_values.
     y_values: numpy.array
-        A 2D array of y values of the same size as f_values.
+        A 2D array of y values of the same shape as f_values.
     """
 
     distance_criteria = ["f_values", "x_values", "y_values"]
 
     def __init__(self, f_values, x_values, y_values):
-        self.f_values = f_values
+        if isinstance(f_values, list):
+            N_funcs = len(f_values)
+            multi = True
+        else:
+            N_funcs = 1
+            multi = False
+        my_shape = x_values.shape
+        if not (my_shape == y_values.shape):
+            raise ValueError("y_values must have the same shape as x_values!")
+        if multi:
+            for n in range(N_funcs):
+                if not (my_shape == f_values[n].shape):
+                    raise ValueError(
+                        "Each element of f_values must have the same shape as x_values!"
+                    )
+        else:
+            if not (my_shape == f_values.shape):
+                raise ValueError("f_values must have the same shape as x_values!")
+
+        if multi:
+            self.f_values = f_values
+        else:
+            self.f_values = [f_values]
         self.x_values = x_values
         self.y_values = y_values
-        my_shape = f_values.shape
         self.x_n = my_shape[0]
         self.y_n = my_shape[1]
+        self.N_funcs = N_funcs
+        self.multi = multi
         self.update_polarity()
+
+    def __call__(self, x, y):
+        """
+        Modification of HARKinterpolator2D.__call__ to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        fa = self._evaluate(xa.flatten(), ya.flatten())
+        output = [fa[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
+
+    def derivativeX(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeX to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdxa = self._derX(xa.flatten(), ya.flatten())
+        output = [dfdxa[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
+
+    def derivativeY(self, x, y):
+        """
+        Modification of HARKinterpolator2D.derivativeY to account for multiple outputs.
+        """
+        xa = np.asarray(x)
+        ya = np.asarray(y)
+        S = xa.shape
+        dfdya = self._derY(xa.flatten(), ya.flatten())
+        output = [dfdya[n].reshape(S) for n in range(self.N_funcs)]
+        if self.multi:
+            return output
+        else:
+            return output[0]
 
     def update_polarity(self):
         """
@@ -4141,7 +3663,8 @@ class Curvilinear2DInterp(HARKinterpolator2D):
     def find_sector(self, x, y):
         """
         Finds the quadrilateral "sector" for each (x,y) point in the input.
-        Only called as a subroutine of _evaluate().
+        Only called as a subroutine of _evaluate(), etc. Uses a numba helper
+        function below to accelerate computation.
 
         Parameters
         ----------
@@ -4157,93 +3680,15 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         y_pos : np.array
             Sector y-coordinates for each point of the input, of the same size.
         """
-        # Initialize the sector guess
-        m = x.size
-        x_pos_guess = (np.ones(m) * self.x_n / 2).astype(int)
-        y_pos_guess = (np.ones(m) * self.y_n / 2).astype(int)
-
-        # Define a function that checks whether a set of points violates a linear
-        # boundary defined by (x_bound_1,y_bound_1) and (x_bound_2,y_bound_2),
-        # where the latter is *COUNTER CLOCKWISE* from the former.  Returns
-        # 1 if the point is outside the boundary and 0 otherwise.
-        def violation_check(
-            x_check, y_check, x_bound_1, y_bound_1, x_bound_2, y_bound_2
-        ):
-            return (
-                (y_bound_2 - y_bound_1) * x_check - (x_bound_2 - x_bound_1) * y_check
-                > x_bound_1 * y_bound_2 - y_bound_1 * x_bound_2
-            ) + 0
-
-        # Identify the correct sector for each point to be evaluated
-        these = np.ones(m, dtype=bool)
-        max_loops = self.x_n + self.y_n
-        loops = 0
-        while np.any(these) and loops < max_loops:
-            # Get coordinates for the four vertices: (xA,yA),...,(xD,yD)
-            x_temp = x[these]
-            y_temp = y[these]
-            xA = self.x_values[x_pos_guess[these], y_pos_guess[these]]
-            xB = self.x_values[x_pos_guess[these] + 1, y_pos_guess[these]]
-            xC = self.x_values[x_pos_guess[these], y_pos_guess[these] + 1]
-            xD = self.x_values[x_pos_guess[these] + 1, y_pos_guess[these] + 1]
-            yA = self.y_values[x_pos_guess[these], y_pos_guess[these]]
-            yB = self.y_values[x_pos_guess[these] + 1, y_pos_guess[these]]
-            yC = self.y_values[x_pos_guess[these], y_pos_guess[these] + 1]
-            yD = self.y_values[x_pos_guess[these] + 1, y_pos_guess[these] + 1]
-
-            # Check the "bounding box" for the sector: is this guess plausible?
-            move_down = (y_temp < np.minimum(yA, yB)) + 0
-            move_right = (x_temp > np.maximum(xB, xD)) + 0
-            move_up = (y_temp > np.maximum(yC, yD)) + 0
-            move_left = (x_temp < np.minimum(xA, xC)) + 0
-
-            # Check which boundaries are violated (and thus where to look next)
-            c = (move_down + move_right + move_up + move_left) == 0
-            move_down[c] = violation_check(
-                x_temp[c], y_temp[c], xA[c], yA[c], xB[c], yB[c]
-            )
-            move_right[c] = violation_check(
-                x_temp[c], y_temp[c], xB[c], yB[c], xD[c], yD[c]
-            )
-            move_up[c] = violation_check(
-                x_temp[c], y_temp[c], xD[c], yD[c], xC[c], yC[c]
-            )
-            move_left[c] = violation_check(
-                x_temp[c], y_temp[c], xC[c], yC[c], xA[c], yA[c]
-            )
-
-            # Update the sector guess based on the violations
-            x_pos_next = x_pos_guess[these] - move_left + move_right
-            x_pos_next[x_pos_next < 0] = 0
-            x_pos_next[x_pos_next > (self.x_n - 2)] = self.x_n - 2
-            y_pos_next = y_pos_guess[these] - move_down + move_up
-            y_pos_next[y_pos_next < 0] = 0
-            y_pos_next[y_pos_next > (self.y_n - 2)] = self.y_n - 2
-
-            # Check which sectors have not changed, and mark them as complete
-            no_move = np.array(
-                np.logical_and(
-                    x_pos_guess[these] == x_pos_next, y_pos_guess[these] == y_pos_next
-                )
-            )
-            x_pos_guess[these] = x_pos_next
-            y_pos_guess[these] = y_pos_next
-            temp = these.nonzero()
-            these[temp[0][no_move]] = False
-
-            # Move to the next iteration of the search
-            loops += 1
-
-        # Return the output
-        x_pos = x_pos_guess
-        y_pos = y_pos_guess
+        x_pos, y_pos = find_sector_numba(x, y, self.x_values, self.y_values)
         return x_pos, y_pos
 
     def find_coords(self, x, y, x_pos, y_pos):
         """
         Calculates the relative coordinates (alpha,beta) for each point (x,y),
         given the sectors (x_pos,y_pos) in which they reside.  Only called as
-        a subroutine of __call__().
+        a subroutine of _evaluate(), etc. Uses a numba helper function to acc-
+        elerate computation, and has a "backup method" for when the math fails.
 
         Parameters
         ----------
@@ -4263,80 +3708,72 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         beta : np.array
             Relative "vertical" position of the input in their respective sectors.
         """
-        # Calculate relative coordinates in the sector for each point
-        xA = self.x_values[x_pos, y_pos]
-        xB = self.x_values[x_pos + 1, y_pos]
-        xC = self.x_values[x_pos, y_pos + 1]
-        xD = self.x_values[x_pos + 1, y_pos + 1]
-        yA = self.y_values[x_pos, y_pos]
-        yB = self.y_values[x_pos + 1, y_pos]
-        yC = self.y_values[x_pos, y_pos + 1]
-        yD = self.y_values[x_pos + 1, y_pos + 1]
-        polarity = 2.0 * self.polarity[x_pos, y_pos] - 1.0
-        a = xA
-        b = xB - xA
-        c = xC - xA
-        d = xA - xB - xC + xD
-        e = yA
-        f = yB - yA
-        g = yC - yA
-        h = yA - yB - yC + yD
-        denom = d * g - h * c
-        mu = (h * b - d * f) / denom
-        tau = (h * (a - x) - d * (e - y)) / denom
-        zeta = a - x + c * tau
-        eta = b + c * mu + d * tau
-        theta = d * mu
-        alpha = (-eta + polarity * np.sqrt(eta**2.0 - 4.0 * zeta * theta)) / (
-            2.0 * theta
+        alpha, beta = find_coords_numba(
+            x, y, x_pos, y_pos, self.x_values, self.y_values, self.polarity
         )
-        beta = mu * alpha + tau
 
         # Alternate method if there are sectors that are "too regular"
-        z = np.logical_or(
-            np.isnan(alpha), np.isnan(beta)
-        )  # These points weren't able to identify coordinates
+        # These points weren't able to identify coordinates
+        z = np.logical_or(np.isnan(alpha), np.isnan(beta))
         if np.any(z):
-            these = np.isclose(
-                f / b, (yD - yC) / (xD - xC)
-            )  # iso-beta lines have equal slope
-            if np.any(these):
-                kappa = f[these] / b[these]
-                int_bot = yA[these] - kappa * xA[these]
-                int_top = yC[these] - kappa * xC[these]
-                int_these = y[these] - kappa * x[these]
-                beta_temp = (int_these - int_bot) / (int_top - int_bot)
-                x_left = beta_temp * xC[these] + (1.0 - beta_temp) * xA[these]
-                x_right = beta_temp * xD[these] + (1.0 - beta_temp) * xB[these]
-                alpha_temp = (x[these] - x_left) / (x_right - x_left)
-                beta[these] = beta_temp
-                alpha[these] = alpha_temp
-
-            # print(np.sum(np.isclose(g/c,(yD-yB)/(xD-xB))))
+            ii = x_pos[z]
+            jj = y_pos[z]
+            xA = self.x_values[ii, jj]
+            xB = self.x_values[ii + 1, jj]
+            xC = self.x_values[ii, jj + 1]
+            xD = self.x_values[ii + 1, jj + 1]
+            yA = self.y_values[ii, jj]
+            yB = self.y_values[ii + 1, jj]
+            yC = self.y_values[ii, jj + 1]
+            # yD = self.y_values[ii + 1, jj + 1]
+            b = xB - xA
+            f = yB - yA
+            kappa = f / b
+            int_bot = yA - kappa * xA
+            int_top = yC - kappa * xC
+            int_these = y[z] - kappa * x[z]
+            beta_temp = (int_these - int_bot) / (int_top - int_bot)
+            x_left = beta_temp * xC + (1.0 - beta_temp) * xA
+            x_right = beta_temp * xD + (1.0 - beta_temp) * xB
+            alpha_temp = (x[z] - x_left) / (x_right - x_left)
+            beta[z] = beta_temp
+            alpha[z] = alpha_temp
 
         return alpha, beta
 
     def _evaluate(self, x, y):
         """
         Returns the level of the interpolated function at each value in x,y.
-        Only called internally by HARKinterpolator2D.__call__ (etc).
+        Only called internally by __call__ (etc).
         """
         x_pos, y_pos = self.find_sector(x, y)
         alpha, beta = self.find_coords(x, y, x_pos, y_pos)
 
-        # Calculate the function at each point using bilinear interpolation
-        f = (
-            (1 - alpha) * (1 - beta) * self.f_values[x_pos, y_pos]
-            + (1 - alpha) * beta * self.f_values[x_pos, y_pos + 1]
-            + alpha * (1 - beta) * self.f_values[x_pos + 1, y_pos]
-            + alpha * beta * self.f_values[x_pos + 1, y_pos + 1]
-        )
+        # Get weights on each vertex
+        alpha_C = 1.0 - alpha
+        beta_C = 1.0 - beta
+        wA = alpha_C * beta_C
+        wB = alpha * beta_C
+        wC = alpha_C * beta
+        wD = alpha * beta
+
+        # Evaluate each function by bilinear interpolation
+        f = []
+        for n in range(self.N_funcs):
+            f_n = (
+                0.0
+                + wA * self.f_values[n][x_pos, y_pos]
+                + wB * self.f_values[n][x_pos + 1, y_pos]
+                + wC * self.f_values[n][x_pos, y_pos + 1]
+                + wD * self.f_values[n][x_pos + 1, y_pos + 1]
+            )
+            f.append(f_n)
         return f
 
     def _derX(self, x, y):
         """
         Returns the derivative with respect to x of the interpolated function
-        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        at each value in x,y. Only called internally by derivativeX.
         """
         x_pos, y_pos = self.find_sector(x, y)
         alpha, beta = self.find_coords(x, y, x_pos, y_pos)
@@ -4350,34 +3787,39 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         yB = self.y_values[x_pos + 1, y_pos]
         yC = self.y_values[x_pos, y_pos + 1]
         yD = self.y_values[x_pos + 1, y_pos + 1]
-        fA = self.f_values[x_pos, y_pos]
-        fB = self.f_values[x_pos + 1, y_pos]
-        fC = self.f_values[x_pos, y_pos + 1]
-        fD = self.f_values[x_pos + 1, y_pos + 1]
 
         # Calculate components of the alpha,beta --> x,y delta translation matrix
-        alpha_x = (1 - beta) * (xB - xA) + beta * (xD - xC)
-        alpha_y = (1 - beta) * (yB - yA) + beta * (yD - yC)
-        beta_x = (1 - alpha) * (xC - xA) + alpha * (xD - xB)
-        beta_y = (1 - alpha) * (yC - yA) + alpha * (yD - yB)
+        alpha_C = 1 - alpha
+        beta_C = 1 - beta
+        alpha_x = beta_C * (xB - xA) + beta * (xD - xC)
+        alpha_y = beta_C * (yB - yA) + beta * (yD - yC)
+        beta_x = alpha_C * (xC - xA) + alpha * (xD - xB)
+        beta_y = alpha_C * (yC - yA) + alpha * (yD - yB)
 
         # Invert the delta translation matrix into x,y --> alpha,beta
         det = alpha_x * beta_y - beta_x * alpha_y
         x_alpha = beta_y / det
         x_beta = -alpha_y / det
 
-        # Calculate the derivative of f w.r.t. alpha and beta
-        dfda = (1 - beta) * (fB - fA) + beta * (fD - fC)
-        dfdb = (1 - alpha) * (fC - fA) + alpha * (fD - fB)
+        # Calculate the derivative of f w.r.t. alpha and beta for each function
+        dfdx = []
+        for n in range(self.N_funcs):
+            fA = self.f_values[n][x_pos, y_pos]
+            fB = self.f_values[n][x_pos + 1, y_pos]
+            fC = self.f_values[n][x_pos, y_pos + 1]
+            fD = self.f_values[n][x_pos + 1, y_pos + 1]
+            dfda = beta_C * (fB - fA) + beta * (fD - fC)
+            dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
 
-        # Calculate the derivative with respect to x (and return it)
-        dfdx = x_alpha * dfda + x_beta * dfdb
+            # Calculate the derivative with respect to x
+            dfdx_n = x_alpha * dfda + x_beta * dfdb
+            dfdx.append(dfdx_n)
         return dfdx
 
     def _derY(self, x, y):
         """
         Returns the derivative with respect to y of the interpolated function
-        at each value in x,y. Only called internally by HARKinterpolator2D.derivativeX.
+        at each value in x,y. Only called internally by derivativeY.
         """
         x_pos, y_pos = self.find_sector(x, y)
         alpha, beta = self.find_coords(x, y, x_pos, y_pos)
@@ -4391,29 +3833,158 @@ class Curvilinear2DInterp(HARKinterpolator2D):
         yB = self.y_values[x_pos + 1, y_pos]
         yC = self.y_values[x_pos, y_pos + 1]
         yD = self.y_values[x_pos + 1, y_pos + 1]
-        fA = self.f_values[x_pos, y_pos]
-        fB = self.f_values[x_pos + 1, y_pos]
-        fC = self.f_values[x_pos, y_pos + 1]
-        fD = self.f_values[x_pos + 1, y_pos + 1]
 
         # Calculate components of the alpha,beta --> x,y delta translation matrix
-        alpha_x = (1 - beta) * (xB - xA) + beta * (xD - xC)
-        alpha_y = (1 - beta) * (yB - yA) + beta * (yD - yC)
-        beta_x = (1 - alpha) * (xC - xA) + alpha * (xD - xB)
-        beta_y = (1 - alpha) * (yC - yA) + alpha * (yD - yB)
+        alpha_C = 1 - alpha
+        beta_C = 1 - beta
+        alpha_x = beta_C * (xB - xA) + beta * (xD - xC)
+        alpha_y = beta_C * (yB - yA) + beta * (yD - yC)
+        beta_x = alpha_C * (xC - xA) + alpha * (xD - xB)
+        beta_y = alpha_C * (yC - yA) + alpha * (yD - yB)
 
         # Invert the delta translation matrix into x,y --> alpha,beta
         det = alpha_x * beta_y - beta_x * alpha_y
         y_alpha = -beta_x / det
         y_beta = alpha_x / det
 
-        # Calculate the derivative of f w.r.t. alpha and beta
-        dfda = (1 - beta) * (fB - fA) + beta * (fD - fC)
-        dfdb = (1 - alpha) * (fC - fA) + alpha * (fD - fB)
+        # Calculate the derivative of f w.r.t. alpha and beta for each function
+        dfdy = []
+        for n in range(self.N_funcs):
+            fA = self.f_values[n][x_pos, y_pos]
+            fB = self.f_values[n][x_pos + 1, y_pos]
+            fC = self.f_values[n][x_pos, y_pos + 1]
+            fD = self.f_values[n][x_pos + 1, y_pos + 1]
+            dfda = beta_C * (fB - fA) + beta * (fD - fC)
+            dfdb = alpha_C * (fC - fA) + alpha * (fD - fB)
 
-        # Calculate the derivative with respect to x (and return it)
-        dfdy = y_alpha * dfda + y_beta * dfdb
+            # Calculate the derivative with respect to y
+            dfdy_n = y_alpha * dfda + y_beta * dfdb
+            dfdy.append(dfdy_n)
         return dfdy
+
+
+# Define a function that checks whether a set of points violates a linear boundary
+# defined by (x1,y1) and (x2,y2), where the latter is *COUNTER CLOCKWISE* from the
+# former. Returns 1 if the point is outside the boundary and 0 otherwise.
+@njit
+def boundary_check(xq, yq, x1, y1, x2, y2):  # pragma: no cover
+    return int((y2 - y1) * xq - (x2 - x1) * yq > x1 * y2 - y1 * x2)
+
+
+# Define a numba helper function for finding the sector in the irregular grid
+@njit
+def find_sector_numba(X_query, Y_query, X_values, Y_values):  # pragma: no cover
+    # Initialize the sector guess
+    M = X_query.size
+    x_n = X_values.shape[0]
+    y_n = X_values.shape[1]
+    ii = int(x_n / 2)
+    jj = int(y_n / 2)
+    top_ii = x_n - 2
+    top_jj = y_n - 2
+
+    # Initialize the output arrays
+    X_pos = np.empty(M, dtype=np.int32)
+    Y_pos = np.empty(M, dtype=np.int32)
+
+    # Identify the correct sector for each point to be evaluated
+    max_loops = x_n + y_n
+    for m in range(M):
+        found = False
+        loops = 0
+        while not found and loops < max_loops:
+            # Get coordinates for the four vertices: (xA,yA),...,(xD,yD)
+            x0 = X_query[m]
+            y0 = Y_query[m]
+            xA = X_values[ii, jj]
+            xB = X_values[ii + 1, jj]
+            xC = X_values[ii, jj + 1]
+            xD = X_values[ii + 1, jj + 1]
+            yA = Y_values[ii, jj]
+            yB = Y_values[ii + 1, jj]
+            yC = Y_values[ii, jj + 1]
+            yD = Y_values[ii + 1, jj + 1]
+
+            # Check the "bounding box" for the sector: is this guess plausible?
+            D = int(y0 < np.minimum(yA, yB))
+            R = int(x0 > np.maximum(xB, xD))
+            U = int(y0 > np.maximum(yC, yD))
+            L = int(x0 < np.minimum(xA, xC))
+
+            # Check which boundaries are violated (and thus where to look next)
+            in_box = np.all(np.logical_not(np.array([D, R, U, L])))
+            if in_box:
+                D = boundary_check(x0, y0, xA, yA, xB, yB)
+                R = boundary_check(x0, y0, xB, yB, xD, yD)
+                U = boundary_check(x0, y0, xD, yD, xC, yC)
+                L = boundary_check(x0, y0, xC, yC, xA, yA)
+
+            # Update the sector guess based on the violations
+            ii_next = np.maximum(np.minimum(ii - L + R, top_ii), 0)
+            jj_next = np.maximum(np.minimum(jj - D + U, top_jj), 0)
+
+            # Check whether sector guess changed and go to next iteration
+            found = (ii == ii_next) and (jj == jj_next)
+            ii = ii_next
+            jj = jj_next
+            loops += 1
+
+        # Put the final sector guess into the output array
+        X_pos[m] = ii
+        Y_pos[m] = jj
+
+    # Return the output
+    return X_pos, Y_pos
+
+
+# Define a numba helper function for finding relative coordinates within sector
+@njit
+def find_coords_numba(
+    X_query, Y_query, X_pos, Y_pos, X_values, Y_values, polarity
+):  # pragma: no cover
+    M = X_query.size
+    alpha = np.empty(M)
+    beta = np.empty(M)
+
+    # Calculate relative coordinates in the sector for each point
+    for m in range(M):
+        try:
+            x0 = X_query[m]
+            y0 = Y_query[m]
+            ii = X_pos[m]
+            jj = Y_pos[m]
+            xA = X_values[ii, jj]
+            xB = X_values[ii + 1, jj]
+            xC = X_values[ii, jj + 1]
+            xD = X_values[ii + 1, jj + 1]
+            yA = Y_values[ii, jj]
+            yB = Y_values[ii + 1, jj]
+            yC = Y_values[ii, jj + 1]
+            yD = Y_values[ii + 1, jj + 1]
+            p = 2.0 * polarity[ii, jj] - 1.0
+            a = xA
+            b = xB - xA
+            c = xC - xA
+            d = xA - xB - xC + xD
+            e = yA
+            f = yB - yA
+            g = yC - yA
+            h = yA - yB - yC + yD
+            denom = d * g - h * c
+            mu = (h * b - d * f) / denom
+            tau = (h * (a - x0) - d * (e - y0)) / denom
+            zeta = a - x0 + c * tau
+            eta = b + c * mu + d * tau
+            theta = d * mu
+            alph = (-eta + p * np.sqrt(eta**2 - 4 * zeta * theta)) / (2 * theta)
+            bet = mu * alph + tau
+        except:
+            alph = np.nan
+            bet = np.nan
+        alpha[m] = alph
+        beta[m] = bet
+
+    return alpha, beta
 
 
 class DiscreteInterp(MetricObject):
@@ -4616,13 +4187,18 @@ class ValueFuncCRRA(MetricObject):
         inverse utility function, defined on the state: u_inv(vFunc(state))
     CRRA : float
         Coefficient of relative risk aversion.
+    illegal_value : float, optional
+        If provided, value to return for "out-of-bounds" inputs that return NaN
+        from the pseudo-inverse value function. Most common choice is -np.inf,
+        which makes the outcome infinitely bad.
     """
 
     distance_criteria = ["func", "CRRA"]
 
-    def __init__(self, vFuncNvrs, CRRA):
+    def __init__(self, vFuncNvrs, CRRA, illegal_value=None):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
+        self.illegal_value = illegal_value
 
         if hasattr(vFuncNvrs, "grid_list"):
             self.grid_list = vFuncNvrs.grid_list
@@ -4645,13 +4221,17 @@ class ValueFuncCRRA(MetricObject):
             Lifetime value of beginning this period with the given states; has
             same size as the state inputs.
         """
-        #        return CRRAutility(self.func(*vFuncArgs), gam=self.CRRA)
-        return CRRAutility(self.vFuncNvrs(*vFuncArgs), self.CRRA)
+        temp = self.vFuncNvrs(*vFuncArgs)
+        v = CRRAutility(temp, self.CRRA)
+        if self.illegal_value is not None:
+            illegal = np.isnan(temp)
+            v[illegal] = self.illegal_value
+        return v
 
     def gradient(self, *args):
         NvrsGrad = self.vFuncNvrs.gradient(*args)
-        grad = [CRRAutilityP(g, self.CRRA) for g in NvrsGrad]
-
+        marg_u = CRRAutilityP(*args, self.CRRA)
+        grad = [g * marg_u for g in NvrsGrad]
         return grad
 
     def _eval_and_grad(self, *args):
@@ -4724,7 +4304,7 @@ class MargValueFuncCRRA(MetricObject):
         """
 
         # The derivative method depends on the dimension of the function
-        if isinstance(self.cFunc, (HARKinterpolator1D)):
+        if isinstance(self.cFunc, HARKinterpolator1D):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
 
         elif hasattr(self.cFunc, "derivativeX"):
@@ -4782,7 +4362,7 @@ class MargMargValueFuncCRRA(MetricObject):
         """
 
         # The derivative method depends on the dimension of the function
-        if isinstance(self.cFunc, (HARKinterpolator1D)):
+        if isinstance(self.cFunc, HARKinterpolator1D):
             c, MPC = self.cFunc.eval_with_derivative(*cFuncArgs)
 
         elif hasattr(self.cFunc, "derivativeX"):

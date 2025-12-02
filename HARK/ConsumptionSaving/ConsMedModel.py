@@ -5,6 +5,8 @@ Consumption-saving models that also include medical spending.
 from copy import deepcopy
 
 import numpy as np
+from scipy.stats import norm
+from scipy.special import erfc
 from scipy.optimize import brentq
 
 from HARK import AgentType
@@ -15,6 +17,7 @@ from HARK.Calibration.Income.IncomeProcesses import (
     make_AR1_style_pLvlNextFunc,
     make_pLvlGrid_by_simulation,
     make_basic_pLvlPctiles,
+    make_persistent_income_process_dict,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_kNrm_init_dstn,
@@ -25,7 +28,12 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     VariableLowerBoundFunc2D,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
-from HARK.distributions import Lognormal, add_discrete_outcome_constant_mean, expected
+from HARK.distributions import (
+    Lognormal,
+    MultivariateLogNormal,
+    add_discrete_outcome_constant_mean,
+    expected,
+)
 from HARK.interpolation import (
     BilinearInterp,
     BilinearInterpOnInterp1D,
@@ -44,13 +52,14 @@ from HARK.interpolation import (
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
+    CRRAutilityP,
     CRRAutility_inv,
     CRRAutility_invP,
     CRRAutilityP_inv,
     CRRAutilityPP,
     UtilityFuncCRRA,
 )
-from HARK.utilities import NullFunc, make_grid_exp_mult, make_assets_grid
+from HARK.utilities import NullFunc, make_grid_exp_mult, make_assets_grid, get_it_from
 
 __all__ = [
     "MedShockPolicyFunc",
@@ -139,7 +148,7 @@ class MedShockPolicyFunc(MetricObject):
         # Construct the consumption function and medical care function
         if xLvlCubicBool:
             if MedShkCubicBool:
-                raise NotImplementedError()("Bicubic interpolation not yet implemented")
+                raise NotImplementedError("Bicubic interpolation not yet implemented")
             else:
                 xLvlGrid_tiled = np.tile(
                     np.reshape(xLvlGrid, (xLvlGrid.size, 1)), (1, MedShkGrid.size)
@@ -489,7 +498,7 @@ class MedThruXfunc(MetricObject):
         dcdx = self.cFunc.derivativeX(xLvl, MedShk)
         dcdm = dxdm * dcdx
         dMeddm = (dxdm - dcdm) / self.MedPrice
-        return dcdm, dMeddm
+        return dMeddm
 
     def derivativeY(self, mLvl, pLvl, MedShk):
         """
@@ -546,6 +555,34 @@ class MedThruXfunc(MetricObject):
         return dMeddShk
 
 
+def make_market_resources_grid(mNrmMin, mNrmMax, mNrmNestFac, mNrmCount, mNrmExtra):
+    """
+    Constructor for mNrmGrid that aliases make_assets_grid.
+    """
+    return make_assets_grid(mNrmMin, mNrmMax, mNrmCount, mNrmExtra, mNrmNestFac)
+
+
+def make_capital_grid(kLvlMin, kLvlMax, kLvlCount, kLvlOrder):
+    """
+    Constructor for kLvlGrid, using a simple "invertible" format.
+    """
+    base_grid = np.linspace(0.0, 1.0, kLvlCount) ** kLvlOrder
+    kLvlGrid = (kLvlMax - kLvlMin) * base_grid + kLvlMin
+    return kLvlGrid
+
+
+def reformat_bequest_motive(BeqMPC, BeqInt, CRRA):
+    """
+    Reformats interpretable bequest motive parameters (terminal intercept and MPC)
+    into parameters that are easily useable in math (shifter and scaler).
+    """
+    BeqParamDict = {
+        "BeqFac": BeqMPC ** (-CRRA),
+        "BeqShift": BeqInt / BeqMPC,
+    }
+    return BeqParamDict
+
+
 def make_lognormal_MedShkDstn(
     T_cycle,
     MedShkAvg,
@@ -591,7 +628,9 @@ def make_lognormal_MedShkDstn(
         MedShkAvg_t = MedShkAvg[t]
         MedShkStd_t = MedShkStd[t]
         MedShkDstn_t = Lognormal(
-            mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2, sigma=MedShkStd_t
+            mu=np.log(MedShkAvg_t) - 0.5 * MedShkStd_t**2,
+            sigma=MedShkStd_t,
+            seed=RNG.integers(0, 2**31 - 1),
         ).discretize(
             N=MedShkCount,
             method="equiprobable",
@@ -603,6 +642,49 @@ def make_lognormal_MedShkDstn(
         )  # add point at zero with no probability
         MedShkDstn.append(MedShkDstn_t)
     return MedShkDstn
+
+
+def make_continuous_MedShockDstn(
+    MedShkLogMean, MedShkLogStd, MedCostLogMean, MedCostLogStd, MedCorr, T_cycle, RNG
+):
+    """
+    Construct a time-varying list of bivariate lognormals for the medical shocks
+    distribution. This representation uses fully continuous distributions, with
+    no discretization in either dimension.
+
+    Parameters
+    ----------
+    MedShkLogMean : [float]
+        Age-varying list of means of log medical needs (utility) shocks.
+    MedShkLogStd : [float]
+        Age-varying list of standard deviations of log medical needs (utility) shocks.
+    MedCostLogMean : [float]
+        Age-varying list of means of log medical expense shocks.
+    MedCostLogStd : [float]
+        Age-varying list of standard deviations of log medical expense shocks..
+    MedCorr : [float]
+        Age-varying correlation coefficient between log medical expenses and utility shocks.
+    T_cycle : int
+        Number of periods in the agent's sequence.
+    RNG : RandomState
+        Random number generator for this type.
+
+    Returns
+    -------
+    MedShockDstn : [MultivariateLognormal]
+        Age-varying list of bivariate lognormal distributions, ordered as (MedCost,MedShk).
+    """
+    MedShockDstn = []
+    for t in range(T_cycle):
+        s1 = MedCostLogStd[t]
+        s2 = MedShkLogStd[t]
+        diag = MedCorr[t] * s1 * s2
+        S = np.array([[s1**2, diag], [diag, s2**2]])
+        M = np.array([MedCostLogMean[t], MedShkLogMean[t]])
+        seed_t = RNG.integers(0, 2**31 - 1)
+        dstn_t = MultivariateLogNormal(mu=M, Sigma=S, seed=seed_t)
+        MedShockDstn.append(dstn_t)
+    return MedShockDstn
 
 
 def make_MedShock_solution_terminal(
@@ -1220,7 +1302,7 @@ medshock_constructor_dict = {
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
 default_kNrmInitDstn_params = {
-    "kLogInitMean": 0.0,  # Mean of log initial capital
+    "kLogInitMean": -6.0,  # Mean of log initial capital
     "kLogInitStd": 1.0,  # Stdev of log initial capital
     "kNrmInitCount": 15,  # Number of points in initial capital discretization
 }
@@ -1272,19 +1354,19 @@ default_pLvlGrid_params = {
     ],  # Additional permanent income points to automatically add to the grid, optional
 }
 
-# Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
-default_MedShkDstn_params = {
-    "MedShkAvg": [0.001],  # Average of medical need shocks
-    "MedShkStd": [5.0],  # Standard deviation of (log) medical need shocks
-    "MedShkCount": 5,  # Number of medical shock points in "body"
-    "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
-    "MedPrice": [1.5],  # Relative price of a unit of medical care
-}
-
 # Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
 default_pLvlNextFunc_params = {
     "PermGroFac": [1.0],  # Permanent income growth factor
     "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
+}
+
+# Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
+default_MedShkDstn_params = {
+    "MedShkAvg": [0.1],  # Average of medical need shocks
+    "MedShkStd": [4.0],  # Standard deviation of (log) medical need shocks
+    "MedShkCount": 5,  # Number of medical shock points in "body"
+    "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
+    "MedPrice": [1.5],  # Relative price of a unit of medical care
 }
 
 # Make a dictionary to specify a medical shocks consumer type
@@ -1299,7 +1381,7 @@ init_medical_shocks = {
     "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
     "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
-    "LivPrb": [0.98],  # Survival probability after each period
+    "LivPrb": [0.99],  # Survival probability after each period
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
@@ -1340,7 +1422,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         M_{t+1} &=& R A_t + Y_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1},\\
         \eta_t &~\sim& G_t,\\
-        U_t(C, med; \eta) &=& \frac{C^{1-\rho}}{1-\rho}+\eta \frac{med^{1-\nu}}{1-\nu}.
+        U_t(C, med; \eta) &=& \frac{C^{1-\rho}}{1-\rho} +\eta \frac{med^{1-\nu}}{1-\nu}.
         \end{eqnarray*}
 
 
@@ -1348,28 +1430,22 @@ class MedShockConsumerType(PersistentShockConsumerType):
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     pLvlNextFunc: Constructor
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_trivial_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
     MedShkDstn: Constructor, :math:`\text{medShk}`
         The agent's Medical utility shock distribution.
-
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsMedModel.make_lognormal_MedShkDstn`
 
     Solving Parameters
     ------------------
@@ -1499,12 +1575,14 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        PersistentShockConsumerType.get_shocks(
-            self
-        )  # Get permanent and transitory income shocks
-        MedShkNow = np.zeros(self.AgentCount)  # Initialize medical shock array
-        # Initialize relative price array
+        # Get permanent and transitory income shocks
+        PersistentShockConsumerType.get_shocks(self)
+
+        # Initialize medical shock array and relative price array
+        MedShkNow = np.zeros(self.AgentCount)
         MedPriceNow = np.zeros(self.AgentCount)
+
+        # Get shocks for each period of the cycle
         for t in range(self.T_cycle):
             these = t == self.t_cycle
             N = np.sum(these)
@@ -1516,8 +1594,8 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
     def get_controls(self):
         """
-        Calculates consumption and medical care for each consumer of this type using the consumption
-        and medical care functions.
+        Calculates consumption and medical care for each consumer of this type
+        using the consumption and medical care functions.
 
         Parameters
         ----------
@@ -1561,4 +1639,621 @@ class MedShockConsumerType(PersistentShockConsumerType):
         # moves now to prev
         AgentType.get_poststates(self)
 
-        return None
+
+###############################################################################
+
+
+class ConsMedExtMargSolution(MetricObject):
+    """
+    Representation of the solution to one period's problem in the extensive margin
+    medical expense model. If no inputs are passed, a trivial object is constructed,
+    which can be used as the pseudo-terminal solution.
+
+    Parameters
+    ----------
+    vFunc_by_pLvl : [function]
+        List of beginning-of-period value functions over kLvl, by pLvl.
+    vPfunc_by_pLvl : [function]
+        List of beginning-of-period marginal functions over kLvl, by pLvl.
+    cFunc_by_pLvl : [function]
+        List of consumption functions over bLvl, by pLvl.
+    vNvrsFuncMid_by_pLvl : [function]
+        List of pseudo-inverse value function for consumption phase over bLvl, by pLvl.
+    ExpMedFunc : function
+        Expected medical care as a function of mLvl and pLvl, just before medical
+        shock is realized.
+    CareProbFunc : function
+        Probability of getting medical treatment as a function of mLvl and pLvl,
+        just before medical shock is realized.
+    pLvl : np.array
+        Grid of permanent income levels during the period (after shocks).
+    CRRA : float
+        Coefficient of relative risk aversion
+    """
+
+    distance_criteria = ["cFunc"]
+
+    def __init__(
+        self,
+        vFunc_by_pLvl=None,
+        vPfunc_by_pLvl=None,
+        cFunc_by_pLvl=None,
+        vNvrsFuncMid_by_pLvl=None,
+        ExpMedFunc=None,
+        CareProbFunc=None,
+        pLvl=None,
+        CRRA=None,
+    ):
+        self.pLvl = pLvl
+        self.CRRA = CRRA
+        if vFunc_by_pLvl is None:
+            self.vFunc_by_pLvl = pLvl.size * [ConstantFunction(0.0)]
+        else:
+            self.vFunc_by_pLvl = vFunc_by_pLvl
+        if vPfunc_by_pLvl is None:
+            self.vPfunc_by_pLvl = pLvl.size * [ConstantFunction(0.0)]
+        else:
+            self.vPfunc_by_pLvl = vPfunc_by_pLvl
+        if cFunc_by_pLvl is not None:
+            self.cFunc = LinearInterpOnInterp1D(cFunc_by_pLvl, pLvl)
+        else:
+            self.cFunc = None
+        if vNvrsFuncMid_by_pLvl is not None:
+            vNvrsFuncMid = LinearInterpOnInterp1D(vNvrsFuncMid_by_pLvl, pLvl)
+            self.vFuncMid = ValueFuncCRRA(vNvrsFuncMid, CRRA, illegal_value=-np.inf)
+        if ExpMedFunc is not None:
+            self.ExpMedFunc = ExpMedFunc
+        if CareProbFunc is not None:
+            self.CareProbFunc = CareProbFunc
+
+
+def make_MedExtMarg_solution_terminal(pLogCount):
+    """
+    Construct a trivial pseudo-terminal solution for the extensive margin medical
+    spending model: a list of constant zero functions for (marginal) value. The
+    only piece of information needed for this is how many such functions to include.
+    """
+    pLvl_terminal = np.arange(pLogCount)
+    solution_terminal = ConsMedExtMargSolution(pLvl=pLvl_terminal)
+    return solution_terminal
+
+
+###############################################################################
+
+
+def solve_one_period_ConsMedExtMarg(
+    solution_next,
+    DiscFac,
+    CRRA,
+    BeqFac,
+    BeqShift,
+    Rfree,
+    LivPrb,
+    MedShkLogMean,
+    MedShkLogStd,
+    MedCostLogMean,
+    MedCostLogStd,
+    MedCorr,
+    MedCostBot,
+    MedCostTop,
+    MedCostCount,
+    aNrmGrid,
+    pLogGrid,
+    pLvlMean,
+    TranShkDstn,
+    pLogMrkvArray,
+    mNrmGrid,
+    kLvlGrid,
+):
+    """
+    Solve one period of the "extensive margin medical care" model. Each period, the
+    agent receives a persistent and transitory shock to income, and then a medical
+    shock with two components: utility and cost. He makes a binary choice between
+    paying the cost in medical expenses or suffering the utility loss, then makes
+    his ordinary consumption-saving decision (technically made simultaneously, but
+    solved as if sequential). This version has one health state and no insurance choice
+    and hardcodes a liquidity constraint.
+
+    Parameters
+    ----------
+    solution_next : ConsMedExtMargSolution
+        Solution to the succeeding period's problem.
+    DiscFac : float
+        Intertemporal discount factor.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    BeqFac : float
+        Scaling factor for bequest motive.
+    BeqShift : float
+        Shifter for bequest motive.
+    Rfree : float
+        Risk free return factor on saving.
+    LivPrb : float
+        Survival probability from this period to the next one.
+    MedShkLogMean : float
+        Mean of log utility shocks, assumed to be lognormally distributed.
+    MedShkLogStd : float
+        Stdev of log utility shocks, assumed to be lognormally distributed.
+    MedCostLogMean : float
+        Mean of log medical expense shocks, assumed to be lognormally distributed.
+    MedCostLogStd : float
+        Stdev of log medical expense shocks, assumed to be lognormally distributed.
+    MedCorr : float
+        Correlation coefficient betwen log utility shocks and log medical expense
+        shocks, assumed to be joint normal (in logs).
+    MedCostBot : float
+        Lower bound of medical costs to consider, as standard deviations of log
+        expenses away from the mean.
+    MedCostTop : float
+        Upper bound of medical costs to consider, as standard deviations of log
+        expenses away from the mean.
+    MedCostCount : int
+        Number of points to use when discretizing MedCost
+    aNrmGrid : np.array
+        Exogenous grid of end-of-period assets, normalized by income level.
+    pLogGrid : np.array
+        Exogenous grid of *deviations from mean* log income level.
+    pLvlMean : float
+        Mean income level at this age, for generating actual income levels from
+        pLogGrid as pLvl = pLvlMean * np.exp(pLogGrid).
+    TranShkDstn : DiscreteDistribution
+        Discretized transitory income shock distribution.
+    pLogMrkvArray : np.array
+        Markov transition array from beginning-of-period (prior) income levels
+        to this period's levels. Pre-computed by (e.g.) Tauchen's method.
+    mNrmGrid : np.array
+        Exogenous grid of decision-time normalized market resources,
+    kLvlGrid : np.array
+        Beginning-of-period capital grid (spanning zero to very high wealth).
+
+    Returns
+    -------
+    solution_now : ConsMedExtMargSolution
+        Representation of the solution to this period's problem, including the
+        beginning-of-period (marginal) value function by pLvl, the consumption
+        function by pLvl, and the (pseudo-inverse) value function for the consumption
+        phase (as a list by pLvl).
+    """
+    # Define (marginal) utility and bequest motive functions
+    u = lambda x: CRRAutility(x, rho=CRRA)
+    uP = lambda x: CRRAutilityP(x, rho=CRRA)
+    W = lambda x: BeqFac * u(x + BeqShift)
+    Wp = lambda x: BeqFac * uP(x + BeqShift)
+    n = lambda x: CRRAutility_inv(x, rho=CRRA)
+
+    # Make grids of pLvl x aLvl
+    pLvl = np.exp(pLogGrid) * pLvlMean
+    aLvl = np.dot(
+        np.reshape(aNrmGrid, (aNrmGrid.size, 1)), np.reshape(pLvl, (1, pLvl.size))
+    )
+    aLvl = np.concatenate([np.zeros((1, pLvl.size)), aLvl])  # add zero entries
+
+    # Evaluate end-of-period marginal value at each combination of pLvl x aLvl
+    pLvlCount = pLvl.size
+    EndOfPrd_vP = np.empty_like(aLvl)
+    EndOfPrd_v = np.empty_like(aLvl)
+    for j in range(pLvlCount):
+        EndOfPrdvFunc_this_pLvl = solution_next.vFunc_by_pLvl[j]
+        EndOfPrdvPfunc_this_pLvl = solution_next.vPfunc_by_pLvl[j]
+        EndOfPrd_v[:, j] = DiscFac * LivPrb * EndOfPrdvFunc_this_pLvl(aLvl[:, j])
+        EndOfPrd_vP[:, j] = DiscFac * LivPrb * EndOfPrdvPfunc_this_pLvl(aLvl[:, j])
+    EndOfPrd_v += (1.0 - LivPrb) * W(aLvl)
+    EndOfPrd_vP += (1.0 - LivPrb) * Wp(aLvl)
+
+    # Calculate optimal consumption for each (aLvl,pLvl) gridpoint, roll back to bLvl
+    cLvl = CRRAutilityP_inv(EndOfPrd_vP, CRRA)
+    bLvl = aLvl + cLvl
+
+    # Construct consumption functions over bLvl for each pLvl
+    cFunc_by_pLvl = []
+    for j in range(pLvlCount):
+        cFunc_j = LinearInterp(
+            np.insert(bLvl[:, j], 0, 0.0), np.insert(cLvl[:, j], 0, 0.0)
+        )
+        cFunc_by_pLvl.append(cFunc_j)
+
+    # Construct pseudo-inverse value functions over bLvl for each pLvl
+    v_mid = u(cLvl) + EndOfPrd_v  # value of reaching consumption phase
+    vNvrsFuncMid_by_pLvl = []
+    for j in range(pLvlCount):
+        b_cnst = np.linspace(0.001, 0.95, 10) * bLvl[0, j]  # constrained wealth levels
+        c_cnst = b_cnst
+        v_cnst = u(c_cnst) + EndOfPrd_v[0, j]
+        b_temp = np.concatenate([b_cnst, bLvl[:, j]])
+        v_temp = np.concatenate([v_cnst, v_mid[:, j]])
+        vNvrs_temp = n(v_temp)
+        vNvrsFunc_j = LinearInterp(
+            np.insert(b_temp, 0, 0.0), np.insert(vNvrs_temp, 0, 0.0)
+        )
+        vNvrsFuncMid_by_pLvl.append(vNvrsFunc_j)
+
+    # Make a grid of (log) medical expenses (and probs), cross it with (mLvl,pLvl)
+    MedCostBaseGrid = np.linspace(MedCostBot, MedCostTop, MedCostCount)
+    MedCostLogGrid = MedCostLogMean + MedCostBaseGrid * MedCostLogStd
+    MedCostGrid = np.exp(MedCostLogGrid)
+    mLvl_base = np.dot(
+        np.reshape(mNrmGrid, (mNrmGrid.size, 1)), np.reshape(pLvl, (1, pLvlCount))
+    )
+    mLvl = np.reshape(mLvl_base, (mNrmGrid.size, pLvlCount, 1))
+    bLvl_if_care = mLvl - np.reshape(MedCostGrid, (1, 1, MedCostCount))
+    bLvl_if_not = mLvl_base
+
+    # Calculate mean (log) utility shock for each MedCost gridpoint, and conditional stdev
+    MedShkLog_cond_mean = MedShkLogMean + MedCorr * MedShkLogStd * MedCostBaseGrid
+    MedShkLog_cond_mean = np.reshape(MedShkLog_cond_mean, (1, MedCostCount))
+    MedShkLog_cond_std = np.sqrt(MedShkLogStd**2 * (1.0 - MedCorr**2))
+    MedShk_cond_mean = np.exp(MedShkLog_cond_mean + 0.5 * MedShkLog_cond_std**2)
+
+    # Initialize (marginal) value function arrays over (mLvl,pLvl,MedCost)
+    v_at_Dcsn = np.empty_like(bLvl_if_care)
+    vP_at_Dcsn = np.empty_like(bLvl_if_care)
+    care_prob_array = np.empty_like(bLvl_if_care)
+    for j in range(pLvlCount):
+        # Evaluate value function for (bLvl,pLvl_j), including MedCost=0
+        v_if_care = u(vNvrsFuncMid_by_pLvl[j](bLvl_if_care[:, j, :]))
+        v_if_not = np.reshape(
+            u(vNvrsFuncMid_by_pLvl[j](bLvl_if_not[:, j])), (mNrmGrid.size, 1)
+        )
+        cant_pay = bLvl_if_care[:, j, :] <= 0.0
+        v_if_care[cant_pay] = -np.inf
+
+        # Find value difference at each gridpoint, convert to MedShk stdev; find prob of care
+        v_diff = v_if_not - v_if_care
+        log_v_diff = np.log(v_diff)
+        crit_stdev = (log_v_diff - MedShkLog_cond_mean) / MedShkLog_cond_std
+        prob_no_care = norm.cdf(crit_stdev)
+        prob_get_care = 1.0 - prob_no_care
+        care_prob_array[:, j, :] = prob_get_care
+
+        # Calculate expected MedShk conditional on not getting medical care
+        crit_z = crit_stdev - MedShkLog_cond_std
+        MedShk_no_care_cond_mean = 0.5 * MedShk_cond_mean * erfc(crit_z) / prob_no_care
+
+        # Compute expected (marginal) value over MedShk for each (mLvl,pLvl_j,MedCost)
+        v_if_care[cant_pay] = 0.0
+        v_at_Dcsn[:, j, :] = (
+            prob_no_care * (v_if_not - MedShk_no_care_cond_mean)
+            + prob_get_care * v_if_care
+        )
+        vP_if_care = uP(cFunc_by_pLvl[j](bLvl_if_care[:, j, :]))
+        vP_if_not = np.reshape(
+            uP(cFunc_by_pLvl[j](bLvl_if_not[:, j])), (mNrmGrid.size, 1)
+        )
+        vP_if_care[cant_pay] = 0.0
+        MedShk_rate_of_change = (
+            norm.pdf(crit_stdev) * (vP_if_care - vP_if_not) * MedShk_no_care_cond_mean
+        )
+        vP_at_Dcsn[:, j, :] = (
+            prob_no_care * vP_if_not
+            + prob_get_care * vP_if_care
+            + MedShk_rate_of_change
+        )
+
+    # Compute expected (marginal) value over MedCost for each (mLvl,pLvl)
+    temp_grid = np.linspace(MedCostBot, MedCostTop, MedCostCount)
+    MedCost_pmv = norm.pdf(temp_grid)
+    MedCost_pmv /= np.sum(MedCost_pmv)
+    MedCost_probs = np.reshape(MedCost_pmv, (1, 1, MedCostCount))
+    v_before_shk = np.sum(v_at_Dcsn * MedCost_probs, axis=2)
+    vP_before_shk = np.sum(vP_at_Dcsn * MedCost_probs, axis=2)
+    vNvrs_before_shk = n(v_before_shk)
+    vPnvrs_before_shk = CRRAutilityP_inv(vP_before_shk, CRRA)
+
+    # Compute expected medical expenses at each state space point
+    ExpCare_all = care_prob_array * np.reshape(MedCostGrid, (1, 1, MedCostCount))
+    ExpCare = np.sum(ExpCare_all * MedCost_probs, axis=2)
+    ProbCare = np.sum(care_prob_array * MedCost_probs, axis=2)
+    ExpCareFunc_by_pLvl = []
+    CareProbFunc_by_pLvl = []
+    for j in range(pLvlCount):
+        m_temp = np.insert(mLvl_base[:, j], 0, 0.0)
+        EC_temp = np.insert(ExpCare[:, j], 0, 0.0)
+        prob_temp = np.insert(ProbCare[:, j], 0, 0.0)
+        ExpCareFunc_by_pLvl.append(LinearInterp(m_temp, EC_temp))
+        CareProbFunc_by_pLvl.append(LinearInterp(m_temp, prob_temp))
+    ExpCareFunc = LinearInterpOnInterp1D(ExpCareFunc_by_pLvl, pLvl)
+    ProbCareFunc = LinearInterpOnInterp1D(CareProbFunc_by_pLvl, pLvl)
+
+    # Fixing kLvlGrid, compute expected (marginal) value over TranShk for each (kLvl,pLvl)
+    v_by_kLvl_and_pLvl = np.empty((kLvlGrid.size, pLvlCount))
+    vP_by_kLvl_and_pLvl = np.empty((kLvlGrid.size, pLvlCount))
+    for j in range(pLvlCount):
+        p = pLvl[j]
+
+        # Make (marginal) value functions over mLvl for this pLvl
+        m_temp = np.insert(mLvl_base[:, j], 0, 0.0)
+        vNvrs_temp = np.insert(vNvrs_before_shk[:, j], 0, 0.0)
+        vPnvrs_temp = np.insert(vPnvrs_before_shk[:, j], 0, 0.0)
+        vNvrsFunc_temp = LinearInterp(m_temp, vNvrs_temp)
+        vPnvrsFunc_temp = LinearInterp(m_temp, vPnvrs_temp)
+        vFunc_temp = lambda x: u(vNvrsFunc_temp(x))
+        vPfunc_temp = lambda x: uP(vPnvrsFunc_temp(x))
+
+        # Compute expectation over TranShkDstn
+        v = lambda TranShk, kLvl: vFunc_temp(kLvl + TranShk * p)
+        vP = lambda TranShk, kLvl: vPfunc_temp(kLvl + TranShk * p)
+        v_by_kLvl_and_pLvl[:, j] = expected(v, TranShkDstn, args=(kLvlGrid,))
+        vP_by_kLvl_and_pLvl[:, j] = expected(vP, TranShkDstn, args=(kLvlGrid,))
+
+    # Compute expectation over persistent shocks by using pLvlMrkvArray
+    v_arvl = np.dot(v_by_kLvl_and_pLvl, pLogMrkvArray.T)
+    vP_arvl = np.dot(vP_by_kLvl_and_pLvl, pLogMrkvArray.T)
+    vNvrs_arvl = n(v_arvl)
+    vPnvrs_arvl = CRRAutilityP_inv(vP_arvl, CRRA)
+
+    # Construct "arrival" (marginal) value function by pLvl
+    vFuncArvl_by_pLvl = []
+    vPfuncArvl_by_pLvl = []
+    for j in range(pLvlCount):
+        vNvrsFunc_temp = LinearInterp(kLvlGrid, vNvrs_arvl[:, j])
+        vPnvrsFunc_temp = LinearInterp(kLvlGrid, vPnvrs_arvl[:, j])
+        vFuncArvl_by_pLvl.append(ValueFuncCRRA(vNvrsFunc_temp, CRRA))
+        vPfuncArvl_by_pLvl.append(MargValueFuncCRRA(vPnvrsFunc_temp, CRRA))
+
+    # Gather elements and return the solution object
+    solution_now = ConsMedExtMargSolution(
+        vFunc_by_pLvl=vFuncArvl_by_pLvl,
+        vPfunc_by_pLvl=vPfuncArvl_by_pLvl,
+        cFunc_by_pLvl=cFunc_by_pLvl,
+        vNvrsFuncMid_by_pLvl=vNvrsFuncMid_by_pLvl,
+        pLvl=pLvl,
+        CRRA=CRRA,
+        ExpMedFunc=ExpCareFunc,
+        CareProbFunc=ProbCareFunc,
+    )
+    return solution_now
+
+
+###############################################################################
+
+
+# Define a dictionary of constructors for the extensive margin medical spending model
+med_ext_marg_constructors = {
+    "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
+    "IncomeProcessDict": make_persistent_income_process_dict,
+    "pLogGrid": get_it_from("IncomeProcessDict"),
+    "pLvlMean": get_it_from("IncomeProcessDict"),
+    "pLogMrkvArray": get_it_from("IncomeProcessDict"),
+    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
+    "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
+    "BeqFac": get_it_from("BeqParamDict"),
+    "BeqShift": get_it_from("BeqParamDict"),
+    "BeqParamDict": reformat_bequest_motive,
+    "aNrmGrid": make_assets_grid,
+    "mNrmGrid": make_market_resources_grid,
+    "kLvlGrid": make_capital_grid,
+    "solution_terminal": make_MedExtMarg_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "MedShockDstn": make_continuous_MedShockDstn,
+}
+
+# Make a dictionary with default bequest motive parameters
+default_BeqParam_dict = {
+    "BeqMPC": 0.1,  # Hypothetical "MPC at death"
+    "BeqInt": 1.0,  # Intercept term for hypothetical "consumption function at death"
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params_ExtMarg = {
+    "kLogInitMean": -6.0,  # Mean of log initial capital
+    "kLogInitStd": 1.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Default parameters to make IncomeProcessDict using make_persistent_income_process_dict;
+# some of these are used by construct_lognormal_income_process_unemployment as well
+default_IncomeProcess_params = {
+    "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": 0.05,  # Probability of unemployment while working
+    "IncUnemp": 0.3,  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": 0.005,  # Probability of "unemployment" while retired
+    "IncUnempRet": 0.0,  # "Unemployment" benefits when retired
+    "pLogInitMean": 0.0,  # Mean of log initial permanent income
+    "pLogInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
+    "pLvlInitCount": 25,  # Number of discrete nodes in initial permanent income level dstn
+    "PermGroFac": [1.0],  # Permanent income growth factor
+    "PrstIncCorr": 0.98,  # Correlation coefficient on (log) persistent income
+    "pLogCount": 45,  # Number of points in persistent income grid each period
+    "pLogRange": 3.5,  # Upper/lower bound of persistent income, in unconditional standard deviations
+}
+
+# Default parameters to make aNrmGrid using make_assets_grid
+default_aNrmGrid_params = {
+    "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
+    "aXtraMax": 40.0,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 96,  # Number of points in the grid of "assets above minimum"
+    "aXtraExtra": [0.005, 0.01],  # Additional other values to add in grid (optional)
+}
+
+# Default parameters to make mLvlGrid using make_market_resources_grid
+default_mNrmGrid_params = {
+    "mNrmMin": 0.001,
+    "mNrmMax": 40.0,
+    "mNrmNestFac": 2,
+    "mNrmCount": 72,
+    "mNrmExtra": None,
+}
+
+# Default parameters to make kLvlGrid using make_capital_grid
+default_kLvlGrid_params = {
+    "kLvlMin": 0.0,
+    "kLvlMax": 200,
+    "kLvlCount": 250,
+    "kLvlOrder": 2.0,
+}
+
+# Default "basic" parameters
+med_ext_marg_basic_params = {
+    "constructors": med_ext_marg_constructors,
+    "cycles": 1,  # Lifecycle by default
+    "T_cycle": 1,  # Number of periods in the default sequence
+    "T_age": None,
+    "AgentCount": 10000,  # Number of agents to simulate
+    "DiscFac": 0.96,  # intertemporal discount factor
+    "CRRA": 1.5,  # coefficient of relative risk aversion
+    "Rfree": [1.02],  # risk free interest factor
+    "LivPrb": [0.99],  # survival probability
+    "MedCostBot": -3.1,  # lower bound of medical cost distribution, in stdevs
+    "MedCostTop": 5.2,  # upper bound of medical cost distribution, in stdevs
+    "MedCostCount": 84,  # number of nodes in medical cost discretization
+    "MedShkLogMean": [-2.0],  # mean of log utility shocks
+    "MedShkLogStd": [1.5],  # standard deviation of log utility shocks
+    "MedCostLogMean": [-1.0],  # mean of log medical expenses
+    "MedCostLogStd": [1.0],  # standard deviation of log medical expenses
+    "MedCorr": [0.3],  # correlation coefficient between utility shock and expenses
+    "PermGroFacAgg": 1.0,  # Aggregate productivity growth rate (leave at 1)
+    "NewbornTransShk": True,  # Whether "newborns" have a transitory income shock
+}
+
+# Combine the dictionaries into a single default dictionary
+init_med_ext_marg = med_ext_marg_basic_params.copy()
+init_med_ext_marg.update(default_IncomeProcess_params)
+init_med_ext_marg.update(default_aNrmGrid_params)
+init_med_ext_marg.update(default_mNrmGrid_params)
+init_med_ext_marg.update(default_kLvlGrid_params)
+init_med_ext_marg.update(default_kNrmInitDstn_params_ExtMarg)
+init_med_ext_marg.update(default_BeqParam_dict)
+
+
+class MedExtMargConsumerType(PersistentShockConsumerType):
+    r"""
+    Class for representing agents in the extensive margin medical expense model.
+    Such agents have labor income dynamics identical to the "general income process"
+    model (permanent income is not normalized out), and also experience a medical
+    shock with two components: medical cost and utility loss. They face a binary
+    choice of whether to pay the cost or suffer the loss, then make a consumption-
+    saving decision as normal. To simplify the computation, the joint distribution
+    of medical shocks is specified as bivariate lognormal. This can be loosened to
+    accommodate insurance contracts as mappings from total to out-of-pocket expenses.
+    Can also be extended to include a health process.
+
+    .. math::
+        \begin{eqnarray*}
+        V_t(M_t,P_t) &=& \max_{C_t, D_t} U_t(C_t) - (1-D_t) \eta_t + \beta (1-\mathsf{D}_{t+1}) \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}], \\
+        A_t &=& M_t - C_t - D_t med_t,  \\
+        A_t/ &\geq& 0, \\
+        D_t &\in& \{0,1\}, \\
+        P_{t+1} &=& \Gamma_{t+1}(P_t)\psi_{t+1}, \\
+        Y_{t+1} &=& P_{t+1} \theta_{t+1}
+        M_{t+1} &=& R A_t + Y_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1},\\
+        (med_t,\eta_t) &~\sim& G_t,\\
+        U_t(C) &=& \frac{C^{1-\rho}}{1-\rho}.
+        \end{eqnarray*}
+    """
+
+    default_ = {
+        "params": init_med_ext_marg,
+        "solver": solve_one_period_ConsMedExtMarg,
+        "model": "ConsExtMargMed.yaml",
+    }
+
+    time_vary_ = [
+        "Rfree",
+        "LivPrb",
+        "MedShkLogMean",
+        "MedShkLogStd",
+        "MedCostLogMean",
+        "MedCostLogStd",
+        "MedCorr",
+        "pLogGrid",
+        "pLvlMean",
+        "TranShkDstn",
+        "pLogMrkvArray",
+        "pLvlNextFunc",
+        "IncShkDstn",
+        "MedShockDstn",
+    ]
+    time_inv_ = [
+        "DiscFac",
+        "CRRA",
+        "BeqFac",
+        "BeqShift",
+        "MedCostBot",
+        "MedCostTop",
+        "MedCostCount",
+        "aNrmGrid",
+        "mNrmGrid",
+        "kLvlGrid",
+    ]
+    shock_vars = ["PermShk", "TranShk", "MedShk", "MedCost"]
+
+    def get_shocks(self):
+        """
+        Gets permanent and transitory income shocks for this period as well as
+        medical need and cost shocks.
+        """
+        # Get permanent and transitory income shocks
+        PersistentShockConsumerType.get_shocks(self)
+
+        # Initialize medical shock array and cost of care array
+        MedShkNow = np.zeros(self.AgentCount)
+        MedCostNow = np.zeros(self.AgentCount)
+
+        # Get shocks for each period of the cycle
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            if np.any(these):
+                N = np.sum(these)
+                dstn_t = self.MedShockDstn[t]
+                draws_t = dstn_t.draw(N)
+                MedCostNow[these] = draws_t[0, :]
+                MedShkNow[these] = draws_t[1, :]
+        self.shocks["MedShk"] = MedShkNow
+        self.shocks["MedCost"] = MedCostNow
+
+    def get_controls(self):
+        """
+        Finds consumption for each agent, along with whether or not they get care.
+        """
+        # Initialize output
+        cLvlNow = np.empty(self.AgentCount)
+        CareNow = np.zeros(self.AgentCount, dtype=bool)
+
+        # Get states and shocks
+        mLvl = self.state_now["mLvl"]
+        pLvl = self.state_now["pLvl"]
+        MedCost = self.shocks["MedCost"]
+        MedShk = self.shocks["MedShk"]
+
+        # Find remaining resources with and without care
+        bLvl_no_care = mLvl
+        bLvl_with_care = mLvl - MedCost
+
+        # Get controls for each period of the cycle
+        for t in range(self.T_cycle):
+            these = t == self.t_cycle
+            if np.any(these):
+                vFunc_t = self.solution[t].vFuncMid
+                cFunc_t = self.solution[t].cFunc
+
+                v_no_care = vFunc_t(bLvl_no_care[these], pLvl[these]) - MedShk[these]
+                v_if_care = vFunc_t(bLvl_with_care[these], pLvl[these])
+                get_care = v_if_care > v_no_care
+
+                b_temp = bLvl_no_care[these]
+                b_temp[get_care] = bLvl_with_care[get_care]
+                cLvlNow[these] = cFunc_t(b_temp, pLvl[these])
+                CareNow[these] = get_care
+
+        # Store the results
+        self.controls["cLvl"] = cLvlNow
+        self.controls["Care"] = CareNow
+
+    def get_poststates(self):
+        """
+        Calculates end-of-period assets for each consumer of this type.
+        """
+        self.state_now["MedLvl"] = self.shocks["MedCost"] * self.controls["Care"]
+        self.state_now["aLvl"] = (
+            self.state_now["mLvl"] - self.controls["cLvl"] - self.state_now["MedLvl"]
+        )
+        # Move now to prev
+        AgentType.get_poststates(self)

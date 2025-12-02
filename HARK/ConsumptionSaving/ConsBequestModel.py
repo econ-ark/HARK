@@ -10,8 +10,6 @@ It currently solves two types of models:
     2) A portfolio choice model with a terminal and/or accidental bequest motive.
 """
 
-from copy import deepcopy
-
 import numpy as np
 
 from HARK import NullFunc
@@ -879,17 +877,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
         ShareAdj_now = np.insert(ShareAdj_now, 0, Share_lower_bound)
         ShareFuncAdj_now = LinearInterp(mNrmAdj_now, ShareAdj_now, ShareLimit, 0.0)
 
-    # This is a point at which (a,c,share) have consistent length. Take the
-    # snapshot for storing the grid and values in the solution.
-    save_points = {
-        "a": deepcopy(aNrmGrid),
-        "eop_dvda_adj": uFunc.der(cNrmAdj_now),
-        "share_adj": deepcopy(ShareAdj_now),
-        "share_grid": deepcopy(ShareGrid),
-        "eop_dvda_fxd": uFunc.der(EndOfPrd_dvda),
-        "eop_dvds_fxd": EndOfPrd_dvds,
-    }
-
     # Add the value function if requested
     if vFuncBool:
         # Create the value functions for this period, defined over market resources
@@ -947,13 +934,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
         dvdsFuncFxd=dvdsFuncFxd_now,
         vFuncFxd=vFuncFxd_now,
         AdjPrb=AdjustPrb,
-        # WHAT IS THIS STUFF FOR??
-        aGrid=save_points["a"],
-        Share_adj=save_points["share_adj"],
-        EndOfPrddvda_adj=save_points["eop_dvda_adj"],
-        ShareGrid=save_points["share_grid"],
-        EndOfPrddvda_fxd=save_points["eop_dvda_fxd"],
-        EndOfPrddvds_fxd=save_points["eop_dvds_fxd"],
     )
     return solution_now
 
@@ -1196,6 +1176,15 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         "model": "ConsIndShock.yaml",
     }
 
+    def pre_solve(self):
+        self.construct("solution_terminal")
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()
+
 
 ###############################################################################
 
@@ -1288,6 +1277,7 @@ init_portfolio_bequest = {
     "PortfolioBool": True,  # Whether this agent has portfolio choice
     "PortfolioBisect": False,  # What does this do?
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type

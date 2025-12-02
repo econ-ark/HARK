@@ -6,6 +6,7 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
+    make_ratchet_markov,
 )
 from HARK.distributions import (
     DiscreteDistribution,
@@ -64,7 +65,7 @@ class test_ConsMarkovSolver(unittest.TestCase):
         init_serial_unemployment["Rfree"] = [np.array([1.03, 1.03, 1.03, 1.03])]
         init_serial_unemployment["LivPrb"] = [np.array([0.98, 0.98, 0.98, 0.98])]
         init_serial_unemployment["PermGroFac"] = [np.array([1.01, 1.01, 1.01, 1.01])]
-        init_serial_unemployment["constructors"].pop("MrkvArray")
+        init_serial_unemployment["constructors"]["MrkvArray"] = None
 
         self.model = MarkovConsumerType(**init_serial_unemployment)
         self.model.cycles = 0
@@ -119,9 +120,19 @@ class test_ConsMarkovSolver(unittest.TestCase):
     def test_simulation(self):
         self.model.solve()
         self.model.T_sim = 120
+        self.model.T_age = 100
         self.model.MrkvPrbsInit = [0.25, 0.25, 0.25, 0.25]
         self.model.track_vars = ["mNrm", "cNrm"]
         self.model.make_shock_history()  # This is optional
+        self.model.initialize_sim()
+        self.model.simulate()
+
+    def test_global_markov(self):
+        self.model.solve()
+        self.model.assign_parameters(
+            T_sim=120, global_markov=True, MrkvPrbsInit=[0.25, 0.25, 0.25, 0.25]
+        )
+        self.model.track_vars = ["mNrm", "cNrm"]
         self.model.initialize_sim()
         self.model.simulate()
 
@@ -226,6 +237,26 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    # Run all the tests
-    unittest.main()
+class testMarkovValueFunc(unittest.TestCase):
+    def test_vFunc(self):
+        agent = MarkovConsumerType(cycles=0, vFuncBool=True)
+        agent.solve()
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -30.78459, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -30.37644, places=4)
+
+
+class testRatchet(unittest.TestCase):
+    def test_ratchet_markov(self):
+        some_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.2, 0.1])]
+        MrkvArray = make_ratchet_markov(2, some_probs)
+        self.assertAlmostEqual(MrkvArray[0][0, 1], 0.1)
+        self.assertAlmostEqual(MrkvArray[0][3, 3], 0.6)
+        self.assertAlmostEqual(MrkvArray[1][0, 1], 0.4)
+        self.assertAlmostEqual(MrkvArray[1][3, 3], 0.9)
+
+    def test_errors(self):
+        some_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.2, 0.1])]
+        self.assertRaises(ValueError, make_ratchet_markov, 3, some_probs)
+
+        weird_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.3])]
+        self.assertRaises(ValueError, make_ratchet_markov, 2, weird_probs)

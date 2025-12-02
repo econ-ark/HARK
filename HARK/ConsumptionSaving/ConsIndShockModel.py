@@ -13,7 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
-from copy import copy, deepcopy
+from copy import copy
 
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
@@ -460,7 +460,7 @@ def solve_one_period_ConsPF(
     return solution_now
 
 
-def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
+def calc_worst_inc_prob(inc_shk_dstn, use_infimum=False):
     """Calculate the probability of the worst income shock.
 
     Args:
@@ -478,7 +478,7 @@ def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
 
 
 def calc_boro_const_nat(
-    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=True
+    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=False
 ):
     """Calculate the natural borrowing constraint.
 
@@ -1282,17 +1282,6 @@ class PerfForesightConsumerType(AgentType):
         "model": "ConsPerfForesight.yaml",
     }
 
-    # Define some universal values for all consumer types
-    cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
-    vFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 0.0])  # This is overwritten
-    solution_terminal_ = ConsumerSolution(
-        cFunc=cFunc_terminal_,
-        vFunc=vFunc_terminal_,
-        mNrmMin=0.0,
-        hNrm=0.0,
-        MPCmin=1.0,
-        MPCmax=1.0,
-    )
     time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
     state_vars = ["kNrm", "pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
@@ -1306,26 +1295,9 @@ class PerfForesightConsumerType(AgentType):
         constraint and MaxKinks attribute (only relevant in constrained, infinite
         horizon problems).
         """
+        self.check_restrictions()
         self.construct("solution_terminal")  # Solve the terminal period problem
-        if not self.quiet:
-            self.check_conditions(verbose=self.verbose)
-
-        # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
-        # If no borrowing constraint specified...
-        if not hasattr(self, "BoroCnstArt"):
-            self.BoroCnstArt = None  # ...assume the user wanted none
-
-        if not hasattr(self, "MaxKinks"):
-            if self.cycles > 0:  # If it's not an infinite horizon model...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
-            elif self.BoroCnstArt is None:  # If there's no borrowing constraint...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
-            else:
-                raise (
-                    AttributeError(
-                        "PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0."
-                    )
-                )
+        self.check_conditions(verbose=self.verbose)
 
     def post_solve(self):
         """
@@ -1349,29 +1321,7 @@ class PerfForesightConsumerType(AgentType):
         A method to check that various restrictions are met for the model class.
         """
         if self.DiscFac < 0:
-            raise Exception("DiscFac is below zero with value: " + str(self.DiscFac))
-
-        return
-
-    def unpack_cFunc(self):
-        """DEPRECATED: Use solution.unpack('cFunc') instead.
-        "Unpacks" the consumption functions into their own field for easier access.
-        After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
-        creates a (time varying) attribute cFunc that contains a list of consumption
-        functions.
-        Parameters
-        ----------
-        none
-        Returns
-        -------
-        none
-        """
-        _log.critical(
-            "unpack_cFunc is deprecated and it will soon be removed, "
-            "please use unpack('cFunc') instead."
-        )
-        self.unpack("cFunc")
+            raise ValueError("DiscFac is below zero with value: " + str(self.DiscFac))
 
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
@@ -1527,7 +1477,6 @@ class PerfForesightConsumerType(AgentType):
 
         # MPCnow is not really a control
         self.MPCnow = MPCnow
-        return None
 
     def get_poststates(self):
         """
@@ -1858,7 +1807,7 @@ class PerfForesightConsumerType(AgentType):
         elif self.conditions["FHWC"]:
             GIC_message = "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
-            pass
+            pass  # pragma: nocover
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
 
@@ -1888,27 +1837,23 @@ class PerfForesightConsumerType(AgentType):
             return
 
         infinite_horizon = self.cycles == 0
-        single_period = self.T_cycle = 1
+        single_period = self.T_cycle == 1
         if not infinite_horizon:
-            _log.warning(
+            raise ValueError(
                 "The calc_stable_points method works only for infinite horizon models."
             )
-            return
         if not single_period:
-            _log.warning(
+            raise ValueError(
                 "The calc_stable_points method works only with a single infinitely repeated period."
             )
-            return
         if not hasattr(self, "conditions"):
-            _log.warning(
-                "The calc_limiting_values method must be run before the calc_stable_points method."
+            raise ValueError(
+                "The check_conditions method must be run before the calc_stable_points method."
             )
-            return
         if not hasattr(self, "solution"):
-            _log.warning(
+            raise ValueError(
                 "The solve method must be run before the calc_stable_points method."
             )
-            return
 
         # Extract balanced growth and delta m_t+1 = 0 functions
         BalGroFunc = self.bilt["BalGroFunc"]
@@ -2353,6 +2298,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
+        self.check_restrictions()
         self.construct("solution_terminal")
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
@@ -2923,16 +2869,18 @@ class KinkedRconsumerType(IndShockConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncShkDstn[0][1]
-        TranShkValsNext = self.IncShkDstn[0][2]
-        ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = expected(lambda trans, perm: trans * perm, self.IncShkDstn)
+        PermShkValsNext = self.IncShkDstn[0].atoms[0]
+        TranShkValsNext = self.IncShkDstn[0].atoms[1]
+        ShkPrbsNext = self.IncShkDstn[0].pmv
+        IncNext = PermShkValsNext * TranShkValsNext
+        Ex_IncNext = np.dot(ShkPrbsNext, IncNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
-        )
+        WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+        # TODO: Check the math above. I think it fails for non-independent shocks
+
+        BoroCnstArt = np.inf if self.BoroCnstArt is None else self.BoroCnstArt
 
         # Calculate human wealth and the infinite horizon natural borrowing constraint
         hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rsave) / (
@@ -2947,7 +2895,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PatFacBot = (self.DiscFac * self.LivPrb[0] * self.Rboro) ** (
             1.0 / self.CRRA
         ) / self.Rboro
-        if BoroCnstNat < self.BoroCnstArt:
+        if BoroCnstNat < BoroCnstArt:
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
             MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * PatFacBot
@@ -2958,7 +2906,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -2981,11 +2929,6 @@ class KinkedRconsumerType(IndShockConsumerType):
         Returns
         -------
         None
-
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 
@@ -3021,48 +2964,10 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         """
-        # raise NotImplementedError()
-
         pass
 
 
-def apply_flat_income_tax(
-    IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
-):
-    """
-    Applies a flat income tax rate to all employed income states during the working
-    period of life (those before T_retire).  Time runs forward in this function.
-
-    Parameters
-    ----------
-    IncShkDstn : [distribution.Distribution]
-        The discrete approximation to the income distribution in each time period.
-    tax_rate : float
-        A flat income tax rate to be applied to all employed income.
-    T_retire : int
-        The time index after which the agent retires.
-    unemployed_indices : [int]
-        Indices of transitory shocks that represent unemployment states (no tax).
-    transitory_index : int
-        The index of each element of IncShkDstn representing transitory shocks.
-
-    Returns
-    -------
-    IncShkDstn_new : [distribution.Distribution]
-        The updated income distributions, after applying the tax.
-    """
-    unemployed_indices = (
-        unemployed_indices if unemployed_indices is not None else list()
-    )
-    IncShkDstn_new = deepcopy(IncShkDstn)
-    i = transitory_index
-    for t in range(len(IncShkDstn)):
-        if t < T_retire:
-            for j in range((IncShkDstn[t][i]).size):
-                if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
-    return IncShkDstn_new
-
+###############################################################################
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 
@@ -3091,7 +2996,7 @@ dist_params = income_wealth_dists_from_scf(
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
 liv_prb = parse_ssa_life_table(
-    female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age - 1
+    female=False, cross_sec=True, year=2004, age_min=birth_age, age_max=death_age
 )
 
 # Parameters related to the number of periods implied by the calibration

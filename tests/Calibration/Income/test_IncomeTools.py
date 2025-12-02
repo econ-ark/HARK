@@ -17,6 +17,20 @@ from HARK.Calibration.Income.IncomeTools import (
     sabelhaus_song_var_profile,
 )
 
+from HARK.Calibration.Income.IncomeProcesses import (
+    make_polynomial_TranShkStd,
+    make_polynomial_PermShkStd,
+    make_polynomial_PermGroFac,
+    BinaryIncShkDstn,
+    make_trivial_pLvlNextFunc,
+    make_PermGroFac_from_ind_and_agg,
+)
+
+from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
+    get_scf_distr_stats,
+    parse_scf_distr_stats,
+)
+
 
 # %% Mean income profile tests
 class test_income_paths(unittest.TestCase):
@@ -513,3 +527,41 @@ class test_SabelhausSongProfiles(unittest.TestCase):
         self.assertTrue(
             np.allclose(np.array(smoothAgg["PermShkStd"]) ** 2, self.AggPerm, atol=rtol)
         )
+
+
+class testBasicIncomeProcesses(unittest.TestCase):
+    def test_BinaryIncShkDstn(self):
+        my_dstn = BinaryIncShkDstn(0.05, 0.1)
+        self.assertAlmostEqual(my_dstn.atoms[0, 1], 1.04737, places=4)
+
+    def test_PolynomialTranShkStd(self):
+        TranShkStd = make_polynomial_TranShkStd(10, np.array([0.1, 0.001, -1e-5]))
+        self.assertAlmostEqual(TranShkStd[-1], 0.10819, places=4)
+
+    def test_PolynomialPermShkStd(self):
+        PermShkStd = make_polynomial_PermShkStd(10, np.array([0.1, 0.001, -1e-5]))
+        self.assertAlmostEqual(PermShkStd[-1], 0.10819, places=4)
+
+    def test_PolynomialPermGroFac(self):
+        PermGroFac = make_polynomial_PermGroFac(10, np.array([1.01, 0.001, -1e-5]))
+        self.assertAlmostEqual(PermGroFac[-1], 1.01819, places=4)
+
+    def test_make_trivial(self):
+        pLvlNextfunc = make_trivial_pLvlNextFunc(10)
+        self.assertAlmostEqual(len(pLvlNextfunc), 10)
+
+    def test_make_PermGroFac(self):
+        PermGroFacInd = 5 * [1.01] + 5 * [1.02]
+        PermGroFacAgg = 1.001
+        PermGroFac = make_PermGroFac_from_ind_and_agg(PermGroFacInd, PermGroFacAgg)
+        self.assertAlmostEqual(len(PermGroFac), 10)
+        self.assertAlmostEqual(PermGroFac[0], 1.011, places=4)
+        self.assertAlmostEqual(PermGroFac[-1], 1.021, places=4)
+
+
+class test_SCF_defaults(unittest.TestCase):
+    def test_get_scf(self):
+        output = get_scf_distr_stats()
+
+    def test_parse_scf(self):
+        output = parse_scf_distr_stats()

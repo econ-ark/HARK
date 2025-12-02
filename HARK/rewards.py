@@ -1,12 +1,31 @@
 import numpy as np
-
 from HARK.metric import MetricObject
+import functools
+
+
+def utility_fix(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if np.ndim(args[0]) == 0:
+            if args[0] < 0.0:
+                return np.nan
+            else:
+                return func(*[np.array([args[0]])] + list(args[1:]), **kwargs)[0]
+        else:
+            out = func(*args, **kwargs)
+            neg = args[0] < 0.0
+            out[neg] = np.nan
+            return out
+
+    return wrapper
+
 
 # ==============================================================================
 # ============== Define utility functions        ===============================
 # ==============================================================================
 
 
+@utility_fix
 def CRRAutility(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) utility of consumption c
@@ -14,14 +33,14 @@ def CRRAutility(c, rho):
 
     Parameters
     ----------
-    c : float
+    c : float or array
         Consumption value
     rho : float
         Risk aversion
 
     Returns
     -------
-    (unnamed) : float
+    u : float or array
         Utility
 
     Tests
@@ -31,15 +50,12 @@ def CRRAutility(c, rho):
     >>> CRRAutility(c=c, rho=CRRA)
     -1.0
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     if rho == 1:
         return np.log(c)
-
     return c ** (1.0 - rho) / (1.0 - rho)
 
 
+@utility_fix
 def CRRAutilityP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal utility of consumption
@@ -54,18 +70,16 @@ def CRRAutilityP(c, rho):
 
     Returns
     -------
-    (unnamed) : float
+    uP : float or array
         Marginal utility
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     if rho == 1:
         return 1 / c
+    else:
+        return c**-rho
 
-    return c**-rho
 
-
+@utility_fix
 def CRRAutilityPP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal utility of
@@ -80,15 +94,14 @@ def CRRAutilityPP(c, rho):
 
     Returns
     -------
-    (unnamed) : float
+    uPP : float
         Marginal marginal utility
     """
 
-    if np.isscalar(c):
-        c = np.asarray(c)
     return -rho * c ** (-rho - 1.0)
 
 
+@utility_fix
 def CRRAutilityPPP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -107,11 +120,10 @@ def CRRAutilityPPP(c, rho):
         Marginal marginal marginal utility
     """
 
-    if np.isscalar(c):
-        c = np.asarray(c)
     return (rho + 1.0) * rho * c ** (-rho - 2.0)
 
 
+@utility_fix
 def CRRAutilityPPPP(c, rho):
     """
     Evaluates constant relative risk aversion (CRRA) marginal marginal marginal
@@ -126,12 +138,9 @@ def CRRAutilityPPPP(c, rho):
 
     Returns
     -------
-    (unnamed) : float
+    uPPPP : float
         Marginal marginal marginal marginal utility
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     return -(rho + 2.0) * (rho + 1.0) * rho * c ** (-rho - 3.0)
 
 
@@ -153,8 +162,6 @@ def CRRAutility_inv(u, rho):
         Consumption corresponding to given utility value
     """
 
-    if np.isscalar(u):
-        u = np.asarray(u)
     if rho == 1:
         return np.exp(u)
 
@@ -179,8 +186,6 @@ def CRRAutilityP_inv(uP, rho):
         Consumption corresponding to given marginal utility value.
     """
 
-    if np.isscalar(uP):
-        uP = np.asarray(uP)
     return uP ** (-1.0 / rho)
 
 
@@ -202,8 +207,6 @@ def CRRAutility_invP(u, rho):
         Marginal consumption corresponding to given utility value
     """
 
-    if np.isscalar(u):
-        u = np.asarray(u)
     if rho == 1:
         return np.exp(u)
 
@@ -228,11 +231,38 @@ def CRRAutilityP_invP(uP, rho):
         Consumption corresponding to given marginal utility value
     """
 
-    if np.isscalar(uP):
-        uP = np.asarray(uP)
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
+###############################################################################
+
+# Define legacy versions of CRRA utility functions with no decorator.
+# These are only used by the numba-fied ConsIndShockModelFast, which is not
+# compatible with the @utility_fix decorator. These functions have no docstrings
+# because they are identical to the ones above but for the lack of decorator.
+
+
+def CRRAutility_X(c, rho):
+    if rho == 1:
+        return np.log(c)
+    return c ** (1.0 - rho) / (1.0 - rho)
+
+
+def CRRAutilityP_X(c, rho):
+    if rho == 1:
+        return 1 / c
+    else:
+        return c**-rho
+
+
+def CRRAutilityPP_X(c, rho):
+    return -rho * c ** (-rho - 1.0)
+
+
+###############################################################################
+
+
+@utility_fix
 def StoneGearyCRRAutility(c, rho, shifter, factor=1.0):
     """
     Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
@@ -260,14 +290,13 @@ def StoneGearyCRRAutility(c, rho, shifter, factor=1.0):
     -1.0
     """
 
-    if np.isscalar(c):
-        c = np.asarray(c)
     if rho == 1:
         return factor * np.log(shifter + c)
 
     return factor * (shifter + c) ** (1.0 - rho) / (1.0 - rho)
 
 
+@utility_fix
 def StoneGearyCRRAutilityP(c, rho, shifter, factor=1.0):
     """
     Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
@@ -289,11 +318,10 @@ def StoneGearyCRRAutilityP(c, rho, shifter, factor=1.0):
 
     """
 
-    if np.isscalar(c):
-        c = np.asarray(c)
     return factor * (shifter + c) ** (-rho)
 
 
+@utility_fix
 def StoneGearyCRRAutilityPP(c, rho, shifter, factor=1.0):
     """
     Marginal marginal utility of Stone-Geary version of a CRRA utilty function
@@ -314,39 +342,26 @@ def StoneGearyCRRAutilityPP(c, rho, shifter, factor=1.0):
 
     """
 
-    if np.isscalar(c):
-        c = np.asarray(c)
     return factor * (-rho) * (shifter + c) ** (-rho - 1)
 
 
 def StoneGearyCRRAutility_inv(u, rho, shifter, factor=1.0):
-    if np.isscalar(u):
-        u = np.asarray(u)
-
     return (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho)) - shifter
 
 
 def StoneGearyCRRAutilityP_inv(uP, rho, shifter, factor=1.0):
-    if np.isscalar(uP):
-        uP = np.asarray(uP)
-
     return (uP / factor) ** (-1.0 / rho) - shifter
 
 
 def StoneGearyCRRAutility_invP(u, rho, shifter, factor=1.0):
-    if np.isscalar(u):
-        u = np.asarray(u)
-
     return (1.0 / (1.0 - rho)) * (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho) - 1.0)
 
 
 def StoneGearyCRRAutilityP_invP(uP, rho, shifter, factor=1.0):
-    if np.isscalar(uP):
-        uP = np.asarray(uP)
-
     return (-1.0 / rho) * (uP / factor) ** (-1.0 / rho - 1.0)
 
 
+@utility_fix
 def CARAutility(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) utility of consumption c
@@ -364,12 +379,10 @@ def CARAutility(c, alpha):
     (unnamed): float
         Utility
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     return 1 - np.exp(-alpha * c) / alpha
 
 
+@utility_fix
 def CARAutilityP(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) marginal utility of
@@ -387,12 +400,10 @@ def CARAutilityP(c, alpha):
     (unnamed): float
         Marginal utility
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     return np.exp(-alpha * c)
 
 
+@utility_fix
 def CARAutilityPP(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) marginal marginal utility
@@ -410,12 +421,10 @@ def CARAutilityPP(c, alpha):
     (unnamed): float
         Marginal marginal utility
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     return -alpha * np.exp(-alpha * c)
 
 
+@utility_fix
 def CARAutilityPPP(c, alpha):
     """
     Evaluates constant absolute risk aversion (CARA) marginal marginal marginal
@@ -433,9 +442,6 @@ def CARAutilityPPP(c, alpha):
     (unnamed): float
         Marginal marginal marginal utility
     """
-
-    if np.isscalar(c):
-        c = np.asarray(c)
     return alpha**2.0 * np.exp(-alpha * c)
 
 
@@ -456,20 +462,38 @@ def CARAutility_inv(u, alpha):
     (unnamed): float
         Consumption value corresponding to u
     """
-
-    if np.isscalar(u):
-        u = np.asarray(u)
     return -1.0 / alpha * np.log(alpha * (1 - u))
 
 
-def CARAutilityP_inv(u, alpha):
+@utility_fix
+def CARAutilityP_inv(uP, alpha):
     """
     Evaluates the inverse of constant absolute risk aversion (CARA) marginal
     utility function at marginal utility uP given risk aversion parameter alpha.
 
     Parameters
     ----------
-    u: float
+    uP: float
+        Utility value
+    alpha: float
+        Risk aversion
+
+    Returns
+    -------
+    (unnamed): float
+        Consumption value corresponding to uP
+    """
+    return -1.0 / alpha * np.log(uP)
+
+
+def CARAutilityP_invP(uP, alpha):
+    """
+    Evaluates the derivative of inverse of constant absolute risk aversion (CARA)
+    marginal utility function at marginal utility uP given risk aversion parameter alpha.
+
+    Parameters
+    ----------
+    uP: float
         Utility value
     alpha: float
         Risk aversion
@@ -480,9 +504,7 @@ def CARAutilityP_inv(u, alpha):
         Consumption value corresponding to uP
     """
 
-    if np.isscalar(u):
-        u = np.asarray(u)
-    return -1.0 / alpha * np.log(u)
+    return -1.0 / (alpha * uP)
 
 
 def CARAutility_invP(u, alpha):
@@ -503,8 +525,6 @@ def CARAutility_invP(u, alpha):
         Marginal onsumption value corresponding to u
     """
 
-    if np.isscalar(u):
-        u = np.asarray(u)
     return 1.0 / (alpha * (1.0 - u))
 
 
@@ -707,12 +727,12 @@ class UtilityFunction(MetricObject):
         return self.eval_func(*args, **kwargs)
 
     def derivative(self, *args, **kwargs):
-        if not hasattr(self, "der_func") or self.der_func is None:
+        if self.der_func is None:
             raise NotImplementedError("No derivative function available")
         return self.der_func(*args, **kwargs)
 
     def inverse(self, *args, **kwargs):
-        if not hasattr(self, "inv_func") or self.inv_func is None:
+        if self.inv_func is None:
             raise NotImplementedError("No inverse function available")
         return self.inv_func(*args, **kwargs)
 
@@ -790,7 +810,10 @@ class UtilityFuncCRRA(UtilityFunction):
             Utility (or its derivative) evaluated at given consumption level(s).
         """
         if order == 0:
-            return CRRAutility(c, self.CRRA)
+            try:
+                return CRRAutility(c, self.CRRA)
+            except:
+                return CRRAutility_X(c, self.CRRA)
         else:  # order >= 1
             return self.derivative(c, order)
 
@@ -817,9 +840,15 @@ class UtilityFuncCRRA(UtilityFunction):
             Derivative of order higher than 4 is not supported.
         """
         if order == 1:
-            return CRRAutilityP(c, self.CRRA)
+            try:
+                return CRRAutilityP(c, self.CRRA)
+            except:
+                return CRRAutilityP_X(c, self.CRRA)
         elif order == 2:
-            return CRRAutilityPP(c, self.CRRA)
+            try:
+                return CRRAutilityPP(c, self.CRRA)
+            except:
+                return CRRAutilityPP_X(c, self.CRRA)
         elif order == 3:
             return CRRAutilityPPP(c, self.CRRA)
         elif order == 4:
@@ -860,6 +889,117 @@ class UtilityFuncCRRA(UtilityFunction):
             return CRRAutility_invP(u, self.CRRA)
         elif order == (1, 1):
             return CRRAutilityP_invP(u, self.CRRA)
+        else:
+            raise ValueError(f"Inverse of order {order} not supported")
+
+    def derinv(self, u, order=(1, 0)):
+        """
+        Short alias for inverse with default order = (1,0). See `self.inverse`.
+        """
+        return self.inverse(u, order)
+
+
+class UtilityFuncCARA(UtilityFunction):
+    """
+    A class for representing a CARA utility function.
+
+    Parameters
+    ----------
+    CARA : float
+        The coefficient of constant absolute risk aversion.
+    """
+
+    distance_criteria = ["CARA"]
+
+    def __init__(self, CARA):
+        self.CARA = CARA
+
+    def __call__(self, c, order=0):
+        """
+        Evaluate the utility function at a given level of consumption c.
+
+        Parameters
+        ----------
+        c : float or np.ndarray
+            Consumption level(s).
+        order : int, optional
+            Order of derivative. For example, `order == 1` returns the
+            first derivative of utility of consumption, and so on. By default 0.
+
+        Returns
+        -------
+        float or np.ndarray
+            Utility (or its derivative) evaluated at given consumption level(s).
+        """
+        if order == 0:
+            return CARAutility(c, self.CARA)
+        else:  # order >= 1
+            return self.derivative(c, order)
+
+    def derivative(self, c, order=1):
+        """
+        The derivative of the utility function at a given level of consumption c.
+
+        Parameters
+        ----------
+        c : float or np.ndarray
+            Consumption level(s).
+        order : int, optional
+            Order of derivative. For example, `order == 1` returns the
+            first derivative of utility of consumption, and so on. By default 1.
+
+        Returns
+        -------
+        float or np.ndarray
+            Derivative of CRRA utility evaluated at given consumption level(s).
+
+        Raises
+        ------
+        ValueError
+            Derivative of order higher than 4 is not supported.
+        """
+        if order == 1:
+            return CARAutilityP(c, self.CARA)
+        elif order == 2:
+            return CARAutilityPP(c, self.CARA)
+        elif order == 3:
+            return CARAutilityPPP(c, self.CARA)
+        else:
+            raise ValueError(f"Derivative of order {order} not supported")
+
+    def inverse(self, u, order=(0, 0)):
+        """
+        The inverse of the utility function at a given level of utility u.
+
+        Parameters
+        ----------
+        u : float or np.ndarray
+            Utility level(s).
+        order : tuple, optional
+            Order of derivatives. For example, `order == (1,1)` represents
+            the first derivative of utility, inverted, and then differentiated
+            once. For a simple mnemonic, order refers to the number of `P`s in
+            the function `CRRAutility[#1]_inv[#2]`. By default (0, 0),
+            which is just the inverse of utility.
+
+        Returns
+        -------
+        float or np.ndarray
+            Inverse of CRRA utility evaluated at given utility level(s).
+
+        Raises
+        ------
+        ValueError
+            Higher order derivatives are not supported.
+        """
+        if order == (0, 0):
+            return CARAutility_inv(u, self.CARA)
+        elif order == (1, 0):
+            return CARAutilityP_inv(u, self.CARA)
+        elif order == (0, 1):
+            return CARAutility_invP(u, self.CARA)
+        elif order == (1, 1):
+            return CARAutilityP_invP(u, self.CARA)
         else:
             raise ValueError(f"Inverse of order {order} not supported")
 
