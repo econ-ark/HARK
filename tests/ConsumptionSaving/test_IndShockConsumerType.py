@@ -586,8 +586,7 @@ class testPerfMITShk(unittest.TestCase):
                 pLvlNow = (
                     pLvlPrev * self.shocks["PermShk"]
                 )  # Updated permanent income level
-                # Updated aggregate permanent productivity level
-                PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
+
                 # "Effective" interest factor on normalized assets
                 ReffNow = RfreeNow / self.shocks["PermShk"]
                 bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
@@ -599,7 +598,7 @@ class testPerfMITShk(unittest.TestCase):
                     mNrmNow = ss.state_now["mNrm"]
                     pLvlNow = ss.state_now["pLvl"]
 
-                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+                return pLvlNow, bNrmNow, mNrmNow, None
 
         listA_g = []
         params = deepcopy(JACDict)
