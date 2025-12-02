@@ -136,7 +136,7 @@ The default economy parameters are stored in the `init_KS_economy` dictionary (l
 | `ProdB`      | 0.99          | Aggregate productivity in bad state            |
 | `ProdG`      | 1.01          | Aggregate productivity in good state           |
 | `CapShare`   | 0.36          | Capital share in production                    |
-| `DeprFac`    | 0.025         | Depreciation rate                              |
+| `DeprRte`    | 0.025         | Depreciation rate                              |
 | `DurMeanB`   | 8.0           | Mean duration of bad aggregate state           |
 | `DurMeanG`   | 8.0           | Mean duration of good aggregate state          |
 | `SpellMeanB` | 2.5           | Mean unemployment spell in bad state           |
