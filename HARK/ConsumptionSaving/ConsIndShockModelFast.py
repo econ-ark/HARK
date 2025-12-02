@@ -20,10 +20,6 @@ from interpolation import interp
 from numba import njit
 from quantecon.optimize import newton_secant
 
-# Small epsilon value used to avoid division by zero when CRRA == 1.0
-# This is a temporary workaround until proper limit calculation is implemented
-CRRA_EPSILON = 1e-8
-
 from HARK import make_one_period_oo_solver
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -345,19 +341,7 @@ def _solveConsPerfForesightNumba(
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-    # Handle CRRA=1.0 case to avoid division by zero
-
-    if np.isclose(CRRA, 1.0):
-
-        # When CRRA=1.0, use a small epsilon to avoid division by zero
-
-        CRRA_safe = 1.0 + CRRA_EPSILON
-
-        vFuncNvrsSlope = MPCmin ** (-CRRA_safe / (1.0 - CRRA_safe))
-
-    else:
-
-        vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
+    vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
 
     return (
         mNrmNow,
@@ -889,19 +873,7 @@ def _add_vFuncNumba(
     mNrmGrid = _np_insert(mNrmGrid, 0, mNrmMinNow)
     vNvrs = _np_insert(vNvrs, 0, 0.0)
     vNvrsP = _np_insert(vNvrsP, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-    # Handle CRRA=1.0 case to avoid division by zero
-
-    if np.isclose(CRRA, 1.0):
-
-        # When CRRA=1.0, use a small epsilon to avoid division by zero
-
-        CRRA_safe = 1.0 + CRRA_EPSILON
-
-        MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-
-    else:
-
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+    MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
 
     return (
         mNrmGrid,

@@ -5,12 +5,7 @@ ConsIndShockModel by explicitly tracking persistent income as a state variable,
 and allows (log) persistent income to follow an AR1 process rather than random walk.
 """
 
-
 import numpy as np
-
-# Small epsilon value used to avoid division by zero when CRRA == 1.0
-# This is a temporary workaround until proper limit calculation is implemented
-CRRA_EPSILON = 1e-8
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -493,19 +488,7 @@ def solve_one_period_ConsGenIncProcess(
         )
 
         # Add data at the lower bound of p
-        # Handle CRRA=1.0 case to avoid division by zero
-
-        if np.isclose(CRRA, 1.0):
-
-            # When CRRA=1.0, use a small epsilon to avoid division by zero
-
-            CRRA_safe = 1.0 + CRRA_EPSILON
-
-            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-
-        else:
-
-            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))
         mLvl_temp = np.concatenate((m_temp, mLvl_temp), axis=1)
         vNvrs_temp = np.concatenate((MPCminNvrs * m_temp, vNvrs_temp), axis=1)

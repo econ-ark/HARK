@@ -7,12 +7,7 @@ It currently only two models:
    by inheriting from multiple classes.
 """
 
-
 import numpy as np
-
-# Small epsilon value used to avoid division by zero when CRRA == 1.0
-# This is a temporary workaround until proper limit calculation is implemented
-CRRA_EPSILON = 1e-8
 
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -380,15 +375,9 @@ def solve_one_period_ConsPrefShock(
         vNvrs_temp = uFunc.inv(v_temp)
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
-        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)        # Handle CRRA=1.0 case to avoid division by zero
-        if np.isclose(CRRA, 1.0):
-            # When CRRA=1.0, use a small epsilon to avoid division by zero
-            CRRA_safe = 1.0 + CRRA_EPSILON
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA_safe / (1.0 - CRRA_safe)))
-            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-        else:
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
         )
@@ -693,15 +682,9 @@ def solve_one_period_ConsKinkyPref(
         vNvrs_temp = uFunc.inv(v_temp)
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
-        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)        # Handle CRRA=1.0 case to avoid division by zero
-        if np.isclose(CRRA, 1.0):
-            # When CRRA=1.0, use a small epsilon to avoid division by zero
-            CRRA_safe = 1.0 + CRRA_EPSILON
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA_safe / (1.0 - CRRA_safe)))
-            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-        else:
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
             mNrm_temp, vNvrs_temp, vNvrsP_temp, MPCminNvrs * hNrmNow, MPCminNvrs
         )

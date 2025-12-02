@@ -245,7 +245,6 @@ pythontex-filse-*/
 # WinEdt
 *.bak
 *.sav
-*.backup
 
 # endfloat
 *.ttt

@@ -13,14 +13,9 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
-import warnings
 from copy import copy
 
 import numpy as np
-
-# Small epsilon value used to avoid division by zero when CRRA == 1.0
-# This is a temporary workaround until proper limit calculation is implemented
-CRRA_EPSILON = 1e-8
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
     parse_income_spec,
@@ -378,20 +373,7 @@ def solve_one_period_ConsPF(
     # Calculate (pseudo-inverse) value at each consumption kink point
     vNow = uFunc(cNrmNow) + EndOfPrdv
     vNvrsNow = uFunc.inverse(vNow)
-
-    # Handle CRRA=1.0 case to avoid division by zero
-    if np.isclose(CRRA, 1.0):
-        # When CRRA=1.0, use a small epsilon to avoid division by zero
-        # This is a temporary fix until proper limit calculation is implemented
-        warnings.warn(
-            "CRRA=1.0 detected. Using CRRA=1.0+epsilon to avoid division by zero. "
-            "This is a temporary workaround.",
-            UserWarning,
-        )
-        CRRA_safe = 1.0 + CRRA_EPSILON
-        vNvrsSlopeMin = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-    else:
-        vNvrsSlopeMin = MPCminNow ** (-CRRA / (1.0 - CRRA))
+    vNvrsSlopeMin = MPCminNow ** (-CRRA / (1.0 - CRRA))
 
     # Add an additional point to the list of gridpoints for the extrapolation,
     # using the new value of the lower bound of the MPC.
@@ -804,16 +786,8 @@ def solve_one_period_ConsIndShock(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-
-        # Handle CRRA=1.0 case to avoid division by zero
-        if np.isclose(CRRA, 1.0):
-            # When CRRA=1.0, use a small epsilon to avoid division by zero
-            CRRA_safe = 1.0 + CRRA_EPSILON
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA_safe / (1.0 - CRRA_safe)))
-            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-        else:
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA / (1.0 - CRRA)))
-            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
             mNrm_temp,
             vNvrs_temp,
@@ -1079,16 +1053,8 @@ def solve_one_period_ConsKinkedR(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-
-        # Handle CRRA=1.0 case to avoid division by zero
-        if np.isclose(CRRA, 1.0):
-            # When CRRA=1.0, use a small epsilon to avoid division by zero
-            CRRA_safe = 1.0 + CRRA_EPSILON
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA_safe / (1.0 - CRRA_safe)))
-            MPCminNvrs = MPCminNow ** (-CRRA_safe / (1.0 - CRRA_safe))
-        else:
-            vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA / (1.0 - CRRA)))
-            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA / (1.0 - CRRA)))
+        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         vNvrsFuncNow = CubicInterp(
             mNrm_temp,
             vNvrs_temp,
