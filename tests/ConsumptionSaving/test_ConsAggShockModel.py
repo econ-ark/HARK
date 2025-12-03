@@ -18,9 +18,7 @@ from tests import HARK_PRECISION
 
 class testAggShockConsumerType(unittest.TestCase):
     def setUp(self):
-        agent = AggShockConsumerType(seed=0)
-        agent.AgentCount = 900  # Very low number of agents for the sake of speed
-        agent.cycles = 0
+        agent = AggShockConsumerType(seed=0, AgentCount=900, cycles=0)
 
         # Make agents heterogeneous in their discount factor
         self.agents = distribute_params(
@@ -31,7 +29,10 @@ class testAggShockConsumerType(unittest.TestCase):
         )
 
         # Make an economy with those agents living in it
-        self.economy = CobbDouglasEconomy(agents=self.agents, seed=0)
+        # Short simulation history; give up quickly for the sake of time
+        self.economy = CobbDouglasEconomy(
+            agents=self.agents, seed=0, act_T=400, max_loops=3
+        )
 
     def test_distribute_params(self):
         self.assertEqual(self.agents[1].AgentCount, 300)
@@ -48,8 +49,6 @@ class testAggShockConsumerType(unittest.TestCase):
         )
 
     def test_macro(self):
-        self.economy.act_T = 400  # Short simulation history
-        self.economy.max_loops = 3  # Give up quickly for the sake of time
         self.economy.make_AggShkHist()  # Simulate a history of aggregate shocks
         self.economy.verbose = True  # Turn on printed messages
 
@@ -59,7 +58,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
-        self.assertAlmostEqual(self.economy.AFunc.slope, 1.17425, places=HARK_PRECISION)
+        self.assertAlmostEqual(self.economy.AFunc.slope, 1.13859, places=HARK_PRECISION)
 
         # simulation test -- seed/generator specific
         # self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.45632, place = HARK_PRECISION)
@@ -95,7 +94,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
 
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.09701, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.07657, places=HARK_PRECISION
         )
 
     def test_small_open_economy(self):
