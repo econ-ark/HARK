@@ -112,7 +112,7 @@ def distance_metric(thing_a, thing_b):
     return 1000.0
 
 
-def describe_metric(thing, n=0, label=None):
+def describe_metric(thing, n=0, label=None, D=1e10):
     """
     Generate a description of an object's distance metric.
 
@@ -122,16 +122,22 @@ def describe_metric(thing, n=0, label=None):
         A generic object.
     n : int
         Recursive depth of this call.
+    D : int
+        Maximum recursive depth; if n > D, empty output is returned.
 
     Returns
     -------
     desc : str
         Description of this object's distance metric, indented 2n spaces.
     """
+    pad = 2
+    if n > D:
+        return ""
+
     if label is None:
         desc = ""
     else:
-        desc = 2 * n * " " + "-" + label + ": "
+        desc = pad * n * " " + "-" + label + ": "
 
     # If both inputs are numbers, distance is their difference
     if isinstance(thing, (int, float)):
@@ -140,8 +146,11 @@ def describe_metric(thing, n=0, label=None):
     elif isinstance(thing, list):
         J = len(thing)
         desc += "largest distance in this list:\n"
-        for j in range(J):
-            desc += describe_metric(thing[j], n + 1, label=str(j))
+        if n == D:
+            desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
+        else:
+            for j in range(J):
+                desc += describe_metric(thing[j], n + 1, label=str(j), D=D)
 
     elif isinstance(thing, np.ndarray):
         desc += "greatest absolute difference among array elements\n"
@@ -152,14 +161,20 @@ def describe_metric(thing, n=0, label=None):
         else:
             my_keys = thing.keys()
         desc += "largest distance among these keys:\n"
-        for key in my_keys:
-            desc += describe_metric(thing[key], n + 1, label=key)
+        if n == D:
+            desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
+        else:
+            for key in my_keys:
+                desc += describe_metric(thing[key], n + 1, label=key, D=D)
 
     elif isinstance(thing, MetricObject):
         my_keys = thing.distance_criteria
         desc += "largest distance among these attributes:\n"
-        for key in my_keys:
-            desc += describe_metric(getattr(thing, key), n + 1, label=key)
+        if n == D:
+            desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
+        else:
+            for key in my_keys:
+                desc += describe_metric(getattr(thing, key), n + 1, label=key, D=D)
 
     else:
         # Something has gone wrong
@@ -203,7 +218,7 @@ class MetricObject:
         except (AttributeError, ValueError):
             return 1000.0
 
-    def describe_distance(self, display=True):
+    def describe_distance(self, display=True, max_depth=None):
         """
         Generate a description for how this object's distance metric is computed.
         By default, the description is printed to screen, but it can be returned.
@@ -215,6 +230,8 @@ class MetricObject:
         display : bool, optional
             Whether the description should be printed to screen (default True).
             Otherwise, it is returned as a string.
+        max_depth : int or None
+            If specified, the maximum recursive depth of the description.
 
         Returns
         -------
@@ -222,11 +239,13 @@ class MetricObject:
             Description of how this object's distance metric is computed, if
             display=False.
         """
+        max_depth = max_depth or np.inf
+
         keys = self.distance_criteria
         if len(keys) == 0:
             out = "No distance criteria are specified; please name them in distance_criteria.\n"
         else:
-            out = describe_metric(self)
+            out = describe_metric(self, D=max_depth)
         out = out[:-1]
         if display:
             print(out)
