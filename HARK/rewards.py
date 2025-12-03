@@ -269,7 +269,7 @@ def vNvrsSlope(MPC, rho):
     The expression MPC^(-rho/(1-rho)) diverges as rho → 1, but the properly 
     derived formula for log utility gives MPC directly.
     """
-    if rho == 1:
+    if rho == 1.0:
         return MPC
     return MPC ** (-rho / (1.0 - rho))
 
