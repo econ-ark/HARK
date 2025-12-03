@@ -112,6 +112,62 @@ def distance_metric(thing_a, thing_b):
     return 1000.0
 
 
+def describe_metric(thing, n=0, label=None):
+    """
+    Generate a description of an object's distance metric.
+
+    Parameters
+    ----------
+    thing : object
+        A generic object.
+    n : int
+        Recursive depth of this call.
+
+    Returns
+    -------
+    desc : str
+        Description of this object's distance metric, indented 2n spaces.
+    """
+    if label is None:
+        desc = ""
+    else:
+        desc = 2 * n * " " + "-" + label + ": "
+
+    # If both inputs are numbers, distance is their difference
+    if isinstance(thing, (int, float)):
+        desc += "absolute difference of values\n"
+
+    elif isinstance(thing, list):
+        J = len(thing)
+        desc += "largest distance in this list:\n"
+        for j in range(J):
+            desc += describe_metric(thing[j], n + 1, label=str(j))
+
+    elif isinstance(thing, np.ndarray):
+        desc += "greatest absolute difference among array elements\n"
+
+    elif isinstance(thing, dict):
+        if "distance_criteria" in thing.keys():
+            my_keys = thing["distance_criteria"]
+        else:
+            my_keys = thing.keys()
+        desc += "largest distance among these keys:\n"
+        for key in my_keys:
+            desc += describe_metric(thing[key], n + 1, label=key)
+
+    elif isinstance(thing, MetricObject):
+        my_keys = thing.distance_criteria
+        desc += "largest distance among these attributes:\n"
+        for key in my_keys:
+            desc += describe_metric(getattr(thing, key), n + 1, label=key)
+
+    else:
+        # Something has gone wrong
+        desc += "WARNING: INCOMPARABLE\n"
+
+    return desc
+
+
 class MetricObject:
     """
     A superclass for object classes in HARK.  Comes with two useful methods:
@@ -146,3 +202,33 @@ class MetricObject:
             )
         except (AttributeError, ValueError):
             return 1000.0
+
+    def describe_distance(self, display=True):
+        """
+        Generate a description for how this object's distance metric is computed.
+        By default, the description is printed to screen, but it can be returned.
+
+        Like the distance metric itself, the description is built recursively.
+
+        Parameters
+        ----------
+        display : bool, optional
+            Whether the description should be printed to screen (default True).
+            Otherwise, it is returned as a string.
+
+        Returns
+        -------
+        out : str
+            Description of how this object's distance metric is computed, if
+            display=False.
+        """
+        keys = self.distance_criteria
+        if len(keys) == 0:
+            out = "No distance criteria are specified; please name them in distance_criteria.\n"
+        else:
+            out = describe_metric(self)
+        out = out[:-1]
+        if display:
+            print(out)
+            return
+        return out
