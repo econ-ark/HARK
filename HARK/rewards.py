@@ -234,6 +234,46 @@ def CRRAutilityP_invP(uP, rho):
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
+def vNvrsSlope(MPC, rho):
+    """
+    Computes the slope of the pseudo-inverse value function for CRRA utility.
+    
+    For CRRA utility, this is used to determine the asymptotic behavior of the 
+    pseudo-inverse value function vNvrs = u^(-1)(v) as resources become large.
+    
+    For rho ≠ 1: The slope is MPC^(-rho/(1-rho))
+    For rho = 1 (log utility): The slope is simply MPC
+    
+    This function provides the proper limiting behavior for log utility, where
+    the standard formula MPC^(-rho/(1-rho)) is undefined.
+    
+    Parameters
+    ----------
+    MPC : float or np.ndarray
+        Marginal propensity to consume value(s)
+    rho : float
+        Coefficient of relative risk aversion (CRRA)
+        
+    Returns
+    -------
+    float or np.ndarray
+        Slope of the pseudo-inverse value function
+        
+    Notes
+    -----
+    For log utility (rho=1), the derivation is as follows:
+    - u(c) = log(c), so u^(-1)(v) = exp(v)
+    - The pseudo-inverse value function is vNvrs(m) = exp(v(m))
+    - d/dm vNvrs = exp(v) * dv/dm = exp(v) * u'(c) * MPC = exp(log(c)) * (1/c) * MPC = MPC
+    
+    The expression MPC^(-rho/(1-rho)) diverges as rho → 1, but the properly 
+    derived formula for log utility gives MPC directly.
+    """
+    if rho == 1:
+        return MPC
+    return MPC ** (-rho / (1.0 - rho))
+
+
 ###############################################################################
 
 # Define legacy versions of CRRA utility functions with no decorator.
