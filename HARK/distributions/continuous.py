@@ -55,14 +55,43 @@ class Normal(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
+    def __new__(
+        cls,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = None,
+    ):
+        """
+        Create a new Normal distribution. If sigma is zero, return a
+        DiscreteDistribution with a single atom at mu.
+        Parameters
+        ----------
+        mu : Union[float, np.ndarray], optional
+            Mean of normal distribution, by default 0.0
+        sigma : Union[float, np.ndarray], optional
+            Standard deviation of normal distribution, by default 1.0
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+        Returns
+        -------
+        Normal or DiscreteDistribution
+            Normal distribution or DiscreteDistribution with a single atom.
+        """
+
+        if sigma == 0:
+            # If sigma is zero, return a DiscreteDistribution with a single atom
+            return DiscreteDistribution([1.0], mu, seed=seed)
+
+        return super().__new__(cls)
+
+    def __init__(self, mu=0.0, sigma=1.0, seed=None):
         self.mu = np.asarray(mu)
         self.sigma = np.asarray(sigma)
 
         if self.mu.size != self.sigma.size:
             raise AttributeError(
-                "mu and sigma must be of same size, are %s, %s"
-                % ((self.mu.size), (self.sigma.size))
+                f"'mu' and 'sigma' must be of the same size. Instead 'mu' is of "
+                f"size {self.mu.size} and 'sigma' is of size {self.sigma.size}."
             )
 
         super().__init__(norm, loc=mu, scale=sigma, seed=seed)
@@ -99,12 +128,16 @@ class Normal(ContinuousFrozenDistribution):
         # correct x
         atoms = np.sqrt(2.0) * self.sigma * x + self.mu
 
+        if endpoints:
+            atoms = np.r_[-np.inf, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
+
         limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
 
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -130,6 +163,10 @@ class Normal(ContinuousFrozenDistribution):
         # Find conditional means using Mills's ratio
         pmv = np.diff(CDF)
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
+
+        if endpoints:
+            atoms = np.r_[-np.inf, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
 
         limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
 
@@ -161,7 +198,7 @@ class Lognormal(ContinuousFrozenDistribution):
         cls,
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
-        seed: Optional[int] = 0,
+        seed: Optional[int] = None,
         mean=None,
         std=None,
     ):
@@ -200,7 +237,7 @@ class Lognormal(ContinuousFrozenDistribution):
         self,
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
-        seed: Optional[int] = 0,
+        seed: Optional[int] = None,
         mean=None,
         std=None,
     ):
@@ -236,8 +273,6 @@ class Lognormal(ContinuousFrozenDistribution):
         default, but user can optionally request augmented tails with exponentially
         sized point masses.  This can improve solution accuracy in some models.
 
-        TODO: add endpoints option
-
         Parameters
         ----------
         N: int
@@ -258,7 +293,7 @@ class Lognormal(ContinuousFrozenDistribution):
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         """
-        tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
+        tail_bound = tail_bound or [0.02, 0.98]
 
         # Handle the trivial case first
         if self.sigma == 0.0:
@@ -315,6 +350,10 @@ class Lognormal(ContinuousFrozenDistribution):
             norm_fac = 0.5 * np.exp(self.mu + 0.5 * self.sigma**2) / pmv
             atoms = vals_base * norm_fac
 
+        if endpoints:
+            atoms = np.r_[0.0, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
+
         limit = {
             "dist": self,
             "method": "equiprobable",
@@ -328,7 +367,7 @@ class Lognormal(ContinuousFrozenDistribution):
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -354,17 +393,21 @@ class Lognormal(ContinuousFrozenDistribution):
         # correct x
         atoms = np.exp(np.sqrt(2.0) * self.sigma * x + self.mu)
 
+        if endpoints:
+            atoms = np.r_[0.0, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
+
         limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
 
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
     @classmethod
-    def from_mean_std(cls, mean, std, seed=0):
+    def from_mean_std(cls, mean, std, seed=None):
         """
         Construct a LogNormal distribution from its
         mean and standard deviation.
@@ -428,7 +471,7 @@ class Uniform(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, bot=0.0, top=1.0, seed=0):
+    def __init__(self, bot=0.0, top=1.0, seed=None):
         self.bot = np.asarray(bot)
         self.top = np.asarray(top)
 
@@ -475,7 +518,7 @@ class Uniform(ContinuousFrozenDistribution):
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -497,7 +540,7 @@ class Weibull(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, scale=1.0, shape=1.0, seed=0):
+    def __init__(self, scale=1.0, shape=1.0, seed=None):
         self.scale = np.asarray(scale)
         self.shape = np.asarray(shape)
 
