@@ -137,30 +137,34 @@ def describe_metric(thing, n=0, label=None, D=1e10):
     if label is None:
         desc = ""
     else:
-        desc = pad * n * " " + "-" + label + ": "
+        desc = pad * n * " " + "- " + label + " "
 
     # If both inputs are numbers, distance is their difference
     if isinstance(thing, (int, float)):
-        desc += "absolute difference of values\n"
+        desc += "(scalar): absolute difference of values\n"
 
     elif isinstance(thing, list):
         J = len(thing)
-        desc += "largest distance in this list:\n"
+        desc += "(list) largest distance among:\n"
         if n == D:
             desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
         else:
             for j in range(J):
-                desc += describe_metric(thing[j], n + 1, label=str(j), D=D)
+                desc += describe_metric(thing[j], n + 1, label="[" + str(j) + "]", D=D)
 
     elif isinstance(thing, np.ndarray):
-        desc += "greatest absolute difference among array elements\n"
+        desc += (
+            "(array"
+            + str(thing.shape)
+            + "): greatest absolute difference among elements\n"
+        )
 
     elif isinstance(thing, dict):
         if "distance_criteria" in thing.keys():
             my_keys = thing["distance_criteria"]
         else:
             my_keys = thing.keys()
-        desc += "largest distance among these keys:\n"
+        desc += "(dict): largest distance among these keys:\n"
         if n == D:
             desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
         else:
@@ -169,7 +173,11 @@ def describe_metric(thing, n=0, label=None, D=1e10):
 
     elif isinstance(thing, MetricObject):
         my_keys = thing.distance_criteria
-        desc += "largest distance among these attributes:\n"
+        desc += (
+            "(" + type(thing).__name__ + "): largest distance among these attributes:\n"
+        )
+        if len(my_keys) == 0:
+            desc += pad * (n + 1) * " " + "NO distance_critera SPECIFIED"
         if n == D:
             desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
         else:
@@ -239,7 +247,7 @@ class MetricObject:
             Description of how this object's distance metric is computed, if
             display=False.
         """
-        max_depth = max_depth or np.inf
+        max_depth = max_depth if max_depth is not None else np.inf
 
         keys = self.distance_criteria
         if len(keys) == 0:
