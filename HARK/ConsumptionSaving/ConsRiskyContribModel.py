@@ -1890,7 +1890,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         aNrmPrev = self.state_prev["aNrm"]
         SharePrev = self.state_prev["Share"]
         nNrmTildePrev = self.state_prev["nNrmTilde"]
-        Rfree = self.get_Rfree()
+        Rfree = np.array(self.Rfree)[self.t_cycle - 1]
         Rrisk = self.shocks["Risky"]
 
         # Calculate new states:

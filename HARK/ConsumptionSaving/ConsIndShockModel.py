@@ -1418,9 +1418,10 @@ class PerfForesightConsumerType(AgentType):
         # self.shocks["PermShk"][self.t_cycle == 0] = 1. # Add this at some point
         self.shocks["TranShk"] = np.ones(self.AgentCount)
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
-        Returns an array of size self.AgentCount with Rfree in every entry.
+        Returns an array of size self.AgentCount with Rfree in every entry,
+        representing the risk-free portfolio return
 
         Parameters
         ----------
@@ -1432,18 +1433,18 @@ class PerfForesightConsumerType(AgentType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         Rfree_array = np.array(self.Rfree)
-        return Rfree_array[self.t_cycle]
+        return Rfree_array[self.t_cycle - 1]
 
     def transition(self):
         pLvlPrev = self.state_prev["pLvl"]
         kNrm = self.state_prev["aNrm"]
-        RfreeNow = self.get_Rfree()
+        RportNow = self.get_Rport()
 
         # Calculate new states: normalized market resources and permanent income level
         # Updated permanent income level
         pLvlNow = pLvlPrev * self.shocks["PermShk"]
         # "Effective" interest factor on normalized assets
-        ReffNow = RfreeNow / self.shocks["PermShk"]
+        ReffNow = RportNow / self.shocks["PermShk"]
         bNrmNow = ReffNow * kNrm  # Bank balances before labor income
         # Market resources after income
         mNrmNow = bNrmNow + self.shocks["TranShk"]
@@ -2930,10 +2931,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
-        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
-        on whether self.aNrmNow >< 0.
+        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in
+        each entry, based on whether self.aNrmNow >< 0. This represents the risk-
+        free portfolio return in this model.
 
         Parameters
         ----------
