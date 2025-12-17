@@ -35,7 +35,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP,  # CRRA marginal utility function
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
-    IndShockConsumerType,
     utilityP_inv,  # Inverse CRRA marginal utility function
 )
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -1891,7 +1890,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         aNrmPrev = self.state_prev["aNrm"]
         SharePrev = self.state_prev["Share"]
         nNrmTildePrev = self.state_prev["nNrmTilde"]
-        Rfree = IndShockConsumerType.get_Rport(self)
+        Rfree = np.array(self.Rfree)[self.t_cycle - 1]
         Rrisk = self.shocks["Risky"]
 
         # Calculate new states:
