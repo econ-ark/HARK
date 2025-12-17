@@ -39,6 +39,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP,
+    vNvrsSlope,
 )
 from HARK.utilities import make_assets_grid
 
@@ -641,9 +642,9 @@ def solve_one_period_ConsMarkov(
             mNrm_temp = np.insert(mNrm_for_vFunc, 0, mNrmMin_i)  # add the lower bound
             vNvrs_now = np.insert(vNvrs_now, 0, 0.0)
             vNvrsP_now = np.insert(
-                vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
+                vNvrsP_now, 0, vNvrsSlope(MPCmaxEff[i], CRRA)
             )
-            # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
+            # MPCminNvrs = vNvrsSlope(MPCminNow[i], CRRA)
             vNvrsFuncNow = LinearInterp(
                 mNrm_temp,
                 vNvrs_now,
