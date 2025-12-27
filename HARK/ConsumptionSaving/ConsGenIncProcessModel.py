@@ -844,7 +844,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         """
         kLvlNow = self.state_prev["aLvl"]
         pLvlNow = np.zeros_like(kLvlNow)
-        RfreeNow = self.get_Rfree()
+        RportNow = self.get_Rport()
 
         # Calculate new states: normalized market resources and persistent income level
         for t in range(self.T_cycle):
@@ -855,7 +855,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             )
 
         # state value
-        bLvlNow = RfreeNow * kLvlNow  # Bank balances before labor income
+        bLvlNow = RportNow * kLvlNow  # Bank balances before labor income
 
         # Market resources after income - state value
         mLvlNow = bLvlNow + self.shocks["TranShk"] * pLvlNow

@@ -1042,9 +1042,10 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.read_shocks_from_history(self)
         self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Returns an array of size self.AgentCount with interest factor that varies with discrete state.
+        This represents the portfolio return in this model.
 
         Parameters
         ----------

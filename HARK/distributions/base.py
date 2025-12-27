@@ -226,10 +226,8 @@ class IndexDistribution(Distribution):
         A Distribution subclass.
 
     conditional: dict
-        Information about the conditional variation
-        on the input parameters of the engine distribution.
-        Keys should match the arguments to the engine class
-        constructor.
+        Information about the conditional variation on the input parameters of the engine
+        distribution. Keys should match the arguments to the engine class constructor.
 
     distributions: [DiscreteDistribution]
         Optional. A list of discrete distributions to wrap directly.
@@ -304,6 +302,12 @@ class IndexDistribution(Distribution):
         if hasattr(self, "distributions") and self.distributions:
             return self.distributions[y]
         return self.dstns[y]
+
+    def reset(self):
+        # Reset the main RNG and each member distribution
+        super().reset()
+        for d in self.dstns:
+            d.reset()
 
     def discretize(self, N, **kwds):
         """

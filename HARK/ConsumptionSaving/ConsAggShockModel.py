@@ -177,7 +177,7 @@ def solveConsAggShock(
     AFunc,
     Rfunc,
     wFunc,
-    DeprFac,
+    DeprRte,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -220,7 +220,7 @@ def solveConsAggShock(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprFac : float
+    DeprRte : float
         Capital Depreciation Rate
 
     Returns
@@ -395,7 +395,7 @@ def solve_ConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprFac : float
+    DeprRte : float
         Capital Depreciation Rate
 
     Returns
@@ -867,7 +867,7 @@ class AggShockConsumerType(IndShockConsumerType):
         self.AFunc = economy.AFunc  # Next period's aggregate savings function
         self.Rfunc = economy.Rfunc  # Interest factor as function of capital ratio
         self.wFunc = economy.wFunc  # Wage rate as function of capital ratio
-        self.DeprFac = economy.DeprFac  # Rate of capital depreciation
+        self.DeprRte = economy.DeprRte  # Rate of capital depreciation
         self.PermGroFacAgg = (
             economy.PermGroFacAgg
         )  # Aggregate permanent productivity growth
@@ -875,7 +875,7 @@ class AggShockConsumerType(IndShockConsumerType):
             economy.AggShkDstn
         )  # Combine idiosyncratic and aggregate shocks into one dstn
         self.add_to_time_inv(
-            "Mgrid", "AFunc", "Rfunc", "wFunc", "DeprFac", "PermGroFacAgg"
+            "Mgrid", "AFunc", "Rfunc", "wFunc", "DeprRte", "PermGroFacAgg"
         )
 
     def add_AggShkDstn(self, AggShkDstn):
@@ -960,9 +960,10 @@ class AggShockConsumerType(IndShockConsumerType):
         )
         return who_dies
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Returns an array of size self.AgentCount with self.RfreeNow in every entry.
+        This is the risk-free portfolio return in this model.
 
         Parameters
         ----------
@@ -990,10 +991,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_shocks(self)  # Update idiosyncratic shocks
-        self.shocks["TranShk"] = (
-            self.shocks["TranShk"] * self.TranShkAggNow * self.wRteNow
-        )
-        self.shocks["PermShk"] = self.shocks["PermShk"] * self.PermShkAggNow
+        self.shocks["TranShk"] *= self.TranShkAggNow * self.wRteNow
+        self.shocks["PermShk"] *= self.PermShkAggNow
 
     def get_controls(self):
         """
@@ -1334,12 +1333,12 @@ def make_KS_transition_arrays(
 
     # Calculate (net) interest factor and wage rate next period
     KtoLnext = Knext / Lnext
-    Rnext = 1.0 + Znext * CapShare * KtoLnext ** (CapShare - 1.0) - DeprFac
+    Rnext = 1.0 + Znext * CapShare * KtoLnext ** (CapShare - 1.0) - DeprRte
     Wnext = Znext * (1.0 - CapShare) * KtoLnext**CapShare
 
     # Calculate aggregate market resources next period
     Ynext = Znext * Knext**CapShare * Lnext ** (1.0 - CapShare)
-    Mnext = (1.0 - DeprFac) * Knext + Ynext
+    Mnext = (1.0 - DeprRte) * Knext + Ynext
 
     # Tile the interest, wage, and aggregate market resources arrays
     Rnext_tiled = np.tile(Rnext, [aCount, 1, 1, 1])
@@ -1471,7 +1470,7 @@ class KrusellSmithType(AgentType):
             Economy.MSS * self.MgridBase
         )  # Aggregate market resources grid adjusted around SS capital ratio
         self.AFunc = Economy.AFunc  # Next period's aggregate savings function
-        self.DeprFac = Economy.DeprFac  # Rate of capital depreciation
+        self.DeprRte = Economy.DeprRte  # Rate of capital depreciation
         self.CapShare = Economy.CapShare  # Capital's share of production
         # Idiosyncratic labor supply (when employed)
         self.LbrInd = Economy.LbrInd
@@ -1488,7 +1487,7 @@ class KrusellSmithType(AgentType):
         self.add_to_time_inv(
             "Mgrid",
             "AFunc",
-            "DeprFac",
+            "DeprRte",
             "CapShare",
             "UrateB",
             "LbrInd",
@@ -1733,7 +1732,7 @@ TranShkAggCount = (
 )
 PermShkAggStd = 0.0063  # Standard deviation of log aggregate permanent shocks
 TranShkAggStd = 0.0031  # Standard deviation of log aggregate transitory shocks
-DeprFac = 0.025  # Capital depreciation rate
+DeprRte = 0.025  # Capital depreciation rate
 CapShare = 0.36  # Capital's share of income
 DiscFacPF = DiscFac  # Discount factor of perfect foresight calibration
 CRRAPF = CRRA  # Coefficient of relative risk aversion of perfect foresight calibration
@@ -1754,7 +1753,7 @@ init_cobb_douglas = {
     "TranShkAggCount": TranShkAggCount,
     "PermShkAggStd": PermShkAggStd,
     "TranShkAggStd": TranShkAggStd,
-    "DeprFac": DeprFac,
+    "DeprRte": DeprRte,
     "CapShare": CapShare,
     "DiscFac": DiscFacPF,
     "CRRA": CRRAPF,
@@ -1847,21 +1846,21 @@ class CobbDouglasEconomy(Market):
         self.kSS = (
             (
                 self.get_PermGroFacAggLR() ** (self.CRRA) / self.DiscFac
-                - (1.0 - self.DeprFac)
+                - (1.0 - self.DeprRte)
             )
             / self.CapShare
         ) ** (1.0 / (self.CapShare - 1.0))
         self.KtoYSS = self.kSS ** (1.0 - self.CapShare)
         self.wRteSS = (1.0 - self.CapShare) * self.kSS ** (self.CapShare)
         self.RfreeSS = (
-            1.0 + self.CapShare * self.kSS ** (self.CapShare - 1.0) - self.DeprFac
+            1.0 + self.CapShare * self.kSS ** (self.CapShare - 1.0) - self.DeprRte
         )
         self.MSS = self.kSS * self.RfreeSS + self.wRteSS
         self.convertKtoY = lambda KtoY: KtoY ** (
             1.0 / (1.0 - self.CapShare)
         )  # converts K/Y to K/L
         self.Rfunc = lambda k: (
-            1.0 + self.CapShare * k ** (self.CapShare - 1.0) - self.DeprFac
+            1.0 + self.CapShare * k ** (self.CapShare - 1.0) - self.DeprRte
         )
         self.wFunc = lambda k: ((1.0 - self.CapShare) * k ** (self.CapShare))
 
@@ -2730,7 +2729,7 @@ init_KS_economy = {
     "ProdB": 0.99,
     "ProdG": 1.01,
     "CapShare": 0.36,
-    "DeprFac": 0.025,
+    "DeprRte": 0.025,
     "DurMeanB": 8.0,
     "DurMeanG": 8.0,
     "SpellMeanB": 2.5,
@@ -2791,13 +2790,13 @@ class KrusellSmithEconomy(Market):
         ]
         self.AFunc = AFunc_all
         self.KtoLSS = (
-            (1.0**self.CRRA / self.DiscFac - (1.0 - self.DeprFac)) / self.CapShare
+            (1.0**self.CRRA / self.DiscFac - (1.0 - self.DeprRte)) / self.CapShare
         ) ** (1.0 / (self.CapShare - 1.0))
         self.KSS = self.KtoLSS * self.LbrInd
         self.KtoYSS = self.KtoLSS ** (1.0 - self.CapShare)
         self.WSS = (1.0 - self.CapShare) * self.KtoLSS ** (self.CapShare)
         self.RSS = (
-            1.0 + self.CapShare * self.KtoLSS ** (self.CapShare - 1.0) - self.DeprFac
+            1.0 + self.CapShare * self.KtoLSS ** (self.CapShare - 1.0) - self.DeprRte
         )
         self.MSS = self.KSS * self.RSS + self.WSS * self.LbrInd
         self.convertKtoY = lambda KtoY: KtoY ** (
@@ -2969,7 +2968,7 @@ class KrusellSmithEconomy(Market):
 
         # Calculate the interest factor and wage rate this period
         KtoLnow = AggK / AggL
-        Rnow = 1.0 + Prod * self.rFunc(KtoLnow) - self.DeprFac
+        Rnow = 1.0 + Prod * self.rFunc(KtoLnow) - self.DeprRte
         Wnow = Prod * self.Wfunc(KtoLnow)
         Mnow = Rnow * AggK + Wnow * AggL
         self.KtoLnow = KtoLnow  # Need to store this as it is a sow variable

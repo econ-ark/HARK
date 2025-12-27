@@ -1180,9 +1180,12 @@ class AgentType(Model):
         -------
         none
         """
-        setattr(self, parameter, list())
-        for solution_t in self.solution:
-            self.__dict__[parameter].append(solution_t.__dict__[parameter])
+        # Use list comprehension for better performance instead of loop with append
+        setattr(
+            self,
+            parameter,
+            [solution_t.__dict__[parameter] for solution_t in self.solution],
+        )
         self.add_to_time_vary(parameter)
 
     def solve(
@@ -1356,18 +1359,13 @@ class AgentType(Model):
         all_agents = np.ones(self.AgentCount, dtype=bool)
         blank_array = np.empty(self.AgentCount)
         blank_array[:] = np.nan
-        for var in self.state_now:
-            if self.state_now[var] is None:
-                self.state_now[var] = copy(blank_array)
+        for var in self.state_vars:
+            self.state_now[var] = copy(blank_array)
 
-            # elif self.state_prev[var] is None:
-            #    self.state_prev[var] = copy(blank_array)
-        self.t_age = np.zeros(
-            self.AgentCount, dtype=int
-        )  # Number of periods since agent entry
-        self.t_cycle = np.zeros(
-            self.AgentCount, dtype=int
-        )  # Which cycle period each agent is on
+        # Number of periods since agent entry
+        self.t_age = np.zeros(self.AgentCount, dtype=int)
+        # Which cycle period each agent is on
+        self.t_cycle = np.zeros(self.AgentCount, dtype=int)
         self.sim_birth(all_agents)
 
         # If we are asked to use existing shocks and a set of initial conditions

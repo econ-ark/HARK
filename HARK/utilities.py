@@ -188,17 +188,20 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
 def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     r"""
     Makes a multi-exponentially spaced grid.
-    If the function :math:`\ln(1+x)` were applied timestonest times,
-    the grid would become linearly spaced.
-    If timestonest is 0, the grid is exponentially spaced.
+    If the function :math:`\ln(1+x)` were applied timestonest times, the grid would
+    become linearly spaced. If timestonest is 0, the grid is exponentially spaced.
     If timestonest is -1, the grid is linearly spaced.
+
+    NOTE: The bounds of the grid must be non-negative, else this function will
+    return an invalid grid with NaNs in it. If you want a non-linearly spaced
+    grid that spans negative numbers, use make_exponential_grid; see below.
 
     Parameters
     ----------
     ming : float
-        Minimum value of the grid
+        Minimum value of the grid, which must be non-negative.
     maxg : float
-        Maximum value of the grid
+        Maximum value of the grid, which must be greater than ming.
     ng : int
         The number of grid points
     timestonest : int
@@ -234,6 +237,32 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
         Lmaxg = np.log(maxg)
         Lgrid = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
+    return grid
+
+
+def make_exponential_grid(ming, maxg, ng, order=1.0):
+    """
+    Construct an exponentially spaced grid with chosen exponential order.
+    A uniformly spaced grid on [0,1] is raised to the chosen order, then linearly
+    remapped to the specified interval. Supports any real valued grid bounds.
+
+    Parameters
+    ----------
+    ming : float
+        Lower bound of grid.
+    maxg : float
+        Upper bound of grid.
+    ng : int
+        Number of points in the grid.
+    order : float, optional
+        Exponential spacing order for the grid. The default is 1.0, or linear.
+
+    Returns
+    -------
+    grid : np.array
+        Exponentially spaced grid on [ming, maxg] with ng points.
+    """
+    grid = np.linspace(0.0, 1.0, ng) ** order * (maxg - ming) + ming
     return grid
 
 
