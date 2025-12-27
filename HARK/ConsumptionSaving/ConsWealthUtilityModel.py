@@ -550,7 +550,7 @@ class WealthUtilityConsumerType(IndShockConsumerType):
         Coefficient of Relative Risk Aversion.
     WealthShift : float, :math:`\xi`
         Additive shifter for wealth in the utility function.
-    WeathShare : float, :math:`\alpha`
+    WealthShare : float, :math:`\alpha`
         Cobb-Douglas share for wealth in the utility function.
     Rfree: float or list[float], time varying, :math:`\mathsf{R}`
         Risk Free interest rate. Pass a list of floats to make Rfree time varying.
@@ -561,11 +561,11 @@ class WealthUtilityConsumerType(IndShockConsumerType):
     PermGroFac: list[float], time varying, :math:`\Gamma`
         Permanent income growth factor.
     BoroCnstArt: float, :math:`\underline{a}`
-        The minimum Asset/Perminant Income ratio, None to ignore.
+        The minimum Asset/Permanent Income ratio, None to ignore.
     vFuncBool: bool
         Whether to calculate the value function during solution.
     CubicBool: bool
-        Whether to use cubic spline interpoliation.
+        Whether to use cubic spline interpolation.
 
     Simulation Parameters
     ---------------------
@@ -1150,7 +1150,7 @@ class CapitalistSpiritConsumerType(GenIncProcessConsumerType):
     r"""
     Class for representing consumers who have "capitalist spirit" preferences,
     yielding CRRA utility from consumption and wealth, additively. Importantly,
-    the risk version coefficient for wealth is *lower* than for consumption, so
+    the risk aversion coefficient for wealth is *lower* than for consumption, so
     the agent's saving rate approaches 100% as they become arbitrarily rich.
 
     .. math::
@@ -1208,11 +1208,11 @@ class CapitalistSpiritConsumerType(GenIncProcessConsumerType):
     PermGroFac: list[float], time varying, :math:`\Gamma`
         Permanent income growth factor.
     BoroCnstArt: float, :math:`\underline{a}`
-        The minimum Asset/Perminant Income ratio, None to ignore.
+        The minimum Asset/Permanent Income ratio, None to ignore.
     vFuncBool: bool
         Whether to calculate the value function during solution.
     CubicBool: bool
-        Whether to use cubic spline interpoliation.
+        Whether to use cubic spline interpolation.
 
     Simulation Parameters
     ---------------------
