@@ -122,6 +122,9 @@ def describe_metric(thing, n=0, label=None, D=100000):
         A generic object.
     n : int
         Recursive depth of this call.
+    label : str or None
+        Name/label of the thing, which might be a dictionary key, attribute name,
+        list index, etc.
     D : int
         Maximum recursive depth; if n > D, empty output is returned.
 
@@ -185,7 +188,10 @@ def describe_metric(thing, n=0, label=None, D=100000):
             desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
         else:
             for key in my_keys:
-                desc += describe_metric(getattr(thing, key), n + 1, label=key, D=D)
+                if hasattr(thing, key):
+                    desc += describe_metric(getattr(thing, key), n + 1, label=key, D=D)
+                else:
+                    desc += key + " (missing): CAN'T COMPARE\n"
 
     else:
         # Something has gone wrong
