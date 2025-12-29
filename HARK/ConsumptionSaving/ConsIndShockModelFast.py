@@ -195,17 +195,58 @@ class IndShockSolution(MetricObject):
 
 
 def make_solution_terminal_fast(solution_terminal_class, CRRA):
+    """
+    Construct the terminal period solution for the fast solver.
+
+    At terminal period, consumer consumes everything: c = m.
+    Therefore:
+    - v(m) = u(m)
+    - vNvrs(m) = u_inv(v(m)) = u_inv(u(m)) = m
+    - vNvrsP = d(vNvrs)/dm = 1
+    - MPCmin = 1 (consume everything)
+    - MPCminNvrs = MPCmin^(-CRRA/(1-CRRA)) = 1
+
+    Parameters
+    ----------
+    solution_terminal_class : class
+        The solution class to instantiate (PerfForesightSolution or IndShockSolution).
+    CRRA : float
+        Coefficient of relative risk aversion.
+
+    Returns
+    -------
+    solution_terminal : solution_terminal_class
+        The terminal period solution with properly initialized arrays for numba.
+    """
     solution_terminal = solution_terminal_class()
+
+    # Terminal consumption function: c = m
     cFunc_terminal = LinearInterp([0.0, 1.0], [0.0, 1.0])
-    solution_terminal.cFunc = cFunc_terminal  # c=m at t=T
+    solution_terminal.cFunc = cFunc_terminal
     solution_terminal.vFunc = ValueFuncCRRA(cFunc_terminal, CRRA)
     solution_terminal.vPfunc = MargValueFuncCRRA(cFunc_terminal, CRRA)
     solution_terminal.vPPfunc = MargMargValueFuncCRRA(cFunc_terminal, CRRA)
+
+    # MPC is 1 everywhere at terminal (consume everything)
     solution_terminal.MPC = np.array([1.0, 1.0])
-    solution_terminal.MPCminNvrs = 0.0
-    solution_terminal.vNvrs = utility(np.linspace(0.0, 1.0), CRRA)
-    solution_terminal.vNvrsP = utilityP(np.linspace(0.0, 1.0), CRRA)
-    solution_terminal.mNrmGrid = np.linspace(0.0, 1.0)
+
+    # MPCminNvrs = MPCmin^(-CRRA/(1-CRRA)) = 1^(-CRRA/(1-CRRA)) = 1 for any CRRA != 1
+    solution_terminal.MPCminNvrs = 1.0
+
+    # Create grid that covers typical mNrmNext range during backward induction
+    # Use a grid from near-zero to a large value to avoid extrapolation issues
+    mNrmGrid = np.linspace(1e-6, 100.0, 200)
+    solution_terminal.mNrmGrid = mNrmGrid
+
+    # At terminal: vNvrs(m) = u_inv(u(m)) = m (since c = m)
+    solution_terminal.vNvrs = mNrmGrid.copy()
+
+    # vNvrsP = d(vNvrs)/dm = d(m)/dm = 1 everywhere
+    solution_terminal.vNvrsP = np.ones_like(mNrmGrid)
+
+    # hNrm = 0 at terminal (no future income)
+    solution_terminal.hNrm = 0.0
+
     return solution_terminal
 
 
@@ -1210,6 +1251,10 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
     A version of the idiosyncratic shock consumer type sped up by numba.
 
     If CubicBool and vFuncBool are both set to false it's further optimized.
+
+    Note: This fast solver does not support CRRA=1 (log utility) due to the
+    mathematical singularity in the inverse value function transformation.
+    Use the standard IndShockConsumerType for log utility.
     """
 
     solution_terminal_class = IndShockSolution
@@ -1218,6 +1263,24 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         "solver": NullFunc(),
         "model": "ConsIndShock.yaml",
     }
+
+    def pre_solve(self):
+        """
+        Perform pre-solve checks and setup.
+
+        Raises
+        ------
+        ValueError
+            If CRRA equals 1 (log utility), which is not supported by the fast solver.
+        """
+        if self.CRRA == 1.0:
+            raise ValueError(
+                "IndShockConsumerTypeFast does not support CRRA=1 (log utility) "
+                "due to mathematical singularities in the numba-optimized solver. "
+                "Please use IndShockConsumerType instead for log utility preferences."
+            )
+        # Call parent's pre_solve
+        super().pre_solve()
 
     def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
