@@ -8,6 +8,7 @@ while concrete solvers override specific hook methods for their model type.
 
 from __future__ import annotations
 
+import warnings
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
@@ -98,6 +99,19 @@ class BaseLabeledSolver(MetricObject):
         aXtraGrid: np.ndarray,
         **kwargs,
     ) -> None:
+        # Input validation - solution_next
+        if solution_next is None:
+            raise ValueError("solution_next cannot be None")
+        if not isinstance(solution_next, ConsumerSolutionLabeled):
+            raise TypeError(
+                f"solution_next must be ConsumerSolutionLabeled, got {type(solution_next)}"
+            )
+        if "m_nrm_min" not in solution_next.attrs:
+            raise ValueError(
+                "solution_next.attrs must contain 'm_nrm_min'. "
+                "Use make_solution_terminal_labeled() to create valid terminal solutions."
+            )
+
         # Input validation - CRRA
         if not np.isfinite(CRRA):
             raise ValueError(f"CRRA must be finite, got {CRRA}")
@@ -375,9 +389,28 @@ class BaseLabeledSolver(MetricObject):
         """Execute the Endogenous Grid Method algorithm."""
         wfunc = self.create_continuation_function()
 
+        # Check for numerical issues in continuation function
+        if np.any(~np.isfinite(wfunc.dataset["v_der_inv"].values)):
+            warnings.warn(
+                "Continuation value function contains NaN or Inf values. "
+                "This may indicate invalid parameters (CRRA too high, "
+                "PermGroFac issues, or extreme shock realizations).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
         # EGM: Get optimal actions from first-order condition
         acted = self.egm_transition(self.post_state, wfunc, self.params)
         state = self.reverse_transition(self.post_state, acted, self.params)
+
+        # Check for numerical issues in EGM results
+        if np.any(acted["cNrm"] < 0):
+            warnings.warn(
+                "EGM produced negative consumption values. "
+                "Check discount factor and interest rate parameters.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
         # Swap dimensions for state-based indexing
         action = xr.Dataset(acted).swap_dims({"aNrm": "mNrm"})
@@ -717,8 +750,18 @@ class ConsPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
 
         # Linear interpolation with division-by-zero protection
         denominator = top_foc - bottom_foc
+        fallback_mask = np.abs(denominator) <= 1e-12
+        if np.any(fallback_mask):
+            n_fallbacks = np.sum(fallback_mask)
+            warnings.warn(
+                f"Portfolio optimization used fallback interpolation for {n_fallbacks} "
+                f"grid points due to near-zero FOC difference. "
+                f"Consider refining ShareGrid for more accurate results.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         alpha = np.where(
-            np.abs(denominator) > 1e-12,
+            ~fallback_mask,
             1.0 - top_foc / denominator,
             0.5,
         )

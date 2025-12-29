@@ -97,6 +97,15 @@ class PortfolioLabeledType(PortfolioConsumerType):
     choosing the optimal allocation between them each period.
 
     Uses labeled xarray data structures for solutions.
+
+    Note
+    ----
+    Unlike other labeled types, this class inherits directly from
+    `PortfolioConsumerType` rather than from `IndShockLabeledType`.
+    This is because `PortfolioConsumerType` provides essential portfolio-
+    specific functionality (share grids, portfolio optimization methods)
+    that would be difficult to replicate. The labeled solver handles
+    the xarray integration while the parent class handles agent lifecycle.
     """
 
     default_ = {

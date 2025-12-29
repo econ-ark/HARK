@@ -186,7 +186,30 @@ def make_labeled_inc_shk_dstn(
     -------
     list[DiscreteDistributionLabeled]
         List of labeled income shock distributions, one per period.
+
+    Raises
+    ------
+    ValueError
+        If input parameters fail validation checks.
     """
+    # Input validation
+    if T_cycle <= 0:
+        raise ValueError(f"T_cycle must be positive, got {T_cycle}")
+    if PermShkCount <= 0:
+        raise ValueError(f"PermShkCount must be positive, got {PermShkCount}")
+    if TranShkCount <= 0:
+        raise ValueError(f"TranShkCount must be positive, got {TranShkCount}")
+    if len(PermShkStd) == 0:
+        raise ValueError("PermShkStd cannot be empty")
+    if len(TranShkStd) == 0:
+        raise ValueError("TranShkStd cannot be empty")
+    if not (0 <= UnempPrb <= 1):
+        raise ValueError(f"UnempPrb must be in [0, 1], got {UnempPrb}")
+    if not (0 <= UnempPrbRet <= 1):
+        raise ValueError(f"UnempPrbRet must be in [0, 1], got {UnempPrbRet}")
+    if RNG is None:
+        raise ValueError("RNG cannot be None")
+
     IncShkDstnBase = construct_lognormal_income_process_unemployment(
         T_cycle,
         PermShkStd,
@@ -244,7 +267,24 @@ def make_labeled_risky_dstn(
     -------
     DiscreteDistributionLabeled
         Labeled distribution of risky asset returns.
+
+    Raises
+    ------
+    ValueError
+        If input parameters fail validation checks.
     """
+    # Input validation
+    if T_cycle <= 0:
+        raise ValueError(f"T_cycle must be positive, got {T_cycle}")
+    if RiskyAvg <= 0:
+        raise ValueError(f"RiskyAvg must be positive, got {RiskyAvg}")
+    if RiskyStd < 0:
+        raise ValueError(f"RiskyStd must be non-negative, got {RiskyStd}")
+    if RiskyCount <= 0:
+        raise ValueError(f"RiskyCount must be positive, got {RiskyCount}")
+    if RNG is None:
+        raise ValueError("RNG cannot be None")
+
     RiskyDstnBase = make_lognormal_RiskyDstn(
         T_cycle, RiskyAvg, RiskyStd, RiskyCount, RNG
     )
@@ -281,7 +321,20 @@ def make_labeled_shock_dstn(
     -------
     list[DiscreteDistributionLabeled]
         List of labeled joint shock distributions, one per period.
+
+    Raises
+    ------
+    ValueError
+        If input parameters fail validation checks.
     """
+    # Input validation
+    if T_cycle <= 0:
+        raise ValueError(f"T_cycle must be positive, got {T_cycle}")
+    if IncShkDstn is None or len(IncShkDstn) == 0:
+        raise ValueError("IncShkDstn cannot be None or empty")
+    if RiskyDstn is None:
+        raise ValueError("RiskyDstn cannot be None")
+
     ShockDstnBase = combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn)
 
     ShockDstn = []

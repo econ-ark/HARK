@@ -29,6 +29,35 @@ __all__ = [
 ]
 
 
+def _validate_shock_keys(
+    shocks: dict[str, Any], required_keys: set[str], class_name: str
+) -> None:
+    """
+    Validate that shocks dictionary contains required keys.
+
+    Parameters
+    ----------
+    shocks : dict
+        Shock dictionary to validate.
+    required_keys : set
+        Set of required key names.
+    class_name : str
+        Name of the class for error messages.
+
+    Raises
+    ------
+    KeyError
+        If any required key is missing from shocks.
+    """
+    missing_keys = required_keys - set(shocks.keys())
+    if missing_keys:
+        raise KeyError(
+            f"{class_name} requires shock keys {required_keys} but got {set(shocks.keys())}. "
+            f"Missing: {missing_keys}. "
+            f"Ensure the shock distribution has the correct variable names."
+        )
+
+
 @runtime_checkable
 class Transitions(Protocol):
     """
@@ -165,6 +194,7 @@ class IndShockTransitions:
     """
 
     requires_shocks: bool = True
+    _required_shock_keys: set[str] = {"perm", "tran"}
 
     def post_state(
         self,
@@ -188,7 +218,13 @@ class IndShockTransitions:
         -------
         dict
             Next state with 'mNrm'.
+
+        Raises
+        ------
+        KeyError
+            If required shock keys are missing.
         """
+        _validate_shock_keys(shocks, self._required_shock_keys, "IndShockTransitions")
         next_state = {}
         next_state["mNrm"] = (
             post_state["aNrm"] * params.Rfree / (params.PermGroFac * shocks["perm"])
@@ -254,6 +290,7 @@ class RiskyAssetTransitions:
     """
 
     requires_shocks: bool = True
+    _required_shock_keys: set[str] = {"perm", "tran", "risky"}
 
     def post_state(
         self,
@@ -277,7 +314,13 @@ class RiskyAssetTransitions:
         -------
         dict
             Next state with 'mNrm'.
+
+        Raises
+        ------
+        KeyError
+            If required shock keys are missing.
         """
+        _validate_shock_keys(shocks, self._required_shock_keys, "RiskyAssetTransitions")
         next_state = {}
         next_state["mNrm"] = (
             post_state["aNrm"] * shocks["risky"] / (params.PermGroFac * shocks["perm"])
@@ -346,6 +389,7 @@ class FixedPortfolioTransitions:
     """
 
     requires_shocks: bool = True
+    _required_shock_keys: set[str] = {"perm", "tran", "risky"}
 
     def post_state(
         self,
@@ -369,7 +413,15 @@ class FixedPortfolioTransitions:
         -------
         dict
             Next state with 'mNrm', 'rDiff', 'rPort'.
+
+        Raises
+        ------
+        KeyError
+            If required shock keys are missing.
         """
+        _validate_shock_keys(
+            shocks, self._required_shock_keys, "FixedPortfolioTransitions"
+        )
         next_state = {}
         next_state["rDiff"] = shocks["risky"] - params.Rfree
         next_state["rPort"] = (
@@ -450,6 +502,7 @@ class PortfolioTransitions:
     """
 
     requires_shocks: bool = True
+    _required_shock_keys: set[str] = {"perm", "tran", "risky"}
 
     def post_state(
         self,
@@ -473,7 +526,13 @@ class PortfolioTransitions:
         -------
         dict
             Next state with 'mNrm', 'rDiff', 'rPort'.
+
+        Raises
+        ------
+        KeyError
+            If required shock keys are missing.
         """
+        _validate_shock_keys(shocks, self._required_shock_keys, "PortfolioTransitions")
         next_state = {}
         next_state["rDiff"] = shocks["risky"] - params.Rfree
         next_state["rPort"] = params.Rfree + next_state["rDiff"] * post_state["stigma"]

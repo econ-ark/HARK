@@ -52,6 +52,18 @@ class ValueFuncCRRALabeled(MetricObject):
         if CRRA < 0:
             raise ValueError(f"CRRA must be non-negative, got {CRRA}")
 
+        # Validate dataset structure
+        if not isinstance(dataset, xr.Dataset):
+            raise TypeError(f"dataset must be xr.Dataset, got {type(dataset)}")
+
+        required_vars = {"v", "v_der", "v_inv", "v_der_inv"}
+        missing_vars = required_vars - set(dataset.data_vars)
+        if missing_vars:
+            raise ValueError(
+                f"Dataset missing required variables: {missing_vars}. "
+                f"Required: {required_vars}"
+            )
+
         self.dataset = dataset
         self.CRRA = CRRA
         self.u = UtilityFuncCRRA(CRRA)
@@ -226,6 +238,18 @@ class ConsumerSolutionLabeled(MetricObject):
         continuation: ValueFuncCRRALabeled | None,
         attrs: dict | None = None,
     ) -> None:
+        # Type validation
+        if not isinstance(value, ValueFuncCRRALabeled):
+            raise TypeError(f"value must be ValueFuncCRRALabeled, got {type(value)}")
+        if not isinstance(policy, xr.Dataset):
+            raise TypeError(f"policy must be xr.Dataset, got {type(policy)}")
+        if continuation is not None and not isinstance(
+            continuation, ValueFuncCRRALabeled
+        ):
+            raise TypeError(
+                f"continuation must be ValueFuncCRRALabeled or None, got {type(continuation)}"
+            )
+
         self.value = value
         self.policy = policy
         self.continuation = continuation
@@ -247,7 +271,24 @@ class ConsumerSolutionLabeled(MetricObject):
         -------
         float
             Maximum absolute difference between value functions.
+
+        Raises
+        ------
+        TypeError
+            If other is not a ConsumerSolutionLabeled.
+        ValueError
+            If one or both solutions have no value function.
         """
+        if not isinstance(other, ConsumerSolutionLabeled):
+            raise TypeError(
+                f"Cannot compute distance with {type(other)}. "
+                f"Expected ConsumerSolutionLabeled."
+            )
+        if self.value is None or other.value is None:
+            raise ValueError(
+                "Cannot compute distance: one or both solutions have no value function"
+            )
+
         value = self.value.dataset
         other_value = other.value.dataset.interp_like(value)
 
