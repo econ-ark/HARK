@@ -63,7 +63,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
                 "shocks": {
                     "theta": MeanOneLogNormal(1, seed=303030),
                     "agg_R": Aggregate(MeanOneLogNormal(1, seed=202020)),
-                    "live": Bernoulli(p=0.98, seed=101010),
+                    "live": Bernoulli(p=1.0, seed=101010),
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
@@ -84,7 +84,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.initialize_sim()
@@ -105,7 +105,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.make_shock_history()
