@@ -802,7 +802,7 @@ class Model:
                         query = key
                         any_missing = False
                         missing_args = []
-                    except KeyError:
+                    except AttributeError:
                         parent = None
                         query = None
                         any_missing = True
