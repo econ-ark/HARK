@@ -112,7 +112,7 @@ def distance_metric(thing_a, thing_b):
     return 1000.0
 
 
-def describe_metric(thing, n=0, label=None, D=1e10):
+def describe_metric(thing, n=0, label=None, D=100000):
     """
     Generate a description of an object's distance metric.
 
@@ -169,7 +169,10 @@ def describe_metric(thing, n=0, label=None, D=1e10):
             desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
         else:
             for key in my_keys:
-                desc += describe_metric(thing[key], n + 1, label=key, D=D)
+                try:
+                    desc += describe_metric(thing[key], n + 1, label=key, D=D)
+                except:
+                    desc += key + " (missing): CAN'T COMPARE\n"
 
     elif isinstance(thing, MetricObject):
         my_keys = thing.distance_criteria
@@ -177,7 +180,7 @@ def describe_metric(thing, n=0, label=None, D=1e10):
             "(" + type(thing).__name__ + "): largest distance among these attributes:\n"
         )
         if len(my_keys) == 0:
-            desc += pad * (n + 1) * " " + "NO distance_critera SPECIFIED"
+            desc += pad * (n + 1) * " " + "NO distance_criteria SPECIFIED\n"
         if n == D:
             desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
         else:
