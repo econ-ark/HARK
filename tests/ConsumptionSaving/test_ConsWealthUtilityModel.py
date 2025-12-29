@@ -24,6 +24,12 @@ class testWealthUtilityConsumerType(unittest.TestCase):
         v = vFunc(mNrm)
         self.assertAlmostEqual(v, -11.2017, places=HARK_PRECISION)
 
+    def test_sim(self):
+        self.agent.T_sim = 100
+        self.agent.AgentCount = 1000
+        self.agent.initialize_sim()
+        self.agent.simulate()
+
 
 class testWealthUtilityOddParams(unittest.TestCase):
     def setUp(self):
@@ -68,6 +74,12 @@ class testCapitalistSpiritConsumerType(unittest.TestCase):
     def test_no_vFunc(self):
         self.agent.assign_parameters(vFuncBool=False)
         self.agent.solve()
+
+    def test_sim(self):
+        self.agent.T_sim = 100
+        self.agent.AgentCount = 1000
+        self.agent.initialize_sim()
+        self.agent.simulate()
 
 
 class testInvalidParams(unittest.TestCase):

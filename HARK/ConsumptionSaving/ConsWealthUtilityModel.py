@@ -206,7 +206,7 @@ class ChiFromOmegaFunction:
         z = self.func(np.log(omega))
         exp_z = np.exp(z)
         chi = self.limit * exp_z / (1 + exp_z)
-        return np.nan_to_num(chi)
+        return chi
 
 
 # Trivial constructor function
