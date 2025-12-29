@@ -61,9 +61,9 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
         self.block = DBlock(
             **{
                 "shocks": {
-                    "theta": MeanOneLogNormal(1),
-                    "agg_R": Aggregate(MeanOneLogNormal(1)),
-                    "live": Bernoulli(p=0.98),
+                    "theta": MeanOneLogNormal(1, seed=303030),
+                    "agg_R": Aggregate(MeanOneLogNormal(1, seed=202020)),
+                    "live": Bernoulli(p=0.98, seed=101010),
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
