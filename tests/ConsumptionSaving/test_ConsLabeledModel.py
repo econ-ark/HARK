@@ -140,6 +140,21 @@ class test_PortfolioLabeledType(unittest.TestCase):
         self.assertIsNotNone(self.agent.solution[0].continuation)
 
 
+class test_InfiniteHorizon(unittest.TestCase):
+    """Test infinite horizon convergence (cycles=0)."""
+
+    def test_indshock_converges(self):
+        """IndShockLabeledType should converge in infinite horizon."""
+        agent = IndShockLabeledType(cycles=0)
+        agent.solve()
+        # Should have exactly one solution (converged)
+        self.assertEqual(len(agent.solution), 1)
+        # Solution should have reasonable values
+        c = agent.solution[0].policy["cNrm"].to_numpy()
+        self.assertTrue(np.all(c >= 0))
+        self.assertTrue(np.all(np.diff(c) >= 0))  # Monotonic
+
+
 class test_InputValidation(unittest.TestCase):
     """Test input validation for labeled models."""
 
