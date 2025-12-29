@@ -112,6 +112,94 @@ def distance_metric(thing_a, thing_b):
     return 1000.0
 
 
+def describe_metric(thing, n=0, label=None, D=100000):
+    """
+    Generate a description of an object's distance metric.
+
+    Parameters
+    ----------
+    thing : object
+        A generic object.
+    n : int
+        Recursive depth of this call.
+    label : str or None
+        Name/label of the thing, which might be a dictionary key, attribute name,
+        list index, etc.
+    D : int
+        Maximum recursive depth; if n > D, empty output is returned.
+
+    Returns
+    -------
+    desc : str
+        Description of this object's distance metric, indented 2n spaces.
+    """
+    pad = 2
+    if n > D:
+        return ""
+
+    if label is None:
+        desc = ""
+    else:
+        desc = pad * n * " " + "- " + label + " "
+
+    # If both inputs are numbers, distance is their difference
+    if isinstance(thing, (int, float)):
+        desc += "(scalar): absolute difference of values\n"
+
+    elif isinstance(thing, list):
+        J = len(thing)
+        desc += "(list) largest distance among:\n"
+        if n == D:
+            desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
+        else:
+            for j in range(J):
+                desc += describe_metric(thing[j], n + 1, label="[" + str(j) + "]", D=D)
+
+    elif isinstance(thing, np.ndarray):
+        desc += (
+            "(array"
+            + str(thing.shape)
+            + "): greatest absolute difference among elements\n"
+        )
+
+    elif isinstance(thing, dict):
+        if "distance_criteria" in thing.keys():
+            my_keys = thing["distance_criteria"]
+        else:
+            my_keys = thing.keys()
+        desc += "(dict): largest distance among these keys:\n"
+        if n == D:
+            desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
+        else:
+            for key in my_keys:
+                try:
+                    desc += describe_metric(thing[key], n + 1, label=key, D=D)
+                except:
+                    desc += key + " (missing): CAN'T COMPARE\n"
+
+    elif isinstance(thing, MetricObject):
+        my_keys = thing.distance_criteria
+        desc += (
+            "(" + type(thing).__name__ + "): largest distance among these attributes:\n"
+        )
+        if len(my_keys) == 0:
+            desc += pad * (n + 1) * " " + "NO distance_criteria SPECIFIED\n"
+        if n == D:
+            desc += pad * (n + 1) * " " + "SUPPRESSED OUTPUT\n"
+        else:
+            for key in my_keys:
+                if hasattr(thing, key):
+                    desc += describe_metric(getattr(thing, key), n + 1, label=key, D=D)
+                else:
+                    desc += key + " (missing): CAN'T COMPARE\n"
+
+    else:
+        # Something has gone wrong
+        desc += "WARNING: INCOMPARABLE\n"
+
+    return desc
+
+
 class MetricObject:
     """
     A superclass for object classes in HARK.  Comes with two useful methods:
@@ -146,3 +234,37 @@ class MetricObject:
             )
         except (AttributeError, ValueError):
             return 1000.0
+
+    def describe_distance(self, display=True, max_depth=None):
+        """
+        Generate a description for how this object's distance metric is computed.
+        By default, the description is printed to screen, but it can be returned.
+
+        Like the distance metric itself, the description is built recursively.
+
+        Parameters
+        ----------
+        display : bool, optional
+            Whether the description should be printed to screen (default True).
+            Otherwise, it is returned as a string.
+        max_depth : int or None
+            If specified, the maximum recursive depth of the description.
+
+        Returns
+        -------
+        out : str
+            Description of how this object's distance metric is computed, if
+            display=False.
+        """
+        max_depth = max_depth if max_depth is not None else np.inf
+
+        keys = self.distance_criteria
+        if len(keys) == 0:
+            out = "No distance criteria are specified; please name them in distance_criteria.\n"
+        else:
+            out = describe_metric(self, D=max_depth)
+        out = out[:-1]
+        if display:
+            print(out)
+            return
+        return out
