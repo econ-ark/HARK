@@ -289,7 +289,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
                     for i in range(temp_x.size)
                 ]
             )
-        except:
+        except KeyError:
             infimum = np.min(atoms, axis=-1, keepdims=True)
         try:
             supremum = np.array(
@@ -298,7 +298,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
                     for i in range(temp_x.size)
                 ]
             )
-        except:
+        except KeyError:
             supremum = np.max(atoms, axis=-1, keepdims=True)
 
         limit = {
@@ -351,7 +351,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
                 for i in range(temp_x.size)
             ]
         )
-    except:
+    except KeyError:
         infimum = np.min(atoms, axis=-1, keepdims=True)
     try:
         supremum = np.array(
@@ -360,7 +360,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
                 for i in range(temp_x.size)
             ]
         )
-    except:
+    except KeyError:
         supremum = np.max(atoms, axis=-1, keepdims=True)
 
     limit = {

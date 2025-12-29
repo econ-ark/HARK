@@ -802,7 +802,7 @@ class Model:
                         query = key
                         any_missing = False
                         missing_args = []
-                    except:
+                    except KeyError:
                         parent = None
                         query = None
                         any_missing = True
@@ -826,7 +826,7 @@ class Model:
                         else:
                             try:
                                 temp_dict[this_arg] = self.parameters[this_arg]
-                            except:
+                            except KeyError:
                                 if has_no_default[this_arg]:
                                     # Record missing key-data pair
                                     any_missing = True
@@ -913,7 +913,7 @@ class Model:
 
             try:
                 constructor = self.constructors[key]
-            except:
+            except KeyError:
                 out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
                 continue
 

@@ -16,10 +16,14 @@ Release Date: TBD
 
 There are some breaking changes:
 
-- The removal of TimeVaryingDiscreteDistribution; use IndexDistribution instead, and see #1592.
+- TimeVaryingDiscreteDistribution has been removed; use IndexDistribution instead, and see #1592.
 - FixedPortfolioShareRiskyAssetConsumerType is removed, but now incorporated as RiskyAssetConsumerType with PortfolioBool=False. Default behavior of latter class is unchanged; see #1607.
 - The content of HARK.parallel has been moved to HARK.core, and the former is deprecated. Import from HARK.core and see #1614.
 - parse_ssa_life_table now returns one fewer survival probability by default, to match output length of parse_income_spec. Pass terminal=True to restore old behavior and see #1629.
+- The parameter DeprFac has been renamed to DeprRte to reflect its actual usage.
+- All distributions now default to using a random seed if none is provided. If your code relied on HARK defaulting to a specific seed, it will not reproduce exactly. See #1641.
+- HARK.parallel has been deprecated and its contents moved to HARK.core. See #1614.
+- The function apply_flat_income_tax has been removed, but it has not been used at all since 2016.
 
 #### Major Changes
 
@@ -44,6 +48,7 @@ There are some breaking changes:
 - AgentType.solve() can be passed postsolve=False to skip post-processing call to post_solve(). [#1631](https://github.com/econ-ark/HARK/pull/1631)
 - The /examples directory can be copied to a directory of user's choice with HARK.install_examples() [#1630](https://github.com/econ-ark/HARK/pull/1630)
 - Improved and expanded features for Parameters class in HARK.core [#1627](https://github.com/econ-ark/HARK/pull/1627)
+- Default behavior of seeds for distribution classes has been revised. [#1641](https://github.com/econ-ark/HARK/pull/1641)
 
 ### 0.16.1
 

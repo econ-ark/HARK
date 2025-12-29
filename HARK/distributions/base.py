@@ -101,7 +101,7 @@ class Distribution:
         """
         self._rng = random.default_rng(self.seed)
 
-    def random_seed(self) -> None:
+    def random_seed(self) -> int:
         """
         Generate a new random seed derived from the random seed in this distribution.
         """
