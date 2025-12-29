@@ -8,7 +8,12 @@ import numpy as np
 
 from HARK.distributions import Bernoulli, IndexDistribution, MeanOneLogNormal
 from HARK.model import Aggregate, Control, DBlock
-from HARK.simulation.monte_carlo import *
+from HARK.simulation.monte_carlo import (
+    AgentTypeMonteCarloSimulator,
+    draw_shocks,
+    simulate_dynamics,
+    MonteCarloSimulator,
+)
 
 cons_shocks = {
     "agg_gro": Aggregate(MeanOneLogNormal(1)),
@@ -61,9 +66,9 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
         self.block = DBlock(
             **{
                 "shocks": {
-                    "theta": MeanOneLogNormal(1),
-                    "agg_R": Aggregate(MeanOneLogNormal(1)),
-                    "live": Bernoulli(p=0.98),
+                    "theta": MeanOneLogNormal(1, seed=303030),
+                    "agg_R": Aggregate(MeanOneLogNormal(1, seed=202020)),
+                    "live": Bernoulli(p=0.98, seed=101010),
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
