@@ -28,6 +28,7 @@ There are some breaking changes:
 
 #### Minor Changes
 
+- Fixed terminal solution initialization in IndShockConsumerTypeFast for proper numba compatibility, added CRRA=1 validation with clear error message, and expanded test coverage. [#1649](https://github.com/econ-ark/HARK/pull/1649)
 - Turns off use_infimum feature in ConsIndShock solver because it did not work properly when vFunc=True [#1589](https://github.com/econ-ark/HARK/pull/1589)
 - Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
 - Krusell-Smith model guide added to documentation. [#1594](https://github.com/econ-ark/HARK/pull/1594)

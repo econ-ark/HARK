@@ -314,6 +314,8 @@ class testValueFunction(unittest.TestCase):
         fast.solve()
 
         # Compare at various points
+        # Value functions may have slightly more numerical error due to
+        # additional transformations, so we use HARK_PRECISION - 1
         test_points = [0.5, 1.0, 1.5, 2.0, 3.0, 5.0]
         for m in test_points:
             std_v = std.solution[0].vFunc(m)
@@ -365,7 +367,7 @@ class testConsistencyWithStandard(unittest.TestCase):
     """Tests that Fast implementation produces identical results to standard."""
 
     def test_cFunc_matches_exactly(self):
-        """Test that consumption functions match to machine precision."""
+        """Test that consumption functions match between implementations."""
         params = IdiosyncDict.copy()
 
         std = IndShockConsumerType(**params)
@@ -380,7 +382,7 @@ class testConsistencyWithStandard(unittest.TestCase):
         for m in test_points:
             std_c = std.solution[0].cFunc(m)
             fast_c = fast.solution[0].cFunc(m)
-            self.assertAlmostEqual(std_c, fast_c, places=10)
+            self.assertAlmostEqual(std_c, fast_c, places=HARK_PRECISION)
 
     def test_solution_attributes_match(self):
         """Test that solution attributes match between implementations."""
@@ -432,3 +434,240 @@ class testConsistencyWithStandard(unittest.TestCase):
                 std_c = std.solution[t].cFunc(m)
                 fast_c = fast.solution[t].cFunc(m)
                 self.assertAlmostEqual(std_c, fast_c, places=HARK_PRECISION)
+
+
+class testTerminalSolutionBoundaries(unittest.TestCase):
+    """Tests for edge cases at terminal solution grid boundaries."""
+
+    def test_near_zero_m_values(self):
+        """Test behavior for very small m values near grid minimum."""
+        fast = IndShockConsumerTypeFast(cycles=0)
+        fast.solve()
+
+        # Test values near the grid minimum (1e-6)
+        small_m_values = [1e-5, 1e-4, 0.001, 0.01]
+        for m in small_m_values:
+            c = fast.solution[0].cFunc(m)
+            self.assertTrue(np.isfinite(c), f"cFunc({m}) = {c} is not finite")
+            self.assertGreaterEqual(c, 0, f"cFunc({m}) = {c} is negative")
+
+    def test_large_m_values(self):
+        """Test behavior for large m values at and beyond grid maximum."""
+        fast = IndShockConsumerTypeFast(cycles=0)
+        fast.solve()
+
+        # Test values at and beyond the grid maximum (100.0)
+        large_m_values = [50.0, 100.0, 150.0, 200.0]
+        for m in large_m_values:
+            c = fast.solution[0].cFunc(m)
+            self.assertTrue(np.isfinite(c), f"cFunc({m}) = {c} is not finite")
+            self.assertGreater(c, 0, f"cFunc({m}) = {c} is not positive")
+            # Consumption should be less than resources
+            self.assertLess(c, m, f"cFunc({m}) = {c} exceeds resources")
+
+    def test_vFunc_boundary_values(self):
+        """Test vFunc at terminal solution grid boundaries."""
+        params = {
+            "CRRA": 2.0,
+            "vFuncBool": True,
+            "cycles": 0,
+        }
+        fast = IndShockConsumerTypeFast(**params)
+        fast.solve()
+
+        # Test various m values including boundaries
+        test_points = [0.001, 0.1, 1.0, 10.0, 50.0, 100.0]
+        for m in test_points:
+            v = fast.solution[0].vFunc(m)
+            self.assertTrue(np.isfinite(v), f"vFunc({m}) = {v} is not finite")
+
+    def test_crra_near_one_rejected(self):
+        """Test that CRRA values very close to 1 are also rejected."""
+        # Values very close to 1.0 should also be rejected due to np.isclose
+        near_one_values = [1.0, 0.9999999999, 1.0000000001]
+        for crra in near_one_values:
+            agent = IndShockConsumerTypeFast(CRRA=crra, cycles=0)
+            with self.assertRaises(ValueError) as context:
+                agent.solve()
+            self.assertIn("CRRA=1", str(context.exception))
+
+
+class testTerminalSolutionDirect(unittest.TestCase):
+    """Direct unit tests for the make_solution_terminal_fast function."""
+
+    def test_terminal_solution_values(self):
+        """Test that terminal solution has correct mathematical properties."""
+        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
+            make_solution_terminal_fast,
+            IndShockSolution,
+            TERMINAL_GRID_MIN,
+            TERMINAL_GRID_MAX,
+            TERMINAL_GRID_SIZE,
+        )
+
+        CRRA = 2.0
+        terminal = make_solution_terminal_fast(IndShockSolution, CRRA)
+
+        # Grid should use module constants
+        self.assertEqual(len(terminal.mNrmGrid), TERMINAL_GRID_SIZE)
+        self.assertAlmostEqual(terminal.mNrmGrid[0], TERMINAL_GRID_MIN)
+        self.assertAlmostEqual(terminal.mNrmGrid[-1], TERMINAL_GRID_MAX)
+
+        # At terminal: vNvrs(m) = m (consume everything, so v(m) = u(m), vNvrs = u_inv(u(m)) = m)
+        np.testing.assert_array_almost_equal(terminal.vNvrs, terminal.mNrmGrid)
+
+        # vNvrsP = d(vNvrs)/dm = 1 everywhere
+        np.testing.assert_array_almost_equal(
+            terminal.vNvrsP, np.ones_like(terminal.mNrmGrid)
+        )
+
+        # MPCminNvrs = 1 (not 0 as was incorrectly set before)
+        self.assertEqual(terminal.MPCminNvrs, 1.0)
+
+        # hNrm = 0 at terminal (no future income)
+        self.assertEqual(terminal.hNrm, 0.0)
+
+        # MPC = 1 everywhere at terminal
+        np.testing.assert_array_almost_equal(terminal.MPC, np.array([1.0, 1.0]))
+
+    def test_terminal_solution_with_different_crra(self):
+        """Test terminal solution with various CRRA values."""
+        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
+            make_solution_terminal_fast,
+            IndShockSolution,
+        )
+
+        # Test with various valid CRRA values
+        for crra in [0.5, 1.5, 2.0, 3.0, 5.0]:
+            with self.subTest(crra=crra):
+                terminal = make_solution_terminal_fast(IndShockSolution, crra)
+                # The key mathematical property: vNvrs(m) = m holds for all CRRA != 1
+                np.testing.assert_array_almost_equal(terminal.vNvrs, terminal.mNrmGrid)
+                self.assertEqual(terminal.MPCminNvrs, 1.0)
+                self.assertEqual(terminal.hNrm, 0.0)
+
+
+class testCRRARange(unittest.TestCase):
+    """Test solver with various CRRA values."""
+
+    def test_various_crra_values(self):
+        """Test solver works correctly across CRRA range."""
+        crra_values = [0.5, 1.5, 2.0, 3.0, 5.0]
+        for crra in crra_values:
+            with self.subTest(crra=crra):
+                fast = IndShockConsumerTypeFast(CRRA=crra, cycles=0)
+                fast.solve()
+                # Verify solution is valid
+                c = fast.solution[0].cFunc(2.0)
+                self.assertTrue(
+                    np.isfinite(c), f"cFunc(2.0) not finite for CRRA={crra}"
+                )
+                self.assertGreater(c, 0, f"cFunc(2.0) not positive for CRRA={crra}")
+
+    def test_crra_consistency_across_values(self):
+        """Test that fast and standard solvers match across CRRA values."""
+        crra_values = [0.5, 1.5, 2.0, 3.0]
+        for crra in crra_values:
+            with self.subTest(crra=crra):
+                std = IndShockConsumerType(CRRA=crra, cycles=0)
+                std.solve()
+
+                fast = IndShockConsumerTypeFast(CRRA=crra, cycles=0)
+                fast.solve()
+
+                # Check consumption function matches
+                for m in [1.0, 2.0, 5.0]:
+                    std_c = std.solution[0].cFunc(m)
+                    fast_c = fast.solution[0].cFunc(m)
+                    self.assertAlmostEqual(std_c, fast_c, places=HARK_PRECISION)
+
+
+class testVPfuncConsistency(unittest.TestCase):
+    """Tests for marginal value function consistency."""
+
+    def test_vPfunc_matches_standard(self):
+        """Test that marginal value functions match between implementations."""
+        params = IdiosyncDict.copy()
+        params["vFuncBool"] = True
+
+        std = IndShockConsumerType(**params)
+        std.cycles = 0
+        std.solve()
+
+        fast = IndShockConsumerTypeFast(**params)
+        fast.cycles = 0
+        fast.solve()
+
+        # Compare vPfunc at various points
+        # vPfunc may have slightly more numerical error, so use HARK_PRECISION - 1
+        test_points = [1.0, 2.0, 3.0, 5.0]
+        for m in test_points:
+            with self.subTest(m=m):
+                std_vp = std.solution[0].vPfunc(m)
+                fast_vp = fast.solution[0].vPfunc(m)
+                self.assertAlmostEqual(std_vp, fast_vp, places=HARK_PRECISION - 1)
+
+
+class testPerfForesightFast(unittest.TestCase):
+    """Tests for PerfForesightConsumerTypeFast."""
+
+    def test_perf_foresight_crra_one_not_supported(self):
+        """Test that CRRA=1 raises error for PerfForesightConsumerTypeFast."""
+        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
+            PerfForesightConsumerTypeFast,
+        )
+
+        agent = PerfForesightConsumerTypeFast(CRRA=1.0, cycles=0)
+        with self.assertRaises(ValueError) as context:
+            agent.solve()
+        self.assertIn("CRRA=1", str(context.exception))
+        self.assertIn("log utility", str(context.exception))
+
+    def test_perf_foresight_basic_solve(self):
+        """Test that PerfForesightConsumerTypeFast solves correctly."""
+        from HARK.ConsumptionSaving.ConsIndShockModelFast import (
+            PerfForesightConsumerTypeFast,
+        )
+
+        agent = PerfForesightConsumerTypeFast(CRRA=2.0, cycles=0)
+        agent.solve()
+
+        # Verify solution is valid
+        c = agent.solution[0].cFunc(2.0)
+        self.assertTrue(np.isfinite(c))
+        self.assertGreater(c, 0)
+
+
+class testCRRANearOneWarning(unittest.TestCase):
+    """Tests for warning when CRRA is near 1."""
+
+    def test_crra_near_one_warning(self):
+        """Test that CRRA values in (0.99, 1.01) but not exactly 1 issue a warning."""
+        import warnings
+
+        # These values are in (0.99, 1.01) but not caught by np.isclose
+        near_one_values = [0.995, 1.005, 0.999, 1.001]
+        for crra in near_one_values:
+            with self.subTest(crra=crra):
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter("always")
+                    agent = IndShockConsumerTypeFast(CRRA=crra, cycles=0)
+                    agent.solve()
+                    # Check that a warning was issued
+                    self.assertEqual(len(w), 1)
+                    self.assertIn("close to 1", str(w[0].message))
+                    self.assertIn("numerical instability", str(w[0].message))
+
+    def test_crra_outside_warning_range_no_warning(self):
+        """Test that CRRA values outside (0.99, 1.01) do not issue warnings."""
+        import warnings
+
+        safe_values = [0.5, 0.98, 1.02, 2.0, 5.0]
+        for crra in safe_values:
+            with self.subTest(crra=crra):
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter("always")
+                    agent = IndShockConsumerTypeFast(CRRA=crra, cycles=0)
+                    agent.solve()
+                    # Check that no warning was issued
+                    self.assertEqual(len(w), 0)

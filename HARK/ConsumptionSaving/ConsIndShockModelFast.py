@@ -13,6 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -69,6 +70,24 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+# =====================================================================
+# === Terminal solution grid parameters for numba compatibility ===
+# =====================================================================
+# These parameters define the grid used to initialize vNvrs and vNvrsP arrays
+# in the terminal period solution. The grid needs to cover the range of mNrmNext
+# values that may be encountered during backward induction.
+
+# Minimum value for terminal grid (near-zero to avoid division issues)
+TERMINAL_GRID_MIN = 1e-6
+
+# Maximum value for terminal grid (should be large enough to cover typical
+# mNrmNext values during backward induction; 100 covers most standard cases)
+TERMINAL_GRID_MAX = 100.0
+
+# Number of points in the terminal grid (more points = better interpolation
+# accuracy but slightly higher memory usage)
+TERMINAL_GRID_SIZE = 200
 
 
 # =====================================================================
@@ -199,12 +218,16 @@ def make_solution_terminal_fast(solution_terminal_class, CRRA):
     Construct the terminal period solution for the fast solver.
 
     At terminal period, consumer consumes everything: c = m.
-    Therefore:
+    Therefore (for CRRA != 1):
     - v(m) = u(m)
     - vNvrs(m) = u_inv(v(m)) = u_inv(u(m)) = m
     - vNvrsP = d(vNvrs)/dm = 1
     - MPCmin = 1 (consume everything)
-    - MPCminNvrs = MPCmin^(-CRRA/(1-CRRA)) = 1
+    - MPCminNvrs = 1 (since MPCmin = 1)
+
+    Note: This function requires CRRA != 1 because the vNvrs transformation
+    vNvrs(m) = u_inv(u(m)) = m only holds for CRRA utility. For log utility
+    (CRRA = 1), u(c) = log(c) and the inverse differs fundamentally.
 
     Parameters
     ----------
@@ -230,15 +253,15 @@ def make_solution_terminal_fast(solution_terminal_class, CRRA):
     # MPC is 1 everywhere at terminal (consume everything)
     solution_terminal.MPC = np.array([1.0, 1.0])
 
-    # MPCminNvrs = MPCmin^(-CRRA/(1-CRRA)) = 1^(-CRRA/(1-CRRA)) = 1 for any CRRA != 1
+    # At terminal, MPCmin = 1 (consume everything), so MPCminNvrs = 1
     solution_terminal.MPCminNvrs = 1.0
 
     # Create grid that covers typical mNrmNext range during backward induction
-    # Use a grid from near-zero to a large value to avoid extrapolation issues
-    mNrmGrid = np.linspace(1e-6, 100.0, 200)
+    # Uses module-level constants for configurability
+    mNrmGrid = np.linspace(TERMINAL_GRID_MIN, TERMINAL_GRID_MAX, TERMINAL_GRID_SIZE)
     solution_terminal.mNrmGrid = mNrmGrid
 
-    # At terminal: vNvrs(m) = u_inv(u(m)) = m (since c = m)
+    # At terminal: vNvrs(m) = u_inv(u(m)) = m (since c = m, for CRRA != 1)
     solution_terminal.vNvrs = mNrmGrid.copy()
 
     # vNvrsP = d(vNvrs)/dm = d(m)/dm = 1 everywhere
@@ -1156,6 +1179,10 @@ init_perfect_foresight_fast["constructors"] = perf_foresight_constructor_dict
 class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
     r"""
     A version of the perfect foresight consumer type speed up by numba.
+
+    Note: This fast solver does not support CRRA=1 (log utility) due to the
+    mathematical singularity in the inverse value function transformation.
+    Use the standard PerfForesightConsumerType for log utility.
     """
 
     solution_terminal_class = PerfForesightSolution
@@ -1164,6 +1191,39 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         "solver": make_one_period_oo_solver(ConsPerfForesightSolverFast),
         "model": "ConsPerfForesight.yaml",
     }
+
+    def pre_solve(self):
+        """
+        Perform pre-solve checks and setup.
+
+        Raises
+        ------
+        ValueError
+            If CRRA equals 1 (log utility), which is not supported by the fast solver.
+
+        Warns
+        -----
+        UserWarning
+            If CRRA is very close to 1 (between 0.99 and 1.01), which may cause
+            numerical instability.
+        """
+        if np.isclose(self.CRRA, 1.0):
+            raise ValueError(
+                "PerfForesightConsumerTypeFast does not support CRRA=1 (log utility) "
+                "due to mathematical singularities in the numba-optimized solver. "
+                "Please use PerfForesightConsumerType instead for log utility preferences."
+            )
+        # Warn for CRRA values that are close to 1 but not caught by np.isclose
+        if 0.99 < self.CRRA < 1.01 and not np.isclose(self.CRRA, 1.0):
+            warnings.warn(
+                f"CRRA={self.CRRA} is very close to 1, which may cause numerical "
+                "instability. Consider using the standard solver or a CRRA value "
+                "further from 1.",
+                UserWarning,
+                stacklevel=2,
+            )
+        # Call parent's pre_solve
+        super().pre_solve()
 
     def post_solve(self):
         self.solution_fast = deepcopy(self.solution)
@@ -1272,12 +1332,27 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         ------
         ValueError
             If CRRA equals 1 (log utility), which is not supported by the fast solver.
+
+        Warns
+        -----
+        UserWarning
+            If CRRA is very close to 1 (between 0.99 and 1.01), which may cause
+            numerical instability.
         """
-        if self.CRRA == 1.0:
+        if np.isclose(self.CRRA, 1.0):
             raise ValueError(
                 "IndShockConsumerTypeFast does not support CRRA=1 (log utility) "
                 "due to mathematical singularities in the numba-optimized solver. "
                 "Please use IndShockConsumerType instead for log utility preferences."
+            )
+        # Warn for CRRA values that are close to 1 but not caught by np.isclose
+        if 0.99 < self.CRRA < 1.01 and not np.isclose(self.CRRA, 1.0):
+            warnings.warn(
+                f"CRRA={self.CRRA} is very close to 1, which may cause numerical "
+                "instability. Consider using the standard solver or a CRRA value "
+                "further from 1.",
+                UserWarning,
+                stacklevel=2,
             )
         # Call parent's pre_solve
         super().pre_solve()
