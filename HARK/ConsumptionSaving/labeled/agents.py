@@ -25,6 +25,13 @@ from .solvers import (
     ConsRiskyAssetLabeledSolver,
 )
 
+__all__ = [
+    "PerfForesightLabeledType",
+    "IndShockLabeledType",
+    "RiskyAssetLabeledType",
+    "PortfolioLabeledType",
+]
+
 
 class PerfForesightLabeledType(IndShockConsumerType):
     """

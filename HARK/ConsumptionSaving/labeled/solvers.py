@@ -9,12 +9,12 @@ while concrete solvers override specific hook methods for their model type.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import xarray as xr
 
-from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSetup
+from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
 
 from .solution import ConsumerSolutionLabeled, ValueFuncCRRALabeled
@@ -29,8 +29,17 @@ from .transitions import (
 if TYPE_CHECKING:
     from HARK.distributions import DiscreteDistributionLabeled
 
+__all__ = [
+    "BaseLabeledSolver",
+    "ConsPerfForesightLabeledSolver",
+    "ConsIndShockLabeledSolver",
+    "ConsRiskyAssetLabeledSolver",
+    "ConsFixedPortfolioLabeledSolver",
+    "ConsPortfolioLabeledSolver",
+]
 
-class BaseLabeledSolver(ConsIndShockSetup):
+
+class BaseLabeledSolver(MetricObject):
     """
     Base solver implementing Template Method pattern for EGM algorithm.
 
@@ -89,12 +98,23 @@ class BaseLabeledSolver(ConsIndShockSetup):
         aXtraGrid: np.ndarray,
         **kwargs,
     ) -> None:
-        # Input validation
+        # Input validation - CRRA
         if not np.isfinite(CRRA):
             raise ValueError(f"CRRA must be finite, got {CRRA}")
         if CRRA < 0:
             raise ValueError(f"CRRA must be non-negative, got {CRRA}")
 
+        # Input validation - economic parameters
+        if LivPrb <= 0 or LivPrb > 1:
+            raise ValueError(f"LivPrb must be in (0, 1], got {LivPrb}")
+        if DiscFac <= 0:
+            raise ValueError(f"DiscFac must be positive, got {DiscFac}")
+        if Rfree <= 0:
+            raise ValueError(f"Rfree must be positive, got {Rfree}")
+        if PermGroFac <= 0:
+            raise ValueError(f"PermGroFac must be positive, got {PermGroFac}")
+
+        # Input validation - asset grid
         aXtraGrid = np.asarray(aXtraGrid)
         if len(aXtraGrid) == 0:
             raise ValueError("aXtraGrid cannot be empty")
@@ -213,10 +233,10 @@ class BaseLabeledSolver(ConsIndShockSetup):
         ValueFuncCRRALabeled
             Continuation value function.
         """
-        vfunc_next = self.solution_next.value
+        value_next = self.solution_next.value
 
         v_end = self.transitions.continuation(
-            self.post_state, None, vfunc_next, self.params, self.u
+            self.post_state, None, value_next, self.params, self.u
         )
         v_end = xr.Dataset(v_end).drop_vars(["mNrm"])
 
@@ -266,23 +286,26 @@ class BaseLabeledSolver(ConsIndShockSetup):
             )
 
     def state_transition(
-        self, state: dict, action: dict, params: SimpleNamespace
-    ) -> dict:
+        self, state: dict[str, Any], action: dict[str, Any], params: SimpleNamespace
+    ) -> dict[str, Any]:
         """Compute post-decision state from state and action."""
         return {"aNrm": state["mNrm"] - action["cNrm"]}
 
     def reverse_transition(
-        self, post_state: dict, action: dict, params: SimpleNamespace
-    ) -> dict:
+        self,
+        post_state: dict[str, Any],
+        action: dict[str, Any],
+        params: SimpleNamespace,
+    ) -> dict[str, Any]:
         """Recover state from post-decision state and action (for EGM)."""
         return {"mNrm": post_state["aNrm"] + action["cNrm"]}
 
     def egm_transition(
         self,
-        post_state: dict,
+        post_state: dict[str, Any],
         continuation: ValueFuncCRRALabeled,
         params: SimpleNamespace,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Compute optimal action using first-order condition (EGM)."""
         return {
             "cNrm": self.u.derinv(params.Discount * continuation.derivative(post_state))
@@ -290,11 +313,11 @@ class BaseLabeledSolver(ConsIndShockSetup):
 
     def value_transition(
         self,
-        action: dict,
-        state: dict,
+        action: dict[str, Any],
+        state: dict[str, Any],
         continuation: ValueFuncCRRALabeled,
         params: SimpleNamespace,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Compute value function variables from action, state, and continuation."""
         variables = {}
         post_state = self.state_transition(state, action, params)
@@ -314,6 +337,39 @@ class BaseLabeledSolver(ConsIndShockSetup):
         variables["value"] = np.sum(variables["v"])
 
         return variables
+
+    def _continuation_for_expectation(
+        self,
+        shocks: dict[str, Any],
+        post_state: dict[str, Any],
+        value_next: ValueFuncCRRALabeled,
+        params: SimpleNamespace,
+    ) -> dict[str, Any]:
+        """
+        Wrapper for continuation transition compatible with expected().
+
+        This method adapts the transitions.continuation() interface to work
+        with the expected() function from DiscreteDistributionLabeled.
+
+        Parameters
+        ----------
+        shocks : dict[str, Any]
+            Shock realizations (e.g., perm, tran, risky).
+        post_state : dict[str, Any]
+            Post-decision state (e.g., aNrm).
+        value_next : ValueFuncCRRALabeled
+            Next period's value function.
+        params : SimpleNamespace
+            Model parameters.
+
+        Returns
+        -------
+        dict[str, Any]
+            Continuation value variables.
+        """
+        return self.transitions.continuation(
+            post_state, shocks, value_next, params, self.u
+        )
 
     def endogenous_grid_method(self) -> None:
         """Execute the Endogenous Grid Method algorithm."""
@@ -426,12 +482,12 @@ class ConsIndShockLabeledSolver(BaseLabeledSolver):
 
     def create_continuation_function(self) -> ValueFuncCRRALabeled:
         """Create continuation function by integrating over income shocks."""
-        vfunc_next = self.solution_next.value
+        value_next = self.solution_next.value
 
         v_end = self.IncShkDstn.expected(
             func=self._continuation_for_expectation,
             post_state=self.post_state,
-            value_next=vfunc_next,
+            value_next=value_next,
             params=self.params,
         )
 
@@ -443,18 +499,6 @@ class ConsIndShockLabeledSolver(BaseLabeledSolver):
             v_end = xr.merge([borocnst, v_end], join="outer", compat="no_conflicts")
 
         return ValueFuncCRRALabeled(v_end, self.params.CRRA)
-
-    def _continuation_for_expectation(
-        self,
-        shocks: dict,
-        post_state: dict,
-        value_next: ValueFuncCRRALabeled,
-        params: SimpleNamespace,
-    ) -> dict:
-        """Wrapper for continuation transition compatible with expected()."""
-        return self.transitions.continuation(
-            post_state, shocks, value_next, params, self.u
-        )
 
 
 class ConsRiskyAssetLabeledSolver(BaseLabeledSolver):
@@ -513,12 +557,12 @@ class ConsRiskyAssetLabeledSolver(BaseLabeledSolver):
 
     def create_continuation_function(self) -> ValueFuncCRRALabeled:
         """Create continuation function integrating over shock distribution."""
-        vfunc_next = self.solution_next.value
+        value_next = self.solution_next.value
 
         v_end = self.ShockDstn.expected(
             func=self._continuation_for_expectation,
             post_state=self.post_state,
-            value_next=vfunc_next,
+            value_next=value_next,
             params=self.params,
         )
 
@@ -532,18 +576,6 @@ class ConsRiskyAssetLabeledSolver(BaseLabeledSolver):
         v_end = v_end.transpose("aNrm", ...)
 
         return ValueFuncCRRALabeled(v_end, self.params.CRRA)
-
-    def _continuation_for_expectation(
-        self,
-        shocks: dict,
-        post_state: dict,
-        value_next: ValueFuncCRRALabeled,
-        params: SimpleNamespace,
-    ) -> dict:
-        """Wrapper for continuation transition compatible with expected()."""
-        return self.transitions.continuation(
-            post_state, shocks, value_next, params, self.u
-        )
 
 
 class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
@@ -574,6 +606,12 @@ class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         RiskyShareFixed: float,
         **kwargs,
     ) -> None:
+        # Validate RiskyShareFixed
+        if RiskyShareFixed < 0 or RiskyShareFixed > 1:
+            raise ValueError(
+                f"RiskyShareFixed must be in [0, 1], got {RiskyShareFixed}"
+            )
+
         self.RiskyShareFixed = RiskyShareFixed
         super().__init__(
             solution_next=solution_next,
@@ -624,7 +662,16 @@ class ConsPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         ShareGrid: np.ndarray,
         **kwargs,
     ) -> None:
-        self.ShareGrid = np.asarray(ShareGrid)
+        # Validate ShareGrid
+        ShareGrid = np.asarray(ShareGrid)
+        if len(ShareGrid) == 0:
+            raise ValueError("ShareGrid cannot be empty")
+        if np.any(ShareGrid < 0) or np.any(ShareGrid > 1):
+            raise ValueError("ShareGrid values must be in [0, 1]")
+        if not np.all(np.diff(ShareGrid) > 0):
+            raise ValueError("ShareGrid must be strictly increasing")
+
+        self.ShareGrid = ShareGrid
         super().__init__(
             solution_next=solution_next,
             ShockDstn=ShockDstn,

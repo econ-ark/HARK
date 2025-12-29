@@ -30,6 +30,15 @@ from .factories import (
     make_solution_terminal_labeled,
 )
 
+__all__ = [
+    "ModelConfig",
+    "PERF_FORESIGHT_CONFIG",
+    "IND_SHOCK_CONFIG",
+    "RISKY_ASSET_CONFIG",
+    "PORTFOLIO_CONFIG",
+    "get_config",
+]
+
 
 @dataclass(frozen=True)
 class ModelConfig:

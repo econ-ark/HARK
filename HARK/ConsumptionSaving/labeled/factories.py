@@ -27,6 +27,13 @@ from .solution import ConsumerSolutionLabeled, ValueFuncCRRALabeled
 if TYPE_CHECKING:
     from numpy.random import Generator
 
+__all__ = [
+    "make_solution_terminal_labeled",
+    "make_labeled_inc_shk_dstn",
+    "make_labeled_risky_dstn",
+    "make_labeled_shock_dstn",
+]
+
 
 def make_solution_terminal_labeled(
     CRRA: float,

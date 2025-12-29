@@ -15,6 +15,11 @@ import xarray as xr
 from HARK.metric import MetricObject
 from HARK.rewards import UtilityFuncCRRA
 
+__all__ = [
+    "ValueFuncCRRALabeled",
+    "ConsumerSolutionLabeled",
+]
+
 
 class ValueFuncCRRALabeled(MetricObject):
     """

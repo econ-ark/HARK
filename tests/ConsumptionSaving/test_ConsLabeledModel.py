@@ -166,6 +166,38 @@ class test_InputValidation(unittest.TestCase):
             make_solution_terminal_labeled(2.0, np.array([-1.0, 0.0, 1.0]))
 
 
+class test_EconomicParameterValidation(unittest.TestCase):
+    """Test validation of economic parameters in solvers."""
+
+    def test_livprb_must_be_in_range(self):
+        """LivPrb must be in (0, 1]."""
+        agent = PerfForesightLabeledType()
+        agent.LivPrb = [0.0]  # Invalid - must be > 0
+        with self.assertRaises(ValueError):
+            agent.solve()
+
+    def test_discfac_must_be_positive(self):
+        """DiscFac must be positive."""
+        agent = PerfForesightLabeledType()
+        agent.DiscFac = 0.0  # Invalid - must be > 0
+        with self.assertRaises(ValueError):
+            agent.solve()
+
+    def test_rfree_must_be_positive(self):
+        """Rfree must be positive."""
+        agent = PerfForesightLabeledType()
+        agent.Rfree = [0.0]  # Invalid - must be > 0
+        with self.assertRaises(ValueError):
+            agent.solve()
+
+    def test_permgrofac_must_be_positive(self):
+        """PermGroFac must be positive."""
+        agent = PerfForesightLabeledType()
+        agent.PermGroFac = [0.0]  # Invalid - must be > 0
+        with self.assertRaises(ValueError):
+            agent.solve()
+
+
 class test_BackwardsCompatibility(unittest.TestCase):
     """Test backwards compatibility of imports."""
 

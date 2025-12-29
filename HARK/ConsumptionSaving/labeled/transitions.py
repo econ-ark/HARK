@@ -19,6 +19,15 @@ if TYPE_CHECKING:
 
     from .solution import ValueFuncCRRALabeled
 
+__all__ = [
+    "Transitions",
+    "PerfectForesightTransitions",
+    "IndShockTransitions",
+    "RiskyAssetTransitions",
+    "FixedPortfolioTransitions",
+    "PortfolioTransitions",
+]
+
 
 @runtime_checkable
 class Transitions(Protocol):
