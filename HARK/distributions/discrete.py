@@ -16,7 +16,7 @@ class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
     """
 
     def __init__(
-        self, dist: rv_discrete, *args: Any, seed: int = 0, **kwds: Any
+        self, dist: rv_discrete, *args: Any, seed: int = None, **kwds: Any
     ) -> None:
         """
         Parameterized discrete distribution from scipy.stats with seed management.
@@ -95,7 +95,7 @@ class DiscreteDistribution(Distribution):
         self,
         pmv: np.ndarray,
         atoms: np.ndarray,
-        seed: int = 0,
+        seed: int = None,
         limit: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(seed=seed)
@@ -369,7 +369,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         self,
         pmv: np.ndarray,
         atoms: np.ndarray,
-        seed: int = 0,
+        seed: int = None,
         limit: Optional[Dict[str, Any]] = None,
         name: str = "DiscreteDistributionLabeled",
         attrs: Optional[Dict[str, Any]] = None,
