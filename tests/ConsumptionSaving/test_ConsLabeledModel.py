@@ -20,7 +20,7 @@ from HARK.ConsumptionSaving.ConsLabeledModel import (
     RiskyAssetLabeledType,
     make_solution_terminal_labeled,
 )
-from HARK.ConsumptionSaving.labeled.solution import ValueFuncCRRALabeled
+from HARK.Labeled.solution import ValueFuncCRRALabeled
 from tests import HARK_PRECISION
 
 

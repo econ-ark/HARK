@@ -45,7 +45,7 @@ make_labeled_shock_dstn
 """
 
 # Re-export everything from the labeled subpackage
-from HARK.ConsumptionSaving.labeled import (
+from HARK.Labeled import (
     # Solution classes
     ConsumerSolutionLabeled,
     ValueFuncCRRALabeled,
