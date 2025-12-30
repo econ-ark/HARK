@@ -866,8 +866,7 @@ def solve_one_period_ConsKinkedR(
         An indicator for whether the value function should be computed and
         included in the reported solution.
     CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
+        An indicator for whether the solver should use cubic or linear interpolation.
 
     Returns
     -------
@@ -1418,9 +1417,10 @@ class PerfForesightConsumerType(AgentType):
         # self.shocks["PermShk"][self.t_cycle == 0] = 1. # Add this at some point
         self.shocks["TranShk"] = np.ones(self.AgentCount)
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
-        Returns an array of size self.AgentCount with Rfree in every entry.
+        Returns an array of size self.AgentCount with Rfree in every entry,
+        representing the risk-free portfolio return
 
         Parameters
         ----------
@@ -1432,18 +1432,18 @@ class PerfForesightConsumerType(AgentType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         Rfree_array = np.array(self.Rfree)
-        return Rfree_array[self.t_cycle]
+        return Rfree_array[self.t_cycle - 1]
 
     def transition(self):
         pLvlPrev = self.state_prev["pLvl"]
         kNrm = self.state_prev["aNrm"]
-        RfreeNow = self.get_Rfree()
+        RportNow = self.get_Rport()
 
         # Calculate new states: normalized market resources and permanent income level
         # Updated permanent income level
         pLvlNow = pLvlPrev * self.shocks["PermShk"]
         # "Effective" interest factor on normalized assets
-        ReffNow = RfreeNow / self.shocks["PermShk"]
+        ReffNow = RportNow / self.shocks["PermShk"]
         bNrmNow = ReffNow * kNrm  # Bank balances before labor income
         # Market resources after income
         mNrmNow = bNrmNow + self.shocks["TranShk"]
@@ -1979,26 +1979,26 @@ class IndShockConsumerType(PerfForesightConsumerType):
     r"""
     A consumer type with idiosyncratic shocks to permanent and transitory income.
     Their problem is defined by a sequence of income distributions, survival probabilities
-    (:math:`1-\mathsf{D}`), and permanent income growth rates (:math:`\Gamma`), as well
+    (:math:`\mathsf{S}`), and permanent income growth rates (:math:`\Gamma`), as well
     as time invariant values for risk aversion (:math:`\rho`), discount factor (:math:`\beta`),
     the interest rate (:math:`\mathsf{R}`), the grid of end-of-period assets, and an artificial
     borrowing constraint (:math:`\underline{a}`).
 
     .. math::
         \newcommand{\CRRA}{\rho}
-        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\LivPrb}{\mathsf{S}}
         \newcommand{\PermGroFac}{\Gamma}
         \newcommand{\Rfree}{\mathsf{R}}
         \newcommand{\DiscFac}{\beta}
         \begin{align*}
-        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
         & \text{s.t.}  \\
         a_t &= m_t - c_t, \\
         a_t &\geq \underline{a}, \\
         m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
 
 
@@ -2007,11 +2007,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
@@ -2717,8 +2717,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     interest rates for saving (:math:`\mathsf{R}_{save}`) and borrowing
     (:math:`\mathsf{R}_{boro}`).
 
-    Solver for this class is currently only compatible with linear spline interpolation.
-
     .. math::
         \newcommand{\CRRA}{\rho}
         \newcommand{\DiePrb}{\mathsf{D}}
@@ -2741,17 +2739,14 @@ class KinkedRconsumerType(IndShockConsumerType):
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
-
     Constructors
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
@@ -2930,10 +2925,11 @@ class KinkedRconsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
-        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
-        on whether self.aNrmNow >< 0.
+        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in
+        each entry, based on whether self.aNrmNow >< 0. This represents the risk-
+        free portfolio return in this model.
 
         Parameters
         ----------

@@ -29,100 +29,15 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     make_simple_ShareGrid,
     make_AdjustDstn,
 )
+from HARK.ConsumptionSaving.ConsWealthUtilityModel import (
+    make_ChiFromOmega_function,
+)
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc, make_assets_grid
-
-
-class ChiFromOmegaFunction:
-    """
-    A class for representing a function that takes in values of omega = EndOfPrdvP / aNrm
-    and returns the corresponding optimal chi = cNrm / aNrm. The only parameters
-    that matter for this transformation are the coefficient of relative risk
-    aversion (rho) and the share of wealth in the Cobb-Douglas aggregator (delta).
-
-    Parameters
-    ----------
-    CRRA : float
-        Coefficient of relative risk aversion.
-    WealthShare : float
-        Share for wealth in the Cobb-Douglas aggregator in CRRA utility function.
-    N : int, optional
-        Number of interpolating gridpoints to use (default 501).
-    z_bound : float, optional
-        Absolute value on the auxiliary variable z's boundary (default 15).
-        z represents values that are input into a logit transformation
-        scaled by the upper bound of chi, which yields chi values.
-    """
-
-    def __init__(self, CRRA, WealthShare, N=501, z_bound=15):
-        self.CRRA = CRRA
-        self.WealthShare = WealthShare
-        self.N = N
-        self.z_bound = z_bound
-        self.update()
-
-    def f(self, x):
-        """
-        Define the relationship between chi and omega, and evaluate on the vector
-        """
-        r = self.CRRA
-        d = self.WealthShare
-        return x ** (1 - d) * ((1 - d) * x ** (-d) - d * x ** (1 - d)) ** (-1 / r)
-
-    def update(self):
-        """
-        Construct the underlying interpolation of log(omega) on z.
-        """
-        # Make vectors of chi and z
-        chi_limit = (1.0 - self.WealthShare) / self.WealthShare
-        z_vec = np.linspace(-self.z_bound, self.z_bound, self.N)
-        exp_z = np.exp(z_vec)
-        chi_vec = chi_limit * exp_z / (1 + exp_z)
-
-        omega_vec = self.f(chi_vec)
-        log_omega_vec = np.log(omega_vec)
-
-        # Construct the interpolant
-        zFromLogOmegaFunc = LinearInterp(log_omega_vec, z_vec, lower_extrap=True)
-
-        # Store the function and limit as attributes
-        self.func = zFromLogOmegaFunc
-        self.limit = chi_limit
-
-    def __call__(self, omega):
-        """
-        Calculate optimal values of chi = cNrm / aNrm from values of omega.
-
-        Parameters
-        ----------
-        omega : np.array
-            One or more values of omega = EndOfPrdvP / aNrm.
-
-        Returns
-        -------
-        chi : np.array
-            Identically shaped array with optimal chi values.
-        """
-        z = self.func(np.log(omega))
-        exp_z = np.exp(z)
-        chi = self.limit * exp_z / (1 + exp_z)
-        return np.nan_to_num(chi)
-
-
-# Trivial constructor function
-def make_ChiFromOmega_function(CRRA, WealthShare, ChiFromOmega_N, ChiFromOmega_bound):
-    if WealthShare == 0.0:
-        return NullFunc()
-    return ChiFromOmegaFunction(
-        CRRA, WealthShare, N=ChiFromOmega_N, z_bound=ChiFromOmega_bound
-    )
-
-
-###############################################################################
 
 
 def utility(c, a, CRRA, share=0.0, intercept=0.0):
@@ -559,10 +474,6 @@ WealthPortfolioConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock

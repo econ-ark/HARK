@@ -961,9 +961,10 @@ class AggShockConsumerType(IndShockConsumerType):
         )
         return who_dies
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Returns an array of size self.AgentCount with self.RfreeNow in every entry.
+        This is the risk-free portfolio return in this model.
 
         Parameters
         ----------
@@ -991,10 +992,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_shocks(self)  # Update idiosyncratic shocks
-        self.shocks["TranShk"] = (
-            self.shocks["TranShk"] * self.TranShkAggNow * self.wRteNow
-        )
-        self.shocks["PermShk"] = self.shocks["PermShk"] * self.PermShkAggNow
+        self.shocks["TranShk"] *= self.TranShkAggNow * self.wRteNow
+        self.shocks["PermShk"] *= self.PermShkAggNow
 
     def get_controls(self):
         """
