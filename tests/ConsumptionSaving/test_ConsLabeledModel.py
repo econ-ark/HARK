@@ -99,8 +99,8 @@ class test_RiskyAssetLabeledType(unittest.TestCase):
         self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"]
         m = self.agent.solution[0].policy["mNrm"]
-        self.assertTrue(len(c) > 0)
-        self.assertTrue(len(m) > 0)
+        self.assertGreater(len(c), 0)
+        self.assertGreater(len(m), 0)
 
     def test_consumption_positive(self):
         """Consumption should be non-negative."""
