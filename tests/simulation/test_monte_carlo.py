@@ -130,7 +130,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
                 "shocks": {
                     "theta": MeanOneLogNormal(1),
                     "agg_R": Aggregate(MeanOneLogNormal(1)),
-                    "live": Bernoulli(p=0.98),
+                    "live": Bernoulli(p=1.0),
                     "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
                 },
                 "dynamics": {
