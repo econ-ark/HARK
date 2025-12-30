@@ -13,7 +13,7 @@ from HARK.distributions.continuous import Normal
 
 
 # TODO: This function does not generate the limit attribute
-def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
+def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=None):
     d = Normal(mu, sigma).discretize(N, method="hermite")
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
 
@@ -289,7 +289,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
                     for i in range(temp_x.size)
                 ]
             )
-        except:
+        except KeyError:
             infimum = np.min(atoms, axis=-1, keepdims=True)
         try:
             supremum = np.array(
@@ -298,7 +298,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
                     for i in range(temp_x.size)
                 ]
             )
-        except:
+        except KeyError:
             supremum = np.max(atoms, axis=-1, keepdims=True)
 
         limit = {
@@ -351,7 +351,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
                 for i in range(temp_x.size)
             ]
         )
-    except:
+    except KeyError:
         infimum = np.min(atoms, axis=-1, keepdims=True)
     try:
         supremum = np.array(
@@ -360,7 +360,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
                 for i in range(temp_x.size)
             ]
         )
-    except:
+    except KeyError:
         supremum = np.max(atoms, axis=-1, keepdims=True)
 
     limit = {
@@ -375,7 +375,7 @@ def add_discrete_outcome(distribution, x, p, sort=False):
     return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
 
 
-def combine_indep_dstns(*distributions, seed=0):
+def combine_indep_dstns(*distributions, seed=None):
     """
     Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
     Can take multivariate discrete distributions as inputs.

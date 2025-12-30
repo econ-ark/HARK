@@ -28,7 +28,7 @@ class MultivariateNormal(multivariate_normal_frozen, Distribution):
         Seed for random number generator.
     """
 
-    def __init__(self, mu=[1, 1], Sigma=[[1, 0], [0, 1]], seed=0):
+    def __init__(self, mu=[1, 1], Sigma=[[1, 0], [0, 1]], seed=None):
         self.mu = np.asarray(mu)
         self.Sigma = np.asarray(Sigma)
         self.M = self.mu.size
@@ -89,7 +89,7 @@ class MultivariateNormal(multivariate_normal_frozen, Distribution):
         return DiscreteDistribution(
             pmv,
             atoms.T,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -501,6 +501,6 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         return DiscreteDistribution(
             pmv=pmv,
             atoms=atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
