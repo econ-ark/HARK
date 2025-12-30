@@ -14,7 +14,7 @@ cons_shocks = {
     "agg_gro": Aggregate(MeanOneLogNormal(1)),
     "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
     "theta": MeanOneLogNormal(1),
-    "live": Bernoulli(p=0.98),
+    "live": Bernoulli(p=1.0),
 }
 
 cons_pre = {
@@ -151,7 +151,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.initialize_sim()
@@ -193,7 +193,7 @@ class test_MonteCarloSimulator(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.initialize_sim()
