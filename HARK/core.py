@@ -802,7 +802,7 @@ class Model:
                         query = key
                         any_missing = False
                         missing_args = []
-                    except:
+                    except AttributeError:
                         parent = None
                         query = None
                         any_missing = True
@@ -826,7 +826,7 @@ class Model:
                         else:
                             try:
                                 temp_dict[this_arg] = self.parameters[this_arg]
-                            except:
+                            except KeyError:
                                 if has_no_default[this_arg]:
                                     # Record missing key-data pair
                                     any_missing = True
@@ -913,7 +913,7 @@ class Model:
 
             try:
                 constructor = self.constructors[key]
-            except:
+            except KeyError:
                 out += noyes[int(has_val)] + " " + key + " : NO CONSTRUCTOR FOUND\n"
                 continue
 
@@ -2165,8 +2165,10 @@ class Market(Model):
         dyn_vars=None,
         mill_rule=None,
         calc_dynamics=None,
+        distributions=None,
         act_T=1000,
         tolerance=0.000001,
+        seed=0,
         **kwds,
     ):
         super().__init__()
@@ -2186,6 +2188,7 @@ class Market(Model):
 
         self.track_vars = track_vars if track_vars is not None else list()  # NOQA
         self.dyn_vars = dyn_vars if dyn_vars is not None else list()  # NOQA
+        self.distributions = distributions if distributions is not None else list()  # NOQA
 
         if mill_rule is not None:  # To prevent overwriting of method-based mill_rules
             self.mill_rule = mill_rule
@@ -2193,9 +2196,11 @@ class Market(Model):
             self.calc_dynamics = calc_dynamics
         self.act_T = act_T  # NOQA
         self.tolerance = tolerance  # NOQA
+        self.seed = seed
         self.max_loops = 1000  # NOQA
         self.history = {}
         self.assign_parameters(**kwds)
+        self.RNG = np.random.default_rng(self.seed)
 
         self.print_parallel_error_once = True
         # Print the error associated with calling the parallel method
@@ -2359,6 +2364,7 @@ class Market(Model):
         """
         Reset the state of the market (attributes in sow_vars, etc) to some
         user-defined initial state, and erase the histories of tracked variables.
+        Also resets the internal RNG so that draws can be reproduced.
 
         Parameters
         ----------
@@ -2368,6 +2374,17 @@ class Market(Model):
         -------
         none
         """
+        # Reset internal RNG and distributions
+        for name in self.distributions:
+            if not hasattr(self, name):
+                continue
+            dstn = getattr(self, name)
+            if isinstance(dstn, list):
+                for D in dstn:
+                    D.reset()
+            else:
+                dstn.reset()
+
         # Reset the history of tracked variables
         self.history = {var_name: [] for var_name in self.track_vars}
 
