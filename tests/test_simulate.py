@@ -35,6 +35,39 @@ class testsForIndShk(unittest.TestCase):
             model.simulate()
 
 
+class testReproducibleSim(unittest.TestCase):
+    def setUp(self):
+        temp_dict = {
+            "T_sim": 100,
+            "AgentCount": 1000,
+            "track_vars": ["cNrm"],
+        }
+        self.agentA = IndShockConsumerType(seed=12345, **temp_dict)
+        self.agentB = IndShockConsumerType(seed=12345, **temp_dict)
+        self.agentC = IndShockConsumerType(seed=54321, **temp_dict)
+        self.agentA.solve()
+        self.agentB.solve()
+        self.agentC.solve()
+
+    def test_sim_match(self):
+        self.agentA.initialize_sim()
+        self.agentA.simulate()
+        self.agentB.initialize_sim()
+        self.agentB.simulate()
+        c_A = self.agentA.history["cNrm"][93, 138]
+        c_B = self.agentB.history["cNrm"][93, 138]
+        self.assertEqual(c_A, c_B)
+
+    def test_sim_mismatch(self):
+        self.agentA.initialize_sim()
+        self.agentA.simulate()
+        self.agentC.initialize_sim()
+        self.agentC.simulate()
+        c_A = self.agentA.history["cNrm"][97, 420]
+        c_C = self.agentC.history["cNrm"][97, 420]
+        self.assertNotAlmostEqual(c_A, c_C)
+
+
 class testSimulatorClass(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockConsumerType(
