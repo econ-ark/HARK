@@ -772,7 +772,8 @@ class ConsPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):
         opt_share[dvds[:, 0] < 0.0] = 0.0  # Want less than 0% risky
 
         if not self.nat_boro_cnst:
-            opt_share[0] = 1.0  # At aNrm = 0 (borrowing constraint) the portfolio share is irrelevant; 1.0 is arbitrary
+            # At aNrm = 0 the portfolio share is irrelevant; 1.0 is limit as a --> 0
+            opt_share[0] = 1.0
 
         opt_share = xr.DataArray(
             opt_share,
