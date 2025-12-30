@@ -66,8 +66,8 @@ def make_solution_terminal_labeled(
     # Input validation
     if not np.isfinite(CRRA):
         raise ValueError(f"CRRA must be finite, got {CRRA}")
-    if CRRA < 0:
-        raise ValueError(f"CRRA must be non-negative, got {CRRA}")
+    if CRRA <= 0:
+        raise ValueError(f"CRRA must be positive, got {CRRA}")
 
     aXtraGrid = np.asarray(aXtraGrid)
     if len(aXtraGrid) == 0:
