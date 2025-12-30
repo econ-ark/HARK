@@ -444,7 +444,7 @@ class IndexDistributionClassTests(unittest.TestCase):
     """
 
     def test_IndexDistribution(self):
-        cd = IndexDistribution(Bernoulli, {"p": [0.01, 0.5, 0.99]})
+        cd = IndexDistribution(Bernoulli, {"p": [0.01, 0.5, 0.99]}, seed=0)
 
         conditions = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])
 
