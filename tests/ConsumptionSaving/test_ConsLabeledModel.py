@@ -131,7 +131,7 @@ class test_PortfolioLabeledType(unittest.TestCase):
     def test_policy_shape(self):
         self.agent.solve()
         c = self.agent.solution[0].policy["cNrm"]
-        self.assertTrue(len(c) > 0)
+        self.assertGreater(len(c), 0)
 
     def test_consumption_positive(self):
         """Consumption should be non-negative."""
