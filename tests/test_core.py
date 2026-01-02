@@ -28,6 +28,7 @@ from HARK import (
 )
 from HARK.distributions import Uniform
 from HARK.metric import MetricObject, distance_metric
+from xarray import DataArray
 
 
 class test_logging(unittest.TestCase):
@@ -1119,8 +1120,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_var_scalar_parameter(self):
         """Test time-varying parameter with scalar value gets repeated."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         # CRRA is in time_inv, use a param that's in time_vary
         # Rfree is time-varying in IndShockConsumerType
@@ -1136,8 +1135,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_var_list_of_lists_parameter(self):
         """Test time-varying parameter with list of lists (agent x time)."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         # Rfree varies by agent and time: 2 agents, each with their own time series
@@ -1152,8 +1149,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_var_simple_list_parameter(self):
         """Test time-varying parameter with simple list (same for all agents)."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["Rfree"] = [1.03]  # simple list, same for all agents
@@ -1167,8 +1162,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_var_dataarray_agent_age_dims(self):
         """Test time-varying parameter with DataArray having (agent, age) dims."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         # Rfree with both agent and age dimensions
@@ -1181,8 +1174,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_var_dataarray_age_only_dim(self):
         """Test time-varying parameter with DataArray having only age dim."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         # Rfree with only age dimension (same across agents)
@@ -1195,8 +1186,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_inv_scalar_parameter(self):
         """Test time-invariant parameter with scalar value."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["DiscFac"] = 0.96  # scalar time-invariant
@@ -1209,8 +1198,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_inv_list_of_lists_parameter(self):
         """Test time-invariant parameter with list of lists (agent-varying)."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         # DiscFac varies by agent only (list of lists but each inner has 1 element)
@@ -1225,8 +1212,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_inv_simple_list_parameter(self):
         """Test time-invariant parameter with simple list."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["DiscFac"] = [0.96]  # simple list
@@ -1239,8 +1224,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_time_inv_dataarray_agent_dim(self):
         """Test time-invariant parameter with DataArray having agent dim."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["DiscFac"] = DataArray([0.95, 0.97], dims=("agent",))
@@ -1254,8 +1237,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_unknown_param_scalar(self):
         """Test parameter not in time_var or time_inv with scalar value."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["CustomParam"] = 42  # not in time_var or time_inv
@@ -1268,8 +1249,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_unknown_param_list_of_lists(self):
         """Test parameter not in time_var or time_inv with list of lists."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["CustomParam"] = [[1, 2], [3, 4]]  # agent-varying
@@ -1282,8 +1261,6 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
     def test_unknown_param_simple_list(self):
         """Test parameter not in time_var or time_inv with simple list."""
-        from xarray import DataArray
-
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
         params["CustomParam"] = [1, 2, 3]  # assumed time-varying
