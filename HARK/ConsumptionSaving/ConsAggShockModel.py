@@ -809,8 +809,8 @@ class AggShockConsumerType(IndShockConsumerType):
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
-    except:
-        pass
+    except:  # pragma: nocover
+        pass  # pragma: nocover
 
     def reset(self):
         """
@@ -1040,57 +1040,22 @@ class AggShockConsumerType(IndShockConsumerType):
         """
         self.simulate(1)
 
-    def calc_bounding_values(self):
+    def calc_bounding_values(self):  # pragma: nocover
         """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.
-
         NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
-        Creates a "normalized Euler error" function for this instance, mapping
-        from market resources to "consumption error per dollar of consumption."
-        Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncShkDstn
-        or to use a (temporary) very dense approximation.
-
         NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        mMax : float
-            Maximum normalized market resources for the Euler error function.
-        approx_inc_dstn : Boolean
-            Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncShkDstn[0], or to use a very accurate
-            discrete approximation instead.  When True, uses approximation in
-            IncShkDstn; when False, makes and uses a very dense approximation.
-
-        Returns
-        -------
-        None
         """
         raise NotImplementedError()
 
-    def check_conditions(self, verbose=None):
+    def check_conditions(self, verbose=None):  # pragma: nocover
         raise NotImplementedError()
 
-    def calc_limiting_values(self):
+    def calc_limiting_values(self):  # pragma: nocover
         raise NotImplementedError()
 
 
@@ -2506,11 +2471,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         """
-        if hasattr(self, "loops_max"):
-            loops_max = self.loops_max
-        else:  # Maximum number of loops; final act_T never exceeds act_T*loops_max
-            loops_max = 10
-
+        loops_max = getattr(self, "loops_max", 10)
         state_T_min = 50  # Choose minimum number of periods in each state for a valid Markov sequence
         logit_scale = (
             0.2  # Scaling factor on logit choice shocks when jumping to a new state
@@ -2681,7 +2642,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             self.slope_prev[i] = slope
 
         # Print the new parameters
-        if verbose:
+        if verbose:  # pragma: nocover
             print(
                 "intercept="
                 + str(self.intercept_prev)
@@ -3056,7 +3017,7 @@ class KrusellSmithEconomy(Market):
             self.slope_prev[i] = slope
 
         # Print the new parameters
-        if verbose:
+        if verbose:  # pragma: nocover
             print(
                 "intercept="
                 + str(self.intercept_prev)
