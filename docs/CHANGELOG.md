@@ -62,6 +62,7 @@ There are some breaking changes:
 - Fixed a bug that occured when changing an AgentType's AgentCount attribute after simulating [#1647](https://github.com/econ-ark/HARK/pull/1647)
 - Add describe_distance() method to MetricObject, generating text description of how "distance" is calculated for an object [#1648](https://github.com/econ-ark/HARK/pull/1648)
 - Default behavior of seeds for distribution classes has been revised. [#1641](https://github.com/econ-ark/HARK/pull/1641)
+- Refactored ConsLabeledModel to use new HARK.Labeled subpackage with modular architecture (config, factories, transitions, solvers, solution, agents). Added comprehensive input validation, runtime warnings for numerical issues, and expanded test coverage. [#1650](https://github.com/econ-ark/HARK/pull/1650)
 
 ### 0.16.1
 
