@@ -233,8 +233,6 @@ def make_solution_terminal_risky_contrib(CRRA, WithdrawTax):
     # the same value as in the last non-terminal period
     if type(WithdrawTax) is list:
         WithdrawTax = WithdrawTax[-1]
-    else:
-        WithdrawTax = WithdrawTax
 
     # Value and marginal value function of the adjusting agent
     vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + WithdrawTax), CRRA)

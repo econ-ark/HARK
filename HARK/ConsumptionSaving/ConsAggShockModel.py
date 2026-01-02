@@ -810,7 +810,7 @@ class AggShockConsumerType(IndShockConsumerType):
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
     except:  # pragma: nocover
-        pass  # pragma: nocover
+        pass
 
     def reset(self):
         """

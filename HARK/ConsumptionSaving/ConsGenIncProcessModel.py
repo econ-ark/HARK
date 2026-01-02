@@ -906,10 +906,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         AgentType.get_poststates(self)
 
     def check_conditions(self, verbose=None):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
     def calc_limiting_values(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
 
 ###############################################################################

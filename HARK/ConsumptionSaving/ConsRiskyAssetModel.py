@@ -591,10 +591,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         self.MPCnow = MPCnow
 
     def check_conditions(self, verbose=None):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
     def calc_limiting_values(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
 
 # This is to preserve compatibility with old name

@@ -417,10 +417,10 @@ class RepAgentConsumerType(IndShockConsumerType):
         self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks["TranShk"]
 
     def check_conditions(self, verbose=None):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
     def calc_limiting_values(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
 
 ###############################################################################
