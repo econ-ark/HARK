@@ -27,6 +27,7 @@ from HARK.rewards import (
     UtilityFuncCobbDouglasCRRA,
     UtilityFuncConstElastSubs,
     UtilityFunction,
+    vNvrsSlope,
 )
 
 
@@ -267,3 +268,54 @@ class testsForUtilityFunction(unittest.TestCase):
         a = U(x)
         self.assertRaises(NotImplementedError, U.der, x)
         self.assertRaises(NotImplementedError, U.inv, -x)
+
+
+class testsForVNvrsSlope(unittest.TestCase):
+    """
+    Tests for the vNvrsSlope function that handles CRRA=1 (log utility) case.
+
+    This tests the fix for issue #75 where CRRA=1 would cause ZeroDivisionError
+    due to expressions like MPC ** (-CRRA / (1.0 - CRRA)).
+    """
+
+    def test_log_utility_case(self):
+        """Test that rho=1 (log utility) returns MPC directly."""
+        self.assertEqual(vNvrsSlope(0.5, 1.0), 0.5)
+        self.assertEqual(vNvrsSlope(0.3, 1.0), 0.3)
+        self.assertEqual(vNvrsSlope(1.0, 1.0), 1.0)
+
+    def test_standard_crra_case(self):
+        """Test standard CRRA formula for rho != 1."""
+        # For rho=2: MPC^(-2/(1-2)) = MPC^2
+        self.assertAlmostEqual(vNvrsSlope(0.5, 2.0), 0.25)
+        self.assertAlmostEqual(vNvrsSlope(0.3, 2.0), 0.09)
+
+        # For rho=0.5: MPC^(-0.5/(1-0.5)) = MPC^(-1) = 1/MPC
+        self.assertAlmostEqual(vNvrsSlope(0.5, 0.5), 2.0)
+        self.assertAlmostEqual(vNvrsSlope(0.25, 0.5), 4.0)
+
+    def test_near_one_uses_limit(self):
+        """Test that values very close to 1 use the log utility formula."""
+        # Values within np.isclose tolerance should use MPC directly
+        result = vNvrsSlope(0.5, 1.0 + 1e-10)
+        self.assertAlmostEqual(result, 0.5, places=5)
+
+    def test_array_input(self):
+        """Test that array inputs work correctly."""
+        MPC_array = np.array([0.3, 0.5, 0.7])
+
+        # Log utility case
+        result = vNvrsSlope(MPC_array, 1.0)
+        np.testing.assert_array_almost_equal(result, MPC_array)
+
+        # Standard CRRA case (rho=2)
+        result = vNvrsSlope(MPC_array, 2.0)
+        expected = MPC_array**2
+        np.testing.assert_array_almost_equal(result, expected)
+
+    def test_mpc_equals_one(self):
+        """Test edge case where MPC=1."""
+        # For any rho, MPC=1 should give slope=1
+        self.assertEqual(vNvrsSlope(1.0, 1.0), 1.0)
+        self.assertEqual(vNvrsSlope(1.0, 2.0), 1.0)
+        self.assertEqual(vNvrsSlope(1.0, 0.5), 1.0)

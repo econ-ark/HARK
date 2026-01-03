@@ -3,6 +3,7 @@ A model file for a Fisher 2-period consumption problem.
 """
 
 from HARK.model import Control, DBlock
+from HARK.rewards import CRRAutility
 
 # This way of distributing parameters across the scope is clunky
 # Can be handled better if parsed from a YAML file, probably
@@ -25,6 +26,6 @@ block = DBlock(
             "c": Control(["m"]),
             "a": lambda m, c: m - c,
         },
-        "reward": {"u": lambda c: c ** (1 - CRRA) / (1 - CRRA)},
+        "reward": {"u": lambda c: CRRAutility(c, CRRA)},
     }
 )
