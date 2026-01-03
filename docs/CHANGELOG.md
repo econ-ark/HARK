@@ -14,6 +14,13 @@ Release Date: January 3, 2026
 
 #### Release Notes
 
+This release has many small improvements and fixes to existing HARK capabilities, listed below under Minor Changes. It also includes expanded and improved documentation/learning materials in examples/Gentle-Intro. To copy those example notebooks into a local working directory for easy use, simply execute these two commands and then follow the prompts:
+
+`from HARK import install_examples`
+`install_examples()`
+
+Four new consumption-saving models have been added, listed below under Major Changes.
+
 There are some breaking changes:
 
 - TimeVaryingDiscreteDistribution has been removed; use IndexDistribution instead, and see #1592.
