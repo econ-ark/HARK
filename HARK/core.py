@@ -2656,12 +2656,12 @@ class AgentPopulation:
                             parameter_per_t = param
                     elif isinstance(param, DataArray):
                         if param.dims[0] == "agent":
-                            if param.dims[-1] == "age":
-                                parameter_per_t = param[agent].item()
+                            if len(param.dims) > 1 and param.dims[-1] == "age":
+                                parameter_per_t = param[agent].values.tolist()
                             else:
-                                parameter_per_t = param.item()
+                                parameter_per_t = param[agent].item()
                         elif param.dims[0] == "age":
-                            parameter_per_t = param.item()
+                            parameter_per_t = param.values.tolist()
 
                     agent_parameters[key] = parameter_per_t
 
@@ -2686,14 +2686,12 @@ class AgentPopulation:
                             agent_parameters[key] = param  # assume time vary
                     elif isinstance(param, DataArray):
                         if param.dims[0] == "agent":
-                            if param.dims[-1] == "age":
-                                agent_parameters[key] = param[
-                                    agent
-                                ].item()  # assume agent vary
+                            if len(param.dims) > 1 and param.dims[-1] == "age":
+                                agent_parameters[key] = param[agent].values.tolist()
                             else:
-                                agent_parameters[key] = param.item()  # assume time vary
+                                agent_parameters[key] = param[agent].item()
                         elif param.dims[0] == "age":
-                            agent_parameters[key] = param.item()  # assume time vary
+                            agent_parameters[key] = param.values.tolist()
 
             population_parameters.append(agent_parameters)
 
