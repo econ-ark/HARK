@@ -24,7 +24,7 @@ __all__ = [
 
 from .core import *
 
-__version__ = "0.16.1"
+__version__ = "0.16.2"
 import logging
 from HARK.helpers import install_examples
 

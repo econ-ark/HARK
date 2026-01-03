@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "econ-ark"
-version = "0.16.1"
+version = "0.16.2"
 authors = [{name = "Econ-ARK team", email = "econ-ark@jhuecon.org"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
