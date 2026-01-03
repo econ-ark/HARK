@@ -641,9 +641,7 @@ def solve_one_period_ConsMarkov(
             vNvrsP_now = vP_now * uFunc.derinv(v_now, order=(0, 1))
             mNrm_temp = np.insert(mNrm_for_vFunc, 0, mNrmMin_i)  # add the lower bound
             vNvrs_now = np.insert(vNvrs_now, 0, 0.0)
-            vNvrsP_now = np.insert(
-                vNvrsP_now, 0, vNvrsSlope(MPCmaxEff[i], CRRA)
-            )
+            vNvrsP_now = np.insert(vNvrsP_now, 0, vNvrsSlope(MPCmaxEff[i], CRRA))
             # MPCminNvrs = vNvrsSlope(MPCminNow[i], CRRA)
             vNvrsFuncNow = LinearInterp(
                 mNrm_temp,

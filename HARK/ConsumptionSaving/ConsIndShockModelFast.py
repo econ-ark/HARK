@@ -406,8 +406,7 @@ def _solveConsPerfForesightNumba(
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
     # For CRRA=1 (log utility), the pseudo-inverse value function slope is simply MPC.
-    # Note: Using inline conditional instead of vNvrsSlope() for numba @njit compatibility.
-    if CRRA == 1.0:
+    if np.isclose(CRRA, 1.0):
         vFuncNvrsSlope = MPCmin
     else:
         vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
@@ -942,8 +941,7 @@ def _add_vFuncNumba(
     mNrmGrid = _np_insert(mNrmGrid, 0, mNrmMinNow)
     vNvrs = _np_insert(vNvrs, 0, 0.0)
     # For CRRA=1 (log utility), the pseudo-inverse value function slope is simply MPC.
-    # Note: Using inline conditional instead of vNvrsSlope() for numba @njit compatibility.
-    if CRRA == 1.0:
+    if np.isclose(CRRA, 1.0):
         vNvrsP = _np_insert(vNvrsP, 0, MPCmaxEff)
         MPCminNvrs = MPCminNow
     else:

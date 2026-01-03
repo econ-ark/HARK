@@ -152,23 +152,23 @@ class testPerfForesightConsumerType(unittest.TestCase):
     def test_CRRA_equals_one(self):
         """
         Test that CRRA=1 (log utility) works correctly.
-        
+
         This tests fix for issue #75 where CRRA=1 would cause ZeroDivisionError
         due to expressions like MPC ** (-CRRA / (1.0 - CRRA)).
         """
         # Test with CRRA = 1.0 (log utility)
         log_utility_agent = PerfForesightConsumerType(cycles=0)
         log_utility_agent.CRRA = 1.0
-        
+
         # This should not raise ZeroDivisionError
         log_utility_agent.solve()
-        
+
         # Verify the solution exists and is reasonable
         self.assertIsNotNone(log_utility_agent.solution[0].cFunc)
-        
+
         # Consumption at m=5 should be positive
         c_at_5 = log_utility_agent.solution[0].cFunc(5.0)
         self.assertGreater(c_at_5, 0.0)
-        
+
         # Consumption should be less than resources (can't consume more than you have)
         self.assertLess(c_at_5, 5.0)

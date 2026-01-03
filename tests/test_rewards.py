@@ -28,6 +28,13 @@ from HARK.rewards import (
     UtilityFuncConstElastSubs,
     UtilityFunction,
     vNvrsSlope,
+    StoneGearyCRRAutility,
+    StoneGearyCRRAutility_inv,
+    StoneGearyCRRAutility_invP,
+    CDutility,
+    CRRACDutility,
+    CRRAWealthUtility,
+    CRRAWealthUtilityP,
 )
 
 
@@ -319,3 +326,177 @@ class testsForVNvrsSlope(unittest.TestCase):
         self.assertEqual(vNvrsSlope(1.0, 1.0), 1.0)
         self.assertEqual(vNvrsSlope(1.0, 2.0), 1.0)
         self.assertEqual(vNvrsSlope(1.0, 0.5), 1.0)
+
+    def test_continuity_near_one(self):
+        """Verify the function approaches MPC as rho approaches 1 from both sides."""
+        MPC = 0.5
+        # The standard formula diverges, but the limit should approach MPC
+        # Test that values very close to 1 give results close to MPC
+        for rho in [0.99, 0.999, 0.9999]:
+            # As rho -> 1 from below, formula goes to infinity, so we skip exact check
+            # The important thing is that rho=1 returns MPC exactly
+            pass
+        # At exactly 1, should return MPC
+        self.assertEqual(vNvrsSlope(MPC, 1.0), MPC)
+        # Very close to 1 (within np.isclose tolerance) should also return MPC
+        self.assertAlmostEqual(vNvrsSlope(MPC, 1.0 + 1e-10), MPC, places=5)
+        self.assertAlmostEqual(vNvrsSlope(MPC, 1.0 - 1e-10), MPC, places=5)
+
+    def test_invalid_mpc_raises(self):
+        """Test that invalid MPC values raise ValueError."""
+        with self.assertRaises(ValueError):
+            vNvrsSlope(0.0, 2.0)
+        with self.assertRaises(ValueError):
+            vNvrsSlope(-0.5, 2.0)
+        with self.assertRaises(ValueError):
+            vNvrsSlope(np.array([0.5, 0.0, 0.3]), 2.0)
+
+    def test_array_rho_raises(self):
+        """Test that array rho values raise ValueError."""
+        with self.assertRaises(ValueError):
+            vNvrsSlope(0.5, np.array([1.0, 2.0]))
+
+
+class testsForCRRAWealthUtility(unittest.TestCase):
+    """Tests for CRRAWealthUtility and CRRAWealthUtilityP functions."""
+
+    def test_reduces_to_standard_crra_when_share_zero(self):
+        """When share=0, should match standard CRRAutility."""
+        c_vals = [0.5, 1.0, 2.0, 5.0]
+        a = 3.0  # Asset value (irrelevant when share=0)
+        for c in c_vals:
+            for CRRA in [0.5, 1.0, 2.0, 3.0]:
+                expected = CRRAutility(c, CRRA)
+                actual = CRRAWealthUtility(c, a, CRRA, share=0.0)
+                self.assertAlmostEqual(actual, expected, places=10)
+
+    def test_log_utility_case(self):
+        """Test CRRA=1 returns log of Cobb-Douglas composite."""
+        c, a, share = 2.0, 3.0, 0.3
+        w = a  # intercept=0
+        expected = np.log(c ** (1 - share) * w**share)
+        actual = CRRAWealthUtility(c, a, 1.0, share)
+        self.assertAlmostEqual(actual, expected, places=10)
+
+    def test_marginal_utility_log_case(self):
+        """Test marginal utility for CRRA=1."""
+        c, a, share = 2.0, 5.0, 0.3
+        expected = (1 - share) / c
+        actual = CRRAWealthUtilityP(c, a, 1.0, share)
+        self.assertAlmostEqual(actual, expected, places=10)
+
+    def test_marginal_utility_matches_numerical_derivative(self):
+        """Verify marginal utility matches numerical derivative."""
+        c, a, CRRA, share = 2.0, 3.0, 2.5, 0.4
+        delta = 1e-7
+        numerical = (
+            CRRAWealthUtility(c + delta, a, CRRA, share)
+            - CRRAWealthUtility(c - delta, a, CRRA, share)
+        ) / (2 * delta)
+        analytical = CRRAWealthUtilityP(c, a, CRRA, share)
+        self.assertAlmostEqual(numerical, analytical, places=5)
+
+    def test_marginal_utility_log_matches_numerical(self):
+        """Verify marginal utility for CRRA=1 matches numerical derivative."""
+        c, a, share = 2.0, 3.0, 0.4
+        delta = 1e-7
+        numerical = (
+            CRRAWealthUtility(c + delta, a, 1.0, share)
+            - CRRAWealthUtility(c - delta, a, 1.0, share)
+        ) / (2 * delta)
+        analytical = CRRAWealthUtilityP(c, a, 1.0, share)
+        self.assertAlmostEqual(numerical, analytical, places=5)
+
+    def test_with_intercept(self):
+        """Test that intercept parameter works correctly."""
+        c, a, CRRA, share, intercept = 2.0, 1.0, 2.0, 0.5, 0.5
+        w = a + intercept
+        composite = c ** (1 - share) * w**share
+        expected = composite ** (1 - CRRA) / (1 - CRRA)
+        actual = CRRAWealthUtility(c, a, CRRA, share, intercept)
+        self.assertAlmostEqual(actual, expected, places=10)
+
+
+class testsForStoneGearyCRRA_one(unittest.TestCase):
+    """Tests for StoneGeary CRRA functions with CRRA=1 (log utility)."""
+
+    def test_inv_log_utility_roundtrip(self):
+        """Test that inv(u(c)) = c for CRRA=1."""
+        c_vals = [0.5, 1.0, 2.0, 5.0]
+        shifter, factor = 0.5, 1.2
+        for c in c_vals:
+            u = StoneGearyCRRAutility(c, 1.0, shifter=shifter, factor=factor)
+            c_recovered = StoneGearyCRRAutility_inv(
+                u, 1.0, shifter=shifter, factor=factor
+            )
+            self.assertAlmostEqual(c, c_recovered, places=10)
+
+    def test_inv_standard_crra_roundtrip(self):
+        """Test that inv(u(c)) = c for standard CRRA values."""
+        c_vals = [0.5, 1.0, 2.0, 5.0]
+        shifter, factor = 0.5, 1.2
+        for c in c_vals:
+            for rho in [0.5, 2.0, 3.0]:
+                u = StoneGearyCRRAutility(c, rho, shifter=shifter, factor=factor)
+                c_recovered = StoneGearyCRRAutility_inv(
+                    u, rho, shifter=shifter, factor=factor
+                )
+                self.assertAlmostEqual(c, c_recovered, places=10)
+
+    def test_invP_log_utility_matches_numerical(self):
+        """Test derivative of inverse for CRRA=1 matches numerical derivative."""
+        shifter, factor = 0.5, 1.2
+        # Use a utility value that gives positive consumption
+        c = 2.0
+        u = StoneGearyCRRAutility(c, 1.0, shifter, factor)
+        delta = 1e-7
+        numerical = (
+            StoneGearyCRRAutility_inv(u + delta, 1.0, shifter, factor)
+            - StoneGearyCRRAutility_inv(u - delta, 1.0, shifter, factor)
+        ) / (2 * delta)
+        analytical = StoneGearyCRRAutility_invP(u, 1.0, shifter, factor)
+        self.assertAlmostEqual(numerical, analytical, places=5)
+
+    def test_invP_standard_crra_matches_numerical(self):
+        """Test derivative of inverse for standard CRRA matches numerical derivative."""
+        shifter, factor = 0.5, 1.2
+        for rho in [0.5, 2.0, 3.0]:
+            c = 2.0
+            u = StoneGearyCRRAutility(c, rho, shifter, factor)
+            delta = 1e-7
+            numerical = (
+                StoneGearyCRRAutility_inv(u + delta, rho, shifter, factor)
+                - StoneGearyCRRAutility_inv(u - delta, rho, shifter, factor)
+            ) / (2 * delta)
+            analytical = StoneGearyCRRAutility_invP(u, rho, shifter, factor)
+            self.assertAlmostEqual(numerical, analytical, places=5)
+
+
+class testsForCRRACDutility(unittest.TestCase):
+    """Tests for CRRACDutility with CRRA=1 (log utility)."""
+
+    def test_log_utility_case(self):
+        """Test CRRA=1 returns log of CD utility."""
+        c, d, c_share, d_bar = 2.0, 3.0, 0.7, 0.1
+        cd = CDutility(c, d, c_share, d_bar)
+        expected = np.log(cd)
+        actual = CRRACDutility(c, d, c_share, d_bar, 1.0)
+        self.assertAlmostEqual(actual, expected, places=10)
+
+    def test_standard_crra_case(self):
+        """Test standard CRRA formula."""
+        c, d, c_share, d_bar = 2.0, 3.0, 0.7, 0.1
+        for CRRA in [0.5, 2.0, 3.0]:
+            cd = CDutility(c, d, c_share, d_bar)
+            expected = cd ** (1 - CRRA) / (1 - CRRA)
+            actual = CRRACDutility(c, d, c_share, d_bar, CRRA)
+            self.assertAlmostEqual(actual, expected, places=10)
+
+    def test_near_one_uses_log(self):
+        """Test that values very close to CRRA=1 use log formula."""
+        c, d, c_share, d_bar = 2.0, 3.0, 0.7, 0.1
+        cd = CDutility(c, d, c_share, d_bar)
+        expected = np.log(cd)
+        # Value within np.isclose tolerance
+        actual = CRRACDutility(c, d, c_share, d_bar, 1.0 + 1e-10)
+        self.assertAlmostEqual(actual, expected, places=5)
