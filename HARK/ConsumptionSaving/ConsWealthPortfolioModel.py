@@ -36,18 +36,11 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
-from HARK.rewards import UtilityFuncCRRA
+from HARK.rewards import (
+    UtilityFuncCRRA,
+    CRRAWealthUtilityP,
+)
 from HARK.utilities import NullFunc, make_assets_grid
-
-
-def utility(c, a, CRRA, share=0.0, intercept=0.0):
-    w = a + intercept
-    return (c ** (1 - share) * w**share) ** (1 - CRRA) / (1 - CRRA)
-
-
-def dudc(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * (1 - share) / c
 
 
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
@@ -299,7 +292,9 @@ def solve_one_period_WealthPortfolio(
     cNrm_now = np.insert(cNrm_now, 0, 0.0)
     cFuncNow = LinearInterp(mNrm_now, cNrm_now)
 
-    dudc_now = dudc(cNrm_now, mNrm_now - cNrm_now, CRRA, WealthShare, WealthShift)
+    dudc_now = CRRAWealthUtilityP(
+        cNrm_now, mNrm_now - cNrm_now, CRRA, WealthShare, WealthShift
+    )
     dudc_nvrs_now = uFunc.derinv(dudc_now, order=(1, 0))
     dudc_nvrs_func_now = LinearInterp(mNrm_now, dudc_nvrs_now)
 

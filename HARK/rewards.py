@@ -234,6 +234,48 @@ def CRRAutilityP_invP(uP, rho):
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
+def vNvrsSlope(MPC, rho):
+    """
+    Computes the slope of the pseudo-inverse value function for CRRA utility.
+
+    For CRRA utility, this is used to determine the asymptotic behavior of the
+    pseudo-inverse value function vNvrs = u^(-1)(v) as resources become large.
+
+    For rho ≠ 1: The slope is MPC^(-rho/(1-rho))
+    For rho = 1 (log utility): The slope is simply MPC
+
+    This function provides the proper limiting behavior for log utility, where
+    the standard formula MPC^(-rho/(1-rho)) is undefined.
+
+    Parameters
+    ----------
+    MPC : float or np.ndarray
+        Marginal propensity to consume value(s).
+    rho : float
+        Coefficient of relative risk aversion (CRRA).
+
+    Returns
+    -------
+    float or np.ndarray
+        Slope of the pseudo-inverse value function
+
+    Notes
+    -----
+    For log utility (rho=1), the derivation is as follows:
+    - u(c) = log(c), so u^(-1)(v) = exp(v)
+    - The pseudo-inverse value function is vNvrs(m) = exp(v(m))
+    - By the chain rule: d/dm vNvrs = exp(v) * dv/dm
+    - Since dv/dm = u'(c) * dc/dm = u'(c) * MPC (where MPC = dc/dm)
+    - For log utility: d/dm vNvrs = exp(v) * (1/c) * MPC = c * (1/c) * MPC = MPC
+
+    The expression MPC^(-rho/(1-rho)) diverges as rho → 1, but the properly
+    derived formula for log utility gives MPC directly.
+    """
+    if np.isclose(rho, 1.0):
+        return MPC
+    return MPC ** (-rho / (1.0 - rho))
+
+
 ###############################################################################
 
 # Define legacy versions of CRRA utility functions with no decorator.
@@ -346,6 +388,8 @@ def StoneGearyCRRAutilityPP(c, rho, shifter, factor=1.0):
 
 
 def StoneGearyCRRAutility_inv(u, rho, shifter, factor=1.0):
+    if np.isclose(rho, 1.0):
+        return np.exp(u / factor) - shifter
     return (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho)) - shifter
 
 
@@ -354,7 +398,10 @@ def StoneGearyCRRAutilityP_inv(uP, rho, shifter, factor=1.0):
 
 
 def StoneGearyCRRAutility_invP(u, rho, shifter, factor=1.0):
-    return (1.0 / (1.0 - rho)) * (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho) - 1.0)
+    if np.isclose(rho, 1.0):
+        return np.exp(u / factor) / factor
+    # Derivative: dc/du = (1/factor) * (u * (1-rho) / factor)^(1/(1-rho) - 1)
+    return (1.0 / factor) * (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho) - 1.0)
 
 
 def StoneGearyCRRAutilityP_invP(uP, rho, shifter, factor=1.0):
@@ -760,6 +807,8 @@ def CDutilityPc_inv(uc, d, c_share, d_bar):
 
 
 def CRRACDutility(c, d, c_share, d_bar, CRRA):
+    if np.isclose(CRRA, 1.0):
+        return np.log(CDutility(c, d, c_share, d_bar))
     return CDutility(c, d, c_share, d_bar) ** (1 - CRRA) / (1 - CRRA)
 
 
@@ -775,6 +824,74 @@ def CRRACDutilityPc_inv(uc, d, c_share, d_bar, CRRA):
     return (c_share / uc * (d + d_bar) ** (c_share * CRRA - c_share - CRRA + 1)) ** (
         1 / (c_share * CRRA - c_share + 1)
     )
+
+
+# ==============================================================================
+# Wealth-in-utility functions (Cobb-Douglas with wealth)
+# ==============================================================================
+
+
+def CRRAWealthUtility(c, a, CRRA, share=0.0, intercept=0.0):
+    """
+    Evaluates CRRA utility over a Cobb-Douglas composite of consumption and wealth.
+
+    The utility function is: u(c, w) = (c^(1-share) * w^share)^(1-CRRA) / (1-CRRA)
+    where w = a + intercept is wealth.
+
+    When share=0, this reduces to standard CRRA utility over consumption.
+    When CRRA=1 (log utility), returns log(c^(1-share) * w^share).
+
+    Parameters
+    ----------
+    c : float or np.ndarray
+        Consumption value(s)
+    a : float or np.ndarray
+        Asset/wealth value(s)
+    CRRA : float
+        Coefficient of relative risk aversion
+    share : float, optional
+        Share of wealth in utility (0 = pure consumption, 1 = pure wealth). Default 0.
+    intercept : float, optional
+        Shift parameter for wealth (w = a + intercept). Default 0.
+
+    Returns
+    -------
+    float or np.ndarray
+        Utility value(s)
+    """
+    w = a + intercept
+    composite = c ** (1 - share) * w**share
+    if np.isclose(CRRA, 1.0):
+        return np.log(composite)
+    return composite ** (1 - CRRA) / (1 - CRRA)
+
+
+def CRRAWealthUtilityP(c, a, CRRA, share=0.0, intercept=0.0):
+    """
+    Evaluates marginal utility of consumption for CRRA wealth-in-utility.
+
+    Parameters
+    ----------
+    c : float or np.ndarray
+        Consumption value(s)
+    a : float or np.ndarray
+        Asset/wealth value(s)
+    CRRA : float
+        Coefficient of relative risk aversion
+    share : float, optional
+        Share of wealth in utility (0 = pure consumption). Default 0.
+    intercept : float, optional
+        Shift parameter for wealth. Default 0.
+
+    Returns
+    -------
+    float or np.ndarray
+        Marginal utility of consumption
+    """
+    if np.isclose(CRRA, 1.0):
+        return (1 - share) / c
+    u = CRRAWealthUtility(c, a, CRRA, share, intercept)
+    return u * (1 - CRRA) * (1 - share) / c
 
 
 class UtilityFuncCRRA(UtilityFunction):
