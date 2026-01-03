@@ -1171,6 +1171,10 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         agent_pop.create_distributed_agents()
 
         self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
+        self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
+        self.assertEqual(agent_pop.agents[0].Rfree, 1.02)
+        self.assertEqual(agent_pop.agents[1].Rfree, 1.03)
 
     def test_time_var_dataarray_age_only_dim(self):
         """Test time-varying parameter with DataArray having only age dim."""
@@ -1183,6 +1187,10 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         agent_pop.create_distributed_agents()
 
         self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
+        self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
+        self.assertEqual(agent_pop.agents[0].Rfree, 1.03)
+        self.assertEqual(agent_pop.agents[1].Rfree, 1.03)
 
     def test_time_inv_scalar_parameter(self):
         """Test time-invariant parameter with scalar value."""
