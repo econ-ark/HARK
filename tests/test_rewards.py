@@ -342,20 +342,6 @@ class testsForVNvrsSlope(unittest.TestCase):
         self.assertAlmostEqual(vNvrsSlope(MPC, 1.0 + 1e-10), MPC, places=5)
         self.assertAlmostEqual(vNvrsSlope(MPC, 1.0 - 1e-10), MPC, places=5)
 
-    def test_invalid_mpc_raises(self):
-        """Test that invalid MPC values raise ValueError."""
-        with self.assertRaises(ValueError):
-            vNvrsSlope(0.0, 2.0)
-        with self.assertRaises(ValueError):
-            vNvrsSlope(-0.5, 2.0)
-        with self.assertRaises(ValueError):
-            vNvrsSlope(np.array([0.5, 0.0, 0.3]), 2.0)
-
-    def test_array_rho_raises(self):
-        """Test that array rho values raise ValueError."""
-        with self.assertRaises(ValueError):
-            vNvrsSlope(0.5, np.array([1.0, 2.0]))
-
 
 class testsForCRRAWealthUtility(unittest.TestCase):
     """Tests for CRRAWealthUtility and CRRAWealthUtilityP functions."""

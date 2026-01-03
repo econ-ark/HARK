@@ -250,19 +250,14 @@ def vNvrsSlope(MPC, rho):
     Parameters
     ----------
     MPC : float or np.ndarray
-        Marginal propensity to consume value(s). Must be positive.
+        Marginal propensity to consume value(s).
     rho : float
-        Coefficient of relative risk aversion (CRRA). Must be a scalar.
+        Coefficient of relative risk aversion (CRRA).
 
     Returns
     -------
     float or np.ndarray
         Slope of the pseudo-inverse value function
-
-    Raises
-    ------
-    ValueError
-        If MPC contains non-positive values or if rho is not a scalar.
 
     Notes
     -----
@@ -276,14 +271,6 @@ def vNvrsSlope(MPC, rho):
     The expression MPC^(-rho/(1-rho)) diverges as rho → 1, but the properly
     derived formula for log utility gives MPC directly.
     """
-    # Validate that rho is a scalar
-    if np.ndim(rho) > 0:
-        raise ValueError(f"rho must be a scalar, got array with shape {np.shape(rho)}")
-
-    # Validate that MPC is positive
-    if np.any(np.asarray(MPC) <= 0):
-        raise ValueError("MPC must be positive, got values <= 0")
-
     if np.isclose(rho, 1.0):
         return MPC
     return MPC ** (-rho / (1.0 - rho))
