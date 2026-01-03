@@ -438,12 +438,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             self.add_to_time_inv("ShareLimit")
             self.del_from_time_vary("ShareLimit")
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Calculates realized return factor for each agent, using the attributes Rfree,
-        RiskyNow, and ShareNow.  This method is a bit of a misnomer, as the return
-        factor is not riskless, but would more accurately be labeled as Rport.  However,
-        this method makes the portfolio model compatible with its parent class.
+        RiskyNow, and ShareNow.
 
         Parameters
         ----------
@@ -457,7 +455,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
             will be mislabeled as "Rfree".
         """
 
-        RfreeNow = super().get_Rfree()
+        RfreeNow = super().get_Rport()
         RiskyNow = self.shocks["Risky"]
         if self.PortfolioBool:
             ShareNow = self.controls["Share"]
@@ -593,10 +591,10 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         self.MPCnow = MPCnow
 
     def check_conditions(self, verbose=None):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
     def calc_limiting_values(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
 
 # This is to preserve compatibility with old name

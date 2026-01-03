@@ -135,10 +135,8 @@ def solve_one_period_ConsGenIncProcess(
     solution_next : ConsumerSolution
         The solution to next period's one period problem.
     IncShkDstn : distribution.Distribution
-        A discrete
-        approximation to the income process between the period being solved
-        and the one immediately following (in solution_next). Order: event
-        probabilities, persistent shocks, transitory shocks.
+        A discrete approximation to the income shocks between the period being
+        solved and the one immediately following (in solution_next).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -510,9 +508,10 @@ def solve_one_period_ConsGenIncProcess(
                     MPCminNvrs,
                 )
             )
+        # Value function "shifted"
         vNvrsFuncBase = LinearInterpOnInterp1D(
             vNvrsFunc_list, np.insert(pLvlGrid, 0, 0.0)
-        )  # Value function "shifted"
+        )
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
@@ -846,7 +845,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         """
         kLvlNow = self.state_prev["aLvl"]
         pLvlNow = np.zeros_like(kLvlNow)
-        RfreeNow = self.get_Rfree()
+        RportNow = self.get_Rport()
 
         # Calculate new states: normalized market resources and persistent income level
         for t in range(self.T_cycle):
@@ -857,7 +856,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
             )
 
         # state value
-        bLvlNow = RfreeNow * kLvlNow  # Bank balances before labor income
+        bLvlNow = RportNow * kLvlNow  # Bank balances before labor income
 
         # Market resources after income - state value
         mLvlNow = bLvlNow + self.shocks["TranShk"] * pLvlNow
@@ -908,10 +907,10 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         AgentType.get_poststates(self)
 
     def check_conditions(self, verbose=None):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
     def calc_limiting_values(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: nocover
 
 
 ###############################################################################
@@ -1123,17 +1122,10 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    IncShkDstn_default = GenIncProcessConsumerType_IncShkDstn_default
-    aXtraGrid_default = GenIncProcessConsumerType_aXtraGrid_default
-    pLvlNextFunc_default = GenIncProcessConsumerType_pLvlNextFunc_default
-    pLvlGrid_default = GenIncProcessConsumerType_pLvlGrid_default
-    pLvlPctiles_default = GenIncProcessConsumerType_pLvlPctiles_default
-    solving_default = GenIncProcessConsumerType_solving_default
-    simulation_default = GenIncProcessConsumerType_simulation_default
-
     default_ = {
         "params": init_explicit_perm_inc,
         "solver": solve_one_period_ConsGenIncProcess,
+        "model": "ConsGenIncProcess.yaml",
     }
 
 
@@ -1226,28 +1218,22 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         \overline{P}_{t+1} &=& \overline{P}_{t} \Gamma_{t+1} \\
         \end{eqnarray*}
 
-
     Constructors
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
         Its default constructor is :func:`HARK.utilities.make_assets_grid`
     pLvlNextFunc: Constructor, (:math:`\Gamma`, :math:`\varphi`)
         An arbitrary function used to evolve the GenIncShockConsumerType's permanent income
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_AR1_style_pLvlNextFunc`
     pLvlGrid: Constructor
         The agent's pLvl grid
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_pLvlGrid_by_simulation`
     pLvlPctiles: Constructor
         The agents income level percentile grid
-
         Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.make_basic_pLvlPctiles`
 
     Solving Parameters
@@ -1258,7 +1244,7 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
-    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+    Rfree: list[float], time varying, :math:`\mathsf{R}`
         Risk Free interest rate. Pass a list of floats to make Rfree time varying.
     DiscFac: float, :math:`\beta`
         Intertemporal discount factor.
@@ -1298,13 +1284,13 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -1332,15 +1318,8 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    IncShkDstn_default = PersistentShockConsumerType_IncShkDstn_default
-    aXtraGrid_default = PersistentShockConsumerType_aXtraGrid_default
-    pLvlNextFunc_default = PersistentShockConsumerType_pLvlNextFunc_default
-    pLvlGrid_default = PersistentShockConsumerType_pLvlGrid_default
-    pLvlPctiles_default = PersistentShockConsumerType_pLvlPctiles_default
-    solving_default = PersistentShockConsumerType_solving_default
-    simulation_default = PersistentShockConsumerType_simulation_default
-
     default_ = {
         "params": init_persistent_shocks,
         "solver": solve_one_period_ConsGenIncProcess,
+        "model": "ConsGenIncProcess.yaml",
     }

@@ -22,7 +22,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
-from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distributions import (
     MarkovProcess,
     MeanOneLogNormal,
@@ -810,7 +809,7 @@ class AggShockConsumerType(IndShockConsumerType):
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
-    except:
+    except:  # pragma: nocover
         pass
 
     def reset(self):
@@ -898,7 +897,9 @@ class AggShockConsumerType(IndShockConsumerType):
         else:
             self.IncShkDstnWithoutAggShocks = self.IncShkDstn
         self.IncShkDstn = [
-            combine_indep_dstns(self.IncShkDstn[t], AggShkDstn)
+            combine_indep_dstns(
+                self.IncShkDstn[t], AggShkDstn, seed=self.RNG.integers(0, 2**31 - 1)
+            )
             for t in range(self.T_cycle)
         ]
 
@@ -960,9 +961,10 @@ class AggShockConsumerType(IndShockConsumerType):
         )
         return who_dies
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Returns an array of size self.AgentCount with self.RfreeNow in every entry.
+        This is the risk-free portfolio return in this model.
 
         Parameters
         ----------
@@ -990,10 +992,8 @@ class AggShockConsumerType(IndShockConsumerType):
         None
         """
         IndShockConsumerType.get_shocks(self)  # Update idiosyncratic shocks
-        self.shocks["TranShk"] = (
-            self.shocks["TranShk"] * self.TranShkAggNow * self.wRteNow
-        )
-        self.shocks["PermShk"] = self.shocks["PermShk"] * self.PermShkAggNow
+        self.shocks["TranShk"] *= self.TranShkAggNow * self.wRteNow
+        self.shocks["PermShk"] *= self.PermShkAggNow
 
     def get_controls(self):
         """
@@ -1040,57 +1040,22 @@ class AggShockConsumerType(IndShockConsumerType):
         """
         self.simulate(1)
 
-    def calc_bounding_values(self):
+    def calc_bounding_values(self):  # pragma: nocover
         """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.
-
         NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
-        Creates a "normalized Euler error" function for this instance, mapping
-        from market resources to "consumption error per dollar of consumption."
-        Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncShkDstn
-        or to use a (temporary) very dense approximation.
-
         NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        mMax : float
-            Maximum normalized market resources for the Euler error function.
-        approx_inc_dstn : Boolean
-            Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncShkDstn[0], or to use a very accurate
-            discrete approximation instead.  When True, uses approximation in
-            IncShkDstn; when False, makes and uses a very dense approximation.
-
-        Returns
-        -------
-        None
         """
         raise NotImplementedError()
 
-    def check_conditions(self, verbose=None):
+    def check_conditions(self, verbose=None):  # pragma: nocover
         raise NotImplementedError()
 
-    def calc_limiting_values(self):
+    def calc_limiting_values(self):  # pragma: nocover
         raise NotImplementedError()
 
 
@@ -1136,14 +1101,15 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         for t in range(self.T_cycle):
             IncShkDstnOut.append(
                 [
-                    combine_indep_dstns(self.IncShkDstn[t][n], AggShkDstn[n])
+                    combine_indep_dstns(
+                        self.IncShkDstn[t][n],
+                        AggShkDstn[n],
+                        seed=self.RNG.integers(0, 2**31 - 1),
+                    )
                     for n in range(N)
                 ]
             )
         self.IncShkDstn = IncShkDstnOut
-
-    def reset_rng(self):
-        MarkovConsumerType.reset_rng(self)
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = 0
@@ -1807,6 +1773,7 @@ class CobbDouglasEconomy(Market):
         params["reap_vars"] = ["aLvl", "pLvl"]
         params["track_vars"] = ["MaggNow", "AaggNow"]
         params["dyn_vars"] = ["AFunc"]
+        params["distributions"] = ["PermShkAggDstn", "TranShkAggDstn", "AggShkDstn"]
         params.update(kwds)
 
         Market.__init__(self, agents=agents, tolerance=tolerance, act_T=act_T, **params)
@@ -1905,13 +1872,18 @@ class CobbDouglasEconomy(Market):
         -------
         None
         """
-        self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).discretize(
-            N=self.TranShkAggCount, method="equiprobable"
+        RNG = self.RNG
+        TranShkAggDstn = MeanOneLogNormal(
+            sigma=self.TranShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
-        self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).discretize(
-            N=self.PermShkAggCount, method="equiprobable"
+        self.TranShkAggDstn = TranShkAggDstn.discretize(N=self.TranShkAggCount)
+        PermShkAggDstn = MeanOneLogNormal(
+            sigma=self.PermShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
-        self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
+        self.PermShkAggDstn = PermShkAggDstn.discretize(N=self.PermShkAggCount)
+        self.AggShkDstn = combine_indep_dstns(
+            self.PermShkAggDstn, self.TranShkAggDstn, seed=RNG.integers(0, 2**31 - 1)
+        )
 
     def reset(self):
         """
@@ -2112,6 +2084,7 @@ class SmallOpenEconomy(Market):
             reap_vars=[],
             track_vars=["MaggNow", "AaggNow", "KtoLnow"],
             dyn_vars=[],
+            distributions=["PermShkAggDstn", "TranShkAggDstn", "AggShkDstn"],
             tolerance=tolerance,
             act_T=act_T,
         )
@@ -2159,13 +2132,18 @@ class SmallOpenEconomy(Market):
         -------
         None
         """
-        self.TranShkAggDstn = MeanOneLogNormal(sigma=self.TranShkAggStd).discretize(
-            N=self.TranShkAggCount, method="equiprobable"
+        RNG = self.RNG
+        TranShkAggDstn = MeanOneLogNormal(
+            sigma=self.TranShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
-        self.PermShkAggDstn = MeanOneLogNormal(sigma=self.PermShkAggStd).discretize(
-            N=self.PermShkAggCount, method="equiprobable"
+        self.TranShkAggDstn = TranShkAggDstn.discretize(N=self.TranShkAggCount)
+        PermShkAggDstn = MeanOneLogNormal(
+            sigma=self.PermShkAggStd, seed=RNG.integers(0, 2**31 - 1)
         )
-        self.AggShkDstn = combine_indep_dstns(self.PermShkAggDstn, self.TranShkAggDstn)
+        self.PermShkAggDstn = PermShkAggDstn.discretize(N=self.PermShkAggCount)
+        self.AggShkDstn = combine_indep_dstns(
+            self.PermShkAggDstn, self.TranShkAggDstn, seed=RNG.integers(0, 2**31 - 1)
+        )
 
     def mill_rule(self):
         """
@@ -2258,8 +2236,8 @@ class SmallOpenEconomy(Market):
         self.Shk_idx += 1
 
         # Factor prices are constant
-        RfreeNow = self.Rfunc(1.0 / PermShkAggNow)
-        wRteNow = self.wFunc(1.0 / PermShkAggNow)
+        RfreeNow = self.Rfunc(1.0 / TranShkAggNow)
+        wRteNow = self.wFunc(1.0 / TranShkAggNow)
 
         # Aggregates are irrelavent
         AaggNow = 1.0
@@ -2315,16 +2293,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         agents=None,
         tolerance=0.0001,
         act_T=1200,
-        sow_vars=[
-            "MaggNow",
-            "AaggNow",
-            "RfreeNow",
-            "wRteNow",
-            "PermShkAggNow",
-            "TranShkAggNow",
-            "KtoLnow",
-            "Mrkv",  # This one is new
-        ],
         **kwds,
     ):
         agents = agents if agents is not None else list()
@@ -2336,7 +2304,16 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             agents=agents,
             tolerance=tolerance,
             act_T=act_T,
-            sow_vars=sow_vars,
+            sow_vars=[
+                "MaggNow",
+                "AaggNow",
+                "RfreeNow",
+                "wRteNow",
+                "PermShkAggNow",
+                "TranShkAggNow",
+                "KtoLnow",
+                "Mrkv",  # This one is new
+            ],
             **params,
         )
 
@@ -2408,20 +2385,29 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         PermShkAggDstn = []
         AggShkDstn = []
         StateCount = self.MrkvArray.shape[0]
+        RNG = self.RNG
 
         for i in range(StateCount):
             TranShkAggDstn.append(
-                MeanOneLogNormal(sigma=self.TranShkAggStd[i]).discretize(
-                    N=self.TranShkAggCount, method="equiprobable"
+                MeanOneLogNormal(
+                    sigma=self.TranShkAggStd[i], seed=RNG.integers(0, 2**31 - 1)
+                ).discretize(
+                    N=self.TranShkAggCount,
                 )
             )
             PermShkAggDstn.append(
-                MeanOneLogNormal(sigma=self.PermShkAggStd[i]).discretize(
-                    N=self.PermShkAggCount, method="equiprobable"
+                MeanOneLogNormal(
+                    sigma=self.PermShkAggStd[i], seed=RNG.integers(0, 2**31 - 1)
+                ).discretize(
+                    N=self.PermShkAggCount,
                 )
             )
             AggShkDstn.append(
-                combine_indep_dstns(PermShkAggDstn[-1], TranShkAggDstn[-1])
+                combine_indep_dstns(
+                    PermShkAggDstn[-1],
+                    TranShkAggDstn[-1],
+                    seed=RNG.integers(0, 2**31 - 1),
+                )
             )
 
         self.TranShkAggDstn = TranShkAggDstn
@@ -2485,11 +2471,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         -------
         None
         """
-        if hasattr(self, "loops_max"):
-            loops_max = self.loops_max
-        else:  # Maximum number of loops; final act_T never exceeds act_T*loops_max
-            loops_max = 10
-
+        loops_max = getattr(self, "loops_max", 10)
         state_T_min = 50  # Choose minimum number of periods in each state for a valid Markov sequence
         logit_scale = (
             0.2  # Scaling factor on logit choice shocks when jumping to a new state
@@ -2660,7 +2642,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             self.slope_prev[i] = slope
 
         # Print the new parameters
-        if verbose:
+        if verbose:  # pragma: nocover
             print(
                 "intercept="
                 + str(self.intercept_prev)
@@ -3035,7 +3017,7 @@ class KrusellSmithEconomy(Market):
             self.slope_prev[i] = slope
 
         # Print the new parameters
-        if verbose:
+        if verbose:  # pragma: nocover
             print(
                 "intercept="
                 + str(self.intercept_prev)

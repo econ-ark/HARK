@@ -1,11 +1,8 @@
 """
-ConsLabeledModel - Labeled consumption-saving models using xarray.
+Labeled consumption-saving models using xarray.
 
-This module provides consumption-saving models that use xarray's labeled
+This package provides consumption-saving models that use xarray's labeled
 data structures for clear variable naming and easier manipulation of results.
-
-The implementation has been refactored into the labeled/ subpackage.
-This file provides backwards-compatible imports.
 
 Classes
 -------
@@ -44,56 +41,62 @@ make_labeled_shock_dstn
     Create labeled joint shock distribution.
 """
 
-# Re-export everything from the labeled subpackage
-from HARK.Labeled import (
-    # Solution classes
-    ConsumerSolutionLabeled,
-    ValueFuncCRRALabeled,
-    # Solvers
+from .agents import (
+    IndShockLabeledType,
+    PerfForesightLabeledType,
+    PortfolioLabeledType,
+    RiskyAssetLabeledType,
+)
+from .config import (
+    IND_SHOCK_CONFIG,
+    PERF_FORESIGHT_CONFIG,
+    PORTFOLIO_CONFIG,
+    RISKY_ASSET_CONFIG,
+    ModelConfig,
+    get_config,
+)
+from .factories import (
+    make_labeled_inc_shk_dstn,
+    make_labeled_risky_dstn,
+    make_labeled_shock_dstn,
+    make_solution_terminal_labeled,
+)
+from .solution import ConsumerSolutionLabeled, ValueFuncCRRALabeled
+from .solvers import (
+    BaseLabeledSolver,
     ConsFixedPortfolioLabeledSolver,
     ConsIndShockLabeledSolver,
     ConsPerfForesightLabeledSolver,
     ConsPortfolioLabeledSolver,
     ConsRiskyAssetLabeledSolver,
-    # Agent types
-    IndShockLabeledType,
-    PerfForesightLabeledType,
-    PortfolioLabeledType,
-    RiskyAssetLabeledType,
-    # Factories
-    make_labeled_inc_shk_dstn,
-    make_labeled_risky_dstn,
-    make_labeled_shock_dstn,
-    make_solution_terminal_labeled,
-    # Config objects
-    IND_SHOCK_CONFIG,
-    PERF_FORESIGHT_CONFIG,
-    PORTFOLIO_CONFIG,
-    RISKY_ASSET_CONFIG,
 )
-
-# Backwards compatibility: Build config dicts from new config objects
-init_perf_foresight_labeled = PERF_FORESIGHT_CONFIG.build_params()
-init_ind_shock_labeled = IND_SHOCK_CONFIG.build_params()
-init_risky_asset_labeled = RISKY_ASSET_CONFIG.build_params()
-init_portfolio_labeled = PORTFOLIO_CONFIG.build_params()
-
-# Also export the constructor dicts for backwards compatibility
-PF_labeled_constructor_dict = init_perf_foresight_labeled.get("constructors", {})
-ind_shock_labeled_constructor_dict = init_ind_shock_labeled.get("constructors", {})
-risky_asset_labeled_constructor_dict = init_risky_asset_labeled.get("constructors", {})
-init_portfolio_labeled_constructors = init_portfolio_labeled.get("constructors", {})
+from .transitions import (
+    FixedPortfolioTransitions,
+    IndShockTransitions,
+    PerfectForesightTransitions,
+    PortfolioTransitions,
+    RiskyAssetTransitions,
+    Transitions,
+)
 
 __all__ = [
     # Solution classes
     "ValueFuncCRRALabeled",
     "ConsumerSolutionLabeled",
     # Solvers
+    "BaseLabeledSolver",
     "ConsPerfForesightLabeledSolver",
     "ConsIndShockLabeledSolver",
     "ConsRiskyAssetLabeledSolver",
     "ConsFixedPortfolioLabeledSolver",
     "ConsPortfolioLabeledSolver",
+    # Transitions
+    "Transitions",
+    "PerfectForesightTransitions",
+    "IndShockTransitions",
+    "RiskyAssetTransitions",
+    "FixedPortfolioTransitions",
+    "PortfolioTransitions",
     # Agent types
     "PerfForesightLabeledType",
     "IndShockLabeledType",
@@ -104,13 +107,11 @@ __all__ = [
     "make_labeled_inc_shk_dstn",
     "make_labeled_risky_dstn",
     "make_labeled_shock_dstn",
-    # Config dicts (backwards compatibility)
-    "init_perf_foresight_labeled",
-    "init_ind_shock_labeled",
-    "init_risky_asset_labeled",
-    "init_portfolio_labeled",
-    "PF_labeled_constructor_dict",
-    "ind_shock_labeled_constructor_dict",
-    "risky_asset_labeled_constructor_dict",
-    "init_portfolio_labeled_constructors",
+    # Config
+    "ModelConfig",
+    "PERF_FORESIGHT_CONFIG",
+    "IND_SHOCK_CONFIG",
+    "RISKY_ASSET_CONFIG",
+    "PORTFOLIO_CONFIG",
+    "get_config",
 ]

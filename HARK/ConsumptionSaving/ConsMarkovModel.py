@@ -1043,9 +1043,10 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.read_shocks_from_history(self)
         self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Returns an array of size self.AgentCount with interest factor that varies with discrete state.
+        This represents the portfolio return in this model.
 
         Parameters
         ----------
@@ -1098,7 +1099,7 @@ class MarkovConsumerType(IndShockConsumerType):
         super().get_poststates()
         self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
 
-    def calc_bounding_values(self):
+    def calc_bounding_values(self):  # pragma: nocover
         """
         Calculate human wealth plus minimum and maximum MPC in an infinite
         horizon model with only one period repeated indefinitely.  Store results
@@ -1120,7 +1121,7 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -1146,8 +1147,8 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         raise NotImplementedError()
 
-    def check_conditions(self, verbose=None):
+    def check_conditions(self, verbose=None):  # pragma: nocover
         raise NotImplementedError()
 
-    def calc_limiting_values(self):
+    def calc_limiting_values(self):  # pragma: nocover
         raise NotImplementedError()

@@ -28,6 +28,7 @@ from HARK import (
 )
 from HARK.distributions import Uniform
 from HARK.metric import MetricObject, distance_metric
+from xarray import DataArray
 
 
 class test_logging(unittest.TestCase):
@@ -1112,3 +1113,251 @@ class ExtraConstructorTests(unittest.TestCase):
     def test_broken_constructor(self):
         self.agent.constructors["TranShkDstn"] = broken_constructor
         self.assertRaises(ValueError, self.agent.construct, "TranShkDstn")
+
+
+class TestAgentPopulationParseParameters(unittest.TestCase):
+    """Tests for AgentPopulation.__parse_parameters__ covering all code paths."""
+
+    def test_time_var_scalar_parameter(self):
+        """Test time-varying parameter with scalar value gets repeated."""
+        params = init_idiosyncratic_shocks.copy()
+        # CRRA is in time_inv, use a param that's in time_vary
+        # Rfree is time-varying in IndShockConsumerType
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["Rfree"] = 1.03  # scalar for time-varying param
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        # Rfree should be repeated for each time period
+        for agent in agent_pop.agents:
+            self.assertIsNotNone(agent.Rfree)
+
+    def test_time_var_list_of_lists_parameter(self):
+        """Test time-varying parameter with list of lists (agent x time)."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # Rfree varies by agent and time: 2 agents, each with their own time series
+        params["Rfree"] = [[1.02], [1.03]]
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].Rfree, [1.02])
+        self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
+
+    def test_time_var_simple_list_parameter(self):
+        """Test time-varying parameter with simple list (same for all agents)."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["Rfree"] = [1.03]  # simple list, same for all agents
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        for agent in agent_pop.agents:
+            self.assertEqual(agent.Rfree, [1.03])
+
+    def test_time_var_dataarray_agent_age_dims(self):
+        """Test time-varying parameter with DataArray having (agent, age) dims."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # Rfree with both agent and age dimensions (2 agents x 3 ages)
+        params["Rfree"] = DataArray(
+            [[1.01, 1.02, 1.03], [1.04, 1.05, 1.06]], dims=("agent", "age")
+        )
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
+        self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
+        # Each agent gets their own list of values across ages
+        self.assertEqual(agent_pop.agents[0].Rfree, [1.01, 1.02, 1.03])
+        self.assertEqual(agent_pop.agents[1].Rfree, [1.04, 1.05, 1.06])
+
+    def test_time_var_dataarray_age_only_dim(self):
+        """Test time-varying parameter with DataArray having only age dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # Rfree with only age dimension (same across agents)
+        params["Rfree"] = DataArray([1.03], dims=("age",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
+        self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
+        # Time-varying params return lists (one value per age)
+        self.assertEqual(agent_pop.agents[0].Rfree, [1.03])
+        self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
+
+    def test_time_inv_scalar_parameter(self):
+        """Test time-invariant parameter with scalar value."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["DiscFac"] = 0.96  # scalar time-invariant
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        for agent in agent_pop.agents:
+            self.assertEqual(agent.DiscFac, 0.96)
+
+    def test_time_inv_list_of_lists_parameter(self):
+        """Test time-invariant parameter with list of lists (agent-varying)."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # DiscFac varies by agent only (list of lists but each inner has 1 element)
+        params["DiscFac"] = [[0.95], [0.97]]
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].DiscFac, [0.95])
+        self.assertEqual(agent_pop.agents[1].DiscFac, [0.97])
+
+    def test_time_inv_simple_list_parameter(self):
+        """Test time-invariant parameter with simple list."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["DiscFac"] = [0.96]  # simple list
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        for agent in agent_pop.agents:
+            self.assertEqual(agent.DiscFac, [0.96])
+
+    def test_time_inv_dataarray_agent_dim(self):
+        """Test time-invariant parameter with DataArray having agent dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["DiscFac"] = DataArray([0.95, 0.97], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].DiscFac, 0.95)
+        self.assertEqual(agent_pop.agents[1].DiscFac, 0.97)
+
+    def test_unknown_param_scalar(self):
+        """Test parameter not in time_var or time_inv with scalar value."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = 42  # not in time_var or time_inv
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        for agent in agent_pop.agents:
+            self.assertEqual(agent.CustomParam, 42)
+
+    def test_unknown_param_list_of_lists(self):
+        """Test parameter not in time_var or time_inv with list of lists."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = [[1, 2], [3, 4]]  # agent-varying
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(agent_pop.agents[0].CustomParam, [1, 2])
+        self.assertEqual(agent_pop.agents[1].CustomParam, [3, 4])
+
+    def test_unknown_param_simple_list(self):
+        """Test parameter not in time_var or time_inv with simple list."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = [1, 2, 3]  # assumed time-varying
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        for agent in agent_pop.agents:
+            self.assertEqual(agent.CustomParam, [1, 2, 3])
+
+    def test_time_var_dataarray_agent_only_dim(self):
+        """Test time-varying parameter with DataArray having only agent dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # Rfree with only agent dimension (no age)
+        params["Rfree"] = DataArray([1.02, 1.03], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].Rfree, 1.02)
+        self.assertEqual(agent_pop.agents[1].Rfree, 1.03)
+
+    def test_unknown_param_dataarray_agent_age_dims(self):
+        """Test unknown parameter with DataArray having (agent, age) dims."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = DataArray([[1, 2], [3, 4]], dims=("agent", "age"))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CustomParam, [1, 2])
+        self.assertEqual(agent_pop.agents[1].CustomParam, [3, 4])
+
+    def test_unknown_param_dataarray_agent_only_dim(self):
+        """Test unknown parameter with DataArray having only agent dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = DataArray([10, 20], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CustomParam, 10)
+        self.assertEqual(agent_pop.agents[1].CustomParam, 20)
+
+    def test_unknown_param_dataarray_age_only_dim(self):
+        """Test unknown parameter with DataArray having only age dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = DataArray([1, 2, 3], dims=("age",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        # Both agents get the same age-varying list
+        self.assertEqual(agent_pop.agents[0].CustomParam, [1, 2, 3])
+        self.assertEqual(agent_pop.agents[1].CustomParam, [1, 2, 3])
+
+    def test_approx_distributions_invalid_param(self):
+        """Test approx_distributions raises error for non-distribution param."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = Uniform(2.0, 10)
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+
+        with self.assertRaises(ValueError):
+            agent_pop.approx_distributions(
+                {
+                    "DiscFac": {"N": 3, "method": "equiprobable"}
+                }  # DiscFac is not a Distribution
+            )
+
+    def test_approx_distributions_single_distribution(self):
+        """Test approx_distributions with a single distribution."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = Uniform(2.0, 10)
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.approx_distributions({"CRRA": {"N": 5, "method": "equiprobable"}})
+
+        self.assertEqual(agent_pop.agent_type_count, 5)
+        self.assertIn("CRRA", agent_pop.discrete_distributions)

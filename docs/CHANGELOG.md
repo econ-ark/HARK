@@ -8,26 +8,43 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.16.2(dev)
+### 0.16.2
 
-Release Date: TBD
+Release Date: January 3, 2026
 
 #### Release Notes
 
+This release has many small improvements and fixes to existing HARK capabilities, listed below under Minor Changes. It also includes expanded and improved documentation/learning materials in examples/Gentle-Intro. To copy those example notebooks into a local working directory for easy use, simply execute these two commands and then follow the prompts:
+
+`from HARK import install_examples`
+`install_examples()`
+
+Four new consumption-saving models have been added, listed below under Major Changes.
+
 There are some breaking changes:
 
-- The removal of TimeVaryingDiscreteDistribution; use IndexDistribution instead, and see #1592.
+- TimeVaryingDiscreteDistribution has been removed; use IndexDistribution instead, and see #1592.
 - FixedPortfolioShareRiskyAssetConsumerType is removed, but now incorporated as RiskyAssetConsumerType with PortfolioBool=False. Default behavior of latter class is unchanged; see #1607.
 - The content of HARK.parallel has been moved to HARK.core, and the former is deprecated. Import from HARK.core and see #1614.
-- parse_ssa_life_table now returns one fewer survival probability by default, to match output length of parse_income_spec. Pass terminal=True to restore old behavior and see #1629.
+- parse_ssa_life_table now returns one fewer survival probability by default, to match output length of parse_income_spec; pass terminal=True to restore old behavior. Argument min_age has been renamed to age_min for consistency. See #1629.
+- The parameter tau in RiskyContribModel has been renamed to WithdrawTax to match HARK notation style; see #1639.
+- Simulation method get_Rfree() has been renamed to get_Rport(), but no functional changes; see #1646.
+- The parameter DeprFac has been renamed to DeprRte to reflect its actual usage.
+- All distributions now default to using a random seed if none is provided. If your code relied on HARK defaulting to a specific seed, it will not reproduce exactly. See #1641.
+- HARK.parallel has been deprecated and its contents moved to HARK.core. See #1614.
+- The function apply_flat_income_tax has been removed, but it has not been used at all since 2016.
+- Content from ConsLabeledModel has been split up into files in the Labeled submodule. See #1684.
 
 #### Major Changes
 
 - Basic health investment model added in new module ConsHealthModel. [#1567](https://github.com/econ-ark/HARK/pull/1567)
 - Extensive margin medical care choice model added to ConsMedModel. [#1595](https://github.com/econ-ark/HARK/pull/1595)
+- TRP-style wealth-in-utility model *without* portfolio choice added in new module ConsWealthUtilityModel. [#1634](https://github.com/econ-ark/HARK/pull/1634)
+- "Capitalist spirit" style wealth-in-utility model added in new module ConsWealthUtilityModel. [#1634](https://github.com/econ-ark/HARK/pull/1634)
 
 #### Minor Changes
 
+- Fixed terminal solution initialization in IndShockConsumerTypeFast for proper numba compatibility, added CRRA=1 validation with clear error message, and expanded test coverage. [#1649](https://github.com/econ-ark/HARK/pull/1649)
 - Turns off use_infimum feature in ConsIndShock solver because it did not work properly when vFunc=True [#1589](https://github.com/econ-ark/HARK/pull/1589)
 - Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
 - Krusell-Smith model guide added to documentation. [#1594](https://github.com/econ-ark/HARK/pull/1594)
@@ -39,11 +56,23 @@ There are some breaking changes:
 - Directory structure for consumption-saving examples regularized. [#1596](https://github.com/econ-ark/HARK/pull/1596)
 - Fixed share model has been combined with RiskyAssetConsumerType's PortfolioBool=False option. [#1607](https://github.com/econ-ark/HARK/pull/1607)
 - Deprecate HARK.parallel, moving the three functions there to HARK.core. [#1614](https://github.com/econ-ark/HARK/pull/1614)
-- Test coverage expanded to cover almost all content #1606 #1610 #1617 #1619 #1623 #1624 #1625 #1626 #1628
+- Test coverage expanded to cover almost all content #1606 #1610 #1617 #1619 #1623 #1624 #1625 #1626 #1628 #1684
 - Consumption-saving models now aliased at HARK.models and HARK.ConsumptionSaving; some calibration tools also aliased at HARK.Calibration [#1629](https://github.com/econ-ark/HARK/pull/1629)
 - AgentType.solve() can be passed postsolve=False to skip post-processing call to post_solve(). [#1631](https://github.com/econ-ark/HARK/pull/1631)
 - The /examples directory can be copied to a directory of user's choice with HARK.install_examples() [#1630](https://github.com/econ-ark/HARK/pull/1630)
 - Improved and expanded features for Parameters class in HARK.core [#1627](https://github.com/econ-ark/HARK/pull/1627)
+- Fixed the representation of the terminal period solution in ConsPrefShock [#1638](https://github.com/econ-ark/HARK/pull/1638)
+- Renamed tau to WithdrawTax in RiskyContribModel [#1639](https://github.com/econ-ark/HARK/pull/1639)
+- Valid bounds checking on make_grid_exp_mult [#1640](https://github.com/econ-ark/HARK/pull/1640)
+- Ensure utility functions return NaN for negative consumption [#1640](https://github.com/econ-ark/HARK/pull/1640)
+- Fixed a bug with resetting the RNG of IndexDistributions, restoring replicability of simulations [#1643](https://github.com/econ-ark/HARK/pull/1643)
+- Legacy simulation methods now use get_Rport() instead of get_Rfree() [#1646](https://github.com/econ-ark/HARK/pull/1646)
+- Fixed a bug that occured when changing an AgentType's AgentCount attribute after simulating [#1647](https://github.com/econ-ark/HARK/pull/1647)
+- Add describe_distance() method to MetricObject, generating text description of how "distance" is calculated for an object [#1648](https://github.com/econ-ark/HARK/pull/1648)
+- Default behavior of seeds for distribution classes has been revised. [#1641](https://github.com/econ-ark/HARK/pull/1641)
+- Terminal solution representation for the "fast" solvers (using numba) has been cleaned up. [#1649](https://github.com/econ-ark/HARK/pull/1649)
+- Refactored ConsLabeledModel to use new HARK.Labeled subpackage with modular architecture (config, factories, transitions, solvers, solution, agents). Added comprehensive input validation, runtime warnings for numerical issues, and expanded test coverage. [#1650](https://github.com/econ-ark/HARK/pull/1650)
+
 
 ### 0.16.1
 
