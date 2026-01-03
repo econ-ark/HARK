@@ -1173,8 +1173,9 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertEqual(len(agent_pop.agents), 2)
         self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
         self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
-        self.assertEqual(agent_pop.agents[0].Rfree, 1.02)
-        self.assertEqual(agent_pop.agents[1].Rfree, 1.03)
+        # Time-varying params return lists
+        self.assertEqual(agent_pop.agents[0].Rfree, [1.02])
+        self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
 
     def test_time_var_dataarray_age_only_dim(self):
         """Test time-varying parameter with DataArray having only age dim."""
@@ -1189,8 +1190,9 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertEqual(len(agent_pop.agents), 2)
         self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
         self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
-        self.assertEqual(agent_pop.agents[0].Rfree, 1.03)
-        self.assertEqual(agent_pop.agents[1].Rfree, 1.03)
+        # Time-varying params return lists
+        self.assertEqual(agent_pop.agents[0].Rfree, [1.03])
+        self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
 
     def test_time_inv_scalar_parameter(self):
         """Test time-invariant parameter with scalar value."""
@@ -1278,6 +1280,60 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
         for agent in agent_pop.agents:
             self.assertEqual(agent.CustomParam, [1, 2, 3])
+
+    def test_time_var_dataarray_agent_only_dim(self):
+        """Test time-varying parameter with DataArray having only agent dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # Rfree with only agent dimension (no age)
+        params["Rfree"] = DataArray([1.02, 1.03], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].Rfree, 1.02)
+        self.assertEqual(agent_pop.agents[1].Rfree, 1.03)
+
+    def test_unknown_param_dataarray_agent_age_dims(self):
+        """Test unknown parameter with DataArray having (agent, age) dims."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = DataArray([[1, 2], [3, 4]], dims=("agent", "age"))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CustomParam, [1, 2])
+        self.assertEqual(agent_pop.agents[1].CustomParam, [3, 4])
+
+    def test_unknown_param_dataarray_agent_only_dim(self):
+        """Test unknown parameter with DataArray having only agent dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = DataArray([10, 20], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        self.assertEqual(agent_pop.agents[0].CustomParam, 10)
+        self.assertEqual(agent_pop.agents[1].CustomParam, 20)
+
+    def test_unknown_param_dataarray_age_only_dim(self):
+        """Test unknown parameter with DataArray having only age dim."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["CustomParam"] = DataArray([1, 2, 3], dims=("age",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        agent_pop.create_distributed_agents()
+
+        self.assertEqual(len(agent_pop.agents), 2)
+        # Both agents get the same age-varying list
+        self.assertEqual(agent_pop.agents[0].CustomParam, [1, 2, 3])
+        self.assertEqual(agent_pop.agents[1].CustomParam, [1, 2, 3])
 
     def test_approx_distributions_invalid_param(self):
         """Test approx_distributions raises error for non-distribution param."""
