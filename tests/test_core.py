@@ -1164,8 +1164,10 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         """Test time-varying parameter with DataArray having (agent, age) dims."""
         params = init_idiosyncratic_shocks.copy()
         params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
-        # Rfree with both agent and age dimensions
-        params["Rfree"] = DataArray([[1.02], [1.03]], dims=("agent", "age"))
+        # Rfree with both agent and age dimensions (2 agents x 3 ages)
+        params["Rfree"] = DataArray(
+            [[1.01, 1.02, 1.03], [1.04, 1.05, 1.06]], dims=("agent", "age")
+        )
 
         agent_pop = AgentPopulation(IndShockConsumerType, params)
         agent_pop.create_distributed_agents()
@@ -1173,9 +1175,9 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertEqual(len(agent_pop.agents), 2)
         self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
         self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
-        # Time-varying params return lists (one value per age)
-        self.assertEqual(agent_pop.agents[0].Rfree, [1.02])
-        self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
+        # Each agent gets their own list of values across ages
+        self.assertEqual(agent_pop.agents[0].Rfree, [1.01, 1.02, 1.03])
+        self.assertEqual(agent_pop.agents[1].Rfree, [1.04, 1.05, 1.06])
 
     def test_time_var_dataarray_age_only_dim(self):
         """Test time-varying parameter with DataArray having only age dim."""
