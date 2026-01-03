@@ -1173,7 +1173,7 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertEqual(len(agent_pop.agents), 2)
         self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
         self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
-        # Time-varying params return lists
+        # Time-varying params return lists (one value per age)
         self.assertEqual(agent_pop.agents[0].Rfree, [1.02])
         self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
 
@@ -1190,7 +1190,7 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertEqual(len(agent_pop.agents), 2)
         self.assertEqual(agent_pop.agents[0].CRRA, 2.0)
         self.assertEqual(agent_pop.agents[1].CRRA, 3.0)
-        # Time-varying params return lists
+        # Time-varying params return lists (one value per age)
         self.assertEqual(agent_pop.agents[0].Rfree, [1.03])
         self.assertEqual(agent_pop.agents[1].Rfree, [1.03])
 
