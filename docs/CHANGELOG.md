@@ -10,7 +10,7 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ### 0.17.0
 
-Release Date: January 5, 2026
+Release Date: January 4, 2026
 
 #### Release Notes
 
@@ -31,7 +31,6 @@ There are some breaking changes:
 - Simulation method get_Rfree() has been renamed to get_Rport(), but no functional changes; see #1646.
 - The parameter DeprFac has been renamed to DeprRte to reflect its actual usage.
 - All distributions now default to using a random seed if none is provided. If your code relied on HARK defaulting to a specific seed, it will not reproduce exactly. See #1641.
-- HARK.parallel has been deprecated and its contents moved to HARK.core. See #1614.
 - The function apply_flat_income_tax has been removed, but it has not been used at all since 2016.
 - Content from ConsLabeledModel has been split up into files in the Labeled submodule. See #1684.
 

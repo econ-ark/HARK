@@ -29,6 +29,10 @@ __all__ = [
     "RiskyContribConsumerType",
     "IndShockConsumerTypeFast",
     "PerfForesightConsumerTypeFast",
+    "PerfForesightLabeledType",
+    "IndShockLabeledType",
+    "RiskyAssetLabeledType",
+    "PortfolioLabeledType",
 ]
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -76,4 +80,10 @@ from HARK.ConsumptionSaving.ConsRiskyContribModel import RiskyContribConsumerTyp
 from HARK.ConsumptionSaving.ConsIndShockModelFast import (
     IndShockConsumerTypeFast,
     PerfForesightConsumerTypeFast,
+)
+from HARK.Labeled.agents import (
+    PerfForesightLabeledType,
+    IndShockLabeledType,
+    RiskyAssetLabeledType,
+    PortfolioLabeledType,
 )
