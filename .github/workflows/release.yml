@@ -5,7 +5,7 @@ on:
     types:
       - published
 jobs:
-  build-and-inspect-package:
+  dist:
     name: Build & inspect package.
     runs-on: ubuntu-latest
     steps:
@@ -13,6 +13,7 @@ jobs:
       - uses: hynek/build-and-inspect-python-package@v2
 
   publish:
+    needs: [dist]
     name: Publish release to PyPI
     if: github.repository_owner == 'econ-ark' && github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
