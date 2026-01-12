@@ -27,6 +27,7 @@ none yet
 - Revised `exact_match` option for `DiscreteDistribution.draw` to `shuffle` to be more robust to population draw size. [#1691](https://github.com/econ-ark/HARK/pull/1691)
 - multi_thread_commands[_fake] no longer requires empty parentheses to be included with each method name (now optional). [#1692](https://github.com/econ-ark/HARK/pull/1692)
 - Added __repr__ method for DiscreteDistribution (and subclasses) to display basic information about itself.
+- All AgentTypes now have sensible defaults for track_vars if none is provided. [#1693](https://github.com/econ-ark/HARK/pull/1693)
 
 ### 0.17.0
 
