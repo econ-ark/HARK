@@ -529,6 +529,7 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
         "params": init_wealth_portfolio,
         "solver": solve_one_period_WealthPortfolio,
         "model": "ConsRiskyAsset.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }
 
     def pre_solve(self):

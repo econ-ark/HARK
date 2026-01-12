@@ -389,6 +389,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         "params": IndShockRiskyAssetConsumerType_default,
         "solver": NullFunc(),
         "model": "ConsRiskyAsset.yaml",
+        "track_vars": ["aNrm", "cNrm", "Share", "mNrm", "pLvl"],
     }
 
     time_inv_ = IndShockConsumerType.time_inv_ + [

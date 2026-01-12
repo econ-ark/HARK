@@ -1190,6 +1190,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
         "params": init_perfect_foresight_fast,
         "solver": make_one_period_oo_solver(ConsPerfForesightSolverFast),
         "model": "ConsPerfForesight.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     def pre_solve(self):
@@ -1322,6 +1323,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
         "params": init_idiosyncratic_shocks_fast,
         "solver": NullFunc(),
         "model": "ConsIndShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     def pre_solve(self):

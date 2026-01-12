@@ -939,7 +939,8 @@ class PrefShockConsumerType(IndShockConsumerType):
     default_ = {
         "params": PrefShockConsumerType_default,
         "solver": solve_one_period_ConsPrefShock,
-        "model": "ConsMarkov.yaml",
+        "model": "ConsPrefShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["PrefShk"]
@@ -1228,6 +1229,8 @@ class KinkyPrefConsumerType(PrefShockConsumerType, KinkedRconsumerType):
     default_ = {
         "params": KinkyPrefConsumerType_default,
         "solver": solve_one_period_ConsKinkyPref,
+        "model": "ConsPrefShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["Rboro", "Rsave"]

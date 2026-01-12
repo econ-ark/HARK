@@ -634,6 +634,7 @@ class WealthUtilityConsumerType(IndShockConsumerType):
         "params": init_wealth_utility,
         "solver": solve_one_period_WealthUtility,
         "model": "ConsIndShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     def pre_solve(self):
@@ -1283,4 +1284,5 @@ class CapitalistSpiritConsumerType(GenIncProcessConsumerType):
         "params": init_capitalist_spirit,
         "solver": solve_one_period_CapitalistSpirit,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }

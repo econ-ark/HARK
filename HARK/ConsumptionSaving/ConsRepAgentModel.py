@@ -373,7 +373,11 @@ class RepAgentConsumerType(IndShockConsumerType):
     """
 
     time_inv_ = ["CRRA", "DiscFac", "CapShare", "DeprRte", "aXtraGrid"]
-    default_ = {"params": init_rep_agent, "solver": solve_ConsRepAgent}
+    default_ = {
+        "params": init_rep_agent,
+        "solver": solve_ConsRepAgent,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
+    }
 
     def pre_solve(self):
         self.construct("solution_terminal")
@@ -447,7 +451,11 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     """
 
     time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
-    default_ = {"params": init_markov_rep_agent, "solver": solve_ConsRepAgentMarkov}
+    default_ = {
+        "params": init_markov_rep_agent,
+        "solver": solve_ConsRepAgentMarkov,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl", "Mrkv"],
+    }
 
     def pre_solve(self):
         self.construct("solution_terminal")

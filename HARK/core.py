@@ -1058,6 +1058,12 @@ class AgentType(Model):
             constructors.update(kwds["constructors"])
         params["constructors"] = constructors
 
+        # Set default track_vars
+        if "track_vars" in self.default_.keys() and use_defaults:
+            self.track_vars = copy(self.default_["track_vars"])
+        else:
+            self.track_vars = []
+
         # Set model file name if possible
         try:
             self.model_file = copy(self.default_["model"])
@@ -1075,7 +1081,6 @@ class AgentType(Model):
         self.verbose = verbose
         self.quiet = quiet
         self.seed = seed  # NOQA
-        self.track_vars = []  # NOQA
         self.state_now = {sv: None for sv in self.state_vars}
         self.state_prev = self.state_now.copy()
         self.controls = {}

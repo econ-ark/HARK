@@ -1178,6 +1178,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         "params": PortfolioConsumerType_default,
         "solver": solve_one_period_ConsPortfolio,
         "model": "ConsPortfolio.yaml",
+        "track_vars": ["aNrm", "cNrm", "Share", "mNrm", "pLvl"],
     }
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)

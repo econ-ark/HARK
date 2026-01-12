@@ -1174,6 +1174,7 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         "params": init_accidental_bequest,
         "solver": solve_one_period_ConsWarmBequest,
         "model": "ConsIndShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     def pre_solve(self):
@@ -1455,4 +1456,5 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
         "params": init_portfolio_bequest,
         "solver": solve_one_period_ConsPortfolioWarmGlow,
         "model": "ConsRiskyAsset.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }

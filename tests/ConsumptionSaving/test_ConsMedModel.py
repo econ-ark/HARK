@@ -142,7 +142,7 @@ class testMedExtMargConsumerType(unittest.TestCase):
 
     def test_simulation(self):
         self.agent.T_sim = 10
-        self.agent.track_vars = ["mLvl", "cLvl", "MedLvl"]
+        self.agent.track_vars = ["mLvl", "cLvl", "Med"]
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()

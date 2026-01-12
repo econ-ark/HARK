@@ -781,6 +781,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         "params": GenIncProcessConsumerType_default,
         "solver": solve_one_period_ConsGenIncProcess,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }
 
     def pre_solve(self):
@@ -1125,6 +1126,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         "params": init_explicit_perm_inc,
         "solver": solve_one_period_ConsGenIncProcess,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }
 
 
@@ -1321,4 +1323,5 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         "params": init_persistent_shocks,
         "solver": solve_one_period_ConsGenIncProcess,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }

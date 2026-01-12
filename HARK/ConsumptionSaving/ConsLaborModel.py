@@ -687,6 +687,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         "params": LaborIntMargConsumerType_default,
         "solver": solve_ConsLaborIntMarg,
         "model": "ConsLaborIntMarg.yaml",
+        "track_vars": ["aNrm", "cNrm", "Lbr", "mNrm", "pLvl"],
     }
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)
