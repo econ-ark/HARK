@@ -228,7 +228,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         X = np.arange(5)
         P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
         F = DiscreteDistribution(P, X, seed=0)
-        data = F.draw(1000, exact_match=True)
+        data = F.draw(1000, shuffle=True)
 
         counts = np.zeros(5)
         for j in range(5):

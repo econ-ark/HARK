@@ -140,7 +140,7 @@ class DiscreteDistribution(Distribution):
         self,
         N: int,
         atoms: Union[None, int, np.ndarray] = None,
-        exact_match: bool = False,
+        shuffle: bool = False,
     ) -> np.ndarray:
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
@@ -153,12 +153,13 @@ class DiscreteDistribution(Distribution):
             If None, then use this distribution's atoms for point values.
             If an int, then the index of atoms for the point values.
             If an np.array, use the array for the point values.
-        exact_match : boolean
-            Whether the draws should "exactly" match the discrete distribution (as
-            closely as possible given finite draws).  When True, returned draws are
-            a random permutation of the N-length list that best fits the discrete
-            distribution.  When False (default), each draw is independent from the
-            others and the result could deviate from the input.
+        shuffle : boolean
+            Whether the draws should "shuffle" the discrete distribution, matching
+            proportions of outcomes as closely as possible to the probabilities given
+            finite draws.  When True, returned draws are a random permutation of the
+            N-length list that best fits the discrete distribution. When False
+            (default), each draw is independent from the others and the result could
+            deviate from the probabilities.
 
         Returns
         -------
@@ -170,7 +171,8 @@ class DiscreteDistribution(Distribution):
         elif isinstance(atoms, int):
             atoms = self.atoms[atoms]
 
-        if exact_match:
+        # "Shuffle" an almost-exact population of draws based on the pmv
+        if shuffle:
             P = self.pmv
             K_exact = N * P  # slots per outcome in real numbers
             K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
