@@ -8,6 +8,22 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.17.1(dev)
+
+Release Date: TBD
+
+#### Release Notes
+
+none yet
+
+#### Major Changes
+
+none yet
+
+#### Minor Changes
+
+none yet
+
 ### 0.17.0
 
 Release Date: January 4, 2026
