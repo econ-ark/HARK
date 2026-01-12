@@ -2810,8 +2810,11 @@ def multi_thread_commands_fake(
     """
     for agent in agent_list:
         for command in command_list:
-            # TODO: Code should be updated to pass in the method name instead of method()
-            getattr(agent, command[:-2])()
+            # Can pass method names with or without parentheses
+            if command[-2:] == "()":
+                getattr(agent, command[:-2])()
+            else:
+                getattr(agent, command)()
 
 
 def multi_thread_commands(agent_list: List, command_list: List, num_jobs=None) -> None:
@@ -2868,6 +2871,9 @@ def run_commands(agent: Any, command_list: List) -> Any:
         The same AgentType instance passed as input, after running the commands.
     """
     for command in command_list:
-        # TODO: Code should be updated to pass in the method name instead of method()
-        getattr(agent, command[:-2])()
+        # Can pass method names with or without parentheses
+        if command[-2:] == "()":
+            getattr(agent, command[:-2])()
+        else:
+            getattr(agent, command)()
     return agent
