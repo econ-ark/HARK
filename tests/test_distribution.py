@@ -224,6 +224,16 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(exp[2], mu_b)
         self.assertAlmostEqual(exp[3], si_b**2)
 
+    def test_repr(self):
+        X = np.arange(5)
+        P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
+        F = DiscreteDistribution(P, X, seed=0)
+
+        desc = str(F)
+        self.assertTrue(
+            desc == "DiscreteDistribution with 5 atoms, inf=0, sup=4, seed=0"
+        )
+
 
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
