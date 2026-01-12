@@ -242,7 +242,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertTrue(counts[2] <= 234)
         self.assertTrue(counts[3] <= 234)
         self.assertTrue(counts[4] <= 234)
-        
+
     def test_repr(self):
         X = np.arange(5)
         P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
