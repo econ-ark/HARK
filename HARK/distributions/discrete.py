@@ -171,21 +171,29 @@ class DiscreteDistribution(Distribution):
             atoms = self.atoms[atoms]
 
         if exact_match:
-            events = np.arange(self.pmv.size)  # just a list of integers
-            cutoffs = np.round(np.cumsum(self.pmv) * N).astype(
-                int
-            )  # cutoff points between discrete outcomes
-            top = 0
+            P = self.pmv
+            K_exact = N * P  # slots per outcome in real numbers
+            K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
+            M = N - np.sum(K)  # number of unallocated slots
+            J = P.size
+            eps = J ** (-1)
+            Q = K_exact - eps * K  # "missing" probability mass
+            draws = self._rng.random(M)  # uniform draws for "extra" slots
 
-            # Make a list of event indices that closely matches the discrete distribution
-            event_list = []
-            for j in range(events.size):
-                bot = top
-                top = cutoffs[j]
-                event_list += (top - bot) * [events[j]]
+            # Fill in each unallocated slot, one by one
+            for m in range(M):
+                Q_adj = Q / np.sum(Q)  # probabilities for this pass
+                Q_sum = np.cumsum(Q_adj)
+                j = np.searchsorted(Q_sum, draws[m])  # find index for this draw
+                K[j] += 1  # increment its allocated slots
+                Q[j] = 0.0  # zero out its probability because we used it
 
-            # Randomly permute the event indices
-            indices = self._rng.permutation(event_list)
+            # Make an array of atom indices based on the final slot counts
+            nested_events = [K[j] * [j] for j in range(J)]
+            events = np.array([i for sublist in nested_events for i in sublist])
+
+            # Draw a random permutation of the indices
+            indices = self._rng.permutation(events)
 
         # Draw event indices randomly from the discrete distribution
         else:
