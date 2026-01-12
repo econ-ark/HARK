@@ -116,6 +116,17 @@ class DiscreteDistribution(Distribution):
                 + "The length of the pmv must be equal to that of atoms's last dimension."
             )
 
+    def __repr__(self):
+        out = self.__class__.__name__ + " with " + str(self.pmv.size) + " atoms, "
+        if self.atoms.shape[0] > 1:
+            out += "inf=" + str(tuple(self.limit["infimum"])) + ", "
+            out += "sup=" + str(tuple(self.limit["supremum"])) + ", "
+        else:
+            out += "inf=" + str(self.limit["infimum"][0]) + ", "
+            out += "sup=" + str(self.limit["supremum"][0]) + ", "
+        out += "seed=" + str(self.seed)
+        return out
+
     def dim(self) -> int:
         """
         Last dimension of self.atoms indexes "atom."
