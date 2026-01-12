@@ -178,7 +178,7 @@ class DiscreteDistribution(Distribution):
             K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
             M = N - np.sum(K)  # number of unallocated slots
             J = P.size
-            eps = J ** (-1)
+            eps = 1.0 / N
             Q = K_exact - eps * K  # "missing" probability mass
             draws = self._rng.random(M)  # uniform draws for "extra" slots
 
