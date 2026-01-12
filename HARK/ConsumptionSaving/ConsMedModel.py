@@ -1544,6 +1544,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         "params": init_medical_shocks,
         "solver": solve_one_period_ConsMedShock,
         "model": "ConsMedShock.yaml",
+        "track_vars": ["aLvl", "cLvl", "Med", "mLvl", "pLvl"],
     }
 
     time_vary_ = PersistentShockConsumerType.time_vary_ + ["MedPrice", "MedShkDstn"]
@@ -2153,6 +2154,7 @@ class MedExtMargConsumerType(PersistentShockConsumerType):
         "params": init_med_ext_marg,
         "solver": solve_one_period_ConsMedExtMarg,
         "model": "ConsExtMargMed.yaml",
+        "track_vars": ["aLvl", "cLvl", "Med", "mLvl", "pLvl"],
     }
 
     time_vary_ = [
@@ -2251,9 +2253,9 @@ class MedExtMargConsumerType(PersistentShockConsumerType):
         """
         Calculates end-of-period assets for each consumer of this type.
         """
-        self.state_now["MedLvl"] = self.shocks["MedCost"] * self.controls["Care"]
+        self.state_now["Med"] = self.shocks["MedCost"] * self.controls["Care"]
         self.state_now["aLvl"] = (
-            self.state_now["mLvl"] - self.controls["cLvl"] - self.state_now["MedLvl"]
+            self.state_now["mLvl"] - self.controls["cLvl"] - self.state_now["Med"]
         )
         # Move now to prev
         AgentType.get_poststates(self)

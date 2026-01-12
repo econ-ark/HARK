@@ -1279,6 +1279,7 @@ class PerfForesightConsumerType(AgentType):
         "params": PerfForesightConsumerType_defaults,
         "solver": solve_one_period_ConsPF,
         "model": "ConsPerfForesight.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
@@ -2101,6 +2102,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "params": IndShockConsumerType_defaults,
         "solver": solve_one_period_ConsIndShock,
         "model": "ConsIndShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2838,6 +2840,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         "params": KinkedRconsumerType_defaults,
         "solver": solve_one_period_ConsKinkedR,
         "model": "ConsKinkedR.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)

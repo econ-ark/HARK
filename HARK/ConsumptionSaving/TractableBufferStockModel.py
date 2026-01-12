@@ -337,7 +337,11 @@ class TractableConsumerType(AgentType):
     shock_vars_ = ["eState"]
     state_vars = ["bNrm", "mNrm", "aNrm"]
     poststate_vars = ["aNrm", "eState"]  # For simulation
-    default_ = {"params": init_tractable, "solver": add_to_stable_arm_points}
+    default_ = {
+        "params": init_tractable,
+        "solver": add_to_stable_arm_points,
+        "track_vars": ["mNrm", "eState", "cNrm", "aNrm"],
+    }
 
     def pre_solve(self):
         """

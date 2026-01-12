@@ -804,7 +804,11 @@ class AggShockConsumerType(IndShockConsumerType):
     decision about how much to consume.
     """
 
-    default_ = {"params": init_agg_shocks, "solver": solveConsAggShock}
+    default_ = {
+        "params": init_agg_shocks,
+        "solver": solveConsAggShock,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
+    }
     time_inv_ = IndShockConsumerType.time_inv_.copy()
     try:
         time_inv_.remove("vFuncBool")
@@ -1083,7 +1087,11 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
     time_inv_ = AggShockConsumerType.time_inv_ + ["MrkvArray"]
     shock_vars_ = AggShockConsumerType.shock_vars_ + ["Mrkv"]
-    default_ = {"params": init_agg_mrkv_shocks, "solver": solve_ConsAggMarkov}
+    default_ = {
+        "params": init_agg_mrkv_shocks,
+        "solver": solve_ConsAggMarkov,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
+    }
 
     def add_AggShkDstn(self, AggShkDstn):
         """
@@ -1395,7 +1403,11 @@ class KrusellSmithType(AgentType):
     time_vary_ = []
     shock_vars_ = ["Mrkv"]
     state_vars = ["aNow", "mNow", "EmpNow"]
-    default_ = {"params": init_KS_agents, "solver": solve_KrusellSmith}
+    default_ = {
+        "params": init_KS_agents,
+        "solver": solve_KrusellSmith,
+        "track_vars": ["aNow", "cNow", "mNow", "EmpNow"],
+    }
 
     def __init__(self, **kwds):
         temp = kwds.copy()

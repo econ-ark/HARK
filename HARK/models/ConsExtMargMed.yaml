@@ -13,7 +13,7 @@ symbols:
     - MedCost            \\ medical costs
     - MedShk             \\ medical shock as penalty to utility
     - mLvl               \\ market resources level after receiving income
-    - MedLvl             \\ realized medical care level (zero if no care)
+    - Med                \\ realized medical care level (zero if no care)
     - Care (bool)        \\ binary choice of whether to buy medical care
     - bLvl               \\ bank balances after paying medical costs
     - cLvl               \\ consumption level
@@ -48,8 +48,8 @@ dynamics: |
   v_temp = vFuncMid@(mLvl, pLvl)   \\ pre-consumption value if no medical care, less shock
   v_no_care = v_temp - MedShk      \\ incorporate medical need shock into value
   Care = v_if_care > v_no_care     \\ buy care if it yields higher value than not
-  MedLvl = Care * MedCost          \\ realized medical care is binary choice times cost
-  bLvl = mLvl - MedLvl             \\ bank balances are market resources less medical care
+  Med = Care * MedCost             \\ realized medical care is binary choice times cost
+  bLvl = mLvl - Med                \\ bank balances are market resources less medical care
   cLvl = cFunc@(bLvl,pLvl)         \\ evaluate consumption as function of bank balances and permanent income
   aLvl = bLvl - cLvl               \\ calculate end-of-period assets
   live ~ {LivPrb}                  \\ draw survivors

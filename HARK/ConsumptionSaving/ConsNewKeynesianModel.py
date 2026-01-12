@@ -131,6 +131,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
     default_ = {
         "params": init_newkeynesian,
         "solver": solve_one_period_ConsIndShock,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     def define_distribution_grid(

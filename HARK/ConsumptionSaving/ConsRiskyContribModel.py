@@ -1773,7 +1773,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         "Share",
     ]
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
-    default_ = {"params": init_risky_contrib, "solver": solveRiskyContrib}
+    default_ = {
+        "params": init_risky_contrib,
+        "solver": solveRiskyContrib,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "nNrm", "dfrac", "Share", "pLvl"],
+    }
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
