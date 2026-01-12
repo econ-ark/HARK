@@ -224,6 +224,25 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(exp[2], mu_b)
         self.assertAlmostEqual(exp[3], si_b**2)
 
+    def test_shuffle(self):
+        X = np.arange(5)
+        P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
+        F = DiscreteDistribution(P, X, seed=0)
+        data = F.draw(1000, shuffle=True)
+
+        counts = np.zeros(5)
+        for j in range(5):
+            counts[j] = np.sum(data == j)
+
+        self.assertTrue(counts[0] == 100)
+        self.assertTrue(counts[1] == 200)
+        self.assertTrue(counts[2] >= 233)
+        self.assertTrue(counts[3] >= 233)
+        self.assertTrue(counts[4] >= 233)
+        self.assertTrue(counts[2] <= 234)
+        self.assertTrue(counts[3] <= 234)
+        self.assertTrue(counts[4] <= 234)
+
     def test_repr(self):
         X = np.arange(5)
         P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])

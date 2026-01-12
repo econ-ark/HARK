@@ -14,7 +14,9 @@ Release Date: TBD
 
 #### Release Notes
 
-none yet
+There are some breaking changes:
+
+- The exact_match option for DiscreteDistribution.draw has been renamed to shuffle, and its behavior has changed slightly. See #1691.
 
 #### Major Changes
 
@@ -22,7 +24,7 @@ none yet
 
 #### Minor Changes
 
-none yet
+- Revised `exact_match` option for `DiscreteDistribution.draw` to `shuffle` to be more robust to population draw size. [#1691](https://github.com/econ-ark/HARK/pull/1691)
 
 ### 0.17.0
 
