@@ -4,10 +4,12 @@ This file implements unit tests to check discrete choice functions
 
 # Bring in modules we need
 import unittest
-
 import numpy as np
-
-from HARK import interpolation
+from HARK.interpolation import (
+    calc_log_sum_choice_probs,
+    calc_choice_probs,
+    calc_log_sum,
+)
 
 
 class testsForDiscreteChoice(unittest.TestCase):
@@ -19,50 +21,76 @@ class testsForDiscreteChoice(unittest.TestCase):
         self.Vs3D = np.array([[0.0, 1.0, 4.0], [1.0, 2.0, 0.0], [3.0, 0.0, 2.0]])
         self.Vref3D = np.array([[3.0, 2.0, 4.0]])
         self.Pref3D = np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])
-        # maxV = self.Vs3D.max()
-        # self.Vref3D = maxV + np.log(np.sum(np.exp(self.Vs3D-maxV),axis=0))
-        # self.Pref3D = np.log(np.sum(np.exp(self.Vs3D-maxV),axis=0))
+
+        # These assume sigma=1
+        maxV = self.Vs3D.max()
+        self.Vref3D_s = maxV + np.log(np.sum(np.exp(self.Vs3D - maxV), axis=0))
+        self.Pref3D_s = np.exp(self.Vs3D - maxV) / np.sum(
+            np.exp(self.Vs3D - maxV), axis=0
+        )
 
     def test_noShock2DBothEqualValue(self):
         # Test the value functions and policies of the 2D case
         sigma = 0.0
-        V, P = interpolation.calc_log_sum_choice_probs(self.Vs2D, sigma)
+        V, P = calc_log_sum_choice_probs(self.Vs2D, sigma)
         self.assertTrue((V == self.Vref2D).all)
         self.assertTrue((P == self.Pref2D).all)
 
     def test_noShock2DBoth(self):
         # Test the value functions and policies of the 2D case
         sigma = 0.0
-        V, P = interpolation.calc_log_sum_choice_probs(self.Vs2D, sigma)
+        V, P = calc_log_sum_choice_probs(self.Vs2D, sigma)
         self.assertTrue((V == self.Vref2D).all)
         self.assertTrue((P == self.Pref2D).all)
 
     def test_noShock2DIndividual(self):
         # Test the value functions and policies of the 2D case
         sigma = 0.0
-        V = interpolation.calc_log_sum(self.Vs2D, sigma)
-        P = interpolation.calc_choice_probs(self.Vs2D, sigma)
+        V = calc_log_sum(self.Vs2D, sigma)
+        P = calc_choice_probs(self.Vs2D, sigma)
         self.assertTrue((V == self.Vref2D).all())
         self.assertTrue((P == self.Pref2D).all())
 
     def test_noShock3DBothEqualValue(self):
         # Test the value functions and policies of the 3D case
         sigma = 0.0
-        V, P = interpolation.calc_log_sum_choice_probs(self.Vs3D, sigma)
+        V, P = calc_log_sum_choice_probs(self.Vs3D, sigma)
         self.assertTrue((V == self.Vref3D).all)
         self.assertTrue((P == self.Pref3D).all)
 
     def test_noShock3DBoth(self):
         # Test the value functions and policies of the 3D case
         sigma = 0.0
-        V, P = interpolation.calc_log_sum_choice_probs(self.Vs3D, sigma)
+        V, P = calc_log_sum_choice_probs(self.Vs3D, sigma)
         self.assertTrue((V == self.Vref3D).all)
         self.assertTrue((P == self.Pref3D).all)
 
     def test_noShock3DIndividual(self):
         # Test the value functions and policies of the 3D case
         sigma = 0.0
-        V = interpolation.calc_log_sum(self.Vs3D, sigma)
-        P = interpolation.calc_choice_probs(self.Vs3D, sigma)
+        V = calc_log_sum(self.Vs3D, sigma)
+        P = calc_choice_probs(self.Vs3D, sigma)
         self.assertTrue((V == self.Vref3D).all())
         self.assertTrue((P == self.Pref3D).all())
+
+    def test_withShock3DBothEqualValue(self):
+        # Test the value functions and policies of the 3D case
+        sigma = 1.0
+        V, P = calc_log_sum_choice_probs(self.Vs3D, sigma)
+        self.assertTrue((V == self.Vref3D_s).all)
+        self.assertTrue((P == self.Pref3D_s).all)
+
+    def test_withShock3DBoth(self):
+        # Test the value functions and policies of the 3D case
+        sigma = 1.0
+        V, P = calc_log_sum_choice_probs(self.Vs3D, sigma)
+        self.assertTrue((V == self.Vref3D_s).all)
+        self.assertTrue((P == self.Pref3D_s).all)
+
+    def test_withShock3DIndividual(self):
+        # Test the value functions and policies of the 3D case
+        sigma = 1.0
+        V = calc_log_sum(self.Vs3D, sigma)
+        P = calc_choice_probs(self.Vs3D, sigma)
+        self.assertTrue((np.abs(V - self.Vref3D_s) < 1e-15).all())
+        self.assertTrue((np.abs(P - self.Pref3D_s) < 1e-15).all())
