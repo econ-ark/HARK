@@ -5,6 +5,7 @@ This file implements unit tests for various functions in HARK.utilities
 import unittest
 import numpy as np
 import matplotlib.pyplot as plt
+from HARK.models import PrefShockConsumerType
 
 from HARK.utilities import (
     make_assets_grid,
@@ -20,6 +21,7 @@ from HARK.utilities import (
     get_percentiles,
     NullFunc,
     apply_fun_to_vals,
+    plot_func_slices,
 )
 
 
@@ -187,3 +189,73 @@ class testEtc(unittest.TestCase):
         vals = temp_func(X, Y, Z)
         out = apply_fun_to_vals(temp_func, my_dict)
         self.assertTrue(np.all(vals == out))
+
+
+class testPlotSlices(unittest.TestCase):
+    def setUp(self):
+        self.agent = PrefShockConsumerType(cycles=0)
+        self.agent.solve()
+        self.agent.unpack("cFunc")
+
+    def test_basic(self):
+        MyType = self.agent
+        plot_func_slices(
+            MyType.cFunc[0],
+            -1.0,
+            5.0,
+            zmin=0.35,
+            zmax=2.7,
+            zn=31,
+            xlabel=r"Normalized market resources $m_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )
+
+    def test_Z_list(self):
+        MyType = self.agent
+        plot_func_slices(
+            MyType.cFunc[0],
+            0.35,
+            2.7,
+            Z=MyType.PrefShkDstn[0].atoms[0],
+            xlabel=r"Normalized market resources $m_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )
+
+    def test_axis_change(self):
+        MyType = self.agent
+        plot_func_slices(
+            MyType.cFunc[0],
+            0.35,
+            2.7,
+            xdim=1,
+            zdim=0,
+            zmin=0.1,
+            zmax=3.0,
+            zn=31,
+            xlabel=r"Preference shock $\eta_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )
+
+    def test_invalid(self):
+        MyType = self.agent
+        self.assertRaises(
+            ValueError,
+            plot_func_slices,
+            MyType.cFunc[0],
+            -1.0,
+            5.0,
+            xlabel=r"Normalized market resources $m_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )
+        self.assertRaises(
+            ValueError,
+            plot_func_slices,
+            MyType.cFunc[0],
+            -1.0,
+            5.0,
+            zmin=3.35,
+            zmax=2.7,
+            zn=31,
+            xlabel=r"Normalized market resources $m_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )
