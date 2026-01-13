@@ -259,3 +259,29 @@ class testPlotSlices(unittest.TestCase):
             xlabel=r"Normalized market resources $m_t$",
             ylabel=r"Normalized consumption $c_t$",
         )
+        self.assertRaises(
+            ValueError,
+            plot_func_slices,
+            MyType.cFunc[0],
+            -1.0,
+            5.0,
+            xdim=1,
+            zmin=0.35,
+            zmax=2.7,
+            zn=31,
+            xlabel=r"Normalized market resources $m_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )
+        self.assertRaises(
+            ValueError,
+            plot_func_slices,
+            MyType.cFunc[0],
+            -1.0,
+            5.0,
+            zmin=0.35,
+            zmax=2.7,
+            zn=31,
+            Z=MyType.PrefShkDstn[0].atoms[0],
+            xlabel=r"Normalized market resources $m_t$",
+            ylabel=r"Normalized consumption $c_t$",
+        )

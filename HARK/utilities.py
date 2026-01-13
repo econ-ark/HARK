@@ -1019,12 +1019,20 @@ def plot_func_slices(
 
     plt.ion()
 
+    if xdim == zdim:
+        raise ValueError("xdim and zdim cannot refer to the same argument!")
+
     # Check whether the set for z has been correctly specified
     if (zmin is not None) and (zmax is not None):
-        if zmax > zmin:
-            Z = make_exponential_grid(zmin, zmax, zn, order=zorder)
+        if Z is None:
+            if zmax > zmin:
+                Z = make_exponential_grid(zmin, zmax, zn, order=zorder)
+            else:
+                raise ValueError("zmax must be greater than zmin!")
         else:
-            raise ValueError("zmax must be greater than zmin!")
+            raise ValueError(
+                "Cannot provide set Z if zmin and zmax are also specified!"
+            )
     if Z is None:
         raise ValueError("Must specify set Z or grid of z with zmin and zmax!")
 
