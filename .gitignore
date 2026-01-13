@@ -5,6 +5,7 @@ __pycache__/
 
 # Virtual Environments
 venv/
+.venv*/
 econ-ark/
 
 # C extensions
