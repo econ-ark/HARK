@@ -853,7 +853,9 @@ def gen_tran_matrix_2D(
 # ==============================================================================
 
 
-def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
+def plot_funcs(
+    functions, bottom, top, N=1000, legend_kwds=None, xlabel=None, ylabel=None
+):
     """
     Plots 1D function(s) over a given range.
 
@@ -867,8 +869,12 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
         The upper limit of the domain to be plotted.
     N : int
         Number of points in the domain to evaluate.
-    legend_kwds: None, or dictionary
+    legend_kwds: None or dictionary
         If not None, the keyword dictionary to pass to plt.legend
+    xlabel : None or str
+        Optional horizontal axis label.
+    ylabel : None or str
+        Optional vertical axis label.
 
     Returns
     -------
@@ -888,12 +894,18 @@ def plot_funcs(functions, bottom, top, N=1000, legend_kwds=None):
         y = function(x)
         plt.plot(x, y)
     plt.xlim([bottom, top])
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
     plt.show(block=False)
 
 
-def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
+def plot_funcs_der(
+    functions, bottom, top, N=1000, legend_kwds=None, xlabel=None, ylabel=None
+):
     """
     Plots the first derivative of 1D function(s) over a given range.
 
@@ -907,8 +919,12 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
         The upper limit of the domain to be plotted.
     N : int
         Number of points in the domain to evaluate.
-    legend_kwds: None, or dictionary
+    legend_kwds: None or dictionary
         If not None, the keyword dictionary to pass to plt.legend
+    xlabel : None or str
+        Optional horizontal axis label.
+    ylabel : None or str
+        Optional vertical axis label.
 
     Returns
     -------
@@ -929,6 +945,121 @@ def plot_funcs_der(functions, bottom, top, N=1000, legend_kwds=None):
         y = function.derivative(x)
         plt.plot(x, y)
     plt.xlim([bottom, top])
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+    if legend_kwds is not None:
+        plt.legend(**legend_kwds)
+    plt.show(block=False)
+
+
+def plot_func_slices(
+    func,
+    bot,
+    top,
+    N=1000,
+    xdim=0,
+    zdim=1,
+    zmin=None,
+    zmax=None,
+    zn=11,
+    zorder=1.0,
+    Z=None,
+    const=None,
+    legend_kwds=None,
+    xlabel=None,
+    ylabel=None,
+):
+    """
+    Plots "slices" of a function with more than one argument. User specifies
+    range of the "x" (horizontal) dimension and selects which other dimension
+    is "z". Can specify set of z values explicitly with list Z or describe an
+    exponentially spaced grid with zmin, zmax, (zn, zorder).
+
+    Parameters
+    ----------
+    func : callable
+        The function whose slices are to be plotted. Must take more than one argument.
+    bot : float
+        Lowest value in the xdim to plot.
+    top : float
+        Highest value in the xdim to plot.
+    N : int
+        Number of x values to plot for each slice (default 1000).
+    xdim : int
+        Index of the input that serves as "x", the horizontal plot dimension (default 0).
+    zdim : int
+        Index of the input that serves as "z", which is varied for each slice plotted (default 1).
+    zmin : None or float
+        If specified, the lowest value of z that will be plotted.
+    zmax : None or float
+        If specified, the highest value of z that will be plotted.
+    zn : int
+        The number of slices to plot if zmin and zmax are specified (default 11).
+    zorder : float
+        The exponential order of the set of z values, if zmin and zmax are specified (default 1.0).
+    Z : None or [float]
+        A user-specified list (or array) of z values. Cannot be used of zmin and zmax are provided.
+    const : None or [float]
+        Constant values at which to hold fixed function arguments *other* than x and z.
+        E.g. if user wants to plot f(x, 3.0, z, 5.0), they specify xdim=0, zdim=2, const=[3.0, 5.0].
+    legend_kwds: None or dictionary
+        If not None, the keyword dictionary to pass to plt.legend
+    xlabel : None or str
+        Optional horizontal axis label.
+    ylabel : None or str
+        Optional vertical axis label.
+
+    Returns
+    -------
+    None
+    """
+    import matplotlib.pyplot as plt
+
+    plt.ion()
+
+    # Check whether the set for z has been correctly specified
+    if (zmin is not None) and (zmax is not None):
+        if zmax > zmin:
+            Z = make_exponential_grid(zmin, zmax, zn, order=zorder)
+        else:
+            raise ValueError("zmax must be greater than zmin!")
+    if Z is None:
+        raise ValueError("Must specify set Z or grid of z with zmin and zmax!")
+
+    # Build the vectors of x values and constant values
+    X = np.linspace(bot, top, num=N)
+    if const is not None:
+        Q = [const[j] * np.ones(N) for j in range(len(const))]
+    else:
+        Q = []
+    D = 2 + len(Q)
+
+    # Assemble a list of function arguments in the right order, leaving z blank
+    args = []
+    i = 0
+    for d in range(D):
+        if d == xdim:
+            args.append(X)
+        elif d == zdim:
+            args.append(None)
+        else:
+            args.append(Q[i])
+            i += 1
+
+    # Plot a slice for each z in Z
+    for j in range(len(Z)):
+        z = Z[j]
+        args[zdim] = z * np.ones(N)
+        plt.plot(X, func(*args))
+
+    # Format and display the figure
+    plt.xlim(bot, top)
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
     plt.show(block=False)
