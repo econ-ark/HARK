@@ -1010,25 +1010,29 @@ grep -rh "^from HARK" $TARGET_DIR --include="*.py" | cut -d' ' -f2 | cut -d'.' -
 - List top 5 most-imported modules in the target codebase.
 - Mark any module in the "Renamed" or "Removed" list that is also a "Hot Module" as **HIGH RISK**.
 
-## 1.13 Semantic Baseline Generation (REQUIRED FOR SCIENCE)
+## 1.13 Semantic Baseline Generation (SCALABLE / FAST)
 
-**Goal**: Record the "Ground Truth" mathematical output of the codebase before migration to ensure no silent logic drift.
+**Goal**: Record a mathematical "Fingerprint" of the logic before migration. This is NOT a full 5-day reproduction; it is a **fast sanity check** (target: < 5 mins).
+
+### Performance Triage (Avoid the 5-Day Run)
+
+If the main reproduction script is slow, **DO NOT run it fully**. Instead, create a "Mini-Reproduction":
+1. **Scale down Agents**: Set `AgentCount = 100` (or 1% of baseline).
+2. **Shorten Time**: Set `T_sim = 5` (or a small number of periods).
+3. **Fixed Iterations**: Disable convergence criteria; run for 3-5 iterations.
+4. **Deterministic Seed**: Use `seed=42` or similar.
 
 ### Procedure
 
-1. **Pick a main reproduction script** (e.g., `do_all.py` or a core test).
-2. **Force deterministic behavior**: Ensure a fixed seed is used for all RNGs.
-3. **Record output**:
+1. **Record output of the Mini-Reproduction**:
    ```bash
-   # Example: run a simulation and hash the final results
-   python reproduce.py --seed 42 > baseline_output.txt
-   # Or hash the final arrays/dataframes
-   python -c "import pandas as pd; print(pd.read_csv('results.csv').sum().sum())" > baseline_sum.txt
+   # Example: run a scaled-down simulation
+   python reproduce_lite.py --seed 42 > baseline_lite.txt
    ```
 
 **Record in Change Inventory**:
-- Path to the baseline reproduction script.
-- The baseline hash/value.
+- The scaling factors used (e.g., "Scaled to 100 agents, 5 periods").
+- The baseline hash/value from the lite run.
 
 ---
 
@@ -1159,7 +1163,7 @@ Before proceeding, verify you have explicitly addressed:
 | Dynamic method references | ☐ getattr/string-based method calls checked | Section 1.7e |
 | Test-driven verification | ☐ Tests run with both HARK versions | Section 1.7f |
 | Change Impact Analysis | ☐ Blast Radius Map of high-risk modules | Section 1.12 |
-| Semantic Baseline | ☐ Ground Truth outputs recorded before migration | Section 1.13 |
+| Semantic Baseline | ☐ Lite/Fast sanity check recorded before migration | Section 1.13 |
 | Stage 0 pre-flight | ☐ Clean working tree + correct base branch + recorded SHA | Stage 0 |
 | Case-only rename hazards | ☐ Checked for case-only renames + documented handling | Section 1.1b |
 | Docs/changelog impacts | ☐ Docs/README/CHANGELOG updates identified if needed | Stage 2 Safety (2.S5) |
@@ -1192,7 +1196,7 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Documentation/CHANGELOG impact assessed and plan recorded
 - ☐ Stage 2 plan supports dry-run + idempotence (or manual-only declared)
 - ☐ Stage 2 acceptance criteria defined (CI green, greps clean, tests)
-- ☐ Semantic Baseline recorded and hash verified
+- ☐ Semantic Baseline (Lite/Fast) recorded and hash verified
 - ☐ High-risk "Hot Modules" identified for manual review
 - ☐ Semantic Signature Comparison (2.V1) passed (post-migration results match baseline)
 - ☐ I have verified with 3 test files that the Inventory is comprehensive
@@ -1647,24 +1651,23 @@ Before using the inventory for transformation:
 
 ## 2.V1 Semantic Signature Comparison (FINAL VALIDATION)
 
-**Goal**: Prove that the migration did not break the science.
+**Goal**: Prove that the migration did not break the logic using the **Mini-Reproduction** from Section 1.13.
 
 ### Procedure
 
-1. **Rerun the baseline** established in Section 1.13 using the NEW HARK version:
+1. **Rerun the LITE baseline** established in Section 1.13 using the NEW HARK version:
    ```bash
-   python reproduce.py --seed 42 > post_migration_output.txt
+   python reproduce_lite.py --seed 42 > post_migration_lite.txt
    ```
 2. **Compare results**:
    ```bash
-   diff baseline_output.txt post_migration_output.txt
+   diff baseline_lite.txt post_migration_lite.txt
    ```
 
-**Requirement**: The outputs must be identical (bit-for-bit) or within a strictly defined mathematical tolerance (e.g., `1e-10` for floating point arrays).
+**Requirement**: The outputs must be identical (bit-for-bit) or within mathematical tolerance. This proves the **machinery** still produces the same results, even if we haven't run the full 5-day simulation.
 
 **If results differ**:
-- This is a **HIGH PRIORITY** failure.
 - Investigate behavioral changes (1.7c) or default value changes (1.7b).
-- Do NOT merge until the difference is explained and accepted by the PI.
+- Do NOT merge until the difference is explained.
 
 ---
