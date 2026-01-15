@@ -1,7 +1,7 @@
 # HARK Migration Prompt: 0.14.1 → 0.17.0
 
 **Regenerated**: 2026-01-15
-**Meta-prompt version**: Adds target dependency extraction + symbol-based search + cleanup hard-gates
+**Meta-prompt version**: Adds call-site synchronization + bare variable name checks
 **Source**: HARK 0.14.1
 **Target**: HARK 0.17.0
 
@@ -41,13 +41,13 @@ diff -rq src/HARK tgt/HARK | sort > /tmp/hark_structural_diff.txt
 #### 1.0b.1 Extract all HARK imports from target
 
 ```bash
-grep -rn "from HARK\\|import HARK" $TARGET_DIR --include="*.py" | sort -u > target_hark_imports.txt
+grep -rn "from HARK\|import HARK" $TARGET_DIR --include="*.py" | sort -u > target_hark_imports.txt
 ```
 
 #### 1.0b.2 Extract HARK inheritance in target
 
 ```bash
-grep -rn "class.*\\(.*Type\\)\\|class.*\\(.*Solver\\)\\|class.*\\(.*Consumer\\)" $TARGET_DIR --include="*.py"
+grep -rn "class.*\(.*Type\)\|class.*\(.*Solver\)\|class.*\(.*Consumer\)" $TARGET_DIR --include="*.py"
 ```
 
 #### 1.0b.3 Import smoke test against HARK 0.17.0 (BLOCKING)
@@ -82,7 +82,7 @@ grep -rn "class ConsIndShockSolver" tgt/HARK --include="*.py"
 #### 1.1 `HARK.distribution` → `HARK.distributions`
 
 ```bash
-grep -rn "from HARK\\.distribution import" $TARGET_DIR --include="*.py"
+grep -rn "from HARK\.distribution import" $TARGET_DIR --include="*.py"
 ```
 
 Replace:
@@ -91,7 +91,7 @@ Replace:
 #### 1.2 `HARK.parallel` → `HARK.core`
 
 ```bash
-grep -rn "from HARK\\.parallel import" $TARGET_DIR --include="*.py"
+grep -rn "from HARK\.parallel import" $TARGET_DIR --include="*.py"
 ```
 
 Replace:
@@ -101,7 +101,7 @@ Replace:
 #### 1.3 `HARK.datasets` → `HARK.Calibration`
 
 ```bash
-grep -rn "from HARK\\.datasets import" $TARGET_DIR --include="*.py" || true
+grep -rn "from HARK\.datasets import" $TARGET_DIR --include="*.py" || true
 ```
 
 Replace:
@@ -115,7 +115,7 @@ Replace:
 
 ```bash
 # Must find/replace ALL occurrences, regardless of how they were imported
-grep -rn "multiThreadCommands\\|multiThreadCommandsFake" $TARGET_DIR --include="*.py"
+grep -rn "multiThreadCommands\|multiThreadCommandsFake" $TARGET_DIR --include="*.py"
 grep -rn "drawDiscrete" $TARGET_DIR --include="*.py"
 ```
 
@@ -166,7 +166,7 @@ grep -rn "MargValueFunc2D" $TARGET_DIR --include="*.py"
 Search:
 
 ```bash
-grep -rn "update_solution_terminal\\|updateSolutionTerminal" $TARGET_DIR --include="*.py"
+grep -rn "update_solution_terminal\|updateSolutionTerminal" $TARGET_DIR --include="*.py"
 ```
 
 Replacement functions in 0.17.0:
@@ -195,10 +195,35 @@ Rename keys when they flow into `IndShockConsumerType`/`MarkovConsumerType` fami
 
 ```bash
 # Definitions (dict literals)
-grep -rn "'aNrmInitMean'\\|'pLvlInitMean'" $TARGET_DIR --include="*.py"
+grep -rn "'aNrmInitMean'\|'pLvlInitMean'" $TARGET_DIR --include="*.py"
 
 # Accesses (dict indexing) - MUST be empty after migration
-grep -rn "\\['aNrmInitMean'\\]\\|\\['pLvlInitMean'\\]" $TARGET_DIR --include="*.py"
+grep -rn "\['aNrmInitMean'\]\|\['pLvlInitMean'\]" $TARGET_DIR --include="*.py"
+```
+
+#### 4.2 Update BARE VARIABLE NAMES (COMMONLY MISSED)
+
+⚠️ **Parameter renames are not just about dict keys!**
+
+Some codebases define parameters as standalone variables:
+
+```python
+aNrmInitMean = np.log(0.5)    # ← Missed by dict key grep!
+pLvlInitStd = 0.4             # ← Missed by dict key grep!
+```
+
+Search:
+
+```bash
+grep -rn "^[[:space:]]*aNrmInitMean[[:space:]]*=\|^[[:space:]]*pLvlInitMean[[:space:]]*=" $TARGET_DIR --include="*.py"
+grep -rn "^[[:space:]]*aNrmInitStd[[:space:]]*=\|^[[:space:]]*pLvlInitStd[[:space:]]*=" $TARGET_DIR --include="*.py"
+```
+
+After fixing, verify:
+
+```bash
+# Must return empty
+grep -rn "aNrmInitMean\|aNrmInitStd\|pLvlInitMean\|pLvlInitStd" $TARGET_DIR --include="*.py" | grep -v "kLogInit\|pLogInit"
 ```
 
 ---
@@ -214,12 +239,52 @@ HARK calls lifecycle methods in snake_case. Any camelCase override will **never 
 grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py"
 ```
 
+For EACH match:
+1. If it's a HARK lifecycle override → rename to snake_case
+2. If it's a custom utility function → rename for Python style consistency
+3. If it must remain camelCase → document with `# OK: <reason>` comment
+
 #### 5.2 CamelCase call-site scan (MANDATORY)
 
 ```bash
 # Must return empty
-grep -rn "\\.preSolve(\\|\\.initializeSim(\\|\\.simBirth(\\|\\.simDeath(\\|\\.getShocks(\\|\\.getStates(\\|\\.getMortality(\\|\\.getControls(\\|\\.getMarkovStates(\\|\\.calcAgeDistribution(\\|\\.initializeAges(" $TARGET_DIR --include="*.py"
+grep -rn "\.preSolve(\|\.initializeSim(\|\.simBirth(\|\.simDeath(\|\.getShocks(\|\.getStates(\|\.getMortality(\|\.getControls(\|\.getMarkovStates(\|\.calcAgeDistribution(\|\.initializeAges(" $TARGET_DIR --include="*.py"
 ```
+
+#### 5.3 Call-Site Synchronization (CRITICAL - #1 CAUSE OF INCOMPLETE MIGRATIONS)
+
+⚠️ **When you rename a function/method definition, you MUST update ALL call sites.**
+
+For EACH function renamed in Step 5.1:
+
+1. **Grep for ALL occurrences** (not just `def`):
+   ```bash
+   grep -rn "oldFunctionName" $TARGET_DIR --include="*.py"
+   ```
+
+2. **Update ALL of them** to the new snake_case name:
+   - Definition: `def oldFunctionName(` → `def old_function_name(`
+   - Call site: `= oldFunctionName(` → `= old_function_name(`
+   - Method call: `.oldFunctionName(` → `.old_function_name(`
+   - Import: `from X import oldFunctionName` → `from X import old_function_name`
+
+3. **Verify the old name is gone**:
+   ```bash
+   grep -rn "oldFunctionName" $TARGET_DIR --include="*.py"
+   # MUST return empty
+   ```
+
+#### 5.4 Call-Site Closure Table (DELIVERABLE)
+
+For each renamed function, verify:
+
+| File | Old Name | New Name | Defs | Calls | Imports | Grep Empty? |
+|------|----------|----------|------|-------|---------|-------------|
+| OtherFunctions.py | `saveAsPickle` | `save_as_pickle` | ✅ | ✅ | ✅ | ✅ |
+| Parameters.py | `returnParameters` | `return_parameters` | ✅ | ✅ | ✅ | ✅ |
+| ... | ... | ... | ... | ... | ... | ... |
+
+**⛔ Hard requirement:** The old function name MUST NOT appear anywhere after migration.
 
 ---
 
@@ -246,23 +311,30 @@ Update:
 All of these must be empty before committing:
 
 ```bash
-# Old import paths
-grep -rn "from HARK\\.distribution import\\|from HARK\\.parallel import\\|from HARK\\.datasets import" $TARGET_DIR --include="*.py"
+# 1. Old import paths
+grep -rn "from HARK\.distribution import\|from HARK\.parallel import\|from HARK\.datasets import" $TARGET_DIR --include="*.py"
 
-# Old symbol names (search by NAME, not path)
-grep -rn "multiThreadCommands\\|multiThreadCommandsFake\\|drawDiscrete" $TARGET_DIR --include="*.py"
+# 2. Old symbol names (search by NAME, not path)
+grep -rn "multiThreadCommands\|multiThreadCommandsFake\|drawDiscrete" $TARGET_DIR --include="*.py"
 
-# Any camelCase defs
+# 3. Any camelCase defs
 grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py"
 
-# Old parameter key accesses
-grep -rn "\\['aNrmInitMean'\\]\\|\\['pLvlInitMean'\\]" $TARGET_DIR --include="*.py"
+# 4. Old parameter key accesses
+grep -rn "\['aNrmInitMean'\]\|\['pLvlInitMean'\]" $TARGET_DIR --include="*.py"
 
-# camelCase lifecycle calls
-grep -rn "\\.preSolve(\\|\\.initializeSim(\\|\\.getShocks(\\|\\.getStates(" $TARGET_DIR --include="*.py"
+# 5. Old parameter VARIABLE names (bare variables, not dict keys)
+grep -rn "aNrmInitMean\|aNrmInitStd\|pLvlInitMean\|pLvlInitStd" $TARGET_DIR --include="*.py" | grep -v "kLogInit\|pLogInit"
 
-# Removed method calls
-grep -rn "AggShockConsumerType\\.update_solution_terminal\\|IndShockConsumerType\\.update_solution_terminal\\|MarkovConsumerType\\.update_solution_terminal" $TARGET_DIR --include="*.py"
+# 6. camelCase lifecycle calls
+grep -rn "\.preSolve(\|\.initializeSim(\|\.getShocks(\|\.getStates(" $TARGET_DIR --include="*.py"
+
+# 7. Removed method calls
+grep -rn "AggShockConsumerType\.update_solution_terminal\|IndShockConsumerType\.update_solution_terminal\|MarkovConsumerType\.update_solution_terminal" $TARGET_DIR --include="*.py"
+
+# 8. Orphaned function names (build pattern from all renamed functions)
+# Example: OLD_NAMES="returnParameters|saveAsPickle|loadPickle|getSimulationDiff|..."
+# grep -rEn "$OLD_NAMES" $TARGET_DIR --include="*.py"
 ```
 
 ---
@@ -271,16 +343,27 @@ grep -rn "AggShockConsumerType\\.update_solution_terminal\\|IndShockConsumerType
 
 Run a baseline command **before** migration and rerun **after** migration.
 
-```bash
-<USER_COMMAND> > baseline_results.txt 2>&1
-<USER_COMMAND> > post_migration_results.txt 2>&1
+**Ask the user**: What command should I run to generate a baseline of computational results?
 
-diff baseline_results.txt post_migration_results.txt
+Example:
+```bash
+./reproduce.sh --docs main
+```
+
+After migration, rerun the same command and compare outputs.
+
+---
+
+## Quick Reference: Finding ALL Patterns to Change
+
+```bash
+# One-liner to find everything that likely needs changing
+grep -rEn "from HARK\.(distribution|parallel|datasets) import|multiThreadCommands|drawDiscrete|def [a-z][a-zA-Z]*[A-Z]|'aNrmInitMean'|'pLvlInitMean'|aNrmInitMean[[:space:]]*=|pLvlInitMean[[:space:]]*=|\.preSolve\(|\.initializeSim\(|ConsIndShockSolver|MargValueFunc2D|update_solution_terminal" $TARGET_DIR --include="*.py" | sort -u
 ```
 
 ---
 
-## What’s *not* automatically required by 0.14.1→0.17.0 (but still scan target)
+## What's *not* automatically required by 0.14.1→0.17.0 (but still scan target)
 
 Some patterns were already updated in HARK 0.14.1, but target code might be older:
 - `.pmf` → `.pmv`
