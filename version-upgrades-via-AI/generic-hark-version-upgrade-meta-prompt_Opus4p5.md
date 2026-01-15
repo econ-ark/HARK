@@ -669,6 +669,72 @@ After completing all discovery steps, produce a single **Change Inventory** docu
 
 **Next step**: Human reviews the Change Inventory, then chooses Stage 2A or 2B.
 
+
+---
+
+# ═══════════════════════════════════════════════════════════════════
+# ⛔ STAGE 1 COMPLETION GATE (MANDATORY)
+# ═══════════════════════════════════════════════════════════════════
+
+## YOU MUST NOT PROCEED TO STAGE 2 UNTIL ALL OF THE FOLLOWING ARE TRUE:
+
+### 1.A Required Discovery Commands Executed
+
+You must have ACTUALLY RUN (not just read about) these commands and recorded their output:
+
+| Command | Purpose | Output Location |
+|---------|---------|-----------------|
+| `diff -rq src/HARK tgt/HARK` | Structural changes | Section 1.1 of Inventory |
+| `comm -23 methods_src.txt methods_tgt.txt` | Method renames | Section 1.4.1 of Inventory |
+| `grep -rh "def [a-z]" src/HARK \| ...` | Full method list | methods_src.txt |
+| `grep -rh "def [a-z]" tgt/HARK \| ...` | Full method list | methods_tgt.txt |
+| API extraction script on BOTH versions | Signature changes | api_src.json, api_tgt.json |
+
+**Checkpoint**: ☐ I have run ALL commands above and have the output files.
+
+### 1.B Change Inventory Completeness Check
+
+The Change Inventory document MUST have:
+
+- ☐ **NO "TBD" entries** - Every field must have an actual value or "N/A"
+- ☐ **Actual counts** in Summary Statistics (not placeholders)
+- ☐ **Evidence column filled** for every change (grep output, diff line, API diff)
+- ☐ **Complete method rename table** with ALL camelCase→snake_case mappings found
+- ☐ **Module removal/move table** listing ALL structural changes from `diff -rq`
+
+### 1.C Specific Items That MUST Be Documented (Common Misses)
+
+Before proceeding, verify you have explicitly addressed:
+
+| Item | Check | Where Documented |
+|------|-------|------------------|
+| `HARK.parallel` module status | ☐ Does it exist in target? Where did its functions move? | Section 1.1 |
+| `RNG.randint()` vs `RNG.integers()` | ☐ Which does target HARK use? | Section 1.7.2 |
+| `.drawDiscrete()` method | ☐ What is it renamed to? | Section 1.4.1 |
+| ALL camelCase methods in src | ☐ Listed and mapped to snake_case equivalents | Section 1.4.1 |
+| `DiscreteDistribution` constructor | ☐ Full signature diff documented | Section 1.5.2 |
+
+### 1.D Verification Test
+
+Pick 3 Python files from the TARGET CODEBASE that you believe need changes. For each:
+
+1. List what changes you expect based on the Inventory
+2. Run `grep` for old patterns
+3. Confirm the Inventory would catch them all
+
+If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
+
+### 1.E Hard Gate Statement
+
+**I certify that:**
+- ☐ All discovery commands in Section 1.0-1.10 have been executed
+- ☐ The Change Inventory has NO TBD/placeholder entries
+- ☐ Method rename table is COMPLETE (not a sample)
+- ☐ I have verified with 3 test files that the Inventory is comprehensive
+
+**⛔ IF ANY BOX ABOVE IS UNCHECKED, DO NOT PROCEED TO STAGE 2.**
+
+
 ---
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1028,4 +1094,3 @@ If upgrading between minor versions (e.g., 0.16.0 → 0.16.1), you may skip some
 Before using the inventory for transformation:
 1. Pick 2-3 files you KNOW need changes
 2. Verify the inventory identifies those changes
-3. If it misses known changes, discovery is incomplete
