@@ -140,6 +140,99 @@ Before proceeding, confirm ALL of these:
 
 **If any fail, STOP and explain what's blocking you.**
 
+
+---
+
+## 1.0b Target Dependency Extraction (MANDATORY - DO THIS FIRST)
+
+⚠️ **THIS IS CRITICAL AND COMMONLY SKIPPED!**
+
+Before analyzing what changed in HARK, you MUST know what the TARGET CODEBASE actually depends on. Otherwise you may miss breaking changes that affect the target.
+
+### Why This Matters
+
+A "HARK-centric" approach (diff HARK, then apply to target) misses:
+- Classes the target imports that were **removed or relocated**
+- Methods the target overrides from parent classes that **no longer exist**
+- Solver classes or other internal APIs the target extends
+
+### Step 1: Extract All HARK Imports from Target
+
+```bash
+grep -rn "from HARK\|import HARK" $TARGET_DIR --include="*.py" | \
+  grep -v "__pycache__" | \
+  sort -u > target_hark_imports.txt
+
+# Show unique import patterns
+cat target_hark_imports.txt | sed 's/.*from HARK/from HARK/' | sed 's/.*import HARK/import HARK/' | sort -u
+```
+
+### Step 2: Extract All HARK Class Inheritances from Target
+
+```bash
+# Find classes that inherit from HARK types
+grep -rn "class.*\(.*Type\)\|class.*\(.*Solver\)\|class.*\(.*Model\)\|class.*\(.*Consumer\)" $TARGET_DIR --include="*.py" | \
+  grep -v "__pycache__"
+```
+
+### Step 3: Import Smoke Test (CRITICAL)
+
+For EACH unique import found in Step 1, verify it works with the TARGET HARK version:
+
+```bash
+# Create test script
+cat > /tmp/test_imports.py << 'EOF'
+import sys
+sys.path.insert(0, "tgt")  # Use target HARK version
+
+failed = []
+# Add each import from target_hark_imports.txt
+try:
+    from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver
+except ImportError as e:
+    failed.append(("ConsIndShockSolver from ConsIndShockModel", str(e)))
+
+# ... repeat for all imports ...
+
+if failed:
+    print("BROKEN IMPORTS:")
+    for name, err in failed:
+        print(f"  ❌ {name}: {err}")
+else:
+    print("✅ All imports OK")
+EOF
+
+python /tmp/test_imports.py
+```
+
+### Step 4: Method Existence Check for Inherited Classes
+
+For each class in the target that inherits from a HARK class, verify the parent class methods it calls still exist:
+
+```bash
+# Example: If target has ConsMarkovSolver(ConsIndShockSolver)
+# Check what methods it calls on self or parent:
+grep -n "self\." $TARGET_DIR/path/to/file.py | \
+  sed 's/.*self\.//' | sed 's/(.*$//' | sort -u > target_methods_used.txt
+
+# Verify each method exists in parent class in TARGET HARK
+for method in $(cat target_methods_used.txt); do
+  grep -q "def $method" tgt/HARK/path/to/parent.py || \
+    echo "MISSING: $method"
+done
+```
+
+### Deliverable: Target Dependency Map
+
+| Dependency Type | Item | Source Location | Exists in Target HARK? | Notes |
+|-----------------|------|-----------------|------------------------|-------|
+| Import | `ConsIndShockSolver` | `ConsIndShockModel` | ❌ NO | Moved to `LegacyOOsolvers` |
+| Import | `DiscreteDistribution` | `distributions` | ✅ YES | |
+| Inheritance | `ConsMarkovSolver(ConsIndShockSolver)` | local file | ⚠️ Parent moved | |
+| Parent method | `add_MPC_and_human_wealth` | inherited | ❌ NO | Only in `LegacyOOsolvers` |
+
+**⛔ HARD GATE**: If ANY import fails or ANY inherited method is missing, you MUST document the fix (e.g., "import from LegacyOOsolvers instead") before proceeding.
+
 ---
 
 ## 1.1 Structural Changes (Files/Directories)
@@ -273,6 +366,100 @@ Compare the JSON files to find:
 | `MargValueFunc2D` | Moved/Aliased | `ConsAggShockModel` | Requires `as MargValueFunc2D` | API diff |
 
 ---
+
+
+---
+
+## 1.2b Class/Function Export Comparison (MANDATORY)
+
+⚠️ **THIS CATCHES REMOVED/RELOCATED CLASSES!**
+
+The API extraction in 1.2 focuses on signatures. This section catches classes/functions that were **removed entirely** from a module (possibly relocated elsewhere).
+
+### Why This Matters
+
+If the target codebase imports:
+```python
+from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver
+```
+
+And `ConsIndShockSolver` was **removed from that module** (moved to `LegacyOOsolvers`), the import will fail. The API diff might miss this if it only compares signatures of things that exist in both versions.
+
+### Discovery Commands
+
+For each module imported by the target codebase (from 1.0b), compare what's exported:
+
+```bash
+# Generate export lists for a specific module
+python3 -c "
+import sys
+sys.path.insert(0, 'src')
+from HARK.ConsumptionSaving import ConsIndShockModel
+exports = [x for x in dir(ConsIndShockModel) if not x.startswith('_')]
+print('\n'.join(sorted(exports)))
+" > exports_src_ConsIndShockModel.txt
+
+python3 -c "
+import sys
+sys.path.insert(0, 'tgt')
+from HARK.ConsumptionSaving import ConsIndShockModel
+exports = [x for x in dir(ConsIndShockModel) if not x.startswith('_')]
+print('\n'.join(sorted(exports)))
+" > exports_tgt_ConsIndShockModel.txt
+
+# Find removed exports
+comm -23 exports_src_ConsIndShockModel.txt exports_tgt_ConsIndShockModel.txt > removed_from_ConsIndShockModel.txt
+cat removed_from_ConsIndShockModel.txt
+```
+
+### High-Priority Modules to Check
+
+| Module | Why Important |
+|--------|---------------|
+| `HARK.ConsumptionSaving.ConsIndShockModel` | Contains solver classes, agent types |
+| `HARK.ConsumptionSaving.ConsMarkovModel` | Markov consumer types |
+| `HARK.ConsumptionSaving.ConsAggShockModel` | Aggregate shock models |
+| `HARK.core` | Base classes |
+| `HARK.distributions` (or `distribution`) | Distribution classes |
+
+### Deliverable: Export Removal Table
+
+| Module | Removed Export | Target Uses It? | Where Did It Go? |
+|--------|----------------|-----------------|------------------|
+| `ConsIndShockModel` | `ConsIndShockSolver` | YES | `LegacyOOsolvers` |
+| `ConsIndShockModel` | `ConsIndShockSolverBasic` | NO | `LegacyOOsolvers` |
+| `ConsIndShockModel` | `add_MPC_and_human_wealth` | YES (via inheritance) | `LegacyOOsolvers` |
+
+---
+
+## 1.2c Relocation Detection (For Removed Items)
+
+For each item found in the "Removed Exports" table above, search the entire target HARK to find where it moved:
+
+```bash
+# For each removed item, search target HARK
+for item in $(cat removed_from_ConsIndShockModel.txt); do
+  echo "=== $item ==="
+  grep -rn "class $item\|def $item\|^$item = " tgt/HARK/ --include="*.py" | head -3
+done
+```
+
+### Common Relocation Patterns in HARK
+
+| Item Type | Old Location | New Location | Notes |
+|-----------|--------------|--------------|-------|
+| OOP Solver classes | `ConsIndShockModel.py` | `LegacyOOsolvers.py` | `ConsIndShockSolver`, `ConsMarkovSolver`, etc. |
+| Utility functions | Various | `HARK.utilities` or `HARK.rewards` | |
+| Distribution classes | `distribution.py` | `distributions/` (submodules) | |
+
+### Deliverable: Relocation Map
+
+For each removed item that the target codebase uses:
+
+| Item | Old Import | New Import | Migration Rule |
+|------|------------|------------|----------------|
+| `ConsIndShockSolver` | `from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver` | `from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSolver` | Change import path |
+| `ConsMarkovSolver` | `from HARK.ConsumptionSaving.ConsMarkovModel import ConsMarkovSolver` | `from HARK.ConsumptionSaving.LegacyOOsolvers import ConsMarkovSolver` | Change import path |
 
 ## 1.3 Deprecation Warnings as Discovery Source
 
@@ -1122,6 +1309,10 @@ You must have ACTUALLY RUN (not just read about) these commands and recorded the
 | `grep -rh "def [a-z]" src/HARK \| ...` | Full method list | methods_src.txt |
 | `grep -rh "def [a-z]" tgt/HARK \| ...` | Full method list | methods_tgt.txt |
 | API extraction script on BOTH versions | Signature changes | api_src.json, api_tgt.json |
+| Target dependency extraction (1.0b) | What target imports from HARK | target_hark_imports.txt |
+| Import smoke test (1.0b Step 3) | Verify imports work with target HARK | test_imports.py output |
+| Export comparison (1.2b) | Classes removed from modules | removed_from_*.txt |
+| Relocation detection (1.2c) | Where removed items moved | Relocation Map |
 
 **Checkpoint**: ☐ I have run ALL commands above and have the output files.
 
@@ -1160,6 +1351,11 @@ Before proceeding, verify you have explicitly addressed:
 | Docs/changelog impacts | ☐ Docs/README/CHANGELOG updates identified if needed | Stage 2 Safety (2.S5) |
 | Dry-run + idempotence plan | ☐ Transformation approach supports dry-run + idempotence | Stage 2 Safety (2.S1-2.S2) |
 | CI/acceptance gates | ☐ Acceptance criteria defined (CI green, grep clean, tests) | Stage 2 Safety (2.S4) |
+| **Target dependency extraction** | ☐ All HARK imports from target listed | Section 1.0b |
+| **Import smoke test** | ☐ All target imports verified against target HARK | Section 1.0b Step 3 |
+| **Class/function removals** | ☐ Exports removed from modules identified | Section 1.2b |
+| **Relocation map** | ☐ Where removed items moved documented | Section 1.2c |
+| **OOP Solver classes** | ☐ ConsIndShockSolver, ConsMarkovSolver etc. - still exist or relocated? | Section 1.2b/1.2c |
 
 ### 1.D Verification Test
 
@@ -1174,7 +1370,11 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 ### 1.E Hard Gate Statement
 
 **I certify that:**
-- ☐ All discovery commands in Section 1.0-1.10 have been executed
+- ☐ All discovery commands in Section 1.0-1.13 have been executed
+- ☐ Target dependency extraction (1.0b) completed - all HARK imports from target listed
+- ☐ Import smoke test (1.0b Step 3) passed - all imports work with target HARK
+- ☐ Class/function export comparison (1.2b) completed - removed exports identified
+- ☐ Relocation map (1.2c) completed - where removed items moved documented
 - ☐ The Change Inventory has NO TBD/placeholder entries
 - ☐ Method rename table is COMPLETE (not a sample)
 - ☐ Method REMOVAL table is COMPLETE (methods removed from HARK, not renamed)
