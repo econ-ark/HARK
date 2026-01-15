@@ -1342,6 +1342,8 @@ class AgentType(Model):
         returns np.nan if no target is found. Pass force_list=True to always get a list.
         See documentation for HARK.simulator.find_target_state for more options.
         """
+        if not hasattr(self, "solution"):
+            raise AttributeError("Model must be solved before using find_target!")
         temp_simulator = make_simulator_from_agent(self)
         target_vals = temp_simulator.find_target_state(target_var, **kwargs)
         if force_list:

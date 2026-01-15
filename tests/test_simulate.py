@@ -283,8 +283,11 @@ class testFindTarget(unittest.TestCase):
         # Non-existent fixed variable
         self.assertRaises(ValueError, MyType.find_target, "mLvl", blorpity=5.0)
 
-        # Non-existent target
+        # Unsolved type
         ThisType = IndShockConsumerType(cycles=0, DiscFac=1.0)
+        self.assertRaises(AttributeError, ThisType.find_target, "mNrm")
+
+        # Non-existent target
         ThisType.solve()
         m_targ = ThisType.find_target("mNrm")
         self.assertTrue(np.isnan(m_targ))  # too patient for target to exist

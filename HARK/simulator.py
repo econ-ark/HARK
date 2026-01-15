@@ -943,7 +943,7 @@ class SimBlock:
 
         # If we didn't start at the beginning and there is a twist, loop back to
         # the start and do the remaining events
-        if j0 > 0 and twist is not None:
+        if twist is not None:
             new_data = {"pmv_": self.data["pmv_"].copy()}
             for end_var in twist.keys():
                 arr_var = twist[end_var]
@@ -1494,31 +1494,37 @@ class AgentSimulator:
         found_count = 0
         found = var_count * [False]
         j = 0
-        while (found_count < var_count) and (j < event_count):
-            event = period.events[j]
-            assigns = event.assigns
-            for i in range(var_count):
-                if (var_names[i] in assigns) and (not found[i]):
-                    found[i] = True
-                    found_count += 1
-            j += 1
-        if not np.all(found):
-            raise ValueError(
-                "Could not find events that assign target variable and all fixed variables!"
-            )
+        if target_var not in period.arrival:
+            while (found_count < var_count) and (j < event_count):
+                event = period.events[j]
+                assigns = event.assigns
+                for i in range(var_count):
+                    if (var_names[i] in assigns) and (not found[i]):
+                        found[i] = True
+                        found_count += 1
+                j += 1
+            if not np.all(found):
+                raise ValueError(
+                    "Could not find events that assign target variable and all fixed variables!"
+                )
         idx0 = j  # Event index where the quasi-sim should start and stop
 
         # Construct the starting information set for the quasi-simulation
         data_init = {}
         trivial_vars = []
-        for j in range(
-            idx0
-        ):  # Assign dummy data for all vars assigned prior to start/stop
+
+        # Assign dummy data for all vars assigned prior to start/stop
+        for var in period.arrival:
+            data_init[var] = np.zeros(N, dtype=int)  # dummy data
+            trivial_vars.append(var)
+        for j in range(idx0):
             event = period.events[j]
             assigns = event.assigns
             for var in assigns:
                 data_init[var] = np.zeros(N, dtype=int)  # dummy data
                 trivial_vars.append(var)
+
+        # Assign fixed data and the grid of candidate target values
         for key in fixed.keys():
             data_init[key] = fixed[key] * np.ones(N)
         data_init[target_var] = state_grid
