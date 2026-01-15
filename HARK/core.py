@@ -1336,7 +1336,8 @@ class AgentType(Model):
 
     def find_target(self, target_var, force_list=False, **kwargs):
         """
-        Find the "target" level of a named variable such that E[\Delta x] = 0.
+        Find the "target" level of a named variable such that E[\Delta x] = 0,
+        with E[\Delta x-eps] > 0 and E[\Delta x+eps] < 0 (locally stable).
         Returns a single real value if there is only one target, and a list if multiple;
         returns np.nan if no target is found. Pass force_list=True to always get a list.
         See documentation for HARK.simulator.find_target_state for more options.

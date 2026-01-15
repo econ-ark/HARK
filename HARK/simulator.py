@@ -1442,7 +1442,8 @@ class AgentSimulator:
     def find_target_state(self, target_var, bounds=None, N=201, tol=1e-8, **kwargs):
         """
         Find the "target" level of a state variable: the value such that the expectation
-        of next period's state is the same value (when following the policy function).
+        of next period's state is the same value (when following the policy function),
+        *and* is locally stable (pushes up from below and down from above when nearby).
         Only works for standard infinite horizon models with a single endogenous state
         variable. Other variables whose values must be known (e.g. exogenously evolving
         states) can also be specified.
@@ -1547,9 +1548,9 @@ class AgentSimulator:
             E_state_next[n] = np.dot(pmv_final[these], data_final[these])
         E_delta_state = E_state_next - state_grid  # expected change in state
 
-        # Find indices in the grid where the sign of E[\Delta x] flips
+        # Find indices in the grid where E[\Delta x] flips from positive to negative
         sign = E_delta_state > 0.0
-        flip = np.logical_xor(sign[:-1], sign[1:])
+        flip = np.logical_and(sign[:-1], np.logical_not(sign[1:]))
         flip_idx = np.argwhere(flip).flatten()
         if flip_idx.size == 0:
             state_targ = []
