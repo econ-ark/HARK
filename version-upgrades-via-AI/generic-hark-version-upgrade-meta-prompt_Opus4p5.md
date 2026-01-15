@@ -997,6 +997,41 @@ find $TARGET_DIR -path "*/binder/*" -type f 2>/dev/null | xargs grep -l -i "econ
 
 ---
 
+## 1.12 Change Impact Analysis (Blast Radius)
+
+**Goal**: Identify "Hot Modules" and high-risk areas where breaking changes will have the largest impact.
+
+```bash
+# Find modules with high incoming dependency counts
+grep -rh "^from HARK" $TARGET_DIR --include="*.py" | cut -d' ' -f2 | cut -d'.' -f1-3 | sort | uniq -c | sort -nr | head -10
+```
+
+**Record in Change Inventory**:
+- List top 5 most-imported modules in the target codebase.
+- Mark any module in the "Renamed" or "Removed" list that is also a "Hot Module" as **HIGH RISK**.
+
+## 1.13 Semantic Baseline Generation (REQUIRED FOR SCIENCE)
+
+**Goal**: Record the "Ground Truth" mathematical output of the codebase before migration to ensure no silent logic drift.
+
+### Procedure
+
+1. **Pick a main reproduction script** (e.g., `do_all.py` or a core test).
+2. **Force deterministic behavior**: Ensure a fixed seed is used for all RNGs.
+3. **Record output**:
+   ```bash
+   # Example: run a simulation and hash the final results
+   python reproduce.py --seed 42 > baseline_output.txt
+   # Or hash the final arrays/dataframes
+   python -c "import pandas as pd; print(pd.read_csv('results.csv').sum().sum())" > baseline_sum.txt
+   ```
+
+**Record in Change Inventory**:
+- Path to the baseline reproduction script.
+- The baseline hash/value.
+
+---
+
 ## 1.11 Compile the Change Inventory Document
 
 After completing all discovery steps, produce a single **Change Inventory** document:
@@ -1123,6 +1158,8 @@ Before proceeding, verify you have explicitly addressed:
 | Serialization compatibility | ☐ Pickle/state file impacts identified | Section 1.7d |
 | Dynamic method references | ☐ getattr/string-based method calls checked | Section 1.7e |
 | Test-driven verification | ☐ Tests run with both HARK versions | Section 1.7f |
+| Change Impact Analysis | ☐ Blast Radius Map of high-risk modules | Section 1.12 |
+| Semantic Baseline | ☐ Ground Truth outputs recorded before migration | Section 1.13 |
 | Stage 0 pre-flight | ☐ Clean working tree + correct base branch + recorded SHA | Stage 0 |
 | Case-only rename hazards | ☐ Checked for case-only renames + documented handling | Section 1.1b |
 | Docs/changelog impacts | ☐ Docs/README/CHANGELOG updates identified if needed | Stage 2 Safety (2.S5) |
@@ -1155,6 +1192,9 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Documentation/CHANGELOG impact assessed and plan recorded
 - ☐ Stage 2 plan supports dry-run + idempotence (or manual-only declared)
 - ☐ Stage 2 acceptance criteria defined (CI green, greps clean, tests)
+- ☐ Semantic Baseline recorded and hash verified
+- ☐ High-risk "Hot Modules" identified for manual review
+- ☐ Semantic Signature Comparison (2.V1) passed (post-migration results match baseline)
 - ☐ I have verified with 3 test files that the Inventory is comprehensive
 
 **⛔ IF ANY BOX ABOVE IS UNCHECKED, DO NOT PROCEED TO STAGE 2.**
@@ -1238,6 +1278,21 @@ def oldName(*args, **kwargs):
     warnings.warn("oldName is deprecated; use new_name", DeprecationWarning, stacklevel=2)
     return new_name(*args, **kwargs)
 ```
+
+### 2.S7 Change Attribution (Audit Trail)
+
+**Best practice**: Every automated change must be attributable to a specific rule in the Change Inventory.
+
+- Migration scripts MUST log every change with a reference ID.
+- Example log format: `[CI-1.2] Renamed drawDiscrete to draw_events in file_a.py:45`
+
+### 2.S8 AST-Based Precision (Optional but Recommended)
+
+For high-noise symbols (e.g., `X`, `pmf`), simple regex might be too dangerous.
+
+**Recommended approach**:
+- Use `libcst` or `bowler` to find only those occurrences that are attributes of a HARK class.
+- If using regex, use "Strict Context" (e.g., `grep -B 5 "DiscreteDistribution" | grep ".pmf"`) to confirm the object type.
 
 ---
 
@@ -1587,3 +1642,29 @@ If upgrading between minor versions (e.g., 0.16.0 → 0.16.1), you may skip some
 Before using the inventory for transformation:
 1. Pick 2-3 files you KNOW need changes
 2. Verify the inventory identifies those changes
+
+# STAGE 2.V: VERIFICATION
+
+## 2.V1 Semantic Signature Comparison (FINAL VALIDATION)
+
+**Goal**: Prove that the migration did not break the science.
+
+### Procedure
+
+1. **Rerun the baseline** established in Section 1.13 using the NEW HARK version:
+   ```bash
+   python reproduce.py --seed 42 > post_migration_output.txt
+   ```
+2. **Compare results**:
+   ```bash
+   diff baseline_output.txt post_migration_output.txt
+   ```
+
+**Requirement**: The outputs must be identical (bit-for-bit) or within a strictly defined mathematical tolerance (e.g., `1e-10` for floating point arrays).
+
+**If results differ**:
+- This is a **HIGH PRIORITY** failure.
+- Investigate behavioral changes (1.7c) or default value changes (1.7b).
+- Do NOT merge until the difference is explained and accepted by the PI.
+
+---
