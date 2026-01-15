@@ -20,7 +20,7 @@ There are some breaking changes:
 
 #### Major Changes
 
-none yet
+- Added find_target method to AgentType, automating search for target value of state variables. [#1698](https://github.com/econ-ark/HARK/pull/1698)
 
 #### Minor Changes
 
