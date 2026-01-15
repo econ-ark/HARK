@@ -14,6 +14,7 @@ from HARK.utilities import NullFunc, make_exponential_grid
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix
 from scipy.sparse.linalg import eigs
+from scipy.optimize import brentq
 from itertools import product
 import importlib.resources
 import yaml
@@ -709,13 +710,13 @@ class SimBlock:
             self.arrival[k]: state_meshes[k].flatten() for k in range(arrival_N)
         }
         N_orig = state_meshes[0].size
-        self.N = N_orig
         mesh_tuples = [
             [state_init[self.arrival[k]][n] for k in range(arrival_N)]
-            for n in range(self.N)
+            for n in range(N_orig)
         ]
 
         # Make the initial vector of probability masses
+        self.N = N_orig
         state_init["pmv_"] = np.ones(self.N)
 
         # Initialize the array of arrival states
@@ -782,7 +783,6 @@ class SimBlock:
 
             if grid_out_is_continuous[k]:
                 # Split the final values among discrete gridpoints on the interior.
-                # NB: This will only work properly if the grid is equispaced
                 if M > 1:
                     Q = grid_orders[var]
                     if var in cont_vars:
@@ -904,6 +904,70 @@ class SimBlock:
             self.trans_array = master_trans_array
         if arrival_N == 0:
             self.init_dstn = master_init_array
+
+    def run_quasi_sim(self, data, idx0=0, twist=None):
+        """
+        "Quasi-simulate" this block from given starting data at some event index,
+        looping back to end at the same point (only if idx0 > 0 and twist is given).
+        To quasi-simulate means to run the model forward for *every* possible shock
+        realization, tracking probability masses.
+
+        If the quasi-simulation loops through the twist, mortality is ignored.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary of initial data, mapping variable names to vectors of values.
+        idx0 : int, optional
+            Event index number at which to start (and end)) the quasi-simulation.
+            By default, it is run from index 0.
+        twist : dict, optional
+            Optional dictionary mapping end-of-block variables back to arrival variables.
+            If this is provided *and* idx0 > 0, then the quasi-sim is run for a complete
+            period, starting and ending at the same index. Else it's run to end of period.
+
+        Returns
+        -------
+        None
+        """
+        # Make the initial vector of probability masses
+        key = data.keys[0]
+        N_orig = data[key].size
+        self.N = N_orig
+        state_init = deepcopy(data)
+        state_init["pmv_"] = np.ones(self.N)
+
+        # Initialize the array of arrival states
+        origin_array = np.arange(self.N, dtype=int)
+
+        # Reset the block's state and give it the initial state data
+        self.reset()
+        self.data.update(state_init)
+
+        # Loop through each event in order and quasi-simulate it
+        J = len(self.events)
+        for j in range(idx0, J):
+            event = self.events[j]
+            event.data = self.data  # Give event *all* data directly
+            event.N = self.N
+            origin_array = event.quasi_run(origin_array)
+            self.N = self.data["pmv_"].size
+
+        # If we didn't start at the beginning and there is a twist, loop back to
+        # the start and do the remaining events
+        if idx0 > 0 and twist is not None:
+            for end_var in twist.keys():
+                arr_var = twist[end_var]
+                self.data[arr_var] = self.data[end_var].copy()
+            for j in range(idx0):
+                event = self.events[j]
+                event.data = self.data  # Give event *all* data directly
+                event.N = self.N
+                origin_array = event.quasi_run(origin_array)
+                self.N = self.data["pmv_"].size
+
+        # Assign the origin array as an attribute of self
+        self.origin_array = origin_array
 
 
 @dataclass(kw_only=True)
@@ -1066,7 +1130,6 @@ class AgentSimulator:
         if skip is None:
             skip = []
         N = self.N_agents
-        # self.data = {}
         for var in self.types.keys():
             if var in skip:
                 continue
@@ -1373,6 +1436,123 @@ class AgentSimulator:
         var_dstn = np.dot(dstn, array)
         var_mean = np.dot(var_dstn, grid)
         return var_mean
+
+    def find_target_state(self, target_var, fixed=None, bounds=None, N=201, tol=1e-8):
+        """
+        Find the "target" level of a state variable: the value such that the expectation
+        of next period's state is the same value (when following the policy function).
+        Only works for standard infinite horizon models with a single endogenous state
+        variable. Other variables whose values must be known (e.g. exogenously evolving
+        states) can also be specified.
+
+        The search procedure is to first examine a grid of candidates on the bounds,
+        calculating E[\Delta x] for state x, and then perform a local search for each
+        interval where it flips from positive to negative.
+
+        Parameters
+        ----------
+        target_var : str
+            Name of the state variable of interest.
+        fixed : dict, optional
+            Dictionary mapping from other variables to fixed values. This feature is
+            used for exogenous state variables, such as persistent income pLvl in the
+            GenIncProcess model. The user simply passes its mean (central) value,
+            which is easily known in advance.
+        bounds : [float], optional
+            Upper and lower boundaries for the target search. If not provided, defaults
+            to [0.0, 100.0].
+        N : int, optional
+            Number of values of the variable of interest to test on the initial pass.
+            If not provided, defaults to 201. This affects the "resolution" when there
+            are multiple possible target levels (uncommon).
+        tol : float, optional
+            Maximum acceptable deviation from true target E[\Delta x] = 0 to be accepted.
+            If not specified, defaults to 1e-8.
+
+        Returns
+        -------
+        state_targ : [float]
+            List of target_var x values such that E[\Delta x] = 0, which can be empty.
+        """
+        if self.T_total != 1:
+            raise ValueError(
+                "This method currently only works with one period infinite horizon problems."
+            )
+        fixed = fixed or {}
+        bounds = bounds or [0.0, 100.0]
+        state_grid = np.linspace(bounds[0], bounds[1], num=N)
+
+        # Find the event index at which to start and stop the quasi-simulation
+        var_names = [target_var] + list(fixed.keys())
+        var_count = len(var_names)
+        found_count = 0
+        found = var_count * [False]
+        period = self.periods[0]
+        event_count = len(period.events)
+        j = 0
+        while (found_count < var_count) and (j < event_count):
+            event = period.events[j]
+            assigns = event.assigns
+            for i in range(var_count):
+                if (var_names[i] in assigns) and (not found[i]):
+                    found[i] = True
+                    found_count += 1
+            j += 1
+        if not np.all(found):
+            raise ValueError(
+                "Could not find events that assign target variable and all fixed variables!"
+            )
+        idx0 = j  # Event index where the quasi-sim should start and stop
+
+        # Construct the starting information set for the quasi-simulation
+        data_init = {target_var: state_grid}
+        for key in fixed.keys():
+            data_init[key] = fixed[key] * np.ones(N)
+
+        # Run the quasi-simulation on the initial grid of states
+        period.run_quasi_sim(data_init, j0=idx0, twist=self.twist)
+        origins = period.origin_array
+        data_final = period.data[target_var]
+        pmv_final = period.data["pmv_"]
+
+        # Calculate mean value of next period's state at each point in the grid
+        E_state_next = np.empty(N)
+        for n in range(N):
+            these = origins == n
+            E_state_next[n] = np.dot(pmv_final[these], data_final[these])
+        E_delta_state = E_state_next - state_grid  # expected change in state
+
+        # Find indices in the grid where the sign of E[\Delta x] flips
+        sign = E_delta_state > 0.0
+        flip = np.logical_xor(sign[:-1], sign[1:])
+        flip_idx = np.argwhere(flip).flatten()
+        if flip_idx.size == 0:
+            state_targ = []
+            return state_targ
+
+        # Reduce the fixed values in data_init to single valued vectors
+        for key in fixed.keys():
+            data_init[key] = np.array([fixed[key]])
+
+        # Define a function that can be used to search for states where E[\Delta x] = 0
+        def delta_zero_func(x):
+            data_init[target_var] = np.array([x])
+            period.run_quasi_sim(data_init, j0=idx0, twist=self.twist)
+            data_final = period.data[target_var]
+            pmv_final = period.data["pmv_"]
+            E_delta = np.dot(pmv_final, data_final) - x
+            return E_delta
+
+        # For each segment index with a sign flip for E[\Delta x], find x_targ
+        state_targ = []
+        for i in flip_idx:
+            bot = state_grid[i]
+            top = state_grid[i + 1]
+            x_targ = brentq(delta_zero_func, bot, top, xtol=tol, rtol=tol)
+            state_targ.append(x_targ)
+
+        # Return the output
+        return state_targ
 
     def simulate_cohort_by_grids(
         self,
