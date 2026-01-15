@@ -760,6 +760,57 @@ grep -rn "\.preSolve(\|\.initializeSim(\|\.simBirth(\|\.simDeath(\|\.getShocks(\
 
 **Deliverable:** Verification that both greps return empty (or all exceptions documented).
 
+### 1.4.7 Call-Site Synchronization (CRITICAL - COMMONLY MISSED)
+
+⚠️ **This is the #1 cause of incomplete migrations!**
+
+When you rename a function/method definition, you MUST also update ALL call sites.
+
+The previous sections focus on finding definitions to rename. But renaming `def calcEstimStats(...)` does nothing if you leave behind calls like `Stats = calcEstimStats(agents)`.
+
+#### The Problem
+
+A target codebase might define its own utility functions in camelCase:
+- `def returnParameters(...)` - called from multiple files
+- `def saveAsPickle(...)` - called from multiple files
+- `def getSimulationDiff(...)` - called from multiple files
+
+These are NOT HARK lifecycle methods, but they follow the old camelCase convention.
+When you rename the definitions to snake_case, you MUST also update all call sites.
+
+#### Required Procedure
+
+For EACH function/method renamed in Step 1.4.6:
+
+1. **Record the old name**
+2. **Grep for ALL occurrences** (not just `def`):
+   ```bash
+   grep -rn "oldFunctionName" $TARGET_DIR --include="*.py"
+   ```
+3. **Categorize occurrences**:
+   - Definition: `def oldFunctionName(`
+   - Call site: `= oldFunctionName(` or `.oldFunctionName(`
+   - Import: `from X import oldFunctionName`
+   - String reference: `'oldFunctionName'`
+4. **Update ALL of them** to the new snake_case name
+5. **Verify the old name is gone**:
+   ```bash
+   grep -rn "oldFunctionName" $TARGET_DIR --include="*.py"
+   # MUST return empty
+   ```
+
+#### Deliverable: Call-Site Closure Table
+
+For each renamed function, verify:
+
+| Function | Old Name | New Name | Definitions Updated | Call Sites Updated | Imports Updated | Grep Returns Empty? |
+|----------|----------|----------|---------------------|--------------------|-----------------|-----------------------|
+| EstimAggFiscalMAIN.py | `calcEstimStats` | `calc_estim_stats` | ✅ | ✅ | N/A | ✅ |
+| OtherFunctions.py | `saveAsPickle` | `save_as_pickle` | ✅ | ✅ (5 files) | ✅ (3 files) | ✅ |
+
+**⛔ Hard requirement:** The old function name MUST NOT appear anywhere after migration.
+
+
 ## 1.5 Constructor and Signature Changes (CRITICAL)
 
 This category has historically caused the most missed upgrades.
@@ -929,6 +980,50 @@ grep -rn "\['aNrmInitMean'\]\|\['pLvlInitMean'\]" $TARGET_DIR --include="*.py"
 ```
 
 **Common mistake:** Updating `SetupParams.py` where the dict is defined, but not `Estimation.py` where it's accessed via `params['oldKey'] = value`.
+
+### 1.6.8 Bare Variable Name Renames (COMMONLY MISSED)
+
+⚠️ **Parameter renames are not just about dict keys!**
+
+Some codebases define parameters as standalone variables before passing them to dicts:
+
+```python
+# These are VARIABLE DEFINITIONS, not dict keys
+aNrmInitMean = np.log(0.5)    # ← Missed by dict key grep!
+pLvlInitStd = 0.4             # ← Missed by dict key grep!
+
+# Later used in a dict:
+params = {
+    'kLogInitMean': aNrmInitMean,  # Old variable name feeds new dict key!
+}
+```
+
+**Discovery commands**:
+
+```bash
+# Find bare variable definitions (assignment at start of line or after indent)
+grep -rn "^[[:space:]]*aNrmInitMean[[:space:]]*=" $TARGET_DIR --include="*.py"
+grep -rn "^[[:space:]]*aNrmInitStd[[:space:]]*=" $TARGET_DIR --include="*.py"
+grep -rn "^[[:space:]]*pLvlInitMean[[:space:]]*=" $TARGET_DIR --include="*.py"
+grep -rn "^[[:space:]]*pLvlInitStd[[:space:]]*=" $TARGET_DIR --include="*.py"
+
+# Also find variable USAGES (not just definitions)
+grep -rn "aNrmInitMean[^'\[]\|pLvlInitMean[^'\[]" $TARGET_DIR --include="*.py"
+```
+
+**Migration rule**:
+- `aNrmInitMean` (variable) → `kLogInitMean`
+- `aNrmInitStd` (variable) → `kLogInitStd`
+- `pLvlInitMean` (variable) → `pLogInitMean`
+- `pLvlInitStd` (variable) → `pLogInitStd`
+
+**After fixing, verify**:
+
+```bash
+# Must return empty
+grep -rn "aNrmInitMean\|aNrmInitStd\|pLvlInitMean\|pLvlInitStd" $TARGET_DIR --include="*.py" | grep -v "kLogInit\|pLogInit"
+```
+
 
 ## 1.7 Type and Semantic Changes
 
@@ -1418,7 +1513,35 @@ grep -rn "AggShockConsumerType\.update_solution_terminal\|IndShockConsumerType\.
 # Must return empty (these are now functions, not methods)
 ```
 
-### 1.14.7 Verification Checklist
+
+### 1.14.7 No Orphaned Function/Method Names (Call-Site Closure)
+
+⚠️ **For every function/method renamed, verify NO occurrences of the old name remain.**
+
+```bash
+# Build a pattern of all renamed function names (example)
+# Replace this with the actual list from your migration
+OLD_NAMES="returnParameters|makeFullMrkvArray|makeCondMrkvArrays_|calcEstimStats|"
+OLD_NAMES+="calcWealthShareByEd|calcLorenzPts|calcMPCbyEdSimple|calcMPCbyWealthQ|"
+OLD_NAMES+="betasObjFunc|checkDiscFacDistribution|saveAsPickle|loadPickle|"
+OLD_NAMES+="getSimulationDiff|getSimulationPercentDiff|getNPVMultiplier|"
+OLD_NAMES+="runExperiment|solveAggConsMarkovALT"
+
+grep -rEn "$OLD_NAMES" $TARGET_DIR --include="*.py" | grep -v "^#"
+# Must return empty (no orphaned call sites)
+```
+
+**This is the most commonly missed check.** It ensures that when you rename a function definition,
+you also update ALL files that call that function.
+
+### 1.14.8 No Old Parameter Variable Names
+
+```bash
+# Must return empty (covers both dict keys AND bare variable names)
+grep -rn "aNrmInitMean\|aNrmInitStd\|pLvlInitMean\|pLvlInitStd" $TARGET_DIR --include="*.py" | grep -v "kLogInit\|pLogInit"
+```
+
+### 1.14.9 Verification Checklist
 
 | Check | Command | Status |
 |-------|---------|--------|
@@ -1428,6 +1551,8 @@ grep -rn "AggShockConsumerType\.update_solution_terminal\|IndShockConsumerType\.
 | Old parameter keys | `grep -rn "\['aNrmInitMean'\]"...` | ☐ Empty |
 | camelCase method calls | `grep -rn "\.preSolve("...` | ☐ Empty |
 | Removed method calls | `grep -rn "Type\.update_solution_terminal"` | ☐ Empty |
+| Orphaned function names | `grep -rEn "$OLD_NAMES"...` | ☐ Empty |
+| Old param variable names | `grep -rn "aNrmInitMean\|pLvlInit"...` | ☐ Empty |
 
 **⛔ DO NOT PROCEED TO STAGE 2 UNTIL ALL BOXES ARE CHECKED.**
 
@@ -1465,6 +1590,8 @@ You must have ACTUALLY RUN (not just read about) these commands and recorded the
 | Comprehensive camelCase scan (1.4.6) | Catch any remaining camelCase defs + calls | grep outputs |
 | Parameter key access verification (1.6.7) | Ensure both defs + dict accesses updated | grep outputs |
 | Final cleanup verification (1.14) | Hard gate: no old patterns remain | grep outputs |
+| Call-site synchronization (1.4.7) | Verify all renamed funcs have call sites updated | Call-Site Closure Table |
+| Bare variable name renames (1.6.8) | Parameters as variables, not just dict keys | grep outputs |
 
 **Checkpoint**: ☐ I have run ALL commands above and have the output files.
 
@@ -1534,6 +1661,8 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Symbol-based search (1.4.1b) completed - searched by symbol NAME (not import path)
 - ☐ Comprehensive camelCase cleanup (1.4.6) completed - no remaining camelCase defs/calls (or exceptions documented)
 - ☐ Parameter key access verification (1.6.7) completed - no remaining old dict key accesses
+- ☐ Call-site synchronization (1.4.7) completed - all renamed functions have ALL call sites updated
+- ☐ Bare variable name renames (1.6.8) completed - parameters as variables also renamed
 - ☐ Final cleanup verification (1.14) completed - all hard-gate greps return empty
 - ☐ The Change Inventory has NO TBD/placeholder entries
 - ☐ Method rename table is COMPLETE (not a sample)
