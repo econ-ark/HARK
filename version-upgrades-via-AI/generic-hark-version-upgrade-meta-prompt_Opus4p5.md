@@ -25,6 +25,7 @@ This meta-prompt implements a **two-stage workflow** for upgrading codebases bet
 - Debugging: if results are wrong, you know whether discovery or transformation failed
 - Reusability: the Change Inventory is documentation even without automation
 
+
 ---
 
 ## Inputs (Fill These In)
@@ -39,6 +40,60 @@ file_types:
            "environment*.yml", "environment*.yaml", "Pipfile", "binder/*"]
 constraints: []                         # e.g., ["no network", "no git tags"]
 ```
+
+---
+
+# ═══════════════════════════════════════════════════════════════════
+# STAGE 0: PRE-FLIGHT (MANDATORY)
+# ═══════════════════════════════════════════════════════════════════
+
+## Purpose
+
+Ensure you are upgrading the *intended* codebase from the correct baseline, with a clean and reproducible starting point.
+
+## 0.1 Branch and Working Tree Hygiene (MANDATORY)
+
+In the TARGET CODEBASE repo, verify:
+
+```bash
+# Confirm you are in the correct repo and on the intended base branch
+git remote -v
+git branch --show-current
+
+# Confirm clean working tree
+git status
+
+# Ensure you are up-to-date with upstream
+git fetch --all --prune
+# If using main/master, choose ONE:
+#   git pull --ff-only
+# or
+#   git rebase origin/<base-branch>
+```
+
+**Hard requirements**:
+- If `git status` is not clean, STOP and commit/stash/clean before proceeding.
+- Record the base commit SHA (for reproducibility):
+
+```bash
+git rev-parse HEAD
+```
+
+## 0.2 Environment & Filesystem Notes (IMPORTANT)
+
+Record:
+- OS + filesystem case-sensitivity (macOS/Windows often case-insensitive)
+- Python version
+- How HARK versions are obtained (PyPI wheels vs git tags)
+
+This matters for case-only renames and reproducibility.
+
+## 0.3 Target Directory / Scope Confirmation (MANDATORY)
+
+Write down:
+- `TARGET_DIR` being upgraded
+- Whether you are upgrading *library code*, *application code*, or *research code*
+- Whether you must upgrade **all files** (default: YES; never skip “dead code”)
 
 ---
 
@@ -112,6 +167,28 @@ diff -rq src/HARK tgt/HARK | grep "Only in tgt"
 
 ---
 
+### 1.1b Case-only Rename Hazards (IMPORTANT)
+
+On case-insensitive filesystems (common on macOS/Windows), **renames that only change letter-case** (e.g., `Foo.py` → `foo.py`) can be missed or behave strangely in git checkouts and merges.
+
+#### Required Checks
+
+```bash
+# Detect whether git thinks the working tree is case-insensitive
+# (true often implies case-insensitive FS behavior)
+git config --get core.ignorecase || true
+
+# If you suspect case-only changes, check using a case-sensitive environment (Linux CI) and/or:
+# - ensure no files differ only by case
+# - ensure renames are done as two-step renames (Foo.py -> Foo_tmp.py -> foo.py)
+```
+
+#### Migration Rule
+
+- Avoid introducing case-only renames during an API upgrade unless necessary.
+- If required, document them explicitly in the Change Inventory and handle with a two-step rename.
+
+---
 ## 1.2 API Surface Extraction (MANDATORY)
 
 This is the **most important** discovery step. It catches constructor changes, signature changes, and subtle renames that file diffs miss.
@@ -1046,6 +1123,11 @@ Before proceeding, verify you have explicitly addressed:
 | Serialization compatibility | ☐ Pickle/state file impacts identified | Section 1.7d |
 | Dynamic method references | ☐ getattr/string-based method calls checked | Section 1.7e |
 | Test-driven verification | ☐ Tests run with both HARK versions | Section 1.7f |
+| Stage 0 pre-flight | ☐ Clean working tree + correct base branch + recorded SHA | Stage 0 |
+| Case-only rename hazards | ☐ Checked for case-only renames + documented handling | Section 1.1b |
+| Docs/changelog impacts | ☐ Docs/README/CHANGELOG updates identified if needed | Stage 2 Safety (2.S5) |
+| Dry-run + idempotence plan | ☐ Transformation approach supports dry-run + idempotence | Stage 2 Safety (2.S1-2.S2) |
+| CI/acceptance gates | ☐ Acceptance criteria defined (CI green, grep clean, tests) | Stage 2 Safety (2.S4) |
 
 ### 1.D Verification Test
 
@@ -1068,6 +1150,11 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Default value changes checked
 - ☐ Dynamic method references (getattr, string commands) checked
 - ☐ Test suite run with both HARK versions (or smoke tests created)
+- ☐ Stage 0 pre-flight completed (clean tree, correct base branch, recorded SHA)
+- ☐ Case-only rename hazards checked (and plan documented if relevant)
+- ☐ Documentation/CHANGELOG impact assessed and plan recorded
+- ☐ Stage 2 plan supports dry-run + idempotence (or manual-only declared)
+- ☐ Stage 2 acceptance criteria defined (CI green, greps clean, tests)
 - ☐ I have verified with 3 test files that the Inventory is comprehensive
 
 **⛔ IF ANY BOX ABOVE IS UNCHECKED, DO NOT PROCEED TO STAGE 2.**
@@ -1085,6 +1172,74 @@ After the Change Inventory is reviewed and approved, choose ONE of:
 - **Stage 2B**: Automated Migration Script (programmatic approach)
 
 Both take the Change Inventory as input.
+
+## Stage 2 Safety and Reproducibility Requirements (MANDATORY)
+
+These requirements are standard best practice for migrations/codemods.
+
+### 2.S1 Dry-run first
+
+Before editing files, run a **dry-run** that only reports what *would* change:
+- files that would be touched
+- counts per change category
+- a preview diff (or patch output)
+
+If you cannot produce a dry-run, you MUST clearly label the upgrade as **manual-only** and increase review requirements.
+
+### 2.S2 Idempotence
+
+The transformation MUST be **idempotent**:
+- Running it once applies changes
+- Running it a second time produces **no further diffs**
+
+Verification:
+```bash
+# Run migration twice; second run should yield no changes
+# (exact command depends on Stage 2B implementation)
+git diff --stat
+```
+
+### 2.S3 Atomic commits and rollback plan
+
+- Prefer **atomic commits** by category (imports, API renames, config pins, etc.)
+- Provide a **rollback plan**:
+  - Either: one revertable commit
+  - Or: documented sequence of `git revert <sha>` for each commit
+
+### 2.S4 CI and acceptance gates
+
+A migration PR must meet these acceptance criteria:
+- CI is green
+- Test suite passes on supported platforms (at minimum Linux case-sensitive)
+- Old-pattern greps return empty (imports, removed symbols, camelCase lifecycle methods)
+- If automation is used: dry-run report is attached and idempotence verified
+
+### 2.S5 Documentation requirements
+
+If any public API/config/CLI behavior changes:
+- Update migration notes / README / docs
+- Add a CHANGELOG or UPGRADE note listing breaking changes and before/after snippets
+
+### 2.S6 Backward compatibility and deprecation strategy
+
+Best practice: decide whether to provide temporary shims for renamed/removed APIs.
+
+Choose ONE:
+- **Hard break**: remove old names immediately; document in migration guide; bump major version if applicable.
+- **Shim + deprecate**: keep old names as wrappers that call the new implementation and emit `DeprecationWarning`, with a documented removal timeline.
+
+If the TARGET CODEBASE is a library used by downstream code, prefer **Shim + deprecate** unless there is a strong reason not to.
+
+Example shim pattern:
+```python
+import warnings
+
+def oldName(*args, **kwargs):
+    warnings.warn("oldName is deprecated; use new_name", DeprecationWarning, stacklevel=2)
+    return new_name(*args, **kwargs)
+```
+
+---
 
 ---
 
