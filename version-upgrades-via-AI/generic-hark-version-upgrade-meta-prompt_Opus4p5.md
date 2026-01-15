@@ -315,6 +315,131 @@ grep -rE "getattr\(.*['\"]pmf['\"]|getattr\(.*['\"]X['\"]" $TARGET_DIR --include
 
 ---
 
+
+### 1.4.4 Method Removals and Architectural Changes (CRITICAL - COMMONLY MISSED)
+
+⚠️ **This is distinct from method RENAMES.** A method rename keeps the same functionality under a new name. A method REMOVAL means the method no longer exists and may be replaced with a completely different pattern (e.g., standalone function, constructor-dict).
+
+#### Discovery Commands
+
+```bash
+# Extract class method names from both HARK versions
+grep -rh "def [a-z]" src/HARK/ConsumptionSaving --include="*.py" | \
+    sed 's/.*def //' | sed 's/(.*$//' | sort -u > methods_src.txt
+grep -rh "def [a-z]" tgt/HARK/ConsumptionSaving --include="*.py" | \
+    sed 's/.*def //' | sed 's/(.*$//' | sort -u > methods_tgt.txt
+
+# Find methods in source but NOT in target (potential removals)
+comm -23 methods_src.txt methods_tgt.txt > methods_removed.txt
+
+# Check if "removed" methods became standalone functions
+for method in $(cat methods_removed.txt); do
+    echo "=== $method ==="
+    grep -rn "^def $method\|^def ${method}_" tgt/HARK --include="*.py" | head -3
+done
+```
+
+#### High-Priority Classes to Check for Removals
+
+| Class | Location | Why Important |
+|-------|----------|---------------|
+| `AggShockConsumerType` | ConsAggShockModel | Aggregate shock modeling |
+| `MarkovConsumerType` | ConsMarkovModel | Markov state transitions |
+| `IndShockConsumerType` | ConsIndShockModel | Base agent type |
+| `AgentType` | core.py | Base class for all agents |
+
+#### For Each Removed Method, Determine:
+
+1. **Was it renamed?** Check if a similar snake_case version exists in target
+2. **Was it converted to a standalone function?** Search for `def method_name(` at module level
+3. **Was it replaced with a constructor-dict pattern?** Search for patterns like:
+   ```python
+   constructor_dict = {
+       "solution_terminal": make_xxx_solution_terminal,
+   }
+   ```
+4. **Was it truly removed with no replacement?** Document as blocking breaking change
+
+#### Record in Change Inventory:
+
+| Class | Removed Method | Replacement | Migration Pattern |
+|-------|----------------|-------------|-------------------|
+| `AggShockConsumerType` | `update_solution_terminal` | `make_aggshock_solution_terminal(CRRA)` | Method→Function |
+| `MarkovConsumerType` | `update_solution_terminal` | `make_markov_solution_terminal(CRRA, MrkvArray)` | Method→Function |
+
+#### Migration Rules for Method→Function Conversions:
+
+```python
+# OLD pattern (0.14.1) - calling parent class method:
+def updateSolutionTerminal(self):
+    AggShockConsumerType.update_solution_terminal(self)
+    # ... additional customization ...
+
+# NEW pattern (0.17.0) - calling standalone function:
+from HARK.ConsumptionSaving.ConsAggShockModel import make_aggshock_solution_terminal
+
+def update_solution_terminal(self):
+    self.solution_terminal = make_aggshock_solution_terminal(self.CRRA)
+    # ... additional customization ...
+```
+
+### 1.4.5 Target Codebase Method Compliance Check (CRITICAL - COMMONLY MISSED)
+
+⚠️ **The target codebase may have NEVER been compliant** with even the SOURCE HARK version. This step catches legacy code that has camelCase method definitions when HARK expects snake_case.
+
+**Important principle**: Do NOT skip any code as "dead" or "unused". Code that appears unused today may be resurrected later. ALL code in the target codebase must be made compliant.
+
+#### Why This Matters
+
+If user code defines:
+```python
+def preSolve(self):  # camelCase
+    ...
+```
+
+But HARK calls:
+```python
+agent.pre_solve()  # snake_case
+```
+
+The user's method will NEVER be invoked! This is a silent failure.
+
+#### Discovery Commands (Run Against TARGET CODEBASE)
+
+```bash
+# Find ALL camelCase method definitions in target codebase that might be HARK overrides
+grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py" > camelcase_methods.txt
+
+# Compare against HARK's expected lifecycle method names
+HARK_LIFECYCLE_METHODS=(
+    "pre_solve" "post_solve" "initialize_sim" "sim_birth" "sim_death"
+    "get_shocks" "get_states" "get_controls" "get_poststates" "get_mortality"
+    "update_solution_terminal" "make_shock_history" "read_shocks_from_history"
+    "get_economy_data" "market_action" "calc_age_distribution" "initialize_ages"
+    "save_state" "restore_state" "reset"
+)
+
+# For each HARK method, check if target has camelCase version
+for method in "${HARK_LIFECYCLE_METHODS[@]}"; do
+    camel=$(echo "$method" | sed -r 's/_([a-z])/\U\1/g')  # Convert to camelCase
+    grep -rn "def $camel(" $TARGET_DIR --include="*.py"
+done
+```
+
+#### Build Compliance Table
+
+| Target File | Has Definition | HARK Expects | Status |
+|-------------|----------------|--------------|--------|
+| `AggFiscalModel.py` | `def pre_solve(self)` | `pre_solve` | ✅ OK |
+| `EstimAggFiscalModel.py` | `def preSolve(self)` | `pre_solve` | ❌ RENAME |
+| `EstimAggFiscalModel.py` | `def initializeSim(self)` | `initialize_sim` | ❌ RENAME |
+
+#### Deliverable
+
+A complete list of camelCase method definitions in the target codebase that must be renamed to snake_case to match HARK's expected names.
+
+---
+
 ## 1.5 Constructor and Signature Changes (CRITICAL)
 
 This category has historically caused the most missed upgrades.
@@ -713,6 +838,9 @@ Before proceeding, verify you have explicitly addressed:
 | `.drawDiscrete()` method | ☐ What is it renamed to? | Section 1.4.1 |
 | ALL camelCase methods in src | ☐ Listed and mapped to snake_case equivalents | Section 1.4.1 |
 | `DiscreteDistribution` constructor | ☐ Full signature diff documented | Section 1.5.2 |
+| Method REMOVALS (not renames) | ☐ Methods that exist in source but NOT in target | Section 1.4.4 |
+| Method→Function conversions | ☐ Instance methods converted to standalone functions | Section 1.4.4 |
+| Target codebase camelCase methods | ☐ ALL camelCase method defs that should be snake_case | Section 1.4.5 |
 
 ### 1.D Verification Test
 
@@ -730,6 +858,8 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ All discovery commands in Section 1.0-1.10 have been executed
 - ☐ The Change Inventory has NO TBD/placeholder entries
 - ☐ Method rename table is COMPLETE (not a sample)
+- ☐ Method REMOVAL table is COMPLETE (methods removed from HARK, not renamed)
+- ☐ Target codebase camelCase methods identified (even in "dead" code)
 - ☐ I have verified with 3 test files that the Inventory is comprehensive
 
 **⛔ IF ANY BOX ABOVE IS UNCHECKED, DO NOT PROCEED TO STAGE 2.**
