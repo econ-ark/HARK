@@ -638,6 +638,207 @@ Record any renamed or removed exceptions.
 
 ---
 
+
+## 1.7b Default Value Changes (SILENT BREAKING CHANGES)
+
+⚠️ **These are the hardest to detect** because the API appears unchanged but behavior differs.
+
+### Why This Matters
+
+If a parameter's default value changes:
+```python
+# OLD (0.14.1)
+def solve(self, verbose=False):  # Default: quiet
+
+# NEW (0.17.0)
+def solve(self, verbose=True):   # Default: noisy
+```
+
+Code calling `agent.solve()` without explicit `verbose=` will behave differently.
+
+### Discovery Commands
+
+```bash
+# Extract function signatures with defaults from both versions
+grep -rh "def.*=.*:" src/HARK --include="*.py" | sed 's/.*def /def /' > sigs_src.txt
+grep -rh "def.*=.*:" tgt/HARK --include="*.py" | sed 's/.*def /def /' > sigs_tgt.txt
+
+# Diff to find changed defaults
+diff sigs_src.txt sigs_tgt.txt | grep -E "^<|^>" | head -50
+```
+
+### High-Priority Parameters to Check
+
+| Class/Function | Parameter | Why Important |
+|----------------|-----------|---------------|
+| `AgentType.solve()` | `verbose` | Changes logging behavior |
+| `DiscreteDistribution()` | `seed` | Changes reproducibility |
+| Simulation methods | `T_sim` | Changes simulation length |
+
+### Record in Change Inventory:
+
+| Function | Parameter | Old Default | New Default | Impact |
+|----------|-----------|-------------|-------------|--------|
+| (fill in) | (fill in) | (fill in) | (fill in) | (fill in) |
+
+---
+
+## 1.7c Return Type and Behavioral Changes (SILENT BUGS)
+
+### Return Type Changes
+
+Methods may return different types even with same signature:
+```python
+# OLD: Returns numpy array
+def get_distribution(self):
+    return np.array([...])
+
+# NEW: Returns DiscreteDistribution object
+def get_distribution(self):
+    return DiscreteDistribution([...])
+```
+
+### Discovery Commands
+
+```bash
+# Look for return statements in key functions
+for func in solve get_shocks get_controls; do
+    echo "=== $func ==="
+    grep -A 20 "def $func" src/HARK/core.py | grep "return" | head -3
+    echo "---"
+    grep -A 20 "def $func" tgt/HARK/core.py | grep "return" | head -3
+done
+```
+
+### Behavioral Changes (Same Signature, Different Logic)
+
+These are nearly impossible to detect automatically. **Mitigations**:
+
+1. Read CHANGELOG/release notes between versions
+2. Run test suite and look for different outputs (not just pass/fail)
+3. Compare example notebook outputs between versions
+
+---
+
+## 1.7d Serialization and State Compatibility
+
+### Why This Matters
+
+If users have:
+- Pickled agent objects from the old HARK version
+- Saved simulation states
+- JSON/YAML config files with HARK object references
+
+These may not load correctly with the new version.
+
+### Discovery Commands
+
+```bash
+# Check for __getstate__/__setstate__ changes (pickle compatibility)
+diff <(grep -rn "__getstate__\|__setstate__\|__reduce__" src/HARK) \
+     <(grep -rn "__getstate__\|__setstate__\|__reduce__" tgt/HARK)
+
+# Check for class attribute renames that affect serialization
+grep -rn "self\.[a-z].*=" src/HARK/core.py | head -30
+grep -rn "self\.[a-z].*=" tgt/HARK/core.py | head -30
+```
+
+### Document in Change Inventory:
+
+- Classes with changed `__init__` signatures (pickles will fail to load)
+- Renamed instance attributes (old pickles have wrong attribute names)
+- Removed classes (pickles reference non-existent classes)
+
+---
+
+## 1.7e Dynamic/Reflection-Based Access (HARD TO DETECT)
+
+### Why This Matters
+
+Code using `getattr()`, `exec()`, `eval()`, or string-based method dispatch will fail silently:
+
+```python
+# This pattern breaks if 'initializeSim' was renamed to 'initialize_sim'
+method_name = 'initializeSim'
+getattr(agent, method_name)()  # AttributeError at runtime!
+
+# Or in HARK's multi_thread_commands:
+multi_thread_commands(agents, ['solve', 'initializeSim'])  # Fails!
+```
+
+### Discovery Commands (TARGET CODEBASE)
+
+```bash
+# Find getattr/setattr/hasattr calls
+grep -rn "getattr\|setattr\|hasattr" $TARGET_DIR --include="*.py"
+
+# Find string lists that might be method names
+grep -rn "\[.*'[a-z_]*'.*\]" $TARGET_DIR --include="*.py" | grep -i "command\|method\|func"
+
+# Find multi_thread_commands usage
+grep -rn "multi_thread_commands\|multiThreadCommands" $TARGET_DIR --include="*.py"
+```
+
+### Migration Rule
+
+For each string-based method reference found:
+1. Check if the method name was renamed
+2. Update the string to the new name
+3. If the string comes from config/user input, add validation
+
+---
+
+## 1.7f Test-Driven Verification (REQUIRED VALIDATION)
+
+### Why This Matters
+
+**The best way to validate a migration is to run the test suite.** Tests that pass on the old version but fail on the new version indicate breaking changes.
+
+### Required Steps
+
+1. **Run target codebase tests with OLD HARK**:
+   ```bash
+   pip install econ-ark=={SOURCE_VERSION}
+   pytest --tb=short > tests_old.log 2>&1
+   ```
+
+2. **Run target codebase tests with NEW HARK** (after migration):
+   ```bash
+   pip install econ-ark=={TARGET_VERSION}
+   pytest --tb=short > tests_new.log 2>&1
+   ```
+
+3. **Compare results**:
+   ```bash
+   diff tests_old.log tests_new.log
+   ```
+
+4. **Investigate any tests that**:
+   - Pass with old HARK but fail with new → Breaking change not handled
+   - Fail with both → Pre-existing issue (not migration-related)
+   - Pass with new but failed with old → Migration fixed an issue
+
+### If Tests Don't Exist
+
+Create minimal smoke tests:
+```python
+# test_migration_smoke.py
+def test_import_succeeds():
+    from HARK.distributions import DiscreteDistribution
+    from HARK.core import AgentType
+
+def test_basic_agent_creation():
+    from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+    agent = IndShockConsumerType()
+    agent.solve()
+
+def test_simulation_runs():
+    agent = IndShockConsumerType()
+    agent.solve()
+    agent.initialize_sim()
+    agent.simulate()
+```
+
 ## 1.8 Legacy Pattern Archaeology
 
 User code may use patterns from versions OLDER than `{SOURCE_VERSION}` due to backward-compatibility shims.
@@ -841,6 +1042,10 @@ Before proceeding, verify you have explicitly addressed:
 | Method REMOVALS (not renames) | ☐ Methods that exist in source but NOT in target | Section 1.4.4 |
 | Method→Function conversions | ☐ Instance methods converted to standalone functions | Section 1.4.4 |
 | Target codebase camelCase methods | ☐ ALL camelCase method defs that should be snake_case | Section 1.4.5 |
+| Default value changes | ☐ Parameters with changed defaults documented | Section 1.7b |
+| Serialization compatibility | ☐ Pickle/state file impacts identified | Section 1.7d |
+| Dynamic method references | ☐ getattr/string-based method calls checked | Section 1.7e |
+| Test-driven verification | ☐ Tests run with both HARK versions | Section 1.7f |
 
 ### 1.D Verification Test
 
@@ -860,6 +1065,9 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Method rename table is COMPLETE (not a sample)
 - ☐ Method REMOVAL table is COMPLETE (methods removed from HARK, not renamed)
 - ☐ Target codebase camelCase methods identified (even in "dead" code)
+- ☐ Default value changes checked
+- ☐ Dynamic method references (getattr, string commands) checked
+- ☐ Test suite run with both HARK versions (or smoke tests created)
 - ☐ I have verified with 3 test files that the Inventory is comprehensive
 
 **⛔ IF ANY BOX ABOVE IS UNCHECKED, DO NOT PROCEED TO STAGE 2.**
