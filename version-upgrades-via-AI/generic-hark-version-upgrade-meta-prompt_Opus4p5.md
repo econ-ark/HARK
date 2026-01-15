@@ -1010,29 +1010,20 @@ grep -rh "^from HARK" $TARGET_DIR --include="*.py" | cut -d' ' -f2 | cut -d'.' -
 - List top 5 most-imported modules in the target codebase.
 - Mark any module in the "Renamed" or "Removed" list that is also a "Hot Module" as **HIGH RISK**.
 
-## 1.13 Semantic Baseline Generation (SCALABLE / FAST)
+## 1.13 Semantic Baseline Generation (USER-DRIVEN / FLEXIBLE)
 
-**Goal**: Record a mathematical "Fingerprint" of the logic before migration. This is NOT a full 5-day reproduction; it is a **fast sanity check** (target: < 5 mins).
+**Goal**: Record a mathematical "Fingerprint" of the logic before migration using a command specified by the user. This ensures verification is both feasible and relevant.
 
-### Performance Triage (Avoid the 5-Day Run)
+### Procedure (AI Task)
 
-If the main reproduction script is slow, **DO NOT run it fully**. Instead, create a "Mini-Reproduction":
-1. **Scale down Agents**: Set `AgentCount = 100` (or 1% of baseline).
-2. **Shorten Time**: Set `T_sim = 5` (or a small number of periods).
-3. **Fixed Iterations**: Disable convergence criteria; run for 3-5 iterations.
-4. **Deterministic Seed**: Use `seed=42` or similar.
-
-### Procedure
-
-1. **Record output of the Mini-Reproduction**:
-   ```bash
-   # Example: run a scaled-down simulation
-   python reproduce_lite.py --seed 42 > baseline_lite.txt
-   ```
+1. **Ask the User**: Ask the user for a specific command to run that will generate a set of computational results for testing.
+   - *Example prompt to user*: "What command should I run to generate a baseline of computational results? (e.g., `./reproduce.sh --comp min` for a 1-hour run, or a specific test file)."
+2. **Run the Command**: Execute the user-provided command.
+3. **Record Results**: Store the output or hashes of the generated result files.
 
 **Record in Change Inventory**:
-- The scaling factors used (e.g., "Scaled to 100 agents, 5 periods").
-- The baseline hash/value from the lite run.
+- The command provided by the user.
+- The path(s) to the generated results or a hash of the output.
 
 ---
 
@@ -1163,7 +1154,7 @@ Before proceeding, verify you have explicitly addressed:
 | Dynamic method references | ☐ getattr/string-based method calls checked | Section 1.7e |
 | Test-driven verification | ☐ Tests run with both HARK versions | Section 1.7f |
 | Change Impact Analysis | ☐ Blast Radius Map of high-risk modules | Section 1.12 |
-| Semantic Baseline | ☐ Lite/Fast sanity check recorded before migration | Section 1.13 |
+| Semantic Baseline | ☐ User-specified reproduction command recorded | Section 1.13 |
 | Stage 0 pre-flight | ☐ Clean working tree + correct base branch + recorded SHA | Stage 0 |
 | Case-only rename hazards | ☐ Checked for case-only renames + documented handling | Section 1.1b |
 | Docs/changelog impacts | ☐ Docs/README/CHANGELOG updates identified if needed | Stage 2 Safety (2.S5) |
@@ -1196,7 +1187,7 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Documentation/CHANGELOG impact assessed and plan recorded
 - ☐ Stage 2 plan supports dry-run + idempotence (or manual-only declared)
 - ☐ Stage 2 acceptance criteria defined (CI green, greps clean, tests)
-- ☐ Semantic Baseline (Lite/Fast) recorded and hash verified
+- ☐ Semantic Baseline (User-specified command) recorded and verified
 - ☐ High-risk "Hot Modules" identified for manual review
 - ☐ Semantic Signature Comparison (2.V1) passed (post-migration results match baseline)
 - ☐ I have verified with 3 test files that the Inventory is comprehensive
@@ -1651,23 +1642,16 @@ Before using the inventory for transformation:
 
 ## 2.V1 Semantic Signature Comparison (FINAL VALIDATION)
 
-**Goal**: Prove that the migration did not break the logic using the **Mini-Reproduction** from Section 1.13.
+**Goal**: Prove that the migration did not break the logic by rerunning the command provided by the user in Section 1.13.
 
 ### Procedure
 
-1. **Rerun the LITE baseline** established in Section 1.13 using the NEW HARK version:
-   ```bash
-   python reproduce_lite.py --seed 42 > post_migration_lite.txt
-   ```
-2. **Compare results**:
-   ```bash
-   diff baseline_lite.txt post_migration_lite.txt
-   ```
-
-**Requirement**: The outputs must be identical (bit-for-bit) or within mathematical tolerance. This proves the **machinery** still produces the same results, even if we haven't run the full 5-day simulation.
+1. **Rerun the User Command** established in Section 1.13 using the NEW HARK version.
+2. **Compare results**: Compare the new outputs against the baseline outputs recorded before migration.
+3. **Requirement**: The outputs must be identical (bit-for-bit) or within mathematical tolerance. This ensures the migration preserved the underlying logic.
 
 **If results differ**:
 - Investigate behavioral changes (1.7c) or default value changes (1.7b).
-- Do NOT merge until the difference is explained.
+- Do NOT merge until the difference is explained and accepted.
 
 ---
