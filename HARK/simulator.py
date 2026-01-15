@@ -905,7 +905,7 @@ class SimBlock:
         if arrival_N == 0:
             self.init_dstn = master_init_array
 
-    def run_quasi_sim(self, data, idx0=0, twist=None):
+    def run_quasi_sim(self, data, j0=0, twist=None):
         """
         "Quasi-simulate" this block from given starting data at some event index,
         looping back to end at the same point (only if idx0 > 0 and twist is given).
@@ -918,7 +918,7 @@ class SimBlock:
         ----------
         data : dict
             Dictionary of initial data, mapping variable names to vectors of values.
-        idx0 : int, optional
+        j0 : int, optional
             Event index number at which to start (and end)) the quasi-simulation.
             By default, it is run from index 0.
         twist : dict, optional
@@ -931,7 +931,7 @@ class SimBlock:
         None
         """
         # Make the initial vector of probability masses
-        key = data.keys[0]
+        key = list(data.keys())[0]
         N_orig = data[key].size
         self.N = N_orig
         state_init = deepcopy(data)
@@ -946,7 +946,7 @@ class SimBlock:
 
         # Loop through each event in order and quasi-simulate it
         J = len(self.events)
-        for j in range(idx0, J):
+        for j in range(j0, J):
             event = self.events[j]
             event.data = self.data  # Give event *all* data directly
             event.N = self.N
@@ -955,11 +955,11 @@ class SimBlock:
 
         # If we didn't start at the beginning and there is a twist, loop back to
         # the start and do the remaining events
-        if idx0 > 0 and twist is not None:
+        if j0 > 0 and twist is not None:
             for end_var in twist.keys():
                 arr_var = twist[end_var]
                 self.data[arr_var] = self.data[end_var].copy()
-            for j in range(idx0):
+            for j in range(j0):
                 event = self.events[j]
                 event.data = self.data  # Give event *all* data directly
                 event.N = self.N
