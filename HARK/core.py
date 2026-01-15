@@ -1334,6 +1334,24 @@ class AgentType(Model):
         self._simulator = make_simulator_from_agent(self, **kwargs)
         self._simulator.reset()
 
+    def find_target(self, target_var, force_list=False, **kwargs):
+        """
+        Find the "target" level of a named variable such that E[\Delta x] = 0.
+        Returns a single real value if there is only one target, and a list if multiple;
+        returns np.nan if no target is found. Pass force_list=True to always get a list.
+        See documentation for HARK.simulator.find_target_state for more options.
+        """
+        temp_simulator = make_simulator_from_agent(self)
+        target_vals = temp_simulator.find_target_state(target_var, **kwargs)
+        if force_list:
+            return target_vals
+        if len(target_vals) == 0:
+            return np.nan
+        elif len(target_vals) == 1:
+            return target_vals[0]
+        else:
+            return target_vals
+
     def initialize_sim(self):
         """
         Prepares this AgentType for a new simulation.  Resets the internal random number generator,

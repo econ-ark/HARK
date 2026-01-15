@@ -956,9 +956,11 @@ class SimBlock:
         # If we didn't start at the beginning and there is a twist, loop back to
         # the start and do the remaining events
         if j0 > 0 and twist is not None:
+            new_data = {"pmv_": self.data["pmv_"].copy()}
             for end_var in twist.keys():
                 arr_var = twist[end_var]
-                self.data[arr_var] = self.data[end_var].copy()
+                new_data[arr_var] = self.data[end_var].copy()
+            self.data = new_data
             for j in range(j0):
                 event = self.events[j]
                 event.data = self.data  # Give event *all* data directly
@@ -1437,7 +1439,7 @@ class AgentSimulator:
         var_mean = np.dot(var_dstn, grid)
         return var_mean
 
-    def find_target_state(self, target_var, fixed=None, bounds=None, N=201, tol=1e-8):
+    def find_target_state(self, target_var, bounds=None, N=201, tol=1e-8, **kwargs):
         """
         Find the "target" level of a state variable: the value such that the expectation
         of next period's state is the same value (when following the policy function).
@@ -1449,15 +1451,18 @@ class AgentSimulator:
         calculating E[\Delta x] for state x, and then perform a local search for each
         interval where it flips from positive to negative.
 
+        This procedure ignores mortality entirely. It represents a stable or target
+        level conditional on the agent continuing from t to t+1.
+
+        If additional information must be known, other model variables can be passed
+        as keyword arguments, e.g. pLvl=1.0. This feature is used for exogenous state
+        variables, such as persistent income pLvl in the GenIncProcess model. The user
+        simply passes its mean (central) value, which is easily known in advance.
+
         Parameters
         ----------
         target_var : str
             Name of the state variable of interest.
-        fixed : dict, optional
-            Dictionary mapping from other variables to fixed values. This feature is
-            used for exogenous state variables, such as persistent income pLvl in the
-            GenIncProcess model. The user simply passes its mean (central) value,
-            which is easily known in advance.
         bounds : [float], optional
             Upper and lower boundaries for the target search. If not provided, defaults
             to [0.0, 100.0].
@@ -1478,17 +1483,27 @@ class AgentSimulator:
             raise ValueError(
                 "This method currently only works with one period infinite horizon problems."
             )
-        fixed = fixed or {}
         bounds = bounds or [0.0, 100.0]
         state_grid = np.linspace(bounds[0], bounds[1], num=N)
+
+        # Process keyword arguments into a dictionary of fixed values
+        period = self.periods[0]
+        event_count = len(period.events)
+        fixed = {}
+        var_names = list(self.types.keys())
+        for name in kwargs:
+            if name in var_names:
+                fixed[name] = kwargs[name]
+            else:
+                raise ValueError(
+                    "Could not find a model variable called " + name + " to hold fixed!"
+                )
 
         # Find the event index at which to start and stop the quasi-simulation
         var_names = [target_var] + list(fixed.keys())
         var_count = len(var_names)
         found_count = 0
         found = var_count * [False]
-        period = self.periods[0]
-        event_count = len(period.events)
         j = 0
         while (found_count < var_count) and (j < event_count):
             event = period.events[j]
@@ -1505,9 +1520,19 @@ class AgentSimulator:
         idx0 = j  # Event index where the quasi-sim should start and stop
 
         # Construct the starting information set for the quasi-simulation
-        data_init = {target_var: state_grid}
+        data_init = {}
+        trivial_vars = []
+        for j in range(
+            idx0
+        ):  # Assign dummy data for all vars assigned prior to start/stop
+            event = period.events[j]
+            assigns = event.assigns
+            for var in assigns:
+                data_init[var] = np.zeros(N, dtype=int)  # dummy data
+                trivial_vars.append(var)
         for key in fixed.keys():
             data_init[key] = fixed[key] * np.ones(N)
+        data_init[target_var] = state_grid
 
         # Run the quasi-simulation on the initial grid of states
         period.run_quasi_sim(data_init, j0=idx0, twist=self.twist)
@@ -1531,6 +1556,8 @@ class AgentSimulator:
             return state_targ
 
         # Reduce the fixed values in data_init to single valued vectors
+        for var in trivial_vars:
+            data_init[var] = np.array([0])
         for key in fixed.keys():
             data_init[key] = np.array([fixed[key]])
 
