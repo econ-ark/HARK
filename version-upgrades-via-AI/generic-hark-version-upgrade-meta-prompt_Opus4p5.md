@@ -510,6 +510,30 @@ comm -23 <(cut -d: -f1 methods_src.txt | sort -u) <(cut -d: -f1 methods_tgt.txt 
 | `drawDiscrete` | `draw_events` | DiscreteDistribution | var. |
 | `multiThreadCommands` | `multi_thread_commands` | HARK module | import, call |
 
+
+### 1.4.1b Symbol-Based Search (CRITICAL - COMMONLY MISSED)
+
+⚠️ **Searching only by import path misses symbols imported from different locations!**
+
+For example, `multiThreadCommands` can be imported as:
+- `from HARK.parallel import multi_thread_commands`
+- `from HARK import multiThreadCommands`
+- `from HARK.core import multi_thread_commands`
+
+**Required approach:** Search for the **symbol name itself**, not just import paths:
+
+```bash
+# For each renamed symbol, search by NAME anywhere it appears
+grep -rn "multiThreadCommands\|multiThreadCommandsFake" $TARGET_DIR --include="*.py"
+grep -rn "drawDiscrete" $TARGET_DIR --include="*.py"
+grep -rn "initializeSim\|preSolve\|simBirth\|simDeath" $TARGET_DIR --include="*.py"
+```
+
+**Record in Change Inventory:** For each renamed symbol, document:
+1. The symbol name (not just import path)
+2. All files where the name appears
+3. All contexts (import, definition, call, string reference)
+
 ### 1.4.2 Contexts That Must Be Rewritten
 
 For EACH renamed symbol, identify ALL contexts:
@@ -704,6 +728,38 @@ A complete list of camelCase method definitions in the target codebase that must
 
 ---
 
+
+### 1.4.6 Comprehensive camelCase Cleanup (MANDATORY - FINAL CHECK)
+
+⚠️ **After fixing known lifecycle methods, you MUST run this comprehensive check.**
+
+The previous sections list known HARK lifecycle methods. But target codebases may have:
+- Custom methods in camelCase that should be snake_case
+- Methods calling camelCase versions of renamed methods
+- Parent class calls using camelCase
+
+**Mandatory comprehensive scan:**
+
+```bash
+# Find ALL remaining camelCase method definitions
+grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py"
+```
+
+**Hard requirement:** This grep MUST return empty before proceeding. For each match:
+
+1. If it's a HARK lifecycle override → rename to snake_case
+2. If it's a custom method → rename for Python style consistency
+3. If it must remain camelCase → document with `# OK: <reason>` comment
+
+**Also scan for camelCase method CALLS that weren't updated:**
+
+```bash
+# Must return empty after all renames are complete
+grep -rn "\.preSolve(\|\.initializeSim(\|\.simBirth(\|\.simDeath(\|\.getShocks(\|\.getStates(\|\.getMortality(\|\.getControls(\|\.calcAgeDistribution(\|\.initializeAges(" $TARGET_DIR --include="*.py"
+```
+
+**Deliverable:** Verification that both greps return empty (or all exceptions documented).
+
 ## 1.5 Constructor and Signature Changes (CRITICAL)
 
 This category has historically caused the most missed upgrades.
@@ -845,6 +901,34 @@ Minimum table (add rows for every file with `aNrmInit*`/`pLvlInit*` keys):
 **Hard rule**: it is NOT acceptable to mark these renames as “model-specific → skip everywhere”. You must either (a) prove a file needs renames via this map, or (b) explicitly justify why it does not.
 
 ---
+
+
+### 1.6.7 Parameter Key ACCESS Verification (COMMONLY MISSED)
+
+⚠️ **Parameter renames must apply to BOTH definitions AND accesses!**
+
+**Definitions** (dict literals):
+```python
+params = {'aNrmInitMean': value}  # Definition
+```
+
+**Accesses** (dict key access):
+```python
+params['aNrmInitMean'] = new_value  # Setting
+x = params['aNrmInitMean']           # Getting
+```
+
+**Both must be updated.** The grep pattern matches both, but you must FIX both:
+
+```bash
+# Find ALL occurrences (both definitions and accesses)
+grep -rn "'aNrmInitMean'\|'pLvlInitMean'" $TARGET_DIR --include="*.py"
+
+# After fixing, this MUST return empty:
+grep -rn "\['aNrmInitMean'\]\|\['pLvlInitMean'\]" $TARGET_DIR --include="*.py"
+```
+
+**Common mistake:** Updating `SetupParams.py` where the dict is defined, but not `Estimation.py` where it's accessed via `params['oldKey'] = value`.
 
 ## 1.7 Type and Semantic Changes
 
@@ -1283,6 +1367,70 @@ After completing all discovery steps, produce a single **Change Inventory** docu
 
 ---
 
+
+---
+
+## 1.14 Final Cleanup Verification (MANDATORY BEFORE STAGE 2)
+
+⚠️ **Before proceeding to transformation, ALL of these greps MUST return empty.**
+
+This is the final gate to catch any patterns that were discovered but not completely fixed.
+
+### 1.14.1 No Old Import Paths
+
+```bash
+grep -rn "from HARK\.distribution import\|from HARK\.parallel import\|from HARK\.datasets import" $TARGET_DIR --include="*.py"
+# Must return empty
+```
+
+### 1.14.2 No Old Symbol Names (Search by NAME, not import path)
+
+```bash
+grep -rn "multiThreadCommands\|multiThreadCommandsFake\|drawDiscrete" $TARGET_DIR --include="*.py"
+# Must return empty
+```
+
+### 1.14.3 No camelCase Method Definitions
+
+```bash
+grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py"
+# Must return empty (or all exceptions documented with "# OK:")
+```
+
+### 1.14.4 No Old Parameter Key Accesses
+
+```bash
+grep -rn "\['aNrmInitMean'\]\|\['aNrmInitStd'\]\|\['pLvlInitMean'\]\|\['pLvlInitStd'\]" $TARGET_DIR --include="*.py"
+# Must return empty
+```
+
+### 1.14.5 No camelCase Method Calls to Renamed Lifecycle Methods
+
+```bash
+grep -rn "\.preSolve(\|\.initializeSim(\|\.simBirth(\|\.simDeath(\|\.getShocks(\|\.getStates(\|\.getMortality(\|\.getControls(\|\.getMarkovStates(\|\.calcAgeDistribution(\|\.initializeAges(" $TARGET_DIR --include="*.py"
+# Must return empty
+```
+
+### 1.14.6 No Removed Method Calls (methods that no longer exist)
+
+```bash
+grep -rn "AggShockConsumerType\.update_solution_terminal\|IndShockConsumerType\.update_solution_terminal\|MarkovConsumerType\.update_solution_terminal" $TARGET_DIR --include="*.py"
+# Must return empty (these are now functions, not methods)
+```
+
+### 1.14.7 Verification Checklist
+
+| Check | Command | Status |
+|-------|---------|--------|
+| Old import paths | `grep -rn "from HARK\.distribution"...` | ☐ Empty |
+| Old symbol names | `grep -rn "multiThreadCommands"...` | ☐ Empty |
+| camelCase method defs | `grep -rn "def [a-z][a-zA-Z]*[A-Z]"...` | ☐ Empty |
+| Old parameter keys | `grep -rn "\['aNrmInitMean'\]"...` | ☐ Empty |
+| camelCase method calls | `grep -rn "\.preSolve("...` | ☐ Empty |
+| Removed method calls | `grep -rn "Type\.update_solution_terminal"` | ☐ Empty |
+
+**⛔ DO NOT PROCEED TO STAGE 2 UNTIL ALL BOXES ARE CHECKED.**
+
 ## STAGE 1 OUTPUT
 
 **Deliverable**: The Change Inventory document (Markdown + optional JSON).
@@ -1313,6 +1461,10 @@ You must have ACTUALLY RUN (not just read about) these commands and recorded the
 | Import smoke test (1.0b Step 3) | Verify imports work with target HARK | test_imports.py output |
 | Export comparison (1.2b) | Classes removed from modules | removed_from_*.txt |
 | Relocation detection (1.2c) | Where removed items moved | Relocation Map |
+| Symbol-based search (1.4.1b) | Find renamed symbols regardless of import path | grep outputs |
+| Comprehensive camelCase scan (1.4.6) | Catch any remaining camelCase defs + calls | grep outputs |
+| Parameter key access verification (1.6.7) | Ensure both defs + dict accesses updated | grep outputs |
+| Final cleanup verification (1.14) | Hard gate: no old patterns remain | grep outputs |
 
 **Checkpoint**: ☐ I have run ALL commands above and have the output files.
 
@@ -1356,6 +1508,10 @@ Before proceeding, verify you have explicitly addressed:
 | **Class/function removals** | ☐ Exports removed from modules identified | Section 1.2b |
 | **Relocation map** | ☐ Where removed items moved documented | Section 1.2c |
 | **OOP Solver classes** | ☐ ConsIndShockSolver, ConsMarkovSolver etc. - still exist or relocated? | Section 1.2b/1.2c |
+| **Symbol-based search** | ☐ Searched for renamed symbols by NAME (not just import path) | Section 1.4.1b |
+| **Comprehensive camelCase cleanup** | ☐ `grep "def [a-z][a-zA-Z]*[A-Z]"` returns empty | Section 1.4.6 |
+| **Parameter key ACCESSES** | ☐ Both dict definitions AND accesses updated | Section 1.6.7 |
+| **Final cleanup verification** | ☐ ALL greps in Section 1.14 return empty | Section 1.14 |
 
 ### 1.D Verification Test
 
@@ -1375,6 +1531,10 @@ If ANY expected change is NOT in the Inventory, **STOP AND FIX THE INVENTORY**.
 - ☐ Import smoke test (1.0b Step 3) passed - all imports work with target HARK
 - ☐ Class/function export comparison (1.2b) completed - removed exports identified
 - ☐ Relocation map (1.2c) completed - where removed items moved documented
+- ☐ Symbol-based search (1.4.1b) completed - searched by symbol NAME (not import path)
+- ☐ Comprehensive camelCase cleanup (1.4.6) completed - no remaining camelCase defs/calls (or exceptions documented)
+- ☐ Parameter key access verification (1.6.7) completed - no remaining old dict key accesses
+- ☐ Final cleanup verification (1.14) completed - all hard-gate greps return empty
 - ☐ The Change Inventory has NO TBD/placeholder entries
 - ☐ Method rename table is COMPLETE (not a sample)
 - ☐ Method REMOVAL table is COMPLETE (methods removed from HARK, not renamed)
