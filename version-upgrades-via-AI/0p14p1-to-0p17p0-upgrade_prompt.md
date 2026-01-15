@@ -1,314 +1,290 @@
 # HARK Migration Prompt: 0.14.1 → 0.17.0
 
-**Generated**: 2026-01-15
-**Meta-prompt version**: With Stage 0, method removals, target compliance, and user-driven verification
+**Regenerated**: 2026-01-15
+**Meta-prompt version**: Adds target dependency extraction + symbol-based search + cleanup hard-gates
 **Source**: HARK 0.14.1
 **Target**: HARK 0.17.0
 
 ---
 
-## Stage 0: Pre-flight
+## Stage 0: Pre-flight (MANDATORY)
 
-Before beginning, confirm:
+In the **target codebase repo**:
 
 ```bash
-# In target codebase repo
 git remote -v                    # Correct repo?
 git branch --show-current        # Correct base branch?
-git status                       # Clean working tree?
+git status                       # Must be clean
+
 git rev-parse HEAD               # Record base SHA: _______________
 ```
 
-**Filesystem note**: macOS/Windows are typically case-insensitive. No case-only renames are required for this migration.
-
 ---
 
-## Prerequisites
+## Stage 1 (Discovery): Target-Dependency-First (MANDATORY)
 
-1. **Backup your codebase**: `git checkout -b hark-migration-0141-to-0170`
-2. **Install target HARK**: `pip install econ-ark==0.17.0` in a test environment
-3. **Semantic Baseline**: Before making ANY changes, run your verification command (see Section 7)
+### 1.0 Acquire both HARK versions for comparison
 
----
-
-## Step 1: Update Import Paths (HIGH CONFIDENCE)
-
-### 1.1 Distribution Module
-
-**Search:**
-```bash
-grep -rn "from HARK\.distribution import\|from HARK import distribution" --include="*.py"
-```
-
-**Replace:**
-```
-from HARK.distribution import  →  from HARK.distributions import
-```
-
-### 1.2 Parallel Module
-
-**Search:**
-```bash
-grep -rn "from HARK\.parallel import\|from HARK import parallel" --include="*.py"
-```
-
-**Replace:**
-```
-from HARK.parallel import multi_thread_commands  →  from HARK.core import multi_thread_commands
-from HARK.parallel import multi_thread_commands_fake  →  from HARK.core import multi_thread_commands_fake
-```
-
-### 1.3 Datasets Module
-
-**Search:**
-```bash
-grep -rn "from HARK\.datasets import\|from HARK import datasets" --include="*.py"
-```
-
-**Replace:**
-```
-from HARK.datasets import  →  from HARK.Calibration import
-```
-
----
-
-## Step 2: Update Parameter Names (MEDIUM CONFIDENCE)
-
-### 2.1 Search for Old Parameter Names
+Use PyPI extraction:
 
 ```bash
-grep -rn "'aNrmInitMean'\|'aNrmInitStd'\|'pLvlInitMean'\|'pLvlInitStd'" --include="*.py"
+pip download econ-ark==0.14.1 econ-ark==0.17.0 --no-deps -d /tmp/hark_diff
+cd /tmp/hark_diff
+unzip -q econ_ark-0.14.1-*.whl -d src
+unzip -q econ_ark-0.17.0-*.whl -d tgt
+
+diff -rq src/HARK tgt/HARK | sort > /tmp/hark_structural_diff.txt
 ```
 
-### 2.2 Rename Rules
+### 1.0b Target Dependency Extraction (MANDATORY - DO THIS FIRST)
 
-Only rename if the parameter is passed to `IndShockConsumerType`, `MarkovConsumerType`, or subclasses:
+#### 1.0b.1 Extract all HARK imports from target
 
-| Old | New |
-|-----|-----|
-| `'aNrmInitMean'` | `'kLogInitMean'` |
-| `'aNrmInitStd'` | `'kLogInitStd'` |
-| `'pLvlInitMean'` | `'pLogInitMean'` |
-| `'pLvlInitStd'` | `'pLogInitStd'` |
+```bash
+grep -rn "from HARK\\|import HARK" $TARGET_DIR --include="*.py" | sort -u > target_hark_imports.txt
+```
 
-Also rename variable names that feed into these parameters:
-```python
-# OLD
-pLvlInitMean_d = np.log(5)
-# NEW
-pLogInitMean_d = np.log(5)
+#### 1.0b.2 Extract HARK inheritance in target
+
+```bash
+grep -rn "class.*\\(.*Type\\)\\|class.*\\(.*Solver\\)\\|class.*\\(.*Consumer\\)" $TARGET_DIR --include="*.py"
+```
+
+#### 1.0b.3 Import smoke test against HARK 0.17.0 (BLOCKING)
+
+For each import pattern in `target_hark_imports.txt`, verify it imports with the **target** HARK.
+
+**If any fail, stop and fix before proceeding.**
+
+Common failures you must explicitly check:
+- `ConsIndShockSolver` is **NOT** in `HARK.ConsumptionSaving.ConsIndShockModel` in 0.17.0 (moved to `HARK.ConsumptionSaving.LegacyOOsolvers`).
+- `MargValueFunc2D` is **NOT** in `HARK.ConsumptionSaving.ConsAggShockModel` in 0.17.0 (use `HARK.interpolation.MargValueFuncCRRA`).
+
+### 1.2b Export removal check (MANDATORY)
+
+For each module imported by the target, compare `dir(module)` between versions and record removed exports.
+
+### 1.2c Relocation detection (MANDATORY)
+
+For each removed export that the target uses, locate it in 0.17.0:
+
+```bash
+# Example:
+grep -rn "class ConsIndShockSolver" tgt/HARK --include="*.py"
 ```
 
 ---
 
-## Step 3: Fix Method Removals (CRITICAL - BLOCKING)
+## Stage 2 (Transformation): Apply fixes to target codebase
 
-### 3.1 `update_solution_terminal` Method REMOVED
+### Step 1: Update import paths (HIGH CONFIDENCE)
 
-**⚠️ BREAKING CHANGE**: The `update_solution_terminal()` method was **REMOVED** from:
-- `AggShockConsumerType` (line 182 in 0.14.1)
-- `AggShockMarkovConsumerType` (line 535 in 0.14.1)
-- `MarkovConsumerType` (line 931 in 0.14.1)
-- `KrusellSmithType` (line 787 in 0.14.1)
+#### 1.1 `HARK.distribution` → `HARK.distributions`
 
-**Search:**
 ```bash
-grep -rn "update_solution_terminal\|updateSolutionTerminal" --include="*.py"
+grep -rn "from HARK\\.distribution import" $TARGET_DIR --include="*.py"
 ```
 
-### 3.2 Replacement Functions in HARK 0.17.0
+Replace:
+- `from HARK.distribution import ...` → `from HARK.distributions import ...`
 
-| Old Method | New Function | Import From |
-|------------|--------------|-------------|
+#### 1.2 `HARK.parallel` → `HARK.core`
+
+```bash
+grep -rn "from HARK\\.parallel import" $TARGET_DIR --include="*.py"
+```
+
+Replace:
+- `from HARK.parallel import multi_thread_commands` → `from HARK.core import multi_thread_commands`
+- `from HARK.parallel import multi_thread_commands_fake` → `from HARK.core import multi_thread_commands_fake`
+
+#### 1.3 `HARK.datasets` → `HARK.Calibration`
+
+```bash
+grep -rn "from HARK\\.datasets import" $TARGET_DIR --include="*.py" || true
+```
+
+Replace:
+- `from HARK.datasets import ...` → `from HARK.Calibration import ...`
+
+---
+
+### Step 1b: Symbol-based search (CRITICAL)
+
+**Do not rely on import-path greps.** Symbols can be imported from multiple locations.
+
+```bash
+# Must find/replace ALL occurrences, regardless of how they were imported
+grep -rn "multiThreadCommands\\|multiThreadCommandsFake" $TARGET_DIR --include="*.py"
+grep -rn "drawDiscrete" $TARGET_DIR --include="*.py"
+```
+
+Migration expectations:
+- `multiThreadCommands` → `multi_thread_commands`
+- `multiThreadCommandsFake` → `multi_thread_commands_fake`
+
+---
+
+### Step 2: Fix relocated/removed symbols (CRITICAL - BLOCKING)
+
+#### 2.1 OOP solver classes moved to `LegacyOOsolvers`
+
+If your code imports any solver classes from `ConsIndShockModel`, update imports:
+
+- **OLD**: `from HARK.ConsumptionSaving.ConsIndShockModel import ConsIndShockSolver`
+- **NEW**: `from HARK.ConsumptionSaving.LegacyOOsolvers import ConsIndShockSolver`
+
+Search:
+
+```bash
+grep -rn "ConsIndShockSolver" $TARGET_DIR --include="*.py"
+```
+
+#### 2.2 `MargValueFunc2D` removed from `ConsAggShockModel`
+
+If your code imports/uses `MargValueFunc2D`:
+
+- **OLD**: `from HARK.ConsumptionSaving.ConsAggShockModel import MargValueFunc2D`
+- **NEW**: `from HARK.interpolation import MargValueFuncCRRA as MargValueFunc2D`
+
+Search:
+
+```bash
+grep -rn "MargValueFunc2D" $TARGET_DIR --include="*.py"
+```
+
+---
+
+### Step 3: Fix removed method `update_solution_terminal` (CRITICAL - BLOCKING)
+
+`update_solution_terminal()` was removed from:
+- `AggShockConsumerType`
+- `AggShockMarkovConsumerType`
+- `MarkovConsumerType`
+- `KrusellSmithType`
+
+Search:
+
+```bash
+grep -rn "update_solution_terminal\\|updateSolutionTerminal" $TARGET_DIR --include="*.py"
+```
+
+Replacement functions in 0.17.0:
+
+| Old | New | Import From |
+|-----|-----|-------------|
 | `AggShockConsumerType.update_solution_terminal(self)` | `make_aggshock_solution_terminal(CRRA)` | `HARK.ConsumptionSaving.ConsAggShockModel` |
 | `AggShockMarkovConsumerType.update_solution_terminal(self)` | `make_aggmrkv_solution_terminal(CRRA, MrkvArray)` | `HARK.ConsumptionSaving.ConsAggShockModel` |
 | `MarkovConsumerType.update_solution_terminal(self)` | `make_markov_solution_terminal(CRRA, MrkvArray)` | `HARK.ConsumptionSaving.ConsMarkovModel` |
-
-### 3.3 Migration Pattern
-
-**OLD code (0.14.1):**
-```python
-def updateSolutionTerminal(self):
-    AggShockConsumerType.update_solution_terminal(self)
-    # Custom logic...
-    StateCount = self.MrkvArray[-1].shape[0]
-    self.solution_terminal.cFunc = StateCount * [self.solution_terminal.cFunc]
-```
-
-**NEW code (0.17.0):**
-```python
-from HARK.ConsumptionSaving.ConsAggShockModel import make_aggshock_solution_terminal
-
-def update_solution_terminal(self):  # Note: snake_case
-    self.solution_terminal = make_aggshock_solution_terminal(self.CRRA)
-    # Custom logic...
-    StateCount = self.MrkvArray[-1].shape[0]
-    self.solution_terminal.cFunc = StateCount * [self.solution_terminal.cFunc]
-```
+| `IndShockConsumerType.update_solution_terminal(self)` | `make_basic_CRRA_solution_terminal(CRRA)` | `HARK.ConsumptionSaving.ConsIndShockModel` |
 
 ---
 
-## Step 4: Fix camelCase Method Definitions (CRITICAL)
+### Step 4: Parameter renames (MEDIUM CONFIDENCE)
 
-### 4.1 Why This Matters
-
-HARK calls lifecycle methods using **snake_case** names. If your code defines methods in **camelCase**, they will **never be invoked**.
-
-**Search for camelCase method definitions:**
-```bash
-grep -rn "def [a-z][a-zA-Z]*[A-Z]" --include="*.py"
-```
-
-### 4.2 HARK Lifecycle Methods (Must Be snake_case)
-
-| camelCase (WRONG) | snake_case (CORRECT) |
-|-------------------|---------------------|
-| `def preSolve(self)` | `def pre_solve(self)` |
-| `def initializeSim(self)` | `def initialize_sim(self)` |
-| `def simBirth(self, ...)` | `def sim_birth(self, ...)` |
-| `def simDeath(self)` | `def sim_death(self)` |
-| `def getShocks(self)` | `def get_shocks(self)` |
-| `def getStates(self)` | `def get_states(self)` |
-| `def getControls(self)` | `def get_controls(self)` |
-| `def getMortality(self)` | `def get_mortality(self)` |
-| `def getEconomyData(self, ...)` | `def get_economy_data(self, ...)` |
-| `def marketAction(self)` | `def market_action(self)` |
-| `def saveState(self)` | `def save_state(self)` |
-| `def restoreState(self)` | `def restore_state(self)` |
-| `def makeShockHistory(self)` | `def make_shock_history(self)` |
-| `def makeIdiosyncraticShockHistories(self)` | `def make_idiosyncratic_shock_histories(self)` |
-| `def calcAgeDistribution(self)` | `def calc_age_distribution(self)` |
-| `def initializeAges(self)` | `def initialize_ages(self)` |
-| `def updateSolutionTerminal(self)` | `def update_solution_terminal(self)` |
-
-### 4.3 Also Rename Method CALLS
-
-```bash
-grep -rn "\.preSolve(\|\.initializeSim(\|\.simBirth(\|\.simDeath(\|\.getShocks(\|\.getStates(\|\.getMortality(\|\.getEconomyData(\|\.saveState(\|\.restoreState(" --include="*.py"
-```
-
-### 4.4 Important: Apply to ALL Code
-
-**Do NOT skip any files as "dead code".** All code must be made compliant.
-
----
-
-## Step 5: Update Config Files (HIGH CONFIDENCE)
-
-### 5.1 Find Config Files
-
-```bash
-find . -type f \( -name "requirements*.txt" -o -name "pyproject.toml" -o -name "environment*.yml" \) | xargs grep -l "econ-ark"
-```
-
-### 5.2 Update Version Pins
+Rename keys when they flow into `IndShockConsumerType`/`MarkovConsumerType` families:
 
 | Old | New |
 |-----|-----|
-| `econ-ark==0.14.1` | `econ-ark>=0.17.0` |
-| `econ-ark=0.14.1` | `econ-ark>=0.17.0` |
+| `aNrmInitMean` | `kLogInitMean` |
+| `aNrmInitStd` | `kLogInitStd` |
+| `pLvlInitMean` | `pLogInitMean` |
+| `pLvlInitStd` | `pLogInitStd` |
 
-### 5.3 Update Python Version
-
-HARK 0.17.0 requires **Python ≥3.10**. Check:
-- `pyproject.toml`: `requires-python`
-- `environment.yml`: `python=` version
-
----
-
-## Step 6: Verify No Old Patterns Remain
+#### 4.1 Update definitions AND accesses (MANDATORY)
 
 ```bash
-# Imports (should return nothing)
-grep -rn "from HARK\.distribution import" --include="*.py"
-grep -rn "from HARK\.parallel import" --include="*.py"
-grep -rn "from HARK\.datasets import" --include="*.py"
+# Definitions (dict literals)
+grep -rn "'aNrmInitMean'\\|'pLvlInitMean'" $TARGET_DIR --include="*.py"
 
-# Removed methods (should return nothing)
-grep -rn "\.update_solution_terminal(" --include="*.py"
-grep -rn "AggShockConsumerType\.update_solution_terminal" --include="*.py"
-
-# camelCase lifecycle methods (should return nothing)
-grep -rn "def preSolve\|def initializeSim\|def simBirth\|def simDeath\|def getShocks\|def getStates\|def getMortality" --include="*.py"
+# Accesses (dict indexing) - MUST be empty after migration
+grep -rn "\\['aNrmInitMean'\\]\\|\\['pLvlInitMean'\\]" $TARGET_DIR --include="*.py"
 ```
 
 ---
 
-## Step 7: Semantic Verification (USER-DRIVEN)
+### Step 5: camelCase → snake_case compliance (CRITICAL - BLOCKING)
 
-### 7.1 Before Migration
+HARK calls lifecycle methods in snake_case. Any camelCase override will **never be invoked**.
 
-**Question for User**: What command should I run to generate a baseline of computational results?
+#### 5.1 Comprehensive camelCase definitions scan (MANDATORY)
 
-Example: `./reproduce.sh --comp min` (takes ~1 hour)
-
-**Run and record:**
 ```bash
-# User-provided command
+# Must return empty (or all exceptions annotated with "# OK:")
+grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py"
+```
+
+#### 5.2 CamelCase call-site scan (MANDATORY)
+
+```bash
+# Must return empty
+grep -rn "\\.preSolve(\\|\\.initializeSim(\\|\\.simBirth(\\|\\.simDeath(\\|\\.getShocks(\\|\\.getStates(\\|\\.getMortality(\\|\\.getControls(\\|\\.getMarkovStates(\\|\\.calcAgeDistribution(\\|\\.initializeAges(" $TARGET_DIR --include="*.py"
+```
+
+---
+
+### Step 6: Update config/dependency pins (HIGH CONFIDENCE)
+
+- HARK 0.17.0 requires **Python ≥ 3.10**.
+
+Search:
+
+```bash
+find $TARGET_DIR -type f \( -name "requirements*.txt" -o -name "pyproject.toml" -o -name "environment*.yml" -o -name "environment*.yaml" -o -path "*/binder/*" \) | \
+  xargs grep -l "econ-ark" 2>/dev/null
+```
+
+Update:
+- `econ-ark==0.14.1` → `econ-ark>=0.17.0`
+- `python=3.9` → `python=3.10`
+- `requires-python = ">=3.9,<3.10"` → `requires-python = ">=3.10"`
+
+---
+
+## Final Cleanup Verification (MANDATORY)
+
+All of these must be empty before committing:
+
+```bash
+# Old import paths
+grep -rn "from HARK\\.distribution import\\|from HARK\\.parallel import\\|from HARK\\.datasets import" $TARGET_DIR --include="*.py"
+
+# Old symbol names (search by NAME, not path)
+grep -rn "multiThreadCommands\\|multiThreadCommandsFake\\|drawDiscrete" $TARGET_DIR --include="*.py"
+
+# Any camelCase defs
+grep -rn "def [a-z][a-zA-Z]*[A-Z]" $TARGET_DIR --include="*.py"
+
+# Old parameter key accesses
+grep -rn "\\['aNrmInitMean'\\]\\|\\['pLvlInitMean'\\]" $TARGET_DIR --include="*.py"
+
+# camelCase lifecycle calls
+grep -rn "\\.preSolve(\\|\\.initializeSim(\\|\\.getShocks(\\|\\.getStates(" $TARGET_DIR --include="*.py"
+
+# Removed method calls
+grep -rn "AggShockConsumerType\\.update_solution_terminal\\|IndShockConsumerType\\.update_solution_terminal\\|MarkovConsumerType\\.update_solution_terminal" $TARGET_DIR --include="*.py"
+```
+
+---
+
+## Semantic Verification (USER-DRIVEN)
+
+Run a baseline command **before** migration and rerun **after** migration.
+
+```bash
 <USER_COMMAND> > baseline_results.txt 2>&1
-```
-
-### 7.2 After Migration
-
-Rerun the same command with the NEW HARK version:
-```bash
 <USER_COMMAND> > post_migration_results.txt 2>&1
-```
 
-**Compare:**
-```bash
 diff baseline_results.txt post_migration_results.txt
 ```
 
-**Requirement**: Results must match or differences must be explained and accepted.
-
 ---
 
-## Summary of Breaking Changes
+## What’s *not* automatically required by 0.14.1→0.17.0 (but still scan target)
 
-| Category | Count | Confidence | Blocking? |
-|----------|-------|------------|-----------|
-| Import: distribution→distributions | Variable | HIGH | No |
-| Import: parallel→core | Variable | HIGH | No |
-| Import: datasets→Calibration | Variable | HIGH | No |
-| Param: aNrmInitMean→kLogInitMean | Variable | MEDIUM | No |
-| **Method removal: update_solution_terminal** | **4 classes** | **HIGH** | **YES** |
-| **camelCase→snake_case method defs** | **Variable** | **HIGH** | **YES** |
-| Config: econ-ark version pin | Variable | HIGH | No |
-| Config: Python ≥3.10 | 1 | HIGH | No |
+Some patterns were already updated in HARK 0.14.1, but target code might be older:
+- `.pmf` → `.pmv`
+- `.X` → `.atoms`
+- `RNG.randint` → `RNG.integers`
 
----
-
-## What's NOT Needed (Unchanged Between 0.14.1 and 0.17.0)
-
-- ❌ `.pmf` → `.pmv` (already `.pmv` in 0.14.1)
-- ❌ `.X` → `.atoms` (already `.atoms` in 0.14.1)
-- ❌ `RNG.randint()` → `RNG.integers()` (already `.integers()` in 0.14.1)
-- ❌ `DiscreteDistribution` constructor signature (unchanged)
-- ❌ HARK method renames (already snake_case in 0.14.1)
-
-**However**, your TARGET CODEBASE may use old patterns if written for an even older HARK version.
-
----
-
-## Quick Reference: Find ALL Patterns
-
-```bash
-echo "=== Import paths ==="
-grep -rn "from HARK\.distribution import\|from HARK\.parallel import\|from HARK\.datasets import" --include="*.py"
-
-echo "=== Parameter names ==="
-grep -rn "'aNrmInitMean'\|'aNrmInitStd'\|'pLvlInitMean'\|'pLvlInitStd'" --include="*.py"
-
-echo "=== Removed methods ==="
-grep -rn "update_solution_terminal\|updateSolutionTerminal" --include="*.py"
-
-echo "=== camelCase method definitions ==="
-grep -rn "def preSolve\|def initializeSim\|def simBirth\|def simDeath\|def getShocks\|def getStates\|def getControls\|def getMortality\|def getEconomyData\|def saveState\|def restoreState\|def makeShockHistory\|def calcAgeDistribution\|def initializeAges\|def updateSolutionTerminal" --include="*.py"
-
-echo "=== camelCase method calls ==="
-grep -rn "\.preSolve(\|\.initializeSim(\|\.simBirth(\|\.simDeath(\|\.getShocks(\|\.getStates(\|\.getMortality(\|\.getEconomyData(\|\.saveState(\|\.restoreState(" --include="*.py"
-
-echo "=== Config files ==="
-grep -rn "econ-ark.*0\.14" --include="*.txt" --include="*.toml" --include="*.yml" --include="*.yaml"
-```
+If the target codebase contains these, treat them as **legacy pre-0.14.1 patterns** and fix them.
