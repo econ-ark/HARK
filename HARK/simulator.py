@@ -715,24 +715,9 @@ class SimBlock:
             for n in range(N_orig)
         ]
 
-        # Make the initial vector of probability masses
-        self.N = N_orig
-        state_init["pmv_"] = np.ones(self.N)
-
-        # Initialize the array of arrival states
-        origin_array = np.arange(self.N, dtype=int)
-
-        # Reset the block's state and give it the initial state data
-        self.reset()
-        self.data.update(state_init)
-
-        # Loop through each event in order and quasi-simulate it
-        for j in range(len(self.events)):
-            event = self.events[j]
-            event.data = self.data  # Give event *all* data directly
-            event.N = self.N
-            origin_array = event.quasi_run(origin_array, norm=norm)
-            self.N = self.data["pmv_"].size
+        # Quasi-simulate this block
+        self.run_quasi_sim(state_init)
+        origin_array = self.origin_array
 
         # Add survival to output if mortality is in the model
         if "dead" in self.data.keys():
@@ -931,8 +916,11 @@ class SimBlock:
         None
         """
         # Make the initial vector of probability masses
-        key = list(data.keys())[0]
-        N_orig = data[key].size
+        try:
+            key = list(data.keys())[0]
+            N_orig = data[key].size
+        except:  # Only reach this if data is empty because it's initializer block
+            N_orig = 1
         self.N = N_orig
         state_init = deepcopy(data)
         state_init["pmv_"] = np.ones(self.N)
