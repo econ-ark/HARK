@@ -857,6 +857,121 @@ def __init__(self, pmv, atoms, seed=0, limit=None)
 
 ---
 
+
+## 1.5b Initialization Pattern and Default Behavior Changes (CRITICAL)
+
+### ⚠️ THIS CATEGORY CAUSES SILENT RUNTIME FAILURES
+
+Changes to default behaviors and initialization patterns are **especially dangerous** because:
+- Code may import and "work" at import time but fail at runtime
+- No syntax errors or immediate import failures signal the problem
+- The old API may still technically exist but behave differently
+
+### 1.5b.1 AgentType.__init__() Signature Changes
+
+Compare the `AgentType.__init__()` signatures between versions:
+
+\`\`\`bash
+# Extract AgentType.__init__ from both versions
+grep -A40 "class AgentType" src/HARK/core.py | grep -A30 "def __init__"
+grep -A40 "class AgentType" tgt/HARK/core.py | grep -A30 "def __init__"
+\`\`\`
+
+**Document any NEW parameters and their defaults**:
+
+| New Parameter | Default | Effect | Opt-out Method |
+|---------------|---------|--------|----------------|
+| \`construct\` | \`True\` | Auto-builds distributions via constructors | Pass \`construct=False\` |
+| \`use_defaults\` | \`True\` | Merges \`default_["params"]\` into kwargs | Pass \`use_defaults=False\` |
+| \`verbose\` | \`1\` | Sets instance verbosity | Pass \`verbose=0\` |
+
+### 1.5b.2 Constructor System Detection
+
+Check if target version has automatic constructor systems:
+
+\`\`\`bash
+# Look for constructor dictionaries in agent types
+grep -r "constructors\s*=" tgt/HARK/ConsumptionSaving/*.py
+grep -r "markov_constructor_dict\|constructors_default" tgt/HARK/
+
+# Check if AgentType.__init__ calls self.construct()
+grep -A60 "def __init__" tgt/HARK/core.py | grep "self.construct()"
+
+# Find default_ class attributes
+grep -r "default_\s*=" tgt/HARK/ConsumptionSaving/*.py
+\`\`\`
+
+**If constructors exist in target but not source, this is a MAJOR CHANGE**.
+
+### 1.5b.3 Impact Analysis
+
+For codebases with custom agent types that inherit from HARK:
+
+1. **Custom \`__init__\` that calls \`super().__init__()\`**:
+   - If target has \`construct=True\` default, automatic construction will be triggered
+   - If the custom class builds \`IncShkDstn\` manually, this causes conflicts
+   - **Fix**: Pass \`construct=False\` to parent \`__init__()\`
+
+2. **Custom classes that override \`time_vary\`, \`time_inv\`, \`shock_vars\`**:
+   - Check if target version now sets these at instance level in \`__init__\`
+   - Modifications in subclass \`__init__\` BEFORE \`super().__init__()\` may be overwritten
+   - **Fix**: Modify AFTER \`super().__init__()\` call
+
+3. **Classes that rely on specific solver assignment order**:
+   - Check if \`solve_one_period\` is now set from \`default_["solver"]\`
+   - Subclass solver assignments may need to happen after \`super().__init__()\`
+
+### 1.5b.4 Discovery Commands for Target Codebase
+
+\`\`\`bash
+# Find classes inheriting from HARK agent types
+grep -rE "class.*\(.*ConsumerType|class.*\(.*AgentType|class.*\(.*MarkovConsumerType" \$TARGET_DIR --include="*.py"
+
+# For each, check their __init__ pattern
+grep -A20 "def __init__" <file_with_custom_class>
+
+# Look for manual IncShkDstn construction (indicates they don't want auto-constructors)
+grep -r "IncShkDstn\s*=" \$TARGET_DIR --include="*.py" | grep -v "self\.IncShkDstn\s*=\s*\["
+\`\`\`
+
+### 1.5b.5 Record in Change Inventory
+
+**Required table for init behavior changes**:
+
+| Behavior | Source Version | Target Version | Breaking? | Opt-out |
+|----------|---------------|----------------|-----------|---------|
+| Auto-construct distributions | No | Yes (\`construct=True\`) | YES | \`construct=False\` |
+| Merge default params | No | Yes (\`use_defaults=True\`) | Maybe | \`use_defaults=False\` |
+| Instance-level time_vary/inv | Class-level | Instance deepcopy | Maybe | N/A |
+| Solver from defaults | \`NullFunc()\` | \`default_["solver"]\` | Maybe | Set after super() |
+
+**Required table for custom classes in target codebase**:
+
+| Custom Class | File | Inherits From | Calls super().__init__? | Builds IncShkDstn manually? | Needs construct=False? |
+|--------------|------|---------------|------------------------|----------------------------|----------------------|
+| \`AggFiscalType\` | \`AggFiscalModel.py\` | \`MarkovConsumerType\` | Yes | Yes | **YES** |
+
+### 1.5b.6 Migration Rule for Custom Agent Classes
+
+\`\`\`
+FOR EACH class that inherits from HARK agent types:
+  IF target version has construct=True default
+  AND the class builds IncShkDstn or other distributions manually
+  THEN add construct=False to the super().__init__() call:
+
+  # Old:
+  MarkovConsumerType.__init__(self, **kwds)
+
+  # New:
+  MarkovConsumerType.__init__(self, construct=False, **kwds)
+\`\`\`
+
+**Confidence**: HIGH (once identified, fix is mechanical)
+
+**This is a NEW category of breaking change** - the constructor system is an optional convenience feature, but its default-on status makes it effectively mandatory to opt out if you're doing manual construction.
+
+---
+
 ## 1.6 Parameter Usage Tracing (MODEL-SPECIFIC RENAMES)
 
 ### ⚠️ THIS IS COMMONLY MISSED!
@@ -1412,6 +1527,7 @@ After completing all discovery steps, produce a single **Change Inventory** docu
 - Class/function moves: N
 - Method renames: N
 - Constructor signature changes: N
+- Initialization pattern changes: N (custom classes needing construct=False)
 - Type changes: N
 - Total breaking changes: N
 
@@ -1435,20 +1551,35 @@ After completing all discovery steps, produce a single **Change Inventory** docu
 ### 4. Constructor Signature Changes
 [Per-class documentation with old/new signatures]
 
-### 5. Type/Semantic Changes
+
+### 5. Initialization Pattern Changes (NEW IN THIS VERSION)
+[Table of default behavior changes that affect subclasses]
+
+| Behavior | Source Version | Target Version | Opt-out |
+|----------|---------------|----------------|---------|
+| Auto-construct distributions | No | Yes | `construct=False` |
+| Merge default params | No | Yes | `use_defaults=False` |
+
+[Table of custom classes requiring opt-out]
+
+| Custom Class | File | Needs construct=False? |
+|--------------|------|------------------------|
+| (from target codebase scan) | | |
+
+### 6. Type/Semantic Changes
 [Table with migration rules]
 
-### 6. Dependency API Changes
+### 7. Dependency API Changes
 [NumPy, etc.]
 
-### 7. Project Config Files (Version Pins)
+### 8. Project Config Files (Version Pins)
 [Table of files that pin HARK version and need updating]
 
 | File | Current | Target |
 |------|---------|--------|
 | `binder/requirements.txt` | `econ-ark==0.14.1` | `econ-ark==0.16.1` |
 
-### 8. Legacy Patterns to Scan For
+### 9. Legacy Patterns to Scan For
 [If applicable]
 
 ## Confidence Levels
@@ -1833,6 +1964,34 @@ For each occurrence:
 - [ ] If using `X=`, change to `atoms=`
 - [ ] If using positional args, verify first arg is array (not scalar)
 
+
+## Step 3.5: Handle Initialization Pattern Changes (CRITICAL)
+
+### 3.5.1 Custom Agent Classes
+Search for: Classes that inherit from HARK agent types (`MarkovConsumerType`, `IndShockConsumerType`, etc.)
+
+For each custom class that:
+- Has its own `__init__` method
+- Calls `super().__init__()` or parent class `__init__()`
+- Builds `IncShkDstn` or other distributions manually
+
+**Add `construct=False` to the parent init call:**
+
+```python
+# Old:
+MarkovConsumerType.__init__(self, cycles=1, **kwds)
+
+# New:
+MarkovConsumerType.__init__(self, cycles=1, construct=False, **kwds)
+```
+
+### 3.5.2 Why This Matters
+HARK {TARGET_VERSION} introduced automatic constructor systems that try to build income distributions from parameters. If your code builds distributions manually, this causes conflicts like:
+- `AttributeError: 'list' object has no attribute 'shape'`
+- `Exception: The last dimension of PermShkStd... must all be K`
+
+Passing `construct=False` tells HARK: "Don't auto-build distributions, I'll handle it myself."
+
 ## Step 4: Fix Type Changes
 
 ### 4.1 Rfree scalar → list
@@ -2087,6 +2246,8 @@ The generated tool must explicitly handle:
 10. **Attribute vs method confusion**: `obj.pmf` (attribute access) is NOT caught by method-rename patterns that look for `obj.pmf()` (with parentheses). Attributes like `.pmf→.pmv`, `.X→.atoms`, `.IncomeDstn→.IncShkDstn` require separate detection.
 11. **Warnings that don't block**: A detector that generates "warnings" but doesn't BLOCK migration is useless if the warnings scroll off-screen, get truncated ("10 of 47..."), or are buried in verbose output. **Critical issues like type mismatches in constructor args MUST be BLOCKING, not informational warnings.**
 12. **Constructor positional arg type mismatches**: `DiscreteDistribution(scalar, ...)` where `pmv` expects an array. The detector might flag this but if it's just a warning, it gets ignored. Must be BLOCKING.
+13. **Automatic constructor systems**: Target version may have `construct=True` by default, causing HARK to automatically try to build `IncShkDstn` from parameters. If user code builds distributions manually, this causes conflicts with errors like "AttributeError: 'list' object has no attribute 'shape'" because the auto-constructor expects numpy arrays with specific shapes. **Custom agent classes that inherit from HARK types and build distributions manually MUST pass `construct=False` to the parent `__init__()`.**
+14. **Default parameter merging**: Target version may merge `default_["params"]` into kwargs automatically (`use_defaults=True`). This can inject unexpected parameters or conflict with user-provided values.
 
 ---
 
