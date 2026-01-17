@@ -28,7 +28,7 @@ class TestInterpolation2DBroadcasting:
     def test_linear_interp_on_interp1d_array_scalar(self):
         """
         Minimal example demonstrating the bug with LinearInterpOnInterp1D.
-        
+
         This test fails without the broadcast fix:
         IndexError: boolean index did not match indexed array along dimension 0
         """
