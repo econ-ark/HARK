@@ -174,7 +174,6 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
-        _warn_if_mixed_scalar_array(xa, ya)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya = np.broadcast_arrays(xa, ya)
         return (self._evaluate(xa.flatten(), ya.flatten())).reshape(xa.shape)
@@ -201,7 +200,6 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
-        _warn_if_mixed_scalar_array(xa, ya)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya = np.broadcast_arrays(xa, ya)
         return (self._derX(xa.flatten(), ya.flatten())).reshape(xa.shape)
@@ -228,7 +226,6 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
-        _warn_if_mixed_scalar_array(xa, ya)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya = np.broadcast_arrays(xa, ya)
         return (self._derY(xa.flatten(), ya.flatten())).reshape(xa.shape)
@@ -285,7 +282,6 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._evaluate(xa.flatten(), ya.flatten(), za.flatten())).reshape(
@@ -319,7 +315,6 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._derX(xa.flatten(), ya.flatten(), za.flatten())).reshape(xa.shape)
@@ -351,7 +346,6 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._derY(xa.flatten(), ya.flatten(), za.flatten())).reshape(xa.shape)
@@ -382,7 +376,6 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._derZ(xa.flatten(), ya.flatten(), za.flatten())).reshape(xa.shape)
@@ -450,7 +443,6 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(wa, xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
@@ -489,7 +481,6 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(wa, xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
@@ -528,7 +519,6 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(wa, xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
@@ -567,7 +557,6 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(wa, xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
@@ -606,7 +595,6 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
-        _warn_if_mixed_scalar_array(wa, xa, ya, za)
         # Broadcast to common shape to handle mixed scalar/array inputs
         wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
