@@ -173,6 +173,8 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya = np.broadcast_arrays(xa, ya)
         return (self._evaluate(xa.flatten(), ya.flatten())).reshape(xa.shape)
 
     def derivativeX(self, x, y):
@@ -196,6 +198,8 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya = np.broadcast_arrays(xa, ya)
         return (self._derX(xa.flatten(), ya.flatten())).reshape(xa.shape)
 
     def derivativeY(self, x, y):
@@ -219,6 +223,8 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya = np.broadcast_arrays(xa, ya)
         return (self._derY(xa.flatten(), ya.flatten())).reshape(xa.shape)
 
     def _evaluate(self, x, y):
