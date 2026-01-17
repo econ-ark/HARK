@@ -162,8 +162,9 @@ class HARKinterpolator2D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If both
+            are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -173,6 +174,7 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
+        _warn_if_mixed_scalar_array(xa, ya)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya = np.broadcast_arrays(xa, ya)
         return (self._evaluate(xa.flatten(), ya.flatten())).reshape(xa.shape)
@@ -187,8 +189,9 @@ class HARKinterpolator2D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If both
+            are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -198,6 +201,7 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
+        _warn_if_mixed_scalar_array(xa, ya)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya = np.broadcast_arrays(xa, ya)
         return (self._derX(xa.flatten(), ya.flatten())).reshape(xa.shape)
@@ -212,8 +216,9 @@ class HARKinterpolator2D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If both
+            are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -223,6 +228,7 @@ class HARKinterpolator2D(MetricObject):
         """
         xa = np.asarray(x)
         ya = np.asarray(y)
+        _warn_if_mixed_scalar_array(xa, ya)
         # Broadcast to common shape to handle mixed scalar/array inputs
         xa, ya = np.broadcast_arrays(xa, ya)
         return (self._derY(xa.flatten(), ya.flatten())).reshape(xa.shape)
@@ -262,11 +268,13 @@ class HARKinterpolator3D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -277,6 +285,9 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._evaluate(xa.flatten(), ya.flatten(), za.flatten())).reshape(
             xa.shape
         )
@@ -291,11 +302,13 @@ class HARKinterpolator3D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -306,6 +319,9 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._derX(xa.flatten(), ya.flatten(), za.flatten())).reshape(xa.shape)
 
     def derivativeY(self, x, y, z):
@@ -318,11 +334,13 @@ class HARKinterpolator3D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -333,6 +351,9 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._derY(xa.flatten(), ya.flatten(), za.flatten())).reshape(xa.shape)
 
     def derivativeZ(self, x, y, z):
@@ -348,8 +369,9 @@ class HARKinterpolator3D(MetricObject):
             Real values to be evaluated in the interpolated function; must be
             the same size as x.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -360,6 +382,9 @@ class HARKinterpolator3D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        xa, ya, za = np.broadcast_arrays(xa, ya, za)
         return (self._derZ(xa.flatten(), ya.flatten(), za.flatten())).reshape(xa.shape)
 
     def _evaluate(self, x, y, z):
@@ -403,14 +428,17 @@ class HARKinterpolator4D(MetricObject):
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -422,6 +450,9 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(wa, xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
             self._evaluate(wa.flatten(), xa.flatten(), ya.flatten(), za.flatten())
         ).reshape(wa.shape)
@@ -436,14 +467,17 @@ class HARKinterpolator4D(MetricObject):
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -455,6 +489,9 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(wa, xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
             self._derW(wa.flatten(), xa.flatten(), ya.flatten(), za.flatten())
         ).reshape(wa.shape)
@@ -469,14 +506,17 @@ class HARKinterpolator4D(MetricObject):
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -488,6 +528,9 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(wa, xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
             self._derX(wa.flatten(), xa.flatten(), ya.flatten(), za.flatten())
         ).reshape(wa.shape)
@@ -502,14 +545,17 @@ class HARKinterpolator4D(MetricObject):
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -521,6 +567,9 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(wa, xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
             self._derY(wa.flatten(), xa.flatten(), ya.flatten(), za.flatten())
         ).reshape(wa.shape)
@@ -535,14 +584,17 @@ class HARKinterpolator4D(MetricObject):
         w : np.array or float
             Real values to be evaluated in the interpolated function.
         x : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as w.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
 
         Returns
         -------
@@ -554,6 +606,9 @@ class HARKinterpolator4D(MetricObject):
         xa = np.asarray(x)
         ya = np.asarray(y)
         za = np.asarray(z)
+        _warn_if_mixed_scalar_array(wa, xa, ya, za)
+        # Broadcast to common shape to handle mixed scalar/array inputs
+        wa, xa, ya, za = np.broadcast_arrays(wa, xa, ya, za)
         return (
             self._derZ(wa.flatten(), xa.flatten(), ya.flatten(), za.flatten())
         ).reshape(wa.shape)
