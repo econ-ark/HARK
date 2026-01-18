@@ -911,7 +911,7 @@ class TestMargMargValueFuncCRRA(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(output, check)))
 
 
-class TestInterpolation2DBroadcasting:
+class TestInterpolation2DBroadcasting(unittest.TestCase):
     """Test that 2D interpolation handles mixed scalar/array inputs."""
 
     def test_linear_interp_on_interp1d_array_scalar(self):
