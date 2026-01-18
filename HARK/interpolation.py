@@ -360,8 +360,9 @@ class HARKinterpolator3D(MetricObject):
         x : np.array or float
             Real values to be evaluated in the interpolated function.
         y : np.array or float
-            Real values to be evaluated in the interpolated function; must be
-            the same size as x.
+            Real values to be evaluated in the interpolated function. If multiple
+            inputs are arrays, they must be broadcastable to the same shape.
+            Scalar inputs will be broadcast to match array inputs.
         z : np.array or float
             Real values to be evaluated in the interpolated function. If multiple
             inputs are arrays, they must be broadcastable to the same shape.
