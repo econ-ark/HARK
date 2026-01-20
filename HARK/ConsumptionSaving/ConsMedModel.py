@@ -26,7 +26,6 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     PersistentShockConsumerType,
     VariableLowerBoundFunc2D,
 )
-from HARK.ConsumptionSaving.ConsIndShockModel import ConsumerSolution
 from HARK.distributions import (
     Lognormal,
     MultivariateLogNormal,
@@ -448,11 +447,8 @@ def make_MedShock_solution_terminal(
 
     # Integrate value across shocks to get expected value
     vGrid = utility(cLvlGrid, rho=CRRA) + utility(
-        MedGrid / MedShkGrid_tiled, rho=CRRAmed
+        (MedGrid + MedShift) / MedShkGrid_tiled, rho=CRRAmed
     )
-    # correct for issue when MedShk=0
-    ZeroShk = MedShkGrid_tiled == 0.0
-    vGrid[ZeroShk] = utility(cLvlGrid[ZeroShk], rho=CRRA)
     vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
     v_expected = np.sum(vGrid * PrbGrid, axis=1)
 
@@ -490,6 +486,7 @@ def solve_one_period_ConsMedShock(
     DiscFac,
     CRRA,
     CRRAmed,
+    MedShift,
     Rfree,
     MedPrice,
     pLvlNextFunc,
@@ -498,11 +495,12 @@ def solve_one_period_ConsMedShock(
     pLvlGrid,
     vFuncBool,
     CubicBool,
+    qFunc,
 ):
     """
     Class for solving the one period problem for the "medical shocks" model, in
     which consumers receive shocks to permanent and transitory income as well as
-    shocks to "medical need"-- multiplicative utility shocks for a second good.
+    shocks to "medical need"-- utility shocks for a second good.
 
     Parameters
     ----------
@@ -512,7 +510,7 @@ def solve_one_period_ConsMedShock(
         A discrete approximation to the income process between the period being
         solved and the one immediately following (in solution_next).
     MedShkDstn : distribution.Distribution
-        Discrete distribution of the multiplicative utility shifter for medical care.
+        Discrete distribution of the need shifter for medical care.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -522,6 +520,9 @@ def solve_one_period_ConsMedShock(
         Coefficient of relative risk aversion for composite consumption.
     CRRAmed : float
         Coefficient of relative risk aversion for medical care.
+    MedShift : float
+        Additive shifter on medical care in the utility function. Could represent
+        self-care for small medical needs that would not be observed / reported.
     Rfree : float
         Risk free interest factor on end-of-period assets.
     MedPrice : float
@@ -540,17 +541,19 @@ def solve_one_period_ConsMedShock(
         An indicator for whether the value function should be computed and
         included in the reported solution.
     CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
+        An indicator for whether the solver should use cubic or linear interpolation.
+    qFunc : TransConShareFunc
+        Function that maps spending xLvl and "effective" medical needs shock MedShkEff
+        to a transformation of the consumption share.
 
     Returns
     -------
-    solution_now : ConsumerSolution
-        Solution to this period's consumption-saving problem.
+    solution_now : dict
+        Solution to this period's consumption-saving problem, as a dictionary.
     """
     # Define the utility functions for this period
-    uFunc = UtilityFuncCRRA(CRRA)
-    uMed = UtilityFuncCRRA(CRRAmed)  # Utility function for medical care
+    uCon = UtilityFuncCRRA(CRRA)
+    uMed = UtilityFuncCRRA(CRRAmed)  # Utility function for normalized medical care
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
 
     # Unpack next period's income shock distribution
@@ -569,9 +572,9 @@ def solve_one_period_ConsMedShock(
     # WorstIncPrb is the "Weierstrass p" concept: the odds we get the WORST thing
 
     # Unpack next period's (marginal) value function
-    vFuncNext = solution_next.vFunc  # This is None when vFuncBool is False
-    vPfuncNext = solution_next.vPfunc
-    vPPfuncNext = solution_next.vPPfunc  # This is None when CubicBool is False
+    vFuncNext = solution_next["vFunc"]  # This is a NullFunc when vFuncBool is False
+    vPfuncNext = solution_next["vPfunc"]
+    vPPfuncNext = solution_next["vPPfunc"]  # This is a NullFunc when CubicBool is False
 
     # Update the bounding MPCs and PDV of human wealth:
     PatFac = ((Rfree * DiscFacEff) ** (1.0 / CRRA)) / Rfree
@@ -579,7 +582,7 @@ def solve_one_period_ConsMedShock(
         MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
     except:
         MPCminNow = 0.0
-    mLvlMinNext = solution_next.mLvlMin
+    mLvlMinNext = solution_next["mLvlMin"]
 
     # TODO: Deal with this unused code for the upper bound of MPC (should be a function now)
     # Ex_IncNext = np.dot(ShkPrbsNext, TranShkValsNext * PermShkValsNext)
@@ -596,7 +599,7 @@ def solve_one_period_ConsMedShock(
 
     def calc_hLvl(S, p):
         pLvl_next = calc_pLvl_next(S, p)
-        hLvl = S["TranShk"] * pLvl_next + solution_next.hLvl(pLvl_next)
+        hLvl = S["TranShk"] * pLvl_next + solution_next["hLvl"](pLvl_next)
         return hLvl
 
     def calc_v_next(S, a, p):
@@ -656,23 +659,22 @@ def solve_one_period_ConsMedShock(
 
     # Make the constrained total spending function: spend all market resources
     trivial_grid = np.array([0.0, 1.0])  # Trivial grid
-    spendAllFunc = TrilinearInterp(
+    SpendAllFunc = TrilinearInterp(
         np.array([[[0.0, 0.0], [0.0, 0.0]], [[1.0, 1.0], [1.0, 1.0]]]),
         trivial_grid,
         trivial_grid,
         trivial_grid,
     )
-    xFuncNowCnst = VariableLowerBoundFunc3D(spendAllFunc, mLvlMinNow)
+    xFuncNowCnst = VariableLowerBoundFunc3D(SpendAllFunc, mLvlMinNow)
 
     # Define grids of pLvl and aLvl on which to compute future expectations
     pLvlCount = pLvlGrid.size
     aNrmCount = aXtraGrid.size
     MedCount = MedShkVals.size
-    pLvlNow = np.tile(pLvlGrid, (aNrmCount, 1)).transpose()
-    aLvlNow = np.tile(aXtraGrid, (pLvlCount, 1)) * pLvlNow + BoroCnstNat(pLvlNow)
-    # shape = (pLvlCount,aNrmCount)
+    pLvlNow = np.tile(np.reshape(pLvlGrid, (1, pLvlCount)), (aNrmCount, 1))
+    aLvlNow = np.reshape(aXtraGrid, (aNrmCount, 1)) * pLvlNow + BoroCnstNat(pLvlNow)
     if pLvlGrid[0] == 0.0:  # aLvl turns out badly if pLvl is 0 at bottom
-        aLvlNow[0, :] = aXtraGrid
+        aLvlNow[:, 0] = aXtraGrid
 
     # Calculate end-of-period marginal value of assets
     EndOfPrd_vP = (
@@ -686,29 +688,29 @@ def solve_one_period_ConsMedShock(
         EndOfPrd_v *= DiscFacEff
 
         # Transformed value through inverse utility function to "decurve" it
-        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v)
-        EndOfPrd_vNvrsP = EndOfPrd_vP * uFunc.derinv(EndOfPrd_v, order=(0, 1))
+        EndOfPrd_vNvrs = uCon.inv(EndOfPrd_v)
+        EndOfPrd_vNvrsP = EndOfPrd_vP * uCon.derinv(EndOfPrd_v, order=(0, 1))
 
         # Add points at mLvl=zero
         EndOfPrd_vNvrs = np.concatenate(
-            (np.zeros((pLvlCount, 1)), EndOfPrd_vNvrs), axis=1
+            (np.zeros((1, pLvlCount)), EndOfPrd_vNvrs), axis=0
         )
         EndOfPrd_vNvrsP = np.concatenate(
             (
-                np.reshape(EndOfPrd_vNvrsP[:, 0], (pLvlCount, 1)),
+                np.reshape(EndOfPrd_vNvrsP[0, :], (1, pLvlCount)),
                 EndOfPrd_vNvrsP,
             ),
-            axis=1,
+            axis=0,
         )
         # This is a very good approximation, vNvrsPP = 0 at the asset minimum
 
         # Make a temporary aLvl grid for interpolating the end-of-period value function
         aLvl_temp = np.concatenate(
             (
-                np.reshape(BoroCnstNat(pLvlGrid), (pLvlGrid.size, 1)),
+                np.reshape(BoroCnstNat(pLvlGrid), (1, pLvlGrid.size)),
                 aLvlNow,
             ),
-            axis=1,
+            axis=0,
         )
 
         # Make an end-of-period value function for each persistent income level in the grid
@@ -716,9 +718,9 @@ def solve_one_period_ConsMedShock(
         for p in range(pLvlCount):
             EndOfPrd_vNvrsFunc_list.append(
                 CubicInterp(
-                    aLvl_temp[p, :] - BoroCnstNat(pLvlGrid[p]),
-                    EndOfPrd_vNvrs[p, :],
-                    EndOfPrd_vNvrsP[p, :],
+                    aLvl_temp[:, p] - BoroCnstNat(pLvlGrid[p]),
+                    EndOfPrd_vNvrs[:, p],
+                    EndOfPrd_vNvrsP[:, p],
                 )
             )
         EndOfPrd_vNvrsFuncBase = LinearInterpOnInterp1D(
@@ -734,85 +736,44 @@ def solve_one_period_ConsMedShock(
 
     # Solve the first order condition to get optimal consumption and medical
     # spending, then find the endogenous mLvl gridpoints
-    # Calculate endogenous gridpoints and controls
     cLvlNow = np.tile(
-        np.reshape(uFunc.derinv(EndOfPrd_vP, order=(1, 0)), (1, pLvlCount, aNrmCount)),
-        (MedCount, 1, 1),
+        np.reshape(uCon.derinv(EndOfPrd_vP, order=(1, 0)), (aNrmCount, pLvlCount, 1)),
+        (1, 1, MedCount),
     )
-    MedBaseNow = np.tile(
-        np.reshape(
-            uMed.derinv(MedPrice * EndOfPrd_vP, order=(1, 0)),
-            (1, pLvlCount, aNrmCount),
-        ),
-        (MedCount, 1, 1),
-    )
-    MedShkVals_tiled = np.tile(  # This includes CRRA adjustment
-        np.reshape(MedShkVals ** (1.0 / CRRAmed), (MedCount, 1, 1)),
-        (1, pLvlCount, aNrmCount),
-    )
-    MedLvlNow = MedShkVals_tiled * MedBaseNow
+    MedShkVals_adj = np.reshape(MedShkVals ** (1.0 - 1.0 / CRRAmed), (1, 1, MedCount))
+    MedBase = MedPrice ** (-1.0 / CRRAmed) * uMed.derinv(EndOfPrd_vP, order=(1, 0))
+    MedLvlNow = np.reshape(MedBase, (aNrmCount, pLvlCount, 1)) * MedShkVals_adj
+    MedLvlNow = np.maximum(MedLvlNow - MedShift, 0.0)
     aLvlNow_tiled = np.tile(
-        np.reshape(aLvlNow, (1, pLvlCount, aNrmCount)), (MedCount, 1, 1)
+        np.reshape(aLvlNow, (aNrmCount, pLvlCount, 1)), (1, 1, MedCount)
     )
     xLvlNow = cLvlNow + MedPrice * MedLvlNow
     mLvlNow = xLvlNow + aLvlNow_tiled
 
     # Limiting consumption is zero as m approaches the natural borrowing constraint
     x_for_interpolation = np.concatenate(
-        (np.zeros((MedCount, pLvlCount, 1)), xLvlNow), axis=-1
+        (np.zeros((1, pLvlCount, MedCount)), xLvlNow), axis=0
     )
     temp = np.tile(
         BoroCnstNat(np.reshape(pLvlGrid, (1, pLvlCount, 1))),
-        (MedCount, 1, 1),
+        (1, 1, MedCount),
     )
-    m_for_interpolation = np.concatenate((temp, mLvlNow), axis=-1)
+    m_for_interpolation = np.concatenate((temp, mLvlNow), axis=0)
 
     # Make a 3D array of permanent income for interpolation
     p_for_interpolation = np.tile(
-        np.reshape(pLvlGrid, (1, pLvlCount, 1)), (MedCount, 1, aNrmCount + 1)
+        np.reshape(pLvlGrid, (1, pLvlCount, 1)), (aNrmCount + 1, 1, MedCount)
     )
-
     MedShkVals_tiled = np.tile(  # This does *not* have the CRRA adjustment
-        np.reshape(MedShkVals, (MedCount, 1, 1)), (1, pLvlCount, aNrmCount)
+        np.reshape(MedShkVals, (1, 1, MedCount)), (aNrmCount, pLvlCount, 1)
     )
 
     # Build the set of cFuncs by pLvl, gathered in a list
     xFunc_by_pLvl_and_MedShk = []  # Initialize the empty list of lists of 1D xFuncs
     if CubicBool:
-        # Calculate end-of-period marginal marginal value of assets
-        vPP_fac = DiscFacEff * Rfree * Rfree
-        EndOfPrd_vPP = expected(calc_vPP_next, IncShkDstn, args=(aLvlNow, pLvlNow))
-        EndOfPrd_vPP *= vPP_fac
-        EndOfPrd_vPP = np.tile(
-            np.reshape(EndOfPrd_vPP, (1, pLvlCount, aNrmCount)), (MedCount, 1, 1)
+        raise NotImplementedError(
+            "Cubic spline interpolation has not been implemented yet!"
         )
-
-        # Calculate the MPC and MPM at each gridpoint
-        dcda = EndOfPrd_vPP / uFunc.der(np.array(cLvlNow), order=2)
-        dMedda = EndOfPrd_vPP / (MedShkVals_tiled * uMed.der(MedLvlNow, order=2))
-        dMedda[0, :, :] = 0.0  # dMedda goes crazy when MedShk=0
-        MPC = dcda / (1.0 + dcda + MedPrice * dMedda)
-        MPM = dMedda / (1.0 + dcda + MedPrice * dMedda)
-
-        # Convert to marginal propensity to spend
-        MPX = MPC + MedPrice * MPM
-        MPX = np.concatenate(
-            (np.reshape(MPX[:, :, 0], (MedCount, pLvlCount, 1)), MPX), axis=2
-        )  # NEED TO CALCULATE MPM AT NATURAL BORROWING CONSTRAINT
-        MPX[0, :, 0] = 1.0
-
-        # Loop over each permanent income level and medical shock and make a cubic xFunc
-        xFunc_by_pLvl_and_MedShk = []  # Initialize the empty list of lists of 1D xFuncs
-        for i in range(pLvlCount):
-            temp_list = []
-            pLvl_i = p_for_interpolation[0, i, 0]
-            mLvlMin_i = BoroCnstNat(pLvl_i)
-            for j in range(MedCount):
-                m_temp = m_for_interpolation[j, i, :] - mLvlMin_i
-                x_temp = x_for_interpolation[j, i, :]
-                MPX_temp = MPX[j, i, :]
-                temp_list.append(CubicInterp(m_temp, x_temp, MPX_temp))
-            xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
 
     # Basic version: use linear interpolation within a pLvl and MedShk
     else:
@@ -822,14 +783,14 @@ def solve_one_period_ConsMedShock(
             pLvl_i = p_for_interpolation[0, i, 0]
             mLvlMin_i = BoroCnstNat(pLvl_i)
             for j in range(MedCount):
-                m_temp = m_for_interpolation[j, i, :] - mLvlMin_i
-                x_temp = x_for_interpolation[j, i, :]
+                m_temp = m_for_interpolation[:, i, j] - mLvlMin_i
+                x_temp = x_for_interpolation[:, i, j]
                 temp_list.append(LinearInterp(m_temp, x_temp))
             xFunc_by_pLvl_and_MedShk.append(deepcopy(temp_list))
 
     # Combine the nested list of linear xFuncs into a single function
     pLvl_temp = p_for_interpolation[0, :, 0]
-    MedShk_temp = MedShkVals_tiled[:, 0, 0]
+    MedShk_temp = MedShkVals_tiled[0, 0, :]
     xFuncUncBase = BilinearInterpOnInterp1D(
         xFunc_by_pLvl_and_MedShk, pLvl_temp, MedShk_temp
     )
@@ -839,25 +800,8 @@ def solve_one_period_ConsMedShock(
     # Combine the constrained and unconstrained functions into the true consumption function
     xFuncNow = LowerEnvelope3D(xFuncNowUnc, xFuncNowCnst)
 
-    # Transform the expenditure function into policy functions for consumption and medical care
-    aug_factor = 2
-    xLvlGrid = make_grid_exp_mult(
-        np.min(x_for_interpolation),
-        np.max(x_for_interpolation),
-        aug_factor * aNrmCount,
-        8,
-    )
-    policyFuncNow = MedShockPolicyFunc(
-        xFuncNow,
-        xLvlGrid,
-        MedShkVals,
-        MedPrice,
-        CRRA,
-        CRRAmed,
-        xLvlCubicBool=CubicBool,
-    )
-    cFuncNow = cThruXfunc(xFuncNow, policyFuncNow.cFunc)
-    MedFuncNow = MedThruXfunc(xFuncNow, policyFuncNow.cFunc, MedPrice)
+    # Build the policy function for this period as a single object
+    PolicyFuncNow = cAndMedFunc(xFuncNow, qFunc, MedShift, MedPrice)
 
     # Make the marginal value function by integrating over medical shocks
     # Make temporary grids to evaluate the consumption function
@@ -875,15 +819,13 @@ def solve_one_period_ConsMedShock(
     MedShkGrid = np.tile(
         np.reshape(MedShkVals, (1, 1, MedCount)), (aNrmCount, pLvlCount, 1)
     )
-    probsGrid = np.tile(
-        np.reshape(MedShkPrbs, (1, 1, MedCount)), (aNrmCount, pLvlCount, 1)
-    )
+    probsGrid = np.reshape(MedShkPrbs, (1, 1, MedCount))
 
     # Get optimal consumption (and medical care) for each state
-    cGrid, MedGrid = policyFuncNow(mGrid, pGrid, MedShkGrid)
+    cGrid, MedGrid, xTrash = PolicyFuncNow(mGrid, pGrid, MedShkGrid)
 
     # Calculate expected marginal value by "integrating" across medical shocks
-    vPgrid = uFunc.der(cGrid)
+    vPgrid = uCon.der(cGrid)
     vPnow = np.sum(vPgrid * probsGrid, axis=2)
 
     # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
@@ -891,7 +833,7 @@ def solve_one_period_ConsMedShock(
         (np.reshape(mLvlMinNow(pLvlGrid), (1, pLvlCount)), mGrid[:, :, 0])
     )
     vPnvrsNow = np.concatenate(
-        (np.zeros((1, pLvlCount)), uFunc.derinv(vPnow, order=(1, 0)))
+        (np.zeros((1, pLvlCount)), uCon.derinv(vPnow, order=(1, 0)))
     )
 
     # Calculate expected value by "integrating" across medical shocks
@@ -900,12 +842,13 @@ def solve_one_period_ConsMedShock(
         MedGrid = np.maximum(MedGrid, 1e-100)
         # interpolation error sometimes makes tiny violations, so fix that
         aGrid = np.maximum(mGrid - cGrid - MedPrice * MedGrid, aMinGrid)
-        vGrid = uFunc(cGrid) + MedShkGrid * uMed(MedGrid) + EndOfPrd_vFunc(aGrid, pGrid)
+        MedEff = (MedGrid + MedShift) / MedShkGrid
+        vGrid = uCon(cGrid) + uMed(MedEff) + EndOfPrd_vFunc(aGrid, pGrid)
         vNow = np.sum(vGrid * probsGrid, axis=2)
 
         # Switch to pseudo-inverse value and add a point at bottom
-        vNvrsNow = np.concatenate((np.zeros((1, pLvlCount)), uFunc.inv(vNow)), axis=0)
-        vNvrsPnow = vPnow * uFunc.derinv(vNow, order=(0, 1))
+        vNvrsNow = np.concatenate((np.zeros((1, pLvlCount)), uCon.inv(vNow)), axis=0)
+        vNvrsPnow = vPnow * uCon.derinv(vNow, order=(0, 1))
         vNvrsPnow = np.concatenate((np.zeros((1, pLvlCount)), vNvrsPnow), axis=0)
 
     # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl
@@ -942,21 +885,16 @@ def solve_one_period_ConsMedShock(
     else:
         vPPfuncNow = NullFunc()
 
-    # Package and return the solution object
-    solution_now = ConsumerSolution(
-        cFunc=cFuncNow,
-        vFunc=vFuncNow,
-        vPfunc=vPfuncNow,
-        vPPfunc=vPPfuncNow,
-        mNrmMin=0.0,  # Not a normalized model, mLvlMin will be added below
-        hNrm=0.0,  # Not a normalized model, hLvl will be added below
-        MPCmin=MPCminNow,
-        MPCmax=0.0,  # This should be a function, need to make it
-    )
-    solution_now.hLvl = hLvlNow
-    solution_now.mLvlMin = mLvlMinNow
-    solution_now.MedFunc = MedFuncNow
-    solution_now.policyFunc = policyFuncNow
+    # Package and return the solution as a dictionary
+    solution_now = {
+        "distance_criteria": ["vPfunc"],
+        "PolicyFunc": PolicyFuncNow,
+        "vFunc": vFuncNow,
+        "vPfunc": vPfuncNow,
+        "vPPfunc": vPPfuncNow,
+        "hLvl": hLvlNow,
+        "mLvlMin": mLvlMinNow,
+    }
     return solution_now
 
 
@@ -1041,7 +979,7 @@ default_pLvlNextFunc_params = {
 # Default parameters to make MedShkDstn using make_lognormal_MedShkDstn
 default_MedShkDstn_params = {
     "MedShkAvg": [0.1],  # Average of medical need shocks
-    "MedShkStd": [4.0],  # Standard deviation of (log) medical need shocks
+    "MedShkStd": [1.5],  # Standard deviation of (log) medical need shocks
     "MedShkCount": 5,  # Number of medical shock points in "body"
     "MedShkCountTail": 15,  # Number of medical shock points in "tail" (upper only)
     "MedPrice": [1.5],  # Relative price of a unit of medical care
@@ -1056,7 +994,7 @@ init_medical_shocks = {
     "constructors": medshock_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
-    "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
+    "CRRAmed": 5.0,  # Coefficient of relative risk aversion on medical care
     "MedShift": 1e-8,  # Amount of medical care the agent can self-provide
     "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
@@ -1227,7 +1165,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     }
 
     time_vary_ = PersistentShockConsumerType.time_vary_ + ["MedPrice", "MedShkDstn"]
-    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed", "MedShift"]
+    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed", "MedShift", "qFunc"]
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
     distributions = [
@@ -1285,18 +1223,17 @@ class MedShockConsumerType(PersistentShockConsumerType):
         -------
         None
         """
-        cLvlNow = np.zeros(self.AgentCount) + np.nan
-        MedNow = np.zeros(self.AgentCount) + np.nan
+        cLvlNow = np.empty(self.AgentCount)
+        MedNow = np.empty(self.AgentCount)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            cLvlNow[these], MedNow[these] = self.solution[t].policyFunc(
+            cLvlNow[these], MedNow[these], x = self.solution[t]["PolicyFunc"](
                 self.state_now["mLvl"][these],
                 self.state_now["pLvl"][these],
                 self.shocks["MedShk"][these],
             )
         self.controls["cLvl"] = cLvlNow
         self.controls["Med"] = MedNow
-        return None
 
     def get_poststates(self):
         """
@@ -1315,9 +1252,6 @@ class MedShockConsumerType(PersistentShockConsumerType):
             - self.controls["cLvl"]
             - self.shocks["MedPrice"] * self.controls["Med"]
         )
-
-        # moves now to prev
-        AgentType.get_poststates(self)
 
 
 ###############################################################################
