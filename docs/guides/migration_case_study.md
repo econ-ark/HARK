@@ -26,11 +26,20 @@ Consumption Stimulus Policies" (Carroll, Crawley, Du, Frankovic, Tretvoll).
 
 **Root Cause:** HAFiscal evaluates consumption functions like:
 
-    cNrm = cFunc(mNrm_array, Cagg_scalar)
+    `cNrm = cFunc(mNrm_array, Cagg_scalar)`
 
-HARK 0.17.0's interpolation classes failed when inputs have different shapes.
+Due to a simplification in HARK.interpolation, HARK 0.17.0's interpolation classes
+failed when inputs have different shapes. This coding pattern was not expected
+and not intentionally supported, but happened to work for some interpolators in
+0.16.1 and prior.
 
 **Resolution:** PR #1701 added np.broadcast_arrays() to HARKinterpolator2D/3D/4D.
+This change takes effect in HARK 0.17.1, unreleased at the time of this writing.
+In the HAFiscal project code, interpolant evaluations like the one above are now:
+
+    `cNrm = cFunc(mNrm_array, np.full(mNrm_array.shape, Cagg_scalar))`
+
+This change allows the project code to run with the currently released HARK.
 
 ### Challenge 2: RNG Behavior Changes
 
