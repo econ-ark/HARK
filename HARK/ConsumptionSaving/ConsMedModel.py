@@ -435,11 +435,10 @@ def make_MedShock_solution_terminal(
     vP_expected = np.sum(vPgrid * PrbGrid, axis=1)
 
     # Construct the marginal (marginal) value function for the terminal period
-    vPnvrs = vP_expected ** (-1.0 / CRRA)
-    vPnvrs[0] = 0.0
+    vPnvrs = np.insert(vP_expected ** (-1.0 / CRRA), 0, 0.0)
     vPnvrsFunc = BilinearInterp(
         np.tile(np.reshape(vPnvrs, (vPnvrs.size, 1)), (1, trivial_grid.size)),
-        mLvlGrid,
+        np.insert(mLvlGrid, 0, 0.0),
         trivial_grid,
     )
     vPfunc_terminal = MargValueFuncCRRA(vPnvrsFunc, CRRA)
@@ -453,12 +452,11 @@ def make_MedShock_solution_terminal(
     v_expected = np.sum(vGrid * PrbGrid, axis=1)
 
     # Construct the value function for the terminal period
-    vNvrs = utility_inv(v_expected, rho=CRRA)
-    vNvrs[0] = 0.0
+    vNvrs = np.insert(utility_inv(v_expected, rho=CRRA), 0, 0.0)
     vNvrsP = vP_expected * utility_invP(v_expected, rho=CRRA)
-    # TODO: Figure out MPCmax in this model
-    vNvrsP[0] = 0.0
-    tempFunc = CubicInterp(mLvlGrid, vNvrs, vNvrsP)
+    vNvrsP = np.insert(vNvrsP, 0, 0.0)
+    # tempFunc = CubicInterp(np.insert(mLvlGrid, 0, 0.0), vNvrs, vNvrsP)
+    tempFunc = LinearInterp(np.insert(mLvlGrid, 0, 0.0), vNvrs)
     vNvrsFunc = LinearInterpOnInterp1D([tempFunc, tempFunc], trivial_grid)
     vFunc_terminal = ValueFuncCRRA(vNvrsFunc, CRRA)
 
@@ -689,20 +687,11 @@ def solve_one_period_ConsMedShock(
 
         # Transformed value through inverse utility function to "decurve" it
         EndOfPrd_vNvrs = uCon.inv(EndOfPrd_v)
-        EndOfPrd_vNvrsP = EndOfPrd_vP * uCon.derinv(EndOfPrd_v, order=(0, 1))
 
         # Add points at mLvl=zero
         EndOfPrd_vNvrs = np.concatenate(
             (np.zeros((1, pLvlCount)), EndOfPrd_vNvrs), axis=0
         )
-        EndOfPrd_vNvrsP = np.concatenate(
-            (
-                np.reshape(EndOfPrd_vNvrsP[0, :], (1, pLvlCount)),
-                EndOfPrd_vNvrsP,
-            ),
-            axis=0,
-        )
-        # This is a very good approximation, vNvrsPP = 0 at the asset minimum
 
         # Make a temporary aLvl grid for interpolating the end-of-period value function
         aLvl_temp = np.concatenate(
@@ -717,10 +706,9 @@ def solve_one_period_ConsMedShock(
         EndOfPrd_vNvrsFunc_list = []
         for p in range(pLvlCount):
             EndOfPrd_vNvrsFunc_list.append(
-                CubicInterp(
+                LinearInterp(
                     aLvl_temp[:, p] - BoroCnstNat(pLvlGrid[p]),
                     EndOfPrd_vNvrs[:, p],
-                    EndOfPrd_vNvrsP[:, p],
                 )
             )
         EndOfPrd_vNvrsFuncBase = LinearInterpOnInterp1D(
@@ -819,14 +807,14 @@ def solve_one_period_ConsMedShock(
     MedShkGrid = np.tile(
         np.reshape(MedShkVals, (1, 1, MedCount)), (aNrmCount, pLvlCount, 1)
     )
-    probsGrid = np.reshape(MedShkPrbs, (1, 1, MedCount))
+    ProbsGrid = np.reshape(MedShkPrbs, (1, 1, MedCount))
 
     # Get optimal consumption (and medical care) for each state
     cGrid, MedGrid, xTrash = PolicyFuncNow(mGrid, pGrid, MedShkGrid)
 
     # Calculate expected marginal value by "integrating" across medical shocks
     vPgrid = uCon.der(cGrid)
-    vPnow = np.sum(vPgrid * probsGrid, axis=2)
+    vPnow = np.sum(vPgrid * ProbsGrid, axis=2)
 
     # Add vPnvrs=0 at m=mLvlMin to close it off at the bottom (and vNvrs=0)
     mGrid_small = np.concatenate(
@@ -844,12 +832,10 @@ def solve_one_period_ConsMedShock(
         aGrid = np.maximum(mGrid - cGrid - MedPrice * MedGrid, aMinGrid)
         MedEff = (MedGrid + MedShift) / MedShkGrid
         vGrid = uCon(cGrid) + uMed(MedEff) + EndOfPrd_vFunc(aGrid, pGrid)
-        vNow = np.sum(vGrid * probsGrid, axis=2)
+        vNow = np.sum(vGrid * ProbsGrid, axis=2)
 
         # Switch to pseudo-inverse value and add a point at bottom
         vNvrsNow = np.concatenate((np.zeros((1, pLvlCount)), uCon.inv(vNow)), axis=0)
-        vNvrsPnow = vPnow * uCon.derinv(vNow, order=(0, 1))
-        vNvrsPnow = np.concatenate((np.zeros((1, pLvlCount)), vNvrsPnow), axis=0)
 
     # Construct the pseudo-inverse value and marginal value functions over mLvl,pLvl
     vPnvrsFunc_by_pLvl = []
@@ -862,8 +848,7 @@ def solve_one_period_ConsMedShock(
         vPnvrsFunc_by_pLvl.append(LinearInterp(m_temp, vPnvrs_temp))
         if vFuncBool:
             vNvrs_temp = vNvrsNow[:, j]
-            vNvrsP_temp = vNvrsPnow[:, j]
-            vNvrsFunc_by_pLvl.append(CubicInterp(m_temp, vNvrs_temp, vNvrsP_temp))
+            vNvrsFunc_by_pLvl.append(LinearInterp(m_temp, vNvrs_temp))
 
     # Combine those functions across pLvls, and adjust for the lower bound of mLvl
     vPnvrsFuncBase = LinearInterpOnInterp1D(vPnvrsFunc_by_pLvl, pLvlGrid)
