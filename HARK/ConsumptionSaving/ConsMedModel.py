@@ -78,14 +78,14 @@ class TransConShareFunc(MetricObject):
     """
     A class for representing the "transformed consumption share" function with
     "double CRRA" utility.  Instances of this class take as inputs xLvl and MedShkEff
-    and return a transformed consumption share b. By definition, optimal consumption
+    and return a transformed consumption share q. By definition, optimal consumption
     cLvl = xLvl/(1 + exp(-q)). MedShkEff = MedShk*MedPrice.
     """
 
     distance_criteria = ["CRRA", "CRRAmed"]
 
     def __init__(self, CRRA, CRRAmed):
-        Qhalf = make_grid_exp_mult(0.0, 30.0, 40, 2.0)
+        Qhalf = make_grid_exp_mult(0.0, 30.0, 40, 3)
         Q = np.unique(np.concatenate([-Qhalf, Qhalf]))
         f = lambda q: q + (1.0 - CRRA / CRRAmed) * np.log(1.0 + np.exp(-q))
         fp = lambda q: 1.0 - (1.0 - CRRA / CRRAmed) * np.exp(-q) / (1.0 + np.exp(-q))
@@ -119,6 +119,14 @@ class TransConShareFunc(MetricObject):
         return q
 
 
+def make_qFunc(CRRA, CRRAmed):
+    """
+    Basic constructor that makes the transformed-consumption-share function
+    from primitive parameters CRRA and CRRAmed.
+    """
+    return TransConShareFunc(CRRA, CRRAmed)
+
+
 class cAndMedFunc(MetricObject):
     """
     A class representing the consumption and medical care function based on the total
@@ -126,27 +134,19 @@ class cAndMedFunc(MetricObject):
     Also has functions for the two main controls individually.
     """
 
-    def __init__(
-        self, xFunc, xFuncZeroShk, qFunc, MedShift, MedShkAvg, MedShkStd, MedPrice
-    ):
+    def __init__(self, xFunc, qFunc, MedShift, MedPrice):
         """
         Constructor method for a new instance of cAndMedFunc.
 
         Parameters
         ----------
         xFunc : function
-            Expenditure function (cLvl & MedLvl), defined over (mLvl,pLvl,Dev).
-        xFuncZeroShk : function
-            Expenditure function when MedShk = 0.0 --> Dev = -inf. All xLvl = cLvl.
+            Expenditure function (cLvl & MedLvl), defined over (mLvl,pLvl,MedShk).
         qFunc : function
             Transformed consumption share function, defined over (xLvl, MedShkEff).
         MedShift : float
             Shifter term for medical care, representing the quantity of care that the
             agent "gets for free" automatically-- self care, perhaps.
-        MedShkMean : float
-            Mean of log medical need shocks.
-        MedShkStd : function
-            Stdev of log medical need shocks.
         MedPrice : float
             Relative price of a unit of medical care.
 
@@ -156,11 +156,8 @@ class cAndMedFunc(MetricObject):
         """
         # Store the data
         self.xFunc = xFunc
-        self.xFuncZeroShk
         self.qFunc = qFunc
         self.MedShift = MedShift
-        self.MedShkAvg = MedShkAvg
-        self.MedShkStd = MedShkStd
         self.MedPrice = MedPrice
         self.update()
 
@@ -168,11 +165,11 @@ class cAndMedFunc(MetricObject):
         # Update "constructed" attributes
         self.CRRA = self.qFunc.CRRA
         self.CRRAmed = self.qFunc.CRRAmed
-        self.factor = self.MedPrice ** (1.0 / self.CRRAcon) * self.MedShift ** (
-            self.CRRAmed / self.CRRAcon
+        self.factor = self.MedPrice ** (1.0 / self.CRRA) * self.MedShift ** (
+            self.CRRAmed / self.CRRA
         )
 
-    def __call__(self, mLvl, pLvl, Dev):
+    def __call__(self, mLvl, pLvl, MedShk):
         """
         Evaluates the policy function and returns cLvl and MedLvl.
 
@@ -182,8 +179,8 @@ class cAndMedFunc(MetricObject):
             Array of market resources values.
         pLvl : np.array
             Array of permanent income levels.
-        Dev : np.array
-            Array of standard deviations from mean medical need shock.
+        MedShk : np.array
+            Array of medical need shocks.
 
         Returns
         -------
@@ -197,7 +194,7 @@ class cAndMedFunc(MetricObject):
         if type(mLvl) is float:
             mLvl = np.array([mLvl])
             pLvl = np.array([pLvl])
-            Dev = np.array([Dev])
+            MedShk = np.array([MedShk])
             singleton = True
         else:
             singleton = False
@@ -206,16 +203,12 @@ class cAndMedFunc(MetricObject):
         cLvl = np.zeros_like(mLvl)
         MedLvl = np.zeros_like(mLvl)
 
-        # Calculate medical need shock and total expenditure
-        MedShk = np.exp(self.MedShkAvg + self.MedShkStd * Dev)
-        ZeroShk = MedShk == 0.0
-        NotZero = np.logical_not(ZeroShk)
-        xLvl = np.empty_like(mLvl)
-        xLvl[ZeroShk] = self.xFuncZeroShk(mLvl, pLvl)
-        xLvl[NotZero] = self.xFunc(mLvl, pLvl, Dev)
+        # Evaluate  total expenditure
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
 
         # Determine which inputs should buy zero medical care
-        xLvlCrit = self.factor * MedShk ** ((1.0 - self.CRRAmed) / self.CRRAcon)
+        xLvlCrit = self.factor * MedShk ** ((1.0 - self.CRRAmed) / self.CRRA)
+        ZeroShk = MedShk == 0.0
         ZeroMed = np.logical_or(xLvl <= xLvlCrit, ZeroShk)
         SomeMed = np.logical_not(ZeroMed)
 
@@ -224,10 +217,10 @@ class cAndMedFunc(MetricObject):
 
         # Calculate consumption and medical care for those who buy some care
         xLvl_temp = xLvl[SomeMed] + self.MedShift * self.MedPrice
-        q = self.qFunc(xLvl_temp, MedShk[SomeMed] * self.EffPrice)
+        q = self.qFunc(xLvl_temp, MedShk[SomeMed] * self.MedPrice)
         z = np.exp(-q)
         cLvl[SomeMed] = xLvl_temp / (1.0 + z)
-        MedLvl[SomeMed] = xLvl_temp / self.EffPrice * (z / (1.0 + z)) - self.MedShift
+        MedLvl[SomeMed] = xLvl_temp / self.MedPrice * (z / (1.0 + z)) - self.MedShift
 
         # Make sure MedLvl is non-negative (can clip over by 1e-14 sometimes)
         MedLvl = np.maximum(MedLvl, 0.0)
@@ -238,12 +231,12 @@ class cAndMedFunc(MetricObject):
         else:
             return cLvl, MedLvl, xLvl
 
-    def cFunc(self, mLvl, pLvl, Dev):
-        cLvl, MedLvl, xLvl = self(mLvl, pLvl, Dev)
+    def cFunc(self, mLvl, pLvl, MedShk):
+        cLvl, MedLvl, xLvl = self(mLvl, pLvl, MedShk)
         return cLvl
 
-    def MedFunc(self, mLvl, pLvl, Dev):
-        cLvl, MedLvl, xLvl = self(mLvl, pLvl, Dev)
+    def MedFunc(self, mLvl, pLvl, MedShk):
+        cLvl, MedLvl, xLvl = self(mLvl, pLvl, MedShk)
         return MedLvl
 
 
@@ -382,8 +375,7 @@ def make_continuous_MedShockDstn(
 def make_MedShock_solution_terminal(
     CRRA,
     CRRAmed,
-    MedShkAvg,
-    MedShkStd,
+    MedShkDstn,
     MedPrice,
     MedShift,
     aXtraGrid,
@@ -398,8 +390,8 @@ def make_MedShock_solution_terminal(
     """
     # Take last period data
     MedPrice_T = MedPrice[-1]
-    MedShkAvg_T = MedShkAvg[-1]
-    MedShkStd_T = MedShkStd[-1]
+    MedShkDstn_T = MedShkDstn[-1]
+    pLvlGrid_T = pLvlGrid[-1]
 
     # Make the policy functions for the terminal period
     trivial_grid = np.array([0.0, 1.0])  # Trivial grid
@@ -409,35 +401,31 @@ def make_MedShock_solution_terminal(
         trivial_grid,
         trivial_grid,
     )
-    xFuncZeroShk_terminal = BilinearInterp(
-        np.array([[0.0, 0.0], [1.0, 1.0]]),
-        trivial_grid,
-        trivial_grid,
-    )
-    policyFunc_terminal = cAndMedFunc(
+    PolicyFunc_terminal = cAndMedFunc(
         xFunc_terminal,
-        xFuncZeroShk_terminal,
         qFunc,
         MedShift,
-        MedShkAvg_T,
-        MedShkStd_T,
         MedPrice_T,
     )
 
     # Make state space grids for the terminal period
+    xLvlMin = np.min(aXtraGrid) * np.min(pLvlGrid_T)
+    xLvlMax = np.max(aXtraGrid) * np.max(pLvlGrid_T)
+    xLvlGrid = make_grid_exp_mult(xLvlMin, xLvlMax, 3 * aXtraGrid.size, 4)
+    MedShkGrid = MedShkDstn_T.atoms[0]
+    MedShkPrbs = MedShkDstn_T.pmv
 
     # Calculate optimal consumption on a grid of market resources and medical shocks
     mLvlGrid = xLvlGrid
     mLvlGrid_tiled = np.tile(
         np.reshape(mLvlGrid, (mLvlGrid.size, 1)), (1, MedShkGrid.size)
     )
-    pLvlGrid_tiled = np.ones_like(
-        mLvlGrid_tiled
-    )  # permanent income irrelevant in terminal period
+    # Permanent income irrelevant in terminal period
+    pLvlGrid_tiled = np.ones_like(mLvlGrid_tiled)
     MedShkGrid_tiled = np.tile(
-        np.reshape(MedShkVals, (1, MedShkGrid.size)), (mLvlGrid.size, 1)
+        np.reshape(MedShkGrid, (1, MedShkGrid.size)), (mLvlGrid.size, 1)
     )
-    cLvlGrid, MedGrid = policyFunc_terminal(
+    cLvlGrid, MedGrid, xTrash = PolicyFunc_terminal(
         mLvlGrid_tiled, pLvlGrid_tiled, MedShkGrid_tiled
     )
 
@@ -459,11 +447,12 @@ def make_MedShock_solution_terminal(
     vPPfunc_terminal = MargMargValueFuncCRRA(vPnvrsFunc, CRRA)
 
     # Integrate value across shocks to get expected value
-    vGrid = utility(cLvlGrid, rho=CRRA) + MedShkGrid_tiled * utility(
-        MedGrid, rho=CRRAmed
+    vGrid = utility(cLvlGrid, rho=CRRA) + utility(
+        MedGrid / MedShkGrid_tiled, rho=CRRAmed
     )
     # correct for issue when MedShk=0
-    vGrid[:, 0] = utility(cLvlGrid[:, 0], rho=CRRA)
+    ZeroShk = MedShkGrid_tiled == 0.0
+    vGrid[ZeroShk] = utility(cLvlGrid[ZeroShk], rho=CRRA)
     vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
     v_expected = np.sum(vGrid * PrbGrid, axis=1)
 
@@ -478,19 +467,15 @@ def make_MedShock_solution_terminal(
     vFunc_terminal = ValueFuncCRRA(vNvrsFunc, CRRA)
 
     # Make and return the terminal period solution
-    solution_terminal = ConsumerSolution(
-        cFunc=cFunc_terminal,
-        vFunc=vFunc_terminal,
-        vPfunc=vPfunc_terminal,
-        vPPfunc=vPPfunc_terminal,
-        hNrm=0.0,
-        mNrmMin=0.0,
-    )
-    solution_terminal.MedFunc = MedFunc_terminal
-    solution_terminal.policyFunc = policyFunc_terminal
-    # Track absolute human wealth and minimum market wealth by permanent income
-    solution_terminal.hLvl = ConstantFunction(0.0)
-    solution_terminal.mLvlMin = ConstantFunction(0.0)
+    solution_terminal = {
+        "distance_criteria": ["vPfunc"],
+        "PolicyFunc": PolicyFunc_terminal,
+        "vFunc": vFunc_terminal,
+        "vPfunc": vPfunc_terminal,
+        "vPPfunc": vPPfunc_terminal,
+        "hLvl": ConstantFunction(0.0),
+        "mLvlMin": ConstantFunction(0.0),
+    }
     return solution_terminal
 
 
@@ -521,8 +506,8 @@ def solve_one_period_ConsMedShock(
 
     Parameters
     ----------
-    solution_next : ConsumerSolution
-        The solution to next period's one period problem.
+    solution_next : dict
+        The solution to next period's one period problem, represented as a dictionary.
     IncShkDstn : distribution.Distribution
         A discrete approximation to the income process between the period being
         solved and the one immediately following (in solution_next).
@@ -987,6 +972,7 @@ medshock_constructor_dict = {
     "pLvlGrid": make_pLvlGrid_by_simulation,
     "pLvlNextFunc": make_AR1_style_pLvlNextFunc,
     "MedShkDstn": make_lognormal_MedShkDstn,
+    "qFunc": make_qFunc,
     "solution_terminal": make_MedShock_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
@@ -1071,6 +1057,7 @@ init_medical_shocks = {
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
     "CRRAmed": 3.0,  # Coefficient of relative risk aversion on medical care
+    "MedShift": 1e-8,  # Amount of medical care the agent can self-provide
     "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.99],  # Survival probability after each period
@@ -1240,7 +1227,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
     }
 
     time_vary_ = PersistentShockConsumerType.time_vary_ + ["MedPrice", "MedShkDstn"]
-    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed"]
+    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed", "MedShift"]
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
     distributions = [

@@ -962,8 +962,8 @@ class Model:
         return
 
     # This is a "synonym" method so that old calls to update() still work
-    def update(self, *args):
-        self.construct(*args)
+    def update(self, *args, **kwargs):
+        self.construct(*args, **kwargs)
 
 
 class AgentType(Model):
