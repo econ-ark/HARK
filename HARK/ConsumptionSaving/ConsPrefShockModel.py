@@ -29,7 +29,9 @@ from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
     LinearInterpOnInterp1D,
+    BilinearInterp,
     LowerEnvelope,
+    LowerEnvelope2D,
     MargValueFuncCRRA,
     MargMargValueFuncCRRA,
     ValueFuncCRRA,
@@ -256,8 +258,10 @@ def solve_one_period_ConsPrefShock(
         MPCmaxEff = MPCmaxNow  # Otherwise, it's the MPC calculated above
 
     # Define the borrowing-constrained consumption function
-    cFuncNowCnst = LinearInterp(
-        np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
+    cFuncCnst = BilinearInterp(
+        np.array([[0.0, 0.0], [1.0, 1.0]]),
+        np.array([mNrmMinNow, mNrmMinNow + 1.0]),
+        np.array([0.0, 1.0]),
     )
 
     # Construct the assets grid by adjusting aXtra by the natural borrowing constraint
@@ -286,7 +290,7 @@ def solve_one_period_ConsPrefShock(
     cNrm_base = uFunc.derinv(EndOfPrdvP, order=(1, 0))
     PrefShkCount = PrefShkVals.size
     PrefShk_temp = np.tile(
-        np.reshape(PrefShkVals ** (1.0 / CRRA), (PrefShkCount, 1)),
+        np.reshape(PrefShkVals ** (1.0 - 1.0 / CRRA), (PrefShkCount, 1)),
         (1, cNrm_base.size),
     )
     cNrmNow = np.tile(cNrm_base, (PrefShkCount, 1)) * PrefShk_temp
@@ -310,27 +314,28 @@ def solve_one_period_ConsPrefShock(
     # Make the preference-shock specific consumption functions
     cFuncs_by_PrefShk = []
     for j in range(PrefShkCount):
-        MPCmin_j = MPCminNow * PrefShkVals[j] ** (1.0 / CRRA)
-        cFunc_this_shk = LowerEnvelope(
-            LinearInterp(
-                m_for_interpolation[j, :],
-                c_for_interpolation[j, :],
-                intercept_limit=hNrmNow * MPCmin_j,
-                slope_limit=MPCmin_j,
-            ),
-            cFuncNowCnst,
+        MPCmin_j = MPCminNow * PrefShkVals[j] ** (1.0 - 1.0 / CRRA)
+        cFunc_this_shk = LinearInterp(
+            m_for_interpolation[j, :],
+            c_for_interpolation[j, :],
+            intercept_limit=hNrmNow * MPCmin_j,
+            slope_limit=MPCmin_j,
         )
         cFuncs_by_PrefShk.append(cFunc_this_shk)
 
     # Combine the list of consumption functions into a single interpolation
-    cFuncNow = LinearInterpOnInterp1D(cFuncs_by_PrefShk, PrefShkVals)
+    cFuncUnc = LinearInterpOnInterp1D(cFuncs_by_PrefShk, PrefShkVals)
+    cFuncNow = LowerEnvelope2D(cFuncUnc, cFuncCnst)
 
     # Make the ex ante marginal value function (before the preference shock)
     m_grid = aXtraGrid + mNrmMinNow
     vP_vec = np.zeros_like(m_grid)
     for j in range(PrefShkCount):  # numeric integration over the preference shock
+        shk = PrefShkVals[j]
         vP_vec += (
-            uFunc.der(cFuncs_by_PrefShk[j](m_grid)) * PrefShkPrbs[j] * PrefShkVals[j]
+            uFunc.der(cFuncNow(m_grid, np.full(m_grid.shape, shk)))
+            * PrefShkPrbs[j]
+            * shk ** (CRRA - 1.0)
         )
     vPnvrs_vec = uFunc.derinv(vP_vec, order=(1, 0))
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
@@ -366,9 +371,9 @@ def solve_one_period_ConsPrefShock(
             cNrm_temp = cFuncNow(mNrm_temp, this_shock * np.ones_like(mNrm_temp))
             aNrm_temp = mNrm_temp - cNrm_temp
             v_temp += this_prob * (
-                this_shock * uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp)
+                uFunc(cNrm_temp / this_shock) + EndOfPrd_vFunc(aNrm_temp)
             )
-            vP_temp += this_prob * this_shock * uFunc.der(cNrm_temp)
+            vP_temp += this_prob * uFunc.der(cNrm_temp) * this_shock ** (CRRA - 1.0)
 
         # Construct the beginning-of-period value function
         # value transformed through inverse utility
@@ -827,8 +832,8 @@ class PrefShockConsumerType(IndShockConsumerType):
         a_t &\geq \underline{a}, \\
         m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         (\psi_{t+1},\theta_{t+1},\eta_{t+1}) &\sim F_{t+1}, \\
-        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
+        \mathbb{E}[\psi]=\mathbb{E}[\eta] &= 1, \\
+        u(c) &= \frac{(c/\eta)^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
 
