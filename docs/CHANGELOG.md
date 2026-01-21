@@ -18,6 +18,7 @@ There are some breaking changes:
 
 - The exact_match option for DiscreteDistribution.draw has been renamed to shuffle, and its behavior has changed slightly. See #1691.
 - The format of the utility function for MedShockConsumerType has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
+- The policy function representation for MedShockConsumerType has been revised, and old classes have been moved to LegacyOOsolvers.
 
 #### Major Changes
 
