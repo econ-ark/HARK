@@ -391,6 +391,7 @@ def make_MedShock_solution_terminal(
     MedPrice_T = MedPrice[-1]
     MedShkDstn_T = MedShkDstn[-1]
     pLvlGrid_T = pLvlGrid[-1]
+    MedShift_T = MedShift[-1]
 
     # Make the policy functions for the terminal period
     trivial_grid = np.array([0.0, 1.0])  # Trivial grid
@@ -403,7 +404,7 @@ def make_MedShock_solution_terminal(
     PolicyFunc_terminal = cAndMedFunc(
         xFunc_terminal,
         qFunc,
-        MedShift,
+        MedShift_T,
         MedPrice_T,
     )
 
@@ -446,7 +447,7 @@ def make_MedShock_solution_terminal(
 
     # Integrate value across shocks to get expected value
     vGrid = utility(cLvlGrid, rho=CRRA) + utility(
-        (MedGrid + MedShift) / MedShkGrid_tiled, rho=CRRAmed
+        (MedGrid + MedShift_T) / MedShkGrid_tiled, rho=CRRAmed
     )
     vGrid[np.isinf(vGrid)] = 0.0  # correct for issue at bottom edges
     v_expected = np.sum(vGrid * PrbGrid, axis=1)
@@ -980,7 +981,7 @@ init_medical_shocks = {
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
     "CRRAmed": 5.0,  # Coefficient of relative risk aversion on medical care
-    "MedShift": 1e-8,  # Amount of medical care the agent can self-provide
+    "MedShift": [1e-8],  # Amount of medical care the agent can self-provide
     "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.99],  # Survival probability after each period
@@ -1149,8 +1150,12 @@ class MedShockConsumerType(PersistentShockConsumerType):
         "track_vars": ["aLvl", "cLvl", "Med", "mLvl", "pLvl"],
     }
 
-    time_vary_ = PersistentShockConsumerType.time_vary_ + ["MedPrice", "MedShkDstn"]
-    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed", "MedShift", "qFunc"]
+    time_vary_ = PersistentShockConsumerType.time_vary_ + [
+        "MedPrice",
+        "MedShkDstn",
+        "MedShift",
+    ]
+    time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed", "qFunc"]
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
     state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
     distributions = [
