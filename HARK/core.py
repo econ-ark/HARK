@@ -1168,7 +1168,7 @@ class AgentType(Model):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
-    def unpack(self, parameter):
+    def unpack(self, name):
         """
         Unpacks an attribute from a solution object for easier access.
         After the model has been solved, its components (like consumption function)
@@ -1178,7 +1178,7 @@ class AgentType(Model):
 
         Parameters
         ----------
-        parameter: str
+        name: str
             Name of the attribute to unpack from the solution
 
         Returns
@@ -1186,12 +1186,11 @@ class AgentType(Model):
         none
         """
         # Use list comprehension for better performance instead of loop with append
-        setattr(
-            self,
-            parameter,
-            [solution_t.__dict__[parameter] for solution_t in self.solution],
-        )
-        self.add_to_time_vary(parameter)
+        if type(self.solution[0]) is dict:
+            setattr(self, name, [soln_t[name] for soln_t in self.solution])
+        else:
+            setattr(self, name, [soln_t.__dict__[name] for soln_t in self.solution])
+        self.add_to_time_vary(name)
 
     def solve(
         self,

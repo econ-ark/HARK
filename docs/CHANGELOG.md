@@ -28,6 +28,8 @@ none yet
 - multi_thread_commands[_fake] no longer requires empty parentheses to be included with each method name (now optional). [#1692](https://github.com/econ-ark/HARK/pull/1692)
 - Added __repr__ method for DiscreteDistribution (and subclasses) to display basic information about itself.
 - All AgentTypes now have sensible defaults for track_vars if none is provided. [#1693](https://github.com/econ-ark/HARK/pull/1693)
+- `AgentType.unpack` and the new simulation structure appropriately handle solutions represented as dictionaries. [#1709](https://github.com/econ-ark/HARK/pull/1709)
+
 
 ### 0.17.0
 
