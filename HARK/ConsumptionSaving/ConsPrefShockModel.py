@@ -30,6 +30,7 @@ from HARK.interpolation import (
     LinearInterp,
     LinearInterpOnInterp1D,
     BilinearInterp,
+    LowerEnvelope,
     LowerEnvelope2D,
     MargValueFuncCRRA,
     MargMargValueFuncCRRA,
@@ -329,13 +330,12 @@ def solve_one_period_ConsPrefShock(
     # Make the ex ante marginal value function (before the preference shock)
     m_grid = aXtraGrid + mNrmMinNow
     vP_vec = np.zeros_like(m_grid)
+    cFuncCnst_1D = LinearInterp([mNrmMinNow, mNrmMinNow + 1.0], [0.0, 1.0])
     for j in range(PrefShkCount):  # numeric integration over the preference shock
-        shk = PrefShkVals[j]
-        vP_vec += (
-            uFunc.der(cFuncNow(m_grid, np.full(m_grid.shape, shk)))
-            * PrefShkPrbs[j]
-            * shk ** (CRRA - 1.0)
-        )
+        shk = PrefShkVals[j] ** (CRRA - 1.0)
+        prb = PrefShkPrbs[j]
+        cFunc_temp = LowerEnvelope(cFuncUnc.xInterpolators[j], cFuncCnst_1D)
+        vP_vec += uFunc.der(cFunc_temp(m_grid)) * shk * prb
     vPnvrs_vec = uFunc.derinv(vP_vec, order=(1, 0))
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
 
@@ -367,7 +367,8 @@ def solve_one_period_ConsPrefShock(
         for j in range(PrefShkCount):
             this_shock = PrefShkVals[j]
             this_prob = PrefShkPrbs[j]
-            cNrm_temp = cFuncNow(mNrm_temp, this_shock * np.ones_like(mNrm_temp))
+            cFunc_temp = LowerEnvelope(cFuncUnc.xInterpolators[j], cFuncCnst_1D)
+            cNrm_temp = cFunc_temp(mNrm_temp)
             aNrm_temp = mNrm_temp - cNrm_temp
             v_temp += this_prob * (
                 uFunc(cNrm_temp / this_shock) + EndOfPrd_vFunc(aNrm_temp)
@@ -639,10 +640,12 @@ def solve_one_period_ConsKinkyPref(
     # Make the ex ante marginal value function (before the preference shock)
     m_grid = aXtraGrid + mNrmMinNow
     vP_vec = np.zeros_like(m_grid)
+    cFuncCnst_1D = LinearInterp([mNrmMinNow, mNrmMinNow + 1.0], [0.0, 1.0])
     for j in range(PrefShkCount):  # numeric integration over the preference shock
         shk = PrefShkVals[j] ** (CRRA - 1.0)
         prb = PrefShkPrbs[j]
-        vP_vec += uFunc.der(cFuncNow(m_grid, np.full(m_grid.shape, shk))) * shk * prb
+        cFunc_temp = LowerEnvelope(cFuncUnc.xInterpolators[j], cFuncCnst_1D)
+        vP_vec += uFunc.der(cFunc_temp(m_grid)) * shk * prb
     vPnvrs_vec = uFunc.derinv(vP_vec, order=(1, 0))
     vPfuncNow = MargValueFuncCRRA(LinearInterp(m_grid, vPnvrs_vec), CRRA)
 
@@ -674,7 +677,8 @@ def solve_one_period_ConsKinkyPref(
         for j in range(PrefShkCount):
             this_shock = PrefShkVals[j]
             this_prob = PrefShkPrbs[j]
-            cNrm_temp = cFuncNow(mNrm_temp, this_shock * np.ones_like(mNrm_temp))
+            cFunc_temp = LowerEnvelope(cFuncUnc.xInterpolators[j], cFuncCnst_1D)
+            cNrm_temp = cFunc_temp(mNrm_temp)
             aNrm_temp = mNrm_temp - cNrm_temp
             v_temp += this_prob * (
                 uFunc(cNrm_temp / this_shock) + EndOfPrd_vFunc(aNrm_temp)

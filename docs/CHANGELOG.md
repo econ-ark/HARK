@@ -17,10 +17,11 @@ Release Date: TBD
 There are some breaking changes:
 
 - The exact_match option for DiscreteDistribution.draw has been renamed to shuffle, and its behavior has changed slightly. See #1691.
+- Both AgentType subclasses in ConsPrefShockModel have had their utility function adjusted, moving the preference shock inside the CRRA term. See #1708.
 
 #### Major Changes
 
-none yet
+- Utility function for `PrefShockConsumerType` and `KinkyPrefConsumerType` was algebraically rearranged. There is no functional difference, but the scale of preference shocks that yields a given level of consumption variation will be different. [#1708](https://github.com/econ-ark/HARK/pull/1708/)
 
 #### Minor Changes
 
