@@ -85,7 +85,11 @@ install_examples()
 
 Follow the simple prompts to make an examples subdirectory inside the directory you specify.
 
-To use the interactive notebooks, you will need to install Jupyter: `pip install jupyter`
+To use the interactive notebooks, you will need to install Jupyter: `pip install jupyter`. Moreover, the math and text formatting in some notebooks might require the `latex-envs` extension. To set this up, follow these steps:
+
+1. Install the package: `pip install jupyter_latex_envs`
+2. Install associated JS files: `jupyter contrib nbextension install --user`
+3. Enable the extension: `jupyter nbextension enable latex_envs --user --py`
 
 You can launch Jupyter from the command line with `jupyter notebook`, then navigage to the directory where you have installed the example notebooks. We recommend starting with `/examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb`, which links to the other introductory notebooks near the bottom.
 
