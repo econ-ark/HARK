@@ -482,13 +482,8 @@ so that we can review your changes to make sure that there are no issues and tha
 
 The following pre-commit hooks are currently configured:
 
-- [jupytext] sync, clean up, and execute jupyter notebooks
-- [black] format code
-- [pyupgrade] update small python snippets as we drop older versions of python
-- [blacken-docs] format documentation
-- [isort] sort imports on .py files
-- [mirrors-prettier] clean up and format other types of files in codebase
-- [pre-commit-hooks] other small clean-up/formatting
+- [ruff] file formatting
+- [pre-commit-hooks] fix end-of-file, trailing whitespace, and requirements.txt
 
 If you are interested in using pre-commit,
 please see the [pre-commit documentation](https://pre-commit.com/) for more information.
@@ -496,8 +491,7 @@ please see the [pre-commit documentation](https://pre-commit.com/) for more info
 ### Pull request codes
 
 When you submit a pull request to GitHub, GitHub will ask you for a summary.
-If
-your code is not ready to merge, but you want to get feedback, please consider
+If your code is not ready to merge, but you want to get feedback, please consider
 using `WIP: experimental optimization` or similar for the title of your pull
 request.
 That way we will all know that it's not yet ready to merge and that
