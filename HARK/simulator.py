@@ -1773,7 +1773,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
         new_param_dict = deepcopy(time_inv_dict)
         for name in content:
             if name in solution:
-                new_param_dict[name] = getattr(agent.solution[t], name)
+                if type(agent.solution[t]) is dict:
+                    new_param_dict[name] = agent.solution[t][name]
+                else:
+                    new_param_dict[name] = getattr(agent.solution[t], name)
             elif name in time_vary:
                 s = (t_cycle - 1) if name in offset else t_cycle
                 try:

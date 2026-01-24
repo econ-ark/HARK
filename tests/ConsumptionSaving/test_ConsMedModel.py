@@ -8,8 +8,7 @@ from HARK.ConsumptionSaving.ConsMedModel import (
 
 class testMedShockConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = MedShockConsumerType()
-        self.agent.vFuncBool = True
+        self.agent = MedShockConsumerType(vFuncBool=True)
         self.agent.solve()
 
     def test_solution(self):
@@ -24,6 +23,10 @@ class testMedShockConsumerType(unittest.TestCase):
         self.assertAlmostEqual(
             MedFunc(mLvl, pLvl, Shk).tolist(), 2.40487, places=HARK_PRECISION
         )
+
+    def test_unpack(self):
+        # This test is relevant because solution representation is a dictionary
+        self.agent.unpack("vFunc")
 
     def test_value(self):
         vFunc = self.agent.solution[0].vFunc
