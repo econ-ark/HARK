@@ -49,6 +49,7 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
     UtilityFuncCRRA,
+    vNvrsSlope,
 )
 from HARK.utilities import make_assets_grid
 
@@ -486,7 +487,7 @@ def solve_one_period_ConsGenIncProcess(
         )
 
         # Add data at the lower bound of p
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
         m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))
         mLvl_temp = np.concatenate((m_temp, mLvl_temp), axis=1)
         vNvrs_temp = np.concatenate((MPCminNvrs * m_temp, vNvrs_temp), axis=1)
