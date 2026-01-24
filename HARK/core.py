@@ -34,7 +34,7 @@ from HARK.SSJutils import (
     make_basic_SSJ_matrices,
     calc_shock_response_manually,
 )
-from HARK.metric import MetricObject
+from HARK.metric import MetricObject, distance_metric
 
 __all__ = [
     "AgentType",
@@ -962,8 +962,8 @@ class Model:
         return
 
     # This is a "synonym" method so that old calls to update() still work
-    def update(self, *args):
-        self.construct(*args)
+    def update(self, *args, **kwargs):
+        self.construct(*args, **kwargs)
 
 
 class AgentType(Model):
@@ -1919,7 +1919,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         solution_now = solution_cycle[0]
         if infinite_horizon:
             if completed_cycles > 0:
-                solution_distance = solution_now.distance(solution_last)
+                solution_distance = distance_metric(solution_now, solution_last)
                 agent.solution_distance = (
                     solution_distance  # Add these attributes so users can
                 )
