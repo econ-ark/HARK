@@ -32,16 +32,14 @@ We also have a (rarely used) [Discord channel][Discord].
 
 ## How to Contribute
 
-We're open to all kinds of contributions,
-from bug reports to help with our docs to suggestions on how to improve our code.
-The best way to figure out if the contribution you'd like to make
-is something we'd merge or otherwise accept,
-is to open up an issue in our issue tracker.
-Please create an issue rather than immediately submitting pull request,
-unless the change you'd like to make is so minor
-you won't mind if the pull request is rejected.
-For bigger contributions, we want to proactively talk things through,
-so that we don't end up wasting your time.
+We're open to all kinds of contributions, from bug reports to help with our
+docs to suggestions on how to improve our code. The best way to figure out
+if the contribution you'd like to make is something we'd merge or otherwise
+accept, is to open up an issue in our issue tracker. Please create an issue
+rather than immediately submitting pull request, unless the change you'd like
+to make is so minor you won't mind if the pull request is rejected. For
+bigger contributions, we want to proactively talk things through, so that we
+don't end up wasting your time.
 
 While we're thrilled to receive all kinds of contributions,
 there are a few key areas we'd especially like help with:
@@ -327,9 +325,10 @@ our greatest fear (other than spiders, of course) is that a new user will open u
 get hopelessly confused trying to read it, and then never look at HARK again.
 To prevent this tragic outcome, we have tried hard to provide comprehensive,
 accurate documentation and comments within the code describing our methods.
-Moreover, HARK uses the Sphinx utility to generate a website with [online documentation](https://docs.econ-ark.org/)
+HARK uses the Sphinx utility to generate a website with [online documentation](https://docs.econ-ark.org/)
 for all of our tool and model modules, so that users can learn about what's
-available in HARK without digging through the source code. When making contributions
+available in HARK without digging through the source code. Moreover, many of the
+example notebooks are automatically rendered to the website. When making contributions
 to HARK, the development team asks users to format their inline documentation to
 work with Sphinx by following a few simple rules.
 
@@ -366,15 +365,15 @@ def function_name(input1, input2):
     ----------
 
     input1: type
-    Description of what input1 represents.
+        Description of what input1 represents.
     input2: type
-    Description of what input2 represents.
+        Description of what input2 represents.
 
     Returns
     -------
     output_name: type
-    Description of the output(s) of the function.  Might have
-    multiple entries.  If no output, this is just "None".
+        Description of the output(s) of the function.  Might have
+        multiple entries.  If no output, this is just "None".
     """
 ```
 
@@ -383,12 +382,26 @@ def function_name(input1, input2):
   follow at the end of a line, longer comments (or descriptions of the step
   or task about to be performed) should precede a block of code on the line(s) above it.
 
-Finally, if you write a new model module, the HARK team asks that you also provide
-a writeup of the model in a Jupyter notebook.
-This document does not need
-to go into great detail about the solution method for the model or the functions and classes included in the module,
-merely specify the economic model and provide a summary of how it is solved.
-See [ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/docs/ConsumptionSavingModels.pdf) for an example of this.
+Finally, if you write a new model, the HARK team asks that you also provide
+a writeup of the model in a Jupyter notebook. The notebook should be put into
+`/examples/ConsumptionSaving/ModuleName/` and named `AgentTypeSubclassName.ipynb`,
+e.g. `/examples/ConsumptionSaving/ConsIndShockModel/IndShockConsumerType.ipynb`.
+This document does not need to go into great detail about the solution method for
+the model or the functions and classes included in the module, but it should:
+
+- Provide a brief textual description of the model, focusing on the feature(s) that
+  make it different from other models in HARK.
+- Specify the problem mathematically in Bellman form.
+- (Optional) Explain how the problem is solved, in broad strokes.
+- Provide a mapping from model symbols to names in code.
+- (Optional) Describe or summarize the default constructors used.
+- Solve one or more examples of the model, maybe just using default parameters, and display policy and/or value functions.
+
+The docstring for an `AgentType` subclass should be substantial and include the following:
+
+- A brief textual description of the model, noting the feature(s) that make it different from other models in HARK.
+- The one-period problem stated mathematically in Bellman form.
+- (Optional) Describe or summarize the default constructors used.
 
 #### Contributing to Documentation
 
@@ -421,7 +434,7 @@ To test your changes to the documentation locally, you can render as follows:
 
 #### Adding examples to the documentation
 
-HARK's example notebooks are stored in the HARK/examples file.
+HARK's example notebooks are stored in the `examples/` directory.
 Every pull request to HARK automatically reruns every example notebook
 to keep them up to date.
 
@@ -431,7 +444,7 @@ the format `../../examples/AAA/BBB.ipynb`. Then add a link to the notebook
 in the `docs/example_notebooks/Include_list.txt` file. It should have
 the format `examples/AAA/BBB.ipynb`.
 
-Sphinx requires it's example notebooks to have a title, and headings in order of
+Sphinx requires its example notebooks to have a title, and headings in order of
 decreasing size. Make sure the notebook you added has those qualities before you push.
 Otherwise sphinx will fail to build.
 
@@ -451,15 +464,13 @@ Otherwise it won't show the warnings again, and you won't be able to check if th
 
 ### Testing
 
-`HARK` has a test suite that ensures correct
-execution on your system.
-The test suite has to pass before a pull
-request can be merged, and tests should be added to cover any
-modifications to the code base.
+`HARK` has a test suite that ensures correct execution on your system.
+The test suite has to pass before a pull request can be merged, and tests should
+be added to cover any modifications to the code base.
 
 We make use of the [pytest](https://docs.pytest.org/en/latest/) and unittests
-testing framework, with tests located in the various
-`HARK/submodule/tests` folders.
+testing framework, with all tests located in `/tests/` and its subdirectories,
+which match the subdirectory structure of `/HARK/`.
 
 To use `pytest`, ensure that the library is installed in development mode
 
@@ -485,57 +496,63 @@ Or tests from a specific file
 $ pytest HARK/ConsumptionSaving/tests/test_ConsAggShockModel.py
 ```
 
-### Pre-commit hooks
+To view current coverage of HARK's tests, see [here](https://remote-unzip.deno.dev/econ-ark/HARK/main), which is also
+linked from the front page of the GitHub repo. The Pytest coverage is automatically
+re-run and re-published every Sunday. Some sections of code are hard or
+impossible to reach within `pytest` and are thus exempted; this includes platform-specific
+code and all `numba` functions that are marked for compilation with `@jit`, as well
+as very unusual exceptions that are difficult to build tests for.
 
-`HARK` uses [pre-commit](https://pre-commit.com/) to ensure that all code is well organized and formatted,
-as well as to ensure the integrity of example notebooks.
-To install pre-commit, run
+### Pre-commit Hooks
+
+`HARK` uses [pre-commit](https://pre-commit.com/) to ensure that all code is well
+organized and formatted, as well as to ensure the integrity of example notebooks.
+To install `pre-commit`, run
 
 ```bash
 $ pip install pre-commit
 $ pre-commit install
 ```
 
-Once you do this, it will run the pre-commit hooks on every commit while only affecting modified files.
-If you want to run the pre-commit hooks manually on every file, run
+Once you do this, it will run the pre-commit hooks on every commit while only
+affecting modified files. If you want to run the pre-commit hooks manually on every
+file, run
 
 ```bash
 $ pre-commit run --all-files
 ```
 
 Because this is an optional feature, it does not come installed with `HARK` by default.
-This is to avoid overhead for new users and contributors who might be new to github and software development in general.
+This is to avoid overhead for new users and contributors who might be new to github
+and software development in general.
 
-If you are having issues with pre-commit,
-and just want to commit your changes, you can use the `--no-verify` flag to bypass the pre-commit hooks.
+If you are having issues with pre-commit, and just want to commit your changes, you can
+use the `--no-verify` flag to bypass the pre-commit hooks.
 
 ```bash
 $ git commit -m "commit message" --no-verify
 ```
 
-If you do this,
-please alert one of the core developers
-so that we can review your changes to make sure that there are no issues and that your code is formatted correctly.
+If you do this, please alert one of the core developers so that we can review your
+changes to make sure that there are no issues and that your code is formatted correctly.
 
 The following pre-commit hooks are currently configured:
 
 - [ruff] file formatting
 - [pre-commit-hooks] fix end-of-file, trailing whitespace, and requirements.txt
 
-If you are interested in using pre-commit,
-please see the [pre-commit documentation](https://pre-commit.com/) for more information.
+If you are interested in using pre-commit, please see the [pre-commit documentation](https://pre-commit.com/) for more information.
 
-### Pull request codes
+### Pull Request Codes
 
 When you submit a pull request to GitHub, GitHub will ask you for a summary.
 If your code is not ready to merge, but you want to get feedback, please consider
-using `WIP: experimental optimization` or similar for the title of your pull
-request.
-That way we will all know that it's not yet ready to merge and that
+using `[WIP] experimental optimization` or similar for the title of your pull
+request. That way we will all know that it's not yet ready to merge and that
 you may be interested in more fundamental comments about design.
 
 When you think the pull request is ready to merge, change the title (using the
-_Edit_ button) to remove the `WIP:`.
+_Edit_ button) to remove the `[WIP]`.
 
 ### Bugs
 
