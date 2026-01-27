@@ -1401,6 +1401,73 @@ class AgentType(Model):
         self.clear_history()
         return None
 
+    def export_to_df(self, var=None, t=None, by_age=False, dtype=None, sym=False):
+        """
+        Export an AgentType instance's simulated data to a pandas dataframe object.
+        There are four construction modes depending on the arguments passed:
+
+        1a) If exactly one simulated variable is named as var and by_age is False,
+            then the dataframe will contain T_sim columns, each representing one
+            simulated period in absolute simulation time t_sim. Each row of the
+            dataframe will represent one *agent index* of the population, with death
+            and replacement occuring within a row. Optionally, argument t can be
+            provided as an array to specify which periods to include (default all).
+
+        1b) If exactly one simulated variable is named as var and by_age is True,
+            then the dataframe's columns will correspond to within-agent model age
+            t_age. Each row of the dataframe will represent one specific agent from
+            model entry (t_age=0) to model death. All observations after death will
+            be NaN. Optionally, argument t can be provided as an array to specify
+            which ages to include (default all). Number of columns in dataframe will
+            depend on max(t_age) and/or argument t.
+
+        2a) If an integer is provided as t and by_age is False, then each column of
+            the dataframe will represent a different simulated variable, using the
+            value for the specified absolute simulated period t=t_sim. Optionally,
+            the var argument can be provided as a list of strings naming which var-
+            iables should be included in the dataframe (default all).
+
+        2b) If an integer is provided as t and by_age is True, then each column of
+            the dataframe will represent a different simulated variable, taken from
+            all agent-periods at which t == t_age, within-agent model age. Optionally,
+            the var argument can be provided as a list of strings naming which var-
+            iables should be included in the dataframe (default all).
+
+        In summary, *either* var should be a single string *or* t should be an integer.
+        Any other combination of var and t will raise an exception.
+
+        Parameters
+        ----------
+        var : str or [str] or None
+            If a single string is provided, it represents the name of the one simulated
+            variable to export. If a list of strings, then the argument t must also be
+            provided to indicate which time period the dataframe will represent. Name(s)
+            must correspond to a key for history or hystory dictionary (i.e. named in track_vars).
+            If not provided, then all keys in history or hystory are included.
+        t : int or np.array or None
+            If provided, indicates which one period will be included in the dataframe.
+            When by_age is False (default), t refers to absolute simulated time t_sim:
+            literally the t-th row of history[key]. When by_age is True, t refers to
+            within-agent model age t_age; the dataframe will include all agent-periods
+            where the agent has exactly t_age==t.
+        by_age : bool
+            Indicator for whether observation selection should be on the basis of absolute
+            simulated time t_sim or within-agent model age t_age.
+        dtype : type or None
+            Optional data type to cast the dataframe. By default, uses the datatype from
+            the entry in history or hystory.
+        sym : bool
+            Indicator for whether the dataframe should look for simulated data in the
+            history (False, default) or hystory (True) dictionary attribute. This option
+            will be deprecated in the future when legacy simulation methods are removed.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The requested dataframe, constructed from this instance's simulated data.
+        """
+        pass
+
     def sim_one_period(self):
         """
         Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
