@@ -9,6 +9,7 @@ and it should be possible to substitute them back into the appropriate AgentType
 from copy import deepcopy
 from dataclasses import dataclass
 import numpy as np
+from scipy.optimize import brentq
 from HARK import NullFunc
 from HARK.distributions import expected, calc_expectation, DiscreteDistribution
 from HARK.interpolation import (
@@ -43,13 +44,488 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     utilityP,
     utilityP_inv,
 )
-from HARK.ConsumptionSaving.ConsMedModel import (
-    cThruXfunc,
-    MedShockPolicyFunc,
-    MedThruXfunc,
-)
+
 from HARK.ConsumptionSaving.ConsPortfolioModel import PortfolioSolution
 from scipy.optimize import root_scalar
+
+
+class MedShockPolicyFunc(MetricObject):
+    """
+    Class for representing the policy function in the medical shocks model: opt-
+    imal consumption and medical care for given market resources, permanent income,
+    and medical need shock.  Always obeys Con + MedPrice*Med = optimal spending.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    xLvlGrid : np.array
+        1D array of total expenditure levels.
+    MedShkGrid : np.array
+        1D array of medical shocks.
+    MedPrice : float
+        Relative price of a unit of medical care.
+    CRRAcon : float
+        Coefficient of relative risk aversion for consumption.
+    CRRAmed : float
+        Coefficient of relative risk aversion for medical care.
+    xLvlCubicBool : boolean
+        Indicator for whether cubic spline interpolation (rather than linear)
+        should be used in the xLvl dimension.
+    MedShkCubicBool : boolean
+        Indicator for whether bicubic interpolation should be used; only
+        operative when xLvlCubicBool=True.
+    """
+
+    distance_criteria = ["xFunc", "cFunc", "MedPrice"]
+
+    def __init__(
+        self,
+        xFunc,
+        xLvlGrid,
+        MedShkGrid,
+        MedPrice,
+        CRRAcon,
+        CRRAmed,
+        xLvlCubicBool=False,
+        MedShkCubicBool=False,
+    ):
+        # Store some of the inputs in self
+        self.MedPrice = MedPrice
+        self.xFunc = xFunc
+
+        # Calculate optimal consumption at each combination of mLvl and MedShk.
+        cLvlGrid = np.zeros(
+            (xLvlGrid.size, MedShkGrid.size)
+        )  # Initialize consumption grid
+        for i in range(xLvlGrid.size):
+            xLvl = xLvlGrid[i]
+            for j in range(MedShkGrid.size):
+                MedShk = MedShkGrid[j]
+                if xLvl == 0:  # Zero consumption when mLvl = 0
+                    cLvl = 0.0
+                elif MedShk == 0:  # All consumption when MedShk = 0
+                    cLvl = xLvl
+                else:
+
+                    def optMedZeroFunc(c):
+                        return (MedShk / MedPrice) ** (-1.0 / CRRAcon) * (
+                            (xLvl - c) / MedPrice
+                        ) ** (CRRAmed / CRRAcon) - c
+
+                    # Find solution to FOC
+                    cLvl = brentq(optMedZeroFunc, 0.0, xLvl)
+                cLvlGrid[i, j] = cLvl
+
+        # Construct the consumption function and medical care function
+        if xLvlCubicBool:
+            if MedShkCubicBool:
+                raise NotImplementedError("Bicubic interpolation not yet implemented")
+            else:
+                xLvlGrid_tiled = np.tile(
+                    np.reshape(xLvlGrid, (xLvlGrid.size, 1)), (1, MedShkGrid.size)
+                )
+                MedShkGrid_tiled = np.tile(
+                    np.reshape(MedShkGrid, (1, MedShkGrid.size)), (xLvlGrid.size, 1)
+                )
+                dfdx = (
+                    (CRRAmed / (CRRAcon * MedPrice))
+                    * (MedShkGrid_tiled / MedPrice) ** (-1.0 / CRRAcon)
+                    * ((xLvlGrid_tiled - cLvlGrid) / MedPrice)
+                    ** (CRRAmed / CRRAcon - 1.0)
+                )
+                dcdx = dfdx / (dfdx + 1.0)
+                # approximation; function goes crazy otherwise
+                dcdx[0, :] = dcdx[1, :]
+                dcdx[:, 0] = 1.0  # no Med when MedShk=0, so all x is c
+                cFromxFunc_by_MedShk = []
+                for j in range(MedShkGrid.size):
+                    cFromxFunc_by_MedShk.append(
+                        CubicInterp(xLvlGrid, cLvlGrid[:, j], dcdx[:, j])
+                    )
+                cFunc = LinearInterpOnInterp1D(cFromxFunc_by_MedShk, MedShkGrid)
+        else:
+            cFunc = BilinearInterp(cLvlGrid, xLvlGrid, MedShkGrid)
+        self.cFunc = cFunc
+
+    def __call__(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate optimal consumption and medical care at given levels of market
+        resources, permanent income, and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        cLvl : np.array
+            Optimal consumption for each point in (xLvl,MedShk).
+        Med : np.array
+            Optimal medical care for each point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        cLvl = self.cFunc(xLvl, MedShk)
+        Med = (xLvl - cLvl) / self.MedPrice
+        return cLvl, Med
+
+    def derivativeX(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption and medical care with respect to
+        market resources at given levels of market resources, permanent income,
+        and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdm : np.array
+            Derivative of consumption with respect to market resources for each
+            point in (xLvl,MedShk).
+        dMeddm : np.array
+            Derivative of medical care with respect to market resources for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdm = self.xFunc.derivativeX(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdm = dxdm * dcdx
+        dMeddm = (dxdm - dcdm) / self.MedPrice
+        return dcdm, dMeddm
+
+    def derivativeY(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption and medical care with respect to
+        permanent income at given levels of market resources, permanent income,
+        and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdp : np.array
+            Derivative of consumption with respect to permanent income for each
+            point in (xLvl,MedShk).
+        dMeddp : np.array
+            Derivative of medical care with respect to permanent income for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdp = self.xFunc.derivativeY(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdp = dxdp * dcdx
+        dMeddp = (dxdp - dcdp) / self.MedPrice
+        return dcdp, dMeddp
+
+    def derivativeZ(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption and medical care with respect to
+        medical need shock at given levels of market resources, permanent income,
+        and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdShk : np.array
+            Derivative of consumption with respect to medical need for each
+            point in (xLvl,MedShk).
+        dMeddShk : np.array
+            Derivative of medical care with respect to medical need for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdShk = self.xFunc.derivativeZ(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdShk = dxdShk * dcdx + self.cFunc.derivativeY(xLvl, MedShk)
+        dMeddShk = (dxdShk - dcdShk) / self.MedPrice
+        return dcdShk, dMeddShk
+
+
+class cThruXfunc(MetricObject):
+    """
+    Class for representing consumption function derived from total expenditure
+    and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
+    """
+
+    distance_criteria = ["xFunc", "cFunc"]
+
+    def __init__(self, xFunc, cFunc):
+        self.xFunc = xFunc
+        self.cFunc = cFunc
+
+    def __call__(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate optimal consumption at given levels of market resources, perma-
+        nent income, and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        cLvl : np.array
+            Optimal consumption for each point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        cLvl = self.cFunc(xLvl, MedShk)
+        return cLvl
+
+    def derivativeX(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption with respect to market resources
+        at given levels of market resources, permanent income, and medical need
+        shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdm : np.array
+            Derivative of consumption with respect to market resources for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdm = self.xFunc.derivativeX(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdm = dxdm * dcdx
+        return dcdm
+
+    def derivativeY(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption and medical care with respect to
+        permanent income at given levels of market resources, permanent income,
+        and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdp : np.array
+            Derivative of consumption with respect to permanent income for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdp = self.xFunc.derivativeY(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdp = dxdp * dcdx
+        return dcdp
+
+    def derivativeZ(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption and medical care with respect to
+        medical need shock at given levels of market resources, permanent income,
+        and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdShk : np.array
+            Derivative of consumption with respect to medical need for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdShk = self.xFunc.derivativeZ(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdShk = dxdShk * dcdx + self.cFunc.derivativeY(xLvl, MedShk)
+        return dcdShk
+
+
+class MedThruXfunc(MetricObject):
+    """
+    Class for representing medical care function derived from total expenditure
+    and consumption.
+
+    Parameters
+    ----------
+    xFunc : function
+        Optimal total spending as a function of market resources, permanent
+        income, and the medical need shock.
+    cFunc : function
+        Optimal consumption as a function of total spending and the medical
+        need shock.
+    MedPrice : float
+        Relative price of a unit of medical care.
+    """
+
+    distance_criteria = ["xFunc", "cFunc", "MedPrice"]
+
+    def __init__(self, xFunc, cFunc, MedPrice):
+        self.xFunc = xFunc
+        self.cFunc = cFunc
+        self.MedPrice = MedPrice
+
+    def __call__(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate optimal medical care at given levels of market resources,
+        permanent income, and medical need shock.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        Med : np.array
+            Optimal medical care for each point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        Med = (xLvl - self.cFunc(xLvl, MedShk)) / self.MedPrice
+        return Med
+
+    def derivativeX(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of consumption and medical care with respect to
+        market resources at given levels of market resources, permanent income,
+        and medical need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dcdm : np.array
+            Derivative of consumption with respect to market resources for each
+            point in (xLvl,MedShk).
+        dMeddm : np.array
+            Derivative of medical care with respect to market resources for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdm = self.xFunc.derivativeX(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdm = dxdm * dcdx
+        dMeddm = (dxdm - dcdm) / self.MedPrice
+        return dMeddm
+
+    def derivativeY(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of medical care with respect to permanent income
+        at given levels of market resources, permanent income, and medical need
+        shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dMeddp : np.array
+            Derivative of medical care with respect to permanent income for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdp = self.xFunc.derivativeY(mLvl, pLvl, MedShk)
+        dMeddp = (dxdp - dxdp * self.cFunc.derivativeX(xLvl, MedShk)) / self.MedPrice
+        return dMeddp
+
+    def derivativeZ(self, mLvl, pLvl, MedShk):
+        """
+        Evaluate the derivative of medical care with respect to medical need
+        shock at given levels of market resources, permanent income, and medical
+        need shocks.
+
+        Parameters
+        ----------
+        mLvl : np.array
+            Market resource levels.
+        pLvl : np.array
+            Permanent income levels; should be same size as mLvl.
+        MedShk : np.array
+            Medical need shocks; should be same size as mLvl.
+
+        Returns
+        -------
+        dMeddShk : np.array
+            Derivative of medical care with respect to medical need for each
+            point in (xLvl,MedShk).
+        """
+        xLvl = self.xFunc(mLvl, pLvl, MedShk)
+        dxdShk = self.xFunc.derivativeZ(mLvl, pLvl, MedShk)
+        dcdx = self.cFunc.derivativeX(xLvl, MedShk)
+        dcdShk = dxdShk * dcdx + self.cFunc.derivativeY(xLvl, MedShk)
+        dMeddShk = (dxdShk - dcdShk) / self.MedPrice
+        return dMeddShk
 
 
 class ConsPerfForesightSolver(MetricObject):

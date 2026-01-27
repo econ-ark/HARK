@@ -41,9 +41,14 @@ Overview
    ../../examples/ConsMarkovModel/MarkovConsumerType.ipynb
    ../../examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
    ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
+   ../../examples/ConsBequestModel/example_WarmGlowBequest.ipynb
+   ../../examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
+   ../../examples/ConsWealthUtilityModel/WealthUtilityConsumerType.ipynb
+   ../../examples/ConsWealthUtilityModel/CapitalistSpiritConsumerType.ipynb
    ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
    ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
+   ../../examples/ConsWealthPortfolioModel/example_WealthPortfolio.ipynb
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
    ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb

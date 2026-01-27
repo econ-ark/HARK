@@ -34,7 +34,7 @@ from HARK.SSJutils import (
     make_basic_SSJ_matrices,
     calc_shock_response_manually,
 )
-from HARK.metric import MetricObject
+from HARK.metric import MetricObject, distance_metric
 
 __all__ = [
     "AgentType",
@@ -962,8 +962,8 @@ class Model:
         return
 
     # This is a "synonym" method so that old calls to update() still work
-    def update(self, *args):
-        self.construct(*args)
+    def update(self, *args, **kwargs):
+        self.construct(*args, **kwargs)
 
 
 class AgentType(Model):
@@ -1168,7 +1168,7 @@ class AgentType(Model):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
-    def unpack(self, parameter):
+    def unpack(self, name):
         """
         Unpacks an attribute from a solution object for easier access.
         After the model has been solved, its components (like consumption function)
@@ -1178,7 +1178,7 @@ class AgentType(Model):
 
         Parameters
         ----------
-        parameter: str
+        name: str
             Name of the attribute to unpack from the solution
 
         Returns
@@ -1186,12 +1186,11 @@ class AgentType(Model):
         none
         """
         # Use list comprehension for better performance instead of loop with append
-        setattr(
-            self,
-            parameter,
-            [solution_t.__dict__[parameter] for solution_t in self.solution],
-        )
-        self.add_to_time_vary(parameter)
+        if type(self.solution[0]) is dict:
+            setattr(self, name, [soln_t[name] for soln_t in self.solution])
+        else:
+            setattr(self, name, [soln_t.__dict__[name] for soln_t in self.solution])
+        self.add_to_time_vary(name)
 
     def solve(
         self,
@@ -1920,7 +1919,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         solution_now = solution_cycle[0]
         if infinite_horizon:
             if completed_cycles > 0:
-                solution_distance = solution_now.distance(solution_last)
+                solution_distance = distance_metric(solution_now, solution_last)
                 agent.solution_distance = (
                     solution_distance  # Add these attributes so users can
                 )
