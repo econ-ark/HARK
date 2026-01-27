@@ -1361,3 +1361,79 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
         self.assertEqual(agent_pop.agent_type_count, 5)
         self.assertIn("CRRA", agent_pop.discrete_distributions)
+
+
+class testExportToDF(unittest.TestCase):
+    def setUp(self):
+        self.agent = IndShockConsumerType(
+            cycles=0,
+            seed=0,
+            track_vars=["mNrm", "aNrm", "cNrm", "t_age"],
+            AgentCount=1000,
+            T_sim=100,
+        )
+        self.agent.solve()
+        self.agent.initialize_sym()
+        self.agent.symulate()
+
+    def test_one_var_by_time(self):
+        df = self.agent.export_to_df(var="aNrm", sym=True)
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], self.agent.T_sim)
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+        df = self.agent.export_to_df(
+            var="aNrm", t=np.array([5, 10, 15, 20, 25]), sym=True
+        )
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 5)
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+    def test_one_var_by_age(self):
+        df = self.agent.export_to_df(var="aNrm", by_age=True, sym=True)
+        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertEqual(df.shape[1], np.max(self.agent.hystory["t_age"]) + 1)
+        self.assertTrue(np.any(np.isnan(df.values)))  # should be missing data
+
+        df = self.agent.export_to_df(
+            var="aNrm", by_age=True, t=np.array([5, 10, 15, 20, 25]), sym=True
+        )
+        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 5)
+        self.assertTrue(np.any(np.isnan(df.values)))  # should be missing data
+
+    def test_one_t_by_time(self):
+        df = self.agent.export_to_df(t=10, sym=True)
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 4)  # 4 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+        df = self.agent.export_to_df(var=["aNrm", "cNrm"], t=10, sym=True)
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 2)  # 4 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+    def test_one_t_by_age(self):
+        df = self.agent.export_to_df(t=10, by_age=True, sym=True)
+        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 4)  # 4 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+        df = self.agent.export_to_df(var=["aNrm", "cNrm"], by_age=True, t=10, sym=True)
+        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 2)  # 4 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+    def test_invalid(self):
+        self.assertRaises(ValueError, self.agent.export_to_df, sym=True)
+        self.assertRaises(KeyError, self.agent.export_to_df, var="boop", sym=True)
+        self.assertRaises(
+            KeyError, self.agent.export_to_df, t=5, var=["boop"], sym=True
+        )
+
+        self.agent.track_vars = ["mNrm", "aNrm", "cNrm"]
+        self.agent.initialize_sym()
+        self.agent.symulate()
+        self.assertRaises(
+            KeyError, self.agent.export_to_df, var="aNrm", by_age=True, sym=True
+        )

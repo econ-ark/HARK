@@ -1500,7 +1500,7 @@ class AgentType(Model):
             if by_age:  # handle age-oriented single variable case
                 # Mark which observations will be used in the output dataframe
                 if t is None:
-                    age_set = np.arange(np.max(age))
+                    age_set = np.arange(np.max(age) + 1)
                     in_age_set = np.ones_like(data, dtype=bool)
                 else:
                     age_set = t
@@ -1512,18 +1512,15 @@ class AgentType(Model):
                 # Find the shape of the dataframe and initialize empty array
                 newborns = age == 0 if sym else age == 1
                 T = age_set.size  # total number of ages (columns in dataframe)
-                N = np.sum(
-                    newborns
-                )  # total number of agents "born" in the data (rows in df)
+                N = np.sum(newborns)  # number of agents "born" (rows in df)
                 out = np.full((N, T), np.nan)  # initialize output dataframe
 
                 # Loop over simulated agent indices and extract single agent sequences
                 n = 0
                 for i in range(self.AgentCount):
                     data_i = data[:, i]
-                    births = np.argwhere(newborns[:, i])[
-                        0
-                    ]  # t indices where agents born
+                    # Mark t indices where agents born
+                    births = np.where(newborns[:, i])[0]
                     K = births.size
                     for k in range(K):
                         start = births[k]
@@ -1534,14 +1531,14 @@ class AgentType(Model):
                         n += 1  # go to next individual
 
                 # Build the dataframe
-                cols = [str(age_set[i]) for i in age_set.size]
+                cols = [str(age_set[i]) for i in range(age_set.size)]
                 df = DataFrame(data=out, columns=cols, dtype=dtype)
 
             else:  # handle absolute simulated time, single variable case
                 if t is None:
                     df = DataFrame(data=data.T, dtype=dtype)
                 else:
-                    cols = [str(t[i]) for i in t.size]
+                    cols = [str(t[i]) for i in range(t.size)]
                     df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
 
             return df
@@ -1571,7 +1568,9 @@ class AgentType(Model):
             # Fill in the output array
             for k in range(K):
                 name = var_list[k]
-                out[:, k] = data[right_age] if by_age else data[t, :].T
+                out[:, k] = (
+                    history[name][right_age] if by_age else history[name][t, :].T
+                )
 
             # Convert to dataframe and return it
             df = DataFrame(data=out, columns=var_list, dtype=dtype)
