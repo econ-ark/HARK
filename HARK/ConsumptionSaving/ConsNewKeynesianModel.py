@@ -496,7 +496,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
     def compute_pe_steady_state(self):
         """
-        Compute the partial equilibrium steady state levels of aggreate assets
+        Compute the partial equilibrium steady state levels of aggregate assets
         and consumption, storing them in attributes A_ss and C_ss. General method:
 
         1. Solve the agents' infinite horizon model.
