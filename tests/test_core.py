@@ -1363,7 +1363,7 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertIn("CRRA", agent_pop.discrete_distributions)
 
 
-class testExportToDF(unittest.TestCase):
+class test_export_to_df(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockConsumerType(
             cycles=0,
