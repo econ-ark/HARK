@@ -43,7 +43,7 @@ This change allows the project code to run with the currently released HARK.
 
 ### Challenge 2: RNG Behavior Changes
 
-**Symptom:** Simulations produced different results even with same seed.
+**Symptom:** Simulations produced different results even with the same seed.
 
 **Root Cause:** HARK 0.17.0 changed reset_rng() behavior - it now resets ALL
 distributions in self.distributions, not just IncShkDstn.
