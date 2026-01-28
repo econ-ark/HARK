@@ -1536,7 +1536,8 @@ class AgentType(Model):
 
             else:  # handle absolute simulated time, single variable case
                 if t is None:
-                    df = DataFrame(data=data.T, dtype=dtype)
+                    cols = [str(i) for i in range(self.T_sim)]
+                    df = DataFrame(data=data.T, columns=cols, dtype=dtype)
                 else:
                     cols = [str(t[i]) for i in range(t.size)]
                     df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
