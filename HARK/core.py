@@ -1569,7 +1569,7 @@ class AgentType(Model):
             for k in range(K):
                 name = var_list[k]
                 out[:, k] = (
-                    history[name][right_age] if by_age else history[name][t, :].T
+                    history[name][right_age] if by_age else history[name][t, :]
                 )
 
             # Convert to dataframe and return it
