@@ -485,11 +485,14 @@ def calc_expectation(dstn, func=lambda x: x, *args, **kwargs):
         If dstn is a DiscreteDistribution, then this function should take an array of
         shape dstn.dim() and return either arrays of arbitrary shape or scalars.
         If dstn is a DiscreteDistributionLabeled, then the function should take an
-        xr.dataset and index into it with variable names.
-        In either case, the function may also take other arguments \\*args.
+        dictionary-like object (like an xr.dataset) and index into it with variable.
+        names In either case, the function may also take other arguments \\*args.
     \\*args :
         Other inputs for func, representing the non-stochastic arguments.
-        The expectation is computed at ``f(dstn, *args)``.
+        The expectation is computed at ``f(dstn, *args, **kwargs)``.
+    \\*kwargs :
+        Other keyword inputs for func, representing the non-stochastic arguments.
+        The expectation is computed at ``f(dstn, *args, **kwargs)``.
 
     Returns
     -------
