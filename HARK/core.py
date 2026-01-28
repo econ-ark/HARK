@@ -1471,7 +1471,7 @@ class AgentType(Model):
         """
         # Check for valid arguments
         single_var = type(var) is str
-        single_t = type(t) is int
+        single_t = isinstance(t, (int, np.integer))
         if not (single_var ^ single_t):  # "not exclusive or"
             raise ValueError(
                 "Either var must be a single string, or t must be a single integer!"
