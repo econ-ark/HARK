@@ -91,7 +91,7 @@ To use the interactive notebooks, you will need to install Jupyter: `pip install
 2. Install associated JS files: `jupyter contrib nbextension install --user`
 3. Enable the extension: `jupyter nbextension enable latex_envs --user --py`
 
-You can launch Jupyter from the command line with `jupyter notebook`, then navigage to the directory where you have installed the example notebooks. We recommend starting with `/examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb`, which links to the other introductory notebooks near the bottom.
+You can launch Jupyter from the command line with `jupyter notebook`, then navigate to the directory where you have installed the example notebooks. We recommend starting with `/examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb`, which links to the other introductory notebooks near the bottom.
 
 ## Usage
 
