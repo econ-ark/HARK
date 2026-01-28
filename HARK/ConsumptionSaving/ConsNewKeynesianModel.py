@@ -494,7 +494,28 @@ class NewKeynesianConsumerType(IndShockConsumerType):
             (len(self.dist_mGrid), len(self.dist_pGrid))
         )
 
-    def compute_steady_state(self):
+    def compute_pe_steady_state(self):
+        """
+        Compute the partial equilibrium steady state levels of aggregate assets
+        and consumption, storing them in attributes A_ss and C_ss. General method:
+
+        1. Solve the agents' infinite horizon model.
+        2. Build transition matrices on a discretized state space using policy functions.
+        3. Find the ergodic distribution of idiosyncratic states.
+        4. Calculate average consumption and assets using policy functions and ergodic distribution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        A_ss : float
+            Partial equilibrium steady state average level of (end-of-period) assets,
+            which also represent aggregate capital holdings in a general equilibrium framework.
+        C_ss : float
+            Partial equilibrium steady state average level of consumption.
+        """
         # Compute steady state to perturb around
         self.cycles = 0
         self.solve()

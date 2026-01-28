@@ -49,7 +49,7 @@ class test_Transition_Matrix_Methods(unittest.TestCase):
 class test_Jacobian_methods(unittest.TestCase):
     def test_calc_jacobian(self):
         Agent = NewKeynesianConsumerType()
-        Agent.compute_steady_state()
+        Agent.compute_pe_steady_state()
         CJAC_Perm, AJAC_Perm = Agent.calc_jacobian("PermShkStd", 50)
 
         self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10503, places=HARK_PRECISION)
