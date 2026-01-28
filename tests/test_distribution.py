@@ -253,6 +253,23 @@ class DiscreteDistributionTests(unittest.TestCase):
             desc == "DiscreteDistribution with 5 atoms, inf=0, sup=4, seed=0"
         )
 
+    def test_calc_exp_labeled(self):
+        F = DiscreteDistributionLabeled(
+            atoms=np.array([[1.0, 2.0, 3.0, 4.0, 5.0], [0.3, 0.8, -0.2, 0.0, 9.0]]),
+            pmv=np.array([0.2, 0.2, 0.2, 0.2, 0.2]),
+            name="test distribution",
+            var_names=["x", "y"],
+        )
+
+        def my_func(S, z):
+            return S["x"] + 2 * S["y"] + 3 * z
+
+        self.assertAlmostEqual(
+            calc_expectation(F, my_func, z=3.0),
+            expected(my_func, F, z=3.0),
+            places=HARK_PRECISION,
+        )
+
 
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """

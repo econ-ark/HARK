@@ -18,6 +18,7 @@ There are some breaking changes:
 
 - The exact_match option for DiscreteDistribution.draw has been renamed to shuffle, and its behavior has changed slightly. See #1691.
 - Both AgentType subclasses in ConsPrefShockModel have had their utility function adjusted, moving the preference shock inside the CRRA term. See #1708.
+- If `calc_expectation` is used with a DiscreteDistributionLabeled, the function must reference indices of the distribution by name, not position number. See #1713.
 
 #### Major Changes
 
@@ -36,6 +37,7 @@ There are some breaking changes:
 - Added __repr__ method for DiscreteDistribution (and subclasses) to display basic information about itself.
 - All AgentTypes now have sensible defaults for track_vars if none is provided. [#1693](https://github.com/econ-ark/HARK/pull/1693)
 - `AgentType.unpack` and the new simulation structure appropriately handle solutions represented as dictionaries. [#1709](https://github.com/econ-ark/HARK/pull/1709)
+- `calc_expectation` now works with `DiscreteDistributionLabeled` instances when `func` references RVs by name, but *not* by position numbers. [#1713](https://github.com/econ-ark/HARK/pull/1713)
 
 
 ### 0.17.0
