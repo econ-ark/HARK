@@ -71,7 +71,7 @@ Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by ru
 
 `conda install -c conda-forge econ-ark`
 
-Install from [PyPi](https://pypi.org/) by running:
+Install from [PyPI](https://pypi.org/) by running:
 
 `pip install econ-ark`
 
@@ -83,22 +83,28 @@ from HARK import install_examples
 install_examples()
 ```
 
-Follow the simple prompts to make an examples subdirectory inside the directory you specify. We recommend starting with /examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb.
+Follow the simple prompts to make an examples subdirectory inside the directory you specify.
+
+To use the interactive notebooks, you will need to install Jupyter: `pip install jupyter`. Moreover, the math and text formatting in some notebooks might require the `latex-envs` extension. To set this up, follow these steps:
+
+1. Install the package: `pip install jupyter_latex_envs`
+2. Install associated JS files: `jupyter contrib nbextension install --user`
+3. Enable the extension: `jupyter nbextension enable latex_envs --user --py`
+
+You can launch Jupyter from the command line with `jupyter notebook`, then navigate to the directory where you have installed the example notebooks. We recommend starting with `/examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb`, which links to the other introductory notebooks near the bottom.
 
 ## Usage
 
-We start with almost the simplest possible consumption model: A consumer with CRRA utility
+We start with almost the simplest possible consumption model: A consumer with constant relative risk aversion (CRRA) utility who has perfect foresight about everything except the (stochastic) date of death.
 
 <div align="center">
-  <img height="30px" src="https://github.com/econ-ark/HARK/blob/main/docs/images/usage-crra-utility-function.png">
+  <img height="52px" src="https://github.com/econ-ark/HARK/blob/main/docs/images/usage-crra-utility-function.png">
 </div>
 
-has perfect foresight about everything except the (stochastic) date of death.
-
-The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
+The agent's one period problem can be recursively expressed in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
-  <img height="80px" src="https://github.com/econ-ark/HARK/blob/main/docs/images/usage-agent-problem-bellman-form.png">
+  <img height="180px" src="https://github.com/econ-ark/HARK/blob/main/docs/images/usage-agent-problem-bellman-form.png">
 </div>
 
 <br>
