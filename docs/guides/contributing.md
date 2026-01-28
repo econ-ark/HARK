@@ -384,8 +384,8 @@ def function_name(input1, input2):
 
 Finally, if you write a new model, the HARK team asks that you also provide
 a writeup of the model in a Jupyter notebook. The notebook should be put into
-`/examples/ConsumptionSaving/ModuleName/` and named `AgentTypeSubclassName.ipynb`,
-e.g. `/examples/ConsumptionSaving/ConsIndShockModel/IndShockConsumerType.ipynb`.
+`/examples/ModuleName/` and named `AgentTypeSubclassName.ipynb`,
+e.g. `/examples/ConsIndShockModel/IndShockConsumerType.ipynb`.
 This document does not need to go into great detail about the solution method for
 the model or the functions and classes included in the module, but it should:
 
