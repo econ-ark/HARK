@@ -893,7 +893,7 @@ class SimBlock:
     def run_quasi_sim(self, data, j0=0, twist=None, norm=None):
         """
         "Quasi-simulate" this block from given starting data at some event index,
-        looping back to end at the same point (only if idx0 > 0 and twist is given).
+        looping back to end at the same point (only if j0 > 0 and twist is given).
         To quasi-simulate means to run the model forward for *every* possible shock
         realization, tracking probability masses.
 
@@ -908,7 +908,7 @@ class SimBlock:
             By default, it is run from index 0.
         twist : dict, optional
             Optional dictionary mapping end-of-block variables back to arrival variables.
-            If this is provided *and* idx0 > 0, then the quasi-sim is run for a complete
+            If this is provided *and* j0 > 0, then the quasi-sim is run for a complete
             period, starting and ending at the same index. Else it's run to end of period.
         norm : str or None
             The name of the variable on which to perform Harmenberg normalization.
