@@ -523,7 +523,7 @@ $ pre-commit run --all-files
 ```
 
 Because this is an optional feature, it does not come installed with `HARK` by default.
-This is to avoid overhead for new users and contributors who might be new to github
+This is to avoid overhead for new users and contributors who might be new to GitHub
 and software development in general.
 
 If you are having issues with pre-commit, and just want to commit your changes, you can
