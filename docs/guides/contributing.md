@@ -36,7 +36,7 @@ We're open to all kinds of contributions, from bug reports to help with our
 docs to suggestions on how to improve our code. The best way to figure out
 if the contribution you'd like to make is something we'd merge or otherwise
 accept, is to open up an issue in our issue tracker. Please create an issue
-rather than immediately submitting pull request, unless the change you'd like
+rather than immediately submitting a pull request, unless the change you'd like
 to make is so minor you won't mind if the pull request is rejected. For
 bigger contributions, we want to proactively talk things through, so that we
 don't end up wasting your time.
