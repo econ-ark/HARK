@@ -470,7 +470,7 @@ def combine_indep_dstns(*distributions, seed=None):
     return combined_dstn
 
 
-def calc_expectation(dstn, func=lambda x: x, *args):
+def calc_expectation(dstn, func=lambda x: x, *args, **kwargs):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution object that specifies the probability
@@ -478,16 +478,18 @@ def calc_expectation(dstn, func=lambda x: x, *args):
 
     Parameters
     ----------
-    dstn : DiscreteDistribution
+    dstn : DiscreteDistribution or DiscreteDistributionLabeled
         The distribution over which the function is to be evaluated.
     func : function
         The function to be evaluated.
-        This function should take an array of shape dstn.dim() and return
-        either arrays of arbitrary shape or scalars.
-        It may also take other arguments \\*args.
+        If dstn is a DiscreteDistribution, then this function should take an array of
+        shape dstn.dim() and return either arrays of arbitrary shape or scalars.
+        If dstn is a DiscreteDistributionLabeled, then the function should take an
+        xr.dataset and index into it with variable names.
+        In either case, the function may also take other arguments \\*args.
     \\*args :
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at ``f(dstn, *args)``.
+        The expectation is computed at ``f(dstn, *args)``.
 
     Returns
     -------
@@ -495,8 +497,13 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
-
-    f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
+    if hasattr(dstn, "dataset"):  # cheap test for DiscreteDistributionLabeled
+        f_query = []
+        for i in range(len(dstn.pmv)):
+            temp_dict = {key: dstn.dataset[key][i] for key in dstn.variables.keys()}
+            f_query.append(func(temp_dict, *args, **kwargs))
+    else:
+        f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
 
     f_query = np.stack(f_query, axis=-1)
 
