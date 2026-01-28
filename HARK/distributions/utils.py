@@ -500,7 +500,9 @@ def calc_expectation(dstn, func=lambda x: x, *args, **kwargs):
     if hasattr(dstn, "dataset"):  # cheap test for DiscreteDistributionLabeled
         f_query = []
         for i in range(len(dstn.pmv)):
-            temp_dict = {key: dstn.dataset[key][i] for key in dstn.variables.keys()}
+            temp_dict = {
+                key: float(dstn.variables[key][i]) for key in dstn.variables.keys()
+            }
             f_query.append(func(temp_dict, *args, **kwargs))
     else:
         f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
