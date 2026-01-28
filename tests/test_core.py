@@ -1410,18 +1410,18 @@ class test_export_to_df(unittest.TestCase):
 
         df = self.agent.export_to_df(var=["aNrm", "cNrm"], t=10, sym=True)
         self.assertEqual(df.shape[0], self.agent.AgentCount)
-        self.assertEqual(df.shape[1], 2)  # 4 tracked variables
+        self.assertEqual(df.shape[1], 2)  # 2 tracked variables
         self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
 
     def test_one_t_by_age(self):
         df = self.agent.export_to_df(t=10, by_age=True, sym=True)
-        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
         self.assertEqual(df.shape[1], 4)  # 4 tracked variables
         self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
 
         df = self.agent.export_to_df(var=["aNrm", "cNrm"], by_age=True, t=10, sym=True)
-        self.assertTrue(df.shape[0] > self.agent.AgentCount)
-        self.assertEqual(df.shape[1], 2)  # 4 tracked variables
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 2)  # 2 tracked variables
         self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
 
     def test_invalid(self):
@@ -1429,6 +1429,9 @@ class test_export_to_df(unittest.TestCase):
         self.assertRaises(KeyError, self.agent.export_to_df, var="boop", sym=True)
         self.assertRaises(
             KeyError, self.agent.export_to_df, t=5, var=["boop"], sym=True
+        )
+        self.assertRaises(
+            ValueError, self.agent.export_to_df, var="aNrm", t=10, sym=True
         )
 
         self.agent.track_vars = ["mNrm", "aNrm", "cNrm"]

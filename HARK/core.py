@@ -1445,11 +1445,12 @@ class AgentType(Model):
             must correspond to a key for history or hystory dictionary (i.e. named in track_vars).
             If not provided, then all keys in history or hystory are included.
         t : int or np.array or None
-            If provided, indicates which one period will be included in the dataframe.
+            If an integer, indicates which one period will be included in the dataframe.
             When by_age is False (default), t refers to absolute simulated time t_sim:
             literally the t-th row of history[key]. When by_age is True, t refers to
             within-agent model age t_age; the dataframe will include all agent-periods
-            where the agent has exactly t_age==t.
+            where the agent has exactly t_age==t. If var is a single string, then t is
+            an optional input as an array of periods (or ages) to include (default all).
         by_age : bool
             Indicator for whether observation selection should be on the basis of absolute
             simulated time t_sim or within-agent model age t_age. If True, then t_age
@@ -1476,6 +1477,10 @@ class AgentType(Model):
             raise ValueError(
                 "Either var must be a single string, or t must be a single integer!"
             )
+        if dtype is not None and by_age:
+            raise ValueError(
+                "Can't specify dtype when using by_age is True because of potential incompatibility with representing NaN"
+            )
 
         # Get the relevant history dictionary (deprecate in future)
         history = self.hystory if sym else self.history
@@ -1483,7 +1488,7 @@ class AgentType(Model):
         if by_age:
             try:
                 age = history["t_age"]
-            except:
+            except KeyError:
                 raise KeyError(
                     "t_age must be in track_vars if by_age=True will be used!"
                 )
@@ -1492,7 +1497,7 @@ class AgentType(Model):
         if single_var:
             try:
                 data = history[var]
-            except:
+            except KeyError:
                 raise KeyError(
                     "Variable named " + var + " not found in simulated data!"
                 )
@@ -1569,9 +1574,7 @@ class AgentType(Model):
             # Fill in the output array
             for k in range(K):
                 name = var_list[k]
-                out[:, k] = (
-                    history[name][right_age] if by_age else history[name][t, :]
-                )
+                out[:, k] = history[name][right_age] if by_age else history[name][t, :]
 
             # Convert to dataframe and return it
             df = DataFrame(data=out, columns=var_list, dtype=dtype)
