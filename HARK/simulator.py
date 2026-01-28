@@ -716,7 +716,7 @@ class SimBlock:
         ]
 
         # Quasi-simulate this block
-        self.run_quasi_sim(state_init)
+        self.run_quasi_sim(state_init, norm=norm)
         origin_array = self.origin_array
 
         # Add survival to output if mortality is in the model
@@ -890,7 +890,7 @@ class SimBlock:
         if arrival_N == 0:
             self.init_dstn = master_init_array
 
-    def run_quasi_sim(self, data, j0=0, twist=None):
+    def run_quasi_sim(self, data, j0=0, twist=None, norm=None):
         """
         "Quasi-simulate" this block from given starting data at some event index,
         looping back to end at the same point (only if idx0 > 0 and twist is given).
@@ -910,6 +910,8 @@ class SimBlock:
             Optional dictionary mapping end-of-block variables back to arrival variables.
             If this is provided *and* idx0 > 0, then the quasi-sim is run for a complete
             period, starting and ending at the same index. Else it's run to end of period.
+        norm : str or None
+            The name of the variable on which to perform Harmenberg normalization.
 
         Returns
         -------
@@ -938,7 +940,7 @@ class SimBlock:
             event = self.events[j]
             event.data = self.data  # Give event *all* data directly
             event.N = self.N
-            origin_array = event.quasi_run(origin_array)
+            origin_array = event.quasi_run(origin_array, norm=norm)
             self.N = self.data["pmv_"].size
 
         # If we didn't start at the beginning and there is a twist, loop back to
@@ -953,7 +955,7 @@ class SimBlock:
                 event = self.events[j]
                 event.data = self.data  # Give event *all* data directly
                 event.N = self.N
-                origin_array = event.quasi_run(origin_array)
+                origin_array = event.quasi_run(origin_array, norm=norm)
                 self.N = self.data["pmv_"].size
 
         # Assign the origin array as an attribute of self
