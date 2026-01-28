@@ -918,11 +918,11 @@ class SimBlock:
         None
         """
         # Make the initial vector of probability masses
-        try:
+        if not data:  # data is empty because it's initializer block
+            N_orig = 1
+        else:
             key = list(data.keys())[0]
             N_orig = data[key].size
-        except:  # Only reach this if data is empty because it's initializer block
-            N_orig = 1
         self.N = N_orig
         state_init = deepcopy(data)
         state_init["pmv_"] = np.ones(self.N)
