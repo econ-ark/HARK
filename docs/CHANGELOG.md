@@ -21,6 +21,7 @@ There are some breaking changes:
 
 #### Major Changes
 
+- Added `find_target` method to `AgentType`, automating search for target value of state variables. [#1698](https://github.com/econ-ark/HARK/pull/1698)
 - Utility function for `PrefShockConsumerType` and `KinkyPrefConsumerType` was algebraically rearranged. There is no functional difference, but the scale of preference shocks that yields a given level of consumption variation will be different. [#1708](https://github.com/econ-ark/HARK/pull/1708/)
 - The format of the utility function for MedShockConsumerType has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
 - The policy function representation for MedShockConsumerType has been revised, and old classes have been moved to LegacyOOsolvers.
