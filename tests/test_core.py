@@ -1391,14 +1391,14 @@ class test_export_to_df(unittest.TestCase):
 
     def test_one_var_by_age(self):
         df = self.agent.export_to_df(var="aNrm", by_age=True, sym=True)
-        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
         self.assertEqual(df.shape[1], np.max(self.agent.hystory["t_age"]) + 1)
         self.assertTrue(np.any(np.isnan(df.values)))  # should be missing data
 
         df = self.agent.export_to_df(
             var="aNrm", by_age=True, t=np.array([5, 10, 15, 20, 25]), sym=True
         )
-        self.assertTrue(df.shape[0] > self.agent.AgentCount)
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
         self.assertEqual(df.shape[1], 5)
         self.assertTrue(np.any(np.isnan(df.values)))  # should be missing data
 
