@@ -1410,7 +1410,7 @@ class AgentType(Model):
             then the dataframe will contain T_sim columns, each representing one
             simulated period in absolute simulation time t_sim. Each row of the
             dataframe will represent one *agent index* of the population, with death
-            and replacement occuring within a row. Optionally, argument t can be
+            and replacement occurring within a row. Optionally, argument t can be
             provided as an array to specify which periods to include (default all).
 
         1b) If exactly one simulated variable is named as var and by_age is True,
