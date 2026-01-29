@@ -9,6 +9,7 @@ Guides
    installation
    simulation
    krusell_smith
+   migration_case_study
 
 .. toctree::
    :caption: Development
