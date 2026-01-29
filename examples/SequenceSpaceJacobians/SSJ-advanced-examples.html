@@ -1,0 +1,1612 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Advanced Examples of HA-SSJ’s &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/SequenceSpaceJacobians/SSJ-advanced-examples';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/SequenceSpaceJacobians/SSJ-advanced-examples.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Journey: Economics PhD Student" href="../Journeys/Journey-PhD.html" />
+    <link rel="prev" title="Making HA-SSJ Matrices with HARK" href="SSJ-tutorial.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Advanced Examples of HA-SSJ’s</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb">examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="SSJ-advanced-examples.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Advanced-Examples-of-HA-SSJ's">
+<h1>Advanced Examples of HA-SSJ’s<a class="headerlink" href="#Advanced-Examples-of-HA-SSJ's" title="Link to this heading">#</a></h1>
+<p>This notebook has additional examples of the kinds of things you can do with HARK’s heterogeneous agent sequence space Jacobian (HA-SSJ) constructor functionality. If you don’t know anything at all about that, we recommend you read the <a class="reference internal" href="SSJ-tutorial.html"><span class="doc">HA-SSJ tutorial notebook</span></a> first, or even the <a class="reference internal" href="SSJ_explanation.html"><span class="doc">notebook that explains what an SSJ is</span></a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># First, let&#39;s import some basic things and define a plotting function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+
+<span class="c1"># Define a simple function for plotting SSJs</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_SSJ</span><span class="p">(</span><span class="n">jac</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">outcome</span><span class="p">,</span> <span class="n">shock</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">jac</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">t_max</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t_max</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="p">[</span><span class="n">S</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">jac</span><span class="p">[:,</span> <span class="n">s</span><span class="p">],</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;s=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;time $t$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;rate of change of &quot;</span> <span class="o">+</span> <span class="n">outcome</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;SSJ for &quot;</span> <span class="o">+</span> <span class="n">outcome</span> <span class="o">+</span> <span class="s2">&quot; with respect to &quot;</span> <span class="o">+</span> <span class="n">shock</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot; at time $s$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">top</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<section id="Using-Alternative-Constructors">
+<h2>Using Alternative Constructors<a class="headerlink" href="#Using-Alternative-Constructors" title="Link to this heading">#</a></h2>
+<p>Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass is specified to work “off the shelf”, with default constructors that build complex model objects (like the distribution of income shocks) from primitive parameters. But what if you want to make (e.g.) different distributional assumptions, or build in additional capabilities? In this example, we walk you through how to do that.</p>
+<p>Suppose you’re interested in the <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> model, but the macroeconomic framework in which your consumers will live has variable wage rates. The wage rate doesn’t appear in the <code class="docutils literal notranslate"><span class="pre">ConsIndShock</span></code> model, and the default constructor for <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> doesn’t have a wage rate either. However, HARK already has a small extension of the <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> constructor, which <em>does</em> have a wage rate built in. Let’s make an instance of <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> that uses that alternative
+constructor, then construct SSJs for it.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import our AgentType subclass and alternative constructor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">IndShockConsumerType</span><span class="p">,</span>
+    <span class="n">IndShockConsumerType_constructors_default</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.Income.IncomeProcesses</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">construct_HANK_lognormal_income_process_unemployment</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Substitute the new constructor into the base constructor dictionary</span>
+<span class="n">my_constructors</span> <span class="o">=</span> <span class="n">IndShockConsumerType_constructors_default</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">my_constructors</span><span class="p">[</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">construct_HANK_lognormal_income_process_unemployment</span>
+
+<span class="c1"># Make a parameter dictionary with the new / updated parameters for that constructor</span>
+<span class="n">some_new_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;tax_rate&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span>
+    <span class="s2">&quot;labor&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;wage&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;constructors&quot;</span><span class="p">:</span> <span class="n">my_constructors</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Make an AgentType instance with our alternative constructor</span>
+<span class="n">IndShkTypeWithWage</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">some_new_params</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make grid specifications</span>
+<span class="n">assets_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">401</span><span class="p">}</span>
+<span class="n">consumption_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">151</span><span class="p">}</span>
+<span class="n">my_basic_grid_specs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;kNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">:</span> <span class="n">consumption_grid_spec</span><span class="p">}</span>
+
+<span class="c1"># Make SSJs for asset holdings and consumption with respect to interest factor and wage rate</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_r</span><span class="p">,</span> <span class="n">SSJ_C_r</span> <span class="o">=</span> <span class="n">IndShkTypeWithWage</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_basic_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">SSJ_K_w</span><span class="p">,</span> <span class="n">SSJ_C_w</span> <span class="o">=</span> <span class="n">IndShkTypeWithWage</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;wage&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_basic_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Constructing those SSJs took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructing those SSJs took 21.009 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot some slices of the SSJs</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;wage rate&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;wage rate&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_2.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_3.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_5_3.png" />
+</div>
+</div>
+<p>In fact, the <code class="docutils literal notranslate"><span class="pre">NewKeynesianConsumerType</span></code> is simply a variation of <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> with this income process substituted in, and <em>handwritten</em> methods for computing SSJs for <em>only</em> assets and consumption. HARK’s new SSJ constructor method should work for (almost) <em>all</em> <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses, and for any simulation output.</p>
+</section>
+<section id="Adding-Labor-Supply-on-the-Intensive-Margin">
+<h2>Adding Labor Supply on the Intensive Margin<a class="headerlink" href="#Adding-Labor-Supply-on-the-Intensive-Margin" title="Link to this heading">#</a></h2>
+<p>Now suppose you want to work with a <em>properly</em> new Keynesian macroeconomic environment, so that agents can vary the intensity of their labor supply depending on the wage rate (and their personal circumstances). The <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code> does just that, so let’s work with it.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import and create an agent who chooses labor on the intensive margin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsLaborModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">LaborIntMargConsumerType</span>
+
+<span class="n">LaborSupplyType</span> <span class="o">=</span> <span class="n">LaborIntMargConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="c1"># This will raise some harmless warnings</span>
+
+<span class="c1"># Make grid specifications</span>
+<span class="n">assets_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">401</span><span class="p">}</span>
+<span class="n">labor_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">201</span><span class="p">}</span>
+<span class="n">my_labor_grid_specs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;kNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span> <span class="s2">&quot;LbrEff&quot;</span><span class="p">:</span> <span class="n">labor_grid_spec</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\ConsumptionSaving\ConsLaborModel.py:146: RuntimeWarning: divide by zero encountered in divide
+  * (bNrmGridTerm / (WageRte_T * TranShkGridTerm) + 1.0),
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\ConsumptionSaving\ConsLaborModel.py:146: RuntimeWarning: invalid value encountered in divide
+  * (bNrmGridTerm / (WageRte_T * TranShkGridTerm) + 1.0),
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\rewards.py:66: RuntimeWarning: divide by zero encountered in power
+  return c**-rho
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Construct SSJs for capital and labor with respect to the interest factor and the wage rate</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_r</span><span class="p">,</span> <span class="n">SSJ_L_r</span> <span class="o">=</span> <span class="n">LaborSupplyType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;LbrEff&quot;</span><span class="p">],</span>
+    <span class="n">my_labor_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to the interest factor took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_w</span><span class="p">,</span> <span class="n">SSJ_L_w</span> <span class="o">=</span> <span class="n">LaborSupplyType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;WageRte&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;LbrEff&quot;</span><span class="p">],</span>
+    <span class="n">my_labor_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to the wage rate took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructing the SSJs with respect to the interest factor took 42.820 seconds.
+Constructing the SSJs with respect to the wage rate took 41.585 seconds.
+</pre></div></div>
+</div>
+<p>Notice that the second time <code class="docutils literal notranslate"><span class="pre">make_basic_SSJ</span></code> is called, the argument <code class="docutils literal notranslate"><span class="pre">solved=True</span></code> is also passed. This is because the long run model is the same no matter what, so once it has been solved once (in the first call), we don’t need to re-solve it.</p>
+<p>This model is a little less standard than the <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, so let’s plot the policy functions so we’re familiar with what’s going on. Conveniently, <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code> has a couple of methods for quickly plotting its policy functions. The state variables at decision-time are bank balances <span class="math notranslate nohighlight">\(b_t\)</span> and the transitory productivity shock <span class="math notranslate nohighlight">\(\theta_t\)</span>. The figures below plot the consumption function by <span class="math notranslate nohighlight">\(b_t\)</span> at various levels of transitory productivity.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LaborSupplyType</span><span class="o">.</span><span class="n">plot_cFunc</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bMax</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+<span class="n">LaborSupplyType</span><span class="o">.</span><span class="n">plot_LbrFunc</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bMax</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_11_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_11_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_11_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_11_1.png" />
+</div>
+</div>
+<p>The blue curve that sits below all the others is for <span class="math notranslate nohighlight">\(\theta_t=0\)</span>, representing unemployment at zero productivity; note the barely visible “zero labor supplied” curve in the second figure. The first figure might lead you to believe that this agent can borrow against future earnings, because their consumption function is defined for some <span class="math notranslate nohighlight">\(b_t &lt; 0\)</span> when <span class="math notranslate nohighlight">\(\theta_t &gt; 0\)</span>, but this isn’t really the case. Note that for every level of <span class="math notranslate nohighlight">\(\theta\)</span>, the consumption function goes to
+zero at exactly the same <span class="math notranslate nohighlight">\(b_t\)</span> as where the labor function goes to 1 (zero leisure). That minimum <span class="math notranslate nohighlight">\(b_t\)</span> represents the beginning-of-period wealth they need to have so that if they work 100% of the time <em>and</em> consume nothing, they will end the period with <span class="math notranslate nohighlight">\(a_t=0\)</span>. Why is that important? Because productivity shocks are iid, and they <em>might</em> get <span class="math notranslate nohighlight">\(\theta_{t+1}=0\)</span>; knowing that they need to be in a legal state in <span class="math notranslate nohighlight">\(t+1\)</span>, the agent will <em>never</em> end their period with less
+than <span class="math notranslate nohighlight">\(a_t = 0\)</span> and risk having no resources next period while unemployed.</p>
+<p>Also note that at levels of <span class="math notranslate nohighlight">\(b_t\)</span> that the agent will actually visit, labor supply is <em>increasing</em> in transitory productivity <span class="math notranslate nohighlight">\(\theta_t\)</span>: the agent will work more when it’s a “good time to work”. Labor supply is also <em>decreasing</em> in <span class="math notranslate nohighlight">\(b_t\)</span>. When the agent has more cash on hand already, they want to consume more <em>and</em> don’t need to work as much to finance that consumption. Note that a consequence of this is that a large <em>permanent</em> productivity shock <span class="math notranslate nohighlight">\(\psi_t &gt; 1\)</span> will
+decrease <em>normalized</em> bank balances <span class="math notranslate nohighlight">\(b_t\)</span> and thus induce the agent to supply more labor– again, they will work more when it’s a “good time to work”.</p>
+<p>We provide all of that as prelude to plotting the SSJs, to aid in your interpretation of aggregate responses.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot some slices of the SSJs</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_L_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;labor&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;wage rate&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_L_w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;labor&quot;</span><span class="p">,</span> <span class="s2">&quot;wage rate&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_2.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_3.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_13_3.png" />
+</div>
+</div>
+</section>
+<section id="Implementing-Unemployment-Dynamics">
+<h2>Implementing Unemployment Dynamics<a class="headerlink" href="#Implementing-Unemployment-Dynamics" title="Link to this heading">#</a></h2>
+<p>Now suppose you’re interested in a model in which agents can be <em>persistently</em> unemployed, transitioning between employment and unemployment with known probabilities. In your macroeconomic environment, these transition probabilities might be determined endogenously, but from the perspective of one individual agent, they treat them as given.</p>
+<p>HARK can handle this kind of model using its <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code>, which adds a discrete state on top of the <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> model. Several model objects can depend on the discrete state: survival probabilities, the income shock distribution, the interest factor, and expected permanent income growth. Let’s make an instance of <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code> with two discrete states, one for unemployment (zero labor income) and the other for employment, that are otherwise identical.
+Conveniently, the default constructor for <code class="docutils literal notranslate"><span class="pre">MrkvArray</span></code> (the transition probabilities) is <code class="docutils literal notranslate"><span class="pre">make_simple_binary_markov</span></code>, so we don’t have to change much.</p>
+<p>Let’s say that discrete state <code class="docutils literal notranslate"><span class="pre">z=0</span></code> means unemployment and state <code class="docutils literal notranslate"><span class="pre">z=1</span></code> means employment. The default <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> constructor for <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code> is called <code class="docutils literal notranslate"><span class="pre">construct_markov_lognormal_income_process_unemployment</span></code>; it expects to get inputs for <code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code>, <code class="docutils literal notranslate"><span class="pre">TranShkStd</span></code>, <code class="docutils literal notranslate"><span class="pre">UnempPrb</span></code>, and <code class="docutils literal notranslate"><span class="pre">IncUnemp</span></code> as they vary by discrete state <code class="docutils literal notranslate"><span class="pre">z</span></code>. We also need to make sure the discrete states don’t vary in any other way, and to set the persistence of (un)employment in the long run.</p>
+<p>Because we might be interested in how interest rates affect aggregate outcomes, <code class="docutils literal notranslate"><span class="pre">Rfree</span></code> will be a <code class="docutils literal notranslate"><span class="pre">shock</span></code> parameter. Note that <em>only</em> real-valued parameters (or those in a singleton list) are eligible to be a <code class="docutils literal notranslate"><span class="pre">shock</span></code>, but <code class="docutils literal notranslate"><span class="pre">Rfree</span></code> is a list of <em>arrays</em> of interest factors by discrete state. There’s an easy fix for this: add a trivial constructor function for <code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import our agent type</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsMarkovModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkovConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.distributions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiscreteDistributionLabeled</span>
+
+<span class="c1"># Specify parameters that differ from defaults</span>
+<span class="n">my_markov_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]]),</span>
+    <span class="s2">&quot;TranShkStd&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]]),</span>
+    <span class="s2">&quot;UnempPrb&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.9999</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]),</span>
+    <span class="s2">&quot;IncUnemp&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]),</span>
+    <span class="s2">&quot;Mrkv_p11&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.75</span><span class="p">],</span>  <span class="c1"># expect to be unemployed for 4 periods</span>
+    <span class="s2">&quot;Mrkv_p22&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.985</span><span class="p">],</span>  <span class="c1"># expect to be employed for 67 periods</span>
+    <span class="s2">&quot;MrkvPrbsInit&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">]),</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.01</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">])],</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])],</span>
+    <span class="s2">&quot;Rfree_all&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">],</span>  <span class="c1"># a new parameter that we&#39;ll use to make Rfree!</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>
+    <span class="s2">&quot;tolerance&quot;</span><span class="p">:</span> <span class="mf">1e-12</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Define a substitute &quot;unemployed&quot; income distribution because the default constructor doesn&#39;t like zero income</span>
+<span class="n">UnemployedIncDstn</span> <span class="o">=</span> <span class="n">DiscreteDistributionLabeled</span><span class="p">(</span>
+    <span class="n">pmv</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">]),</span>
+    <span class="n">atoms</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]]),</span>
+    <span class="n">var_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span> <span class="s2">&quot;TranShk&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a trivial constructor function for Rfree</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_flat_Rfree</span><span class="p">(</span><span class="n">T_cycle</span><span class="p">,</span> <span class="n">MrkvArray</span><span class="p">,</span> <span class="n">Rfree_all</span><span class="p">):</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">MrkvArray</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">Rfree</span> <span class="o">=</span> <span class="n">T_cycle</span> <span class="o">*</span> <span class="p">[</span><span class="n">Rfree_all</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">K</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">Rfree</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve an infinite horizon problem with persistent unemployment</span>
+<span class="n">UnempDynType</span> <span class="o">=</span> <span class="n">MarkovConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">my_markov_params</span><span class="p">)</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">IncShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">UnemployedIncDstn</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">constructors</span><span class="p">[</span><span class="s2">&quot;Rfree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">make_flat_Rfree</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the state-dependent consumption functions</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">UnempDynType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_18_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_18_0.png" />
+</div>
+</div>
+<p>The orange plot is the consumption function when employed, and the blue plot is the consumption function when unemployed. For those familiar with Chris Carroll’s “tractable buffer stock” model, you might notice that the unemployed consumption function here looks a bit like the “unemployed” consumption function for the TBS model. This is sensible: being persistently unemployed with only a 25% chance of recovery each period is <em>qualitatively related to</em> knowing that you will never, ever receive
+labor income again.</p>
+<p>Before proceeding to constructing the SSJs, let’s take a look at what the long run distribution of (arrival) states is for this model. The distribution we’re about to plot is actually constructed in the background as part of the process of making SSJs via the “fake news” algorithm, but hidden from the user. Let’s take a quick look at what’s happening “under the hood”.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make grid specifications</span>
+<span class="n">assets_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">60.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">401</span><span class="p">}</span>
+<span class="n">consumption_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">301</span><span class="p">}</span>
+<span class="n">z_grid</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="n">my_mrkv_grid_specs</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;kNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span>
+    <span class="s2">&quot;cNrm&quot;</span><span class="p">:</span> <span class="n">consumption_grid_spec</span><span class="p">,</span>
+    <span class="s2">&quot;zPrev&quot;</span><span class="p">:</span> <span class="n">z_grid</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Find the steady state distribution and unpack it</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">()</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">make_transition_matrices</span><span class="p">(</span><span class="n">my_mrkv_grid_specs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">)</span>
+<span class="n">UnempDynType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">find_steady_state</span><span class="p">()</span>
+<span class="n">kNrm_grid</span> <span class="o">=</span> <span class="n">UnempDynType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">periods</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">grids</span><span class="p">[</span><span class="s2">&quot;kNrm&quot;</span><span class="p">]</span>
+<span class="n">SS_dstn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">UnempDynType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">steady_state_dstn</span><span class="p">,</span> <span class="p">(</span><span class="mi">401</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="c1"># Plot the steady state distribution of capital</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kNrm_grid</span><span class="p">,</span> <span class="n">SS_dstn</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;unemployed&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kNrm_grid</span><span class="p">,</span> <span class="n">SS_dstn</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;employed&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Beginning of period capital $k_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Probability density&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Long run distribution of capital holdings&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">25.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_21_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_21_0.png" />
+</div>
+</div>
+<p>The SSJ constructor builds a representation of the model for simulation purposes (holding it in the <code class="docutils literal notranslate"><span class="pre">_simulator</span></code> attribute of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance) and makes discretized transition matrices. The <code class="docutils literal notranslate"><span class="pre">steady_state_dstn</span></code> has size 802, or 401 capital gridpoints times 2 discrete states; the distribution is stored as a 1D vector but can be reshaped back into its “natural” form.</p>
+<p>The grids that are built can also be used to calculate long run distributions of other outcomes. Let’s do a quick calculation of the steady state (un)employment rate in our specification.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Find the distributional mapping from arrival states to the discrete employment state</span>
+<span class="n">z_outcomes</span> <span class="o">=</span> <span class="n">UnempDynType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">periods</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">matrices</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span>
+
+<span class="c1"># Combine the steady state distribution with that mapping</span>
+<span class="n">emp_dstn_LR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">SS_dstn</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">z_outcomes</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The long run unemployed rate is </span><span class="si">{:.1f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">emp_dstn_LR</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;%.&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The long run employed rate is </span><span class="si">{:.1f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">emp_dstn_LR</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;%.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The long run unemployed rate is 5.7%.
+The long run employed rate is 94.3%.
+</pre></div></div>
+</div>
+<p>If you do a hand calculation of the steady state (un)employment rate based on the dynamics we chose, you’ll get the same result!</p>
+<p>Now we can make SSJs with respect to the interest factor and the persistence of (un)employment. Notice that the <code class="docutils literal notranslate"><span class="pre">shock</span></code> parameter for the interest rate is <code class="docutils literal notranslate"><span class="pre">Rfree_all</span></code>, the new parameter we defined above for use in the simple constructor function. When <code class="docutils literal notranslate"><span class="pre">Rfree_all</span></code> is perturbed, the change is applied through <code class="docutils literal notranslate"><span class="pre">make_flat_Rfree</span></code> to both discrete states. Likewise, we name the SSJ for (un)employment persistence <code class="docutils literal notranslate"><span class="pre">UU</span></code> or <code class="docutils literal notranslate"><span class="pre">EE</span></code> to be a bit more descriptive about what <code class="docutils literal notranslate"><span class="pre">Mrkv_p11</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Mrkv_p22</span></code> mean in this context.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calculate SSJs with respect to the interest factor and (un)employment flows</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_r</span><span class="p">,</span> <span class="n">SSJ_C_r</span> <span class="o">=</span> <span class="n">UnempDynType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree_all&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_mrkv_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to the interest factor took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_UU</span><span class="p">,</span> <span class="n">SSJ_C_UU</span> <span class="o">=</span> <span class="n">UnempDynType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Mrkv_p11&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_mrkv_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to unemployment persistence took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_EE</span><span class="p">,</span> <span class="n">SSJ_C_EE</span> <span class="o">=</span> <span class="n">UnempDynType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Mrkv_p22&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_mrkv_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to employment persistence took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds in total.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructing the SSJs with respect to the interest factor took 36.190 seconds.
+Constructing the SSJs with respect to unemployment persistence took 36.162 seconds.
+Constructing the SSJs with respect to employment persistence took 35.882 seconds in total.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot some slices of the SSJs</span>
+<span class="n">plot_SSJ</span><span class="p">(</span>
+    <span class="n">SSJ_K_UU</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;unemployment persistence&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span>
+<span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span>
+    <span class="n">SSJ_C_UU</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;unemployment persistence&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span>
+<span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_EE</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;employment persistence&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span>
+    <span class="n">SSJ_C_EE</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;employment persistence&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span>
+<span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_2.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_3.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_4.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_4.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_5.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_26_5.png" />
+</div>
+</div>
+</section>
+<section id="SSJs-with-Portfolio-Choice">
+<h2>SSJs with Portfolio Choice<a class="headerlink" href="#SSJs-with-Portfolio-Choice" title="Link to this heading">#</a></h2>
+<p>That was a lot of examples involving labor and employment, so let’s pivot to something on the capital side and consider a model with portfolio choice. Maybe you might be interested in a model in which agents can store their wealth in a low (or no) interest bond, or invest in risky assets– and only the risky asset is used to finance capital. HARK has a few models with portfolio allocation, but let’s use the simplest one, <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code>. Start by importing the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass
+and setting a few baseline parameters, then solve an infinite horizon problem.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import our AgentType and then choose some parameters</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsRiskyAssetModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">RiskyAssetConsumerType</span>
+
+<span class="n">my_risky_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;PortfolioBool&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;RiskyAvg&quot;</span><span class="p">:</span> <span class="mf">1.03</span><span class="p">,</span>
+    <span class="s2">&quot;RiskyStd&quot;</span><span class="p">:</span> <span class="mf">0.26</span><span class="p">,</span>
+    <span class="s2">&quot;RiskyCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">3.5</span><span class="p">,</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.97</span><span class="p">,</span>
+    <span class="s2">&quot;aXtraMax&quot;</span><span class="p">:</span> <span class="mf">300.0</span><span class="p">,</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;tolerance&quot;</span><span class="p">:</span> <span class="mf">1e-10</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Make and solve our portfolio choice model</span>
+<span class="n">PortChoiceType</span> <span class="o">=</span> <span class="n">RiskyAssetConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="o">**</span><span class="n">my_risky_params</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">PortChoiceType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving the portfolio allocation model took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving the portfolio allocation model took 40.581 seconds.
+</pre></div></div>
+</div>
+<p>Let’s make sure the solution to the model looks sensible by plotting the policy functions.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">PortChoiceType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Risky asset share $s_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">PortChoiceType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_30_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_30_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_30_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_30_1.png" />
+</div>
+</div>
+<p>That looks ok to me. Now we can define grids for our outcomes of interest, then compute SSJs.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">assets_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">100.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">501</span><span class="p">}</span>
+<span class="n">consumption_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">201</span><span class="p">}</span>
+<span class="n">share_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">101</span><span class="p">}</span>
+<span class="n">my_portfolio_grid_specs</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;kNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span>
+    <span class="s2">&quot;cNrm&quot;</span><span class="p">:</span> <span class="n">consumption_grid_spec</span><span class="p">,</span>
+    <span class="s2">&quot;Share&quot;</span><span class="p">:</span> <span class="n">share_grid_spec</span><span class="p">,</span>
+    <span class="s2">&quot;qNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_r</span><span class="p">,</span> <span class="n">SSJ_Q_r</span><span class="p">,</span> <span class="n">SSJ_C_r</span> <span class="o">=</span> <span class="n">PortChoiceType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;RiskyAvg&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;qNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_portfolio_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to mean risky return took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_s</span><span class="p">,</span> <span class="n">SSJ_Q_s</span><span class="p">,</span> <span class="n">SSJ_C_s</span> <span class="o">=</span> <span class="n">PortChoiceType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;RiskyStd&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;qNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_portfolio_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to stdev risky return took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_f</span><span class="p">,</span> <span class="n">SSJ_Q_f</span><span class="p">,</span> <span class="n">SSJ_C_f</span> <span class="o">=</span> <span class="n">PortChoiceType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;qNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_portfolio_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">T_max</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Constructing the SSJs with respect to risk-free return return took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructing the SSJs with respect to mean risky return took 88.749 seconds.
+Constructing the SSJs with respect to stdev risky return took 89.499 seconds.
+Constructing the SSJs with respect to risk-free return return took 87.929 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot some slices of the SSJs</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;total assets&quot;</span><span class="p">,</span> <span class="s2">&quot;mean risky return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_Q_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;risky assets&quot;</span><span class="p">,</span> <span class="s2">&quot;mean risky return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;mean risky return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_s</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;total assets&quot;</span><span class="p">,</span> <span class="s2">&quot;stdev risky return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_Q_s</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;risky assets&quot;</span><span class="p">,</span> <span class="s2">&quot;stdev risky return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_s</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;stdev risky return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_f</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;total assets&quot;</span><span class="p">,</span> <span class="s2">&quot;risk-free return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_Q_f</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;risky assets&quot;</span><span class="p">,</span> <span class="s2">&quot;risk-free return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_f</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;risk-free return&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_2.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_3.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_4.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_5.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_6.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_6.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_7.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_7.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_8.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-advanced-examples_33_8.png" />
+</div>
+</div>
+<p>Note that for this model, we did <em>not</em> specify <code class="docutils literal notranslate"><span class="pre">offset=True</span></code> when constructing SSJs, but we <em>did</em> set it for interest factor shocks in all other models– why?! It’s because of a quirk of the timing of the model file. In the risky asset model, the model file says that the risky interest factor is revealed at the <em>end</em> of the period; in all other models, the interest factor is applied to capital at the <em>start</em> of the period. We change the timing for this model so that the risky asset share does
+not need to be “carried over” as an arrival variable in <span class="math notranslate nohighlight">\(t+1\)</span>, but instead used in the same <span class="math notranslate nohighlight">\(t\)</span> where it was chosen. This reduces the dimensionality of the model from the perspective of the intertemporal transition.</p>
+<p>To see this difference in model timing, let’s use the <code class="docutils literal notranslate"><span class="pre">describe_model()</span></code> method on the risky asset consumer and a different agent type.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PortChoiceType</span><span class="o">.</span><span class="n">describe_model</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ConsRiskyAsset: Consumption-saving model with permanent and transitory income risk and asset allocation between a risk-free asset and a (higher return) risky asset. In this simple model, asset returns happen at the *end* of a period. This will only work properly if income and return shocks are independent.
+
+----------------------------------
+%%%%%%%%%%%%% SYMBOLS %%%%%%%%%%%%
+----------------------------------
+kNrm (float)        : beginning of period wealth, normalized by p_{t-1}
+pLvlPrev (float)    : inbound permanent income level, before growth
+Risky (float)       : realized return factor on risky assets
+Rport (float)       : realized return factor on portfolio
+yNrm (float)        : normalized labor income
+pLvl (float)        : permanent income level
+bNrm (float)        : normalized bank balances
+mNrm (float)        : normalized market resources
+cNrm (float)        : normalized consumption
+Share (float)       : share of wealth allocated to risky assets this period
+aNrm (float)        : normalized end-of-period assets
+qNrm (float)        : normalized risky asset holdings
+live (bool)         : whether the agent survives
+Rfree (param)       : risk free return factor on assets
+PermGroFac (param)  : expected permanent income growth factor
+LivPrb (param)      : survival probability at end of period
+cFunc (func)        : consumption function over market resources
+ShareFunc (func)    : risky share function over market resource
+IncShkDstn (dstn)   : joint distribution of permanent and transitory income shocks
+RiskyDstn (dstn)    : distribution of risky asset returns
+pLvlInitDstn (dstn) : distribution of permanent income at model birth
+kNrmInitDstn (dstn) : distribution of normalized capital holdings at birth
+PermShk (float)     :
+TranShk (float)     :
+G (float)           :
+wNrm (float)        :
+dead (bool)         : whether agent died this period
+t_seq (int)         : which period of the sequence the agent is on
+t_age (int)         : how many periods the agent has already lived for
+----------------------------------
+%%%%% INITIALIZATION AT BIRTH %%%%
+----------------------------------
+pLvlPrev ~ pLvlInitDstn : draw initial permanent income from distribution
+kNrm ~ kNrmInitDstn     : draw initial capital from distribution
+----------------------------------
+%%%% DYNAMICS WITHIN PERIOD t %%%%
+----------------------------------
+(PermShk,TranShk) ~ IncShkDstn    : draw income shocks from joint distribution
+yNrm = TranShk                    : normalized income is the transitory shock
+G = PermGroFac*PermShk            : calculate permanent income growth
+pLvl = pLvlPrev*G                 : update permanent income level
+bNrm = kNrm/G                     : calculate normalized bank balances
+mNrm = bNrm+yNrm                  : calculate normalized market resources
+cNrm = cFunc@(mNrm)               : evaluate consumption when share is fixed
+Share = ShareFunc@(mNrm)          : evaluate risky share when it is fixed
+wNrm = mNrm-cNrm                  : calculate wealth after consumption
+Risky ~ RiskyDstn                 : draw risky return shock
+Rport = Rfree+(Risky-Rfree)*Share : calculate realized portfolio return
+aNrm = Rport*wNrm                 : calculate end-of-period assets
+qNrm = aNrm*Share                 : calculate risky asset holdings
+live ~ {LivPrb}                   : draw survival
+dead = 1-live                     : dead are non-survivors
+----------------------------------
+%%%%%%% RELABELING / TWIST %%%%%%%
+----------------------------------
+aNrm[t-1] &lt;---&gt; kNrm[t]
+pLvl[t-1] &lt;---&gt; pLvlPrev[t]
+-----------------------------------
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">IndShkTypeWithWage</span><span class="o">.</span><span class="n">describe_model</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ConsIndShock: Consumption-saving model with permanent and transitory income shocks and a risk-free asset.
+
+----------------------------------
+%%%%%%%%%%%%% SYMBOLS %%%%%%%%%%%%
+----------------------------------
+kNrm (float)        : beginning of period capital, normalized by p_{t-1}
+pLvlPrev (float)    : inbound permanent income level, before growth
+yNrm (float)        : normalized labor income
+pLvl (float)        : permanent income level
+bNrm (float)        : normalized bank balances
+mNrm (float)        : normalized market resources
+cNrm (float)        : normalized consumption
+aNrm (float)        : normalized end-of-period assets
+live (bool)         : whether the agent survives
+Rfree (param)       : risk free return factor on assets
+PermGroFac (param)  : expected permanent income growth factor
+LivPrb (param)      : survival probability at end of period
+cFunc (func)        : consumption function over market resources
+IncShkDstn (dstn)   : joint distribution of permanent and transitory shocks
+pLvlInitDstn (dstn) : distribution of permanent income at model birth
+kNrmInitDstn (dstn) : distribution of normalized capital holdings at birth
+PermShk (float)     :
+TranShk (float)     :
+G (float)           :
+dead (bool)         : whether agent died this period
+t_seq (int)         : which period of the sequence the agent is on
+t_age (int)         : how many periods the agent has already lived for
+----------------------------------
+%%%%% INITIALIZATION AT BIRTH %%%%
+----------------------------------
+pLvlPrev ~ pLvlInitDstn : draw initial permanent income from distribution
+kNrm ~ kNrmInitDstn     : draw initial capital from distribution
+----------------------------------
+%%%% DYNAMICS WITHIN PERIOD t %%%%
+----------------------------------
+(PermShk,TranShk) ~ IncShkDstn : draw permanent and transitory income shocks
+yNrm = TranShk                 : normalized income is the transitory shock
+G = PermGroFac*PermShk         : calculate permanent income growth
+pLvl = pLvlPrev*G              : update permanent income level
+bNrm = Rfree*kNrm/G            : calculate normalized bank balances
+mNrm = bNrm+yNrm               : calculate normalized market resources
+cNrm = cFunc@(mNrm)            : evaluate consumption from market resources
+aNrm = mNrm-cNrm               : calculate normalized end-of-period assets
+live ~ {LivPrb}                : draw survival
+dead = 1-live                  : dead are non-survivors
+----------------------------------
+%%%%%%% RELABELING / TWIST %%%%%%%
+----------------------------------
+aNrm[t-1] &lt;---&gt; kNrm[t]
+pLvl[t-1] &lt;---&gt; pLvlPrev[t]
+-----------------------------------
+</pre></div></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="SSJ-tutorial.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Making HA-SSJ Matrices with HARK</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../Journeys/Journey-PhD.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Journey: Economics PhD Student</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Using-Alternative-Constructors">Using Alternative Constructors</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Adding-Labor-Supply-on-the-Intensive-Margin">Adding Labor Supply on the Intensive Margin</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Implementing-Unemployment-Dynamics">Implementing Unemployment Dynamics</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#SSJs-with-Portfolio-Choice">SSJs with Portfolio Choice</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

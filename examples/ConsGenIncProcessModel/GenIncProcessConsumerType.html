@@ -1,0 +1,1266 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Generalized Income Process &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsGenIncProcessModel/GenIncProcessConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsGenIncProcessModel/GenIncProcessConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Aggregate Productivity Shocks" href="../ConsAggShockModel/AggShockConsumerType.html" />
+    <link rel="prev" title="Discrete State with Markov Transitions" href="../ConsMarkovModel/MarkovConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Generalized Income Process</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb">examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="GenIncProcessConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Generalized-Income-Process">
+<h1>Generalized Income Process<a class="headerlink" href="#Generalized-Income-Process" title="Link to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initial imports and notebook setup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsGenIncProcessModel</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">IndShockExplicitPermIncConsumerType</span><span class="p">,</span>
+    <span class="n">PersistentShockConsumerType</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+</pre></div>
+</div>
+</div>
+<p>Recall that the <code class="docutils literal notranslate"><span class="pre">ConsIndShockModel</span></code> assumes that income has a permanent component <span class="math notranslate nohighlight">\(p\)</span> which is subject to “permanent” shocks:</p>
+<p><span class="math notranslate nohighlight">\(\log p_{t+1} = \log p_{t} + \log \psi_{t+1}\)</span></p>
+<p>However, many papers in the literature instead examine models in which shocks merely have some persistence,</p>
+<p><span class="math notranslate nohighlight">\(\log p_{t+1} = \varphi \log p_{t} + \log \psi_{t+1}\)</span></p>
+<p>where if <span class="math notranslate nohighlight">\(0 &lt; \varphi &lt; 1\)</span> then <span class="math notranslate nohighlight">\(\lim_{n \uparrow \infty} \mathbb{E}_{t}[\log p_{t+n}]=0\)</span> (which means that the level of <span class="math notranslate nohighlight">\(p\)</span> reverts to its mean of <span class="math notranslate nohighlight">\(p=1\)</span>. The two models become identical as <span class="math notranslate nohighlight">\(\varphi\)</span> approaches 1.</p>
+<p>This notebook describes HARK’s tools to solve models with persistent shocks. This is acheived by the following:</p>
+<ol class="arabic simple">
+<li><p>Defining <code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code>, which includes persistent income <span class="math notranslate nohighlight">\(P_t\)</span> as a state variable, with a general or generic income process.</p></li>
+<li><p>Defining the <code class="docutils literal notranslate"><span class="pre">IndShockExplicitPermIncConsumerType</span></code> as a special case of <code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code>, which replicates <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>’s income process <em>but</em> explicitly tracks permanent income as a state variable.</p></li>
+<li><p>Defining the <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> as another (more useful) special case of <code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code> that includes an AR(1) persistent income process (in logs).</p></li>
+</ol>
+<section id="General-Income-Process-model">
+<h2>General Income Process model<a class="headerlink" href="#General-Income-Process-model" title="Link to this heading">#</a></h2>
+<p>In the <code class="docutils literal notranslate"><span class="pre">ConsGenIncProcessModel</span></code>, the user can define a generic function <span class="math notranslate nohighlight">\(G\)</span> that translates current <span class="math notranslate nohighlight">\(P_{t}\)</span> into expected next period persistent income <span class="math notranslate nohighlight">\(P_{t+1}\)</span> (subject to shocks).</p>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math notranslate nohighlight">\(\newcommand{\R}{\mathbb{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\CRRA}{\rho}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\LivPrb}{\mathsf{S}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PermGroFac}{\Gamma}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Rfree}{\mathsf{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\DiscFac}{\beta}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\WealthCurve}{\hat{nu}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\WealthFac}{\alpha}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\WealthShift}{\xi}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\cLvl}{C}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\mLvl}{M}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\aLvl}{A}\)</span></p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t) &=& \max_{c_t} U(c_t) + \beta \mathsf{S}_{t} \mathbb{E}_{t} [V_{t+1}(M_{t+1}, P_{t+1})] ~~\text{s.t.}\\
+A_t &=& M_t - C_t, \\
+A_t &\geq& \underline{a} \cdot P_t, \\
+M_{t+1} &=& \mathsf{R}_{t+1} A_t + \theta_{t+1}, \\
+P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
+(\psi_t, \theta_t) &\sim& F_{t}, \\
+\mathbb{E} [{\psi_t}] &=& 1, \\
+U(C) &=& \frac{C^{1-\rho}}{1-\rho}.
+\end{eqnarray*}</span></p>
+<p>The one-period problem for this model is solved by the function <code class="docutils literal notranslate"><span class="pre">solve_one_period_ConsGenIncProcess</span></code>. The class <code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code> extends <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> to represent agents in this model. To construct an instance of this class, several parameters must be passed to the constructor, as shown in the table below (parameters can be either “primitive” or “constructed”).</p>
+</section>
+<section id="Example-parameter-values-to-solve-GenIncProcess-model">
+<h2>Example parameter values to solve GenIncProcess model<a class="headerlink" href="#Example-parameter-values-to-solve-GenIncProcess-model" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Constructed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p>0.96</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p>2.0</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathsf{R}_t\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p>1.03</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathsf{S}_t\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p>[0.98]</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BoroCnstArt</span></code></p></td>
+<td><p>0.0</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Indicator for whether <code class="docutils literal notranslate"><span class="pre">vFunc</span></code> should be computed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">vFuncBool</span></code></p></td>
+<td><p>‘True’</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Indicator for whether <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> should use cubic splines</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CubicBool</span></code></p></td>
+<td><p>‘False’</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(F\)</span></p></td>
+<td><p>A list containing three arrays of floats, representing a discrete
+approximation to the income process: event probabilities, persistent
+shocks, transitory shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(G\)</span></p></td>
+<td><p>Expected persistent income next period</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Array of time-varying persistent income levels</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Array of “extra” end-of-period asset values</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<section id="Constructed-inputs-to-solve-GenIncProcess">
+<h3>Constructed inputs to solve GenIncProcess<a class="headerlink" href="#Constructed-inputs-to-solve-GenIncProcess" title="Link to this heading">#</a></h3>
+<p>The “constructed” inputs above are use default constructor functions as follows.</p>
+<ul class="simple">
+<li><p>The input <code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code> is created by the function <code class="docutils literal notranslate"><span class="pre">construct_lognormal_income_process_unemployment</span></code>, the default income shock constructor for almost all HARK models.</p></li>
+<li><p>The input <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> is created by the function <code class="docutils literal notranslate"><span class="pre">make_trivial_pLvlNextFunc</span></code>. In this model, the default constructor creates a trivial <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> attribute with no persistent income dynamics. But we can overwrite it manually or when defining other subclasses (for example, to make an AR1 income process for the newly defined agent-type).</p></li>
+<li><p>The input <code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code> is created by the function <code class="docutils literal notranslate"><span class="pre">make_pLvlGrid_by_simulation</span></code>, which is done by updating the grid of persistent income levels for infinite horizon models (cycles=0) and lifecycle models (cycles=1). This method draws on the initial distribution of persistent income, the <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code>s, <code class="docutils literal notranslate"><span class="pre">pLogInitMean</span></code>, <code class="docutils literal notranslate"><span class="pre">pLogInitStd</span></code> and the attribute <code class="docutils literal notranslate"><span class="pre">pLvlPctiles</span></code> (percentiles of the distribution of persistent income). It then uses a simulation approach to generate the
+<code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code> at each period of the cycle.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pLvlPctiles</span></code> is itself constructed by <code class="docutils literal notranslate"><span class="pre">make_basic_pLvlPctiles</span></code> based on primitive parameters including <code class="docutils literal notranslate"><span class="pre">pLvlPctiles_count</span></code>, <code class="docutils literal notranslate"><span class="pre">pLvlPctiles_bound</span></code>, and <code class="docutils literal notranslate"><span class="pre">pLvlPctiles_tail_count</span></code>.</p></li>
+<li><p>The input <code class="docutils literal notranslate"><span class="pre">aXtraGrid</span></code> is created by <code class="docutils literal notranslate"><span class="pre">make_assets_grid</span></code>, which builds the agent’s end-of-period assets grid by constructing a multi-exponentially spaced grid of aXtra values, based on <code class="docutils literal notranslate"><span class="pre">aXtraMin</span></code>, <code class="docutils literal notranslate"><span class="pre">aXtraMax</span></code>, <code class="docutils literal notranslate"><span class="pre">aXtraCount</span></code>, and <code class="docutils literal notranslate"><span class="pre">aXtraNestFac</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<section id="Consumer-with-Explicit-Permanent-Income">
+<h2>Consumer with Explicit Permanent Income<a class="headerlink" href="#Consumer-with-Explicit-Permanent-Income" title="Link to this heading">#</a></h2>
+<p>Now that we’ve defined the baseline model of a consumer facing persistent income shocks, we can define an “explicit permanent income” consumer who experiences idiosyncratic shocks to permanent and transitory, and faces permanent income growth <em>as a particular case of the general model</em>.</p>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+A_t &=& M_t - C_t, \\
+A_t &\geq& \underline{a} \cdot P_t, \\
+M_{t+1} &=& \mathsf{R}_{t+1} A_t + \theta_{t+1}, \\
+P_{t+1} &=& G_{t+1}(P_t)\psi_{t+1}, \\
+(\psi_t,\theta_t) &\sim& F_{t}, ~~\mathbb{E} [{\psi_t}] = 1, \\
+U(C) &=& \frac{C^{1-\rho}}{1-\rho}.
+\end{eqnarray*}</span></p>
+<p><strong>NB:</strong> This agent type is identical to an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> consumer, but now the level of permanent income <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> is explicitly tracked as a state variable. This is the sense in which this model is a particular class of the GenIncProcess model, as shown in the mathematical description of the agent’s optimization problem in that model.</p>
+<p>To construct <code class="docutils literal notranslate"><span class="pre">IndShockExplicitPermIncConsumerType</span></code>, we need to pass additional parameters to the constructor as shown in the table below.</p>
+<section id="Additional-parameters-to-solve-ExplicitPermInc-model">
+<h3>Additional parameters to solve ExplicitPermInc model<a class="headerlink" href="#Additional-parameters-to-solve-ExplicitPermInc-model" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Constructed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Gamma\)</span></p></td>
+<td><p>Permanent income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p>[1.0]</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="Constructed-inputs-to-solve-ExplicitPermInc">
+<h3>Constructed inputs to solve ExplicitPermInc<a class="headerlink" href="#Constructed-inputs-to-solve-ExplicitPermInc" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>In this “explicit permanent income” model, we replace the constructor for <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> with <code class="docutils literal notranslate"><span class="pre">make_explicit_perminc_pLvlNextFunc</span></code> to create <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> as a sequence of linear functions, indicating constant expected permanent income growth across permanent income levels. This method uses the attribute <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code>.</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># This cell defines a dictionary to make an instance of &quot;explicit permanent income&quot; consumer.</span>
+<span class="n">GenIncDictionary</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># Coefficient of relative risk aversion</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">],</span>  <span class="c1"># Interest factor on assets</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>  <span class="c1"># Intertemporal discount factor</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.98</span><span class="p">],</span>  <span class="c1"># Survival probability</span>
+    <span class="s2">&quot;AgentCount&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Number of agents of this type (only matters for simulation)</span>
+    <span class="s2">&quot;kLogInitMean&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial assets (only matters for simulation)</span>
+    <span class="s2">&quot;kLogInitStd&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial assets (only for simulation)</span>
+    <span class="s2">&quot;pLogInitMean&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial permanent income (only matters for simulation)</span>
+    <span class="s2">&quot;pLogInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial permanent income (only matters for simulation)</span>
+    <span class="s2">&quot;PermGroFacAgg&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Aggregate permanent income growth factor (only matters for simulation)</span>
+    <span class="s2">&quot;T_age&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Age after which simulated agents are automatically killed</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Number of periods in the cycle for this agent type</span>
+    <span class="c1"># Parameters for constructing the &quot;assets above minimum&quot; grid</span>
+    <span class="s2">&quot;aXtraMin&quot;</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># Minimum end-of-period &quot;assets above minimum&quot; value</span>
+    <span class="s2">&quot;aXtraMax&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>  <span class="c1"># Maximum end-of-period &quot;assets above minimum&quot; value</span>
+    <span class="c1"># Some other value of &quot;assets above minimum&quot; to add to the grid</span>
+    <span class="s2">&quot;aXtraExtra&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">]),</span>
+    <span class="s2">&quot;aXtraNestFac&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># Exponential nesting factor when constructing &quot;assets above minimum&quot; grid</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">48</span><span class="p">,</span>  <span class="c1"># Number of points in the grid of &quot;assets above minimum&quot;</span>
+    <span class="c1"># Parameters describing the income process</span>
+    <span class="s2">&quot;PermShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Number of points in discrete approximation to permanent income shocks</span>
+    <span class="s2">&quot;TranShkCount&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Number of points in discrete approximation to transitory income shocks</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span>  <span class="c1"># Standard deviation of log permanent income shocks</span>
+    <span class="s2">&quot;TranShkStd&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">],</span>  <span class="c1"># Standard deviation of log transitory income shocks</span>
+    <span class="s2">&quot;UnempPrb&quot;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span>  <span class="c1"># Probability of unemployment while working</span>
+    <span class="s2">&quot;UnempPrbRet&quot;</span><span class="p">:</span> <span class="mf">0.005</span><span class="p">,</span>  <span class="c1"># Probability of &quot;unemployment&quot; while retired</span>
+    <span class="s2">&quot;IncUnemp&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>  <span class="c1"># Unemployment benefits replacement rate</span>
+    <span class="s2">&quot;IncUnempRet&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># &quot;Unemployment&quot; benefits when retired</span>
+    <span class="s2">&quot;tax_rate&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Flat income tax rate</span>
+    <span class="s2">&quot;T_retire&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># Period of retirement (0 --&gt; no retirement)</span>
+    <span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Artificial borrowing constraint; imposed minimum level of end-of period assets</span>
+    <span class="s2">&quot;CubicBool&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># Use cubic spline interpolation when True, linear interpolation when False</span>
+    <span class="s2">&quot;vFuncBool&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Whether to calculate the value function during solution</span>
+    <span class="c1"># More parameters specific to &quot;Explicit Permanent income&quot; shock model</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;pLvlPctiles&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="p">[</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">],</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">19</span><span class="p">),</span>
+            <span class="p">[</span><span class="mf">0.97</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">,</span> <span class="mf">0.995</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">],</span>
+        <span class="p">),</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">],</span>  <span class="c1"># Permanent income growth factor - long run permanent income growth doesn&#39;t work yet</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s now create an instance of the type of consumer we are interested in and solve this agent’s problem with an infinite horizon (cycles=0).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve an example &quot;explicit permanent income&quot; consumer with idiosyncratic shocks</span>
+<span class="n">ExplicitExample</span> <span class="o">=</span> <span class="n">IndShockExplicitPermIncConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">GenIncDictionary</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Here, the lowest percentile is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">GenIncDictionary</span><span class="p">[</span><span class="s2">&quot;pLvlPctiles&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;and the highest percentile is &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">GenIncDictionary</span><span class="p">[</span><span class="s2">&quot;pLvlPctiles&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot;.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Here, the lowest percentile is 0.1
+and the highest percentile is 99.9.
+
+</pre></div></div>
+</div>
+<p>In the cell below, we generate a plot of the consumption function for explicit permanent income consumer at different income levels.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function at various permanent income levels.</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption function by pLvl for explicit permanent income consumer:&quot;</span><span class="p">)</span>
+<span class="n">pLvlGrid</span> <span class="o">=</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">mLvlGrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pLvlGrid</span><span class="p">:</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">mLvlGrid</span> <span class="o">+</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mLvlMin</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M_temp</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resource level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Consumption level $C_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function by pLvl for explicit permanent income consumer:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_14_1.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_14_1.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Permanent-income-normalized">
+<h2>Permanent income normalized<a class="headerlink" href="#Permanent-income-normalized" title="Link to this heading">#</a></h2>
+<p>For comparison, we can solve the same problem much faster using an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, which normalizes out permanent income <span class="math notranslate nohighlight">\(P_t\)</span> when solving the model. That is, the model’s solution is homothetic with respect to permanent income, so the <code class="docutils literal notranslate"><span class="pre">ExplicitPermInc</span></code> model is <em>intentionally</em> doing much more work than needed to solve the model.</p>
+<p>Let’s solve an equivalent problem with <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> and then compare the <em>normalized</em> solutions.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve an example of normalized model</span>
+<span class="n">NormalizedExample</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">GenIncDictionary</span><span class="p">)</span>
+<span class="n">NormalizedExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the normalized problem with and without explicit permanent income and plot the consumption functions</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Normalized consumption function by pLvl for explicit permanent income consumer:&quot;</span><span class="p">)</span>
+<span class="n">pLvlGrid</span> <span class="o">=</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">mNrmGrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pLvlGrid</span><span class="p">:</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">mNrmGrid</span> <span class="o">*</span> <span class="n">p</span> <span class="o">+</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mLvlMin</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M_temp</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span> <span class="o">/</span> <span class="n">p</span><span class="p">,</span> <span class="n">C</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Consumption function for normalized problem (without explicit permanent income):&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">mNrmMin</span> <span class="o">=</span> <span class="n">NormalizedExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">NormalizedExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">mNrmMin</span><span class="p">,</span> <span class="n">mNrmMin</span> <span class="o">+</span> <span class="mf">20.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Normalized consumption function by pLvl for explicit permanent income consumer:
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_17_1.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_17_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function for normalized problem (without explicit permanent income):
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_17_3.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_17_3.png" />
+</div>
+</div>
+<p>The figures above show that the normalized consumption function for the “explicit permanent income” consumer is almost identical for every permanent income level (and the same as the normalized problem’s <code class="docutils literal notranslate"><span class="pre">cFunc</span></code>), but is less accurate due to extrapolation outside the bounds of<code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code>.</p>
+<p>The “explicit permanent income” solution deviates from the solution to the normalized problem because of errors from extrapolating beyond the bounds of the <code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code>. The error is largest for <span class="math notranslate nohighlight">\(P_t\)</span> values near the upper and lower bounds, and propagates toward the center of the distribution.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the value function at various permanent income levels</span>
+<span class="k">if</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">vFuncBool</span><span class="p">:</span>
+    <span class="n">pGrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mi">24</span><span class="p">)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pGrid</span><span class="p">:</span>
+        <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mLvlMin</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">ExplicitExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">vFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M_temp</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="o">-</span><span class="mi">200</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Value $V(M_t,P_t)$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_19_0.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_19_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Simulate many periods to get to the stationary distribution</span>
+<span class="n">ExplicitExample</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="n">ExplicitExample</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;cLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">ExplicitExample</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">ExplicitExample</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ExplicitExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;mLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Simulated time period&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average market resources mLvl&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_20_0.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_20_0.png" />
+</div>
+</div>
+</section>
+<section id="Persistent-income-shock-consumer">
+<h2>Persistent income shock consumer<a class="headerlink" href="#Persistent-income-shock-consumer" title="Link to this heading">#</a></h2>
+<p>Next, the <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> class is introduced to solve consumption-saving models with idiosyncratic shocks to income in which shocks are persistent and transitory. This model extends <code class="docutils literal notranslate"><span class="pre">ConsGenIndShockModel</span></code> by allowing (log) persistent income to follow an AR(1) process.</p>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t) &=& \max_{C_t} U(C_t) + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}) ], \\
+A_t &=& M_t - C_t, \\
+A_t &\geq& \underline{a} \cdot P_t, \\
+M_{t+1} &=& \mathsf{R}_{t+1} A_t + \theta_{t+1}, \\
+\log(P_{t+1}) &=& \varphi \log(P_t)+(1-\varphi) \log(\overline{P}_{t+1}) + \log(\Gamma_{t+1}) + \log(\psi_{t+1}), \\
+(\psi_t, \theta_t) &\sim& F_{t}, \\
+\mathbb{E} [{\psi_t}] &=& 1, \\
+U(C) &=& \frac{C^{1-\rho}}{1-\rho}.
+\end{eqnarray*}</span></p>
+<p>The sequence of <span class="math notranslate nohighlight">\(\overline{P}_{t}\)</span> depends on the cumulative product of <span class="math notranslate nohighlight">\(\Gamma_t\)</span> up to age <span class="math notranslate nohighlight">\(t\)</span>, starting from some initial level <span class="math notranslate nohighlight">\(\overline{P}_0\)</span>.</p>
+<section id="Additional-example-parameters-to-solve-PersistentShock-model">
+<h3>Additional example parameters to solve PersistentShock model<a class="headerlink" href="#Additional-example-parameters-to-solve-PersistentShock-model" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Constructed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\varphi\)</span></p></td>
+<td><p>Serial correlation coefficient for permanent income</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PrstIncCorr</span></code></p></td>
+<td><p>0.98</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="Constructed-inputs-to-solve-PersistentShock">
+<h3>Constructed inputs to solve PersistentShock<a class="headerlink" href="#Constructed-inputs-to-solve-PersistentShock" title="Link to this heading">#</a></h3>
+<p>For this model, we swap the constructor for <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> to the function <code class="docutils literal notranslate"><span class="pre">make_AR1_style_pLvlNextFunc</span></code>, which builds a sequence of AR1-style functions. This function now the attributes <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> and <code class="docutils literal notranslate"><span class="pre">PrstIncCorr</span></code>, along with <code class="docutils literal notranslate"><span class="pre">pLogInitMean</span></code>. If <code class="docutils literal notranslate"><span class="pre">cycles=0</span></code>, the product of <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> across all periods must be 1.0, otherwise this method is invalid.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a dictionary for the &quot;persistent idiosyncratic shocks&quot; model</span>
+<span class="n">PrstIncCorr</span> <span class="o">=</span> <span class="mf">0.98</span>  <span class="c1"># Serial correlation coefficient for persistent income</span>
+
+<span class="n">persistent_shocks</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">GenIncDictionary</span><span class="p">)</span>
+<span class="n">persistent_shocks</span><span class="p">[</span><span class="s2">&quot;PrstIncCorr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">PrstIncCorr</span>
+</pre></div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> class solves the problem of a consumer facing idiosyncratic shocks to his persistent and transitory income, and for which the (log) persistent income follows an AR1 process rather than random walk. After modifying the dictionary from the <code class="docutils literal notranslate"><span class="pre">ConsGenIncProcessModel</span></code> class to accomodate these modeling choices, we generate a particular instance of the “persistent income” consumer type below.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve an example of &quot;persistent idisyncratic shocks&quot; consumer</span>
+<span class="n">PersistentExample</span> <span class="o">=</span> <span class="n">PersistentShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">persistent_shocks</span><span class="p">)</span>
+<span class="n">PersistentExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function at various levels of persistent income pLvl</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Consumption function by persistent income level pLvl for a consumer with AR1 coefficient of &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">PersistentExample</span><span class="o">.</span><span class="n">PrstIncCorr</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot;:&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">pLvlGrid</span> <span class="o">=</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">mLvlGrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pLvlGrid</span><span class="p">:</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">mLvlGrid</span> <span class="o">+</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mLvlMin</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M_temp</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">3.6</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Consumption level $C_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function by persistent income level pLvl for a consumer with AR1 coefficient of 0.98:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_27_1.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_27_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the value function at various persistent income levels</span>
+<span class="k">if</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">vFuncBool</span><span class="p">:</span>
+    <span class="n">pGrid</span> <span class="o">=</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pGrid</span><span class="p">:</span>
+        <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mLvlMin</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">PersistentExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">vFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M_temp</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="o">-</span><span class="mi">200</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resource level $M_t$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Value $V(M_t,P_t)$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_28_0.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_28_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Simulate some data</span>
+<span class="n">PersistentExample</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="n">PersistentExample</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;cLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">PersistentExample</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">PersistentExample</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">PersistentExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;mLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Simulated time period&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average market resources mLvl&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_29_0.png" src="../../_images/examples_ConsGenIncProcessModel_GenIncProcessConsumerType_29_0.png" />
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsMarkovModel/MarkovConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Discrete State with Markov Transitions</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsAggShockModel/AggShockConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Aggregate Productivity Shocks</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#General-Income-Process-model">General Income Process model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-parameter-values-to-solve-GenIncProcess-model">Example parameter values to solve GenIncProcess model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Constructed-inputs-to-solve-GenIncProcess">Constructed inputs to solve GenIncProcess</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Consumer-with-Explicit-Permanent-Income">Consumer with Explicit Permanent Income</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Additional-parameters-to-solve-ExplicitPermInc-model">Additional parameters to solve ExplicitPermInc model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Constructed-inputs-to-solve-ExplicitPermInc">Constructed inputs to solve ExplicitPermInc</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Permanent-income-normalized">Permanent income normalized</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Persistent-income-shock-consumer">Persistent income shock consumer</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Additional-example-parameters-to-solve-PersistentShock-model">Additional example parameters to solve PersistentShock model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Constructed-inputs-to-solve-PersistentShock">Constructed inputs to solve PersistentShock</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

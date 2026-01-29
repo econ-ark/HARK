@@ -1,0 +1,880 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The Sequence Space Jacobian (SSJ) method &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/SequenceSpaceJacobians/SSJ_explanation';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/SequenceSpaceJacobians/SSJ_explanation.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Making HA-SSJ Matrices with HARK" href="SSJ-tutorial.html" />
+    <link rel="prev" title="“Macroeconomic” Models: the Market Class" href="../Gentle-Intro/Market-Intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">The Sequence Space Jacobian (SSJ) method</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/SequenceSpaceJacobians/SSJ_explanation.ipynb">examples/SequenceSpaceJacobians/SSJ_explanation.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/SequenceSpaceJacobians/SSJ_explanation.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="SSJ_explanation.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="The-Sequence-Space-Jacobian-(SSJ)-method">
+<h1>The Sequence Space Jacobian (SSJ) method<a class="headerlink" href="#The-Sequence-Space-Jacobian-(SSJ)-method" title="Link to this heading">#</a></h1>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.journals.uchicago.edu/doi/abs/10.1086/250034">Krusell and Smith (1997)</a> solved their HA macro model with a “state space” method</p>
+<ul>
+<li><p>They approximate the model solution for every conceivable combination of states</p></li>
+<li><p>This is very expensive computationally</p></li>
+</ul>
+</li>
+<li><p>The <a class="reference external" href="https://www.econometricsociety.org/publications/econometrica/2021/09/01/using-sequence-space-jacobian-solve-and-estimate-heterogeneous">sequence space Jacobian method (SSJ)</a> (Auclert et al., 2021) is an alternative</p>
+<ul>
+<li><p>It computes a solution to the model for an expected path of shocks</p></li>
+<li><p>This allows computation of the solution for only the interesting shocks</p></li>
+</ul>
+</li>
+<li><p>The SSJ method solves for solutions to ‘MIT shocks’</p>
+<ul>
+<li><p>The key requirement is that the MIT shocks be small, <em>relative</em> to the distribution of microeconomic state variables</p></li>
+<li><p>This permits – in fact, requires – rich micro heterogeneity</p></li>
+<li><p>SSJ is usable when there is an aggregate equilibrium and micro heterogeneity</p>
+<ul>
+<li><p>So long as the “aggregate shocks” are <em>relatively</em> small</p></li>
+<li><p>So it can be used to study industry or market equilibrium</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>The algorithm assumes that agents have perfect foresight wrt aggregates</p>
+<ul>
+<li><p>The model is deterministic wrt the evolution of aggregate “shocks”</p></li>
+</ul>
+</li>
+<li><p>As a result, easily calculable Jacobian matrices are a “sufficient statistic”</p>
+<ul>
+<li><p>They provide information sufficient to compute the macro dynamics</p></li>
+<li><p>Even when the microfoundations have rich complexity and realism</p></li>
+</ul>
+</li>
+</ul>
+<section id="Advantages-of-SSJ">
+<h2>Advantages of SSJ<a class="headerlink" href="#Advantages-of-SSJ" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Can solve equilibrium models with rich microeconomic heterogeneity</p>
+<ul>
+<li><p>Basic HANK models can take 3 seconds, previous methods take at least 15 minutes</p></li>
+</ul>
+</li>
+<li><p>Can add additional exogenous aggregate shocks at virtually no cost.</p></li>
+</ul>
+</section>
+<section id="Krusell-Smith-Model-in-Sequence-Space">
+<h2>Krusell Smith Model in Sequence Space<a class="headerlink" href="#Krusell-Smith-Model-in-Sequence-Space" title="Link to this heading">#</a></h2>
+<p>Here we solve a slightly simplified version of the Krusell-Smith model to clarify the exposition. In particular, we assume each household inelastically supplies <span class="math notranslate nohighlight">\(\ell\)</span> units of labor.</p>
+<section id="Households">
+<h3>Households<a class="headerlink" href="#Households" title="Link to this heading">#</a></h3>
+<p>Assume a continuum of atomistic households on the unit interval <span class="math notranslate nohighlight">\([0,1]\)</span> indexed by <span class="math notranslate nohighlight">\(i\)</span>.</p>
+<p>Assume households have perfect foresight over the real interest rate <span class="math notranslate nohighlight">\(r_{t}\)</span> and the real wage <span class="math notranslate nohighlight">\(w_{t}\)</span>.</p>
+<section id="Household's-Problem">
+<h4>Household’s Problem<a class="headerlink" href="#Household's-Problem" title="Link to this heading">#</a></h4>
+<p>Households seek to maximize their expected discounted sum of lifetime utility of consumption. Variables that are idiosyncratic to a household have an <span class="math notranslate nohighlight">\(i\)</span> subscript, while aggregate variables do not.</p>
+<div class="math notranslate nohighlight">
+\[V_{t}(m_{it}) = \max_{c_{it}} u(c_{it}) + E_{t}\left[ V_{t+1}(m_{it+1}) \right] \text{ s.t.}\]</div>
+<div class="math notranslate nohighlight">
+\[m_{it} = y_{it} + (1+\mathit{r}_{t})k_{it-1},\]</div>
+<div class="math notranslate nohighlight">
+\[c_{it} + k_{it}= m_{it},\]</div>
+<div class="math notranslate nohighlight">
+\[k_{it} \geq 0,\]</div>
+<p>where <span class="math notranslate nohighlight">\(m_{it}\)</span> is market resources (<code class="docutils literal notranslate"><span class="pre">cash</span> <span class="pre">on</span> <span class="pre">hand</span></code>), <span class="math notranslate nohighlight">\(k_{it}\)</span> is capital holdings and <span class="math notranslate nohighlight">\(y_{it}\)</span> is labor income.</p>
+</section>
+<section id="Labor-Income">
+<h4>Labor Income<a class="headerlink" href="#Labor-Income" title="Link to this heading">#</a></h4>
+<p>Labor income is the product of an idiosyncratic transitory shock <span class="math notranslate nohighlight">\(\theta\)</span>, the wage rate <span class="math notranslate nohighlight">\(w\)</span> (determined in aggregate), and the exogenously fixed individual labor supply <span class="math notranslate nohighlight">\(\ell\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[y_{t} = \theta_{it} w_{t} \ell,\]</div>
+<div class="math notranslate nohighlight">
+\[log(\theta_{it}) \sim N\left(-\frac{\sigma_{\theta}^2}{2}, \sigma_{\theta}^2 \right).\]</div>
+</section>
+</section>
+</section>
+<section id="Firms-and-Production">
+<h2>Firms and Production<a class="headerlink" href="#Firms-and-Production" title="Link to this heading">#</a></h2>
+<p>Output is produced by firms via a Cobb-Douglas production function over aggregate capital <span class="math notranslate nohighlight">\(K_t\)</span> and labor <span class="math notranslate nohighlight">\(L_t\)</span>, scaled by total factor productivity <span class="math notranslate nohighlight">\(Z_t\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[Y_{t} = Z_{t}K_{t}^{\alpha}L_{t}^{1-\alpha}.\]</div>
+<section id="Determination-of-Wage-and-Interest-Rates">
+<h3>Determination of Wage and Interest Rates<a class="headerlink" href="#Determination-of-Wage-and-Interest-Rates" title="Link to this heading">#</a></h3>
+<p>Assume perfectly competitive markets, so that the factor prices are given by their marginal product:</p>
+<div class="math notranslate nohighlight">
+\[w_{t} = (1-\alpha) Z_{t} K_{t}^{\alpha}L_{t}^{-\alpha},\]</div>
+<div class="math notranslate nohighlight">
+\[r_{t} = \alpha  Z_{t} K_{t}^{\alpha - 1} L_{t}^{1-\alpha}.\]</div>
+</section>
+<section id="Dynamics-of-Productivity">
+<h3>Dynamics of Productivity<a class="headerlink" href="#Dynamics-of-Productivity" title="Link to this heading">#</a></h3>
+<p>TFP <span class="math notranslate nohighlight">\(Z_t\)</span> follows an AR(1) process in logs, with correlation factor <span class="math notranslate nohighlight">\(\rho_Z\)</span> and standard deviation of shocks <span class="math notranslate nohighlight">\(\sigma_Z\)</span>.</p>
+<div class="math notranslate nohighlight">
+\[log(Z_{t}) = \rho_{Z} \log( Z_{t-1}) + \epsilon_{t},\]</div>
+<div class="math notranslate nohighlight">
+\[\epsilon_t \sim N(0, \sigma_Z^2).\]</div>
+</section>
+</section>
+<section id="Market-Clearing">
+<h2>Market Clearing<a class="headerlink" href="#Market-Clearing" title="Link to this heading">#</a></h2>
+<p>Aggregate capital and labor are found by aggregating idiosyncratic values over the population. For labor, this is trivial, as each household exogenously supplies <span class="math notranslate nohighlight">\(\ell\)</span> units of labor. To denote the switch to aggregate labor, apply a new label:</p>
+<div class="math notranslate nohighlight">
+\[L_{t} = \int_0^1 \ell di = \ell \equiv \bar{L}.\]</div>
+<p>Each household’s choice of capital holdings <span class="math notranslate nohighlight">\(k_{it}\)</span> depends on the entire future sequence of factor prices they will face. Denote that sequence as <span class="math notranslate nohighlight">\(\left\{r_{s},w_{s}\right\}_{s=0}^{T}\)</span>, and the <em>savings function</em> in period <span class="math notranslate nohighlight">\(t\)</span> as <span class="math notranslate nohighlight">\(\mathsf{k}_t(m_{it}, \cdot)\)</span>, which depends on current market resources and future prices. Then define aggregate capital as:</p>
+<div class="math notranslate nohighlight">
+\[K_{t} = \int_{0}^{1} k_{it} di = \int_{0}^{1} \mathsf{k}_{t}(m_{it}, \left\{r_{s},w_{s}\right\}_{s=0}^{T}) di \equiv \mathcal{K}_{t}\left(\left\{r_{s},w_{s}\right\}_{s=0}^{T} \right).\]</div>
+<p>Notice that aggregate capital <span class="math notranslate nohighlight">\(K_t\)</span> depends on the entire distribution of idiosyncratic market resources <span class="math notranslate nohighlight">\(m_{it}\)</span>.</p>
+</section>
+</section>
+<section id="Model-as-defined-by-diff-eqns-in-sequence-space">
+<h1>Model as defined by diff eqns in sequence space<a class="headerlink" href="#Model-as-defined-by-diff-eqns-in-sequence-space" title="Link to this heading">#</a></h1>
+<p>The sequence-space equilibrium can be expressed as a root of a system of difference equations on the sequence of current and future prices and productivity shocks. For notational convenience, the sequence of aggregate outcomes will be represented by <span class="math notranslate nohighlight">\(\textbf{U}\)</span>, and the sequence of productivity shocks by <span class="math notranslate nohighlight">\(\textbf{Z}\)</span>. For period <span class="math notranslate nohighlight">\(t\)</span>, the equilibrium conditions are:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split} H_{t}(\mathbf{U},\mathbf{Z}) = \begin{pmatrix}
+ \mathcal{K}_{t}(\{r_{s} ,w_{s} \}_{s=t}^{s=T}) - K_{t}  \\ \\
+  w_{t} - (1-\alpha) Z_{t} K_{t}^{\alpha} \bar{L}^{-\alpha} \\ \\
+r_{t} - \alpha  Z_{t} K_{t}^{\alpha - 1} \bar{L}^{1-\alpha} \\ \\
+ \end{pmatrix} = \begin{pmatrix} 0 \\ 0  \\ 0\\ \end{pmatrix} , \quad t=0,1,2,3,...\end{split}\]</div>
+<p>where</p>
+<p><span class="math notranslate nohighlight">\(\mathbf{U} = \left\{K_{t}, r_{t}, w_{t} \right\}_{t=0}^{s=T},\)</span></p>
+<p><span class="math notranslate nohighlight">\(\mathbf{Z} = \left\{Z_{t}\right\}_{t=0}^{t=T}.\)</span></p>
+<p>The equilibrium conditions for a single period can be stacked across all periods <span class="math notranslate nohighlight">\(t=0,\cdots,T\)</span>, yielding the overall system:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{H}(\mathbf{U},\mathbf{Z})= \begin{pmatrix}
+H_{0}(\mathbf{U},\mathbf{Z}) \\ \\
+\vdots \\ \\
+ H_{t}(\mathbf{U},\mathbf{Z}) \\ \\
+\vdots \\ \\
+H_{T}(\mathbf{U},\mathbf{Z}) \\ \\
+ \end{pmatrix} = \begin{pmatrix} 0 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \\ \end{pmatrix}.\end{split}\]</div>
+<section id="Solve-the-model-by-linearizing-around-the-steady-state">
+<h2>Solve the model by linearizing around the steady state<a class="headerlink" href="#Solve-the-model-by-linearizing-around-the-steady-state" title="Link to this heading">#</a></h2>
+<p>We are interested in how aggregate outcomes will change in response to exogenous shocks. Denote the endogenous impulse response as <span class="math notranslate nohighlight">\(d\mathbf{U} \equiv \left\{dK_{t} , dr_{t} , dw_{t} \right\}_{t=0}^{t=T}\)</span>, and the exogenous shock (a change in future productivity shocks) as <span class="math notranslate nohighlight">\(d\mathbf{Z} = \left\{ dZ_{t}\right\}_{t=0}^{t=T}\)</span>.</p>
+<p>The characterization of the equilibrium conditions as a root of a system of equations <span class="math notranslate nohighlight">\(\mathbf{H}(\mathbf{U},\mathbf{Z}) = 0\)</span> defined on the <em>sequence space</em> allows us to apply the implicit function theorem to finf the impulse response:</p>
+<div class="math notranslate nohighlight">
+\[d\mathbf{U} = -\mathbf{H}_{\mathbf{U}}(\mathbf{U}_{ss},\mathbf{Z}_{ss})^{-1} \mathbf{H}_{\mathbf{Z}}(\mathbf{U}_{ss},\mathbf{Z}_{ss}) d\mathbf{Z}.\]</div>
+<p>We thus have a characterization of how aggregate outcomes respond to exogenous shocks <em>near the steady state outcomes</em>. In this context, the ``steady state productivity shock sequence’’ <span class="math notranslate nohighlight">\(\mathbf{Z}_{ss}\)</span> is simply <span class="math notranslate nohighlight">\((0,\cdots,0)\)</span>, and the steady state outcome sequence is a constant sequence of aggregate capital and factor prices that obtain <em>in the absence of macroeconomic shocks</em>.</p>
+</section>
+<section id="Heterogenous-Agent-Jacobian">
+<h2>Heterogenous Agent Jacobian<a class="headerlink" href="#Heterogenous-Agent-Jacobian" title="Link to this heading">#</a></h2>
+<p>When computing <span class="math notranslate nohighlight">\(-\mathbf{H}_{\mathbf{U}}(\mathbf{U}_{ss},\mathbf{Z}_{ss})^{-1}\)</span> we will need to compute the Jacobian of</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbf{F}(\mathbf{r},\mathbf{w}) =  \begin{pmatrix} \mathcal{K}_{0}(\{r_{s}, w_{s} \}_{s=0}^{s=T})\\
+\vdots \\
+\mathcal{K}_{t}(\{r_{s} ,w_{s} \}_{s=0}^{s=T})\\
+\vdots \\
+\mathcal{K}_{T}(\{r_{s} ,w_{s} \}_{s=0}^{s=T})\\
+\end{pmatrix}.\end{split}\]</div>
+<p>More specifically, we will need the Jacobian matrices <span class="math notranslate nohighlight">\(\mathbf{F}_{\mathbf{r}}(\mathbf{r},\mathbf{w})\)</span> and <span class="math notranslate nohighlight">\(\mathbf{F}_{\mathbf{w}}(\mathbf{r},\mathbf{w})\)</span>, where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split} \mathbf{F}_{\mathbf{r}}(\mathbf{r},\mathbf{w}) = \begin{pmatrix}
+\frac{ \partial \mathcal{K}_{0}}{\partial r_{0}}  &amp; ... &amp; \frac{ \partial \mathcal{K}_{0}}{ \partial r_{t}} &amp; ... &amp; \frac{ \partial  \mathcal{K}_{0}}{\partial r_{T}} \\ . \\ .
+\\
+.
+\\
+\frac{ \partial \mathcal{K}_{t}}{\partial r_{0}}  &amp; ... &amp; \frac{ \partial \mathcal{K}_{t}}{ \partial r_{t}} &amp; ... &amp; \frac{ \partial \mathcal{K}_{t}}{\partial r_{T}} \\ . \\ .
+\\ . \\
+\frac{ \partial \mathcal{K}_{T}}{\partial r_{0}}  &amp; ...  &amp; \frac{ \partial \mathcal{K}_{T}}{ \partial r_{t}} &amp; ... &amp; \frac{ \partial  \mathcal{K}_{T}}{\partial r_{T}}  \\ \\
+ \end{pmatrix}\end{split}\]</div>
+<p>(and likewise for <span class="math notranslate nohighlight">\(\mathbf{F}_{\mathbf{w}}(\mathbf{r},\mathbf{w})\)</span>).</p>
+<p>These Jacobian matrices are the most computationally complex object to compute in the model. On a 2024 laptop used to produce the results here, such methods can take up to 20 minutes for each matrix.</p>
+<p>But the sequence space Jacobian methodology uses a ‘fake news’ algorithm to solve these matrices in under 3 seconds!</p>
+</section>
+<section id="Overall-algorithm">
+<h2>Overall algorithm<a class="headerlink" href="#Overall-algorithm" title="Link to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p>Define model in sequence space</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\mathbf{H}(\mathbf{U},\mathbf{Z}) = \mathbf{0}\]</div>
+<ol class="arabic simple" start="2">
+<li><p>Solve for steady state</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[\mathbf{H}(\mathbf{U}_{ss},\mathbf{Z}_{ss}) = \mathbf{0}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{U}_{ss} = \left(U_{ss}, .. U_{ss}, .., U_{ss} \right)\)</span></p>
+<ol class="arabic simple" start="3">
+<li><p>Linearize around steady state and solve for impulse responses <span class="math notranslate nohighlight">\(d\mathbf{U}\)</span> given exogenous shock <span class="math notranslate nohighlight">\(d\mathbf{Z}\)</span></p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[d\mathbf{U} = -\mathbf{H}_{\mathbf{U}}^{-1} \mathbf{H}_{\mathbf{Z}} d\mathbf{Z}\]</div>
+<p>When linearizing, find heterogenous agent Jacobians with fake news algorithm</p>
+</section>
+<section id="What-if-the-model-contains-many-equations?">
+<h2>What if the model contains many equations?<a class="headerlink" href="#What-if-the-model-contains-many-equations?" title="Link to this heading">#</a></h2>
+<p>Here, because labor is exogenously supplied, aggregate capital <span class="math notranslate nohighlight">\(K_t\)</span> is a sufficient statistic for factor prices <span class="math notranslate nohighlight">\(r_t\)</span> and <span class="math notranslate nohighlight">\(w_t\)</span>. The system above can thus be reduced to simply:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}H_{t}(\mathbf{U},\mathbf{Z}) \equiv \begin{pmatrix}
+\mathcal{K}_{t}\left(\{\alpha  Z_{t} K_{t}^{\alpha - 1} \bar{L}^{1-\alpha} ,(1-\alpha) Z_{s} K_{s}^{\alpha} \bar{L}^{-\alpha} \}_{s=0}^{s=T}\right) - K_{t}  \\
+\end{pmatrix} = 0, \quad t=0,1 ,2,3,....\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{U} = \left(K_{0},K_{1}.K_{2}....,K_{T} \right)\)</span>.</p>
+<p>When the model contains many equations, we can represent the model as a directed acyclic graph to determine how the model should be reduced.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">IPython</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="s2">&quot;KS_DAG.jpeg&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ_explanation_17_0.jpg" src="../../_images/examples_SequenceSpaceJacobians_SSJ_explanation_17_0.jpg" />
+</div>
+</div>
+</section>
+<section id="Solving-Using-the-HANK-SSJ-Link">
+<h2>Solving Using the HANK-SSJ Link<a class="headerlink" href="#Solving-Using-the-HANK-SSJ-Link" title="Link to this heading">#</a></h2>
+<p>A companion notebook, <code class="docutils literal notranslate"><span class="pre">KS-HARK-presentation</span></code> presents the solution to the model described above using the HARK toolkit in combination with the SSJ toolkit.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../Gentle-Intro/Market-Intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="SSJ-tutorial.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Making HA-SSJ Matrices with HARK</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">The Sequence Space Jacobian (SSJ) method</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Advantages-of-SSJ">Advantages of SSJ</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Krusell-Smith-Model-in-Sequence-Space">Krusell Smith Model in Sequence Space</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Households">Households</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#Household's-Problem">Household’s Problem</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#Labor-Income">Labor Income</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Firms-and-Production">Firms and Production</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Determination-of-Wage-and-Interest-Rates">Determination of Wage and Interest Rates</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Dynamics-of-Productivity">Dynamics of Productivity</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Market-Clearing">Market Clearing</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Model-as-defined-by-diff-eqns-in-sequence-space">Model as defined by diff eqns in sequence space</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solve-the-model-by-linearizing-around-the-steady-state">Solve the model by linearizing around the steady state</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Heterogenous-Agent-Jacobian">Heterogenous Agent Jacobian</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Overall-algorithm">Overall algorithm</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#What-if-the-model-contains-many-equations?">What if the model contains many equations?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-Using-the-HANK-SSJ-Link">Solving Using the HANK-SSJ Link</a></li>
+</ul>
+</li>
+</ul>
+
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
