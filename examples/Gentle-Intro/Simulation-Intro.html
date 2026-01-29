@@ -1,0 +1,1470 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Simulating Microeconomic Models &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/Simulation-Intro';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/Simulation-Intro.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="The Nature of Time for AgentTypes" href="Cycles-Intro.html" />
+    <link rel="prev" title="A Gentle Introduction to HARK" href="Gentle-Intro-To-HARK.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Simulating Microeconomic Models</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Gentle-Intro/Simulation-Intro.ipynb">examples/Gentle-Intro/Simulation-Intro.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Gentle-Intro/Simulation-Intro.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Simulation-Intro.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Simulating-Microeconomic-Models">
+<h1>Simulating Microeconomic Models<a class="headerlink" href="#Simulating-Microeconomic-Models" title="Link to this heading">#</a></h1>
+<p>In the <a class="reference internal" href="Gentle-Intro-To-HARK.html"><span class="doc">Gentle Introduction to HARK</span></a>, we showed the basics of using HARK to make instances of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses, specify their parameters, solve their dynamic model, and examine the solution. In this notebook, we continue the introduction by demonstrating how to generate simulated model data with HARK.</p>
+<section id="Example-model:-Consumption-saving-with-income-risk">
+<h2>Example model: Consumption-saving with income risk<a class="headerlink" href="#Example-model:-Consumption-saving-with-income-risk" title="Link to this heading">#</a></h2>
+<p>Because it’s our fundamental workhorse consumption-saving model, we’ll use the <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> as our example throughout this notebook. This <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass represents consumers with CRRA preferences over consumption who discount future utility flows geometrically; they face both fully permanent and fully transitory shocks to their labor income, and can save in a risk free asset.</p>
+<p>To refresh your memory, the agent’s model can be written in Bellman form as: <span class="math notranslate nohighlight">\(\newcommand{\LivPrb}{\mathsf{S}}\)</span></p>
+<p><span class="math">\begin{align*}
+v_t(m_t) &= \max_{c_t} u(c_t) + \LivPrb_t \beta \mathbb{E} [(\Gamma_{t+1}\psi_{t+1})^{1-\rho} v_{t+1}(m_{t+1}) ] ~~ \text{s.t.} \\
+a_t &= m_t - c_t, \\
+a_t &\geq \underline{a}, \\
+k_{t+1} &= a_t, \\
+b_{t+1} &= R_{t+1}/(\Gamma_{t+1} \psi_{t+1}) k_{t+1}, \\
+m_{t+1} &= b_{t+1} + \theta_{t+1},\\
+(\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+\mathbb{E}[\psi_t]&=\mathbb{E}[\theta_t] = 1, \\
+u(c) &= \frac{c^{1-\rho}}{1-\rho}.
+\end{align*}</span></p>
+<p>The model’s parameters are summarized below.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p>2.0</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p>0.96</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p>1.03</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\LivPrb\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p>0.98</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Gamma\)</span></p></td>
+<td><p>Income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p>1.01</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BoroCnstArt</span></code></p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(F\)</span></p></td>
+<td><p>Distribution of income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code></p></td>
+<td><p>*</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The agent’s <strong>normalized market resources</strong> <span class="math notranslate nohighlight">\(m_t\)</span> are a sufficient statistic to make their choice of <strong>normalized consumption</strong> <span class="math notranslate nohighlight">\(c_t\)</span> because the model is homothetic with respect to permanent income. At the beginning of period <span class="math notranslate nohighlight">\(t\)</span>, the agent’s permanent income grows by factor <span class="math notranslate nohighlight">\(\Gamma_t\)</span> in expectation, subject to <strong>permanent income shock</strong> <span class="math notranslate nohighlight">\(\psi_t\)</span>. Their non-capital income is also subject to a <strong>transitory income shock</strong> <span class="math notranslate nohighlight">\(\theta_t\)</span>. For the purposes of this
+notebook, we won’t go into the details of the income shock distribution <span class="math notranslate nohighlight">\(F_t\)</span>.</p>
+<p>First, let’s import our <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass and some basic tools, and make an instance of the class using the default parameters.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import basic tools into our workspace</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+
+<span class="c1"># Make and solve an instance of IndShockConsumerType with default parameters</span>
+<span class="n">MyType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">MyType</span></code> was specified as an infinite horizon type with <code class="docutils literal notranslate"><span class="pre">cycles=0</span></code>.</p>
+</section>
+<section id="How-to-make-simulated-data:-Legacy-method">
+<h2>How to make simulated data: Legacy method<a class="headerlink" href="#How-to-make-simulated-data:-Legacy-method" title="Link to this heading">#</a></h2>
+<p>Suppose we want to see what would happen if many agents live out this model over time, generating a <strong>simulated population history</strong>. In the “legacy” simulation system that HARK has used since its inception, the <code class="docutils literal notranslate"><span class="pre">AgentType.simulate()</span></code> method makes such a history by <strong>Monte Carlo</strong> simulation with a fixed population size. Whenever an agent in the population dies, they are replaced with a “newborn” at the start of the next period.</p>
+<p>To begin, we need to specify two extra parameters, which are universal across HARK models. HARK needs to know <strong>how many</strong> agents to simulate, and <strong>for how many periods</strong> the model should be run.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(N\)</span></p></td>
+<td><p>Number of agents of this type in simulation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AgentCount</span></code></p></td>
+<td><p>10000</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(T_{sim}\)</span></p></td>
+<td><p>Maximum number of periods we want to simulate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T\_sim</span></code></p></td>
+<td><p>100</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tell our AgentType instance to simulate 10000 consumers for 100 periods.</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">10000</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">100</span>
+</pre></div>
+</div>
+</div>
+<p>Moreover, we need to tell HARK which model variables we’re interested in: what information to actually <strong>track</strong> when simulating the model. This is done by setting the <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> attribute as a list of strings that name the variables you want. For now, let’s track normalized consumption <span class="math notranslate nohighlight">\(c_t\)</span> and end-of-period normalized assets <span class="math notranslate nohighlight">\(a_t\)</span>, which are called <code class="docutils literal notranslate"><span class="pre">cNrm</span></code> and <code class="docutils literal notranslate"><span class="pre">aNrm</span></code> in HARK.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Indicate that we want to track consumption, assets, and permanent income</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>To simulate the model, we first need to <strong>initialize</strong> the simulation, resetting it back to a starting state, then simply call the <code class="docutils literal notranslate"><span class="pre">simulate</span></code> method on our <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance. For a simple model like this, simulation doesn’t take long at all.</p>
+<p>An <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> is initialized for simulation with the <code class="docutils literal notranslate"><span class="pre">initialize_sim()</span></code> method, and actually simulated with the <code class="docutils literal notranslate"><span class="pre">simulate()</span></code> method.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Simulate the model and report the time it took</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Simulating the infinite horizon consumption-saving model took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the infinite horizon consumption-saving model took 0.365 seconds.
+</pre></div></div>
+</div>
+</section>
+<section id="Visualizing-simulated-data">
+<h2>Visualizing simulated data<a class="headerlink" href="#Visualizing-simulated-data" title="Link to this heading">#</a></h2>
+<p>The <strong>history</strong> of simulated model outcomes is stored in the attribute <code class="docutils literal notranslate"><span class="pre">history</span></code>, a dictionary of arrays. The keys for the dictionary are the variables named in <code class="docutils literal notranslate"><span class="pre">track_vars</span></code>, and the entries are arrays of shape <span class="math notranslate nohighlight">\((T_{sim},N)\)</span>. For example, we can plot average (normalized) consumption and wealth by period.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot population averages for the simulated period</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;permanent income&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_14_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_14_0.png" />
+</div>
+</div>
+<p>Notice that the population averages of <em>normalized</em> variables reach their long run steady state rather quickly, but permanent income <em>level</em> keeps rising. This is because of the permanent income growth factor of <span class="math notranslate nohighlight">\(\Gamma = 1.01\)</span>, so that <strong>survivors</strong> have their permanent income grow steadily each period. If we simulated the model for a lot longer, the green plot would also level off.</p>
+<p>We could also plot the time series of assets for one particular consumer, like so.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Extract asset time series for one agent and plot it</span>
+<span class="n">i</span> <span class="o">=</span> <span class="mi">4235</span>  <span class="c1"># choose an agent index</span>
+<span class="n">a_i</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span>
+<span class="n">p_i</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">a_i</span> <span class="o">*</span> <span class="n">p_i</span><span class="p">)</span>  <span class="c1"># plot assets in level</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;assets of agent i=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_16_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_16_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot permanent income for one agent</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p_i</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;permanent income of agent i=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_17_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_17_0.png" />
+</div>
+</div>
+<p>Whoa, what happened to Mr. 4235 around <span class="math notranslate nohighlight">\(t=62\)</span>? He had very high income, and then suddenly crashed back down! Dear reader, I regret to inform you that our dearly beloved original Mr. 4235 <strong>died</strong> and was replaced with a new Mr. 4235 at <span class="math notranslate nohighlight">\(t=62\)</span>. We show these plots to emphasize the death-and-replacement style of simulation in HARK.</p>
+<p>In this case, the time series plot is dramatic, but that’s not always so. How can a user tell when a simulated agent has died and been replaced? The <code class="docutils literal notranslate"><span class="pre">t_age</span></code> variable represents <strong>the number of periods an agent has lived</strong> at the end of the period; it is thus always at least 1.</p>
+<p>To see this, we can reset the simulation, add <code class="docutils literal notranslate"><span class="pre">&quot;t_age&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">track_vars</span></code>, and simulate the model again. Mr. 4235’s time series of age will then be two increasing lines with a drop at <span class="math notranslate nohighlight">\(t=62\)</span>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Re-simulate the model</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">track_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;t_age&quot;</span><span class="p">)</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+
+<span class="c1"># Plot one agent&#39;s time series of periods lived</span>
+<span class="n">t_i</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;t_age&quot;</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t_i</span><span class="p">)</span>  <span class="c1"># plot assets in level</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;age of agent i=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_19_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_19_0.png" />
+</div>
+</div>
+</section>
+<section id="Initializing-agents:-model-%22birth%22">
+<h2>Initializing agents: model “birth”<a class="headerlink" href="#Initializing-agents:-model-%22birth%22" title="Link to this heading">#</a></h2>
+<p>A “birth” event happens for <em>all</em> agents when <code class="docutils literal notranslate"><span class="pre">initialize_sim()</span></code> is called, and automatically over the course of the simulation when agents die and are replaced.</p>
+<p>When model agents are “born”, their initial state is drawn from some distribution using the <code class="docutils literal notranslate"><span class="pre">sim_birth()</span></code> method (internally by HARK). Most of HARK’s <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses share the same <code class="docutils literal notranslate"><span class="pre">sim_birth()</span></code> method, with some small variations: initial (normalized) capital holdings <span class="math notranslate nohighlight">\(k_t\)</span> are drawn from the distribution <code class="docutils literal notranslate"><span class="pre">kNrmInitDstn</span></code> and initial permanent income level <span class="math notranslate nohighlight">\(p_t\)</span> is drawn from <code class="docutils literal notranslate"><span class="pre">pLvlInitDstn</span></code>. Both of those distributions are specified as lognormal by default, but this
+distributional assumption can be changed.</p>
+<p>The parameters of these default distributions (and their values) are as follows:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Mean of initial log normalized capital</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kLogInitMean</span></code></p></td>
+<td><p>-12.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Stdev of initial log normalized capital</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kLogInitStd</span></code></p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p>Number of nodes in initial capital dstn</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kLogInitCount</span></code></p></td>
+<td><p>15</p></td>
+</tr>
+<tr class="row-odd"><td><p>Mean of initial log permanent income</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogInitMean</span></code></p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-even"><td><p>Stdev of initial log permanent income</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogInitStd</span></code></p></td>
+<td><p>0.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>Number of nodes in initial perm inc dstn</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogInitCount</span></code></p></td>
+<td><p>15</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Note that the distributional parameters are given in <em>logs</em>, so the default setting is for newborn <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> agents to have (nearly) zero capital and permanent income of 1, with no variation. When the standard deviations are set to positive values, the initial distributions will be approximated with equiprobable discretizations with 15 nodes each.</p>
+</section>
+<section id="Manually-altering-simulation-outcomes">
+<h2>Manually altering simulation outcomes<a class="headerlink" href="#Manually-altering-simulation-outcomes" title="Link to this heading">#</a></h2>
+<p><em>Most</em> of the time, you want to just simulate all of the periods of your model, but <em>sometimes</em> you want to do something more unusual. Suppose that you were interested in seeing what happens if you give all agents additional wealth equal to 10% of their permanent income. How could this be done?</p>
+<p>As an <strong>optional argument</strong>, you can call the <code class="docutils literal notranslate"><span class="pre">simulate</span></code> method with an integer value to simulate <em>only</em> that number of periods, and then stop. The <code class="docutils literal notranslate"><span class="pre">history</span></code> arrays will have empty values in periods that have not yet been simulated. The <strong>current state</strong> of the simulation is stored as a dictionary in the <code class="docutils literal notranslate"><span class="pre">state_now</span></code> attribute, where each entry is a vector of size <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code> idiosyncratic values. The values in this array can be manipulated in the middle of the simulation to handle such
+unusual events.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Reset the simulation and have it run for a longer time</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">200</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+
+<span class="c1"># Simulate the model for 100 periods</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+<span class="c1"># Give everyone an extra 10% of their permanent income</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">state_now</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.1</span>
+
+<span class="c1"># Simulate the remaining 100 periods</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the aggregate time series of normalized wealth</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="s2">&quot;--k&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_26_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_26_0.png" />
+</div>
+</div>
+<p>This simple example lets us see how the population spends down an unexpected windfall, returning to the steady state fairly quickly.</p>
+</section>
+<section id="Pre-drawing-and-manipulating-shocks">
+<h2>Pre-drawing and manipulating shocks<a class="headerlink" href="#Pre-drawing-and-manipulating-shocks" title="Link to this heading">#</a></h2>
+<p>In some cases, the variable that you want to manipulate is a <strong>shock</strong> that happens during the period, not simply adjusting states “between” periods. To accomplish this, you can pre-specify the shocks that will occur over the course of the simulation.</p>
+<p>If the attribute <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code> (it is <code class="docutils literal notranslate"><span class="pre">False</span></code> by default), then rather than draw shock variables like <span class="math notranslate nohighlight">\(\psi_t\)</span> and <span class="math notranslate nohighlight">\(\theta_t\)</span> on the fly each period, the simulator will instead read them from the dictionary attribute <code class="docutils literal notranslate"><span class="pre">shock_history</span></code>. You can manually create the history arrays for <code class="docutils literal notranslate"><span class="pre">shock_history</span></code>, or they can be automatically generated by running the <code class="docutils literal notranslate"><span class="pre">make_shock_history()</span></code> method (which also sets <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>).</p>
+<p><strong>NB:</strong> You have to run <code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> after running <code class="docutils literal notranslate"><span class="pre">make_shock_history()</span></code>, but this does not destroy <code class="docutils literal notranslate"><span class="pre">shock_history</span></code>.</p>
+<p>As an example of this, let’s pre-draw the shock variable history, then have everyone get a transitory shock of <span class="math notranslate nohighlight">\(\theta_t=0\)</span> at <span class="math notranslate nohighlight">\(t=70\)</span>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Reset the simulation once again, and pre-draw the shock history</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">make_shock_history</span><span class="p">()</span>
+
+<span class="c1"># Have everyone get a transitory shock of zero at t=70</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">shock_history</span><span class="p">[</span><span class="s2">&quot;TranShk&quot;</span><span class="p">][</span><span class="mi">70</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<span class="c1"># Re-initialize and simulate all 200 periods</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the aggregate time series of normalized wealth</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">70</span><span class="p">,</span> <span class="mi">70</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="s2">&quot;--k&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_32_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_32_0.png" />
+</div>
+</div>
+<p>In this case, our agents are all sufficiently impatient that getting no income for one period meant that <em>almost</em> all of them ended up on the liquidity constrained portion of their consumption function at <span class="math notranslate nohighlight">\(t=70\)</span> and thus end the period with zero assets. The only exceptions are those who happened to have a lot of cash on hand (relative to their permanent income) at the end of <span class="math notranslate nohighlight">\(t=69\)</span>, perhaps because they had recently experienced a large negative permanent income shock.</p>
+</section>
+<section id="Lifecycle-simulation">
+<h2>Lifecycle simulation<a class="headerlink" href="#Lifecycle-simulation" title="Link to this heading">#</a></h2>
+<p>The examples above all used a basic infinite horizon model, but HARK is also meant for lifecycle problems. The legacy simulator handles these models just fine, but they can be somewhat slower to execute.</p>
+<p>HARK has some tools for importing calibrations of lifecycle processes, including mortality and income profiles. First, let’s bring those into our environment, then make a lifecycle version of an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>. Below, we make a lifecycle dictionary that draws on income growth profiles from Cocco, Gomes, and Mahout; income risk profiles from Sabelhous and Song; and mortality profiles from the Social Security Administration.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import some stuff from the Calibration submodule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.Income.IncomeTools</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CGM_income</span><span class="p">,</span>
+    <span class="n">parse_income_spec</span><span class="p">,</span>
+    <span class="n">parse_time_params</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.life_tables.us_ssa.SSATools</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_ssa_life_table</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Specify some choices</span>
+<span class="n">birth_age</span> <span class="o">=</span> <span class="mi">25</span>
+<span class="n">death_age</span> <span class="o">=</span> <span class="mi">110</span>
+<span class="n">adjust_infl_to</span> <span class="o">=</span> <span class="mi">1992</span>
+<span class="n">income_calib</span> <span class="o">=</span> <span class="n">CGM_income</span>
+<span class="n">education</span> <span class="o">=</span> <span class="s2">&quot;College&quot;</span>
+
+<span class="c1"># Income specification</span>
+<span class="n">income_params</span> <span class="o">=</span> <span class="n">parse_income_spec</span><span class="p">(</span>
+    <span class="n">age_min</span><span class="o">=</span><span class="n">birth_age</span><span class="p">,</span>
+    <span class="n">age_max</span><span class="o">=</span><span class="n">death_age</span><span class="p">,</span>
+    <span class="n">adjust_infl_to</span><span class="o">=</span><span class="n">adjust_infl_to</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">income_calib</span><span class="p">[</span><span class="n">education</span><span class="p">],</span>
+    <span class="n">SabelhausSong</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">LivPrb</span> <span class="o">=</span> <span class="n">parse_ssa_life_table</span><span class="p">(</span>
+    <span class="n">female</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">cross_sec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">year</span><span class="o">=</span><span class="mi">2004</span><span class="p">,</span>
+    <span class="n">age_min</span><span class="o">=</span><span class="n">birth_age</span><span class="p">,</span>
+    <span class="n">age_max</span><span class="o">=</span><span class="n">death_age</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Parameters related to the number of periods implied by the calibration</span>
+<span class="n">time_params</span> <span class="o">=</span> <span class="n">parse_time_params</span><span class="p">(</span><span class="n">age_birth</span><span class="o">=</span><span class="n">birth_age</span><span class="p">,</span> <span class="n">age_death</span><span class="o">=</span><span class="n">death_age</span><span class="p">)</span>
+
+<span class="c1"># Make a dictionary for our lifecycle agent</span>
+<span class="n">lifecycle_dict</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">lifecycle_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">income_params</span><span class="p">)</span>
+<span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;LivPrb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">LivPrb</span>
+<span class="n">lifecycle_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">time_params</span><span class="p">)</span>
+<span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;Rfree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;T_cycle&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">[</span><span class="mf">1.02</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a lifecycle agent type</span>
+<span class="n">LCtype</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">lifecycle_dict</span><span class="p">)</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>We can initialize and simulate this <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance the same as before, but notice that it will take somewhat longer to run.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up the simulation</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">10000</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;pLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;t_age&quot;</span><span class="p">]</span>
+
+<span class="c1"># Run the simulation</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulating the lifecycle model took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the lifecycle model took 1.642 seconds.
+</pre></div></div>
+</div>
+<p>It took about 4-5x longer to simulate the same number of agents for the same number of periods as the infinite horizon model– why? In the infinite horizon model, all of the agents shared the same consumption function and other parameters each period, and the simulation math could be done for all agents at once with fully vectorized operations. In the lifecycle model, on the other hand, agents <em>don’t</em> necessarily all share model information, because they might be in different model ages within
+the same period. Thus the simulator needs to check <em>who is what age</em> in each period and apply the correct information to each group.</p>
+<p>Just as before, we can make plots of simulation outcomes.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot population averages for the simulated period</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;permanent income&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_43_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_43_0.png" />
+</div>
+</div>
+<p>Hey, what’s going on here? Why is the profile of normalized assets so <em>wavy</em>? It’s because the simulation we ran began with <em>everyone</em> at model age 0 (representing age 25), but people died and were replaced at different ages along the way. In the first few years, almost everyone is part of the original cohort, but by around <span class="math notranslate nohighlight">\(t=60\)</span>, about half of the population has already died at least once and is much younger than 85 years old. The distribution of age in the population is <em>far</em> from its
+long run ergodic shape, and those waves will continue for quite a while.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot population average age</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;t_age&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">birth_age</span><span class="p">,</span> <span class="s2">&quot;-k&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_45_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_45_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Repeat the same exercise, but with a much longer time horizon</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">LCtype</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+
+<span class="c1"># Plot population averages simulated period</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;permanent income&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_46_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_46_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot population average age</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;t_age&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">birth_age</span><span class="p">,</span> <span class="s2">&quot;-k&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_47_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_47_0.png" />
+</div>
+</div>
+<p>After about <strong>500 years</strong>, the mean of model age has just about settled down. Recall that <code class="docutils literal notranslate"><span class="pre">t_age</span></code> holds model age for each simulated agent. We can make a plot of the (approximate) steady stage age distribution.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the distribution of age after 500 simulated years</span>
+<span class="n">age_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">t_age</span> <span class="o">+</span> <span class="n">birth_age</span><span class="p">)</span>
+<span class="n">CDF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">age_all</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_all</span><span class="p">,</span> <span class="n">CDF</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;cumulative distribution&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_49_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_49_0.png" />
+</div>
+</div>
+<p>We can compare this to the <em>exact</em> ergodic age distribution by doing a little math. Let’s use the cumulative survival probabilities by age to find the exact distribution, then compare it to the approximate empirical one.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Find the long run age distribution</span>
+<span class="n">CumLivPrb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">1.0</span><span class="p">],</span> <span class="n">LivPrb</span><span class="p">)))</span>
+<span class="n">AgeDstn</span> <span class="o">=</span> <span class="n">CumLivPrb</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">CumLivPrb</span><span class="p">)</span>
+<span class="n">CDFtrue</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+<span class="n">AgeTrue</span> <span class="o">=</span> <span class="p">[</span><span class="n">birth_age</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">LCtype</span><span class="o">.</span><span class="n">T_cycle</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="n">birth_age</span>
+    <span class="n">AgeTrue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># recorded age is at *end* of period</span>
+    <span class="n">AgeTrue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">CDFtrue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CDFtrue</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">CDFtrue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CDFtrue</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">AgeDstn</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a comparison plot of empirical vs exact age distribution</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_all</span><span class="p">,</span> <span class="n">CDF</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;empirical&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">AgeTrue</span><span class="p">,</span> <span class="n">CDFtrue</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;exact&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;cumulative distribution&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_52_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_52_0.png" />
+</div>
+</div>
+</section>
+<section id="New-way?-What's-this-about-a-new-way?">
+<h2>New way? What’s this about a new way?<a class="headerlink" href="#New-way?-What's-this-about-a-new-way?" title="Link to this heading">#</a></h2>
+<p>Earlier, we referred to <code class="docutils literal notranslate"><span class="pre">simulate()</span></code> as the “legacy” simulation method. HARK also has a new, developmental simulation structure that is meant to eventually replace the legacy version. For now, it sits alongside it as a redundant system, and is used to construct sequence space Jacobians.</p>
+<p>The syntax to use the new-style simulator is nearly identical to the legacy one, but with the <code class="docutils literal notranslate"><span class="pre">i</span></code> in <code class="docutils literal notranslate"><span class="pre">sim</span></code> swapped for a <code class="docutils literal notranslate"><span class="pre">y</span></code> in method names. Analogously, the results of the simulation are written to the <code class="docutils literal notranslate"><span class="pre">hystory</span></code> attribute rather than <code class="docutils literal notranslate"><span class="pre">history</span></code>. Otherwise, the basic usage is identical.</p>
+<p><strong>NB:</strong> The new simulation structure has some features that the old one does not, but it currently lacks some features that the old method has. E.g. there is currently no nice “interface” to manipulate simulated outcomes after running some (but not all) periods; we are adding this soon.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a default infinite horizon consumer</span>
+<span class="n">TestType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+<span class="c1"># Set some simulation parameters</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">10000</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Simulate the model using the old method</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The old simulation method took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Simulate the model using the new method</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">()</span>
+<span class="n">TestType</span><span class="o">.</span><span class="n">symulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The new simulation method took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The old simulation method took 0.367 seconds.
+The new simulation method took 0.327 seconds.
+</pre></div></div>
+</div>
+<p>The new simulation method <em>usually</em> runs a little faster than the old one, but not always. The results can be plotted against each other to confirm that both versions produce identical results, up to random draws.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare population averages for the simulated period</span>
+<span class="n">A0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">TestType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">TestType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">P0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">TestType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">A1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">TestType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">TestType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">P1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">TestType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">C0</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A0</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">P0</span><span class="p">,</span> <span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;permanent income&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">C1</span><span class="p">,</span> <span class="s2">&quot;--b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A1</span><span class="p">,</span> <span class="s2">&quot;--r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">P1</span><span class="p">,</span> <span class="s2">&quot;--g&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;population mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Simulation-Intro_58_0.png" src="../../_images/examples_Gentle-Intro_Simulation-Intro_58_0.png" />
+</div>
+</div>
+<p>In the figure above, the solid lines are the means produced by the old simulation system, and the dashed lines are produced by the new system.</p>
+<p>More complete information about the new simulation system can be found elsewhere, but the most important thing to know is that the model for the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass can be printed to screen using the <code class="docutils literal notranslate"><span class="pre">describe_model()</span></code> method. This is the easiest way within HARK to learn the names of the model variables, functions, and distributions; these names are the same for both the old and new systems.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">TestType</span><span class="o">.</span><span class="n">describe_model</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ConsIndShock: Consumption-saving model with permanent and transitory income shocks and a risk-free asset.
+
+----------------------------------
+%%%%%%%%%%%%% SYMBOLS %%%%%%%%%%%%
+----------------------------------
+kNrm (float)        : beginning of period capital, normalized by p_{t-1}
+pLvlPrev (float)    : inbound permanent income level, before growth
+yNrm (float)        : normalized labor income
+pLvl (float)        : permanent income level
+bNrm (float)        : normalized bank balances
+mNrm (float)        : normalized market resources
+cNrm (float)        : normalized consumption
+aNrm (float)        : normalized end-of-period assets
+live (bool)         : whether the agent survives
+Rfree (param)       : risk free return factor on assets
+PermGroFac (param)  : expected permanent income growth factor
+LivPrb (param)      : survival probability at end of period
+cFunc (func)        : consumption function over market resources
+IncShkDstn (dstn)   : joint distribution of permanent and transitory shocks
+pLvlInitDstn (dstn) : distribution of permanent income at model birth
+kNrmInitDstn (dstn) : distribution of normalized capital holdings at birth
+PermShk (float)     :
+TranShk (float)     :
+G (float)           :
+dead (bool)         : whether agent died this period
+t_seq (int)         : which period of the sequence the agent is on
+t_age (int)         : how many periods the agent has already lived for
+----------------------------------
+%%%%% INITIALIZATION AT BIRTH %%%%
+----------------------------------
+pLvlPrev ~ pLvlInitDstn : draw initial permanent income from distribution
+kNrm ~ kNrmInitDstn     : draw initial capital from distribution
+----------------------------------
+%%%% DYNAMICS WITHIN PERIOD t %%%%
+----------------------------------
+(PermShk,TranShk) ~ IncShkDstn : draw permanent and transitory income shocks
+yNrm = TranShk                 : normalized income is the transitory shock
+G = PermGroFac*PermShk         : calculate permanent income growth
+pLvl = pLvlPrev*G              : update permanent income level
+bNrm = Rfree*kNrm/G            : calculate normalized bank balances
+mNrm = bNrm+yNrm               : calculate normalized market resources
+cNrm = cFunc@(mNrm)            : evaluate consumption from market resources
+aNrm = mNrm-cNrm               : calculate normalized end-of-period assets
+live ~ {LivPrb}                : draw survival
+dead = 1-live                  : dead are non-survivors
+----------------------------------
+%%%%%%% RELABELING / TWIST %%%%%%%
+----------------------------------
+aNrm[t-1] &lt;---&gt; kNrm[t]
+pLvl[t-1] &lt;---&gt; pLvlPrev[t]
+-----------------------------------
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Gentle-Intro-To-HARK.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">A Gentle Introduction to HARK</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Cycles-Intro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-model:-Consumption-saving-with-income-risk">Example model: Consumption-saving with income risk</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#How-to-make-simulated-data:-Legacy-method">How to make simulated data: Legacy method</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Visualizing-simulated-data">Visualizing simulated data</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Initializing-agents:-model-%22birth%22">Initializing agents: model “birth”</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Manually-altering-simulation-outcomes">Manually altering simulation outcomes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Pre-drawing-and-manipulating-shocks">Pre-drawing and manipulating shocks</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Lifecycle-simulation">Lifecycle simulation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#New-way?-What's-this-about-a-new-way?">New way? What’s this about a new way?</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1128 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>“Risky Contribution” Model &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsRiskyContribModel/RiskyContribConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsRiskyContribModel/RiskyContribConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="A Life Cycle Model: The Distribution of Assets By Age" href="../LifecycleModel/LifecycleModel.html" />
+    <link rel="prev" title="Medical Care on the Extensive Margin" href="../ConsMedModel/MedExtMargConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">“Risky Contribution” Model</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb">examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="RiskyContribConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="%22Risky-Contribution%22-Model">
+<h1>“Risky Contribution” Model<a class="headerlink" href="#%22Risky-Contribution%22-Model" title="Link to this heading">#</a></h1>
+<p>This notebook doesn’t actually explain the model yet; sorry!</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsRiskyContribModel</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">RiskyContribConsumerType</span><span class="p">,</span>
+    <span class="n">init_risky_contrib</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">plot_slices_3d</span><span class="p">(</span>
+    <span class="n">functions</span><span class="p">,</span>
+    <span class="n">bot_x</span><span class="p">,</span>
+    <span class="n">top_x</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="p">,</span>
+    <span class="n">N</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">y_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">functions</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">function_list</span> <span class="o">=</span> <span class="n">functions</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">function_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">functions</span><span class="p">]</span>
+
+    <span class="n">nfunc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">function_list</span><span class="p">)</span>
+
+    <span class="c1"># Initialize figure and axes</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">nfunc</span><span class="p">))</span>
+
+    <span class="c1"># Create x grid</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">bot_x</span><span class="p">,</span> <span class="n">top_x</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfunc</span><span class="p">):</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nfunc</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">y_slices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">y_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lab</span> <span class="o">=</span> <span class="n">y_name</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+            <span class="n">z</span> <span class="o">=</span> <span class="n">function_list</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ax_labs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ax_labs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ax_labs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin=&#39;lower&#39;)</span>
+        <span class="c1"># ax.colorbar();</span>
+        <span class="k">if</span> <span class="n">titles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">titles</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">bot_x</span><span class="p">,</span> <span class="n">top_x</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">y_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_slices_4d</span><span class="p">(</span>
+    <span class="n">functions</span><span class="p">,</span>
+    <span class="n">bot_x</span><span class="p">,</span>
+    <span class="n">top_x</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="p">,</span>
+    <span class="n">w_slices</span><span class="p">,</span>
+    <span class="n">N</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">slice_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">functions</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="n">function_list</span> <span class="o">=</span> <span class="n">functions</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">function_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">functions</span><span class="p">]</span>
+
+    <span class="n">nfunc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">function_list</span><span class="p">)</span>
+    <span class="n">nws</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">w_slices</span><span class="p">)</span>
+
+    <span class="c1"># Initialize figure and axes</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">nfunc</span><span class="p">))</span>
+
+    <span class="c1"># Create x grid</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">bot_x</span><span class="p">,</span> <span class="n">top_x</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nws</span><span class="p">):</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">w_slices</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nfunc</span><span class="p">):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">nws</span><span class="p">,</span> <span class="n">nfunc</span><span class="p">,</span> <span class="n">j</span> <span class="o">*</span> <span class="n">nfunc</span> <span class="o">+</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">y_slices</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">slice_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">lab</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lab</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">slice_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="o">+</span> <span class="s2">&quot;=&quot;</span>
+                        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;,&quot;</span>
+                        <span class="o">+</span> <span class="n">slice_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="o">+</span> <span class="s2">&quot;=&quot;</span>
+                        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="n">z</span> <span class="o">=</span> <span class="n">function_list</span><span class="p">[</span><span class="n">k</span><span class="p">](</span><span class="n">x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ax_labs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ax_labs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ax_labs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="c1"># ax.imshow(Z, extent=[bottom[0],top[0],bottom[1],top[1]], origin=&#39;lower&#39;)</span>
+            <span class="c1"># ax.colorbar();</span>
+            <span class="k">if</span> <span class="n">titles</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">titles</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">bot_x</span><span class="p">,</span> <span class="n">top_x</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">slice_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve an infinite horizon version</span>
+
+<span class="c1"># Get initial parameters</span>
+<span class="n">par_infinite</span> <span class="o">=</span> <span class="n">init_risky_contrib</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="c1"># And make the problem infinite horizon</span>
+<span class="n">par_infinite</span><span class="p">[</span><span class="s2">&quot;cycles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="c1"># and sticky</span>
+<span class="n">par_infinite</span><span class="p">[</span><span class="s2">&quot;AdjustPrb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span>
+<span class="c1"># and with a withdrawal tax</span>
+<span class="n">par_infinite</span><span class="p">[</span><span class="s2">&quot;WithdrawTax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">]</span>
+
+<span class="n">par_infinite</span><span class="p">[</span><span class="s2">&quot;DiscreteShareBool&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">par_infinite</span><span class="p">[</span><span class="s2">&quot;vFuncBool&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># Create agent and solve it.</span>
+<span class="n">inf_agent</span> <span class="o">=</span> <span class="n">RiskyContribConsumerType</span><span class="p">(</span><span class="n">tolerance</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="o">**</span><span class="n">par_infinite</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving infinite horizon version; this will take a minute.&quot;</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">inf_agent</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Converged!&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Solving took &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Plot policy functions</span>
+<span class="n">periods</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">n_slices</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">]</span>
+<span class="n">mMax</span> <span class="o">=</span> <span class="mi">20</span>
+
+<span class="n">dfracFunc</span> <span class="o">=</span> <span class="p">[</span><span class="n">inf_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">stage_sols</span><span class="p">[</span><span class="s2">&quot;Reb&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dfracFunc_Adj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">]</span>
+<span class="n">ShareFunc</span> <span class="o">=</span> <span class="p">[</span><span class="n">inf_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">stage_sols</span><span class="p">[</span><span class="s2">&quot;Sha&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFunc_Adj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">]</span>
+<span class="n">cFuncFxd</span> <span class="o">=</span> <span class="p">[</span><span class="n">inf_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">stage_sols</span><span class="p">[</span><span class="s2">&quot;Cns&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">]</span>
+
+<span class="c1"># Rebalancing</span>
+<span class="n">plot_slices_3d</span><span class="p">(</span>
+    <span class="n">dfracFunc</span><span class="p">,</span>
+    <span class="mi">0</span><span class="p">,</span>
+    <span class="n">mMax</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="o">=</span><span class="n">n_slices</span><span class="p">,</span>
+    <span class="n">y_name</span><span class="o">=</span><span class="s2">&quot;n&quot;</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;t = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">],</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="c1"># Share</span>
+<span class="n">plot_slices_3d</span><span class="p">(</span>
+    <span class="n">ShareFunc</span><span class="p">,</span>
+    <span class="mi">0</span><span class="p">,</span>
+    <span class="n">mMax</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="o">=</span><span class="n">n_slices</span><span class="p">,</span>
+    <span class="n">y_name</span><span class="o">=</span><span class="s2">&quot;n&quot;</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;t = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">],</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Consumption</span>
+<span class="n">shares</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">]</span>
+<span class="n">plot_slices_4d</span><span class="p">(</span>
+    <span class="n">cFuncFxd</span><span class="p">,</span>
+    <span class="mi">0</span><span class="p">,</span>
+    <span class="n">mMax</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="o">=</span><span class="n">n_slices</span><span class="p">,</span>
+    <span class="n">w_slices</span><span class="o">=</span><span class="n">shares</span><span class="p">,</span>
+    <span class="n">slice_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;n_til&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;t = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">],</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;m_til&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving infinite horizon version; this will take a minute.
+Converged!
+Solving took 54.27440142631531 seconds.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_1.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_2.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_3.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Finished cycle #37 in 0.23799729347229004 seconds, solution distance = 0.22001247043174033
+Finished cycle #38 in 0.24099016189575195 seconds, solution distance = 0.2041307958435148
+Finished cycle #39 in 0.24204635620117188 seconds, solution distance = 0.1895511158691363
+Finished cycle #40 in 0.24039459228515625 seconds, solution distance = 0.17614114810584525
+Finished cycle #41 in 0.24804925918579102 seconds, solution distance = 0.16379223371877671
+Finished cycle #42 in 0.23607158660888672 seconds, solution distance = 0.15240148828154432
+Finished cycle #43 in 0.24167418479919434 seconds, solution distance = 0.14188487999826904
+Finished cycle #44 in 0.24086308479309082 seconds, solution distance = 0.13216482757643888
+Finished cycle #45 in 0.2350912094116211 seconds, solution distance = 0.12317119440462676
+Finished cycle #46 in 0.23387527465820312 seconds, solution distance = 0.1148412372958667
+Finished cycle #47 in 0.245802640914917 seconds, solution distance = 0.1071190115202647
+Finished cycle #48 in 0.24527525901794434 seconds, solution distance = 0.09995443417609451
+Finished cycle #49 in 0.23836779594421387 seconds, solution distance = 0.09330220644322651
+Finished cycle #50 in 0.2500934600830078 seconds, solution distance = 0.08712305238126916
+Finished cycle #51 in 0.2407543659210205 seconds, solution distance = 0.08137793451099284
+Finished cycle #52 in 0.24480748176574707 seconds, solution distance = 0.07603087196451241
+Finished cycle #53 in 0.24602246284484863 seconds, solution distance = 0.07105207269190572
+Finished cycle #54 in 0.24190545082092285 seconds, solution distance = 0.06641377226958056
+Finished cycle #55 in 0.2417135238647461 seconds, solution distance = 0.06209046840455912
+Finished cycle #56 in 0.23904681205749512 seconds, solution distance = 0.05806039214042258
+Finished cycle #57 in 0.23853373527526855 seconds, solution distance = 0.0543016349872083
+Finished cycle #58 in 0.24446892738342285 seconds, solution distance = 0.050792355429262415
+Finished cycle #59 in 0.23846030235290527 seconds, solution distance = 0.04751525941490797
+Finished cycle #60 in 0.23834943771362305 seconds, solution distance = 0.044454484600144895
+Finished cycle #61 in 0.24232697486877441 seconds, solution distance = 0.04159298664174571
+Finished cycle #62 in 0.23842740058898926 seconds, solution distance = 0.0389188115968615
+Finished cycle #63 in 0.24158263206481934 seconds, solution distance = 0.03641910755728617
+Finished cycle #64 in 0.24176406860351562 seconds, solution distance = 0.03408188475658491
+Finished cycle #65 in 0.24629855155944824 seconds, solution distance = 0.03189605043228383
+Finished cycle #66 in 0.23747467994689941 seconds, solution distance = 0.029851355475425834
+Finished cycle #67 in 0.24113821983337402 seconds, solution distance = 0.027938308926213296
+Finished cycle #68 in 0.24250006675720215 seconds, solution distance = 0.02614812496521779
+Finished cycle #69 in 0.2368030548095703 seconds, solution distance = 0.024472707091931056
+Finished cycle #70 in 0.24219918251037598 seconds, solution distance = 0.022904506785693002
+Finished cycle #71 in 0.23986268043518066 seconds, solution distance = 0.021436548979984593
+Finished cycle #72 in 0.24063372611999512 seconds, solution distance = 0.02006369692858101
+Finished cycle #73 in 0.24188923835754395 seconds, solution distance = 0.01877843821991476
+Finished cycle #74 in 0.24191570281982422 seconds, solution distance = 0.01757256485253933
+Finished cycle #75 in 0.23726272583007812 seconds, solution distance = 0.016443733161427332
+Finished cycle #76 in 0.24784588813781738 seconds, solution distance = 0.015386928487888696
+Finished cycle #77 in 0.24249696731567383 seconds, solution distance = 0.014398454963458818
+Finished cycle #78 in 0.2388439178466797 seconds, solution distance = 0.013473205667235533
+Finished cycle #79 in 0.23897767066955566 seconds, solution distance = 0.012606505619487507
+Finished cycle #80 in 0.23634552955627441 seconds, solution distance = 0.011794968634792014
+Finished cycle #81 in 0.23593401908874512 seconds, solution distance = 0.011035290447981794
+Finished cycle #82 in 0.24188995361328125 seconds, solution distance = 0.010323520782613116
+Finished cycle #83 in 0.2406473159790039 seconds, solution distance = 0.009657068564937532
+Finished cycle #84 in 0.23662972450256348 seconds, solution distance = 0.009033021861213797
+Finished cycle #85 in 0.24515485763549805 seconds, solution distance = 0.008448680465587444
+Finished cycle #86 in 0.24194121360778809 seconds, solution distance = 0.007901529967000442
+Finished cycle #87 in 0.24025249481201172 seconds, solution distance = 0.007389222628706449
+Finished cycle #88 in 0.23914432525634766 seconds, solution distance = 0.0069095629369329
+Finished cycle #89 in 0.2426466941833496 seconds, solution distance = 0.006460495805733046
+Finished cycle #90 in 0.23419928550720215 seconds, solution distance = 0.00604009682174933
+Finished cycle #91 in 0.24608159065246582 seconds, solution distance = 0.005646562955103462
+Finished cycle #92 in 0.2363889217376709 seconds, solution distance = 0.00527820455410577
+Finished cycle #93 in 0.23595285415649414 seconds, solution distance = 0.004933437991201828
+Finished cycle #94 in 0.24736976623535156 seconds, solution distance = 0.004610778604646981
+Finished cycle #95 in 0.2406766414642334 seconds, solution distance = 0.004308834859578781
+Finished cycle #96 in 0.2429969310760498 seconds, solution distance = 0.004026302266076698
+Finished cycle #97 in 0.2385423183441162 seconds, solution distance = 0.003761957277351513
+Finished cycle #98 in 0.23572444915771484 seconds, solution distance = 0.0035146519986142266
+Finished cycle #99 in 0.23773670196533203 seconds, solution distance = 0.0032833094678750285
+Finished cycle #100 in 0.24480390548706055 seconds, solution distance = 0.0030669193503207737
+Finished cycle #101 in 0.23711705207824707 seconds, solution distance = 0.0028645339391815128
+Finished cycle #102 in 0.23744726181030273 seconds, solution distance = 0.0026752644036172057
+Finished cycle #103 in 0.23840546607971191 seconds, solution distance = 0.0024982772444062107
+Finished cycle #104 in 0.23538708686828613 seconds, solution distance = 0.0023328323511329074
+Finished cycle #105 in 0.23458385467529297 seconds, solution distance = 0.002178333119072562
+Finished cycle #106 in 0.23614239692687988 seconds, solution distance = 0.002033848779593228
+Finished cycle #107 in 0.2383708953857422 seconds, solution distance = 0.0018987560781837942
+Finished cycle #108 in 0.23924636840820312 seconds, solution distance = 0.001772464733409862
+Finished cycle #109 in 0.24867653846740723 seconds, solution distance = 0.0016544173642891735
+Finished cycle #110 in 0.23617959022521973 seconds, solution distance = 0.0015440893104674558
+Finished cycle #111 in 0.23368191719055176 seconds, solution distance = 0.001440987570251906
+Finished cycle #112 in 0.24388575553894043 seconds, solution distance = 0.0013446493424176253
+Finished cycle #113 in 0.24480247497558594 seconds, solution distance = 0.001254640439277921
+Finished cycle #114 in 0.23627519607543945 seconds, solution distance = 0.0011705536868369393
+Finished cycle #115 in 0.23915648460388184 seconds, solution distance = 0.0010920073625086957
+Finished cycle #116 in 0.24079298973083496 seconds, solution distance = 0.0010186436927313025
+Finished cycle #117 in 0.23693060874938965 seconds, solution distance = 0.0009501274203458365
+Converged!
+Solving took 27.963370084762573 seconds.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_5.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_6.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_6.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_7.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_3_7.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve a short, finite horizon version</span>
+<span class="n">par_finite</span> <span class="o">=</span> <span class="n">init_risky_contrib</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="c1"># Four period model</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;PermGroFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;PermShkStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;TranShkStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;AdjustPrb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;WithdrawTax&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;LivPrb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;T_cycle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;T_retire&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;T_age&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+
+<span class="c1"># Adjust discounting and returns distribution so that they make sense in a</span>
+<span class="c1"># 4-period model</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.95</span><span class="o">**</span><span class="mi">15</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;Rfree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">[</span><span class="mf">1.03</span><span class="o">**</span><span class="mi">15</span><span class="p">]</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;RiskyAvg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.08</span><span class="o">**</span><span class="mi">15</span>  <span class="c1"># Average return of the risky asset</span>
+<span class="n">par_finite</span><span class="p">[</span><span class="s2">&quot;RiskyStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>  <span class="c1"># Standard deviation of (log) risky returns</span>
+
+
+<span class="c1"># Create and solve</span>
+<span class="n">contrib_agent</span> <span class="o">=</span> <span class="n">RiskyContribConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">par_finite</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving&quot;</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">contrib_agent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Solving took &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Plot Policy functions</span>
+<span class="n">periods</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+
+<span class="n">dfracFunc</span> <span class="o">=</span> <span class="p">[</span><span class="n">contrib_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">stage_sols</span><span class="p">[</span><span class="s2">&quot;Reb&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dfracFunc_Adj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">]</span>
+<span class="n">ShareFunc</span> <span class="o">=</span> <span class="p">[</span><span class="n">contrib_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">stage_sols</span><span class="p">[</span><span class="s2">&quot;Sha&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">ShareFunc_Adj</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">]</span>
+<span class="n">cFuncFxd</span> <span class="o">=</span> <span class="p">[</span><span class="n">contrib_agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">stage_sols</span><span class="p">[</span><span class="s2">&quot;Cns&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">]</span>
+
+<span class="c1"># Rebalancing</span>
+<span class="n">plot_slices_3d</span><span class="p">(</span>
+    <span class="n">dfracFunc</span><span class="p">,</span>
+    <span class="mi">0</span><span class="p">,</span>
+    <span class="n">mMax</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="o">=</span><span class="n">n_slices</span><span class="p">,</span>
+    <span class="n">y_name</span><span class="o">=</span><span class="s2">&quot;n&quot;</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;t = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">],</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="c1"># Share</span>
+<span class="n">plot_slices_3d</span><span class="p">(</span>
+    <span class="n">ShareFunc</span><span class="p">,</span>
+    <span class="mi">0</span><span class="p">,</span>
+    <span class="n">mMax</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="o">=</span><span class="n">n_slices</span><span class="p">,</span>
+    <span class="n">y_name</span><span class="o">=</span><span class="s2">&quot;n&quot;</span><span class="p">,</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;t = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">],</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="c1"># Consumption</span>
+<span class="n">plot_slices_4d</span><span class="p">(</span>
+    <span class="n">cFuncFxd</span><span class="p">,</span>
+    <span class="mi">0</span><span class="p">,</span>
+    <span class="n">mMax</span><span class="p">,</span>
+    <span class="n">y_slices</span><span class="o">=</span><span class="n">n_slices</span><span class="p">,</span>
+    <span class="n">w_slices</span><span class="o">=</span><span class="n">shares</span><span class="p">,</span>
+    <span class="n">slice_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;n_til&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;t = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">periods</span><span class="p">],</span>
+    <span class="n">ax_labs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;m_til&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving
+Solving took 2.3705382347106934 seconds.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_4_1.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_4_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_4_2.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_4_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_4_3.png" src="../../_images/examples_ConsRiskyContribModel_RiskyContribConsumerType_4_3.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">contrib_agent</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;pLvl&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;t_age&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Adjust&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mNrm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nNrm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mNrmTilde&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nNrmTilde&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;aNrm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cNrm&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Share&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;dfrac&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">contrib_agent</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">contrib_agent</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">contrib_agent</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">contrib_agent</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">contrib_agent</span><span class="o">.</span><span class="n">history</span>
+
+<span class="c1"># Add an id to the simulation results</span>
+<span class="n">agent_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">contrib_agent</span><span class="o">.</span><span class="n">AgentCount</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="p">(</span><span class="n">contrib_agent</span><span class="o">.</span><span class="n">T_sim</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Flatten variables</span>
+<span class="n">df</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+<span class="c1"># Make dataframe</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsMedModel/MedExtMargConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Medical Care on the Extensive Margin</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../LifecycleModel/LifecycleModel.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">A Life Cycle Model: The Distribution of Assets By Age</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

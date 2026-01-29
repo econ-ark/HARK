@@ -1,0 +1,1177 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Medical Care on the Extensive Margin &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsMedModel/MedExtMargConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsMedModel/MedExtMargConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="“Risky Contribution” Model" href="../ConsRiskyContribModel/RiskyContribConsumerType.html" />
+    <link rel="prev" title="Medical Care on the Intensive Margin" href="MedShockConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Medical Care on the Extensive Margin</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsMedModel/MedExtMargConsumerType.ipynb">examples/ConsMedModel/MedExtMargConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsMedModel/MedExtMargConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="MedExtMargConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Medical-Care-on-the-Extensive-Margin">
+<h1>Medical Care on the Extensive Margin<a class="headerlink" href="#Medical-Care-on-the-Extensive-Margin" title="Link to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsMedModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">MedExtMargConsumerType</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>HARK’s <code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code> specifies medical care as a second consumption good with stochastic (marginal) utility relative to ordinary consumption, representing “medical need” shocks. That model allows for endogenous medical care choice on the <em>intensive margin</em>, which in turn permits <em>moral hazard</em> if insurance contracts are introduced to reduce the out-of-pocket cost of care. However, that model does not allow <em>extensive margin</em> medical care choice: whether an agent buys <em>any</em> medical
+care is strictly determined by whether they receive a positive medical need shock.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code> takes the opposite tack and allows <em>only</em> extensive margin medical care choice. Each period, the agent jointly draws a 2D medical shock consisting of a cost-to-treat and a utility shock. Along with their consumption-saving decision, the agent also makes the binary choice between paying the medical cost or suffering the utility loss.</p>
+<section id="Extensive-Margin-Medical-Care-Model">
+<h2>Extensive Margin Medical Care Model<a class="headerlink" href="#Extensive-Margin-Medical-Care-Model" title="Link to this heading">#</a></h2>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t,H_t,\eta_t) &=& \max_{C_t, D_t} ~~ U(C_t) - (1-D_t) \eta_t + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(\cdot)] + (1-\mathsf{S}_{t}) \Omega(A_t), \\
+A_t &=& M_t - C_t - D_t H_t, \\
+D_t &\in& \{0,1\}, \\
+A_t &\geq& 0, \\
+M_{t} &=& R_{t} A_t + Y_t, \\
+Y_{t} &=& P_t \theta_t, \\
+P_{t} &=& \gimel_{t}(P_{t-1})\psi_t, \\
+(H_t,\eta_{t}) &\sim& G_{t},\\
+(\psi_t,\theta_t) &\sim& F_t, \qquad\mathbb{E} [\psi_t] = 1, \\
+U(C) &=& \frac{C^{1-\rho}}{1-\rho},\\
+\Omega(A) &=& \omega_1 \frac{(A+\omega_0)^{1-\rho}}{1-\rho}.
+\end{eqnarray*}</span></p>
+<p>At the time when the agent makes their choice of action, they observe their level of market resources <span class="math notranslate nohighlight">\(M_t\)</span> (after receiving income), their persistent income component <span class="math notranslate nohighlight">\(P_t\)</span>, and the two elements of their medical shock: the cost-to-treat <span class="math notranslate nohighlight">\(H_t\)</span> and the utility loss <span class="math notranslate nohighlight">\(\eta_t\)</span>. Their control variables are real-valued consumption <span class="math notranslate nohighlight">\(C_t\)</span>, yielding CRRA utility flow, and binary choice <span class="math notranslate nohighlight">\(D_t\)</span> representing the decision to treat.</p>
+<p>If the agent receives medical treatment, they pay cost <span class="math notranslate nohighlight">\(H_t\)</span> and have less assets <span class="math notranslate nohighlight">\(A_t\)</span> at the end of the period. If they decline treatment, their utility flow is penalized by the shock <span class="math notranslate nohighlight">\(\eta_t\)</span>. In this simple model, the joint medical shock is drawn iid each period (conditional on age), but the model can be extended to include a persistent health state.</p>
+<p>In most HARK models, the specification of distributions is left to the user (with some provided defaults), because the distributions are approximated with discretizations before being passed to solvers. For the medical shock distribution <span class="math notranslate nohighlight">\(G_t\)</span> (called <code class="docutils literal notranslate"><span class="pre">MedShockDstn</span></code> in the code), the model is specifically designed for a bivariate lognormal distribution. This restriction will be loosened in the future, and the reasoning for its current implementation is addressed below.</p>
+</section>
+<section id="Solving-the-Extensive-Margin-Medical-Care-Model">
+<h2>Solving the Extensive Margin Medical Care Model<a class="headerlink" href="#Solving-the-Extensive-Margin-Medical-Care-Model" title="Link to this heading">#</a></h2>
+<p>The one-period problem for a <code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code> can be solved sequentially in its two simultaneous control variables. Critically, once the decision <span class="math notranslate nohighlight">\(D_t\)</span> is made, available market resources might be lower, but there is no further ongoing effect from the medical shock <span class="math notranslate nohighlight">\((H_t,\eta_t)\)</span>. Specifically, the intraperiod budget constraint can be decomposed into two steps:</p>
+<p><span class="math">\begin{eqnarray*}
+B_t &=& M_t - D_t H_t, \\
+A_t &=& B_t - C_t.\\
+\end{eqnarray*}</span></p>
+<p>Imagining that the decision to treat <span class="math notranslate nohighlight">\(D_t\)</span> is chosen a split second before consumption <span class="math notranslate nohighlight">\(C_t\)</span>, the agent’s problem <em>just after</em> choosing <span class="math notranslate nohighlight">\(D_t\)</span> is effectively identical to the “general income process” model for <code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code>:</p>
+<p><span class="math">\begin{eqnarray*}
+\hat{V}_t(B_t,P_t) &=& \max_{C_t} ~~ U(C_t) + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(\cdot)], \\
+A_t &=& B_t - C_t, \\
+A_t &\geq& 0, \\
+M_{t} &=& R_{t} A_t + Y_t, \\
+Y_{t} &=& P_t \theta_t, \\
+P_{t} &=& \gimel_{t}(P_{t-1})\psi_t, \\
+(\psi_t,\theta_t) &\sim& F_t, \qquad\mathbb{E} [\psi_t] = 1, \\
+U(C) &=& \frac{C^{1-\rho}}{1-\rho}, \\
+\Omega(A) &=& \omega_1 \frac{(A+\omega_0)^{1-\rho}}{1-\rho}.
+\end{eqnarray*}</span></p>
+<section id="Solving-the-Consumption-Saving-Problem">
+<h3>Solving the Consumption-Saving Problem<a class="headerlink" href="#Solving-the-Consumption-Saving-Problem" title="Link to this heading">#</a></h3>
+<p>The consumption-saving portion of the model can thus be solved using our standard endogenous grid method. Defining end-of-period (marginal) value as usual, we have:</p>
+<p><span class="math">\begin{eqnarray*}
+\mathfrak{V}_t(A_t,P_t) &=& \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(\cdot)] + (1-\mathsf{S}_{t}) \Omega(A_t), \\
+\mathfrak{V}_t^A(A_t,P_t) &=& R_{t+1} \beta \mathsf{S}_{t} \mathbb{E} [V^M_{t+1}(\cdot)] + (1-\mathsf{S}_{t}) \Omega'(A_t).
+\end{eqnarray*}</span></p>
+<p>The first order condition for optimal consumption (assuming an interior, non-liquidity-constrained solution) is:</p>
+<p><span class="math">\begin{equation*}
+C_t^{-\rho} - \mathfrak{V}_t^A(A_t,P_t) = 0 \Longrightarrow C_t = \mathfrak{V}_t^A(A_t,P_t)^{-1/\rho}.
+\end{equation*}</span></p>
+<p>The value of <span class="math notranslate nohighlight">\(B_t\)</span> from which this <span class="math notranslate nohighlight">\(C_t\)</span> must have been chosen to optimally end the period with <span class="math notranslate nohighlight">\(A_t\)</span> is simply <span class="math notranslate nohighlight">\(B_t = A_t + C_t\)</span>.</p>
+<p>The general algorithm for solving the consumption portion of the problem is thus:</p>
+<ol class="arabic simple">
+<li><p>Choose a grid of <span class="math notranslate nohighlight">\(P_t\)</span> values, and accompanying grids of <span class="math notranslate nohighlight">\(A_t\)</span> for each <span class="math notranslate nohighlight">\(P_t\)</span>.</p></li>
+<li><p>Compute <span class="math notranslate nohighlight">\(\mathfrak{V}_t(A_t,P_t)\)</span> and <span class="math notranslate nohighlight">\(\mathfrak{V}_t^A(A_t,P_t)\)</span> for each <span class="math notranslate nohighlight">\((A_t,P_t)\)</span> end-of-period gridpoint.</p></li>
+<li><p>Find the consumption level <span class="math notranslate nohighlight">\(C_t\)</span> consistent with the FOC for each <span class="math notranslate nohighlight">\((A_t,P_t)\)</span>.</p></li>
+<li><p>Recover the endogenous <span class="math notranslate nohighlight">\(B_t\)</span> gridpoint for each <span class="math notranslate nohighlight">\((A_t,P_t)\)</span>.</p></li>
+<li><p>Construct an interpolation of <span class="math notranslate nohighlight">\(C_t\)</span> over <span class="math notranslate nohighlight">\(B_t\)</span> for each <span class="math notranslate nohighlight">\(P_t\)</span>.</p></li>
+<li><p>Represent the “mid-period” marginal utility function <span class="math notranslate nohighlight">\(\hat{V}^B_t(B_t,P_t)\)</span> as the composition of the marginal utility function and the consumption function.</p></li>
+<li><p>Construct a representation for the “mid-period” value function <span class="math notranslate nohighlight">\(\hat{V}_t(B_t,P_t)\)</span> using the typical “pseudo-inverse” method.</p></li>
+</ol>
+<p>The “mid-period” value function <span class="math notranslate nohighlight">\(\hat{V}_t\)</span> now acts as the continuation value function for the medical treatment choice problem.</p>
+</section>
+<section id="Solving-the-Medical-Treatment-Problem-and-Computing-Expectations-over-Medical-Shocks">
+<h3>Solving the Medical Treatment Problem and Computing Expectations over Medical Shocks<a class="headerlink" href="#Solving-the-Medical-Treatment-Problem-and-Computing-Expectations-over-Medical-Shocks" title="Link to this heading">#</a></h3>
+<p>The choice of whether to receive medical treatment now looks almost trivial:</p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t,H_t,\eta_t) &=& \max_{D_t} ~~ (D_t-1) \eta_t + \hat{V}_t(B_t,P_t), \\
+B_t &=& M_t - D_t H_t, \\
+D_t &\in& \{0,1\}.
+\end{eqnarray*}</span></p>
+<p>Or in one line, simply:</p>
+<p><span class="math">\begin{equation*}
+V_t(M_t,P_t,H_t,\eta_t) = \max \left\{ \hat{V}_t(M_t,P_t) - \eta_t, ~~ \hat{V}_t(M_t-H_t,P_t) \right\}.
+\end{equation*}</span></p>
+<p>This is straightforward: the agent’s value function is simply the upper envelope of the “mid-period” value function of his remaining money after receiving care, less the medical utility shock. This yields a simple representation for the medical treatment choice:</p>
+<p><span class="math">\begin{equation*}
+D_t = \mathbf{1}(\hat{V}_t(M_t,P_t) - \hat{V}_t(M_t-H_t,P_t) \leq \eta_t).
+\end{equation*}</span></p>
+<p>The agent will get medical treatment if the value loss from paying cost <span class="math notranslate nohighlight">\(H_t\)</span> is less than the utility loss <span class="math notranslate nohighlight">\(\eta_t\)</span> from the illness. Easy enough.</p>
+<p>The real question is how to efficiently calculate expectations over the medical shock distribution <span class="math notranslate nohighlight">\(G_t\)</span>. This is where the parametric restriction to bivariate lognormal comes in. With this distribution, the distribution of <span class="math notranslate nohighlight">\(\eta_t\)</span> <em>conditional</em> on <span class="math notranslate nohighlight">\(H_t\)</span> is lognormal. For any value of <span class="math notranslate nohighlight">\(H_t\)</span>, this means that we can easily calculate the conditional probability that <span class="math notranslate nohighlight">\(D_t = 1\)</span> (because <span class="math notranslate nohighlight">\(\eta_t\)</span> is large enough), as well as the expectation of <span class="math notranslate nohighlight">\(\eta_t\)</span>
+conditional on <span class="math notranslate nohighlight">\(D_t = 0\)</span> (expected utility loss when not getting care).</p>
+<p>Let’s be specific about the distribution <span class="math notranslate nohighlight">\(G_t\)</span>: log medical costs have mean <span class="math notranslate nohighlight">\(\mu_H\)</span> and standard deviation <span class="math notranslate nohighlight">\(\sigma_H\)</span>, log utility shocks have mean <span class="math notranslate nohighlight">\(\mu_\eta\)</span> and standard deviation <span class="math notranslate nohighlight">\(\sigma_\eta\)</span>, and the correlation coefficient is <span class="math notranslate nohighlight">\(\kappa\)</span>. (All of these parameters can be age-varying, but we’re just looking at one period here). Given medical cost <span class="math notranslate nohighlight">\(H_t\)</span>, the log utility shock has conditional mean:</p>
+<p><span class="math">\begin{equation*}
+\mathbb{E} \left[ \log(\eta_t) ~\big|~ H_t \right] = \mu_{\eta} + \kappa \sigma_\eta \log(H_t).
+\end{equation*}</span></p>
+<p>Following standard math, the conditional standard deviation of <span class="math notranslate nohighlight">\(\log(\eta_t)\)</span> given <span class="math notranslate nohighlight">\(H_t\)</span> is:</p>
+<p><span class="math">\begin{equation*}
+\hat{\sigma}_{\eta} = \sqrt{\sigma_{\eta}^2 (1 - \kappa^2)}.
+\end{equation*}</span></p>
+<p>Fixing <span class="math notranslate nohighlight">\(M_t\)</span>, <span class="math notranslate nohighlight">\(P_t\)</span>, and <span class="math notranslate nohighlight">\(H_t\)</span>, the “critical value” of <span class="math notranslate nohighlight">\(\eta_t\)</span> at which the agent is indifferent to receiving treatment is the difference in their “mid period” value function with or without care; above this critical value, they will choose <span class="math notranslate nohighlight">\(D_t=1\)</span>. The conditional probability of buying care can thus be expressed as:</p>
+<p><span class="math">\begin{equation*}
+\mathbb{E} \left[ D_t ~\big|~ M_t, P_t, H_t \right] = 1 - \Phi \left( \left(\log (\hat{V}_t(M_t,P_t) - \hat{V}_t(M_t-H_t,P_t)) - \mathbb{E} \left[ \log(\eta_t) ~\big|~ H_t \right] \right) \bigg/ \hat{\sigma}_{\eta} \right).
+\end{equation*}</span></p>
+<p>Where <span class="math notranslate nohighlight">\(\Phi(\cdot)\)</span> is the CDF of the standard normal distribution.</p>
+<p>There is an algebraic form for the expectation of <span class="math notranslate nohighlight">\(\eta_t\)</span> conditional on <em>not</em> receiving care; this uses the same formula in HARK’s discretization of lognormal distributions. Labeling the expression in the argument of <span class="math notranslate nohighlight">\(\Phi\)</span> above as <span class="math notranslate nohighlight">\(x^*\)</span> and denoting the complementary error function as erfc, this is:</p>
+<p><span class="math">\begin{equation*}
+\mathbb{E} \left[ \eta_t ~\big|~ M_t, P_t, H_t, D_t=0 \right] = \frac{\exp\left( \mathbb{E} \left[ \log(\eta_t) ~\big|~ H_t \right] + \hat{\sigma}_{\eta}^2 / 2 \right) \cdot \text{erfc}(x^*)}{1 - \mathbb{E} \left[ D_t ~\big|~ M_t, P_t, H_t \right]}.
+\end{equation*}</span></p>
+<p>With these calculations in hand, the agent’s expected value conditional on <span class="math notranslate nohighlight">\(H_t\)</span> can be expressed as:</p>
+<p><span class="math">\begin{equation*}
+\mathbb{E} \left[ V_t(\cdot) ~|~ M_t,P_t,H_t \right] = \underbrace{\mathbb{E} \left[ D_t ~\big|~ M_t, P_t, H_t \right] \cdot \hat{V}_t(M_t-H_t,P_t)}_{D_t = 1} + \underbrace{\left(1 - \mathbb{E} \left[ D_t ~\big|~ M_t, P_t, H_t \right] \right) \cdot \left(\hat{V}_t(M_t,P_t) - \mathbb{E} \left[ \eta_t ~\big|~ M_t, P_t, H_t, D_t=0 \right] \right)}_{D_t=0}.
+\end{equation*}</span></p>
+<p>The expectation over <span class="math notranslate nohighlight">\(H_t\)</span> can now be computed using standard discretization methods on the <em>unconditional</em> distribution of <span class="math notranslate nohighlight">\(H_t\)</span>. Likewise, computing expectations over permanent and transitory income shocks can likewise proceed using straightforward methods, yielding the beginning-of-period expected value function, before the arrival of any shocks.</p>
+<p>Calculating expected <em>marginal</em> value of market resources is somewhat trickier and involves a fair bit of algebra. If the agent has a tiny bit more market resources, their marginal value in the “mid period” <span class="math notranslate nohighlight">\(\hat{V}_t\)</span> function changes slightly whether or not they get treatment, <em>and</em> the probability of receiving treatment changes slightly <em>and</em> the expected utility shock conditional on not getting care changes on the margin.</p>
+<p>Luckily, some of the terms (seem to) cancel out, and the remaining expression is the probability-weighted sum of “mid period” marginal value plus the rate of change of probability of getting treatment times the expected utility loss from shocks when untreated:</p>
+<p><span class="math">\begin{eqnarray*}
+\mathbb{E} \left[ V_t^M(\cdot) ~|~ M_t,P_t,H_t \right] &=& \mathbb{E} \left[ D_t ~\big|~ M_t, P_t, H_t \right] \cdot \hat{V}^M_t(M_t-H_t,P_t) + \left(1 - \mathbb{E} \left[ D_t ~\big|~ M_t, P_t, H_t \right] \right) \cdot \hat{V}^M_t(M_t,P_t) \\
+&+& \phi(x^*) \cdot \left( \hat{V}^M_t(M_t,P_t) - \hat{V}^M_t(M_t-H_t,P_t) \right) \cdot \mathbb{E} \left[ \eta_t ~\big|~ M_t, P_t, H_t, D_t=0 \right].
+\end{eqnarray*}</span></p>
+</section>
+<section id="Generalizing-the-Medical-Shock-Distribution">
+<h3>Generalizing the Medical Shock Distribution<a class="headerlink" href="#Generalizing-the-Medical-Shock-Distribution" title="Link to this heading">#</a></h3>
+<p>The current version of the model was designed as a proof of concept for this kind of model, and lacks many important features. The “hardcoded” specification of a bivariate lognormal <span class="math notranslate nohighlight">\(G_t\)</span> can be loosened in several layers of increasing difficulty.</p>
+<p>An exogenous insurance contract can be added to the model almost costlessly. The medical insurance contract would map from <span class="math notranslate nohighlight">\(H_t\)</span> to out-of-pocket cost, and only affect the budget constraint. This very small extension would be useful for exploring how moral hazard works in this framework, and which parameters drive its magnitude.</p>
+<p>More broadly, it would not be very hard to allow medical costs <span class="math notranslate nohighlight">\(H_t\)</span> can have <em>any</em> distribution. The main requirements to keep the extension “easy” are that there is some way to discretize the unconditional distribution of <span class="math notranslate nohighlight">\(H_t\)</span>, and that the conditional distribution of <span class="math notranslate nohighlight">\(\eta_t\)</span> given <span class="math notranslate nohighlight">\(H_t\)</span> is still lognormal (with conditional parameters recoverable from <span class="math notranslate nohighlight">\(H_t\)</span>).</p>
+<p><em>Fully</em> generalizing <span class="math notranslate nohighlight">\(G_t\)</span> would require some difficult coding or compromise to accuracy. Whatever the conditional distribution of <span class="math notranslate nohighlight">\(\eta_t\)</span>, there would need to be a way to compute its conditional expectation (when <span class="math notranslate nohighlight">\(D_t = 0\)</span>), and the probability of getting treatment. Moreover, the “rate of change of probability of getting care” (the <span class="math notranslate nohighlight">\(\phi(x^*)\)</span> times difference in marginal values above) would need to have a closed form that could be specified.</p>
+<p>Most HARK models compute expectations strictly using discretized distributions. The method here has the advantage of being fully accurate up to machine precision when integrating with respect to <span class="math notranslate nohighlight">\(\eta_t\)</span>. It would be fairly easy to program the solver to use a fully generic discretized <code class="docutils literal notranslate"><span class="pre">MedShockDstn</span></code> object for <span class="math notranslate nohighlight">\(G_t\)</span>, but the solver would take longer to run (because of more interpolation queries on <span class="math notranslate nohighlight">\(\hat{V}_t\)</span>) and would be less accurate.</p>
+</section>
+</section>
+<section id="Example-Parameters-for-the-Extensive-Margin-Medical-Shocks-Model">
+<h2>Example Parameters for the Extensive Margin Medical Shocks Model<a class="headerlink" href="#Example-Parameters-for-the-Extensive-Margin-Medical-Shocks-Model" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Constructed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p>0.96</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Coefficient of relative risk aversion for consumption</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p>1.5</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p>[1.02]</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathsf{S}\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p>[0.99]</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\omega_0\)</span></p></td>
+<td><p>Bequest motive shifter</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BeqShift</span></code></p></td>
+<td><ol class="arabic simple" start="100">
+<li></li>
+</ol>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\omega_1\)</span></p></td>
+<td><p>Bequest motive scale</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BeqFac</span></code></p></td>
+<td><p>0.001</p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mu_H\)</span></p></td>
+<td><p>Mean of log medical costs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedCostLogMean</span></code></p></td>
+<td><p>[-1.0]</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_H\)</span></p></td>
+<td><p>Stdev of log medical costs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedCostLogStd</span></code></p></td>
+<td><p>[1.0]</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mu_{\eta}\)</span></p></td>
+<td><p>Mean of log utility shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedShkLogMean</span></code></p></td>
+<td><p>[-2.0]</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_{\eta}\)</span></p></td>
+<td><p>Stdev of log utility shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedShkLogStd</span></code></p></td>
+<td><p>[1.5]</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\kappa\)</span></p></td>
+<td><p>Correlation of log costs and utility shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedCorr</span></code></p></td>
+<td><p>[0.3]</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Lower bound of medical costs to consider, in stdevs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedCostBot</span></code></p></td>
+<td><p>-3.1</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Upper bound of medical costs to consider, in stdevs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedCostTop</span></code></p></td>
+<td><p>5.2</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Number of medical cost nodes in discretization</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedCostCount</span></code></p></td>
+<td><p>84</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(F\)</span></p></td>
+<td><p>Distribution of permanent &amp; transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Distribution of permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Distribution of transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(G\)</span></p></td>
+<td><p>Distribution of medical shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedShockDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\gimel\)</span></p></td>
+<td><p>Expected persistent income next period, as a function of current value</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Array of deviations from mean log income level</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Mean persistent income level</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLvlMean</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Markov matrix of persistent income level transition probabilities</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogMrkvArray</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Array of end-of-period normalized asset values</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aNrmGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Array of normalized market resources values</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mNrmGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Array of beginning-of-period capital level values</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kLvlGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="Constructed-Inputs-for-MedExtMargConsumerType">
+<h2>Constructed Inputs for MedExtMargConsumerType<a class="headerlink" href="#Constructed-Inputs-for-MedExtMargConsumerType" title="Link to this heading">#</a></h2>
+<p>The default parameter dictionary for <code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code> specifies several key model objects as constructed inputs, as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">construct_lognormal_income_process_unemployment</span></code>, like most other consumption-saving models in HARK. In turn, <code class="docutils literal notranslate"><span class="pre">PermShkDstn</span></code> and <code class="docutils literal notranslate"><span class="pre">TranShkDstn</span></code> are constructed by separating the components of <code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code> (sometimes useful).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aNrmGridGrid</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_assets_grid</span></code>, like other HARK models. For non-permanent-income-normalized models like this one, it is still interpreted as <em>normalized</em> assets above minimum, so the actual <span class="math notranslate nohighlight">\(A_t\)</span> grid used for each <span class="math notranslate nohighlight">\(P_t\)</span> is multiplied by that <span class="math notranslate nohighlight">\(P_t\)</span>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mNrmGridGrid</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_market_resources_grid</span></code>, which uses primitive parameters like <code class="docutils literal notranslate"><span class="pre">mNrmMin</span></code> and <code class="docutils literal notranslate"><span class="pre">mNrmMax</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kLvlGrid</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_capital_grid</span></code>, which uses primitive parameters like <code class="docutils literal notranslate"><span class="pre">kLvlMin</span></code> and <code class="docutils literal notranslate"><span class="pre">kLvlMax</span></code>. Unlike the grids for <code class="docutils literal notranslate"><span class="pre">A</span></code> and <code class="docutils literal notranslate"><span class="pre">M</span></code>, the beginning-of-period capital grid is <em>shared</em> across all values of persistent income, which simplifies the calculation of expectations across permanent income shocks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_AR1_style_pLvlNextFunc</span></code>, which specifies <span class="math notranslate nohighlight">\(\gimel_t\)</span> as log-linear in <span class="math notranslate nohighlight">\(p_t\)</span> based on <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> and <code class="docutils literal notranslate"><span class="pre">PrstIncCorr</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pLogGrid</span></code>, <code class="docutils literal notranslate"><span class="pre">pLvlMean</span></code>, and <code class="docutils literal notranslate"><span class="pre">pLogMrkvArray</span></code> are all constructed by <code class="docutils literal notranslate"><span class="pre">make_persistent_income_process_dict</span></code> by default. It uses the persistent income process specified by <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> and <code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code> to generate life-cycle arrays of persistent income grids (as deviations from mean log income), along with transition matrices among them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MedShockDstn</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_continuous_MedShockDstn</span></code>, which relies on time-varying inputs like <code class="docutils literal notranslate"><span class="pre">MedShkAvg</span></code> and <code class="docutils literal notranslate"><span class="pre">MedShkStd</span></code>. The default parameter set has these as contants, but you can easily provide a constructor for those distribution parameters to make (e.g.) polynomial-in-age <code class="docutils literal notranslate"><span class="pre">MedShkAvg</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BeqFac</span></code> and <code class="docutils literal notranslate"><span class="pre">BeqShift</span></code> are just single real numbers, but have a default constructor of <code class="docutils literal notranslate"><span class="pre">reformat_bequest_motive</span></code>, which uses primitive parameters <code class="docutils literal notranslate"><span class="pre">BeqMPC</span></code> and <code class="docutils literal notranslate"><span class="pre">BeqInt</span></code>. These represent the coefficients of a hypothetical “terminal consumption function” that the agent experiences with their wealth at death.</p></li>
+</ul>
+</section>
+<section id="Example-Implementation-of-MedExtMargConsumerType">
+<h2>Example Implementation of MedExtMargConsumerType<a class="headerlink" href="#Example-Implementation-of-MedExtMargConsumerType" title="Link to this heading">#</a></h2>
+<p>The one period problem for this model is solved by the function <code class="docutils literal notranslate"><span class="pre">solve_one_period_ConsMedExtMarg</span></code>. The class <code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code> extends <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> to represent agents in this model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a MedExtMargConsumerType with mostly default parameters</span>
+<span class="n">MyType</span> <span class="o">=</span> <span class="n">MedExtMargConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon extensive margin medical choice model took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving an infinite horizon extensive margin medical choice model took 19.9088 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function by permanent income level</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption function by permanent income level:&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources less medical costs $B_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Consumption level $C_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="o">.</span><span class="n">xInterpolators</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function by permanent income level:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedExtMargConsumerType_33_1.png" src="../../_images/examples_ConsMedModel_MedExtMargConsumerType_33_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot expected medical spending function by permanent income level</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Expected medical expense function by permanent income level:&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Expected medical spending $E[D_t H_t]$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ExpMedFunc</span><span class="o">.</span><span class="n">xInterpolators</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Expected medical expense function by permanent income level:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedExtMargConsumerType_34_1.png" src="../../_images/examples_ConsMedModel_MedExtMargConsumerType_34_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot probability of medical treatment function by permanent income level</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Probability of medical treatment function by permanent income level:&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Probability of getting medical care $E[D_t]$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">CareProbFunc</span><span class="o">.</span><span class="n">xInterpolators</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Probability of medical treatment function by permanent income level:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedExtMargConsumerType_35_1.png" src="../../_images/examples_ConsMedModel_MedExtMargConsumerType_35_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Simulate the model</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;cLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;Med&quot;</span><span class="p">]</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulating the model for 100 periods took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the model for 100 periods took 2.5429 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot mean outcomes during the simulation</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;retained assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;cLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;Med&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;medical care&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">MyType</span><span class="o">.</span><span class="n">T_sim</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Population means during simulation&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Time $t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedExtMargConsumerType_37_0.png" src="../../_images/examples_ConsMedModel_MedExtMargConsumerType_37_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="MedShockConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Medical Care on the Intensive Margin</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsRiskyContribModel/RiskyContribConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">“Risky Contribution” Model</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Extensive-Margin-Medical-Care-Model">Extensive Margin Medical Care Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Extensive-Margin-Medical-Care-Model">Solving the Extensive Margin Medical Care Model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Consumption-Saving-Problem">Solving the Consumption-Saving Problem</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Medical-Treatment-Problem-and-Computing-Expectations-over-Medical-Shocks">Solving the Medical Treatment Problem and Computing Expectations over Medical Shocks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Generalizing-the-Medical-Shock-Distribution">Generalizing the Medical Shock Distribution</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Parameters-for-the-Extensive-Margin-Medical-Shocks-Model">Example Parameters for the Extensive Margin Medical Shocks Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Constructed-Inputs-for-MedExtMargConsumerType">Constructed Inputs for MedExtMargConsumerType</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Implementation-of-MedExtMargConsumerType">Example Implementation of MedExtMargConsumerType</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
