@@ -24,9 +24,6 @@ There are some breaking changes:
 - Utility function for `PrefShockConsumerType` and `KinkyPrefConsumerType` was algebraically rearranged. There is no functional difference, but the scale of preference shocks that yields a given level of consumption variation will be different. [#1708](https://github.com/econ-ark/HARK/pull/1708/)
 - The format of the utility function for MedShockConsumerType has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
 - The policy function representation for MedShockConsumerType has been revised, and old classes have been moved to LegacyOOsolvers.
-
-#### Major Changes
-
 - The utility function for `MedShockConsumerType` has been algebraically rearranged, moving MedShk inside of the second CRRA term and adding a new parameter MedShift (default near zero). [#1706](https://github.com/econ-ark/HARK/pull/1706)
 
 #### Minor Changes
