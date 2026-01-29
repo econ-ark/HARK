@@ -296,3 +296,5 @@ spyproject
 uv.lock
 .cursor*
 .specstory/
+.cursorignore
+.cursorindexingignore
