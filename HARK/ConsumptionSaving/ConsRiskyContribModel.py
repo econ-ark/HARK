@@ -602,8 +602,8 @@ def m_nrm_next(shocks, aNrm, Share, Rfree, PermGroFac):
 
     """
     # Extract shocks
-    perm_shk = shocks[0]
-    tran_shk = shocks[1]
+    perm_shk = shocks["PermShk"]
+    tran_shk = shocks["TranShk"]
 
     m_nrm_tp1 = Rfree * aNrm / (perm_shk * PermGroFac) + (1.0 - Share) * tran_shk
 
@@ -638,9 +638,9 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
     """
 
     # Extract shocks
-    perm_shk = shocks[0]
-    tran_shk = shocks[1]
-    R_risky = shocks[2]
+    perm_shk = shocks["PermShk"]
+    tran_shk = shocks["TranShk"]
+    R_risky = shocks["Risky"]
 
     n_nrm_tp1 = R_risky * nNrm / (perm_shk * PermGroFac) + Share * tran_shk
 
@@ -796,8 +796,8 @@ def solve_RiskyContrib_Cns(
         # as functions of those and the contribution share
 
         def post_return_derivs(inc_shocks, b_aux, g_aux, s):
-            perm_shk = inc_shocks[0]
-            tran_shk = inc_shocks[1]
+            perm_shk = inc_shocks["PermShk"]
+            tran_shk = inc_shocks["TranShk"]
 
             temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
             temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
@@ -939,8 +939,12 @@ def solve_RiskyContrib_Cns(
             s : float
                 end-of-period income deduction share.
             """
-            temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
-            temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
+            perm_shk = shocks["PermShk"]
+            tran_shk = shocks["TranShk"]
+            risky = shocks["Risky"]
+
+            temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
+            temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
 
             # Find next-period asset balances
             m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
@@ -949,10 +953,10 @@ def solve_RiskyContrib_Cns(
             # Interpolate next-period-value derivatives
             dvdm_tp1 = dvdm_next(m_next, n_next, s)
             dvdn_tp1 = dvdn_next(m_next, n_next, s)
-            if shocks[1] == 0:
+            if tran_shk == 0:
                 dvds_tp1 = dvds_next(m_next, n_next, s)
             else:
-                dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(
+                dvds_tp1 = tran_shk * (dvdn_tp1 - dvdm_tp1) + dvds_next(
                     m_next, n_next, s
                 )
 
@@ -961,7 +965,7 @@ def solve_RiskyContrib_Cns(
             # Liquid resources
             end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
             # Iliquid resources
-            end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
+            end_of_prd_dvdn = DiscFac * risky * LivPrb * temp_fac_A * dvdn_tp1
             # Contribution share
             end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
 
