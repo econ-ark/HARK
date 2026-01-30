@@ -77,6 +77,9 @@ __all__ = [
     "init_kinked_R",
     "init_lifecycle",
     "init_cyclical",
+    "buffer_stock_lifecycle_unskilled",
+    "buffer_stock_lifecycle_operative",
+    "buffer_stock_lifecycle_manager",
 ]
 
 utility = CRRAutility
@@ -3017,3 +3020,53 @@ init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["LivPrb"] = 4 * [0.98]
 init_cyclical["Rfree"] = 4 * [1.03]
 init_cyclical["T_cycle"] = 4
+
+# Make dictionaries based on Carroll QJE (1997) lifecycle specifications
+buffer_stock_lifecycle_base = {
+    "CRRA": 2.0,
+    "DiscFac": 0.96,
+    "PermGroFacAgg": 1.02,
+    "kNrmInitMean": -1000.0,
+    "kNrmInitStd": 0.0,
+    "pLogInitStd": 0.0,
+    "Rfree": 49 * [1.00],
+    "PermShkStd": 40 * [0.1] + 9 * [0.0],
+    "TranShkStd": 40 * [0.1] + 9 * [0.0],
+    "UnempPrb": 0.005,
+    "IncUnemp": 0.0,
+    "UnempPrbRet": 0.0005,
+    "IncUnempRet": 0.0,
+    "LivPrb": 49 * [1.0],
+    "T_cycle": 49,
+    "T_retire": 40,
+    "T_age": 50,
+    "AgentCount": 10000,
+    "cycles": 1,
+}
+
+unskilled_update = {
+    "pLogInitMean": np.log(1 / 1.03),
+    "PermGroFac": 14 * [1.03] + 25 * [1.0] + [0.7] + 9 * [1.0],
+}
+
+operative_update = {
+    "pLogInitMean": np.log(1 / 1.025),
+    "PermGroFac": 24 * [1.025] + 15 * [1.01] + [0.7] + 9 * [1.0],
+}
+
+manager_update = {
+    "pLogInitMean": np.log(1 / 1.03),
+    "PermGroFac": 29 * [1.03] + 10 * [0.99] + [0.7] + 9 * [1.0],
+}
+
+# Carroll QJE (1997) life-cycle calibration for unskilled workers
+buffer_stock_lifecycle_unskilled = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_unskilled.update(unskilled_update)
+
+# Carroll QJE (1997) life-cycle calibration for operative workers
+buffer_stock_lifecycle_operative = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_operative.update(operative_update)
+
+# Carroll QJE (1997) life-cycle calibration for managerial workers
+buffer_stock_lifecycle_manager = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_manager.update(manager_update)
