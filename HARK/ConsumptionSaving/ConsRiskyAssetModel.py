@@ -40,7 +40,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.rewards import UtilityFuncCRRA
+from HARK.rewards import UtilityFuncCRRA, vNvrsSlope
 from HARK.utilities import make_assets_grid
 
 ###############################################################################
@@ -1558,8 +1558,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-        # MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, vNvrsSlope(MPCmaxEff, CRRA))
+        # MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
         vNvrsFuncNow = CubicInterp(mNrm_temp, vNvrs_temp, vNvrsP_temp)
         vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
     else:
