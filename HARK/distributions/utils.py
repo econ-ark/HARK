@@ -487,13 +487,13 @@ def calc_expectation(dstn, func=None, *args, **kwargs):
     ----------
     dstn : DiscreteDistribution or DiscreteDistributionLabeled
         The distribution over which the function is to be evaluated.
-    func : function
+    func : function or None
         The function to be evaluated. If dstn is a DiscreteDistribution, then this
         function should take an array of shape dstn.dim() and return either arrays
         of arbitrary shape or scalars. If dstn is a DiscreteDistributionLabeled, then
         the function should take an dictionary-like object (like an xr.dataset) and
         index into it with variable names. In either case, the function may also
-        take other arguments \\*args.
+        take other arguments \\*args. Defaults to identity function.
     \\*args :
         Other inputs for func, representing the non-stochastic arguments.
         The expectation is computed at ``f(dstn, *args, **kwargs)``.
@@ -517,7 +517,9 @@ def calc_expectation(dstn, func=None, *args, **kwargs):
             }
             f_query.append(func(temp_dict, *args, **kwargs))
     else:
-        f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
+        f_query = [
+            func(dstn.atoms[..., i], *args, **kwargs) for i in range(len(dstn.pmv))
+        ]
 
     f_query = np.stack(f_query, axis=-1)
 
@@ -584,7 +586,7 @@ def expected(func=None, dist=None, args=(), **kwargs):
         distribution values and return either arrays of arbitrary shape or scalars.
         It may also take other arguments ``*args``. This function differs from the
         `calc_expectation` function in that it uses numpy's vectorization and broad-
-        castingrules to avoid costly iteration.
+        casting rules to avoid costly iteration.
         Note: If you need to use a function that acts on single outcomes
         of the distribution, use `distribution.calc_expectation` instead.
     dist : DiscreteDistribution or DiscreteDistributionLabeled

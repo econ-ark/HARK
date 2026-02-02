@@ -618,11 +618,11 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
 
     Parameters
     ----------
-    shocks : np.array
-        Length-3 array with the stochastic shocks that get realized between the
-        end of the current period and the start of next period. Their order is
-        (0) permanent income shock, (1) transitory income shock, (2) risky
-        asset return.
+    shocks : dict
+        Dictionary with the stochastic shocks that get realized between the
+        end of the current period and the start of next period: "PermShk" is the
+        permanent income shock, "TranShk" is the transitory income shock, and
+        "Risky" is the risky asset return.
     nNrm : float
         End-of-period risky asset balances.
     Share : float
@@ -927,11 +927,11 @@ def solve_RiskyContrib_Cns(
 
             Parameters
             ----------
-            shocks : np.array
-                Length-3 array with the stochastic shocks that get realized between the
-                end of the current period and the start of next period. Their order is
-                (0) permanent income shock, (1) transitory income shock, (2) risky
-                asset return.
+            shocks : dict
+                Dictionary with the stochastic shocks that get realized between the
+                end of the current period and the start of next period: "PermShk" is the
+                permanent income shock, "TranShk" is the transitory income shock, and
+                "Risky" is the risky asset return.
             a : float
                 end-of-period risk-free assets.
             nTil : float
