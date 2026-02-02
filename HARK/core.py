@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Un
 from warnings import warn
 import multiprocessing
 from joblib import Parallel, delayed
+from pandas import DataFrame
 
 import numpy as np
 import pandas as pd
@@ -1420,7 +1421,188 @@ class AgentType(Model):
                     )
 
         self.clear_history()
-        return None
+
+    def export_to_df(self, var=None, t=None, by_age=False, dtype=None, sym=False):
+        """
+        Export an AgentType instance's simulated data to a pandas dataframe object.
+        There are four construction modes depending on the arguments passed:
+
+        1a) If exactly one simulated variable is named as var and by_age is False,
+            then the dataframe will contain T_sim columns, each representing one
+            simulated period in absolute simulation time t_sim. Each row of the
+            dataframe will represent one *agent index* of the population, with death
+            and replacement occurring within a row. Optionally, argument t can be
+            provided as an array to specify which periods to include (default all).
+
+        1b) If exactly one simulated variable is named as var and by_age is True,
+            then the dataframe's columns will correspond to within-agent model age
+            t_age. Each row of the dataframe will represent one specific agent from
+            model entry (t_age=0) to model death. All observations after death will
+            be NaN. Optionally, argument t can be provided as an array to specify
+            which ages to include (default all). Number of columns in dataframe will
+            depend on max(t_age) and/or argument t.
+
+        2a) If an integer is provided as t and by_age is False, then each column of
+            the dataframe will represent a different simulated variable, using the
+            value for the specified absolute simulated period t=t_sim. Optionally,
+            the var argument can be provided as a list of strings naming which var-
+            iables should be included in the dataframe (default all).
+
+        2b) If an integer is provided as t and by_age is True, then each column of
+            the dataframe will represent a different simulated variable, taken from
+            all agent-periods at which t == t_age, within-agent model age. Optionally,
+            the var argument can be provided as a list of strings naming which var-
+            iables should be included in the dataframe (default all).
+
+        In summary, *either* var should be a single string *or* t should be an integer.
+        Any other combination of var and t will raise an exception.
+
+        Parameters
+        ----------
+        var : str or [str] or None
+            If a single string is provided, it represents the name of the one simulated
+            variable to export. If a list of strings, then the argument t must also be
+            provided to indicate which time period the dataframe will represent. Name(s)
+            must correspond to a key for history or hystory dictionary (i.e. named in track_vars).
+            If not provided, then all keys in history or hystory are included.
+        t : int or np.array or None
+            If an integer, indicates which one period will be included in the dataframe.
+            When by_age is False (default), t refers to absolute simulated time t_sim:
+            literally the t-th row of history[key]. When by_age is True, t refers to
+            within-agent model age t_age; the dataframe will include all agent-periods
+            where the agent has exactly t_age==t. If var is a single string, then t is
+            an optional input as an array of periods (or ages) to include (default all).
+        by_age : bool
+            Indicator for whether observation selection should be on the basis of absolute
+            simulated time t_sim or within-agent model age t_age. If True, then t_age
+            must be in track_vars so that it appears in the simulated data. Additionally,
+            argument dtype should *not* be provided when by_age is True, as this will
+            result in NaNs being cast to a datatype that doesn't necessarily support them.
+        dtype : type or None
+            Optional data type to cast the dataframe. By default, uses the datatype from
+            the entry in history or hystory.
+        sym : bool
+            Indicator for whether the dataframe should look for simulated data in the
+            history (False, default) or hystory (True) dictionary attribute. This option
+            will be deprecated in the future when legacy simulation methods are removed.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The requested dataframe, constructed from this instance's simulated data.
+        """
+        # Check for valid arguments
+        single_var = type(var) is str
+        single_t = isinstance(t, (int, np.integer))
+        if not (single_var ^ single_t):  # "not exclusive or"
+            raise ValueError(
+                "Either var must be a single string, or t must be a single integer!"
+            )
+        if dtype is not None and by_age:
+            raise ValueError(
+                "Can't specify dtype when using by_age is True because of potential incompatibility with representing NaN"
+            )
+
+        # Get the relevant history dictionary (deprecate in future)
+        history = self.hystory if sym else self.history
+
+        if by_age:
+            try:
+                age = history["t_age"]
+            except KeyError:
+                raise KeyError(
+                    "t_age must be in track_vars if by_age=True will be used!"
+                )
+
+        # Handle the single variable case first, as it's easiest
+        if single_var:
+            try:
+                data = history[var]
+            except KeyError:
+                raise KeyError(
+                    "Variable named " + var + " not found in simulated data!"
+                )
+
+            if by_age:  # handle age-oriented single variable case
+                # Mark which observations will be used in the output dataframe
+                if t is None:
+                    age_set = np.arange(np.max(age) + 1)
+                    in_age_set = np.ones_like(data, dtype=bool)
+                else:
+                    age_set = t
+                    in_age_set = np.zeros_like(data, dtype=bool)
+                    for j in age_set:
+                        these = age == j
+                        in_age_set[these] = True
+
+                # Find the shape of the dataframe and initialize empty array
+                newborns = age == 0 if sym else age == 1
+                T = age_set.size  # total number of ages (columns in dataframe)
+                N = np.sum(newborns)  # number of agents "born" (rows in df)
+                out = np.full((N, T), np.nan)  # initialize output dataframe
+
+                # Loop over simulated agent indices and extract single agent sequences
+                n = 0
+                for i in range(self.AgentCount):
+                    data_i = data[:, i]
+                    # Mark t indices where agents born
+                    births = np.where(newborns[:, i])[0]
+                    K = births.size
+                    for k in range(K):
+                        start = births[k]
+                        stop = births[k + 1] if (k < K - 1) else self.T_sim
+                        use = in_age_set[start:stop, i]
+                        temp = data_i[start:stop][use]
+                        out[n, : temp.size] = temp
+                        n += 1  # go to next individual
+
+                # Build the dataframe
+                cols = [str(age_set[i]) for i in range(age_set.size)]
+                df = DataFrame(data=out, columns=cols, dtype=dtype)
+
+            else:  # handle absolute simulated time, single variable case
+                if t is None:
+                    cols = [str(i) for i in range(self.T_sim)]
+                    df = DataFrame(data=data.T, columns=cols, dtype=dtype)
+                else:
+                    cols = [str(t[i]) for i in range(t.size)]
+                    df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
+
+            return df
+
+        elif single_t:  # Now handle the case where a single time period is requested
+            # Make and check the list of keys
+            if var is None:
+                var_list = list(history.keys())
+            else:
+                var_list = copy(var)
+                sim_keys = list(history.keys())
+                for name in var_list:
+                    if name not in sim_keys:
+                        raise KeyError(
+                            "Variable called " + name + " not found in simulation data!"
+                        )
+
+            # Determine the number of rows and columns and initialize output
+            K = len(var_list)
+            if by_age:
+                right_age = age == t
+                N = np.sum(right_age)
+            else:
+                N = self.AgentCount
+            out = np.full((N, K), np.nan)
+
+            # Fill in the output array
+            for k in range(K):
+                name = var_list[k]
+                out[:, k] = history[name][right_age] if by_age else history[name][t, :]
+
+            # Convert to dataframe and return it
+            df = DataFrame(data=out, columns=var_list, dtype=dtype)
+            return df
+
+        else:
+            raise ValueError("This exception shouldn't be possible to reach!")
 
     def sim_one_period(self):
         """
