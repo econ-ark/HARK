@@ -17,6 +17,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
 )
+from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+from HARK.ConsumptionSaving.ConsGenIncProcessModel import PersistentShockConsumerType
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 
 
@@ -239,6 +241,56 @@ class testSimulatorClass(unittest.TestCase):
             "cNrm",
             self.grid_specs,
         )
+
+
+class testFindTarget(unittest.TestCase):
+    def setUp(self):
+        ThisType = IndShockConsumerType(cycles=0)
+        ThisType.solve()
+        ThisType.unpack("cFunc")
+        self.agent = ThisType
+
+    def test_match_handcrafted(self):
+        ThisType = self.agent
+        m_targ_old = ThisType.bilt["mNrmTrg"]
+        m_targ_new = ThisType.find_target("mNrm")
+        self.assertAlmostEqual(m_targ_old, m_targ_new, places=6)
+
+    def test_risky_asset_type(self):
+        RiskyType = RiskyAssetConsumerType(
+            cycles=0, PortfolioBool=True, CRRA=5.0, Rfree=[1.02], RiskyAvg=1.04
+        )
+        RiskyType.solve()
+        m_targ = RiskyType.find_target("mNrm")
+        self.assertFalse(np.isnan(m_targ))  # did it succeed?
+
+    def test_persistent_type(self):
+        PersistentType = PersistentShockConsumerType(cycles=0)
+        PersistentType.solve()
+        m_targ = PersistentType.find_target("mLvl", pLvl=1.0)
+        self.assertFalse(np.isnan(m_targ))  # did it succeed?
+
+    def test_invalid(self):
+        # Must be infinite horizon
+        FiniteType = IndShockConsumerType(cycles=10)
+        FiniteType.solve()
+        self.assertRaises(ValueError, FiniteType.find_target, "mNrm")
+
+        # Non-existent target variable
+        MyType = self.agent
+        self.assertRaises(ValueError, MyType.find_target, "mLvl")
+
+        # Non-existent fixed variable
+        self.assertRaises(ValueError, MyType.find_target, "mLvl", blorpity=5.0)
+
+        # Unsolved type
+        ThisType = IndShockConsumerType(cycles=0, DiscFac=1.0)
+        self.assertRaises(AttributeError, ThisType.find_target, "mNrm")
+
+        # Non-existent target
+        ThisType.solve()
+        m_targ = ThisType.find_target("mNrm")
+        self.assertTrue(np.isnan(m_targ))  # too patient for target to exist
 
 
 class testGridSimulation(unittest.TestCase):
