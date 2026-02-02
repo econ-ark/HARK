@@ -8,25 +8,30 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.17.1(dev)
+### 0.17.1
 
-Release Date: TBD
+Release Date: February 2, 2026
 
 #### Release Notes
 
+This is a relatively small release that includes various adjustments and improvements (see Minor Changes), as well as several new features and an algebraic revision to some models (Major Changes).
+
 There are some breaking changes:
 
-- The exact_match option for DiscreteDistribution.draw has been renamed to shuffle, and its behavior has changed slightly. See #1691.
-- Both AgentType subclasses in ConsPrefShockModel have had their utility function adjusted, moving the preference shock inside the CRRA term. See #1708.
-- If `calc_expectation` is used with a DiscreteDistributionLabeled, the function must reference indices of the distribution by name, not position number. See #1713.
+- The `exact_match` option for `DiscreteDistribution.draw` has been renamed to `shuffle`, and its behavior has changed slightly. See #1691.
+- Both `AgentType` subclasses in ConsPrefShockModel have had their utility function adjusted, moving the preference shock inside the CRRA term. See #1708.
+- If `calc_expectation` is used with a `DiscreteDistributionLabeled`, the function must reference indices of the distribution by name, not position number. See #1713.
+- Method `NewKeynesianConsumerType.compute_steady_state` has been renamed to `compute_pe_steady_state`. See #1711.
 
 #### Major Changes
 
 - Added `find_target` method to `AgentType`, automating search for target value of state variables. [#1698](https://github.com/econ-ark/HARK/pull/1698)
 - Utility function for `PrefShockConsumerType` and `KinkyPrefConsumerType` was algebraically rearranged. There is no functional difference, but the scale of preference shocks that yields a given level of consumption variation will be different. [#1708](https://github.com/econ-ark/HARK/pull/1708/)
-- The format of the utility function for MedShockConsumerType has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
-- The policy function representation for MedShockConsumerType has been revised, and old classes have been moved to LegacyOOsolvers.
+- The format of the utility function for `MedShockConsumerType` has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
+- The policy function representation for `MedShockConsumerType` has been revised, and old classes have been moved to LegacyOOsolvers.
 - The utility function for `MedShockConsumerType` has been algebraically rearranged, moving MedShk inside of the second CRRA term and adding a new parameter MedShift (default near zero). [#1706](https://github.com/econ-ark/HARK/pull/1706)
+- Function `plot_func_slices` has been added to `HARK.utilities` for convenient in-line plotting of multivariate functions [#1695](https://github.com/econ-ark/HARK/pull/1695)
+- New method `AgentType.export_to_df` added to flexibly export simulated `history` to a `pandas.DataFrame`. [#1712](https://github.com/econ-ark/HARK/pull/1712)
 
 #### Minor Changes
 
@@ -36,6 +41,10 @@ There are some breaking changes:
 - All AgentTypes now have sensible defaults for track_vars if none is provided. [#1693](https://github.com/econ-ark/HARK/pull/1693)
 - `AgentType.unpack` and the new simulation structure appropriately handle solutions represented as dictionaries. [#1709](https://github.com/econ-ark/HARK/pull/1709)
 - `calc_expectation` now works with `DiscreteDistributionLabeled` instances when `func` references RVs by name, but *not* by position numbers. [#1713](https://github.com/econ-ark/HARK/pull/1713)
+- Repository now includes AI prompts to aid users when updating their project code from one version of HARK to another. [#1696](https://github.com/econ-ark/HARK/pull/1696)
+- 2D, 3D, and 4D interpolator classes no longer require that their arguments have the same size/shape; now they must only be jointly broadcastable. [#1701](https://github.com/econ-ark/HARK/pull/1701)
+- Method name change for `NewKeynesianConsumerType`: `compute_steady_state` is now `compute_pe_steady_state`. [#1711](https://github.com/econ-ark/HARK/pull/1711)
+- Life-cycle parameter calibrations from Carroll 1997 (QJE) have been added to `ConsIndShockModel`. [#1715](https://github.com/econ-ark/HARK/pull/1715)
 
 
 ### 0.17.0
