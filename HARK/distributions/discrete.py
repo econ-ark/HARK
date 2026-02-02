@@ -361,8 +361,7 @@ class DiscreteDistribution(Distribution):
 
 class DiscreteDistributionLabeled(DiscreteDistribution):
     """
-    A representation of a discrete probability distribution
-    stored in an underlying `xarray.Dataset`.
+    A representation of a discrete probability distribution stored in an underlying `xarray.Dataset`.
 
     Parameters
     ----------
@@ -383,7 +382,6 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         Names of the variables in the distribution.
     var_attrs : list of dict
         Attributes of the variables in the distribution.
-
     """
 
     def __init__(
