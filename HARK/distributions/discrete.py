@@ -580,12 +580,13 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
-        labels : bool
-            If True, the function should use labeled indexing instead of integer
-            indexing using the distribution's underlying rv coordinates. For example,
-            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
-            the function can be `lambda x: x["a"] + x["b"]`.
-        \\*\\*kwargs :
+        labels : bool, optional
+            Controls whether the function receives labeled or raw indexing.
+            Defaults to True. When True (default), the function receives a dict
+            with variable names as keys (e.g., ``lambda x: x["a"] + x["b"]``).
+            When False, the function receives raw numpy arrays and should use
+            integer indexing (e.g., ``lambda x: x[0] + x[1]``).
+        **kwargs :
             Additional keyword arguments passed to func when using xarray operations.
 
         Returns
