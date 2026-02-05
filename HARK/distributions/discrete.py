@@ -585,6 +585,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             indexing using the distribution's underlying rv coordinates. For example,
             if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
             the function can be `lambda x: x["a"] + x["b"]`.
+        \\*\\*kwargs :
+            Additional keyword arguments passed to func when using xarray operations.
 
         Returns
         -------
@@ -592,6 +594,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             The expectation of the function at the queried values.
             Scalar if only one value.
         """
+        # Extract the 'labels' parameter from kwargs since it's a reserved parameter
+        # for this method, not for the user function
+        labels = kwargs.pop("labels", True)
+
+        # Check if we have atoms (normal construction) or only xarray data (from_dataset)
+        has_atoms = hasattr(self, "atoms")
 
         def func_wrapper(x, *args):
             """
@@ -604,12 +612,25 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             return func(wrapped, *args)
 
         if len(kwargs):
+            # Use xarray operations when kwargs are passed to func
             f_query = func(self.dataset, *args, **kwargs)
             ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd._weighted.mean("atom")
+        elif not has_atoms:
+            # Object was created via from_dataset, use xarray operations
+            if func is None:
+                return self._weighted.mean("atom")
+            else:
+                f_query = func(self.dataset, *args)
+                ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
+                return ldd._weighted.mean("atom")
         else:
             if func is None:
                 return super().expected()
-            else:
+            elif labels:
+                # Use labeled indexing (dict with variable names as keys)
                 return super().expected(func_wrapper, *args)
+            else:
+                # Use raw array indexing (same as parent class)
+                return super().expected(func, *args)

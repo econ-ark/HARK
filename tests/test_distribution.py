@@ -672,6 +672,30 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
 
+    def test_labels_parameter(self):
+        """Test the labels parameter works correctly (issue #1487)."""
+        gamma = DiscreteDistributionLabeled.from_unlabeled(
+            Normal(mu=0, sigma=1).discretize(N=7), var_names=["gamma"]
+        )
+
+        # Test with labels=True (explicit) using labeled indexing
+        result_labeled = expected(
+            func=lambda x: x["gamma"], dist=gamma, labels=True
+        )
+        self.assertAlmostEqual(result_labeled, 0.0, places=5)
+
+        # Test without labels argument (defaults to True for labeled dist)
+        result_default = expected(func=lambda x: x["gamma"], dist=gamma)
+        self.assertAlmostEqual(result_default, 0.0, places=5)
+
+        # Test with labels=False using raw array indexing
+        result_unlabeled = expected(func=lambda x: x[0], dist=gamma, labels=False)
+        self.assertAlmostEqual(result_unlabeled, 0.0, places=5)
+
+        # All results should be equal
+        self.assertAlmostEqual(result_labeled, result_default, places=10)
+        self.assertAlmostEqual(result_labeled, result_unlabeled, places=10)
+
     def test_getters_setters(self):
         # Create some dummy dsnt
         dist = DiscreteDistributionLabeled(
@@ -781,10 +805,8 @@ class labeled_transition_tests(unittest.TestCase):
         exp1 = base_dist.expected(transition, state=state_grid)
         # Expectation after transformation
         new_state_dstn = base_dist.dist_of_func(transition, state=state_grid)
-        # TODO: needs a cluncky identity function with an extra argument because
-        # DDL.expected() behavior is very different with and without kwargs.
-        # Fix!
-        exp2 = new_state_dstn.expected(lambda x, unused: x, unused=0)
+        # Now we can simply call expected() without a function to get the mean
+        exp2 = new_state_dstn.expected()
 
         assert np.all(exp1["m"] == exp2["m"]).item()
         assert np.all(exp1["n"] == exp2["n"]).item()
