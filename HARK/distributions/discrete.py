@@ -503,32 +503,39 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # Extract pmv from probability DataArray
         ldd.pmv = np.asarray(pmf.values if hasattr(pmf, "values") else pmf)
 
-        # Extract atoms from dataset variables.
-        # For DiscreteDistribution, atoms can be multi-dimensional where the last
+        # Extract atoms from dataset variables that have the "atom" dimension.
+        # For DiscreteDistribution, atoms has shape (..., n_atoms) where the last
         # dimension indexes "atom" (the random realization).
-        # Stack variables along axis 0, resulting in shape (n_vars, ..., n_atoms).
+        # Variables without the "atom" dimension (e.g., scalar summaries) are kept
+        # in the dataset but not included in atoms.
         var_names = list(ldd.dataset.data_vars)
         if var_names:
-            # Get the arrays, ensuring "atom" dimension is last for each
-            var_arrays = []
-            for var in var_names:
-                arr = ldd.dataset[var].values
-                var_arrays.append(arr)
+            # Filter to only include variables that have the "atom" dimension
+            vars_with_atom = [
+                var for var in var_names if "atom" in ldd.dataset[var].dims
+            ]
 
-            # Check if all arrays have the same shape (required for np.stack)
-            shapes = [arr.shape for arr in var_arrays]
-            if len(set(shapes)) == 1:
-                # Stack along axis 0: (n_vars, ..., n_atoms)
-                ldd.atoms = np.atleast_2d(np.stack(var_arrays, axis=0))
+            if vars_with_atom:
+                var_arrays = [ldd.dataset[var].values for var in vars_with_atom]
+                # Check if all arrays have the same shape (required for np.stack)
+                shapes = [arr.shape for arr in var_arrays]
+                if len(set(shapes)) == 1:
+                    # All arrays have compatible shapes, can stack
+                    ldd.atoms = np.atleast_2d(np.stack(var_arrays, axis=0))
+                else:
+                    # Variables have different shapes (e.g., some have grid dim, some don't)
+                    # This can happen in complex xarray operations. Set atoms to a minimal
+                    # valid array based on the number of atoms from pmv.
+                    n_atoms = len(ldd.pmv)
+                    ldd.atoms = np.atleast_2d(np.zeros(n_atoms))
             else:
-                # Variables have different shapes - can happen with complex xarray operations
-                # Set atoms to None to indicate numpy operations won't work
-                ldd.atoms = None
+                # No variables with atom dimension - use empty array
+                ldd.atoms = np.atleast_2d(np.array([]))
         else:
             ldd.atoms = np.atleast_2d(np.array([]))
 
-        # Compute limit from atoms if available
-        if ldd.atoms is not None and ldd.atoms.size > 0:
+        # Compute limit from atoms
+        if ldd.atoms.size > 0:
             ldd.limit = {
                 "infimum": np.min(ldd.atoms, axis=-1),
                 "supremum": np.max(ldd.atoms, axis=-1),
