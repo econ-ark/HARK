@@ -657,9 +657,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # for this method, not for the user function
         labels = kwargs.pop("labels", True)
 
-        # Check if the dataset has dimensions beyond "atom" (indicating multi-dimensional
-        # xarray data that should be processed with xarray operations)
-        has_extra_dims = len(set(self.dataset.dims) - {"atom"}) > 0
+        # Check if the dataset has dimensions beyond "atom", indicating multi-dimensional
+        # xarray data that requires xarray operations instead of numpy operations
+        requires_xarray_ops = len(set(self.dataset.dims) - {"atom"}) > 0
 
         def func_wrapper(x, *args):
             """
@@ -677,7 +677,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd._weighted.mean("atom")
-        elif has_extra_dims:
+        elif requires_xarray_ops:
             # Dataset has extra dimensions beyond "atom", use xarray operations
             if func is None:
                 return self._weighted.mean("atom")

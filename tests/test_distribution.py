@@ -775,6 +775,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
     def test_from_dataset_creates_valid_distribution(self):
         """Test that from_dataset sets atoms and other attributes for a valid distribution."""
+        n_variables = 2
+        n_atoms = 2
         pmf = xr.DataArray([0.3, 0.7], dims=("atom",))
         ds = xr.Dataset(
             {
@@ -792,7 +794,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         self.assertTrue(hasattr(ldd, "_rng"))
 
         # Verify atoms and pmv have correct values
-        self.assertEqual(ldd.atoms.shape, (2, 2))  # 2 variables, 2 atoms
+        self.assertEqual(ldd.atoms.shape, (n_variables, n_atoms))
         np.testing.assert_array_almost_equal(ldd.atoms[0], [1.0, 2.0])
         np.testing.assert_array_almost_equal(ldd.atoms[1], [3.0, 4.0])
         np.testing.assert_array_almost_equal(ldd.pmv, [0.3, 0.7])
