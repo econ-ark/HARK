@@ -679,9 +679,7 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
         # Test with labels=True (explicit) using labeled indexing
-        result_labeled = expected(
-            func=lambda x: x["gamma"], dist=gamma, labels=True
-        )
+        result_labeled = expected(func=lambda x: x["gamma"], dist=gamma, labels=True)
         self.assertAlmostEqual(result_labeled, 0.0, places=5)
 
         # Test without labels argument (defaults to True for labeled dist)
@@ -774,6 +772,40 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         foo = Bernoulli(p)
         bern = DiscreteDistributionLabeled.from_unlabeled(foo, var_names=["foo"])
         self.assertTrue(np.allclose(bern.expected(), p))
+
+    def test_from_dataset_creates_valid_distribution(self):
+        """Test that from_dataset sets atoms and other attributes for a valid distribution."""
+        pmf = xr.DataArray([0.3, 0.7], dims=("atom",))
+        ds = xr.Dataset(
+            {
+                "var1": xr.DataArray([1.0, 2.0], dims=("atom",)),
+                "var2": xr.DataArray([3.0, 4.0], dims=("atom",)),
+            }
+        )
+        ldd = DiscreteDistributionLabeled.from_dataset(ds, pmf)
+
+        # Verify all essential attributes are set
+        self.assertTrue(hasattr(ldd, "atoms"))
+        self.assertTrue(hasattr(ldd, "pmv"))
+        self.assertTrue(hasattr(ldd, "seed"))
+        self.assertTrue(hasattr(ldd, "limit"))
+        self.assertTrue(hasattr(ldd, "_rng"))
+
+        # Verify atoms and pmv have correct values
+        self.assertEqual(ldd.atoms.shape, (2, 2))  # 2 variables, 2 atoms
+        np.testing.assert_array_almost_equal(ldd.atoms[0], [1.0, 2.0])
+        np.testing.assert_array_almost_equal(ldd.atoms[1], [3.0, 4.0])
+        np.testing.assert_array_almost_equal(ldd.pmv, [0.3, 0.7])
+
+        # Verify limit is computed correctly
+        np.testing.assert_array_almost_equal(ldd.limit["infimum"], [1.0, 3.0])
+        np.testing.assert_array_almost_equal(ldd.limit["supremum"], [2.0, 4.0])
+
+        # Verify expected() works correctly
+        exp = ldd.expected()
+        np.testing.assert_array_almost_equal(
+            exp, [0.3 * 1.0 + 0.7 * 2.0, 0.3 * 3.0 + 0.7 * 4.0]
+        )
 
 
 class labeled_transition_tests(unittest.TestCase):

@@ -469,7 +469,26 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         return ldd
 
     @classmethod
-    def from_dataset(cls, x_obj, pmf):
+    def from_dataset(cls, x_obj, pmf, seed=None):
+        """
+        Construct a DiscreteDistributionLabeled from xarray objects.
+
+        Parameters
+        ----------
+        x_obj : xr.Dataset, xr.DataArray, or dict
+            The data containing distribution values. If a Dataset, variables
+            become the distribution's variables. If a DataArray, it becomes a
+            single variable. If a dict, it's converted to a Dataset.
+        pmf : xr.DataArray
+            Probability mass values with dimension "atom".
+        seed : int, optional
+            Seed for random number generator. If None, generates random seed.
+
+        Returns
+        -------
+        ldd : DiscreteDistributionLabeled
+            A properly initialized labeled distribution.
+        """
         ldd = cls.__new__(cls)
 
         if isinstance(x_obj, xr.Dataset):
@@ -480,6 +499,45 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             ldd.dataset = xr.Dataset(x_obj)
 
         ldd.probability = pmf
+
+        # Extract pmv from probability DataArray
+        ldd.pmv = np.asarray(pmf.values if hasattr(pmf, "values") else pmf)
+
+        # Extract atoms from dataset variables.
+        # For DiscreteDistribution, atoms can be multi-dimensional where the last
+        # dimension indexes "atom" (the random realization).
+        # Stack variables along axis 0, resulting in shape (n_vars, ..., n_atoms).
+        var_names = list(ldd.dataset.data_vars)
+        if var_names:
+            # Get the arrays, ensuring "atom" dimension is last for each
+            var_arrays = []
+            for var in var_names:
+                arr = ldd.dataset[var].values
+                var_arrays.append(arr)
+
+            # Check if all arrays have the same shape (required for np.stack)
+            shapes = [arr.shape for arr in var_arrays]
+            if len(set(shapes)) == 1:
+                # Stack along axis 0: (n_vars, ..., n_atoms)
+                ldd.atoms = np.atleast_2d(np.stack(var_arrays, axis=0))
+            else:
+                # Variables have different shapes - can happen with complex xarray operations
+                # Set atoms to None to indicate numpy operations won't work
+                ldd.atoms = None
+        else:
+            ldd.atoms = np.atleast_2d(np.array([]))
+
+        # Compute limit from atoms if available
+        if ldd.atoms is not None and ldd.atoms.size > 0:
+            ldd.limit = {
+                "infimum": np.min(ldd.atoms, axis=-1),
+                "supremum": np.max(ldd.atoms, axis=-1),
+            }
+        else:
+            ldd.limit = {"infimum": np.array([]), "supremum": np.array([])}
+
+        # Initialize seed and RNG using the property setter from Distribution base class
+        ldd.seed = seed
 
         return ldd
 
@@ -599,8 +657,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # for this method, not for the user function
         labels = kwargs.pop("labels", True)
 
-        # Check if we have atoms (normal construction) or only xarray data (from_dataset)
-        has_atoms = hasattr(self, "atoms")
+        # Check if the dataset has dimensions beyond "atom" (indicating multi-dimensional
+        # xarray data that should be processed with xarray operations)
+        has_extra_dims = len(set(self.dataset.dims) - {"atom"}) > 0
 
         def func_wrapper(x, *args):
             """
@@ -618,13 +677,15 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
 
             return ldd._weighted.mean("atom")
-        elif not has_atoms:
-            # Object was created via from_dataset, use xarray operations
+        elif has_extra_dims:
+            # Dataset has extra dimensions beyond "atom", use xarray operations
             if func is None:
                 return self._weighted.mean("atom")
             else:
                 f_query = func(self.dataset, *args)
-                ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
+                ldd = DiscreteDistributionLabeled.from_dataset(
+                    f_query, self.probability
+                )
                 return ldd._weighted.mean("atom")
         else:
             if func is None:
