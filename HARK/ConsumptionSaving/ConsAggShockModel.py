@@ -1386,23 +1386,13 @@ class KrusellSmithType(AgentType):
         "MnextArray",
         "RnextArray",
         "Mgrid",
-        "AFunc",
-        "DeprRte",
-        "CapShare",
-        "UrateB",
-        "LbrInd",
-        "UrateG",
-        "ProdB",
-        "ProdG",
-        "MrkvIndArray",
-        "MrkvAggArray",
     ]
     time_vary_ = []
     shock_vars_ = ["Mrkv"]
     state_vars = ["aNow", "mNow", "EmpNow"]
     market_vars = [
         "act_T",
-        "kSS",
+        "KSS",
         "MSS",
         "AFunc",
         "CapShare",
@@ -1591,7 +1581,7 @@ class KrusellSmithType(AgentType):
         )
 
         self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
-        self.state_now["aNow"][which] = self.kSS
+        self.state_now["aNow"][which] = self.KSS
 
     def get_shocks(self):
         """
@@ -1657,6 +1647,9 @@ class KrusellSmithType(AgentType):
         Gets each agent's retained assets after consumption.
         """
         self.state_now["aNow"] = self.state_now["mNow"] - self.controls["cNow"]
+
+
+###############################################################################
 
 
 CRRA = 2.0
@@ -2237,7 +2230,7 @@ init_mrkv_cobb_douglas["PermShkAggStd"] = [0.012, 0.006]
 init_mrkv_cobb_douglas["TranShkAggStd"] = [0.006, 0.003]
 init_mrkv_cobb_douglas["PermGroFacAgg"] = [0.98, 1.02]
 init_mrkv_cobb_douglas["MrkvArray"] = MrkvArray
-init_mrkv_cobb_douglas["MrkvNow_init"] = 0
+init_mrkv_cobb_douglas["MrkvInit"] = 0
 init_mrkv_cobb_douglas["slope_prev"] = 2 * [slope_prev]
 init_mrkv_cobb_douglas["intercept_prev"] = 2 * [intercept_prev]
 
@@ -2293,7 +2286,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             **params,
         )
 
-        self.sow_init["Mrkv"] = params["MrkvNow_init"]
+        self.sow_init["Mrkv"] = params["MrkvInit"]
 
     def update(self):
         """
@@ -2697,7 +2690,7 @@ init_KS_economy = {
     "UrateG": 0.04,
     "RelProbBG": 0.75,
     "RelProbGB": 1.25,
-    "MrkvNow_init": 0,
+    "MrkvInit": 0,
 }
 
 
@@ -2830,7 +2823,7 @@ class KrusellSmithEconomy(Market):
         assert np.all(MrkvIndArray >= 0.0), (
             "Invalid idiosyncratic transition probabilities!"
         )
-        self.MrkvArray = MrkvAggArray
+        self.MrkvAggArray = MrkvAggArray
         self.MrkvIndArray = MrkvIndArray
 
     def make_Mrkv_history(self):
@@ -2840,9 +2833,9 @@ class KrusellSmithEconomy(Market):
         """
         # Initialize the Markov history and set up transitions
         self.MrkvNow_hist = np.zeros(self.act_T, dtype=int)
-        MrkvNow = self.MrkvNow_init
+        MrkvNow = self.MrkvInit
 
-        markov_process = MarkovProcess(self.MrkvArray, seed=0)
+        markov_process = MarkovProcess(self.MrkvAggArray, seed=0)
         for s in range(self.act_T):  # Add act_T_orig more periods
             self.MrkvNow_hist[s] = MrkvNow
             MrkvNow = markov_process.draw(MrkvNow)
@@ -2867,7 +2860,6 @@ class KrusellSmithEconomy(Market):
         Wnow : float
             Wage rate for labor in the economy this period.
         """
-
         return self.calc_R_and_W(aNow, EmpNow)
 
     def calc_dynamics(self, Mnow, Aprev):
@@ -2970,7 +2962,7 @@ class KrusellSmithEconomy(Market):
         # For each Markov state, regress A_t on M_t and update the saving rule
         AFunc_list = []
         rSq_list = []
-        for i in range(self.MrkvArray.shape[0]):
+        for i in range(self.MrkvAggArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(
                 logMagg[these], logAagg[these]

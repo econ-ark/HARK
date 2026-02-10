@@ -33,6 +33,7 @@ class testAggShockConsumerType(unittest.TestCase):
         self.economy = CobbDouglasEconomy(
             agents=self.agents, seed=0, act_T=400, max_loops=3
         )
+        self.economy.give_agent_params()
 
     def test_distribute_params(self):
         self.assertEqual(self.agents[1].AgentCount, 300)
@@ -40,7 +41,6 @@ class testAggShockConsumerType(unittest.TestCase):
     def test_agent(self):
         # Have one consumer type inherit relevant objects from the economy,
         # then solve their microeconomic problem
-        self.agents[0].get_economy_data(self.economy)
         self.agents[0].solve()
         self.assertAlmostEqual(
             self.agents[0].solution[0].cFunc(10.0, self.economy.MSS),
@@ -51,10 +51,6 @@ class testAggShockConsumerType(unittest.TestCase):
     def test_macro(self):
         self.economy.make_AggShkHist()  # Simulate a history of aggregate shocks
         self.economy.verbose = True  # Turn on printed messages
-
-        # Give data about the economy to all the agents in it
-        for this_type in self.economy.agents:
-            this_type.get_economy_data(self.economy)
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
@@ -68,13 +64,12 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
     def setUp(self):
         # Make one agent type and an economy for it to live in
         self.agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
-        self.agent.IncShkDstn = [2 * [self.agent.IncShkDstn[0]]]  ## see #557
         self.economy = CobbDouglasMarkovEconomy(agents=[self.agent], seed=0)
+        self.economy.give_agent_params()
 
     def test_agent(self):
         # Have one consumer type inherit relevant objects from the economy,
         # then solve their microeconomic problem
-        self.agent.get_economy_data(self.economy)
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
@@ -88,7 +83,6 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.economy.max_loops = 3  # Just quit solving early
         self.economy.verbose = False  # Turn off printed messages
 
-        self.agent.get_economy_data(self.economy)
         self.economy.make_AggShkHist()  # Make a simulated history of aggregate shocks
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
@@ -99,7 +93,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
 
     def test_small_open_economy(self):
         SOE = SmallOpenMarkovEconomy(agents=[self.agent], Rfree=1.02, wRte=1.0)
-        self.agent.get_economy_data(SOE)
+        SOE.give_agent_params()
         SOE.make_AggShkHist()  # Make a simulated history of aggregate shocks
         SOE.max_loops = 3
         SOE.solve()
@@ -111,11 +105,14 @@ class KrusellSmithTestCase(unittest.TestCase):
         self.agent = KrusellSmithType()
         self.agent.cycles = 0
         self.agent.AgentCount = 1000  # Low number of simulated agents
-        self.economy = KrusellSmithEconomy(agents=[self.agent])
-        self.economy.max_loops = 2  # Quit early
-        self.economy.act_T = 1100  # Shorter simulated period
-        self.economy.discard_periods = 100
-        self.economy.verbose = False  # Turn off printed messages
+        self.economy = KrusellSmithEconomy(
+            agents=[self.agent],
+            act_T=1100,
+            discard_periods=100,
+            verbose=False,
+            max_loops=2,
+        )
+        self.economy.give_agent_params()
 
     def teardown(self):
         self.agent = None
@@ -124,8 +121,6 @@ class KrusellSmithTestCase(unittest.TestCase):
 
 class KrusellSmithAgentTestCase(KrusellSmithTestCase):
     def test_agent(self):
-        self.agent.get_economy_data(self.economy)
-        self.agent.construct()
         self.agent.solve()
         self.assertAlmostEqual(
             self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
@@ -136,7 +131,7 @@ class KrusellSmithAgentTestCase(KrusellSmithTestCase):
 
 class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
     def test_methods(self):
-        self.agent.get_economy_data(self.economy)
+        self.agent.get_market_params(self.economy)
 
         self.agent.construct()
 
@@ -148,7 +143,6 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
         self.economy.reset()
 
         self.agent.track_vars += ["EmpNow"]
-        # self.economy.track_vars += ['EmpNow']
 
         self.assertEqual(
             np.sum(self.agent.state_now["EmpNow"] & self.agent.state_now["EmpNow"][-1]),
@@ -249,9 +243,6 @@ class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
         self.assertAlmostEqual(self.economy.AFunc[0].slope, 1.0)
 
         self.assertAlmostEqual(self.economy.AFunc[1].slope, 1.0)
-
-        self.agent.get_economy_data(self.economy)
-        self.agent.construct()
 
         self.economy.make_Mrkv_history()  # Make a simulated history of aggregate shocks
         self.economy.solve()  # Solve for the general equilibrium of the economy
