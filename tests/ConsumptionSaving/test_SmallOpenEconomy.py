@@ -1,4 +1,4 @@
-import copy
+from copy import copy
 import unittest
 
 
@@ -25,17 +25,18 @@ class testSmallOpenEconomy(unittest.TestCase):
             Uniform(bot=0.90, top=0.94),  # Impatient agents
         )
 
+        temp_dict = copy(init_cobb_douglas)
+        other_dict = {"act_T": 400, "max_loops": 3, "verbose": False}
+        temp_dict.update(**other_dict)
+
         # Make an economy with those agents living in it
         small_economy = SmallOpenEconomy(
             agents=agents,
             Rfree=1.03,
             wRte=1.0,
             KtoLnow=1.0,
-            act_T=400,  # Short simulation history
-            max_loops=3,  # Give up quickly for the sake of time
-            **copy.copy(init_cobb_douglas),
+            **temp_dict,
         )
-        small_economy.verbose = False
         small_economy.make_AggShkHist()  # Simulate a history of aggregate shocks
         small_economy.give_agent_params()
 
