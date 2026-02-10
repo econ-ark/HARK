@@ -869,10 +869,9 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         """
+        # Start simulation near SS
         self.initialize_sim()
-        self.state_now["aLvlNow"] = self.kSS * np.ones(
-            self.AgentCount
-        )  # Start simulation near SS
+        self.state_now["aLvlNow"] = self.kSS * np.ones(self.AgentCount)
         self.state_now["aNrm"] = self.state_now["aLvlNow"] / self.state_now["pLvl"]
 
     def pre_solve(self):

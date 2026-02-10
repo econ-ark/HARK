@@ -31,16 +31,13 @@ class testSmallOpenEconomy(unittest.TestCase):
             Rfree=1.03,
             wRte=1.0,
             KtoLnow=1.0,
+            act_T=400,  # Short simulation history
+            max_loops=3,  # Give up quickly for the sake of time
+            verbose=False,  # Turn off printed messages
             **copy.copy(init_cobb_douglas),
         )
 
-        small_economy.act_T = 400  # Short simulation history
-        small_economy.max_loops = 3  # Give up quickly for the sake of time
         small_economy.make_AggShkHist()  # Simulate a history of aggregate shocks
-        small_economy.verbose = False  # Turn off printed messages
-
-        # Give data about the economy to all the agents in it
-        for this_type in small_economy.agents:
-            this_type.get_economy_data(small_economy)
+        small_economy.give_agent_params()
 
         small_economy.solve()
