@@ -33,10 +33,9 @@ class testSmallOpenEconomy(unittest.TestCase):
             KtoLnow=1.0,
             act_T=400,  # Short simulation history
             max_loops=3,  # Give up quickly for the sake of time
-            verbose=False,  # Turn off printed messages
             **copy.copy(init_cobb_douglas),
         )
-
+        small_economy.verbose = False
         small_economy.make_AggShkHist()  # Simulate a history of aggregate shocks
         small_economy.give_agent_params()
 
