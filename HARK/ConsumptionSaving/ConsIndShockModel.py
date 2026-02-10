@@ -1249,13 +1249,13 @@ class PerfForesightConsumerType(AgentType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -1335,7 +1335,7 @@ class PerfForesightConsumerType(AgentType):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
-        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        are drawn from lognormal distributions given by kLogInitMean and kLogInitStd (etc).
 
         Parameters
         ----------
@@ -2069,13 +2069,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -2807,13 +2807,13 @@ class KinkedRconsumerType(IndShockConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
