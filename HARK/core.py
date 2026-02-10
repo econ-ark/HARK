@@ -1031,6 +1031,7 @@ class AgentType(Model):
     shock_vars_ = []
     state_vars = []
     poststate_vars = []
+    market_vars = []
     distributions = []
     default_ = {"params": {}, "solver": NullFunc()}
 
@@ -1324,6 +1325,35 @@ class AgentType(Model):
         none
         """
         return None
+
+    def get_market_params(self, mkt, construct=True):
+        """
+        Fetch data named in class attribute market_vars and assign it as attributes
+        (and parameters) of self. By default, the construct method is run within
+        this method, because the market parameters often have information needed to
+        "complete" the microeconomic problem.
+
+        This method is called automatically by the Market.give_agent_params()
+        method for all agents.
+
+        Parameters
+        ----------
+        mkt : Market
+            Market to which this AgentType belongs.
+        construct : bool
+            Indicator for whether constructed attributes should be updated after
+            fetching data / parameters from mkt (default True)
+
+        Returns
+        -------
+        None
+        """
+        temp_dict = {}
+        for name in self.market_vars:
+            temp_dict[name] = copy(getattr(mkt, name))
+        self.assign_parameters(**temp_dict)
+        if construct:
+            self.construct()
 
     def initialize_sym(self, **kwargs):
         """
@@ -2413,6 +2443,24 @@ class Market(Model):
         # Print the error associated with calling the parallel method
         # "solve_agents" one time. If set to false, the error will never
         # print. See "solve_agents" for why this prints once or never.
+
+    def give_agent_params(self, construct=True):
+        """
+        Distribute relevant market-level parameters to each AgentType in self.agents
+        by having them call their get_market_params method.
+
+        Parameters
+        ----------
+        construct : bool, optional
+            Whether agents should run their construct method after fetching market
+            data (default True).
+
+        Returns
+        -------
+        None
+        """
+        for agent in self.agents:
+            agent.get_market_params(self, construct)
 
     def solve_agents(self):
         """
