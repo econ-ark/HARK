@@ -14,22 +14,21 @@ Release Date: TBD
 
 #### Release Notes
 
-I got nothing to say
+There are some breaking changes:
 
--
--
--
+- `AgentType` subclasses that had a `get_economy_data` method now use the general `AgentType.get_market_params` method, which exactly replicates their prior operation. See #1719
+- As a consequence of the above, random seeds on the distributions some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
 
 #### Major Changes
 
--
--
+- The new way to set up `AgentType` instances with an associated `Market` is to create them (with the agents in the `Market`'s `agents` attribute), then invoke the `Market`'s new `give_agent_params()` method. #1719
+- The above method calls each `agent`'s `get_market_params()` method, which references the `market_vars` class attribute for the names of objects to take from the associated `Market`.
 -
 
 #### Minor Changes
 
--
--
+- The special constructor `get_it_from` can now interpret the referenced attribute being a single value (any numeric or string) and will simply copy it to the new name. #1719
+- A `Market`'s `calc_dynamics` function/method can now use arguments other than those named in `track_vars`; HARK will look for those names as attributes of the `Market`. #1719
 -
 
 ### 0.17.1
