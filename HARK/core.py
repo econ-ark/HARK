@@ -2717,7 +2717,11 @@ class Market(Model):
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
-        update_dict = {name: self.history[name] for name in arg_names}
+        update_dict = {}
+        for name in arg_names:
+            update_dict[name] = (
+                self.history[name] if name in self.track_vars else getattr(self, name)
+            )
         # Calculate a new dynamic rule and distribute it to the agents in agent_list
         dynamics = self.calc_dynamics(**update_dict)  # User-defined dynamics calculator
         for var_name in self.dyn_vars:
