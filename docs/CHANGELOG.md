@@ -24,11 +24,11 @@ I got nothing to say
 
 -
 -
--
+- All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
 
 #### Minor Changes
 
--
+- The _derY method for `LowerEnvelope2D` and `LowerEnvelope3D` were previously bugged and returned nonsense, now fixed. #1723
 -
 -
 
