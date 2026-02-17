@@ -135,15 +135,24 @@ class HARKinterpolator1D(MetricObject):
 
     def _der(self, x):
         """
-        Interpolated function derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative method using finite difference approximation.
+        Subclasses of HARKinterpolator1D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(x)
+        f1 = self._evaluate(x + eps)
+        dydx = (f1 - f0) / eps
+        return dydx
 
     def _evalAndDer(self, x):
         """
         Interpolated function and derivative evaluator, to be defined in subclasses.
+        Default implementation separately calls the _evaluate and _der methods, which
+        might be inefficient relative to interpolator-specific implementation.
         """
-        raise NotImplementedError()
+        y = self._evaluate(x)
+        dydx = self._der(x)
+        return y, dydx
 
 
 class HARKinterpolator2D(MetricObject):
@@ -238,15 +247,25 @@ class HARKinterpolator2D(MetricObject):
 
     def _derX(self, x, y):
         """
-        Interpolated function x-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to x, using finite difference approximation.
+        Subclasses of HARKinterpolator2D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(x, y)
+        f1 = self._evaluate(x + eps, y)
+        dfdx = (f1 - f0) / eps
+        return dfdx
 
     def _derY(self, x, y):
         """
-        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to y, using finite difference approximation.
+        Subclasses of HARKinterpolator2D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(x, y)
+        f1 = self._evaluate(x, y + eps)
+        dfdy = (f1 - f0) / eps
+        return dfdy
 
 
 class HARKinterpolator3D(MetricObject):
@@ -389,21 +408,36 @@ class HARKinterpolator3D(MetricObject):
 
     def _derX(self, x, y, z):
         """
-        Interpolated function x-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to x, using finite difference approximation.
+        Subclasses of HARKinterpolator3D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(x, y, z)
+        f1 = self._evaluate(x + eps, y, z)
+        dfdx = (f1 - f0) / eps
+        return dfdx
 
     def _derY(self, x, y, z):
         """
-        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to y, using finite difference approximation.
+        Subclasses of HARKinterpolator3D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(x, y, z)
+        f1 = self._evaluate(x, y + eps, z)
+        dfdy = (f1 - f0) / eps
+        return dfdy
 
     def _derZ(self, x, y, z):
         """
-        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to z, using finite difference approximation.
+        Subclasses of HARKinterpolator3D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(x, y, z)
+        f1 = self._evaluate(x, y, z + eps)
+        dfdz = (f1 - f0) / eps
+        return dfdz
 
 
 class HARKinterpolator4D(MetricObject):
@@ -610,27 +644,47 @@ class HARKinterpolator4D(MetricObject):
 
     def _derW(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to w, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(w, x, y, z)
+        f1 = self._evaluate(w + eps, x, y, z)
+        dfdw = (f1 - f0) / eps
+        return dfdw
 
     def _derX(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to x, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(w, x, y, z)
+        f1 = self._evaluate(w, x + eps, y, z)
+        dfdx = (f1 - f0) / eps
+        return dfdx
 
     def _derY(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to y, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(w, x, y, z)
+        f1 = self._evaluate(w, x, y + eps, z)
+        dfdy = (f1 - f0) / eps
+        return dfdy
 
     def _derZ(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to z, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self._evaluate(w, x, y, z)
+        f1 = self._evaluate(w, x, y, z + eps)
+        dfdz = (f1 - f0) / eps
+        return dfdz
 
 
 class IdentityFunction(MetricObject):
