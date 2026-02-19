@@ -5,7 +5,6 @@ matplotlib>=3.6
 networkx>=3
 numba
 numpy
-optimagic
 pandas>=1.5
 pyyaml>=6.0
 quantecon
