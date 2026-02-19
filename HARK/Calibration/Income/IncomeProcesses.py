@@ -1246,7 +1246,7 @@ def make_pLvlGrid_by_simulation(
     If the model is lifecycle (cycles=1), explicit simulation is used. In either
     case, the input pLvlPctiles is used to choose percentiles from the distribution.
 
-    If the problem is neither infinite horizon nor lifecycle, this method will fail.
+    If the problem is neither infinite horizon nor life-cycle, this method will fail.
     If the problem is infinite horizon, cumprod(PermGroFac) must equal one.
 
     Parameters
