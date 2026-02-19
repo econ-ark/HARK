@@ -8,9 +8,12 @@ import warnings
 from copy import deepcopy  # For replicating complex objects
 from time import time  # Used to time execution
 
+import estimagic as em
 import numpy as np  # Numerical Python
 from joblib import Parallel, delayed
 from scipy.optimize import fmin, fmin_powell  # off-the-shelf minimizers
+
+from HARK.core import AgentType
 
 __all__ = [
     "minimize_nelder_mead",
@@ -683,33 +686,30 @@ def parallel_nelder_mead_worker(obj_func, simplex, f_vals, j, P, opt_params):
     return new_point, new_val, evals
 
 
-# This is commented out because there is an upstream issue with Estimagic.
-# It might be resurrected in the future.
+def estimate_msm(
+    agent: AgentType,
+    params: dict,
+    empirical_moments: dict,
+    moments_cov: dict | np.ndarray,
+    simulate_moments: callable,
+    optimize_options: dict,
+    simulate_moments_kwargs: dict = None,
+    weights: str = "diagonal",
+    estimagic_options: dict = {},
+):
+    """Use the method of simulated moments to estimate a model."""
+    simulate_moments_kwargs = simulate_moments_kwargs or {}
+    simulate_moments_kwargs.setdefault("agent", agent)
 
-# def estimate_msm(
-#     agent: AgentType,
-#     params: dict,
-#     empirical_moments: dict,
-#     moments_cov: dict | np.ndarray,
-#     simulate_moments: callable,
-#     optimize_options: dict,
-#     simulate_moments_kwargs: dict = None,
-#     weights: str = "diagonal",
-#     estimagic_options: dict = {},
-# ):
-#     """Use the method of simulated moments to estimate a model."""
-#     simulate_moments_kwargs = simulate_moments_kwargs or {}
-#     simulate_moments_kwargs.setdefault("agent", agent)
+    res = em.estimate_msm(
+        simulate_moments,
+        empirical_moments,
+        moments_cov,
+        params,
+        optimize_options=optimize_options,
+        simulate_moments_kwargs=simulate_moments_kwargs,
+        weights=weights,
+        **estimagic_options,
+    )
 
-#     res = em.estimate_msm(
-#         simulate_moments,
-#         empirical_moments,
-#         moments_cov,
-#         params,
-#         optimize_options=optimize_options,
-#         simulate_moments_kwargs=simulate_moments_kwargs,
-#         weights=weights,
-#         **estimagic_options,
-#     )
-
-#     return res
+    return res
