@@ -1439,7 +1439,7 @@ class AgentSimulator:
         states) can also be specified.
 
         The search procedure is to first examine a grid of candidates on the bounds,
-        calculating E[\Delta x] for state x, and then perform a local search for each
+        calculating E[Delta x] for state x, and then perform a local search for each
         interval where it flips from positive to negative.
 
         This procedure ignores mortality entirely. It represents a stable or target
@@ -1462,7 +1462,7 @@ class AgentSimulator:
             If not provided, defaults to 201. This affects the "resolution" when there
             are multiple possible target levels (uncommon).
         tol : float, optional
-            Maximum acceptable deviation from true target E[\Delta x] = 0 to be accepted.
+            Maximum acceptable deviation from true target E[Delta x] = 0 to be accepted.
             If not specified, defaults to 1e-8.
 
         Returns
