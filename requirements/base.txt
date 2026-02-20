@@ -4,7 +4,7 @@ legacy-cgi; python_version >= '3.13'
 matplotlib>=3.6
 networkx>=3
 numba
-numpy
+numpy<=2.4.1
 optimagic
 pandas>=1.5
 pyyaml>=6.0
