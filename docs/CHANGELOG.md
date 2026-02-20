@@ -31,6 +31,9 @@ I got nothing to say
 -
 -
 -
+- Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
+- Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
+- Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
 
 ### 0.17.1
 
