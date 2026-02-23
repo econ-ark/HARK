@@ -29,7 +29,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
 from HARK.distributions import (
     Lognormal,
     MultivariateLogNormal,
-    add_discrete_outcome_constant_mean,
+    add_discrete_outcome,
     expected,
 )
 from HARK.interpolation import (
@@ -275,6 +275,7 @@ def make_lognormal_MedShkDstn(
     MedShkCountTail,
     RNG,
     MedShkTailBound=[0.0, 0.9],
+    MedShkZeroPrb=[0.0],
 ):
     r"""
     Constructs discretized lognormal distributions of medical preference shocks
@@ -301,6 +302,8 @@ def make_lognormal_MedShkDstn(
         The AgentType's internal random number generator.
     MedShkTailBound : [float,float]
         CDF bounds for the tail of the discretization.
+    MedShkZeroProb : [float]
+        Probability of getting a zero medical need shock in each period (default zero).
 
     Returns
     -------
@@ -321,9 +324,9 @@ def make_lognormal_MedShkDstn(
             tail_N=MedShkCountTail,
             tail_bound=MedShkTailBound,
         )
-        MedShkDstn_t = add_discrete_outcome_constant_mean(
-            MedShkDstn_t, 0.0, 0.0, sort=True
-        )  # add point at zero with no probability
+        MedShkDstn_t = add_discrete_outcome(
+            MedShkDstn_t, 0.0, MedShkZeroPrb, sort=True
+        )  # add point at zero
         MedShkDstn.append(MedShkDstn_t)
     return MedShkDstn
 
@@ -950,10 +953,8 @@ default_pLvlPctiles_params = {
 default_pLvlGrid_params = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
-    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
-    "pLvlExtra": [
-        0.0001
-    ],  # Additional permanent income points to automatically add to the grid, optional
+    "pLvlExtra": [0.0001],
+    # Additional permanent income points to automatically add to the grid, optional
 }
 
 # Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
@@ -1008,6 +1009,34 @@ init_medical_shocks.update(default_MedShkDstn_params)
 init_medical_shocks.update(default_pLvlNextFunc_params)
 init_medical_shocks.update(default_pLvlInitDstn_params)
 init_medical_shocks.update(default_kNrmInitDstn_params)
+
+
+# This dictionary is based on the main specification results in Fulford and Low's
+# "Expense Shocks Matter". These expenses represent *all* unexpected spending, not
+# just medical expenses. It is calibrated at an annual frequency. The specification
+# in their paper has serially correlated expense shocks (with a low correlation
+# coefficient of about 0.086) and serially correlated unemployment ("crisis income"),
+# which are not present for MedShockConsumerType.
+Fulford_and_Low_params = {
+    "cycles": 0,
+    "DiscFac": 0.888,
+    "LivPrb": [1.0],
+    "CRRA": 2.0,
+    "CRRAmed": 4.0,
+    "Rfree": [1.01],
+    "TranShkStd": [0.2],
+    "PermShkStd": [0.117],
+    "PrstIncCorr": 0.97,
+    "BoroCnstArt": -0.185,
+    "MedShkAvg": [0.17],
+    "MedShkStd": [1.793],
+    "MedShkZeroPrb": [0.266],
+    "MedShkCountTail": 4,
+    "MedShkTailBound": [0.0, 0.90],
+    "MedPrice": [1.0],
+    "IncUnemp": 0.195,
+    "UnempPrb": 0.018,
+}
 
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -1147,7 +1176,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         "params": init_medical_shocks,
         "solver": solve_one_period_ConsMedShock,
         "model": "ConsMedShock.yaml",
-        "track_vars": ["aLvl", "cLvl", "Med", "mLvl", "pLvl"],
+        "track_vars": ["aLvl", "cLvl", "MedLvl", "mLvl", "pLvl"],
     }
 
     time_vary_ = PersistentShockConsumerType.time_vary_ + [
@@ -1223,7 +1252,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 self.shocks["MedShk"][these],
             )
         self.controls["cLvl"] = cLvlNow
-        self.controls["Med"] = MedNow
+        self.controls["MedLvl"] = MedNow
 
     def get_poststates(self):
         """
@@ -1240,7 +1269,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.state_now["aLvl"] = (
             self.state_now["mLvl"]
             - self.controls["cLvl"]
-            - self.shocks["MedPrice"] * self.controls["Med"]
+            - self.shocks["MedPrice"] * self.controls["MedLvl"]
         )
 
 
