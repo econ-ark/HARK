@@ -90,7 +90,112 @@ def calibration_by_age(ages, calibration):
 
 
 class Simulator:
-    pass
+    """
+    Base class for Monte Carlo simulators.
+
+    Subclasses must set the following instance attributes before calling any
+    of the methods defined here:
+
+        self.vars          -- list of variable names tracked in the simulation
+        self.T_sim         -- int, number of periods to simulate
+        self.agent_count   -- int, number of agents
+        self.seed          -- int, random seed
+        self.history       -- dict, populated by clear_history / simulate
+    """
+
+    def reset_rng(self):
+        """
+        Reset the random number generator for this type.
+        """
+        self.RNG = np.random.default_rng(self.seed)
+
+    def clear_history(self):
+        """
+        Clears the histories.
+        """
+        for var_name in self.vars:
+            self.history[var_name] = np.empty((self.T_sim, self.agent_count))
+            self.history[var_name].fill(np.nan)
+
+    def _assign_initial_vals(self, which_agents, initial_vals):
+        """
+        Assign drawn initial values to the agents flagged by ``which_agents``
+        and record those values in ``newborn_init_history``.
+
+        This helper captures the common assignment pattern shared by every
+        ``sim_birth`` implementation: loop over the variables in
+        ``initial_vals``, write them into ``self.vars_now``, and store them
+        in ``self.newborn_init_history`` at the current simulation step.
+
+        Parameters
+        ----------
+        which_agents : np.array(bool)
+            Boolean mask of length ``self.agent_count`` marking the agents
+            that are being born this period.
+
+        initial_vals : dict
+            Mapping from variable name to an array of drawn initial values,
+            one entry per newly-born agent (i.e. length equal to
+            ``which_agents.sum()``).
+
+        Returns
+        -------
+        None
+        """
+        if np.sum(which_agents) > 0:
+            for varn in initial_vals:
+                self.vars_now[varn][which_agents] = initial_vals[varn]
+                self.newborn_init_history[varn][self.t_sim, which_agents] = (
+                    initial_vals[varn]
+                )
+
+    def simulate(self, sim_periods=None):
+        """
+        Simulates this agent type for a given number of periods. Defaults to
+        self.T_sim if no input.
+        Records histories of attributes named in self.track_vars in
+        self.history[varname].
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        history : dict
+            The history tracked during the simulation.
+        """
+        if not hasattr(self, "t_sim"):
+            raise Exception(
+                "It seems that the simulation variables were not initialize before calling "
+                + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
+            )
+        if sim_periods is not None and self.T_sim < sim_periods:
+            raise Exception(
+                "To simulate, sim_periods has to be larger than the maximum data set size "
+                + "T_sim. Either increase the attribute T_sim of this agent type instance "
+                + "and call the initialize_sim() method again, or set sim_periods <= T_sim."
+            )
+
+        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
+        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
+        # -np.inf, np.inf/np.inf is np.nan and so on.
+        with np.errstate(
+            divide="ignore", over="ignore", under="ignore", invalid="ignore"
+        ):
+            if sim_periods is None:
+                sim_periods = self.T_sim
+
+            for t in range(sim_periods):
+                self.sim_one_period()
+
+                # track all the vars -- shocks and dynamics
+                for var_name in self.vars:
+                    self.history[var_name][self.t_sim, :] = self.vars_now[var_name]
+
+                self.t_sim += 1
+
+            return self.history
 
 
 class AgentTypeMonteCarloSimulator(Simulator):
@@ -164,12 +269,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self.history = {}
 
         self.reset_rng()  # NOQA
-
-    def reset_rng(self):
-        """
-        Reset the random number generator for this type.
-        """
-        self.RNG = np.random.default_rng(self.seed)
 
     def initialize_sim(self):
         """
@@ -331,71 +430,10 @@ class AgentTypeMonteCarloSimulator(Simulator):
         else:
             initial_vals = draw_shocks(self.initial, np.zeros(which_agents.sum()))
 
-        if np.sum(which_agents) > 0:
-            for varn in initial_vals:
-                self.vars_now[varn][which_agents] = initial_vals[varn]
-                self.newborn_init_history[varn][self.t_sim, which_agents] = (
-                    initial_vals[varn]
-                )
+        self._assign_initial_vals(which_agents, initial_vals)
 
         self.t_age[which_agents] = 0
         self.t_cycle[which_agents] = 0
-
-    def simulate(self, sim_periods=None):
-        """
-        Simulates this agent type for a given number of periods. Defaults to
-        self.T_sim if no input.
-        Records histories of attributes named in self.track_vars in
-        self.history[varname].
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        history : dict
-            The history tracked during the simulation.
-        """
-        if not hasattr(self, "t_sim"):
-            raise Exception(
-                "It seems that the simulation variables were not initialize before calling "
-                + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
-            )
-        if sim_periods is not None and self.T_sim < sim_periods:
-            raise Exception(
-                "To simulate, sim_periods has to be larger than the maximum data set size "
-                + "T_sim. Either increase the attribute T_sim of this agent type instance "
-                + "and call the initialize_sim() method again, or set sim_periods <= T_sim."
-            )
-
-        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
-        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
-        # -np.inf, np.inf/np.inf is np.nan and so on.
-        with np.errstate(
-            divide="ignore", over="ignore", under="ignore", invalid="ignore"
-        ):
-            if sim_periods is None:
-                sim_periods = self.T_sim
-
-            for t in range(sim_periods):
-                self.sim_one_period()
-
-                # track all the vars -- shocks and dynamics
-                for var_name in self.vars:
-                    self.history[var_name][self.t_sim, :] = self.vars_now[var_name]
-
-                self.t_sim += 1
-
-            return self.history
-
-    def clear_history(self):
-        """
-        Clears the histories.
-        """
-        for var_name in self.vars:
-            self.history[var_name] = np.empty((self.T_sim, self.agent_count))
-            self.history[var_name].fill(np.nan)
 
 
 class MonteCarloSimulator(Simulator):
@@ -466,12 +504,6 @@ class MonteCarloSimulator(Simulator):
         self.history = {}
 
         self.reset_rng()  # NOQA
-
-    def reset_rng(self):
-        """
-        Reset the random number generator for this type.
-        """
-        self.RNG = np.random.default_rng(self.seed)
 
     def initialize_sim(self):
         """
@@ -569,67 +601,4 @@ class MonteCarloSimulator(Simulator):
 
         initial_vals = draw_shocks(self.initial, np.zeros(which_agents.sum()))
 
-        if np.sum(which_agents) > 0:
-            for varn in initial_vals:
-                self.vars_now[varn][which_agents] = initial_vals[varn]
-                self.newborn_init_history[varn][self.t_sim, which_agents] = (
-                    initial_vals[varn]
-                )
-
-    def simulate(self, sim_periods=None):
-        """
-        Simulates this agent type for a given number of periods. Defaults to
-        self.T_sim if no input.
-
-        Records histories of attributes named in self.track_vars in
-        self.history[varname].
-
-        Parameters
-        ----------
-        sim_periods : int
-            Number of periods to simulate.
-
-        Returns
-        -------
-        history : dict
-            The history tracked during the simulation.
-        """
-        if not hasattr(self, "t_sim"):
-            raise Exception(
-                "It seems that the simulation variables were not initialize before calling "
-                + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
-            )
-        if sim_periods is not None and self.T_sim < sim_periods:
-            raise Exception(
-                "To simulate, sim_periods has to be larger than the maximum data set size "
-                + "T_sim. Either increase the attribute T_sim of this agent type instance "
-                + "and call the initialize_sim() method again, or set sim_periods <= T_sim."
-            )
-
-        # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
-        # tions with well-defined answers such as 1.0/0.0 that is np.inf, -1.0/0.0 that is
-        # -np.inf, np.inf/np.inf is np.nan and so on.
-        with np.errstate(
-            divide="ignore", over="ignore", under="ignore", invalid="ignore"
-        ):
-            if sim_periods is None:
-                sim_periods = self.T_sim
-
-            for t in range(sim_periods):
-                self.sim_one_period()
-
-                # track all the vars -- shocks and dynamics
-                for var_name in self.vars:
-                    self.history[var_name][self.t_sim, :] = self.vars_now[var_name]
-
-                self.t_sim += 1
-
-            return self.history
-
-    def clear_history(self):
-        """
-        Clears the histories.
-        """
-        for var_name in self.vars:
-            self.history[var_name] = np.empty((self.T_sim, self.agent_count))
-            self.history[var_name].fill(np.nan)
+        self._assign_initial_vals(which_agents, initial_vals)

@@ -184,48 +184,38 @@ def _spline_decay(
     m = len(x_init)
     pos = np.searchsorted(x_list, x_init)
     y = np.zeros(m)
-    if y.size > 0:
+    dydx = np.zeros(m)
+
+    if m > 0:
         out_bot = pos == 0
         out_top = pos == n
         in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-        # Do the "in bounds" evaluation points
+        # In-bounds evaluation
         i = pos[in_bnds]
         coeffs_in = coeffs[i, :]
-        alpha = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-        y[in_bnds] = coeffs_in[:, 0] + alpha * (
-            coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
+        alpha_in = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+        y[in_bnds] = coeffs_in[:, 0] + alpha_in * (
+            coeffs_in[:, 1] + alpha_in * (coeffs_in[:, 2] + alpha_in * coeffs_in[:, 3])
         )
+        dydx[in_bnds] = (
+            coeffs_in[:, 1]
+            + alpha_in * (2 * coeffs_in[:, 2] + alpha_in * 3 * coeffs_in[:, 3])
+        ) / (x_list[i] - x_list[i - 1])
 
-        # Do the "out of bounds" evaluation points
+        # Out-of-bounds: bottom
         y[out_bot] = coeffs[0, 0] + coeffs[0, 1] * (x_init[out_bot] - x_list[0])
-        alpha = x_init[out_top] - x_list[n - 1]
+        dydx[out_bot] = coeffs[0, 1]
+
+        # Out-of-bounds: top
+        alpha_top = x_init[out_top] - x_list[n - 1]
         y[out_top] = (
             coeffs[n, 0]
             + x_init[out_top] * coeffs[n, 1]
-            - coeffs[n, 2] * np.exp(alpha * coeffs[n, 3])
+            - coeffs[n, 2] * np.exp(alpha_top * coeffs[n, 3])
         )
-
-    dydx = np.zeros(m)
-    if dydx.size > 0:
-        out_bot = pos == 0
-        out_top = pos == n
-        in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
-
-        # Do the "in bounds" evaluation points
-        i = pos[in_bnds]
-        coeffs_in = coeffs[i, :]
-        alpha = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-        dydx[in_bnds] = (
-            coeffs_in[:, 1]
-            + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
-        ) / (x_list[i] - x_list[i - 1])
-
-        # Do the "out of bounds" evaluation points
-        dydx[out_bot] = coeffs[0, 1]
-        alpha = x_init[out_top] - x_list[n - 1]
         dydx[out_top] = coeffs[n, 1] - coeffs[n, 2] * coeffs[n, 3] * np.exp(
-            alpha * coeffs[n, 3]
+            alpha_top * coeffs[n, 3]
         )
 
     return y, dydx
