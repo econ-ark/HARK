@@ -325,7 +325,7 @@ def make_lognormal_MedShkDstn(
             tail_bound=MedShkTailBound,
         )
         MedShkDstn_t = add_discrete_outcome(
-            MedShkDstn_t, 0.0, MedShkZeroPrb, sort=True
+            MedShkDstn_t, 0.0, MedShkZeroPrb[t], sort=True
         )  # add point at zero
         MedShkDstn.append(MedShkDstn_t)
     return MedShkDstn
