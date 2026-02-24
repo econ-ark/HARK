@@ -703,6 +703,207 @@ class Model:
         if hasattr(self, param_name):
             delattr(self, param_name)
 
+    def _gather_constructor_args(self, key, constructor):
+        """
+        Gather all arguments needed to call the given constructor.
+
+        Handles both the special ``get_it_from`` case and normal callables.
+        For a normal callable the method inspects the function signature to
+        find every required argument, then resolves each argument from the
+        instance namespace (``self.<arg>``) or from ``self.parameters``.
+        Arguments that have a default value are silently skipped when they
+        cannot be found; required arguments that cannot be resolved are
+        recorded as missing.
+
+        Parameters
+        ----------
+        key : str
+            The name of the constructed object (used to record missing pairs).
+        constructor : callable or get_it_from
+            The constructor to be called.
+
+        Returns
+        -------
+        temp_dict : dict
+            Keyword arguments to pass to the constructor.
+        any_missing : bool
+            True when at least one required argument could not be resolved.
+        missing_args : list of str
+            Names of unresolved required arguments.
+        missing_key_data : list of tuple
+            ``(key, arg)`` pairs for every unresolved required argument.
+        """
+        missing_key_data = []
+
+        # SPECIAL: if the constructor is get_it_from, handle it separately
+        if isinstance(constructor, get_it_from):
+            try:
+                parent = getattr(self, constructor.name)
+                query = key
+                any_missing = False
+                missing_args = []
+            except AttributeError:
+                parent = None
+                query = None
+                any_missing = True
+                missing_args = [constructor.name]
+            temp_dict = {"parent": parent, "query": query}
+            return temp_dict, any_missing, missing_args, missing_key_data
+
+        # Normal constructor: inspect signature and gather arguments
+        args_needed = get_arg_names(constructor)
+        has_no_default = {
+            k: v.default is inspect.Parameter.empty
+            for k, v in inspect.signature(constructor).parameters.items()
+        }
+        temp_dict = {}
+        any_missing = False
+        missing_args = []
+        for this_arg in args_needed:
+            if hasattr(self, this_arg):
+                temp_dict[this_arg] = getattr(self, this_arg)
+            else:
+                try:
+                    temp_dict[this_arg] = self.parameters[this_arg]
+                except KeyError:
+                    if has_no_default[this_arg]:
+                        # Record missing key-data pair
+                        any_missing = True
+                        missing_key_data.append((key, this_arg))
+                        missing_args.append(this_arg)
+
+        return temp_dict, any_missing, missing_args, missing_key_data
+
+    def _attempt_construct(self, key, i, keys_complete, backup, errors, force):
+        """
+        Attempt to construct the object for a single key.
+
+        The method looks up the constructor, gathers its arguments, runs it,
+        and records any errors.  It also handles the ``None``-constructor case
+        (restore from backup) and the missing-args case (record and defer).
+
+        Parameters
+        ----------
+        key : str
+            The name of the object to construct.
+        i : int
+            Index of *key* inside the ``keys`` array (used to update
+            ``keys_complete``).
+        keys_complete : np.ndarray of bool
+            Boolean array indicating which keys have been completed; mutated
+            in place when this key succeeds.
+        backup : dict
+            Dictionary of pre-construction attribute values.
+        errors : dict
+            ``self._constructor_errors``; mutated in place.
+        force : bool
+            When True, swallow exceptions and continue; when False, re-raise.
+
+        Returns
+        -------
+        accomplished : bool
+            True when the key was completed (constructor ran or was None).
+        missing_key_data : list of tuple
+            ``(key, arg)`` pairs recorded for missing required arguments.
+        """
+        missing_key_data = []
+
+        # Look up the constructor for this key
+        try:
+            constructor = self.constructors[key]
+        except Exception as not_found:
+            errors[key] = "No constructor found for " + str(not_found)
+            if force:
+                return False, missing_key_data
+            else:
+                raise KeyError("No constructor found for " + key) from None
+
+        # If the constructor is None, restore from backup and mark complete
+        if constructor is None:
+            if key in backup.keys():
+                setattr(self, key, backup[key])
+                self.parameters[key] = backup[key]
+            keys_complete[i] = True
+            return True, missing_key_data  # We did something!
+
+        # Gather arguments for the constructor
+        temp_dict, any_missing, missing_args, missing_key_data = (
+            self._gather_constructor_args(key, constructor)
+        )
+
+        # If all required data was found, run the constructor and store the result
+        if not any_missing:
+            try:
+                temp = constructor(**temp_dict)
+            except Exception as problem:
+                errors[key] = str(type(problem)) + ": " + str(problem)
+                self.del_param(key)
+                if force:
+                    return False, missing_key_data
+                else:
+                    raise
+            setattr(self, key, temp)
+            self.parameters[key] = temp
+            if key in errors:
+                del errors[key]
+            keys_complete[i] = True
+            return True, missing_key_data  # We did something!
+
+        # Some required arguments were missing; record and defer
+        msg = "Missing required arguments:"
+        for arg in missing_args:
+            msg += " " + arg + ","
+        msg = msg[:-1]
+        errors[key] = msg
+        self.del_param(key)
+        # Never raise exceptions here, as the arguments might be filled in later
+        return False, missing_key_data
+
+    def _construct_pass(self, keys, keys_complete, backup, errors, force):
+        """
+        Perform one full sweep over all incomplete keys.
+
+        Calls ``_attempt_construct`` for every key that has not yet been
+        completed and accumulates results.
+
+        Parameters
+        ----------
+        keys : sequence of str
+            All keys requested for construction.
+        keys_complete : np.ndarray of bool
+            Boolean array indicating which keys have been completed; mutated
+            in place by ``_attempt_construct``.
+        backup : dict
+            Dictionary of pre-construction attribute values.
+        errors : dict
+            ``self._constructor_errors``; mutated in place.
+        force : bool
+            Passed through to ``_attempt_construct``.
+
+        Returns
+        -------
+        anything_accomplished : bool
+            True when at least one key was completed during this pass.
+        missing_key_data : list of tuple
+            Accumulated ``(key, arg)`` pairs for all unresolved required
+            arguments across every incomplete key.
+        """
+        anything_accomplished = False
+        missing_key_data = []
+
+        for i in range(len(keys)):
+            if keys_complete[i]:
+                continue  # This key has already been built
+
+            accomplished, key_missing = self._attempt_construct(
+                keys[i], i, keys_complete, backup, errors, force
+            )
+            if accomplished:
+                anything_accomplished = True
+            missing_key_data.extend(key_missing)
+
+        return anything_accomplished, missing_key_data
+
     def construct(self, *args, force=False):
         """
         Top-level method for building constructed inputs. If called without any
@@ -767,103 +968,11 @@ class Model:
         any_keys_incomplete = np.any(np.logical_not(keys_complete))
         go = any_keys_incomplete
         while go:
-            anything_accomplished_this_pass = False  # Nothing done yet!
-            missing_key_data = []  # Keep this up-to-date on each pass
-
-            # Loop over keys to be constructed
-            for i in range(N_keys):
-                if keys_complete[i]:
-                    continue  # This key has already been built
-
-                # Get this key and its constructor function
-                key = keys[i]
-                try:
-                    constructor = self.constructors[key]
-                except Exception as not_found:
-                    errors[key] = "No constructor found for " + str(not_found)
-                    if force:
-                        continue
-                    else:
-                        raise KeyError("No constructor found for " + key) from None
-
-                # If this constructor is None, do nothing and mark it as completed;
-                # this includes restoring the previous value if it exists
-                if constructor is None:
-                    if key in backup.keys():
-                        setattr(self, key, backup[key])
-                        self.parameters[key] = backup[key]
-                    keys_complete[i] = True
-                    anything_accomplished_this_pass = True  # We did something!
-                    continue
-
-                # SPECIAL: if the constructor is get_it_from, handle it separately
-                if isinstance(constructor, get_it_from):
-                    try:
-                        parent = getattr(self, constructor.name)
-                        query = key
-                        any_missing = False
-                        missing_args = []
-                    except AttributeError:
-                        parent = None
-                        query = None
-                        any_missing = True
-                        missing_args = [constructor.name]
-                    temp_dict = {"parent": parent, "query": query}
-
-                # Get the names of arguments for this constructor and try to gather them
-                else:  # (if it's not the special case of get_it_from)
-                    args_needed = get_arg_names(constructor)
-                    has_no_default = {
-                        k: v.default is inspect.Parameter.empty
-                        for k, v in inspect.signature(constructor).parameters.items()
-                    }
-                    temp_dict = {}
-                    any_missing = False
-                    missing_args = []
-                    for j in range(len(args_needed)):
-                        this_arg = args_needed[j]
-                        if hasattr(self, this_arg):
-                            temp_dict[this_arg] = getattr(self, this_arg)
-                        else:
-                            try:
-                                temp_dict[this_arg] = self.parameters[this_arg]
-                            except KeyError:
-                                if has_no_default[this_arg]:
-                                    # Record missing key-data pair
-                                    any_missing = True
-                                    missing_key_data.append((key, this_arg))
-                                    missing_args.append(this_arg)
-
-                # If all of the required data was found, run the constructor and
-                # store the result in parameters (and on self)
-                if not any_missing:
-                    try:
-                        temp = constructor(**temp_dict)
-                    except Exception as problem:
-                        errors[key] = str(type(problem)) + ": " + str(problem)
-                        self.del_param(key)
-                        if force:
-                            continue
-                        else:
-                            raise
-                    setattr(self, key, temp)
-                    self.parameters[key] = temp
-                    if key in errors:
-                        del errors[key]
-                    keys_complete[i] = True
-                    anything_accomplished_this_pass = True  # We did something!
-                else:
-                    msg = "Missing required arguments:"
-                    for arg in missing_args:
-                        msg += " " + arg + ","
-                    msg = msg[:-1]
-                    errors[key] = msg
-                    self.del_param(key)
-                    # Never raise exceptions here, as the arguments might be filled in later
-
-            # Check whether another pass should be performed
+            anything_accomplished, missing_key_data = self._construct_pass(
+                keys, keys_complete, backup, errors, force
+            )
             any_keys_incomplete = np.any(np.logical_not(keys_complete))
-            go = any_keys_incomplete and anything_accomplished_this_pass
+            go = any_keys_incomplete and anything_accomplished
 
         # Store missing key-data pairs and exit
         self._missing_key_data = missing_key_data
@@ -1422,6 +1531,111 @@ class AgentType(Model):
 
         self.clear_history()
 
+    def _export_single_var_by_time(self, history, var, t, dtype):
+        """
+        Mode 1a: single variable, by_age=False.
+
+        Returns a DataFrame whose columns are simulation periods (t_sim) and
+        whose rows are agent indices.  When t is None all T_sim periods are
+        included; when t is an array only those periods are included.
+        """
+        try:
+            data = history[var]
+        except KeyError:
+            raise KeyError("Variable named " + var + " not found in simulated data!")
+
+        if t is None:
+            cols = [str(i) for i in range(self.T_sim)]
+            df = DataFrame(data=data.T, columns=cols, dtype=dtype)
+        else:
+            cols = [str(t[i]) for i in range(t.size)]
+            df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
+        return df
+
+    def _export_single_var_by_age(self, history, var, age, t, dtype, sym):
+        """
+        Mode 1b: single variable, by_age=True.
+
+        Returns a DataFrame whose columns are within-agent model ages (t_age)
+        and whose rows are individual agent lifetimes.  Observations after
+        death (or before birth) are NaN.  When t is None all ages up to
+        max(t_age) are included; when t is an array only those ages are used.
+        The sym flag controls newborn detection: age == 0 when sym is True,
+        age == 1 when sym is False.
+        """
+        try:
+            data = history[var]
+        except KeyError:
+            raise KeyError("Variable named " + var + " not found in simulated data!")
+
+        # Determine which ages to include and mark qualifying observations
+        if t is None:
+            age_set = np.arange(np.max(age) + 1)
+            in_age_set = np.ones_like(data, dtype=bool)
+        else:
+            age_set = t
+            in_age_set = np.zeros_like(data, dtype=bool)
+            for j in age_set:
+                these = age == j
+                in_age_set[these] = True
+
+        # Locate newborns to determine the number of individual lifetimes (rows)
+        newborns = age == 0 if sym else age == 1
+        T = age_set.size  # number of age columns
+        N = np.sum(newborns)  # number of agent lifetimes (rows)
+        out = np.full((N, T), np.nan)
+
+        # Extract each individual's sequence and place it into the output array
+        n = 0
+        for i in range(self.AgentCount):
+            data_i = data[:, i]
+            births = np.where(newborns[:, i])[0]
+            K = births.size
+            for k in range(K):
+                start = births[k]
+                stop = births[k + 1] if (k < K - 1) else self.T_sim
+                use = in_age_set[start:stop, i]
+                temp = data_i[start:stop][use]
+                out[n, : temp.size] = temp
+                n += 1
+
+        cols = [str(age_set[i]) for i in range(age_set.size)]
+        df = DataFrame(data=out, columns=cols, dtype=dtype)
+        return df
+
+    def _export_single_t_by_time(self, history, var_list, t, dtype):
+        """
+        Mode 2a: single time period, by_age=False.
+
+        Returns a DataFrame with one row per agent and one column per variable,
+        drawn from the absolute simulation period t (i.e. history[name][t, :]).
+        """
+        K = len(var_list)
+        N = self.AgentCount
+        out = np.full((N, K), np.nan)
+        for k in range(K):
+            name = var_list[k]
+            out[:, k] = history[name][t, :]
+        df = DataFrame(data=out, columns=var_list, dtype=dtype)
+        return df
+
+    def _export_single_t_by_age(self, history, var_list, age, t, dtype):
+        """
+        Mode 2b: single time period, by_age=True.
+
+        Returns a DataFrame with one row per agent-period at which t_age == t
+        and one column per variable.
+        """
+        right_age = age == t
+        N = np.sum(right_age)
+        K = len(var_list)
+        out = np.full((N, K), np.nan)
+        for k in range(K):
+            name = var_list[k]
+            out[:, k] = history[name][right_age]
+        df = DataFrame(data=out, columns=var_list, dtype=dtype)
+        return df
+
     def export_to_df(self, var=None, t=None, by_age=False, dtype=None, sym=False):
         """
         Export an AgentType instance's simulated data to a pandas dataframe object.
@@ -1491,10 +1705,10 @@ class AgentType(Model):
         df : pandas.DataFrame
             The requested dataframe, constructed from this instance's simulated data.
         """
-        # Check for valid arguments
+        # Validate arguments
         single_var = type(var) is str
         single_t = isinstance(t, (int, np.integer))
-        if not (single_var ^ single_t):  # "not exclusive or"
+        if not (single_var ^ single_t):
             raise ValueError(
                 "Either var must be a single string, or t must be a single integer!"
             )
@@ -1506,6 +1720,7 @@ class AgentType(Model):
         # Get the relevant history dictionary (deprecate in future)
         history = self.hystory if sym else self.history
 
+        # Retrieve age array once if needed (raises a clear error when missing)
         if by_age:
             try:
                 age = history["t_age"]
@@ -1514,64 +1729,13 @@ class AgentType(Model):
                     "t_age must be in track_vars if by_age=True will be used!"
                 )
 
-        # Handle the single variable case first, as it's easiest
-        if single_var:
-            try:
-                data = history[var]
-            except KeyError:
-                raise KeyError(
-                    "Variable named " + var + " not found in simulated data!"
-                )
-
-            if by_age:  # handle age-oriented single variable case
-                # Mark which observations will be used in the output dataframe
-                if t is None:
-                    age_set = np.arange(np.max(age) + 1)
-                    in_age_set = np.ones_like(data, dtype=bool)
-                else:
-                    age_set = t
-                    in_age_set = np.zeros_like(data, dtype=bool)
-                    for j in age_set:
-                        these = age == j
-                        in_age_set[these] = True
-
-                # Find the shape of the dataframe and initialize empty array
-                newborns = age == 0 if sym else age == 1
-                T = age_set.size  # total number of ages (columns in dataframe)
-                N = np.sum(newborns)  # number of agents "born" (rows in df)
-                out = np.full((N, T), np.nan)  # initialize output dataframe
-
-                # Loop over simulated agent indices and extract single agent sequences
-                n = 0
-                for i in range(self.AgentCount):
-                    data_i = data[:, i]
-                    # Mark t indices where agents born
-                    births = np.where(newborns[:, i])[0]
-                    K = births.size
-                    for k in range(K):
-                        start = births[k]
-                        stop = births[k + 1] if (k < K - 1) else self.T_sim
-                        use = in_age_set[start:stop, i]
-                        temp = data_i[start:stop][use]
-                        out[n, : temp.size] = temp
-                        n += 1  # go to next individual
-
-                # Build the dataframe
-                cols = [str(age_set[i]) for i in range(age_set.size)]
-                df = DataFrame(data=out, columns=cols, dtype=dtype)
-
-            else:  # handle absolute simulated time, single variable case
-                if t is None:
-                    cols = [str(i) for i in range(self.T_sim)]
-                    df = DataFrame(data=data.T, columns=cols, dtype=dtype)
-                else:
-                    cols = [str(t[i]) for i in range(t.size)]
-                    df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
-
-            return df
-
-        elif single_t:  # Now handle the case where a single time period is requested
-            # Make and check the list of keys
+        # Route to the appropriate private method
+        if single_var and not by_age:
+            return self._export_single_var_by_time(history, var, t, dtype)
+        elif single_var and by_age:
+            return self._export_single_var_by_age(history, var, age, t, dtype, sym)
+        elif single_t and not by_age:
+            # Build and validate the variable list
             if var is None:
                 var_list = list(history.keys())
             else:
@@ -1582,27 +1746,20 @@ class AgentType(Model):
                         raise KeyError(
                             "Variable called " + name + " not found in simulation data!"
                         )
-
-            # Determine the number of rows and columns and initialize output
-            K = len(var_list)
-            if by_age:
-                right_age = age == t
-                N = np.sum(right_age)
+            return self._export_single_t_by_time(history, var_list, t, dtype)
+        else:  # single_t and by_age
+            # Build and validate the variable list
+            if var is None:
+                var_list = list(history.keys())
             else:
-                N = self.AgentCount
-            out = np.full((N, K), np.nan)
-
-            # Fill in the output array
-            for k in range(K):
-                name = var_list[k]
-                out[:, k] = history[name][right_age] if by_age else history[name][t, :]
-
-            # Convert to dataframe and return it
-            df = DataFrame(data=out, columns=var_list, dtype=dtype)
-            return df
-
-        else:
-            raise ValueError("This exception shouldn't be possible to reach!")
+                var_list = copy(var)
+                sim_keys = list(history.keys())
+                for name in var_list:
+                    if name not in sim_keys:
+                        raise KeyError(
+                            "Variable called " + name + " not found in simulation data!"
+                        )
+            return self._export_single_t_by_age(history, var_list, age, t, dtype)
 
     def sim_one_period(self):
         """
