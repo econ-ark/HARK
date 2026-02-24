@@ -1016,10 +1016,18 @@ init_medical_shocks.update(default_kNrmInitDstn_params)
 # just medical expenses. It is calibrated at an annual frequency. The specification
 # in their paper has serially correlated expense shocks (with a low correlation
 # coefficient of about 0.086) and serially correlated unemployment ("crisis income"),
-# which are not present for MedShockConsumerType.
+# which are not present for MedShockConsumerType. The unemployment probability here
+# is thus the (approximate) fraction of the time a consumer will spend in the crisis
+# state. Moreover, the medical shock parameters here differ from those in Fulford &
+# Low's January 2026 paper version. In private correspondence with them, MNW found
+# that their results hinged critically on the specific method they used to discretize
+# the lognormal shock distribution. The parameters below match the following three
+# key statistics from their exercise: mean of (non-zero) expense ratio is about 16.2%,
+# standard deviation of log non-zero expense ratio is about 1.1, and mean wealth is
+# about 0.6 times income.
 Fulford_and_Low_params = {
     "cycles": 0,
-    "DiscFac": 0.888,
+    "DiscFac": 0.85,
     "LivPrb": [1.0],
     "CRRA": 2.0,
     "CRRAmed": 4.0,
@@ -1028,11 +1036,11 @@ Fulford_and_Low_params = {
     "PermShkStd": [0.117],
     "PrstIncCorr": 0.97,
     "BoroCnstArt": -0.185,
-    "MedShkAvg": [0.17],
-    "MedShkStd": [1.793],
-    "MedShkZeroPrb": [0.266],
-    "MedShkCountTail": 4,
-    "MedShkTailBound": [0.0, 0.90],
+    "MedShkAvg": [0.121],
+    "MedShkStd": [1.55],
+    "MedShkCountTail": 5,
+    "MedShkTailBound": [0.0, 0.9],
+    "MedShkZeroPrb": [0.31],
     "MedPrice": [1.0],
     "IncUnemp": 0.195,
     "UnempPrb": 0.018,
