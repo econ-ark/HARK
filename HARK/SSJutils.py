@@ -158,7 +158,9 @@ def _perturb_shock(agent, shock, eps):
     else:
         base_shock_value = base
         shock_is_list = False
-    if not isinstance(base_shock_value, float):
+    if isinstance(base_shock_value, bool) or not isinstance(
+        base_shock_value, (float, np.floating)
+    ):
         raise TypeError(
             "Only a single real-valued object can be perturbed in this way!"
         )

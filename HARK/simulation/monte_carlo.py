@@ -151,14 +151,16 @@ class Simulator:
 
     def simulate(self, sim_periods=None):
         """
-        Simulates this agent type for a given number of periods. Defaults to
-        self.T_sim if no input.
-        Records histories of attributes named in self.track_vars in
-        self.history[varname].
+        Simulate for a given number of periods, defaulting to ``self.T_sim``.
+
+        Records histories of attributes named in ``self.vars`` in
+        ``self.history[var_name]``.
 
         Parameters
         ----------
-        None
+        sim_periods : int, optional
+            Number of periods to simulate.  If ``None``, simulate for
+            ``self.T_sim`` periods.
 
         Returns
         -------
@@ -167,8 +169,8 @@ class Simulator:
         """
         if not hasattr(self, "t_sim"):
             raise Exception(
-                "It seems that the simulation variables were not initialize before calling "
-                + "simulate(). Call initialize_sim() to initialize the variables before calling simulate() again."
+                "Simulation variables were not initialized. "
+                "Call initialize_sim() before simulate()."
             )
         if sim_periods is not None and self.T_sim < sim_periods:
             raise Exception(
