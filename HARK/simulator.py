@@ -948,7 +948,9 @@ class SimBlock:
         Parameters
         ----------
         master_trans_array_X : np.ndarray
-            Unconditioned master transition array of shape (N_orig, N_orig * 2).
+            Unconditioned master transition array of shape (N_orig, M) where
+            M = prod(cont_M).  Reshaped internally to (N_orig, N_orig, 2)
+            assuming one binary continuation variable (dead/alive).
         matrices_out : dict
             Per-variable transition matrices; must contain 'dead'.
         N_orig : int
@@ -2093,12 +2095,13 @@ def _build_periods(
     time_inv_dict = {}
     for name in content:
         if name in time_inv:
-            try:
-                time_inv_dict[name] = getattr(agent, name)
-            except:
+            if not hasattr(agent, name):
                 raise ValueError(
-                    "Couldn't get a value for time-invariant object " + name + "!"
+                    "Couldn't get a value for time-invariant object "
+                    + name
+                    + ": attribute does not exist on the agent."
                 )
+            time_inv_dict[name] = getattr(agent, name)
 
     periods = []
     t_cycle = 0
@@ -2121,9 +2124,16 @@ def _build_periods(
                     new_param_dict[name] = getattr(agent.solution[t], name)
             elif name in time_vary:
                 s = (t_cycle - 1) if name in offset else t_cycle
+                attr = getattr(agent, name, None)
+                if attr is None:
+                    raise ValueError(
+                        "Couldn't get a value for time-varying object "
+                        + name
+                        + ": attribute does not exist on the agent."
+                    )
                 try:
-                    new_param_dict[name] = getattr(agent, name)[s]
-                except:
+                    new_param_dict[name] = attr[s]
+                except (IndexError, TypeError):
                     raise ValueError(
                         "Couldn't get a value for time-varying object "
                         + name
@@ -2375,9 +2385,10 @@ def _extract_symbol_class(
         Mapping from symbol name to its constructed value (or None for parameters).
     """
     result = {}
-    if class_name not in model["symbols"].keys():
+    symbols = model.get("symbols", {})
+    if class_name not in symbols:
         return result
-    lines = model["symbols"][class_name]
+    lines = symbols[class_name]
     for line in lines:
         name, datatype, flags, desc = parse_declaration_for_parts(line)
         if (
@@ -2441,7 +2452,7 @@ def make_template_block(model, arrival=None, common=None):
 
     # Extract explicitly listed metadata using dict.get for safe defaults
     symbols = model.get("symbols", {})
-    name = model.get("name", "DEFAULT_NAME")
+    name = model.get("name", None)
     offset = symbols.get("offset", [])
     solution = symbols.get("solution", [])
 
@@ -2508,11 +2519,10 @@ def make_template_block(model, arrival=None, common=None):
         statement += this_statement + pad * " " + ": " + event.description + "\n"
 
     # Make a description for the template block
-    block_name = model.get("name", None)
-    if block_name is None:
+    if name is None:
         description = "template block for unnamed block"
     else:
-        description = "template block for " + block_name
+        description = "template block for " + name
 
     # Make and return the new SimBlock
     template_block = SimBlock(

@@ -83,13 +83,16 @@ def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):
     LR_outcomes = []
     outcome_grids = []
     for var in outcomes:
-        try:
-            LR_outcomes.append(X.periods[0].matrices[var])
-            outcome_grids.append(X.periods[0].grids[var])
-        except:
+        if var not in X.periods[0].matrices:
             raise ValueError(
-                "Outcome " + var + " was requested, but no grid was provided!"
+                "Outcome " + var + " was requested but has no transition matrix."
             )
+        if var not in X.periods[0].grids:
+            raise ValueError(
+                "Outcome " + var + " was requested but no grid was provided!"
+            )
+        LR_outcomes.append(X.periods[0].matrices[var])
+        outcome_grids.append(X.periods[0].grids[var])
     t1 = time()
     if verbose:
         print(
@@ -124,7 +127,7 @@ def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):
     }
 
 
-def _perturb_shock(agent, shock, eps):
+def _perturb_shock(agent, shock):
     """
     Retrieve and validate the named shock attribute on an agent, returning the
     scalar base value and a flag indicating whether it is stored as a singleton list.
@@ -135,23 +138,19 @@ def _perturb_shock(agent, shock, eps):
         Agent whose shock attribute will be read.
     shock : str
         Name of the shock attribute to perturb.
-    eps : float
-        Size of the perturbation (used only for error messaging context; the
-        actual perturbation is performed by the caller).
 
     Returns
     -------
-    base_shock_value : float
+    base_shock_value : float or np.floating
         The scalar value of the shock attribute (unwrapped from a list if needed).
     shock_is_list : bool
         True if the shock attribute is stored as a list, False otherwise.
     """
-    try:
-        base = getattr(agent, shock)
-    except:
+    if not hasattr(agent, shock):
         raise ValueError(
             "The agent doesn't have anything called " + shock + " to perturb!"
         )
+    base = getattr(agent, shock)
     if isinstance(base, list):
         base_shock_value = base[0]
         shock_is_list = True
@@ -162,7 +161,11 @@ def _perturb_shock(agent, shock, eps):
         base_shock_value, (float, np.floating)
     ):
         raise TypeError(
-            "Only a single real-valued object can be perturbed in this way!"
+            "The shock attribute '"
+            + shock
+            + "' must be a scalar float (Python float or np.floating), but got "
+            + str(type(base_shock_value))
+            + "."
         )
     return base_shock_value, shock_is_list
 
@@ -280,134 +283,142 @@ def make_basic_SSJ_matrices(
     outcome_grids = setup["outcome_grids"]
     SS_dstn = setup["SS_dstn"]
 
-    SS_outcomes = []
-    for j in range(len(outcomes)):
-        SS_outcomes.append(np.dot(LR_outcomes[j].transpose(), SS_dstn))
+    SS_outcomes = [np.dot(mat.T, SS_dstn) for mat in LR_outcomes]
 
-    # Solve back one period while perturbing the shock variable
-    t0 = time()
-    base_shock_value, shock_is_list = _perturb_shock(agent, shock, eps)
-    agent.cycles = 1
-    if shock_is_list:
-        temp_value = [base_shock_value + eps]
-    else:
-        temp_value = base_shock_value + eps
-    temp_dict = {shock: temp_value}
-    agent.assign_parameters(**temp_dict)
-    if construct:
-        agent.update()
-    agent.solve(from_solution=LR_soln)
-    agent.initialize_sym()
-    Tm1_soln = deepcopy(agent.solution[0])
-    period_Tm1 = agent._simulator.periods[0]
-    period_T = agent._simulator.periods[-1]
-    t1 = time()
-    if verbose:
-        print(
-            "Solving period T-1 with a perturbed variable took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
-
-    # Set up and solve the agent for T_max-1 more periods
-    t0 = time()
-    agent.cycles = T_max - 1
-    if shock_is_list:
-        orig_dict = {shock: [base_shock_value]}
-    else:
-        orig_dict = {shock: base_shock_value}
-    agent.assign_parameters(**orig_dict)
-    if construct:
-        agent.update()
-    agent.solve(from_solution=Tm1_soln)
-    t1 = time()
-    if verbose:
-        print(
-            "Solving the finite horizon model for "
-            + str(T_max - 1)
-            + " more periods took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
-
-    # Construct transition and outcome matrices for the "finite horizon"
-    t0 = time()
-    agent.initialize_sym()
-    X = agent._simulator  # for easier typing
-    X.periods[-1] = period_Tm1  # substitute period T-1 from above
-    if offset:
-        for name in X.periods[-1].content.keys():
-            if name not in X.solution:  # sub in proper T-1 non-solution info
-                X.periods[-1].content[name] = LR_period.content[name]
-        X.periods[-1].distribute_content()
-        X.periods = X.periods[1:] + [period_T]
-    X.make_transition_matrices(grids, norm, fake_news_timing=True)
-    TmX_trans = deepcopy(X.trans_arrays)
-    TmX_outcomes = []
-    for t in range(T_max):
-        Tmt_outcomes = []
-        for var in outcomes:
-            Tmt_outcomes.append(X.periods[t].matrices[var])
-        TmX_outcomes.append(Tmt_outcomes)
-    t1 = time()
-    if verbose:
-        print(
-            "Constructing transition arrays for the finite horizon model took {:.3f}".format(
-                t1 - t0
+    try:
+        # Solve back one period while perturbing the shock variable
+        t0 = time()
+        base_shock_value, shock_is_list = _perturb_shock(agent, shock)
+        agent.cycles = 1
+        if shock_is_list:
+            temp_value = [base_shock_value + eps]
+        else:
+            temp_value = base_shock_value + eps
+        temp_dict = {shock: temp_value}
+        agent.assign_parameters(**temp_dict)
+        if construct:
+            agent.update()
+        agent.solve(from_solution=LR_soln)
+        agent.initialize_sym()
+        Tm1_soln = deepcopy(agent.solution[0])
+        period_Tm1 = agent._simulator.periods[0]
+        period_T = agent._simulator.periods[-1]
+        t1 = time()
+        if verbose:
+            print(
+                "Solving period T-1 with a perturbed variable took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
             )
-            + " seconds."
-        )
 
-    # Calculate derivatives of transition and outcome matrices by first differences
-    t0 = time()
-    J = len(outcomes)
-    K = SS_dstn.size
-    D_dstn_array = calc_derivs_of_state_dstns(
-        T_max, J, np.array(TmX_trans), LR_trans, SS_dstn
-    )
-    dY_news_array = np.empty((T_max, J))
-    for j in range(J):
-        temp_outcomes = np.array([TmX_outcomes[t][j] for t in range(T_max)])
-        dY_news_array[:, j] = calc_derivs_of_policy_funcs(
-            T_max, temp_outcomes, LR_outcomes[j], outcome_grids[j], SS_dstn
-        )
-    t1 = time()
-    if verbose:
-        print(
-            "Calculating derivatives by first differences took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
+        # Set up and solve the agent for T_max-1 more periods
+        t0 = time()
+        agent.cycles = T_max - 1
+        if shock_is_list:
+            orig_dict = {shock: [base_shock_value]}
+        else:
+            orig_dict = {shock: base_shock_value}
+        agent.assign_parameters(**orig_dict)
+        if construct:
+            agent.update()
+        agent.solve(from_solution=Tm1_soln)
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the finite horizon model for "
+                + str(T_max - 1)
+                + " more periods took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
 
-    # Construct the "fake news" matrices, one for each outcome variable
-    t0 = time()
-    expectation_vectors = np.empty((J, K))  # Initialize expectation vectors
-    for j in range(J):
-        expectation_vectors[j, :] = np.dot(LR_outcomes[j], outcome_grids[j])
-    FN = make_fake_news_matrices(
-        T_max, J, dY_news_array, D_dstn_array, LR_trans.T, expectation_vectors.copy()
-    )
-    t1 = time()
-    if verbose:
-        print(
-            "Constructing the fake news matrices took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
+        # Construct transition and outcome matrices for the "finite horizon"
+        t0 = time()
+        agent.initialize_sym()
+        X = agent._simulator  # for easier typing
+        X.periods[-1] = period_Tm1  # substitute period T-1 from above
+        if offset:
+            for name in X.periods[-1].content.keys():
+                if name not in X.solution:  # sub in proper T-1 non-solution info
+                    X.periods[-1].content[name] = LR_period.content[name]
+            X.periods[-1].distribute_content()
+            X.periods = X.periods[1:] + [period_T]
+        X.make_transition_matrices(grids, norm, fake_news_timing=True)
+        TmX_trans = deepcopy(X.trans_arrays)
+        TmX_outcomes = []
+        for t in range(T_max):
+            Tmt_outcomes = []
+            for var in outcomes:
+                Tmt_outcomes.append(X.periods[t].matrices[var])
+            TmX_outcomes.append(Tmt_outcomes)
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing transition arrays for the finite horizon model took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
 
-    # Construct the SSJ matrices, one for each outcome variable
-    t0 = time()
-    SSJ_array = calc_ssj_from_fake_news_matrices(T_max, J, FN, eps)
-    SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
-    t1 = time()
-    if verbose:
-        print(
-            "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
-            + " seconds."
+        # Calculate derivatives of transition and outcome matrices by first differences
+        t0 = time()
+        J = len(outcomes)
+        K = SS_dstn.size
+        D_dstn_array = calc_derivs_of_state_dstns(
+            T_max, J, np.array(TmX_trans), LR_trans, SS_dstn
         )
+        dY_news_array = np.empty((T_max, J))
+        for j in range(J):
+            temp_outcomes = np.array([TmX_outcomes[t][j] for t in range(T_max)])
+            dY_news_array[:, j] = calc_derivs_of_policy_funcs(
+                T_max, temp_outcomes, LR_outcomes[j], outcome_grids[j], SS_dstn
+            )
+        t1 = time()
+        if verbose:
+            print(
+                "Calculating derivatives by first differences took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
 
-    # Reset the agent to its original state and return the output
-    _restore_agent(agent, LR_soln, simulator_backup)
-    if no_list:
-        return SSJ[0]
-    else:
-        return SSJ
+        # Construct the "fake news" matrices, one for each outcome variable
+        t0 = time()
+        expectation_vectors = np.empty((J, K))  # Initialize expectation vectors
+        for j in range(J):
+            expectation_vectors[j, :] = np.dot(LR_outcomes[j], outcome_grids[j])
+        FN = make_fake_news_matrices(
+            T_max,
+            J,
+            dY_news_array,
+            D_dstn_array,
+            LR_trans.T,
+            expectation_vectors.copy(),
+        )
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing the fake news matrices took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Construct the SSJ matrices, one for each outcome variable
+        t0 = time()
+        SSJ_array = calc_ssj_from_fake_news_matrices(T_max, J, FN, eps)
+        SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        if no_list:
+            return SSJ[0]
+        else:
+            return SSJ
+    finally:
+        _restore_agent(agent, LR_soln, simulator_backup)
 
 
 def calc_shock_response_manually(
@@ -498,107 +509,106 @@ def calc_shock_response_manually(
     outcome_grids = setup["outcome_grids"]
     SS_dstn = setup["SS_dstn"]
 
-    SS_outcomes = []
-    SS_avgs = []
-    for j in range(len(outcomes)):
-        SS_outcomes.append(np.dot(LR_outcomes[j].transpose(), SS_dstn))
-        SS_avgs.append(np.dot(SS_outcomes[j], outcome_grids[j]))
+    SS_outcomes = [np.dot(mat.T, SS_dstn) for mat in LR_outcomes]
+    SS_avgs = [np.dot(ss, grid) for ss, grid in zip(SS_outcomes, outcome_grids)]
 
-    # Make a temporary agent to construct the perturbed constructed objects
-    t0 = time()
-    temp_agent = deepcopy(agent)
-    base_shock_value, shock_is_list = _perturb_shock(agent, shock, eps)
-    if shock_is_list:
-        temp_value = [base_shock_value + eps]
-    else:
-        temp_value = base_shock_value + eps
-    temp_dict = {shock: temp_value}
-    temp_agent.assign_parameters(**temp_dict)
-    if len(construct) > 0:
-        temp_agent.update()
-    for var in construct:
-        temp_dict[var] = getattr(temp_agent, var)
-
-    # Build the finite horizon version of this agent
-    FH_agent = deepcopy(agent)
-    FH_agent.del_param("solution")
-    FH_agent.del_param("_simulator")
-    FH_agent.del_from_time_vary("solution")
-    FH_agent.del_from_time_inv(shock)
-    FH_agent.add_to_time_vary(shock)
-    FH_agent.del_from_time_inv(*construct)
-    FH_agent.add_to_time_vary(*construct)
-    finite_dict = {"T_cycle": T_max, "cycles": 1}
-    for var in FH_agent.time_vary:
-        if var in construct:
-            sequence = [deepcopy(getattr(agent, var)[0]) for t in range(T_max)]
-            sequence[s] = deepcopy(getattr(temp_agent, var)[0])
+    try:
+        # Make a temporary agent to construct the perturbed constructed objects
+        t0 = time()
+        temp_agent = deepcopy(agent)
+        base_shock_value, shock_is_list = _perturb_shock(agent, shock)
+        if shock_is_list:
+            temp_value = [base_shock_value + eps]
         else:
-            sequence = T_max * [deepcopy(getattr(agent, var)[0])]
-        finite_dict[var] = sequence
-    shock_seq = T_max * [base_shock_value]
-    shock_seq[s] = base_shock_value + eps
-    finite_dict[shock] = shock_seq
-    FH_agent.assign_parameters(**finite_dict)
-    del temp_agent
-    t1 = time()
-    if verbose:
-        print(
-            "Building the finite horizon agent took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
+            temp_value = base_shock_value + eps
+        temp_dict = {shock: temp_value}
+        temp_agent.assign_parameters(**temp_dict)
+        if len(construct) > 0:
+            temp_agent.update()
+        for var in construct:
+            temp_dict[var] = getattr(temp_agent, var)
 
-    # Solve the finite horizon agent
-    t0 = time()
-    FH_agent.solve(from_solution=LR_soln)
-    t1 = time()
-    if verbose:
-        print(
-            "Solving the "
-            + str(T_max)
-            + " period problem took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
-
-    # Build transition matrices for the finite horizon problem
-    t0 = time()
-    FH_agent.initialize_sym()
-    FH_agent._simulator.make_transition_matrices(
-        grids, norm=norm, fake_news_timing=True
-    )
-    t1 = time()
-    if verbose:
-        print(
-            "Constructing transition matrices took {:.3f}".format(t1 - t0) + " seconds."
-        )
-
-    # Use grid simulation to find the timepath of requested variables, and compute
-    # the derivative with respect to baseline outcomes
-    t0 = time()
-    FH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
-    dYdX = []
-    for j, var in enumerate(outcomes):
-        diff_path = (FH_agent._simulator.history_avg[var] - SS_avgs[j]) / eps
-        if offset:
-            dYdX.append(diff_path[1:])
-        else:
-            dYdX.append(diff_path[:-1])
-    t1 = time()
-    if verbose:
-        print(
-            "Calculating impulse responses by grid simulation took {:.3f}".format(
-                t1 - t0
+        # Build the finite horizon version of this agent
+        FH_agent = deepcopy(agent)
+        FH_agent.del_param("solution")
+        FH_agent.del_param("_simulator")
+        FH_agent.del_from_time_vary("solution")
+        FH_agent.del_from_time_inv(shock)
+        FH_agent.add_to_time_vary(shock)
+        FH_agent.del_from_time_inv(*construct)
+        FH_agent.add_to_time_vary(*construct)
+        finite_dict = {"T_cycle": T_max, "cycles": 1}
+        for var in FH_agent.time_vary:
+            if var in construct:
+                sequence = [deepcopy(getattr(agent, var)[0]) for t in range(T_max)]
+                sequence[s] = deepcopy(getattr(temp_agent, var)[0])
+            else:
+                sequence = T_max * [deepcopy(getattr(agent, var)[0])]
+            finite_dict[var] = sequence
+        shock_seq = T_max * [base_shock_value]
+        shock_seq[s] = base_shock_value + eps
+        finite_dict[shock] = shock_seq
+        FH_agent.assign_parameters(**finite_dict)
+        del temp_agent
+        t1 = time()
+        if verbose:
+            print(
+                "Building the finite horizon agent took {:.3f}".format(t1 - t0)
+                + " seconds."
             )
-            + " seconds."
-        )
 
-    # Reset the agent to its original state and return the output
-    del FH_agent
-    _restore_agent(agent, LR_soln, simulator_backup)
-    if no_list:
-        return dYdX[0]
-    else:
-        return dYdX
+        # Solve the finite horizon agent
+        t0 = time()
+        FH_agent.solve(from_solution=LR_soln)
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the "
+                + str(T_max)
+                + " period problem took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Build transition matrices for the finite horizon problem
+        t0 = time()
+        FH_agent.initialize_sym()
+        FH_agent._simulator.make_transition_matrices(
+            grids, norm=norm, fake_news_timing=True
+        )
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing transition matrices took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Use grid simulation to find the timepath of requested variables, and compute
+        # the derivative with respect to baseline outcomes
+        t0 = time()
+        FH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
+        dYdX = []
+        for j, var in enumerate(outcomes):
+            diff_path = (FH_agent._simulator.history_avg[var] - SS_avgs[j]) / eps
+            if offset:
+                dYdX.append(diff_path[1:])
+            else:
+                dYdX.append(diff_path[:-1])
+        t1 = time()
+        if verbose:
+            print(
+                "Calculating impulse responses by grid simulation took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
+
+        del FH_agent
+        if no_list:
+            return dYdX[0]
+        else:
+            return dYdX
+    finally:
+        _restore_agent(agent, LR_soln, simulator_backup)
 
 
 @njit

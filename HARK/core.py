@@ -824,7 +824,7 @@ class Model:
                 setattr(self, key, backup[key])
                 self.parameters[key] = backup[key]
             keys_complete[i] = True
-            return True, missing_key_data  # We did something!
+            return True, missing_key_data
 
         # Gather arguments for the constructor
         temp_dict, any_missing, missing_args, missing_key_data = (
@@ -847,13 +847,10 @@ class Model:
             if key in errors:
                 del errors[key]
             keys_complete[i] = True
-            return True, missing_key_data  # We did something!
+            return True, missing_key_data
 
         # Some required arguments were missing; record and defer
-        msg = "Missing required arguments:"
-        for arg in missing_args:
-            msg += " " + arg + ","
-        msg = msg[:-1]
+        msg = "Missing required arguments: " + ", ".join(missing_args)
         errors[key] = msg
         self.del_param(key)
         # Never raise exceptions here, as the arguments might be filled in later
@@ -891,12 +888,12 @@ class Model:
         anything_accomplished = False
         missing_key_data = []
 
-        for i in range(len(keys)):
+        for i, key in enumerate(keys):
             if keys_complete[i]:
                 continue  # This key has already been built
 
             accomplished, key_missing = self._attempt_construct(
-                keys[i], i, keys_complete, backup, errors, force
+                key, i, keys_complete, backup, errors, force
             )
             if accomplished:
                 anything_accomplished = True
@@ -1548,7 +1545,7 @@ class AgentType(Model):
             cols = [str(i) for i in range(self.T_sim)]
             df = DataFrame(data=data.T, columns=cols, dtype=dtype)
         else:
-            cols = [str(t[i]) for i in range(t.size)]
+            cols = [str(t_val) for t_val in t]
             df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
         return df
 
@@ -1599,7 +1596,7 @@ class AgentType(Model):
                 out[n, : temp.size] = temp
                 n += 1
 
-        cols = [str(age_set[i]) for i in range(age_set.size)]
+        cols = [str(a) for a in age_set]
         df = DataFrame(data=out, columns=cols, dtype=dtype)
         return df
 
@@ -1613,8 +1610,7 @@ class AgentType(Model):
         K = len(var_list)
         N = self.AgentCount
         out = np.full((N, K), np.nan)
-        for k in range(K):
-            name = var_list[k]
+        for k, name in enumerate(var_list):
             out[:, k] = history[name][t, :]
         df = DataFrame(data=out, columns=var_list, dtype=dtype)
         return df
@@ -1630,8 +1626,7 @@ class AgentType(Model):
         N = np.sum(right_age)
         K = len(var_list)
         out = np.full((N, K), np.nan)
-        for k in range(K):
-            name = var_list[k]
+        for k, name in enumerate(var_list):
             out[:, k] = history[name][right_age]
         df = DataFrame(data=out, columns=var_list, dtype=dtype)
         return df
@@ -1734,7 +1729,7 @@ class AgentType(Model):
             return self._export_single_var_by_time(history, var, t, dtype)
         elif single_var and by_age:
             return self._export_single_var_by_age(history, var, age, t, dtype, sym)
-        elif single_t and not by_age:
+        else:  # single_t
             # Build and validate the variable list
             if var is None:
                 var_list = list(history.keys())
@@ -1746,20 +1741,10 @@ class AgentType(Model):
                         raise KeyError(
                             "Variable called " + name + " not found in simulation data!"
                         )
-            return self._export_single_t_by_time(history, var_list, t, dtype)
-        else:  # single_t and by_age
-            # Build and validate the variable list
-            if var is None:
-                var_list = list(history.keys())
+            if by_age:
+                return self._export_single_t_by_age(history, var_list, age, t, dtype)
             else:
-                var_list = copy(var)
-                sim_keys = list(history.keys())
-                for name in var_list:
-                    if name not in sim_keys:
-                        raise KeyError(
-                            "Variable called " + name + " not found in simulation data!"
-                        )
-            return self._export_single_t_by_age(history, var_list, age, t, dtype)
+                return self._export_single_t_by_time(history, var_list, t, dtype)
 
     def sim_one_period(self):
         """

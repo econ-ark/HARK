@@ -59,7 +59,7 @@ def _validate_shock_keys(
 
 
 def _base_continuation(
-    self,
+    transitions,
     post_state: dict[str, Any],
     shocks: dict[str, Any],
     value_next: "ValueFuncCRRALabeled",
@@ -75,8 +75,8 @@ def _base_continuation(
 
     Parameters
     ----------
-    self : transitions object
-        The calling transitions instance, whose ``post_state`` method is
+    transitions : Transitions instance
+        The calling transitions object, whose ``post_state`` method is
         used to map the post-decision state forward through shocks.
     post_state : dict
         Post-decision state (e.g. containing 'aNrm').
@@ -102,7 +102,7 @@ def _base_continuation(
         ``psi``, ``v``, ``v_der``, ``contributions``, and ``value``.
     """
     variables = {}
-    next_state = self.post_state(post_state, shocks, params)
+    next_state = transitions.post_state(post_state, shocks, params)
     variables.update(next_state)
 
     psi = params.PermGroFac * shocks["perm"]
@@ -578,9 +578,10 @@ class PortfolioTransitions:
         """
         Compute continuation value with optimal portfolio.
 
-        Also computes derivatives needed for portfolio optimization:
-        - dvda: used for consumption FOC
-        - dvds: used for portfolio FOC (should equal 0 at optimum)
+        Uses ``return_factor=1.0`` so that ``v_der`` is unscaled.
+        Then adds ``dvda`` (portfolio return times ``v_der``) for the
+        consumption FOC and ``dvds`` (excess return times assets times
+        ``v_der``) for the portfolio FOC (should equal 0 at optimum).
 
         Parameters
         ----------

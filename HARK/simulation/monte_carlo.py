@@ -23,17 +23,15 @@ def draw_shocks(shocks: Mapping[str, Distribution], conditions: Sequence[int]):
     Draw from each shock distribution values, subject to given conditions.
 
     Parameters
-    ------------
-    shocks Mapping[str, Distribution]
-        A dictionary-like mapping from shock names to distributions from which to draw
-
-    conditions: Sequence[int]
+    ----------
+    shocks : Mapping[str, Distribution]
+        A dictionary-like mapping from shock names to distributions from which to draw.
+    conditions : Sequence[int]
         An array of conditions, one for each agent.
         Typically these will be agent ages.
-        # TODO: generalize this to wider range of inputs.
 
-    Parameters
-    ------------
+    Returns
+    -------
     draws : Mapping[str, Sequence]
         A mapping from shock names to drawn shock values.
     """
@@ -101,6 +99,11 @@ class Simulator:
         self.agent_count   -- int, number of agents
         self.seed          -- int, random seed
         self.history       -- dict, populated by clear_history / simulate
+        self.vars_now      -- dict, current-period variable values per agent
+        self.newborn_init_history -- dict, initial values for newborn agents
+        self.t_sim         -- int, current simulation time step
+
+    Subclasses must also implement ``sim_one_period``.
     """
 
     def reset_rng(self):
@@ -168,15 +171,18 @@ class Simulator:
             The history tracked during the simulation.
         """
         if not hasattr(self, "t_sim"):
-            raise Exception(
+            raise RuntimeError(
                 "Simulation variables were not initialized. "
                 "Call initialize_sim() before simulate()."
             )
         if sim_periods is not None and self.T_sim < sim_periods:
-            raise Exception(
-                "To simulate, sim_periods has to be larger than the maximum data set size "
-                + "T_sim. Either increase the attribute T_sim of this agent type instance "
-                + "and call the initialize_sim() method again, or set sim_periods <= T_sim."
+            raise ValueError(
+                "sim_periods ("
+                + str(sim_periods)
+                + ") exceeds T_sim ("
+                + str(self.T_sim)
+                + "). Either increase T_sim and call "
+                "initialize_sim() again, or set sim_periods <= T_sim."
             )
 
         # Ignore floating point "errors". Numpy calls it "errors", but really it's excep-
@@ -205,7 +211,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
     A Monte Carlo simulation engine based on the HARK.core.AgentType framework.
 
     Unlike HARK.core.AgentType, this class does not do any model solving,
-    and depends on dynamic equations, shocks, and decision rules paased into it.
+    and depends on dynamic equations, shocks, and decision rules passed into it.
 
     The purpose of this class is to provide a way to simulate models without
     relying on inheritance from the AgentType class.
@@ -343,7 +349,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
             for var_name in self.shocks:
                 shocks_now[var_name] = self.shock_history[var_name][self.t_sim, :]
         else:
-            ### BIG CHANGES HERE from HARK.core.AgentType
             shocks_now = draw_shocks(self.shocks, self.t_age)
 
         pre = calibration_by_age(self.t_age, self.calibration)
@@ -358,7 +363,6 @@ class AgentTypeMonteCarloSimulator(Simulator):
         post = simulate_dynamics(self.dynamics, pre, dr)
 
         self.vars_now = post
-        ### BIG CHANGES HERE
 
         # Advance time for all agents
         self.t_age = self.t_age + 1  # Age all consumers by one period

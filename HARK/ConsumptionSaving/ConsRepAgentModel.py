@@ -231,9 +231,9 @@ def solve_ConsRepAgentMarkov(
     CRRA : float
         Coefficient of relative risk aversion.
     IncShkDstn : [distribution.Distribution]
-        A list of discrete approximations to the income process between the
-        period being solved and the one immediately following (in solution_next).
-        Order: event probabilities, permanent shocks, transitory shocks.
+        A list of Distribution objects for the income process, one per Markov
+        state.  Each has ``.pmv`` (event probabilities), ``.atoms[0]``
+        (permanent shocks), and ``.atoms[1]`` (transitory shocks).
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
     DeprRte : float
