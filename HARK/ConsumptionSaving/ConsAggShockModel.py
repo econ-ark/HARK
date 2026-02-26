@@ -13,8 +13,13 @@ import scipy.stats as stats
 from HARK import AgentType, Market
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
+    construct_markov_lognormal_income_process_unemployment,
     get_PermShkDstn_from_IncShkDstn,
     get_TranShkDstn_from_IncShkDstn,
+    combine_ind_and_agg_income_shocks,
+    combine_markov_ind_and_agg_income_shocks,
+    get_PermShkDstn_from_IncShkDstn_markov,
+    get_TranShkDstn_from_IncShkDstn_markov,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
@@ -157,6 +162,13 @@ def make_exponential_MgridBase(MaggCount, MaggPerturb, MaggExpFac):
         gridpoints.insert(0, new_lo)
     MgridBase = np.array(gridpoints)
     return MgridBase
+
+
+def make_Mgrid(MgridBase, MSS):
+    """
+    Make the grid of aggregate market resources as the steady state level times the base grid.
+    """
+    return MSS * MgridBase
 
 
 ###############################################################################
@@ -708,14 +720,17 @@ def solve_KrusellSmith(
 
 # Make a dictionary of constructors for the aggregate income shocks model
 aggshock_constructor_dict = {
-    "IncShkDstn": construct_lognormal_income_process_unemployment,
+    "IncShkDstnInd": construct_lognormal_income_process_unemployment,
+    "IncShkDstn": combine_ind_and_agg_income_shocks,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "MgridBase": make_exponential_MgridBase,
+    "Mgrid": make_Mgrid,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_aggshock_solution_terminal,
+    "T_sim": get_it_from("act_T"),
 }
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
@@ -802,6 +817,17 @@ class AggShockConsumerType(IndShockConsumerType):
     rate.  "Aggregate shock consumers" have beliefs about how the capital ratio
     evolves over time and take aggregate shocks into account when making their
     decision about how much to consume.
+
+    NB: Unlike most AgentType subclasses, AggShockConsumerType does not automatically
+    call its construct method as part of instantiation. In most cases, an instance of
+    this class cannot be meaningfully solved without being associated with a Market
+    instance, probably of the subclass CobbDouglasEconomy or SmallOpenEconomy.
+
+    To be able to fully build and solve an instance of this class, assign it as an
+    instance of the agents attribute of an appropriate Market, then run that Market's
+    give_agent_params method. This will distribute market-level parameters and
+    instruct the agents to run their construct method. You should then be able to
+    run the solve method on the Market or its agents.
     """
 
     default_ = {
@@ -810,11 +836,26 @@ class AggShockConsumerType(IndShockConsumerType):
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
     time_inv_ = IndShockConsumerType.time_inv_.copy()
+    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "DeprRte", "PermGroFacAgg"]
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
     except:  # pragma: nocover
         pass
+    market_vars = [
+        "act_T",
+        "kSS",
+        "MSS",
+        "AFunc",
+        "Rfunc",
+        "wFunc",
+        "DeprRte",
+        "PermGroFacAgg",
+        "AggShkDstn",
+    ]
+
+    def __init__(self, **kwds):
+        AgentType.__init__(self, construct=False, **kwds)
 
     def reset(self):
         """
@@ -828,84 +869,13 @@ class AggShockConsumerType(IndShockConsumerType):
         -------
         None
         """
+        # Start simulation near SS
         self.initialize_sim()
-        self.state_now["aLvlNow"] = self.kInit * np.ones(
-            self.AgentCount
-        )  # Start simulation near SS
+        self.state_now["aLvlNow"] = self.kSS * np.ones(self.AgentCount)
         self.state_now["aNrm"] = self.state_now["aLvlNow"] / self.state_now["pLvl"]
 
     def pre_solve(self):
         self.construct("solution_terminal")
-
-    def get_economy_data(self, economy):
-        """
-        Imports economy-determined objects into self from a Market.
-        Instances of AggShockConsumerType "live" in some macroeconomy that has
-        attributes relevant to their microeconomic model, like the relationship
-        between the capital-to-labor ratio and the interest and wage rates; this
-        method imports those attributes from an "economy" object and makes them
-        attributes of the ConsumerType.
-
-        Parameters
-        ----------
-        economy : Market
-            The "macroeconomy" in which this instance "lives".  Might be of the
-            subclass CobbDouglasEconomy, which has methods to generate the
-            relevant attributes.
-
-        Returns
-        -------
-        None
-        """
-        self.T_sim = (
-            economy.act_T
-        )  # Need to be able to track as many periods as economy runs
-        self.kInit = economy.kSS  # Initialize simulation assets to steady state
-        self.aNrmInitMean = np.log(
-            0.00000001
-        )  # Initialize newborn assets to nearly zero
-        self.Mgrid = (
-            economy.MSS * self.MgridBase
-        )  # Aggregate market resources grid adjusted around SS capital ratio
-        self.AFunc = economy.AFunc  # Next period's aggregate savings function
-        self.Rfunc = economy.Rfunc  # Interest factor as function of capital ratio
-        self.wFunc = economy.wFunc  # Wage rate as function of capital ratio
-        self.DeprRte = economy.DeprRte  # Rate of capital depreciation
-        self.PermGroFacAgg = (
-            economy.PermGroFacAgg
-        )  # Aggregate permanent productivity growth
-        self.add_AggShkDstn(
-            economy.AggShkDstn
-        )  # Combine idiosyncratic and aggregate shocks into one dstn
-        self.add_to_time_inv(
-            "Mgrid", "AFunc", "Rfunc", "wFunc", "DeprRte", "PermGroFacAgg"
-        )
-
-    def add_AggShkDstn(self, AggShkDstn):
-        """
-        Updates attribute IncShkDstn by combining idiosyncratic shocks with aggregate shocks.
-
-        Parameters
-        ----------
-        AggShkDstn : [np.array]
-            Aggregate productivity shock distribution.  First element is proba-
-            bilities, second element is agg permanent shocks, third element is
-            agg transitory shocks.
-
-        Returns
-        -------
-        None
-        """
-        if len(self.IncShkDstn[0].atoms) > 2:
-            self.IncShkDstn = self.IncShkDstnWithoutAggShocks
-        else:
-            self.IncShkDstnWithoutAggShocks = self.IncShkDstn
-        self.IncShkDstn = [
-            combine_indep_dstns(
-                self.IncShkDstn[t], AggShkDstn, seed=self.RNG.integers(0, 2**31 - 1)
-            )
-            for t in range(self.T_cycle)
-        ]
 
     def sim_birth(self, which_agents):
         """
@@ -1066,14 +1036,35 @@ class AggShockConsumerType(IndShockConsumerType):
 ###############################################################################
 
 
-# This example makes a high risk, low growth state and a low risk, high growth state
-MrkvArray = np.array([[0.90, 0.10], [0.04, 0.96]])
+default_IncShkDstnInd_aggmrkv_params = {
+    "PermShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log permanent income shocks
+    "PermShkCount": 7,  # Number of points in discrete approximation to permanent income shocks
+    "TranShkStd": np.array(
+        [[0.1, 0.1]]
+    ),  # Standard deviation of log transitory income shocks
+    "TranShkCount": 7,  # Number of points in discrete approximation to transitory income shocks
+    "UnempPrb": np.array([0.05, 0.05]),  # Probability of unemployment while working
+    "IncUnemp": np.array(
+        [0.3, 0.3]
+    ),  # Unemployment benefits replacement rate while working
+    "T_retire": 0,  # Period of retirement (0 --> no retirement)
+    "UnempPrbRet": None,  # Probability of "unemployment" while retired
+    "IncUnempRet": None,  # "Unemployment" benefits when retired
+}
 
 # Make a dictionary to specify a Markov aggregate shocks consumer
 init_agg_mrkv_shocks = init_agg_shocks.copy()
-init_agg_mrkv_shocks["MrkvArray"] = MrkvArray
+init_agg_mrkv_shocks.update(default_IncShkDstnInd_aggmrkv_params)
 aggmrkv_constructor_dict = aggshock_constructor_dict.copy()
 aggmrkv_constructor_dict["solution_terminal"] = make_aggmrkv_solution_terminal
+aggmrkv_constructor_dict["IncShkDstnInd"] = (
+    construct_markov_lognormal_income_process_unemployment
+)
+aggmrkv_constructor_dict["IncShkDstn"] = combine_markov_ind_and_agg_income_shocks
+aggmrkv_constructor_dict["PermShkDstn"] = get_PermShkDstn_from_IncShkDstn_markov
+aggmrkv_constructor_dict["TranShkDstn"] = get_TranShkDstn_from_IncShkDstn_markov
 init_agg_mrkv_shocks["constructors"] = aggmrkv_constructor_dict
 
 
@@ -1083,41 +1074,27 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
     experience both aggregate and idiosyncratic shocks to productivity (both
     permanent and transitory), who lives in an environment where the macroeconomic
     state is subject to Markov-style discrete state evolution.
+
+    NB: Unlike most AgentType subclasses, AggMarkovShockConsumerType does not automatically
+    call its construct method as part of instantiation. In most cases, an instance of
+    this class cannot be meaningfully solved without being associated with a Market
+    instance, probably of the subclass CobbDouglasMarkovEconomy or SmallOpenMarkovEconomy.
+
+    To be able to fully build and solve an instance of this class, assign it as an
+    instance of the agents attribute of an appropriate Market, then run that Market's
+    give_agent_params method. This will distribute market-level parameters and
+    instruct the agents to run their construct method. You should then be able to
+    run the solve method on the Market or its agents.
     """
 
     time_inv_ = AggShockConsumerType.time_inv_ + ["MrkvArray"]
     shock_vars_ = AggShockConsumerType.shock_vars_ + ["Mrkv"]
+    market_vars = AggShockConsumerType.market_vars + ["MrkvArray"]
     default_ = {
         "params": init_agg_mrkv_shocks,
         "solver": solve_ConsAggMarkov,
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
-
-    def add_AggShkDstn(self, AggShkDstn):
-        """
-        Variation on AggShockConsumerType.add_AggShkDstn that handles the Markov
-        state. AggShkDstn is a list of aggregate productivity shock distributions
-        for each Markov state.
-        """
-        if len(self.IncShkDstn[0][0].atoms) > 2:
-            self.IncShkDstn = self.IncShkDstnWithoutAggShocks
-        else:
-            self.IncShkDstnWithoutAggShocks = self.IncShkDstn
-
-        IncShkDstnOut = []
-        N = self.MrkvArray.shape[0]
-        for t in range(self.T_cycle):
-            IncShkDstnOut.append(
-                [
-                    combine_indep_dstns(
-                        self.IncShkDstn[t][n],
-                        AggShkDstn[n],
-                        seed=self.RNG.integers(0, 2**31 - 1),
-                    )
-                    for n in range(N)
-                ]
-            )
-        self.IncShkDstn = IncShkDstnOut
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = 0
@@ -1142,14 +1119,13 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
+        Mrkv = self.shocks["Mrkv"]
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            N = np.sum(these)
-            if N > 0:
-                IncShkDstnNow = self.IncShkDstn[t - 1][
-                    self.shocks["Mrkv"]
-                ]  # set current income distribution
-                # and permanent growth factor
+            if np.any(these):
+                N = np.sum(these)
+                # set current income distribution and permanent growth factor
+                IncShkDstnNow = self.IncShkDstn[t - 1][Mrkv]
                 PermGroFacNow = self.PermGroFac[t - 1]
 
                 # Get random draws of income shocks from the discrete distribution
@@ -1177,7 +1153,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
         # Store the shocks in self
         self.EmpNow = np.ones(self.AgentCount, dtype=bool)
-        self.EmpNow[TranShkNow == self.IncUnemp] = False
+        self.EmpNow[TranShkNow == self.IncUnemp[Mrkv]] = False
         self.shocks["TranShk"] = TranShkNow * self.TranShkAggNow * self.wRteNow
         self.shocks["PermShk"] = PermShkNow * self.PermShkAggNow
 
@@ -1355,6 +1331,8 @@ KS_constructor_dict = {
     "MnextArray": get_it_from("transition_arrays"),
     "RnextArray": get_it_from("transition_arrays"),
     "MgridBase": make_exponential_MgridBase,
+    "T_sim": get_it_from("act_T"),
+    "Mgrid": make_Mgrid,
 }
 
 init_KS_agents = {
@@ -1371,7 +1349,7 @@ init_KS_agents = {
     "MaggCount": 25,
     "MaggPerturb": 0.01,
     "MaggExpFac": 0.12,
-    "MgridBase": np.array([0.99, 1.0, 1.01]),  ## dummy, this will be overwritten
+    "MgridBase": np.array([0.99, 1.0, 1.01]),  # dummy, this will be overwritten
     "AgentCount": 5000,
 }
 
@@ -1386,9 +1364,16 @@ class KrusellSmithType(AgentType):
     a function of previous aggregate capital.  This choice was made so that some
     of the code from HARK's other HA-macro models can be used.
 
-    To make this class work properly, instantiate both this class and an instance
-    of KrusellSmithEconomy, then use this class' get_economy_data method with the
-    economy object.
+    NB: Unlike most AgentType subclasses, KrusellSmithType does not automatically
+    call its construct method as part of instantiation. In most cases, an instance of
+    this class cannot be meaningfully solved without being associated with a Market
+    instance, probably of the subclass KrusellSmithEconomy.
+
+    To be able to fully build and solve an instance of this class, assign it as an
+    instance of the agents attribute of an appropriate Market, then run that Market's
+    give_agent_params method. This will distribute market-level parameters and
+    instruct the agents to run their construct method. You should then be able to
+    run the solve method on the Market or its agents.
     """
 
     time_inv_ = [
@@ -1399,10 +1384,27 @@ class KrusellSmithType(AgentType):
         "mNextArray",
         "MnextArray",
         "RnextArray",
+        "Mgrid",
     ]
     time_vary_ = []
     shock_vars_ = ["Mrkv"]
     state_vars = ["aNow", "mNow", "EmpNow"]
+    market_vars = [
+        "act_T",
+        "KSS",
+        "MSS",
+        "AFunc",
+        "CapShare",
+        "DeprRte",
+        "LbrInd",
+        "UrateB",
+        "UrateG",
+        "ProdB",
+        "ProdG",
+        "MrkvIndArray",
+        "MrkvAggArray",
+        "MrkvInit",
+    ]
     default_ = {
         "params": init_KS_agents,
         "solver": solve_KrusellSmith,
@@ -1418,64 +1420,12 @@ class KrusellSmithType(AgentType):
         # Special case: this type *must* be initialized with construct=False
         # because the data required to make its solution attributes is obtained
         # from the associated economy, not passed as part of its parameters.
-        # To make it work properly, instantiate both this class and an instance
-        # of KrusellSmithEconomy, then use this class' get_economy_data method.
-        # Exception: MgridBase must exist
+        # To make it work properly, instantiate both this class and assign it
+        # as an element of agents to a KrusellSmithEconomy instance, then call
+        # that economy's give_agent_params method.
 
     def pre_solve(self):
         self.construct("solution_terminal")
-
-    def get_economy_data(self, Economy):
-        """
-        Imports economy-determined objects into self from a Market.
-
-        Parameters
-        ----------
-        Economy : KrusellSmithEconomy
-            The "macroeconomy" in which this instance "lives".
-
-        Returns
-        -------
-        None
-        """
-        self.T_sim = (
-            Economy.act_T
-        )  # Need to be able to track as many periods as economy runs
-        self.kInit = Economy.KSS  # Initialize simulation assets to steady state
-        self.MrkvInit = Economy.sow_init[
-            "Mrkv"
-        ]  # Starting Markov state for the macroeconomy
-        self.Mgrid = (
-            Economy.MSS * self.MgridBase
-        )  # Aggregate market resources grid adjusted around SS capital ratio
-        self.AFunc = Economy.AFunc  # Next period's aggregate savings function
-        self.DeprRte = Economy.DeprRte  # Rate of capital depreciation
-        self.CapShare = Economy.CapShare  # Capital's share of production
-        # Idiosyncratic labor supply (when employed)
-        self.LbrInd = Economy.LbrInd
-        self.UrateB = Economy.UrateB  # Unemployment rate in bad state
-        self.UrateG = Economy.UrateG  # Unemployment rate in good state
-        self.ProdB = Economy.ProdB  # Total factor productivity in bad state
-        self.ProdG = Economy.ProdG  # Total factor productivity in good state
-        self.MrkvIndArray = (
-            Economy.MrkvIndArray
-        )  # Transition probabilities among discrete states
-        self.MrkvAggArray = (
-            Economy.MrkvArray
-        )  # Transition probabilities among aggregate discrete states
-        self.add_to_time_inv(
-            "Mgrid",
-            "AFunc",
-            "DeprRte",
-            "CapShare",
-            "UrateB",
-            "LbrInd",
-            "UrateG",
-            "ProdB",
-            "ProdG",
-            "MrkvIndArray",
-            "MrkvAggArray",
-        )
 
     def make_emp_idx_arrays(self):
         """
@@ -1630,7 +1580,7 @@ class KrusellSmithType(AgentType):
         )
 
         self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
-        self.state_now["aNow"][which] = self.kInit
+        self.state_now["aNow"][which] = self.KSS
 
     def get_shocks(self):
         """
@@ -1696,6 +1646,9 @@ class KrusellSmithType(AgentType):
         Gets each agent's retained assets after consumption.
         """
         self.state_now["aNow"] = self.state_now["mNow"] - self.controls["cNow"]
+
+
+###############################################################################
 
 
 CRRA = 2.0
@@ -2267,13 +2220,16 @@ class SmallOpenEconomy(Market):
         )
 
 
+# This example makes a high risk, low growth state and a low risk, high growth state
+MrkvArray = np.array([[0.90, 0.10], [0.04, 0.96]])
+
 # Make a dictionary to specify a Markov Cobb-Douglas economy
 init_mrkv_cobb_douglas = init_cobb_douglas.copy()
 init_mrkv_cobb_douglas["PermShkAggStd"] = [0.012, 0.006]
 init_mrkv_cobb_douglas["TranShkAggStd"] = [0.006, 0.003]
 init_mrkv_cobb_douglas["PermGroFacAgg"] = [0.98, 1.02]
 init_mrkv_cobb_douglas["MrkvArray"] = MrkvArray
-init_mrkv_cobb_douglas["MrkvNow_init"] = 0
+init_mrkv_cobb_douglas["MrkvInit"] = 0
 init_mrkv_cobb_douglas["slope_prev"] = 2 * [slope_prev]
 init_mrkv_cobb_douglas["intercept_prev"] = 2 * [intercept_prev]
 
@@ -2329,7 +2285,7 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
             **params,
         )
 
-        self.sow_init["Mrkv"] = params["MrkvNow_init"]
+        self.sow_init["Mrkv"] = params["MrkvInit"]
 
     def update(self):
         """
@@ -2733,7 +2689,7 @@ init_KS_economy = {
     "UrateG": 0.04,
     "RelProbBG": 0.75,
     "RelProbGB": 1.25,
-    "MrkvNow_init": 0,
+    "MrkvInit": 0,
 }
 
 
@@ -2866,7 +2822,7 @@ class KrusellSmithEconomy(Market):
         assert np.all(MrkvIndArray >= 0.0), (
             "Invalid idiosyncratic transition probabilities!"
         )
-        self.MrkvArray = MrkvAggArray
+        self.MrkvAggArray = MrkvAggArray
         self.MrkvIndArray = MrkvIndArray
 
     def make_Mrkv_history(self):
@@ -2876,9 +2832,9 @@ class KrusellSmithEconomy(Market):
         """
         # Initialize the Markov history and set up transitions
         self.MrkvNow_hist = np.zeros(self.act_T, dtype=int)
-        MrkvNow = self.MrkvNow_init
+        MrkvNow = self.MrkvInit
 
-        markov_process = MarkovProcess(self.MrkvArray, seed=0)
+        markov_process = MarkovProcess(self.MrkvAggArray, seed=0)
         for s in range(self.act_T):  # Add act_T_orig more periods
             self.MrkvNow_hist[s] = MrkvNow
             MrkvNow = markov_process.draw(MrkvNow)
@@ -2903,7 +2859,6 @@ class KrusellSmithEconomy(Market):
         Wnow : float
             Wage rate for labor in the economy this period.
         """
-
         return self.calc_R_and_W(aNow, EmpNow)
 
     def calc_dynamics(self, Mnow, Aprev):
@@ -3006,7 +2961,7 @@ class KrusellSmithEconomy(Market):
         # For each Markov state, regress A_t on M_t and update the saving rule
         AFunc_list = []
         rSq_list = []
-        for i in range(self.MrkvArray.shape[0]):
+        for i in range(self.MrkvAggArray.shape[0]):
             these = i == MrkvHist
             slope, intercept, r_value, p_value, std_err = stats.linregress(
                 logMagg[these], logAagg[these]
