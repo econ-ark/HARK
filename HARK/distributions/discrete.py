@@ -1,5 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import warnings
 from copy import deepcopy
 import numpy as np
 import xarray as xr
@@ -26,7 +27,8 @@ class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
         dist : rv_discrete
             Discrete distribution from scipy.stats.
         seed : int, optional
-            Seed for random number generator, by default 0
+            Seed for random number generator. If None (default), a random
+            seed is generated from system entropy.
         """
 
         rv_discrete_frozen.__init__(self, dist, *args, **kwds)
@@ -118,12 +120,16 @@ class DiscreteDistribution(Distribution):
 
     def __repr__(self):
         out = self.__class__.__name__ + " with " + str(self.pmv.size) + " atoms, "
-        if self.atoms.shape[0] > 1:
-            out += "inf=" + str(tuple(self.limit["infimum"])) + ", "
-            out += "sup=" + str(tuple(self.limit["supremum"])) + ", "
+        inf = self.limit.get("infimum", np.array([]))
+        sup = self.limit.get("supremum", np.array([]))
+        if inf.size == 0:
+            out += "inf=[], sup=[], "
+        elif self.atoms.shape[0] > 1:
+            out += "inf=" + str(tuple(inf)) + ", "
+            out += "sup=" + str(tuple(sup)) + ", "
         else:
-            out += "inf=" + str(self.limit["infimum"][0]) + ", "
-            out += "sup=" + str(self.limit["supremum"][0]) + ", "
+            out += "inf=" + str(inf[0]) + ", "
+            out += "sup=" + str(sup[0]) + ", "
         out += "seed=" + str(self.seed)
         return out
 
@@ -189,8 +195,7 @@ class DiscreteDistribution(Distribution):
             K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
             M = N - np.sum(K)  # number of unallocated slots
             J = P.size
-            eps = 1.0 / N
-            Q = K_exact - eps * K  # "missing" probability mass
+            Q = K_exact - K  # fractional part: slots still owed to each atom
             draws = self._rng.random(M)  # uniform draws for "extra" slots
 
             # Fill in each unallocated slot, one by one
@@ -478,30 +483,51 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         x_obj : xr.Dataset, xr.DataArray, or dict
             The data containing distribution values. If a Dataset, variables
             become the distribution's variables. If a DataArray, it becomes a
-            single variable. If a dict, it's converted to a Dataset.
+            single variable (unnamed DataArrays get the name "var_0"). If a
+            dict, it's converted to a Dataset.
         pmf : xr.DataArray
             Probability mass values with dimension "atom".
         seed : int, optional
-            Seed for random number generator. If None, generates random seed.
+            Seed for random number generator. If None (default), a random
+            seed is generated from system entropy.
 
         Returns
         -------
         ldd : DiscreteDistributionLabeled
             A properly initialized labeled distribution.
+
+        Raises
+        ------
+        TypeError
+            If x_obj is not an xr.Dataset, xr.DataArray, or dict, or if
+            pmf is not an xr.DataArray.
         """
+        if not isinstance(pmf, xr.DataArray):
+            raise TypeError(
+                f"from_dataset() requires pmf to be an xr.DataArray with "
+                f"dimension 'atom', but got {type(pmf).__name__}. "
+                f"Wrap your probabilities: pmf = xr.DataArray(array, dims=('atom',))"
+            )
+
         ldd = cls.__new__(cls)
 
         if isinstance(x_obj, xr.Dataset):
             ldd.dataset = x_obj
         elif isinstance(x_obj, xr.DataArray):
-            ldd.dataset = xr.Dataset({x_obj.name: x_obj})
+            name = x_obj.name if x_obj.name is not None else "var_0"
+            ldd.dataset = xr.Dataset({name: x_obj})
         elif isinstance(x_obj, dict):
             ldd.dataset = xr.Dataset(x_obj)
+        else:
+            raise TypeError(
+                f"from_dataset() expected x_obj to be an xr.Dataset, "
+                f"xr.DataArray, or dict, but got {type(x_obj).__name__}."
+            )
 
         ldd.probability = pmf
 
         # Extract pmv from probability DataArray
-        ldd.pmv = np.asarray(pmf.values if hasattr(pmf, "values") else pmf)
+        ldd.pmv = np.asarray(pmf.values)
 
         # Extract atoms from dataset variables that have the "atom" dimension.
         # For DiscreteDistribution, atoms has shape (..., n_atoms) where the last
@@ -520,16 +546,15 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
                 # Check if all arrays have the same shape (required for np.stack)
                 shapes = [arr.shape for arr in var_arrays]
                 if len(set(shapes)) == 1:
-                    # All arrays have compatible shapes, can stack
                     ldd.atoms = np.atleast_2d(np.stack(var_arrays, axis=0))
                 else:
-                    # Variables have different shapes (e.g., some have grid dim, some don't)
-                    # This can happen in complex xarray operations. Set atoms to a minimal
-                    # valid array based on the number of atoms from pmv.
-                    n_atoms = len(ldd.pmv)
-                    ldd.atoms = np.atleast_2d(np.zeros(n_atoms))
+                    raise ValueError(
+                        f"from_dataset(): variables with 'atom' dimension have "
+                        f"incompatible shapes ({dict(zip(vars_with_atom, shapes))}). "
+                        f"Cannot construct a valid distribution with mixed-shape "
+                        f"atoms. Ensure all variables have the same shape."
+                    )
             else:
-                # No variables with atom dimension - use empty array
                 ldd.atoms = np.atleast_2d(np.array([]))
         else:
             ldd.atoms = np.atleast_2d(np.array([]))
@@ -543,6 +568,10 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         else:
             ldd.limit = {"infimum": np.array([]), "supremum": np.array([])}
 
+        # Initialize base class attributes that __init__ would normally set
+        ldd.infimum = ldd.limit["infimum"].copy()
+        ldd.supremum = ldd.limit["supremum"].copy()
+
         # Initialize seed and RNG using the property setter from Distribution base class
         ldd.seed = seed
 
@@ -554,6 +583,26 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         Returns a DatasetWeighted object for the distribution.
         """
         return self.dataset.weighted(self.probability)
+
+    def _weighted_mean_of(self, f_query):
+        """
+        Compute the probability-weighted mean of function output over
+        the "atom" dimension without constructing an intermediate
+        distribution. Handles Dataset, DataArray, and dict results.
+        """
+        if isinstance(f_query, xr.Dataset):
+            return f_query.weighted(self.probability).mean("atom")
+        elif isinstance(f_query, xr.DataArray):
+            return f_query.weighted(self.probability).mean("atom")
+        elif isinstance(f_query, dict):
+            ds = xr.Dataset(f_query)
+            return ds.weighted(self.probability).mean("atom")
+        else:
+            raise TypeError(
+                f"expected() function returned unsupported type "
+                f"{type(f_query).__name__}. Function must return an "
+                f"xr.Dataset, xr.DataArray, or dict."
+            )
 
     @property
     def variables(self):
@@ -651,8 +700,13 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             with variable names as keys (e.g., ``lambda x: x["a"] + x["b"]``).
             When False, the function receives raw numpy arrays and should use
             integer indexing (e.g., ``lambda x: x[0] + x[1]``).
+            Note: ``labels`` has no effect when the dataset has dimensions
+            beyond "atom" or when keyword arguments are passed, since those
+            paths always use xarray-labeled operations.
         **kwargs :
-            Additional keyword arguments passed to func when using xarray operations.
+            Keyword arguments forwarded to func when using xarray operations.
+            Note: ``labels`` is a reserved parameter for this method and is
+            never forwarded to func.
 
         Returns
         -------
@@ -664,9 +718,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # for this method, not for the user function
         labels = kwargs.pop("labels", True)
 
-        # Check if the dataset has dimensions beyond "atom", indicating multi-dimensional
-        # xarray data that requires xarray operations instead of numpy operations
-        requires_xarray_ops = len(set(self.dataset.dims) - {"atom"}) > 0
+        # Check if the dataset has dimensions beyond "atom", indicating
+        # multi-dimensional xarray data that requires xarray operations
+        requires_xarray_ops = len(set(self.dataset.sizes.keys()) - {"atom"}) > 0
 
         def func_wrapper(x, *args):
             """
@@ -679,27 +733,32 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             return func(wrapped, *args)
 
         if len(kwargs):
-            # Use xarray operations when kwargs are passed to func
-            f_query = func(self.dataset, *args, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
-
-            return ldd._weighted.mean("atom")
-        elif requires_xarray_ops:
-            # Dataset has extra dimensions beyond "atom", use xarray operations
             if func is None:
+                raise ValueError(
+                    "expected(): keyword arguments were provided but func is "
+                    "None. Provide a callable for func, or remove the keyword "
+                    "arguments."
+                )
+            f_query = func(self.dataset, *args, **kwargs)
+            return self._weighted_mean_of(f_query)
+        elif requires_xarray_ops:
+            if not labels:
+                warnings.warn(
+                    "expected(): labels=False is not supported for distributions "
+                    "with dimensions beyond 'atom'. Falling back to xarray-path "
+                    "operations, which always use labeled indexing.",
+                    stacklevel=2,
+                )
+            if func is None:
+                # Compute weighted mean directly using xarray weighted operations
                 return self._weighted.mean("atom")
             else:
                 f_query = func(self.dataset, *args)
-                ldd = DiscreteDistributionLabeled.from_dataset(
-                    f_query, self.probability
-                )
-                return ldd._weighted.mean("atom")
+                return self._weighted_mean_of(f_query)
         else:
             if func is None:
                 return super().expected()
             elif labels:
-                # Use labeled indexing (dict with variable names as keys)
                 return super().expected(func_wrapper, *args)
             else:
-                # Use raw array indexing (same as parent class)
                 return super().expected(func, *args)

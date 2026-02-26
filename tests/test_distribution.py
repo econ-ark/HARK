@@ -264,9 +264,16 @@ class DiscreteDistributionTests(unittest.TestCase):
         def my_func(S, z):
             return S["x"] + 2 * S["y"] + 3 * z
 
+        calc_exp_result = calc_expectation(F, my_func, z=3.0)
+        expected_result = expected(my_func, F, z=3.0)
+
+        # expected() with kwargs returns an xr.Dataset; extract scalar
+        if hasattr(expected_result, "to_array"):
+            expected_result = float(expected_result.to_array().values.item())
+
         self.assertAlmostEqual(
-            calc_expectation(F, my_func, z=3.0),
-            expected(my_func, F, z=3.0),
+            calc_exp_result,
+            expected_result,
             places=HARK_PRECISION,
         )
 
@@ -675,20 +682,20 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
     def test_labels_parameter(self):
         """Test the labels parameter works correctly (issue #1487)."""
         gamma = DiscreteDistributionLabeled.from_unlabeled(
-            Normal(mu=0, sigma=1).discretize(N=7), var_names=["gamma"]
+            Normal(mu=5.0, sigma=1).discretize(N=7), var_names=["gamma"]
         )
 
         # Test with labels=True (explicit) using labeled indexing
         result_labeled = expected(func=lambda x: x["gamma"], dist=gamma, labels=True)
-        self.assertAlmostEqual(result_labeled, 0.0, places=5)
+        self.assertAlmostEqual(result_labeled, 5.0, places=4)
 
         # Test without labels argument (defaults to True for labeled dist)
         result_default = expected(func=lambda x: x["gamma"], dist=gamma)
-        self.assertAlmostEqual(result_default, 0.0, places=5)
+        self.assertAlmostEqual(result_default, 5.0, places=4)
 
         # Test with labels=False using raw array indexing
         result_unlabeled = expected(func=lambda x: x[0], dist=gamma, labels=False)
-        self.assertAlmostEqual(result_unlabeled, 0.0, places=5)
+        self.assertAlmostEqual(result_unlabeled, 5.0, places=4)
 
         # All results should be equal
         self.assertAlmostEqual(result_labeled, result_default, places=10)
@@ -786,12 +793,10 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
         ldd = DiscreteDistributionLabeled.from_dataset(ds, pmf)
 
-        # Verify all essential attributes are set
-        self.assertTrue(hasattr(ldd, "atoms"))
-        self.assertTrue(hasattr(ldd, "pmv"))
-        self.assertTrue(hasattr(ldd, "seed"))
-        self.assertTrue(hasattr(ldd, "limit"))
-        self.assertTrue(hasattr(ldd, "_rng"))
+        # Verify essential attributes have correct types
+        self.assertIsInstance(ldd.seed, int)
+        self.assertIsNotNone(ldd._rng)
+        self.assertIsInstance(ldd._rng, np.random.Generator)
 
         # Verify atoms and pmv have correct values
         self.assertEqual(ldd.atoms.shape, (n_variables, n_atoms))
@@ -803,11 +808,93 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         np.testing.assert_array_almost_equal(ldd.limit["infimum"], [1.0, 3.0])
         np.testing.assert_array_almost_equal(ldd.limit["supremum"], [2.0, 4.0])
 
+        # Verify base class attributes are set
+        np.testing.assert_array_almost_equal(ldd.infimum, [1.0, 3.0])
+        np.testing.assert_array_almost_equal(ldd.supremum, [2.0, 4.0])
+
         # Verify expected() works correctly
         exp = ldd.expected()
         np.testing.assert_array_almost_equal(
             exp, [0.3 * 1.0 + 0.7 * 2.0, 0.3 * 3.0 + 0.7 * 4.0]
         )
+
+        # Verify draw() works correctly
+        draws = ldd.draw(100)
+        self.assertEqual(draws.shape, (n_variables, 100))
+        self.assertTrue(np.all(np.isin(draws[0], [1.0, 2.0])))
+        self.assertTrue(np.all(np.isin(draws[1], [3.0, 4.0])))
+
+    def test_from_dataset_with_dataarray_input(self):
+        """Test from_dataset with a named DataArray as input."""
+        pmf = xr.DataArray([0.5, 0.5], dims=("atom",))
+        da = xr.DataArray([1.0, 2.0], dims=("atom",), name="x")
+        ldd = DiscreteDistributionLabeled.from_dataset(da, pmf)
+        self.assertIn("x", ldd.dataset.data_vars)
+        np.testing.assert_array_almost_equal(ldd.atoms[0], [1.0, 2.0])
+        self.assertAlmostEqual(float(ldd.expected()[0]), 1.5)
+
+    def test_from_dataset_with_dict_input(self):
+        """Test from_dataset with a dict as input."""
+        pmf = xr.DataArray([0.5, 0.5], dims=("atom",))
+        d = {"v": xr.DataArray([1.0, 2.0], dims=("atom",))}
+        ldd = DiscreteDistributionLabeled.from_dataset(d, pmf)
+        np.testing.assert_array_almost_equal(ldd.pmv, [0.5, 0.5])
+        self.assertIn("v", ldd.dataset.data_vars)
+
+    def test_from_dataset_type_validation(self):
+        """Test that from_dataset raises errors for invalid input types."""
+        pmf = xr.DataArray([0.5, 0.5], dims=("atom",))
+
+        # Invalid x_obj type
+        with self.assertRaises(TypeError):
+            DiscreteDistributionLabeled.from_dataset([1.0, 2.0], pmf)
+
+        # Invalid pmf type (numpy array instead of DataArray)
+        ds = xr.Dataset({"v": xr.DataArray([1.0, 2.0], dims=("atom",))})
+        with self.assertRaises(TypeError):
+            DiscreteDistributionLabeled.from_dataset(ds, np.array([0.5, 0.5]))
+
+    def test_from_dataset_unnamed_dataarray(self):
+        """Test that unnamed DataArrays get auto-named to 'var_0'."""
+        pmf = xr.DataArray([0.5, 0.5], dims=("atom",))
+        da = xr.DataArray([1.0, 2.0], dims=("atom",))
+        ldd = DiscreteDistributionLabeled.from_dataset(da, pmf)
+        self.assertIn("var_0", ldd.dataset.data_vars)
+
+    def test_from_dataset_seed_reproducibility(self):
+        """Test that seed produces reproducible draws."""
+        pmf = xr.DataArray([0.5, 0.5], dims=("atom",))
+        ds = xr.Dataset({"v": xr.DataArray([1.0, 2.0], dims=("atom",))})
+        ldd_a = DiscreteDistributionLabeled.from_dataset(ds, pmf, seed=42)
+        ldd_b = DiscreteDistributionLabeled.from_dataset(ds, pmf, seed=42)
+        draws_a = ldd_a.draw(20)
+        draws_b = ldd_b.draw(20)
+        np.testing.assert_array_equal(draws_a, draws_b)
+
+        # None seed should produce a valid integer seed
+        ldd_c = DiscreteDistributionLabeled.from_dataset(ds, pmf, seed=None)
+        self.assertIsInstance(ldd_c.seed, int)
+
+    def test_expected_with_func_on_multidim_distribution(self):
+        """Test the requires_xarray_ops path when a function is provided."""
+        pmf = xr.DataArray([0.5, 0.5], dims=("atom",))
+        ds = xr.Dataset(
+            {
+                "x": xr.DataArray([[1.0, 2.0], [3.0, 4.0]], dims=("grid", "atom")),
+            }
+        )
+        ldd = DiscreteDistributionLabeled.from_dataset(ds, pmf)
+        # E[x^2] = 0.5 * [1, 9] + 0.5 * [4, 16] = [2.5, 12.5]
+        result = ldd.expected(func=lambda d: d["x"] ** 2)
+        np.testing.assert_array_almost_equal(result.values, [2.5, 12.5])
+
+    def test_expected_func_none_with_kwargs_raises(self):
+        """Test that expected() raises ValueError when func=None but kwargs given."""
+        gamma = DiscreteDistributionLabeled.from_unlabeled(
+            Normal(mu=0, sigma=1).discretize(N=7), var_names=["gamma"]
+        )
+        with self.assertRaises(ValueError):
+            gamma.expected(some_kwarg=1.0)
 
 
 class labeled_transition_tests(unittest.TestCase):

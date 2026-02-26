@@ -88,7 +88,7 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
 
         self.economy.AFunc = self.economy.dynamics.AFunc
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.08797, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.09061, places=HARK_PRECISION
         )
 
     def test_small_open_economy(self):
