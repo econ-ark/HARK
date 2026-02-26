@@ -861,6 +861,198 @@ def construct_HANK_lognormal_income_process_unemployment(
     return IncShkDstn
 
 
+def construct_lognormal_income_process_with_mvg_medical_expenses(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    age_min,
+    RNG,
+    CollegeBool=True,
+):
+    """
+    Extension of the standard permanent-transitory income process that adds medical
+    expense shocks, modeled as *negative* transitory income shocks. That is,
+    TranShk = 1.0 - ExpShk. The expense shock calibration is "hardwired" based on
+    table 12 of Mateo Velasquez-Giraldo's "Life-Cycle Portfolio Choices and Heterogeneous
+    Stock Market Expectations" (https://www.federalreserve.gov/econres/feds/files/2024097pap.pdf).
+
+    Expense shocks are only active after age 50, and are specified as seven equi-
+    probable point masses for each five-year age range. Because the expense shocks
+    are simply "negative transitory income shocks", they are homothetic with respect
+    to permanent income. This is not a particularly justified assumption, as income
+    elasticity of demand for medical care is around 0.15, but it's workable for a
+    representation of medical expenses that can be used with HARK's workhorse models.
+    This function assumes an annual frequency. If net income would ever be negative,
+    it is truncated to zero instead.
+
+    For microeconomic models that incorporate medical expenses that are not homothetic
+    in income, see ConsMedModel.
+
+    Relative to the standard construct_lognormal_income_process_unemployment, this
+    function takes two additional parameters: age_min and CollegeBool (default True).
+    This function assumes that the calibration does not include ages above 120 years.
+
+    Parameters
+    ----------
+    T_cycle :  int
+        Total number of non-terminal periods in the consumer's sequence of periods.
+    PermShkStd : [float]
+        List of standard deviations in log permanent income uncertainty during
+        the agent's life.
+    PermShkCount : int
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
+    TranShkStd : [float]
+        List of standard deviations in log transitory income uncertainty during
+        the agent's life.
+    TranShkCount : int
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
+    UnempPrb : float or [float]
+        The probability of becoming unemployed during the working period.
+    UnempPrbRet : float or None
+        The probability of not receiving typical retirement income when retired.
+    T_retire : int
+        The index value for the final working period in the agent's life.
+        If T_retire <= 0 then there is no retirement.
+    IncUnemp : float or [float]
+        Transitory income received when unemployed.
+    IncUnempRet : float or None
+        Transitory income received while "unemployed" when retired.
+    age_min : int
+        Age (in years) of agents at model birth.
+    RNG : np.random.RandomState
+        Random number generator for this type.
+    CollegeBool : bool
+        Indicator for whether to use the college (True, default) or high school
+        (False) calibration.
+
+    Returns
+    -------
+    IncShkDstn :  [distribution.Distribution]
+        A list with T_cycle elements, each of which is a
+        discrete approximation to the income process in a period.
+    """
+    # First, make the standard income process
+    IncShkDstnBase = construct_lognormal_income_process_unemployment(
+        T_cycle,
+        PermShkStd,
+        PermShkCount,
+        TranShkStd,
+        TranShkCount,
+        T_retire,
+        UnempPrb,
+        IncUnemp,
+        UnempPrbRet,
+        IncUnempRet,
+        RNG,
+    )
+    PermShkDstnBase = get_PermShkDstn_from_IncShkDstn(IncShkDstnBase, RNG)
+    TranShkDstnBase = get_TranShkDstn_from_IncShkDstn(IncShkDstnBase, RNG)
+
+    equiprobable_one_seventh = np.ones(7) / 7.0
+    if CollegeBool:
+        # Copy Mateo's college-educated expense shock distribution
+        exp_shks_51_to_55 = np.array([0.000, 0.003, 0.007, 0.012, 0.021, 0.039, 0.121])
+        exp_shks_56_to_60 = np.array([0.001, 0.005, 0.010, 0.016, 0.027, 0.049, 0.163])
+        exp_shks_61_to_65 = np.array([0.002, 0.007, 0.014, 0.023, 0.040, 0.078, 0.227])
+        exp_shks_66_to_70 = np.array([0.003, 0.010, 0.019, 0.031, 0.050, 0.089, 0.227])
+        exp_shks_71_to_75 = np.array([0.004, 0.013, 0.024, 0.039, 0.060, 0.103, 0.262])
+        exp_shks_76_to_80 = np.array([0.004, 0.015, 0.028, 0.047, 0.074, 0.123, 0.294])
+        exp_shks_81_to_85 = np.array([0.004, 0.017, 0.033, 0.054, 0.089, 0.155, 0.410])
+        exp_shks_86_to_90 = np.array([0.002, 0.015, 0.033, 0.057, 0.100, 0.191, 0.719])
+        exp_shks_91_plus = np.array([0.000, 0.015, 0.039, 0.075, 0.160, 0.389, 1.485])
+        exp_shks_all = (
+            50 * [None]
+            + 5 * [exp_shks_51_to_55]
+            + 5 * [exp_shks_56_to_60]
+            + 5 * [exp_shks_61_to_65]
+            + 5 * [exp_shks_66_to_70]
+            + 5 * [exp_shks_71_to_75]
+            + 5 * [exp_shks_76_to_80]
+            + 5 * [exp_shks_81_to_85]
+            + 5 * [exp_shks_86_to_90]
+            + 31 * [exp_shks_91_plus]
+        )
+
+    else:
+        # Copy Mateo's high school-educated expense shock distribution
+        exp_shks_51_to_55 = np.array([0.000, 0.004, 0.010, 0.019, 0.033, 0.064, 0.205])
+        exp_shks_56_to_60 = np.array([0.000, 0.005, 0.013, 0.023, 0.040, 0.077, 0.245])
+        exp_shks_61_to_65 = np.array([0.000, 0.008, 0.018, 0.032, 0.055, 0.104, 0.290])
+        exp_shks_66_to_70 = np.array([0.001, 0.011, 0.023, 0.038, 0.064, 0.111, 0.264])
+        exp_shks_71_to_75 = np.array([0.002, 0.014, 0.028, 0.046, 0.074, 0.126, 0.293])
+        exp_shks_76_to_80 = np.array([0.001, 0.015, 0.031, 0.053, 0.084, 0.143, 0.346])
+        exp_shks_81_to_85 = np.array([0.001, 0.016, 0.033, 0.059, 0.096, 0.168, 0.433])
+        exp_shks_86_to_90 = np.array([0.000, 0.016, 0.036, 0.066, 0.110, 0.229, 0.849])
+        exp_shks_91_plus = np.array([0.000, 0.011, 0.034, 0.069, 0.131, 0.301, 1.479])
+        exp_shks_all = (
+            50 * [None]
+            + 5 * [exp_shks_51_to_55]
+            + 5 * [exp_shks_56_to_60]
+            + 5 * [exp_shks_61_to_65]
+            + 5 * [exp_shks_66_to_70]
+            + 5 * [exp_shks_71_to_75]
+            + 5 * [exp_shks_76_to_80]
+            + 5 * [exp_shks_81_to_85]
+            + 5 * [exp_shks_86_to_90]
+            + 31 * [exp_shks_91_plus]
+        )
+
+    # Incorporate the expense shock distribution into the transitory income shock distribution
+    IncShkDstn = []
+    for t in range(T_cycle):
+        age = age_min + t
+        if age >= len(exp_shks_all):
+            raise ValueError(
+                f"Age {age} is outside the supported calibration range for expense shocks "
+                f"(maximum supported index is {len(exp_shks_all) - 1})."
+            )
+        exp_shks_t = exp_shks_all[age]
+
+        # If age <= 50, just use the baseline income shock distribution
+        if exp_shks_t is None:
+            IncShkDstn.append(IncShkDstnBase[t])
+            continue
+
+        # Otherwise, make a distribution of net transitory income as the difference
+        # between the transitory income shock and the medical expense shock
+        seed_t = RNG.integers(0, 2**31 - 1)
+        PermShkDstn_t = PermShkDstnBase[t]
+        ExpShkDstn_t = DiscreteDistribution(
+            pmv=equiprobable_one_seventh,
+            atoms=exp_shks_t,
+        )
+
+        # Prepare these for multiplication with broadcasting
+        TranAtomsBase = TranShkDstnBase[t].atoms[0][:, np.newaxis]
+        TranProbsBase = TranShkDstnBase[t].pmv[:, np.newaxis]
+        ExpAtoms = ExpShkDstn_t.atoms[0][np.newaxis, :]
+        ExpProbs = ExpShkDstn_t.pmv[np.newaxis, :]
+
+        # Calculate net income and joint probability
+        TranAtoms = np.maximum(TranAtomsBase - ExpAtoms, 0.0).flatten()
+        TranProbs = (TranProbsBase * ExpProbs).flatten()
+
+        # Make this period's joint income distribution
+        TranShkDstn_t = DiscreteDistribution(pmv=TranProbs, atoms=TranAtoms)
+        IncShkDstn_t = DiscreteDistributionLabeled.from_unlabeled(
+            combine_indep_dstns(PermShkDstn_t, TranShkDstn_t, seed=seed_t),
+            name="Income shocks with medical expenses",
+            var_names=["PermShk", "TranShk"],
+        )
+        IncShkDstn.append(IncShkDstn_t)
+
+    return IncShkDstn
+
+
 ###############################################################################
 
 
