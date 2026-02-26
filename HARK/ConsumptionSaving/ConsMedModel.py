@@ -291,9 +291,9 @@ def make_lognormal_MedShkDstn(
     T_cycle : int
         Number of non-terminal periods in the agent's cycle.
     MedShkAvg : [float]
-        Mean of medical needs shock in each period of the problem.
+        Mean of non-zero medical needs shock in each period of the problem.
     MedShkStd : [float]
-        Standard deviation of log medical needs shock in each period of the problem.
+        Standard deviation of log (non-zero) medical needs shock in each period of the problem.
     MedShkCount : int
         Number of equiprobable nodes in the "body" of the discretization.
     MedShkCountTail : int
