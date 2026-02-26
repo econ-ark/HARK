@@ -1134,7 +1134,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
         cLvl is the nominal consumption level
 
-        Med is the nominal medical spending level
+        MedLvl is the nominal medical spending level
 
         mLvl is the nominal market resources
 
