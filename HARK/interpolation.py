@@ -135,15 +135,24 @@ class HARKinterpolator1D(MetricObject):
 
     def _der(self, x):
         """
-        Interpolated function derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative method using finite difference approximation.
+        Subclasses of HARKinterpolator1D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(x)
+        f1 = self.__call__(x + eps)
+        dydx = (f1 - f0) / eps
+        return dydx
 
     def _evalAndDer(self, x):
         """
         Interpolated function and derivative evaluator, to be defined in subclasses.
+        Default implementation separately calls the _evaluate and _der methods, which
+        might be inefficient relative to interpolator-specific implementation.
         """
-        raise NotImplementedError()
+        y = self._evaluate(x)
+        dydx = self._der(x)
+        return y, dydx
 
 
 class HARKinterpolator2D(MetricObject):
@@ -238,15 +247,25 @@ class HARKinterpolator2D(MetricObject):
 
     def _derX(self, x, y):
         """
-        Interpolated function x-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to x, using finite difference approximation.
+        Subclasses of HARKinterpolator2D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(x, y)
+        f1 = self.__call__(x + eps, y)
+        dfdx = (f1 - f0) / eps
+        return dfdx
 
     def _derY(self, x, y):
         """
-        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to y, using finite difference approximation.
+        Subclasses of HARKinterpolator2D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(x, y)
+        f1 = self.__call__(x, y + eps)
+        dfdy = (f1 - f0) / eps
+        return dfdy
 
 
 class HARKinterpolator3D(MetricObject):
@@ -389,21 +408,36 @@ class HARKinterpolator3D(MetricObject):
 
     def _derX(self, x, y, z):
         """
-        Interpolated function x-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to x, using finite difference approximation.
+        Subclasses of HARKinterpolator3D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(x, y, z)
+        f1 = self.__call__(x + eps, y, z)
+        dfdx = (f1 - f0) / eps
+        return dfdx
 
     def _derY(self, x, y, z):
         """
-        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to y, using finite difference approximation.
+        Subclasses of HARKinterpolator3D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(x, y, z)
+        f1 = self.__call__(x, y + eps, z)
+        dfdy = (f1 - f0) / eps
+        return dfdy
 
     def _derZ(self, x, y, z):
         """
-        Interpolated function y-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to z, using finite difference approximation.
+        Subclasses of HARKinterpolator3D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(x, y, z)
+        f1 = self.__call__(x, y, z + eps)
+        dfdz = (f1 - f0) / eps
+        return dfdz
 
 
 class HARKinterpolator4D(MetricObject):
@@ -610,27 +644,47 @@ class HARKinterpolator4D(MetricObject):
 
     def _derW(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to w, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(w, x, y, z)
+        f1 = self.__call__(w + eps, x, y, z)
+        dfdw = (f1 - f0) / eps
+        return dfdw
 
     def _derX(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to x, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(w, x, y, z)
+        f1 = self.__call__(w, x + eps, y, z)
+        dfdx = (f1 - f0) / eps
+        return dfdx
 
     def _derY(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to y, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(w, x, y, z)
+        f1 = self.__call__(w, x, y + eps, z)
+        dfdy = (f1 - f0) / eps
+        return dfdy
 
     def _derZ(self, w, x, y, z):
         """
-        Interpolated function w-derivative evaluator, to be defined in subclasses.
+        Default or fallback derivative with respect to z, using finite difference approximation.
+        Subclasses of HARKinterpolator4D should define their own more specific method.
         """
-        raise NotImplementedError()
+        eps = 1e-8
+        f0 = self.__call__(w, x, y, z)
+        f1 = self.__call__(w, x, y, z + eps)
+        dfdz = (f1 - f0) / eps
+        return dfdz
 
 
 class IdentityFunction(MetricObject):
@@ -2355,7 +2409,6 @@ class LowerEnvelope2D(HARKinterpolator2D):
         for j in range(self.funcCount):
             temp[:, j] = self.functions[j](x, y)
         i = self.argcompare(temp, axis=1)
-        y = temp[np.arange(m), i]
         dfdy = np.zeros_like(x)
         for j in np.unique(i):
             c = i == j
@@ -2431,7 +2484,6 @@ class LowerEnvelope3D(HARKinterpolator3D):
         for j in range(self.funcCount):
             temp[:, j] = self.functions[j](x, y, z)
         i = self.argcompare(temp, axis=1)
-        y = temp[np.arange(m), i]
         dfdy = np.zeros_like(x)
         for j in np.unique(i):
             c = i == j
@@ -2456,7 +2508,7 @@ class LowerEnvelope3D(HARKinterpolator3D):
         return dfdz
 
 
-class VariableLowerBoundFunc2D(MetricObject):
+class VariableLowerBoundFunc2D(HARKinterpolator2D):
     """
     A class for representing a function with two real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
@@ -2498,7 +2550,7 @@ class VariableLowerBoundFunc2D(MetricObject):
         f_out = self.func(x - xShift, y)
         return f_out
 
-    def derivativeX(self, x, y):
+    def _derX(self, x, y):
         """
         Evaluate the first derivative with respect to x of the function at given
         state space points.
@@ -2520,7 +2572,7 @@ class VariableLowerBoundFunc2D(MetricObject):
         dfdx_out = self.func.derivativeX(x - xShift, y)
         return dfdx_out
 
-    def derivativeY(self, x, y):
+    def _derY(self, x, y):
         """
         Evaluate the first derivative with respect to y of the function at given
         state space points.
@@ -2545,7 +2597,7 @@ class VariableLowerBoundFunc2D(MetricObject):
         return dfdy_out
 
 
-class VariableLowerBoundFunc3D(MetricObject):
+class VariableLowerBoundFunc3D(HARKinterpolator3D):
     """
     A class for representing a function with three real inputs whose lower bound
     in the first input depends on the second input.  Useful for managing curved
@@ -2589,7 +2641,7 @@ class VariableLowerBoundFunc3D(MetricObject):
         f_out = self.func(x - xShift, y, z)
         return f_out
 
-    def derivativeX(self, x, y, z):
+    def _derX(self, x, y, z):
         """
         Evaluate the first derivative with respect to x of the function at given
         state space points.
@@ -2613,7 +2665,7 @@ class VariableLowerBoundFunc3D(MetricObject):
         dfdx_out = self.func.derivativeX(x - xShift, y, z)
         return dfdx_out
 
-    def derivativeY(self, x, y, z):
+    def _derY(self, x, y, z):
         """
         Evaluate the first derivative with respect to y of the function at given
         state space points.
@@ -2639,7 +2691,7 @@ class VariableLowerBoundFunc3D(MetricObject):
         ) - xShiftDer * self.func.derivativeX(x - xShift, y, z)
         return dfdy_out
 
-    def derivativeZ(self, x, y, z):
+    def _derZ(self, x, y, z):
         """
         Evaluate the first derivative with respect to z of the function at given
         state space points.
