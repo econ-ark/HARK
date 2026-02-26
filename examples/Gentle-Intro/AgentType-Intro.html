@@ -1,0 +1,803 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Elements of an AgentType Subclass &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/AgentType-Intro';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/AgentType-Intro.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="“Macroeconomic” Models: the Market Class" href="Market-Intro.html" />
+    <link rel="prev" title="Directory of Consumption-Saving Models" href="Model-List.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Gentle-Intro/AgentType-Intro.ipynb">examples/Gentle-Intro/AgentType-Intro.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Gentle-Intro/AgentType-Intro.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="AgentType-Intro.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Elements-of-an-AgentType-Subclass">
+<h1>Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass<a class="headerlink" href="#Elements-of-an-AgentType-Subclass" title="Link to this heading">#</a></h1>
+<p>Other introductory notebooks have used <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses like <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> and <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> to show HARK’s representation of microeconomic agents. The basic functionality for <code class="docutils literal notranslate"><span class="pre">AgentTypes</span></code> is also covered in other notebooks, including setting parameters, solving the model, and generating simulated outcomes. But those notebooks don’t tell you much about <em>how</em> an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass works or what goes into one; that’s what we’ll cover those
+<a class="reference external" href="../../docs/images/elements_thumbnail.jpg">elements</a> here!</p>
+<section id="Time-Varying-and-Time-Invariant-Solver-Inputs">
+<h2>Time-Varying and Time-Invariant Solver Inputs<a class="headerlink" href="#Time-Varying-and-Time-Invariant-Solver-Inputs" title="Link to this heading">#</a></h2>
+<p>When it’s time to solve a model, HARK reads in the required inputs from the attributes of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance and/or its <code class="docutils literal notranslate"><span class="pre">parameters</span></code> dictionary. But some parameters are <strong>time-invariant</strong>– constant across all periods of the model– while others might vary across periods and are <strong>time-varying</strong>. The latter kind of solver inputs should consist of a list of length <code class="docutils literal notranslate"><span class="pre">T_cycle</span></code>, with one element per period, while the former are just single objects.</p>
+<p>HARK differentiates between the two by looking at the attributes <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> and <code class="docutils literal notranslate"><span class="pre">time_inv</span></code>, which are lists of strings naming the time-varying and time-invariant solver inputs. These are <em>instance</em>-specific lists– making changes to <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> on one instance of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass won’t affect the properties of another instance of that class.</p>
+<p>At the class level, <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> and <code class="docutils literal notranslate"><span class="pre">time_inv</span></code> default to the class attributes <code class="docutils literal notranslate"><span class="pre">time_vary_</span></code> and <code class="docutils literal notranslate"><span class="pre">time_inv_</span></code> at instantiation (note the extra underscore at the end). Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass should specify these lists, naming the appropriate solver inputs in each category <em>for the default parameters</em>.</p>
+<p>Almost all model inputs can be freely moved between <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> and <code class="docutils literal notranslate"><span class="pre">time_inv</span></code>, as long as the parameter values are changed appropriately as well. In some cases, there might not be a meaningful interpretation to a model object being time (in)variant (e.g., something that is supposed to represent a universal constant somehow varying with a particular agent’s age), but that doesn’t prevent HARK from solving the model.</p>
+<p>The primary exception (which we hope to fix in the future) is <code class="docutils literal notranslate"><span class="pre">CRRA</span></code>, the coefficient of relative risk aversion with respect to consumption. HARK’s solvers <em>assume</em> that risk aversion is constant across all periods and incorporate this into their math.</p>
+<p>Moreover, the <em>original/legacy</em> simulation system will not behave properly if model objects are moved between <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> and <code class="docutils literal notranslate"><span class="pre">time_inv</span></code>. However, the new simulation machinery (using <code class="docutils literal notranslate"><span class="pre">symulate</span></code>, etc) <em>does</em> automatically handle changes to <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> and <code class="docutils literal notranslate"><span class="pre">time_inv</span></code>. In some cases, you might need to add a <code class="docutils literal notranslate"><span class="pre">+</span></code> to an object’s declaration in the model file if it is time-invariant by default but “offset” in time if interpreted as time-varying.</p>
+</section>
+<section id="Taking-it-One-Day-at-a-Time:-solve_one_period">
+<h2>Taking it One Day at a Time: <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code><a class="headerlink" href="#Taking-it-One-Day-at-a-Time:-solve_one_period" title="Link to this heading">#</a></h2>
+<p>Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass needs a function that solves the “one period problem” for that model. This function takes as arguments a representation of next period’s model solution and all of the information needed to solve the period <span class="math notranslate nohighlight">\(t\)</span> problem, and returns a single object representing the solution to the period <span class="math notranslate nohighlight">\(t\)</span> problem.</p>
+<p>This function is stored on each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance in the <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> attribute. When an instance of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass is created, <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> is set based on the value in <code class="docutils literal notranslate"><span class="pre">default_[&quot;solver&quot;]</span></code>, a class attribute with model defaults (see <a class="reference internal" href="Constructors-Intro.html"><span class="doc">here</span></a> for more about model defaults). The <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> function can be changed after instantiation on an instance-by-instance basis– maybe you have a different way of solving the same model!</p>
+<p>The argument name for the succeeding period’s solution <em>must</em> be <code class="docutils literal notranslate"><span class="pre">solution_next</span></code>. By convention, it is the first argument to a <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> function, but this is not required. Don’t put <code class="docutils literal notranslate"><span class="pre">solution_next</span></code> in <code class="docutils literal notranslate"><span class="pre">time_vary</span></code> (nor <code class="docutils literal notranslate"><span class="pre">time_inv</span></code>); it’s a special name that HARK uses internally.</p>
+<p>All other argument names should refer to attributes of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance.</p>
+<section id="Representing-the-Model's-Solution">
+<h3>Representing the Model’s Solution<a class="headerlink" href="#Representing-the-Model's-Solution" title="Link to this heading">#</a></h3>
+<p>What does it mean for an object to represent the solution to one period of a model? It completely depends on the context!</p>
+<p>In general, HARK models have special object classes for representing the model solution. These are usually just “container classes” that hold named attributes of the solution, but they <em>might</em> have methods built into them. In principle, the representation of one period’s solution could be a single policy function, or a dictionary of solution elements (rather than a simple class).</p>
+<p>As an example, many HARK models use the class <code class="docutils literal notranslate"><span class="pre">ConsumerSolution</span></code> from <code class="docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.IndShockConsumerType</span></code> to represent the solution to one period. This class specifies that it has the following attributes (all of which are optional):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cFunc</span></code> : The consumption function over the state space at decision-time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vFunc</span></code> : The value function over the state space at decision-time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vPfunc</span></code> : The marginal value (w.r.t market resources) function over the state space at decision-time; the <code class="docutils literal notranslate"><span class="pre">P</span></code> is for “prime”</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vPPfunc</span></code> : The marginal marginal value (w.r.t market resources) function over the state space at decision-time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mNrmMin</span></code> : The smallest “legal” value for normalized market resources at decision-time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hNrm</span></code> : Normalized “human wealth”– the PDV of <em>future</em> non-capital income</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPCmin</span></code> : Lower bound of the marginal propensity to consume from market resources as <span class="math notranslate nohighlight">\(m_t\)</span> goes to infinity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPCmax</span></code> : Upper bound of the marginal propensity to consume from market resources as <span class="math notranslate nohighlight">\(m_t\)</span> approaches <code class="docutils literal notranslate"><span class="pre">mNrmMin</span></code></p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">ConsumerSolution</span></code> has one method, <code class="docutils literal notranslate"><span class="pre">append_solution</span></code>, which is used in <code class="docutils literal notranslate"><span class="pre">ConsMarkovModel</span></code> to add a discrete-state-conditional solution to the existing solution.</p>
+</section>
+<section id="Perhaps-You-Had-Better-Start-From-the-End:-solution_terminal">
+<h3>Perhaps You Had Better Start From the End: <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code><a class="headerlink" href="#Perhaps-You-Had-Better-Start-From-the-End:-solution_terminal" title="Link to this heading">#</a></h3>
+<p>The meaning of the “succeeding period’s solution” is usually pretty clear, but what about when the <code class="docutils literal notranslate"><span class="pre">solve</span></code> method first starts– how can it pull down the “next” period’s solution if it’s trying to solve the <em>final</em> period?</p>
+<p>HARK deals with this complication by having a special attribute called <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code>. This object should be a representation of the solution to the one-period problem that can be passed as <code class="docutils literal notranslate"><span class="pre">solution_next</span></code> to the <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> function. It is referenced by the <code class="docutils literal notranslate"><span class="pre">solve</span></code> method <em>only</em> when trying to solve the very first period– er, the <em>last</em> period.</p>
+<p>The object in <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> can be built with a constructor function. It is also possible to pass <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> as an argument when instantiating an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>, or to manually set it later.</p>
+<p>In many models, the solution to the period <span class="math notranslate nohighlight">\(T\)</span> problem is trivial. E.g. for an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, the solution to the terminal period is, “consume all market resources, and get value equal to the utility of doing that.” The constructor for <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> builds a <code class="docutils literal notranslate"><span class="pre">ConsumerSolution</span></code> instance that represents this trivial solution, and then the main loop of the <code class="docutils literal notranslate"><span class="pre">solve</span></code> method takes it from there.</p>
+<p>In other models, even period <span class="math notranslate nohighlight">\(T\)</span> isn’t trivial to solve, and there’s meaningful work to be done. For example, in the presence of a “warm glow” bequest motive, an agent who knows he will die at the end of this period must choose how to allocate his resources between consumption and their bequest. The ordinary <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> function can be used to solve the period <span class="math notranslate nohighlight">\(T\)</span> problem… but it still needs <em>something</em> to be passed to it as <code class="docutils literal notranslate"><span class="pre">solution_next</span></code>. Thus in the
+<code class="docutils literal notranslate"><span class="pre">ConsBequestModel</span></code>, <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> is essentially an “empty” solution for a non-existent period <span class="math notranslate nohighlight">\(T+1\)</span> solution. It <em>exists</em> in the computer, but is not meaningfully used when solving period <span class="math notranslate nohighlight">\(T\)</span> (because there is zero chance of survival).</p>
+<p>The distinction between these two interpretations of a “terminal” solution object is indicated by the attribute <code class="docutils literal notranslate"><span class="pre">pseudo_terminal</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pseudo_terminal=False</span></code> means that the object in <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> really <em>is</em> the period <span class="math notranslate nohighlight">\(T\)</span> solution; agents can actually reach this period and act on its policy function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pseudo_terminal=True</span></code> means that the object in <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> is a “fake” solution to a non-existent period; it exists only to allow the solver to start and is not really part of the agent’s “solution” to their model.</p></li>
+</ul>
+</section>
+</section>
+<section id="Simulation-Variable-Names">
+<h2>Simulation Variable Names<a class="headerlink" href="#Simulation-Variable-Names" title="Link to this heading">#</a></h2>
+<p>HARK has a built-in system for simulating model outcomes– two systems, in fact– and there are some <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass attributes that should be set to enable this.</p>
+<section id="Nothing's-Shocking:-Random-Variables-and-Distributions">
+<h3>Nothing’s Shocking: Random Variables and Distributions<a class="headerlink" href="#Nothing's-Shocking:-Random-Variables-and-Distributions" title="Link to this heading">#</a></h3>
+<p>When an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance is simulated, random variables are drawn from <strong>distributions</strong> as <strong>shocks</strong>.</p>
+<p>The names of shock variables must be named (as a list of strings) in the class attribute <code class="docutils literal notranslate"><span class="pre">shock_vars_</span></code>. For example, the <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> specifies that <code class="docutils literal notranslate"><span class="pre">shock_vars_</span> <span class="pre">=</span> <span class="pre">['PermShk',</span> <span class="pre">'TranShk']</span></code>, meaning that permanent and transitory income shocks will occur.</p>
+<p>The distributions from which shocks are drawn should be named in the class attribute <code class="docutils literal notranslate"><span class="pre">distributions</span></code> (as a list of strings). For example, a <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> has <code class="docutils literal notranslate"><span class="pre">distributions</span> <span class="pre">=</span> <span class="pre">['kNrmInitDstn',</span> <span class="pre">'pLvlInitDstn']</span></code>, and <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> adds <code class="docutils literal notranslate"><span class="pre">&quot;IncShkDstn&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;PermShkDstn&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;TranShkDstn&quot;</span></code> to this list. The first two distributions are used when idiosyncratic agents are “born” in the model, specifying the distributions of initial capital and permanent income; the
+others are for drawing income shocks during the model.</p>
+<p>The names in this list are used for two purposes:</p>
+<ol class="arabic simple">
+<li><p>When an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance’s <code class="docutils literal notranslate"><span class="pre">reset()</span></code> method is invoked, the <code class="docutils literal notranslate"><span class="pre">distributions</span></code> attribute tells HARK which distributions should be reset to their initial random state. This allows the same sequence of random values to be drawn on repeated simulation runs, which is important for many applications.</p></li>
+<li><p>The legacy simulation system stores shock variable outcomes separately from other simulated data. For compatibility with the <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code> functionality (in which the history of random draws can be drawn in advance or manually specified), <code class="docutils literal notranslate"><span class="pre">shock_vars_</span></code> needs to name these variables.</p></li>
+</ol>
+</section>
+<section id="State-Variable-Names">
+<h3>State Variable Names<a class="headerlink" href="#State-Variable-Names" title="Link to this heading">#</a></h3>
+<p>HARK’s legacy simulation system was in transition when development on it stopped, and it separately tracks state variables separately from control variables. As discussed below, the <code class="docutils literal notranslate"><span class="pre">transition</span></code> method for an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass should return its output in the order of variables named in <code class="docutils literal notranslate"><span class="pre">state_vars</span></code>. The <code class="docutils literal notranslate"><span class="pre">transition</span></code> method does not need to return all <code class="docutils literal notranslate"><span class="pre">state_vars</span></code>, but it must return the ones it does <em>in order</em>.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> and <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> both have <code class="docutils literal notranslate"><span class="pre">state_vars</span></code> of <code class="docutils literal notranslate"><span class="pre">[&quot;kNrm&quot;,</span> <span class="pre">&quot;pLvl&quot;,</span> <span class="pre">&quot;PlvlAgg&quot;,</span> <span class="pre">&quot;bNrm&quot;,</span> <span class="pre">&quot;mNrm&quot;,</span> <span class="pre">&quot;aNrm&quot;,</span> <span class="pre">&quot;aLvl&quot;]</span></code>, and the <code class="docutils literal notranslate"><span class="pre">transition</span></code> method returns <code class="docutils literal notranslate"><span class="pre">kNrm,</span> <span class="pre">pLvl,</span> <span class="pre">PlvlAgg,</span> <span class="pre">bNrm,</span> <span class="pre">mNrm</span></code>. The other two variables, <code class="docutils literal notranslate"><span class="pre">aNrm</span></code> and <code class="docutils literal notranslate"><span class="pre">aLvl</span></code>, are computed later in the period.</p>
+</section>
+</section>
+<section id="Legacy-Simulation-System-Methods">
+<h2>Legacy Simulation System Methods<a class="headerlink" href="#Legacy-Simulation-System-Methods" title="Link to this heading">#</a></h2>
+<p>The original/legacy simulation system is being phased out of HARK, but is fully functional. The <code class="docutils literal notranslate"><span class="pre">simulate()</span></code> method calls the <code class="docutils literal notranslate"><span class="pre">sim_one_period()</span></code> method of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> on a loop, writing tracked variables to the <code class="docutils literal notranslate"><span class="pre">history</span></code> dictionary after each simulated period.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">sim_one_period</span></code> is run, the following sub-methods are called in order:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get_mortality</span></code> : “Kills” and replaces some model agents with “newborns”.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_shocks</span></code> or <code class="docutils literal notranslate"><span class="pre">read_shocks_from_history</span></code> : Fills in shock variables for this period.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_states</span></code> : Computes information known at “decision-time” from prior state information and shock variables.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_controls</span></code> : Evaluates the policy function using decision-time state variables.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_poststates</span></code> : Compute variables that come <em>after</em> decision-time but still within this period.</p></li>
+</ul>
+<section id="Show-Me-How-the-Model-Kills:-sim_death-and-sim_birth">
+<h3>Show Me How the Model Kills: <code class="docutils literal notranslate"><span class="pre">sim_death</span></code> and <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code><a class="headerlink" href="#Show-Me-How-the-Model-Kills:-sim_death-and-sim_birth" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_mortality</span></code> method of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> should not be overwritten by subclasses. Instead, an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass should define methods called <code class="docutils literal notranslate"><span class="pre">sim_death</span></code> and <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">sim_death</span></code> method should return a Boolean array indicating which agents die between period <span class="math notranslate nohighlight">\(t-1\)</span> and period <span class="math notranslate nohighlight">\(t\)</span> and should be replaced with newborns, whatever that involves. If death and replacement is not a thing in your model, just return <code class="docutils literal notranslate"><span class="pre">np.zeros(self.AgentCount,</span> <span class="pre">dtype=bool)</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code> method should take one argument (other than <code class="docutils literal notranslate"><span class="pre">self</span></code>), a Boolean array of length <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code>. The method should fill in beginning-of-period state values for any and all indices that are marked for death and replacement. These state values should be put in the appropriate entries of the <code class="docutils literal notranslate"><span class="pre">state_now</span></code> dictionary.</p>
+<p>Additionally, <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code> should reset <code class="docutils literal notranslate"><span class="pre">t_age</span></code> and <code class="docutils literal notranslate"><span class="pre">t_cycle</span></code> for newborns. The former represents how many periods each simulated agent has “lived for”, and the latter indicates which period of the “cycle” they are on. In most cases, this means setting them to zero for newborns.</p>
+<p>The output of <code class="docutils literal notranslate"><span class="pre">sim_death</span></code> is stored in the attribute <code class="docutils literal notranslate"><span class="pre">who_dies</span></code>, which can be tracked like any other variable.</p>
+</section>
+<section id="That's-So-Random:-get_shocks-and-read_shocks">
+<h3>That’s So Random: <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code> and <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code><a class="headerlink" href="#That's-So-Random:-get_shocks-and-read_shocks" title="Link to this heading">#</a></h3>
+<p>Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass that wants to use the legacy simulation method should have a <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code> method that draws any random variables for this period. The values should be written to entries in the <code class="docutils literal notranslate"><span class="pre">self.shocks</span></code> dictionary.</p>
+<p>The legacy system has an option for pre-drawing all shocks. To do so, simply run the <code class="docutils literal notranslate"><span class="pre">make_shock_history()</span></code> method, which will fully populate the <code class="docutils literal notranslate"><span class="pre">shock_history</span></code> dictionary and set a flag called <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code>, which is <code class="docutils literal notranslate"><span class="pre">False</span></code> by default. When <code class="docutils literal notranslate"><span class="pre">read_shocks=True</span></code>, the <code class="docutils literal notranslate"><span class="pre">read_shocks_from_history</span></code> method is called in place of <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code>; as expected, it takes pre-drawn shocks from <code class="docutils literal notranslate"><span class="pre">shock_history</span></code> and passes them along as if they were freshly drawn.</p>
+<p>Note that you do not need to run <code class="docutils literal notranslate"><span class="pre">make_shock_history</span></code> to use <code class="docutils literal notranslate"><span class="pre">read_shocks=True</span></code>. You <em>can</em> manually fill in the content of <code class="docutils literal notranslate"><span class="pre">shock_history</span></code> with whatever sequences of idiosyncratic values you’d like and manually set <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This can be useful for counterfactual experiments that move a population out of the long run ergodic distribution with some exogenous event.</p>
+<p><strong>NB:</strong> The new simulation system currently lacks <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code> capability, which is one reason the legacy system still exists.</p>
+</section>
+<section id="Getting-to-the-Point:-transition">
+<h3>Getting to the Point: <code class="docutils literal notranslate"><span class="pre">transition</span></code><a class="headerlink" href="#Getting-to-the-Point:-transition" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_states()</span></code> method simply calls the <code class="docutils literal notranslate"><span class="pre">transition</span></code> method and assigns its output to the <code class="docutils literal notranslate"><span class="pre">state_now</span></code> dictionary; it should not be overwritten by <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">transition</span></code> method for an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass should execute any model math that advances the agents from their beginning-of-period state to their decision-time state, probably using the results of the <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code> step. As described above, it should <em>return</em> its outputs in the order listed in the <code class="docutils literal notranslate"><span class="pre">state_vars</span></code> class attribute.</p>
+</section>
+<section id="I'm-a-Man-of-Action:-get_controls">
+<h3>I’m a Man of Action: <code class="docutils literal notranslate"><span class="pre">get_controls</span></code><a class="headerlink" href="#I'm-a-Man-of-Action:-get_controls" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_controls()</span></code> method for an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> should evaluate the policy or control functions (and any related functions) for the agents. This step <em>probably</em> involves some of the state variables listed in <code class="docutils literal notranslate"><span class="pre">state_vars</span></code>. Controls should be stored as entries of the <code class="docutils literal notranslate"><span class="pre">controls</span></code> dictionary attribute.</p>
+</section>
+<section id="Wrapping-Up:-get_poststates">
+<h3>Wrapping Up: <code class="docutils literal notranslate"><span class="pre">get_poststates</span></code><a class="headerlink" href="#Wrapping-Up:-get_poststates" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_poststates()</span></code> method of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass is for calculating any model outcomes that occur <em>after</em> the control decision is made, but before the end of the period. This might involve combining decision-time states and control variables to find end-of-period states.</p>
+<p>For example, in most consumption-saving models, end-of-period assets would be computed by <code class="docutils literal notranslate"><span class="pre">get_poststates</span></code> as <span class="math notranslate nohighlight">\(a_t = m_t - c_t\)</span>.</p>
+<p>All results should be stored as entries of the <code class="docutils literal notranslate"><span class="pre">state_vars</span></code> dictionary attribute.</p>
+</section>
+<section id="Why-Is-This-So-Complicated?">
+<h3>Why Is This So Complicated?<a class="headerlink" href="#Why-Is-This-So-Complicated?" title="Link to this heading">#</a></h3>
+<p>A reasonable person might ask why we structured the original/legacy simulation system this way. Our intent was to reduce repetitive coding by allowing “child models” that build from “parent models” to inherit the simulation methods through class inheritance. The “child model” would replace <em>only</em> the simulation methods that actually differ from its parent.</p>
+<p>For example, the <code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType</span></code> inherits from <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, with the only change being that the single interest factor <code class="docutils literal notranslate"><span class="pre">Rfree</span></code> is replaced by separate interest factors for borrowing and saving, <code class="docutils literal notranslate"><span class="pre">Rboro</span></code> and <code class="docutils literal notranslate"><span class="pre">Rsave</span></code>. <em>All</em> of the model mechanics during simulation are the same <em>except</em> for how <span class="math notranslate nohighlight">\(\mathsf{R}\)</span> is determined. The <code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType</span></code> thus only replaces one small sub-routine (called <code class="docutils literal notranslate"><span class="pre">get_Rport</span></code>) and otherwise defines <em>no</em> simulation methods.</p>
+<p>More strongly, almost all of HARK’s consumption-saving models use the same <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code> method– or at least call it as part of their extended <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code> method. That is, most of our models <em>begin</em> with the agents drawing some initial permanent (or persistent) income level and some starting wealth.</p>
+<p>As the set of models in HARK grew, however, the simulation methods became increasingly complicated. We had to build in features to “parent” models that were <em>not used</em> by them, just to accommodate things in “child” models. This can lead to confusion by a user who is investigating the code and finds bizarre trivial methods like <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.get_Rport()</span></code>, which just returns <code class="docutils literal notranslate"><span class="pre">self.Rfree</span></code>.</p>
+<p>Moreover, the way we coded these methods locked in the time (in)variant nature of model objects, because whether they are indexed by <code class="docutils literal notranslate"><span class="pre">t_cycle</span></code> in the simulation methods is hard-coded. This reduces user flexibility to change the specification.</p>
+</section>
+<section id="I-Don't-Want-To-and-You-Can't-Make-Me">
+<h3>I Don’t Want To and You Can’t Make Me<a class="headerlink" href="#I-Don't-Want-To-and-You-Can't-Make-Me" title="Link to this heading">#</a></h3>
+<p>What if you want to make a new <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass, but <em>don’t</em> want to futz about with all of the methods described above? You have two main options:</p>
+<ol class="arabic simple">
+<li><p>Use HARK’s new simulation system by specifying the model in YAML format and using <code class="docutils literal notranslate"><span class="pre">symulate</span></code> rather than <code class="docutils literal notranslate"><span class="pre">simulate</span></code>.</p></li>
+<li><p>Write an all-in-one <code class="docutils literal notranslate"><span class="pre">sim_one_period</span></code> method that handles <em>all</em> of the within-period mechanics, whatever that involves.</p></li>
+</ol>
+<p>Both of these approaches are compatible with using <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> to specify the set of idiosyncratic outcomes to be recorded in the <code class="docutils literal notranslate"><span class="pre">history</span></code> (or <code class="docutils literal notranslate"><span class="pre">hystory</span></code>) dictionary, and using <code class="docutils literal notranslate"><span class="pre">simulate()</span></code> to handle the main loop.</p>
+</section>
+</section>
+<section id="Extra-Steps:-pre_solve-and-post_solve">
+<h2>Extra Steps: <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> and <code class="docutils literal notranslate"><span class="pre">post_solve</span></code><a class="headerlink" href="#Extra-Steps:-pre_solve-and-post_solve" title="Link to this heading">#</a></h2>
+<p>When the <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method is called, HARK first runs the <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> method for that <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass. The default behavior of <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> doesn’t do much– just checks whether each attribute named in time-varying is actually a list (or other iterable, like an <code class="docutils literal notranslate"><span class="pre">IndexDistribution</span></code>).</p>
+<p>Subclasses of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> can overwrite <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> to conduct whatever activities need to be accomplished <em>just before</em> the main solution loop. This most likely includes (re-)constructing <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> in case any parameters have changed, or maybe even rebuilding <em>all</em> constructed objects by calling <code class="docutils literal notranslate"><span class="pre">update()</span></code>.</p>
+<p>Likewise, HARK runs the <code class="docutils literal notranslate"><span class="pre">post_solve()</span></code> method immediately <em>after</em> completing the model solution, but before exiting the call to <code class="docutils literal notranslate"><span class="pre">solve()</span></code>. By default, <code class="docutils literal notranslate"><span class="pre">AgentType.post_solve()</span></code> does <em>nothing</em>, so it must be overwritten by a subclass to do anything. This is useful for any “post-processing” steps.</p>
+<p>In an infinite horizon model, there might be math that you <em>don’t</em> want to be executed on each iteration, but you <em>do</em> want evaluated for the final solution. For example, an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>’s <code class="docutils literal notranslate"><span class="pre">post_solve</span></code> method calls the method <code class="docutils literal notranslate"><span class="pre">calc_stable_points()</span></code> if it is a standard infinite horizon problem (<code class="docutils literal notranslate"><span class="pre">T_cycle=1</span></code>) to find the “target” level of market resources.</p>
+<p>Even more basically, <code class="docutils literal notranslate"><span class="pre">post_solve</span></code> might run convenience methods like <code class="docutils literal notranslate"><span class="pre">unpack()</span></code>, remapping attributes of the solution to be attributes of <code class="docutils literal notranslate"><span class="pre">self</span></code> for lazier access.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Model-List.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Directory of Consumption-Saving Models</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Market-Intro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Time-Varying-and-Time-Invariant-Solver-Inputs">Time-Varying and Time-Invariant Solver Inputs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Taking-it-One-Day-at-a-Time:-solve_one_period">Taking it One Day at a Time: <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Representing-the-Model's-Solution">Representing the Model’s Solution</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Perhaps-You-Had-Better-Start-From-the-End:-solution_terminal">Perhaps You Had Better Start From the End: <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Simulation-Variable-Names">Simulation Variable Names</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Nothing's-Shocking:-Random-Variables-and-Distributions">Nothing’s Shocking: Random Variables and Distributions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#State-Variable-Names">State Variable Names</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Legacy-Simulation-System-Methods">Legacy Simulation System Methods</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Show-Me-How-the-Model-Kills:-sim_death-and-sim_birth">Show Me How the Model Kills: <code class="docutils literal notranslate"><span class="pre">sim_death</span></code> and <code class="docutils literal notranslate"><span class="pre">sim_birth</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#That's-So-Random:-get_shocks-and-read_shocks">That’s So Random: <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code> and <code class="docutils literal notranslate"><span class="pre">read_shocks</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Getting-to-the-Point:-transition">Getting to the Point: <code class="docutils literal notranslate"><span class="pre">transition</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#I'm-a-Man-of-Action:-get_controls">I’m a Man of Action: <code class="docutils literal notranslate"><span class="pre">get_controls</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Wrapping-Up:-get_poststates">Wrapping Up: <code class="docutils literal notranslate"><span class="pre">get_poststates</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Why-Is-This-So-Complicated?">Why Is This So Complicated?</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#I-Don't-Want-To-and-You-Can't-Make-Me">I Don’t Want To and You Can’t Make Me</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Extra-Steps:-pre_solve-and-post_solve">Extra Steps: <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> and <code class="docutils literal notranslate"><span class="pre">post_solve</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

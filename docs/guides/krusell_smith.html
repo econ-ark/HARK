@@ -1,0 +1,1337 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Krusell-Smith Model in HARK &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/guides/krusell_smith';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/guides/krusell_smith.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0" href="migration_case_study.html" />
+    <link rel="prev" title="New Simulation System and Model Specification Files for HARK" href="simulation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Usage</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">HARK installation guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">New Simulation System and Model Specification Files for HARK</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Krusell-Smith Model in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_case_study.html">Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to Econ-ARK</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Krusell-Smith Model in HARK</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="krusell-smith-model-in-hark">
+<h1>Krusell-Smith Model in HARK<a class="headerlink" href="#krusell-smith-model-in-hark" title="Link to this heading">#</a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h2>
+<p>This guide provides a comprehensive overview of the Krusell-Smith (1998) model implementation in HARK, based on the seminal paper “Income and Wealth Heterogeneity in the Macroeconomy” published in the Journal of Political Economy.</p>
+<p>The Krusell-Smith model is a heterogeneous agent macroeconomic model that examines how individual income and wealth heterogeneity affects aggregate economic outcomes. In this model, households face idiosyncratic employment shocks in an economy with aggregate productivity shocks that follow a Markov process.</p>
+<p>HARK’s implementation provides tools for both solving the individual household problem and finding the general equilibrium aggregate saving rule through simulation and regression methods.</p>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h2>
+<section id="minimal-working-example">
+<h3>Minimal Working Example<a class="headerlink" href="#minimal-working-example" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsAggShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">KrusellSmithType</span><span class="p">,</span>
+    <span class="n">KrusellSmithEconomy</span>
+<span class="p">)</span>
+
+<span class="c1"># Create agent</span>
+<span class="n">agent</span> <span class="o">=</span> <span class="n">KrusellSmithType</span><span class="p">()</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">5000</span>
+
+<span class="c1"># Create economy</span>
+<span class="n">economy</span> <span class="o">=</span> <span class="n">KrusellSmithEconomy</span><span class="p">(</span><span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">agent</span><span class="p">])</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">max_loops</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="c1"># Link agent to economy</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">get_economy_data</span><span class="p">(</span><span class="n">economy</span><span class="p">)</span>
+
+<span class="c1"># Solve for equilibrium</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">make_AggShkHist</span><span class="p">()</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+<span class="c1"># Access results</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AFunc (bad): intercept=</span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">AFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">intercept</span><span class="si">}</span><span class="s2">, slope=</span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">AFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">slope</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AFunc (good): intercept=</span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">AFunc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">intercept</span><span class="si">}</span><span class="s2">, slope=</span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">AFunc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">slope</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="model-components">
+<h2>Model Components<a class="headerlink" href="#model-components" title="Link to this heading">#</a></h2>
+<section id="krusellsmithtype-class">
+<h3><code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code> Class<a class="headerlink" href="#krusellsmithtype-class" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code> class represents individual agents in the Krusell-Smith economy. This class is found in <code class="docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel</span></code>.</p>
+<p><strong>Key Features:</strong></p>
+<ul class="simple">
+<li><p>Agents face idiosyncratic employment shocks</p></li>
+<li><p>Aggregate state follows a two-state Markov process (bad=0, good=1)</p></li>
+<li><p>Agents form expectations about aggregate capital based on perceived aggregate market resources</p></li>
+<li><p>Uses specialized solution methods optimized for the KS structure</p></li>
+</ul>
+<p><strong>Important Attributes:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">time_inv_</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">,</span> <span class="s2">&quot;CRRA&quot;</span><span class="p">,</span> <span class="s2">&quot;aGrid&quot;</span><span class="p">,</span> <span class="s2">&quot;ProbArray&quot;</span><span class="p">,</span> <span class="s2">&quot;mNextArray&quot;</span><span class="p">,</span> <span class="s2">&quot;MnextArray&quot;</span><span class="p">,</span> <span class="s2">&quot;RnextArray&quot;</span><span class="p">]</span>
+<span class="n">state_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aNow&quot;</span><span class="p">,</span> <span class="s2">&quot;mNow&quot;</span><span class="p">,</span> <span class="s2">&quot;EmpNow&quot;</span><span class="p">]</span>  <span class="c1"># Current state: assets, market resources, employment</span>
+<span class="n">shock_vars_</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Mrkv&quot;</span><span class="p">]</span>  <span class="c1"># Markov state shock</span>
+</pre></div>
+</div>
+<p><strong>Initialization:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsAggShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrusellSmithType</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">KrusellSmithType</span><span class="p">()</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Infinite horizon</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">5000</span>  <span class="c1"># Number of agents to simulate</span>
+</pre></div>
+</div>
+<p>Note: The <code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code> must be used in conjunction with a <code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy</span></code> instance. Use the <code class="docutils literal notranslate"><span class="pre">get_economy_data()</span></code> method to import economy-determined objects into the agent.</p>
+</section>
+<section id="krusellsmitheconomy-class">
+<h3><code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy</span></code> Class<a class="headerlink" href="#krusellsmitheconomy-class" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy</span></code> class represents the macroeconomic environment in which <code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code> agents live. This is a subclass of <code class="docutils literal notranslate"><span class="pre">Market</span></code> that implements the aggregate dynamics and equilibrium computation.</p>
+<p><strong>Key Features:</strong></p>
+<ul class="simple">
+<li><p>Two-state Markov process for aggregate productivity (good/bad)</p></li>
+<li><p>State-dependent unemployment rates</p></li>
+<li><p>Computes equilibrium aggregate saving rules</p></li>
+<li><p>Simulates aggregate economic history</p></li>
+</ul>
+<p><strong>Tracked Variables:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sow_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Mnow&quot;</span><span class="p">,</span> <span class="s2">&quot;Aprev&quot;</span><span class="p">,</span> <span class="s2">&quot;Mrkv&quot;</span><span class="p">,</span> <span class="s2">&quot;Rnow&quot;</span><span class="p">,</span> <span class="s2">&quot;Wnow&quot;</span><span class="p">]</span>  <span class="c1"># Variables distributed to agents</span>
+<span class="n">reap_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aNow&quot;</span><span class="p">,</span> <span class="s2">&quot;EmpNow&quot;</span><span class="p">]</span>  <span class="c1"># Variables collected from agents</span>
+<span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Mrkv&quot;</span><span class="p">,</span> <span class="s2">&quot;Aprev&quot;</span><span class="p">,</span> <span class="s2">&quot;Mnow&quot;</span><span class="p">,</span> <span class="s2">&quot;Urate&quot;</span><span class="p">]</span>  <span class="c1"># Variables tracked in history</span>
+<span class="n">dyn_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AFunc&quot;</span><span class="p">]</span>  <span class="c1"># Dynamic rules that evolve during solution</span>
+</pre></div>
+</div>
+<p><strong>Initialization:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsAggShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">KrusellSmithEconomy</span>
+
+<span class="n">economy</span> <span class="o">=</span> <span class="n">KrusellSmithEconomy</span><span class="p">(</span><span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">agent</span><span class="p">])</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">max_loops</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># Maximum iterations for equilibrium</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">act_T</span> <span class="o">=</span> <span class="mi">11000</span>  <span class="c1"># Simulation periods</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">T_discard</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Initial periods to discard</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="model-parameters">
+<h2>Model Parameters<a class="headerlink" href="#model-parameters" title="Link to this heading">#</a></h2>
+<section id="agent-parameters-init-ks-agents">
+<h3>Agent Parameters (<code class="docutils literal notranslate"><span class="pre">init_KS_agents</span></code>)<a class="headerlink" href="#agent-parameters-init-ks-agents" title="Link to this heading">#</a></h3>
+<p>The default agent parameters are stored in the <code class="docutils literal notranslate"><span class="pre">init_KS_agents</span></code> dictionary (line ~1596 in <code class="docutils literal notranslate"><span class="pre">ConsAggShockModel.py</span></code>):</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default Value</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p>0.99</p></td>
+<td><p>Discount factor</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p>1.0</p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LbrInd</span></code></p></td>
+<td><p>1.0</p></td>
+<td><p>Labor supply when employed</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aMin</span></code></p></td>
+<td><p>0.001</p></td>
+<td><p>Minimum asset value</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aMax</span></code></p></td>
+<td><p>50.0</p></td>
+<td><p>Maximum asset value</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">aCount</span></code></p></td>
+<td><p>32</p></td>
+<td><p>Number of points in asset grid</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">aNestFac</span></code></p></td>
+<td><p>2</p></td>
+<td><p>Nesting factor for exponentially-spaced grids</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MaggCount</span></code></p></td>
+<td><p>25</p></td>
+<td><p>Number of aggregate market resource gridpoints</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MaggPerturb</span></code></p></td>
+<td><p>0.01</p></td>
+<td><p>Perturbation around steady state</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MaggExpFac</span></code></p></td>
+<td><p>0.12</p></td>
+<td><p>Expansion factor for aggregate grid</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AgentCount</span></code></p></td>
+<td><p>5000</p></td>
+<td><p>Number of agents to simulate</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="economy-parameters-init-ks-economy">
+<h3>Economy Parameters (<code class="docutils literal notranslate"><span class="pre">init_KS_economy</span></code>)<a class="headerlink" href="#economy-parameters-init-ks-economy" title="Link to this heading">#</a></h3>
+<p>The default economy parameters are stored in the <code class="docutils literal notranslate"><span class="pre">init_KS_economy</span></code> dictionary (line ~2935 in <code class="docutils literal notranslate"><span class="pre">ConsAggShockModel.py</span></code>):</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default Value</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p>0.99</p></td>
+<td><p>Discount factor</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p>1.0</p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LbrInd</span></code></p></td>
+<td><p>0.3271</p></td>
+<td><p>Aggregate labor supply (from Krusell-Smith)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ProdB</span></code></p></td>
+<td><p>0.99</p></td>
+<td><p>Aggregate productivity in bad state</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ProdG</span></code></p></td>
+<td><p>1.01</p></td>
+<td><p>Aggregate productivity in good state</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CapShare</span></code></p></td>
+<td><p>0.36</p></td>
+<td><p>Capital share in production</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DeprRte</span></code></p></td>
+<td><p>0.025</p></td>
+<td><p>Depreciation rate</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DurMeanB</span></code></p></td>
+<td><p>8.0</p></td>
+<td><p>Mean duration of bad aggregate state</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DurMeanG</span></code></p></td>
+<td><p>8.0</p></td>
+<td><p>Mean duration of good aggregate state</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SpellMeanB</span></code></p></td>
+<td><p>2.5</p></td>
+<td><p>Mean unemployment spell in bad state</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SpellMeanG</span></code></p></td>
+<td><p>1.5</p></td>
+<td><p>Mean unemployment spell in good state</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">UrateB</span></code></p></td>
+<td><p>0.10</p></td>
+<td><p>Unemployment rate in bad state</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">UrateG</span></code></p></td>
+<td><p>0.04</p></td>
+<td><p>Unemployment rate in good state</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RelProbBG</span></code></p></td>
+<td><p>0.75</p></td>
+<td><p>Relative probability of bad to good transition</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RelProbGB</span></code></p></td>
+<td><p>1.25</p></td>
+<td><p>Relative probability of good to bad transition</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">DampingFac</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>Damping factor for updating beliefs</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">act_T</span></code></p></td>
+<td><p>11000</p></td>
+<td><p>Total periods to simulate</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T_discard</span></code></p></td>
+<td><p>1000</p></td>
+<td><p>Periods to discard before computing moments</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="solution-algorithm">
+<h2>Solution Algorithm<a class="headerlink" href="#solution-algorithm" title="Link to this heading">#</a></h2>
+<section id="individual-problem">
+<h3>Individual Problem<a class="headerlink" href="#individual-problem" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">solve_KrusellSmith</span></code> function (line ~816) solves the individual agent’s problem given perceived aggregate dynamics. The solution method exploits the special structure of the KS model:</p>
+<ol class="arabic simple">
+<li><p><strong>Pre-computation</strong>: Many transition probabilities and next-period states can be pre-computed because of the discrete nature of aggregate and idiosyncratic shocks</p></li>
+<li><p><strong>Bellman Iteration</strong>: Solves the dynamic programming problem using backward induction</p></li>
+<li><p><strong>Bilinear Interpolation</strong>: Policy functions are represented as bilinear interpolants over (individual assets, aggregate resources)</p></li>
+</ol>
+</section>
+<section id="equilibrium-computation">
+<h3>Equilibrium Computation<a class="headerlink" href="#equilibrium-computation" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy.solve()</span></code> method finds the general equilibrium through the following algorithm:</p>
+<ol class="arabic simple">
+<li><p><strong>Initialize</strong>: Start with initial guess for aggregate saving rule <code class="docutils literal notranslate"><span class="pre">AFunc</span></code> in each state</p></li>
+<li><p><strong>Solve Micro Problem</strong>: Each agent solves their problem given current <code class="docutils literal notranslate"><span class="pre">AFunc</span></code></p></li>
+<li><p><strong>Simulate</strong>: Simulate the economy forward using agents’ policy functions</p></li>
+<li><p><strong>Regress</strong>: Estimate new aggregate saving rule from simulated data</p>
+<ul class="simple">
+<li><p>Form: <code class="docutils literal notranslate"><span class="pre">log(A'/M)</span> <span class="pre">=</span> <span class="pre">intercept</span> <span class="pre">+</span> <span class="pre">slope</span> <span class="pre">*</span> <span class="pre">log(M)</span></code></p></li>
+<li><p>Separate regression for each aggregate state (good/bad)</p></li>
+</ul>
+</li>
+<li><p><strong>Update</strong>: Update <code class="docutils literal notranslate"><span class="pre">AFunc</span></code> with damping: <code class="docutils literal notranslate"><span class="pre">AFunc_new</span> <span class="pre">=</span> <span class="pre">lambda*AFunc_old</span> <span class="pre">+</span> <span class="pre">(1-lambda)*AFunc_estimated</span></code></p></li>
+<li><p><strong>Check Convergence</strong>: Repeat until <code class="docutils literal notranslate"><span class="pre">AFunc</span></code> stabilizes</p></li>
+</ol>
+<p>For a detailed implementation example, see the <a class="reference external" href="https://github.com/econ-ark/KrusellSmith/blob/master/Code/Python/KrusellSmith.ipynb">KrusellSmith.ipynb</a> notebook which walks through each step with visualizations.</p>
+</section>
+</section>
+<section id="usage-examples">
+<h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading">#</a></h2>
+<section id="solving-individual-problem-only">
+<h3>Solving Individual Problem Only<a class="headerlink" href="#solving-individual-problem-only" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># First link to economy to get aggregate dynamics</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">get_economy_data</span><span class="p">(</span><span class="n">economy</span><span class="p">)</span>
+
+<span class="c1"># Construct solution inputs</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">construct</span><span class="p">()</span>
+
+<span class="c1"># Solve the individual problem</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+<span class="c1"># Access consumption function</span>
+<span class="c1"># cFunc[state](individual_resources, aggregate_resources)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">economy</span><span class="o">.</span><span class="n">MSS</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Consumption at m=10, M=MSS in bad state: </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="simulating-individual-histories">
+<h3>Simulating Individual Histories<a class="headerlink" href="#simulating-individual-histories" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize simulation</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;aNow&#39;</span><span class="p">,</span> <span class="s1">&#39;mNow&#39;</span><span class="p">,</span> <span class="s1">&#39;cNow&#39;</span><span class="p">,</span> <span class="s1">&#39;EmpNow&#39;</span><span class="p">]</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+
+<span class="c1"># Simulate</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+
+<span class="c1"># Access simulated data</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="n">mean_wealth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;aNow&#39;</span><span class="p">])</span>
+<span class="n">employment_rate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;EmpNow&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+<section id="checking-convergence">
+<h3>Checking Convergence<a class="headerlink" href="#checking-convergence" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">economy</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">distance</span> <span class="o">&lt;</span> <span class="n">economy</span><span class="o">.</span><span class="n">tolerance</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Converged!&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not converged. Distance: </span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">distance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="visualizing-results">
+<h3>Visualizing Results<a class="headerlink" href="#visualizing-results" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">agent</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">500</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;aNow&#39;</span><span class="p">]</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;aNow&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Mean Assets Over Time&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time Period&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Mean Assets&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="code-organization-and-resources">
+<h2>Code Organization and Resources<a class="headerlink" href="#code-organization-and-resources" title="Link to this heading">#</a></h2>
+<section id="main-components">
+<h3>Main Components<a class="headerlink" href="#main-components" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Location</p></th>
+<th class="head"><p>Line</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HARK/ConsumptionSaving/ConsAggShockModel.py</span></code></p></td>
+<td><p>~1615</p></td>
+<td><p>Agent class</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HARK/ConsumptionSaving/ConsAggShockModel.py</span></code></p></td>
+<td><p>~2962</p></td>
+<td><p>Economy class</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">solve_KrusellSmith</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HARK/ConsumptionSaving/ConsAggShockModel.py</span></code></p></td>
+<td><p>~816</p></td>
+<td><p>Solution function</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">init_KS_agents</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HARK/ConsumptionSaving/ConsAggShockModel.py</span></code></p></td>
+<td><p>~1596</p></td>
+<td><p>Default agent parameters</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">init_KS_economy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HARK/ConsumptionSaving/ConsAggShockModel.py</span></code></p></td>
+<td><p>~2935</p></td>
+<td><p>Default economy parameters</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="helper-functions">
+<h3>Helper Functions<a class="headerlink" href="#helper-functions" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">construct()</span></code>: Builds solution infrastructure from parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">get_economy_data()</span></code>: Imports aggregate dynamics from economy into agent</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">make_AggShkHist()</span></code>: Generates simulated history of aggregate shocks</p></li>
+</ul>
+</section>
+<section id="essential-methods">
+<h3>Essential Methods<a class="headerlink" href="#essential-methods" title="Link to this heading">#</a></h3>
+<p><strong>Agent Methods:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">agent</span><span class="o">.</span><span class="n">get_economy_data</span><span class="p">(</span><span class="n">economy</span><span class="p">)</span>  <span class="c1"># Import aggregate dynamics</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">construct</span><span class="p">()</span>                <span class="c1"># Build solution infrastructure</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>                    <span class="c1"># Solve individual problem</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>           <span class="c1"># Setup simulation</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>                 <span class="c1"># Simulate individual histories</span>
+</pre></div>
+</div>
+<p><strong>Economy Methods:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">economy</span><span class="o">.</span><span class="n">make_AggShkHist</span><span class="p">()</span>        <span class="c1"># Generate aggregate shock history</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>                  <span class="c1"># Find equilibrium</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>                  <span class="c1"># Reset to initial state</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="tests">
+<h2>Tests<a class="headerlink" href="#tests" title="Link to this heading">#</a></h2>
+<p>The test suite in <code class="docutils literal notranslate"><span class="pre">tests/ConsumptionSaving/test_ConsAggShockModel.py</span></code> includes comprehensive tests:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">KrusellSmithTestCase</span></code></strong> (line ~106): Base test case with setup/teardown</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">KrusellSmithAgentTestCase</span></code></strong> (line ~123): Tests agent solution accuracy and consumption function values</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">KrusellSmithMethodsTestCase</span></code></strong> (line ~135): Tests precomputation methods, construction and reset</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomyTestCase</span></code></strong> (line ~245): Tests economy initialization and equilibrium dynamics</p></li>
+</ul>
+<p>Run tests with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># All KS tests</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/ConsumptionSaving/test_ConsAggShockModel.py<span class="w"> </span>-k<span class="w"> </span>Krusell<span class="w"> </span>-v
+
+<span class="c1"># Specific test class</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/ConsumptionSaving/test_ConsAggShockModel.py::KrusellSmithAgentTestCase<span class="w"> </span>-v
+
+<span class="c1"># Single test</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/ConsumptionSaving/test_ConsAggShockModel.py::KrusellSmithAgentTestCase::test_agent<span class="w"> </span>-v
+</pre></div>
+</div>
+</section>
+<section id="examples-and-notebooks">
+<h2>Examples and Notebooks<a class="headerlink" href="#examples-and-notebooks" title="Link to this heading">#</a></h2>
+<section id="main-example-notebook">
+<h3>1. Main Example Notebook<a class="headerlink" href="#main-example-notebook" title="Link to this heading">#</a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">examples/ConsumptionSaving/example_ConsAggShockModel.ipynb</span></code></p>
+<ul class="simple">
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">solve_krusell_smith</span> <span class="pre">=</span> <span class="pre">True</span></code> in Cell 2 to run KS model</p></li>
+<li><p>Demonstrates both micro and macro solution</p></li>
+<li><p>Compares to other aggregate shock models</p></li>
+<li><p>Shows simulation and visualization</p></li>
+</ul>
+<p><strong>For a complete replication:</strong> See the <a class="reference external" href="https://github.com/econ-ark/KrusellSmith/blob/master/Code/Python/KrusellSmith.ipynb">KrusellSmith.ipynb notebook</a> in the external REMARK repository, which provides a full implementation matching the original 1998 paper.</p>
+</section>
+<section id="ks-with-sequence-space-jacobian">
+<h3>2. KS with Sequence Space Jacobian<a class="headerlink" href="#ks-with-sequence-space-jacobian" title="Link to this heading">#</a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb</span></code></p>
+<ul class="simple">
+<li><p>Title: “Solving Krusell Smith Model with HARK and SSJ”</p></li>
+<li><p>Author: William Du</p></li>
+<li><p>Shows integration with SSJ toolkit</p></li>
+<li><p>Computes Jacobians for general equilibrium</p></li>
+<li><p>Modern approach to heterogeneous agent models</p></li>
+</ul>
+</section>
+<section id="ssj-explanation">
+<h3>3. SSJ Explanation<a class="headerlink" href="#ssj-explanation" title="Link to this heading">#</a></h3>
+<p><strong>Location:</strong> <code class="docutils literal notranslate"><span class="pre">examples/ConsNewKeynesianModel/SSJ_explanation.ipynb</span></code></p>
+<ul class="simple">
+<li><p>Explains HARK-SSJ integration</p></li>
+<li><p>Advanced general equilibrium techniques</p></li>
+<li><p>References Krusell-Smith as example</p></li>
+</ul>
+</section>
+<section id="journey-notebooks">
+<h3>4. Journey Notebooks<a class="headerlink" href="#journey-notebooks" title="Link to this heading">#</a></h3>
+<p><strong>Journey-PhD.ipynb:</strong> <code class="docutils literal notranslate"><span class="pre">examples/Journeys/Journey-PhD.ipynb</span></code></p>
+<ul class="simple">
+<li><p>Section 5.3: Tutorial reference</p></li>
+<li><p>Points to KS REMARK implementation</p></li>
+<li><p>Explains <code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code> usage</p></li>
+</ul>
+<p><strong>Journey-Policymaker.ipynb:</strong> <code class="docutils literal notranslate"><span class="pre">examples/Journeys/Journey-Policymaker.ipynb</span></code></p>
+<ul class="simple">
+<li><p>References KS REMARK</p></li>
+<li><p>Discusses HARK-SSJ linkage</p></li>
+<li><p>Cites Krusell and Smith (1998) paper</p></li>
+</ul>
+</section>
+</section>
+<section id="related-models-in-hark">
+<h2>Related Models in HARK<a class="headerlink" href="#related-models-in-hark" title="Link to this heading">#</a></h2>
+<p>HARK includes related aggregate shock models that generalize or simplify the Krusell-Smith framework:</p>
+<section id="aggshockconsumertype">
+<h3><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code><a class="headerlink" href="#aggshockconsumertype" title="Link to this heading">#</a></h3>
+<p>A more general aggregate shock consumer that allows for:</p>
+<ul class="simple">
+<li><p>Continuous distributions of income shocks</p></li>
+<li><p>Flexible aggregate production</p></li>
+<li><p>General equilibrium with <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code></p></li>
+</ul>
+</section>
+<section id="aggshockmarkovconsumertype">
+<h3><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType</span></code><a class="headerlink" href="#aggshockmarkovconsumertype" title="Link to this heading">#</a></h3>
+<p>Similar to <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> but with multiple Markov states, solved in conjunction with <code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code>.</p>
+</section>
+<section id="cobbdouglaseconomy-and-cobbdouglasmarkoveconomy">
+<h3><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> and <code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code><a class="headerlink" href="#cobbdouglaseconomy-and-cobbdouglasmarkoveconomy" title="Link to this heading">#</a></h3>
+<p>More flexible economy classes that allow for:</p>
+<ul class="simple">
+<li><p>Multiple agent types</p></li>
+<li><p>Heterogeneous discount factors</p></li>
+<li><p>State-dependent or time-varying parameters</p></li>
+</ul>
+</section>
+</section>
+<section id="tips-and-best-practices">
+<h2>Tips and Best Practices<a class="headerlink" href="#tips-and-best-practices" title="Link to this heading">#</a></h2>
+<section id="computational-efficiency">
+<h3>Computational Efficiency<a class="headerlink" href="#computational-efficiency" title="Link to this heading">#</a></h3>
+<p><strong>Start Small:</strong> Use fewer agents and shorter simulations for initial exploration</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">agent</span><span class="o">.</span><span class="n">AgentCount</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># Instead of 5000</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">act_T</span> <span class="o">=</span> <span class="mi">1100</span>  <span class="c1"># Instead of 11000</span>
+<span class="n">economy</span><span class="o">.</span><span class="n">max_loops</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># Quick convergence check</span>
+</pre></div>
+</div>
+<p><strong>Damping Factor:</strong> Use appropriate damping to ensure convergence</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">economy</span><span class="o">.</span><span class="n">DampingFac</span> <span class="o">=</span> <span class="mf">0.5</span>  <span class="c1"># Default is good starting point</span>
+</pre></div>
+</div>
+<p><strong>Grid Sizes:</strong> Balance accuracy and speed</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">aCount</span></code>: More points = more accuracy but slower</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MaggCount</span></code>: Critical for capturing aggregate dynamics</p></li>
+</ul>
+</section>
+<section id="debugging">
+<h3>Debugging<a class="headerlink" href="#debugging" title="Link to this heading">#</a></h3>
+<p><strong>Verbose Output:</strong> Enable detailed logging</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">economy</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p><strong>Check Equilibrium:</strong> After solving, verify convergence</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Converged: </span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">distance</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">economy</span><span class="o">.</span><span class="n">tolerance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Final distance: </span><span class="si">{</span><span class="n">economy</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">distance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Examine History:</strong> Plot simulated paths</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">economy</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s1">&#39;Mnow&#39;</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Aggregate Market Resources&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="common-issues-and-solutions">
+<h3>Common Issues and Solutions<a class="headerlink" href="#common-issues-and-solutions" title="Link to this heading">#</a></h3>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Issue</p></th>
+<th class="head"><p>Solution</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Non-convergence</p></td>
+<td><p>Increase <code class="docutils literal notranslate"><span class="pre">max_loops</span></code>, adjust <code class="docutils literal notranslate"><span class="pre">DampingFac</span></code> (0.3-0.7)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Slow computation</p></td>
+<td><p>Reduce <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code>, <code class="docutils literal notranslate"><span class="pre">aCount</span></code>, <code class="docutils literal notranslate"><span class="pre">MaggCount</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Memory error</p></td>
+<td><p>Reduce <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code>, limit <code class="docutils literal notranslate"><span class="pre">track_vars</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Explosive paths</p></td>
+<td><p>Check parameters (esp. <code class="docutils literal notranslate"><span class="pre">DiscFac</span></code>, <code class="docutils literal notranslate"><span class="pre">Rfree</span></code>), verify grids</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="advanced-topics">
+<h2>Advanced Topics<a class="headerlink" href="#advanced-topics" title="Link to this heading">#</a></h2>
+<section id="integration-with-sequence-space-jacobian">
+<h3>Integration with Sequence Space Jacobian<a class="headerlink" href="#integration-with-sequence-space-jacobian" title="Link to this heading">#</a></h3>
+<p>HARK’s Krusell-Smith implementation can be integrated with the Sequence Space Jacobian toolkit for advanced general equilibrium analysis. See <code class="docutils literal notranslate"><span class="pre">examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb</span></code> for a complete example.</p>
+<p>Key steps:</p>
+<ol class="arabic simple">
+<li><p>Solve KS model in HARK for steady state</p></li>
+<li><p>Compute heterogeneous agent Jacobians</p></li>
+<li><p>Combine with aggregate block (firm, market clearing)</p></li>
+<li><p>Analyze impulse responses to shocks</p></li>
+</ol>
+</section>
+<section id="extending-the-model">
+<h3>Extending the Model<a class="headerlink" href="#extending-the-model" title="Link to this heading">#</a></h3>
+<p>The modular structure allows for extensions:</p>
+<ul class="simple">
+<li><p><strong>Different production functions</strong>: Modify <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> methods</p></li>
+<li><p><strong>Alternative aggregate dynamics</strong>: Subclass <code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy</span></code></p></li>
+<li><p><strong>Richer idiosyncratic shocks</strong>: Adjust income process in agent’s constructor</p></li>
+<li><p><strong>Multiple agent types</strong>: Pass list of different <code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code> agents to economy</p></li>
+<li><p><strong>Deep learning approaches</strong>: See <a class="reference external" href="https://github.com/marcmaliar/deep-learning-euler-method-krusell-smith/blob/main/code/python/Main_KS.ipynb">Main_KS.ipynb</a> for neural network-based solution methods</p></li>
+</ul>
+</section>
+<section id="custom-parameters">
+<h3>Custom Parameters<a class="headerlink" href="#custom-parameters" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Modify specific parameters</span>
+<span class="n">agent</span> <span class="o">=</span> <span class="n">KrusellSmithType</span><span class="p">(</span>
+    <span class="n">DiscFac</span><span class="o">=</span><span class="mf">0.98</span><span class="p">,</span>
+    <span class="n">CRRA</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+    <span class="n">AgentCount</span><span class="o">=</span><span class="mi">10000</span>
+<span class="p">)</span>
+
+<span class="n">economy</span> <span class="o">=</span> <span class="n">KrusellSmithEconomy</span><span class="p">(</span>
+    <span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">agent</span><span class="p">],</span>
+    <span class="n">max_loops</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">DampingFac</span><span class="o">=</span><span class="mf">0.3</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">#</a></h2>
+<section id="primary-reference">
+<h3>Primary Reference<a class="headerlink" href="#primary-reference" title="Link to this heading">#</a></h3>
+<p>Krusell, P., &amp; Smith, Jr, A. A. (1998). “Income and wealth heterogeneity in the macroeconomy.” Journal of Political Economy, 106(5), 867-896. DOI: 10.1086/250034
+https://www.journals.uchicago.edu/doi/abs/10.1086/250034</p>
+</section>
+<section id="related-literature">
+<h3>Related Literature<a class="headerlink" href="#related-literature" title="Link to this heading">#</a></h3>
+<p>Auclert, A., Bardoczy, B., Rognlie, M., &amp; Straub, L. (2021). “Using the sequence-space jacobian to solve and estimate heterogeneous-agent models.” Econometrica, 89(5), 2375-2408. DOI: 10.3982/ECTA17434
+https://onlinelibrary.wiley.com/doi/abs/10.3982/ECTA17434</p>
+</section>
+<section id="hark-documentation">
+<h3>HARK Documentation<a class="headerlink" href="#hark-documentation" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>A Gentle Introduction to HARK: https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html</p></li>
+<li><p>ConsAggShockModel API Reference: https://docs.econ-ark.org/reference/ConsumptionSaving/ConsAggShockModel.html</p></li>
+<li><p>Market Class Documentation: https://docs.econ-ark.org/reference/core.html#market</p></li>
+</ul>
+</section>
+<section id="external-resources">
+<h3>External Resources<a class="headerlink" href="#external-resources" title="Link to this heading">#</a></h3>
+<p><strong>KrusellSmith REMARK Repository:</strong> https://github.com/econ-ark/KrusellSmith</p>
+<p>This is a complete replication of Krusell and Smith (1998) using HARK. The repository contains:</p>
+<ul class="simple">
+<li><p>Python implementation in <code class="docutils literal notranslate"><span class="pre">Code/Python/KrusellSmith.py</span></code></p></li>
+<li><p>Interactive Jupyter notebook with full replication (<code class="docutils literal notranslate"><span class="pre">Code/Python/KrusellSmith.ipynb</span></code>)</p></li>
+<li><p>Reproducible results using <code class="docutils literal notranslate"><span class="pre">nbreproduce</span></code> (Docker-based) or conda environment</p></li>
+<li><p>Figures and output matching the original paper</p></li>
+<li><p>Complete bibliography and citations</p></li>
+</ul>
+<p>The notebook demonstrates the complete workflow including:</p>
+<ul class="simple">
+<li><p>Setting up the economy with two aggregate states (good and bad)</p></li>
+<li><p>Configuring heterogeneous agents with different employment shock processes</p></li>
+<li><p>Solving for the equilibrium aggregate saving rules via simulation</p></li>
+<li><p>Comparing simulated moments to the original Krusell-Smith results</p></li>
+<li><p>Visualizing policy functions and aggregate dynamics</p></li>
+</ul>
+<p>This REMARK (Replications/Reproductions and Explorations Made using ARK) provides a working example of how to implement and solve the full Krusell-Smith model with HARK, making it an excellent resource for learning the complete workflow from model specification to result generation.</p>
+<p><strong>Deep Learning Euler Method for Krusell-Smith:</strong> https://github.com/marcmaliar/deep-learning-euler-method-krusell-smith/</p>
+<p>An alternative solution approach by Marc Maliar that solves the Krusell-Smith model using deep learning combined with the Euler equation method. This repository demonstrates:</p>
+<ul class="simple">
+<li><p>Modern machine learning techniques applied to heterogeneous agent models</p></li>
+<li><p>Neural network approximation of policy functions</p></li>
+<li><p>Euler equation accuracy as the solution criterion</p></li>
+<li><p>Interactive Jupyter notebook (<code class="docutils literal notranslate"><span class="pre">code/python/Main_KS.ipynb</span></code>) with complete implementation</p></li>
+<li><p>Comparison of deep learning results to traditional solution methods</p></li>
+<li><p>Reproducible via Binder or local execution</p></li>
+</ul>
+<p>The <a class="reference external" href="https://github.com/marcmaliar/deep-learning-euler-method-krusell-smith/blob/main/code/python/Main_KS.ipynb">Main_KS.ipynb notebook</a> walks through:</p>
+<ul class="simple">
+<li><p>Setting up the Krusell-Smith economy parameters</p></li>
+<li><p>Training neural networks to approximate decision rules</p></li>
+<li><p>Evaluating solution accuracy using Euler equation errors</p></li>
+<li><p>Benchmarking computational efficiency</p></li>
+</ul>
+<p>This approach represents an innovative alternative to traditional value function iteration or policy function iteration methods, showing how deep learning can be applied to solve complex macroeconomic models efficiently.</p>
+<p><strong>Additional Resources:</strong></p>
+<ul class="simple">
+<li><p>REMARK Index: https://github.com/econ-ark/REMARK/blob/master/REMARKs/KrusellSmith.md</p></li>
+<li><p>KS-HARK-presentation (online): https://docs.econ-ark.org/examples/ConsNewKeynesianModel/KS-HARK-presentation.html</p></li>
+<li><p>Econ-ARK Main Site: https://econ-ark.org</p></li>
+<li><p>HARK GitHub Repository: https://github.com/econ-ark/HARK</p></li>
+</ul>
+</section>
+</section>
+<section id="support-and-community">
+<h2>Support and Community<a class="headerlink" href="#support-and-community" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>GitHub Issues: https://github.com/econ-ark/HARK/issues</p></li>
+<li><p>GitHub Discussions: https://github.com/econ-ark/HARK/discussions</p></li>
+<li><p>Econ-ARK Forum: https://econ-ark.org</p></li>
+<li><p>Documentation: https://docs.econ-ark.org</p></li>
+</ul>
+</section>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">#</a></h2>
+<p>The Krusell-Smith model in HARK provides:</p>
+<ul class="simple">
+<li><p>Faithful implementation of the seminal KS (1998) model</p></li>
+<li><p>Efficient solution methods exploiting model structure</p></li>
+<li><p>Flexible equilibrium computation with damping and convergence checks</p></li>
+<li><p>Integration capabilities with modern tools (SSJ)</p></li>
+<li><p>Extensive documentation and examples</p></li>
+<li><p>Tested codebase with comprehensive test suite</p></li>
+</ul>
+<p>For questions or contributions, visit the Econ-ARK GitHub repository or join the discussion on the Econ-ARK forum.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="simulation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">New Simulation System and Model Specification Files for HARK</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="migration_case_study.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#introduction">Introduction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#quick-start">Quick Start</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#minimal-working-example">Minimal Working Example</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-components">Model Components</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#krusellsmithtype-class"><code class="docutils literal notranslate"><span class="pre">KrusellSmithType</span></code> Class</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#krusellsmitheconomy-class"><code class="docutils literal notranslate"><span class="pre">KrusellSmithEconomy</span></code> Class</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-parameters">Model Parameters</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#agent-parameters-init-ks-agents">Agent Parameters (<code class="docutils literal notranslate"><span class="pre">init_KS_agents</span></code>)</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#economy-parameters-init-ks-economy">Economy Parameters (<code class="docutils literal notranslate"><span class="pre">init_KS_economy</span></code>)</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#solution-algorithm">Solution Algorithm</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#individual-problem">Individual Problem</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#equilibrium-computation">Equilibrium Computation</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#usage-examples">Usage Examples</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#solving-individual-problem-only">Solving Individual Problem Only</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simulating-individual-histories">Simulating Individual Histories</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checking-convergence">Checking Convergence</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#visualizing-results">Visualizing Results</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-organization-and-resources">Code Organization and Resources</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#main-components">Main Components</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#helper-functions">Helper Functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#essential-methods">Essential Methods</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tests">Tests</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#examples-and-notebooks">Examples and Notebooks</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#main-example-notebook">1. Main Example Notebook</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ks-with-sequence-space-jacobian">2. KS with Sequence Space Jacobian</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#ssj-explanation">3. SSJ Explanation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#journey-notebooks">4. Journey Notebooks</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#related-models-in-hark">Related Models in HARK</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#aggshockconsumertype"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#aggshockmarkovconsumertype"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#cobbdouglaseconomy-and-cobbdouglasmarkoveconomy"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> and <code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#tips-and-best-practices">Tips and Best Practices</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#computational-efficiency">Computational Efficiency</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#debugging">Debugging</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#common-issues-and-solutions">Common Issues and Solutions</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#advanced-topics">Advanced Topics</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#integration-with-sequence-space-jacobian">Integration with Sequence Space Jacobian</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#extending-the-model">Extending the Model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#custom-parameters">Custom Parameters</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#primary-reference">Primary Reference</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#related-literature">Related Literature</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#hark-documentation">HARK Documentation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#external-resources">External Resources</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#support-and-community">Support and Community</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#summary">Summary</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

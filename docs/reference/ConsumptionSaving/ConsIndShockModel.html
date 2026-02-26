@@ -1,0 +1,1656 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ConsIndShockModel &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/ConsumptionSaving/ConsIndShockModel';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/ConsumptionSaving/ConsIndShockModel.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ConsIndShockModelFast" href="ConsIndShockModelFast.html" />
+    <link rel="prev" title="ConsHealthModel" href="ConsHealthModel.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tools/core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/dcegm.html">dcegm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distribution.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/helpers.html">Helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/interpolation.html">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/simulation.html">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="ConsAggShockModel.html">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsHealthModel.html">ConsHealthModel</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyContribModel.html">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">ConsIndShockModel</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.ConsumptionSaving.ConsIndShockModel">
+<span id="consindshockmodel"></span><h1>ConsIndShockModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsIndShockModel" title="Link to this heading">#</a></h1>
+<p>Classes to solve canonical consumption-saving models with idiosyncratic shocks
+to income.  All models here assume CRRA utility with geometric discounting, no
+bequest motive, and income shocks that are fully transitory or fully permanent.</p>
+<dl class="simple">
+<dt>It currently solves three types of models:</dt><dd><ol class="arabic simple">
+<li><p>A very basic “perfect foresight” consumption-savings model with no uncertainty.</p></li>
+<li><p>A consumption-savings model with risk over transitory and permanent income shocks.</p></li>
+<li><p>The model described in (2), with an interest rate for debt that differs
+from the interest rate for savings.</p></li>
+</ol>
+</dd>
+</dl>
+<p>See NARK <a class="github reference external" href="https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf">econ-ark/HARK</a> for information on variable naming conventions.
+See HARK documentation for mathematical descriptions of the models being solved.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">ConsumerSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vPfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vPPfunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmMin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hNrm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MPCmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MPCmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class representing the solution of a single period of a consumption-saving
+problem.  The solution must include a consumption function and marginal
+value function.</p>
+<p>Here and elsewhere in the code, Nrm indicates that variables are normalized
+by permanent income.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cFunc</strong> (<em>function</em>) – The consumption function for this period, defined over normalized market
+resources: cNrm = cFunc(mNrm).</p></li>
+<li><p><strong>vFunc</strong> (<em>function</em>) – The beginning-of-period value function for this period, defined over
+normalized market resources: vNrm = vFunc(mNrm).</p></li>
+<li><p><strong>vPfunc</strong> (<em>function</em>) – The beginning-of-period marginal value function for this period,
+defined over normalized market resources: vNrmP = vPfunc(mNrm).</p></li>
+<li><p><strong>vPPfunc</strong> (<em>function</em>) – The beginning-of-period marginal marginal value function for this
+period, defined over normalized market resources: vNrmPP = vPPfunc(mNrm).</p></li>
+<li><p><strong>mNrmMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The minimum allowable normalized market resources for this period; the consump-
+tion function (etc) are undefined for m &lt; mNrmMin.</p></li>
+<li><p><strong>hNrm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Normalized human wealth after receiving income this period: PDV of all future
+income, ignoring mortality.</p></li>
+<li><p><strong>MPCmin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Infimum of the marginal propensity to consume this period.
+MPC –&gt; MPCmin as m –&gt; infinity.</p></li>
+<li><p><strong>MPCmax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Supremum of the marginal propensity to consume this period.
+MPC –&gt; MPCmax as m –&gt; mNrmMin.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['vPfunc']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.append_solution">
+<span class="sig-name descname"><span class="pre">append_solution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_solution</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.append_solution" title="Link to this definition">#</a></dt>
+<dd><p>Appends one solution to another to create a ConsumerSolution whose
+attributes are lists.  Used in ConsMarkovModel, where we append solutions
+<em>conditional</em> on a particular value of a Markov state to each other in
+order to get the entire solution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_solution</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><em>ConsumerSolution</em></a>) – The solution to a consumption-saving problem; each attribute is a
+list representing state-conditional values or functions.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">PerfForesightConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pseudo_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">construct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.AgentType" title="HARK.core.AgentType"><code class="xref py py-class docutils literal notranslate"><span class="pre">AgentType</span></code></a></p>
+<p>A perfect foresight consumer type who has no uncertainty other than mortality.
+Their problem is defined by a coefficient of relative risk aversion (<span class="math notranslate nohighlight">\(\rho\)</span>), intertemporal
+discount factor (<span class="math notranslate nohighlight">\(\beta\)</span>), interest factor (<span class="math notranslate nohighlight">\(\mathsf{R}\)</span>), an optional artificial borrowing constraint (<span class="math notranslate nohighlight">\(\underline{a}\)</span>)
+and time sequences of the permanent income growth rate (<span class="math notranslate nohighlight">\(\Gamma\)</span>) and survival probability (<span class="math notranslate nohighlight">\(1-\mathsf{D}\)</span>).
+Their assets and income are normalized by permanent income.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\newcommand{\CRRA}{\rho}
+\newcommand{\DiePrb}{\mathsf{D}}
+\newcommand{\PermGroFac}{\Gamma}
+\newcommand{\Rfree}{\mathsf{R}}
+\newcommand{\DiscFac}{\beta}
+\begin{align*}
+v_t(m_t) &amp;= \max_{c_t}u(c_t) + \DiscFac (1 - \DiePrb_{t+1}) \PermGroFac_{t+1}^{1-\CRRA} v_{t+1}(m_{t+1}), \\
+&amp; \text{s.t.}  \\
+a_t &amp;= m_t - c_t, \\
+a_t &amp;\geq \underline{a}, \\
+m_{t+1} &amp;= \Rfree_{t+1} a_t/\PermGroFac_{t+1} + 1, \\
+u(c) &amp;= \frac{c^{1-\CRRA}}{1-\CRRA}
+\end{align*}\end{split}\]</div>
+<dl class="field-list">
+<dt class="field-odd">Solving Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cycles</strong> (<em>int</em>) – 0 specifies an infinite horizon model, 1 specifies a finite model.</p></li>
+<li><p><strong>T_cycle</strong> (<em>int</em>) – Number of periods in the cycle for this agent type.</p></li>
+<li><p><strong>CRRA</strong> (float, <span class="math notranslate nohighlight">\(\rho\)</span>) – Coefficient of Relative Risk Aversion.</p></li>
+<li><p><strong>Rfree</strong> (float or list[float], time varying, <span class="math notranslate nohighlight">\(\mathsf{R}\)</span>) – Risk Free interest rate. Pass a list of floats to make Rfree time varying.</p></li>
+<li><p><strong>DiscFac</strong> (float, <span class="math notranslate nohighlight">\(\beta\)</span>) – Intertemporal discount factor.</p></li>
+<li><p><strong>LivPrb</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(1-\mathsf{D}\)</span>) – Survival probability after each period.</p></li>
+<li><p><strong>PermGroFac</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(\Gamma\)</span>) – Permanent income growth factor.</p></li>
+<li><p><strong>BoroCnstArt</strong> (float, <span class="math notranslate nohighlight">\(\underline{a}\)</span>) – The minimum Asset/Perminant Income ratio, None to ignore.</p></li>
+<li><p><strong>MaxKinks</strong> (<em>int</em>) – Maximum number of gridpoints to allow in cFunc.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Simulation Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul>
+<li><p><strong>AgentCount</strong> (<em>int</em>) – Number of agents of this kind that are created during simulations.</p></li>
+<li><p><strong>T_age</strong> (<em>int</em>) – Age after which to automatically kill agents, None to ignore.</p></li>
+<li><p><strong>T_sim</strong> (<em>int, required for simulation</em>) – Number of periods to simulate.</p></li>
+<li><p><strong>track_vars</strong> (<em>list[strings]</em>) – List of variables that should be tracked when running the simulation.
+For this agent, the options are ‘kNrm’, ‘aLvl’, ‘aNrm’, ‘bNrm’, ‘cNrm’, ‘mNrm’, ‘pLvl’, and ‘who_dies’.</p>
+<p>kNrm is beginning-of-period capital holdings (last period’s assets)</p>
+<p>aLvl is the nominal asset level</p>
+<p>aNrm is the normalized assets</p>
+<p>bNrm is the normalized resources without this period’s labor income</p>
+<p>cNrm is the normalized consumption</p>
+<p>mNrm is the normalized market resources</p>
+<p>pLvl is the permanent income level</p>
+<p>who_dies is the array of which agents died</p>
+</li>
+<li><p><strong>kLogInitMean</strong> (<em>float</em>) – Mean of Log initial Normalized Assets.</p></li>
+<li><p><strong>kLogInitStd</strong> (<em>float</em>) – Std of Log initial Normalized Assets.</p></li>
+<li><p><strong>pLogInitMean</strong> (<em>float</em>) – Mean of Log initial permanent income.</p></li>
+<li><p><strong>pLogInitStd</strong> (<em>float</em>) – Std of Log initial permanent income.</p></li>
+<li><p><strong>PermGroFacAgg</strong> (<em>float</em>) – Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).</p></li>
+<li><p><strong>PerfMITShk</strong> (<em>boolean</em>) – Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><ul>
+<li><p><strong>solution</strong> (<em>list[Consumer solution object]</em>) – Created by the <code class="xref py py-func docutils literal notranslate"><span class="pre">solve()</span></code> method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.</p>
+<p>Visit <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution</span></code></a> for more information about the solution.</p>
+</li>
+<li><p><strong>history</strong> (<em>Dict[Array]</em>) – Created by running the <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate()</span></code> method.
+Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+Visit <a class="reference internal" href="../tools/core.html#HARK.core.AgentType.simulate" title="HARK.core.AgentType.simulate"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.AgentType.simulate</span></code></a> for more information.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.solving_defaults">
+<span class="sig-name descname"><span class="pre">solving_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'BoroCnstArt':</span> <span class="pre">None,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'MaxKinks':</span> <span class="pre">400,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'Rfree':</span> <span class="pre">[1.03],</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'constructors':</span> <span class="pre">{'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_basic_CRRA_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.solving_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.simulation_defaults">
+<span class="sig-name descname"><span class="pre">simulation_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'T_age':</span> <span class="pre">None}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.simulation_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'model':</span> <span class="pre">'ConsPerfForesight.yaml',</span> <span class="pre">'params':</span> <span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'BoroCnstArt':</span> <span class="pre">None,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'MaxKinks':</span> <span class="pre">400,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'Rfree':</span> <span class="pre">[1.03],</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'constructors':</span> <span class="pre">{'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_basic_CRRA_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">-12.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15,</span> <span class="pre">'pLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'pLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'pLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solve_one_period_ConsPF&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['aNrm',</span> <span class="pre">'cNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'pLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_vary_">
+<span class="sig-name descname"><span class="pre">time_vary_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['LivPrb',</span> <span class="pre">'PermGroFac',</span> <span class="pre">'Rfree']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_vary_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'MaxKinks',</span> <span class="pre">'BoroCnstArt']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['kNrm',</span> <span class="pre">'pLvl',</span> <span class="pre">'bNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'aNrm',</span> <span class="pre">'aLvl']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.state_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.shock_vars_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.distributions">
+<span class="sig-name descname"><span class="pre">distributions</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['kNrmInitDstn',</span> <span class="pre">'pLvlInitDstn']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.distributions" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.pre_solve" title="Link to this definition">#</a></dt>
+<dd><p>Method that is run automatically just before solution by backward iteration.
+Solves the (trivial) terminal period and does a quick check on the borrowing
+constraint and MaxKinks attribute (only relevant in constrained, infinite
+horizon problems).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.post_solve">
+<span class="sig-name descname"><span class="pre">post_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.post_solve" title="Link to this definition">#</a></dt>
+<dd><p>Method that is run automatically at the end of a call to solve. Here, it
+simply calls calc_stable_points() if appropriate: an infinite horizon
+problem with a single repeated period in its cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_restrictions">
+<span class="sig-name descname"><span class="pre">check_restrictions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_restrictions" title="Link to this definition">#</a></dt>
+<dd><p>A method to check that various restrictions are met for the model class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.initialize_sim" title="Link to this definition">#</a></dt>
+<dd><p>Prepares this AgentType for a new simulation.  Resets the internal random number generator,
+makes initial states for all agents (using sim_birth), clears histories of tracked variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_birth" title="Link to this definition">#</a></dt>
+<dd><p>Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
+well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
+are drawn from lognormal distributions given by kLogInitMean and kLogInitStd (etc).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.AgentCount indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_death">
+<span class="sig-name descname"><span class="pre">sim_death</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_death" title="Link to this definition">#</a></dt>
+<dd><p>Determines which agents die this period and must be replaced.  Uses the sequence in LivPrb
+to determine survival probabilities for each agent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>which_agents</strong> – Boolean array of size AgentCount indicating which agents die.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array(<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Finds permanent and transitory income “shocks” for each agent this period.  As this is a
+perfect foresight model, there are no stochastic shocks: PermShkNow = PermGroFac for each
+agent (according to their t_cycle) and TranShkNow = 1.0 for all agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_Rport">
+<span class="sig-name descname"><span class="pre">get_Rport</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_Rport" title="Link to this definition">#</a></dt>
+<dd><p>Returns an array of size self.AgentCount with Rfree in every entry,
+representing the risk-free portfolio return</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RfreeNow</strong> – Array of size self.AgentCount with risk free interest rate for each agent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.transition">
+<span class="sig-name descname"><span class="pre">transition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.transition" title="Link to this definition">#</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>None</strong></p></li>
+<li><p><strong>[</strong><strong>Eventually</strong></p></li>
+<li><p><strong>spec</strong> (<em>to match dolo</em>)</p></li>
+<li><p><strong>exogenous_prev</strong></p></li>
+<li><p><strong>endogenous_prev</strong></p></li>
+<li><p><strong>controls</strong></p></li>
+<li><p><strong>exogenous</strong></p></li>
+<li><p><strong>parameters</strong><strong>]</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>endogenous_state</strong> – Tuple with new values of the endogenous states</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_controls" title="Link to this definition">#</a></dt>
+<dd><p>Calculates consumption for each consumer of this type using the consumption functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_poststates">
+<span class="sig-name descname"><span class="pre">get_poststates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_poststates" title="Link to this definition">#</a></dt>
+<dd><p>Calculates end-of-period assets for each consumer of this type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.log_condition_result">
+<span class="sig-name descname"><span class="pre">log_condition_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.log_condition_result" title="Link to this definition">#</a></dt>
+<dd><p>Records the result of one condition check in the attribute condition_report
+of the bilt dictionary, and in the message log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>string</em><em> or </em><em>None</em>) – Name for the condition; if None, no test result is added to conditions.</p></li>
+<li><p><strong>result</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – An indicator for whether the condition was passed.</p></li>
+<li><p><strong>message</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – The messages to record about the condition check.</p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Indicator for whether verbose messages should be included in the report.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_AIC">
+<span class="sig-name descname"><span class="pre">check_AIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_AIC" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Absolute Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_GICRaw">
+<span class="sig-name descname"><span class="pre">check_GICRaw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_GICRaw" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Growth Impatience Condition for the Perfect Foresight model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_RIC">
+<span class="sig-name descname"><span class="pre">check_RIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_RIC" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Return Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FHWC">
+<span class="sig-name descname"><span class="pre">check_FHWC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FHWC" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Finite Human Wealth Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FVAC">
+<span class="sig-name descname"><span class="pre">check_FVAC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FVAC" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Finite Value of Autarky Condition under perfect foresight.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.describe_parameters">
+<span class="sig-name descname"><span class="pre">describe_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.describe_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Make a string describing this instance’s parameter values, including their
+representation in code and symbolically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>param_desc</strong> – Description of parameters as a unicode string.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.calc_limiting_values">
+<span class="sig-name descname"><span class="pre">calc_limiting_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.calc_limiting_values" title="Link to this definition">#</a></dt>
+<dd><p>Compute various scalar values that are relevant to characterizing the
+solution to an infinite horizon problem. This method should only be called
+when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+This method adds the following values to the instance in the dictionary
+attribute called bilt.</p>
+<p>APFac : Absolute Patience Factor
+GPFacRaw : Growth Patience Factor
+FHWFac : Finite Human Wealth Factor
+RPFac : Return Patience Factor
+PFVAFac : Perfect Foresight Value of Autarky Factor
+cNrmPDV : Present Discounted Value of Autarky Consumption
+MPCmin : Limiting minimum MPC as market resources go to infinity
+MPCmax : Limiting maximum MPC as market resources approach minimum level.
+hNrm : Human wealth divided by permanent income.
+Delta_mNrm_ZeroFunc : Linear consumption function where expected change in market resource ratio is zero
+BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_conditions" title="Link to this definition">#</a></dt>
+<dd><p>This method checks whether the instance’s type satisfies the
+Absolute Impatience Condition (AIC), the Return Impatience Condition (RIC),
+the Finite Human Wealth Condition (FHWC), the perfect foresight model’s
+Growth Impatience Condition (GICRaw) and Perfect Foresight Finite Value
+of Autarky Condition (FVACPF). Depending on the configuration of parameter
+values, somecombination of these conditions must be satisfied in order
+for the problem to have a nondegenerate solution. To check which conditions
+are required, in the verbose mode a reference to the relevant theoretical
+literature is made.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>boolean</em>) – Specifies different levels of verbosity of feedback. When False, it
+only reports whether the instance’s type fails to satisfy a particular
+condition. When True, it reports all results, i.e. the factor values
+for all conditions.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.calc_stable_points">
+<span class="sig-name descname"><span class="pre">calc_stable_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.calc_stable_points" title="Link to this definition">#</a></dt>
+<dd><p>If the problem is one that satisfies the conditions required for target ratios of different
+variables to permanent income to exist, and has been solved to within the self-defined
+tolerance, this method calculates the target values of market resources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>force</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Indicator for whether the method should be forced to be run even if
+the agent seems to be the wrong type. Default is False.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">IndShockConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pseudo_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">construct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType" title="HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code></a></p>
+<p>A consumer type with idiosyncratic shocks to permanent and transitory income.
+Their problem is defined by a sequence of income distributions, survival probabilities
+(<span class="math notranslate nohighlight">\(\mathsf{S}\)</span>), and permanent income growth rates (<span class="math notranslate nohighlight">\(\Gamma\)</span>), as well
+as time invariant values for risk aversion (<span class="math notranslate nohighlight">\(\rho\)</span>), discount factor (<span class="math notranslate nohighlight">\(\beta\)</span>),
+the interest rate (<span class="math notranslate nohighlight">\(\mathsf{R}\)</span>), the grid of end-of-period assets, and an artificial
+borrowing constraint (<span class="math notranslate nohighlight">\(\underline{a}\)</span>).</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\newcommand{\CRRA}{\rho}
+\newcommand{\LivPrb}{\mathsf{S}}
+\newcommand{\PermGroFac}{\Gamma}
+\newcommand{\Rfree}{\mathsf{R}}
+\newcommand{\DiscFac}{\beta}
+\begin{align*}
+v_t(m_t) &amp;= \max_{c_t}u(c_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+&amp; \text{s.t.}  \\
+a_t &amp;= m_t - c_t, \\
+a_t &amp;\geq \underline{a}, \\
+m_{t+1} &amp;= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+(\psi_{t+1},\theta_{t+1}) &amp;\sim F_{t+1}, \\
+\mathbb{E}[\psi]=\mathbb{E}[\theta] &amp;= 1, \\
+u(c) &amp;= \frac{c^{1-\CRRA}}{1-\CRRA}.
+\end{align*}\end{split}\]</div>
+<dl class="field-list">
+<dt class="field-odd">Constructors<span class="colon">:</span></dt>
+<dd class="field-odd"><ul>
+<li><p><strong>IncShkDstn</strong> (Constructor, <span class="math notranslate nohighlight">\(\psi\)</span>, <span class="math notranslate nohighlight">\(\theta\)</span>) – The agent’s income shock distributions.</p>
+<p>Its default constructor is <a class="reference internal" href="../tools/incomeprocess.html#HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment" title="HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment"><code class="xref py py-func docutils literal notranslate"><span class="pre">HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment()</span></code></a></p>
+</li>
+<li><p><strong>aXtraGrid</strong> (<em>Constructor</em>) – The agent’s asset grid.</p>
+<p>Its default constructor is <a class="reference internal" href="../tools/utilities.html#HARK.utilities.make_assets_grid" title="HARK.utilities.make_assets_grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">HARK.utilities.make_assets_grid()</span></code></a></p>
+</li>
+</ul>
+</dd>
+<dt class="field-even">Solving Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>cycles</strong> (<em>int</em>) – 0 specifies an infinite horizon model, 1 specifies a finite model.</p></li>
+<li><p><strong>T_cycle</strong> (<em>int</em>) – Number of periods in the cycle for this agent type.</p></li>
+<li><p><strong>CRRA</strong> (float, <span class="math notranslate nohighlight">\(\rho\)</span>) – Coefficient of Relative Risk Aversion.</p></li>
+<li><p><strong>Rfree</strong> (float or list[float], time varying, <span class="math notranslate nohighlight">\(\mathsf{R}\)</span>) – Risk Free interest rate. Pass a list of floats to make Rfree time varying.</p></li>
+<li><p><strong>DiscFac</strong> (float, <span class="math notranslate nohighlight">\(\beta\)</span>) – Intertemporal discount factor.</p></li>
+<li><p><strong>LivPrb</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(1-\mathsf{D}\)</span>) – Survival probability after each period.</p></li>
+<li><p><strong>PermGroFac</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(\Gamma\)</span>) – Permanent income growth factor.</p></li>
+<li><p><strong>BoroCnstArt</strong> (float, <span class="math notranslate nohighlight">\(\underline{a}\)</span>) – The minimum Asset/Perminant Income ratio, None to ignore.</p></li>
+<li><p><strong>vFuncBool</strong> (<em>bool</em>) – Whether to calculate the value function during solution.</p></li>
+<li><p><strong>CubicBool</strong> (<em>bool</em>) – Whether to use cubic spline interpoliation.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Simulation Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul>
+<li><p><strong>AgentCount</strong> (<em>int</em>) – Number of agents of this kind that are created during simulations.</p></li>
+<li><p><strong>T_age</strong> (<em>int</em>) – Age after which to automatically kill agents, None to ignore.</p></li>
+<li><p><strong>T_sim</strong> (<em>int, required for simulation</em>) – Number of periods to simulate.</p></li>
+<li><p><strong>track_vars</strong> (<em>list[strings]</em>) – List of variables that should be tracked when running the simulation.
+For this agent, the options are ‘PermShk’, ‘TranShk’, ‘aLvl’, ‘aNrm’, ‘bNrm’, ‘cNrm’, ‘mNrm’, ‘pLvl’, and ‘who_dies’.</p>
+<p>PermShk is the agent’s permanent income shock</p>
+<p>TranShk is the agent’s transitory income shock</p>
+<p>aLvl is the nominal asset level</p>
+<p>aNrm is the normalized assets</p>
+<p>bNrm is the normalized resources without this period’s labor income</p>
+<p>cNrm is the normalized consumption</p>
+<p>mNrm is the normalized market resources</p>
+<p>pLvl is the permanent income level</p>
+<p>who_dies is the array of which agents died</p>
+</li>
+<li><p><strong>kLogInitMean</strong> (<em>float</em>) – Mean of Log initial Normalized Assets.</p></li>
+<li><p><strong>kLogInitStd</strong> (<em>float</em>) – Std of Log initial Normalized Assets.</p></li>
+<li><p><strong>pLogInitMean</strong> (<em>float</em>) – Mean of Log initial permanent income.</p></li>
+<li><p><strong>pLogInitStd</strong> (<em>float</em>) – Std of Log initial permanent income.</p></li>
+<li><p><strong>PermGroFacAgg</strong> (<em>float</em>) – Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).</p></li>
+<li><p><strong>PerfMITShk</strong> (<em>boolean</em>) – Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).</p></li>
+<li><p><strong>NewbornTransShk</strong> (<em>boolean</em>) – Whether Newborns have transitory shock.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><ul>
+<li><p><strong>solution</strong> (<em>list[Consumer solution object]</em>) – Created by the <code class="xref py py-func docutils literal notranslate"><span class="pre">solve()</span></code> method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.</p>
+<p>Visit <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution</span></code></a> for more information about the solution.</p>
+</li>
+<li><p><strong>history</strong> (<em>Dict[Array]</em>) – Created by running the <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate()</span></code> method.
+Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+Visit <a class="reference internal" href="../tools/core.html#HARK.core.AgentType.simulate" title="HARK.core.AgentType.simulate"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.AgentType.simulate</span></code></a> for more information.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.IncShkDstn_defaults">
+<span class="sig-name descname"><span class="pre">IncShkDstn_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'IncUnempRet':</span> <span class="pre">0.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.05,</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">0.005}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.IncShkDstn_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.aXtraGrid_defaults">
+<span class="sig-name descname"><span class="pre">aXtraGrid_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'aXtraCount':</span> <span class="pre">48,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">20,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">3}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.aXtraGrid_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.solving_defaults">
+<span class="sig-name descname"><span class="pre">solving_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'BoroCnstArt':</span> <span class="pre">0.0,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'CubicBool':</span> <span class="pre">False,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'Rfree':</span> <span class="pre">[1.03],</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'constructors':</span> <span class="pre">{'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_basic_CRRA_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False,</span> <span class="pre">'vFuncBool':</span> <span class="pre">False}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.solving_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.simulation_defaults">
+<span class="sig-name descname"><span class="pre">simulation_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.simulation_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'model':</span> <span class="pre">'ConsIndShock.yaml',</span> <span class="pre">'params':</span> <span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'BoroCnstArt':</span> <span class="pre">0.0,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'CubicBool':</span> <span class="pre">False,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'IncUnempRet':</span> <span class="pre">0.0,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'Rfree':</span> <span class="pre">[1.03],</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.05,</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">0.005,</span> <span class="pre">'aXtraCount':</span> <span class="pre">48,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">20,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">3,</span> <span class="pre">'constructors':</span> <span class="pre">{'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_basic_CRRA_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">-12.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False,</span> <span class="pre">'pLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'pLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'pLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False,</span> <span class="pre">'vFuncBool':</span> <span class="pre">False},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solve_one_period_ConsIndShock&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['aNrm',</span> <span class="pre">'cNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'pLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool',</span> <span class="pre">'aXtraGrid']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_vary_">
+<span class="sig-name descname"><span class="pre">time_vary_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['LivPrb',</span> <span class="pre">'PermGroFac',</span> <span class="pre">'Rfree',</span> <span class="pre">'IncShkDstn',</span> <span class="pre">'PermShkDstn',</span> <span class="pre">'TranShkDstn']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_vary_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['PermShk',</span> <span class="pre">'TranShk']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.shock_vars_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.distributions">
+<span class="sig-name descname"><span class="pre">distributions</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['IncShkDstn',</span> <span class="pre">'PermShkDstn',</span> <span class="pre">'TranShkDstn',</span> <span class="pre">'kNrmInitDstn',</span> <span class="pre">'pLvlInitDstn']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.distributions" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_income_process">
+<span class="sig-name descname"><span class="pre">update_income_process</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_income_process" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.get_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
+each period in the cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NewbornTransShk</strong> (<em>boolean</em><em>, </em><em>optional</em>) – Whether Newborns have transitory shock. The default is False.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.make_euler_error_func">
+<span class="sig-name descname"><span class="pre">make_euler_error_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approx_inc_dstn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.make_euler_error_func" title="Link to this definition">#</a></dt>
+<dd><p>Creates a “normalized Euler error” function for this instance, mapping
+from market resources to “consumption error per dollar of consumption.”
+Stores result in attribute eulerErrorFunc as an interpolated function.
+Has option to use approximate income distribution stored in self.IncShkDstn
+or to use a (temporary) very dense approximation.</p>
+<p>Only works on (one period) infinite horizon models at this time, will
+be generalized later.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum normalized market resources for the Euler error function.</p></li>
+<li><p><strong>approx_inc_dstn</strong> (<em>Boolean</em>) – Indicator for whether to use the approximate discrete income distri-
+bution stored in self.IncShkDstn[0], or to use a very accurate
+discrete approximation instead.  When True, uses approximation in
+IncShkDstn; when False, makes and uses a very dense approximation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method is not used by any other code in the library. Rather, it is here
+for expository and benchmarking purposes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.pre_solve" title="Link to this definition">#</a></dt>
+<dd><p>Method that is run automatically just before solution by backward iteration.
+Solves the (trivial) terminal period and does a quick check on the borrowing
+constraint and MaxKinks attribute (only relevant in constrained, infinite
+horizon problems).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.describe_parameters">
+<span class="sig-name descname"><span class="pre">describe_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.describe_parameters" title="Link to this definition">#</a></dt>
+<dd><p>Generate a string describing the primitive model parameters that will
+be used to calculating limiting values and factors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>param_desc</strong> – Description of primitive parameters.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_limiting_values">
+<span class="sig-name descname"><span class="pre">calc_limiting_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_limiting_values" title="Link to this definition">#</a></dt>
+<dd><p>Compute various scalar values that are relevant to characterizing the
+solution to an infinite horizon problem. This method should only be called
+when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+This method adds the following values to this instance in the dictionary
+attribute called bilt.</p>
+<p>APFac : Absolute Patience Factor
+GPFacRaw : Growth Patience Factor
+GPFacMod : Risk-Modified Growth Patience Factor
+GPFacLiv : Mortality-Adjusted Growth Patience Factor
+GPFacLivMod : Modigliani Mortality-Adjusted Growth Patience Factor
+GPFacSdl : Szeidl Growth Patience Factor
+FHWFac : Finite Human Wealth Factor
+RPFac : Return Patience Factor
+WRPFac : Weak Return Patience Factor
+PFVAFac : Perfect Foresight Value of Autarky Factor
+VAFac : Value of Autarky Factor
+cNrmPDV : Present Discounted Value of Autarky Consumption
+MPCmin : Limiting minimum MPC as market resources go to infinity
+MPCmax : Limiting maximum MPC as market resources approach minimum level
+hNrm : Human wealth divided by permanent income.
+ELogPermShk : Expected log permanent income shock
+WorstPrb : Probability of worst income shock realization
+Delta_mNrm_ZeroFunc : Linear locus where expected change in market resource ratio is zero
+BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICMod">
+<span class="sig-name descname"><span class="pre">check_GICMod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICMod" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Risk-Modified Growth Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICSdl">
+<span class="sig-name descname"><span class="pre">check_GICSdl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICSdl" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Szeidl variation of the Growth Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICHrm">
+<span class="sig-name descname"><span class="pre">check_GICHrm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICHrm" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Harmenberg variation of the Growth Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICLiv">
+<span class="sig-name descname"><span class="pre">check_GICLiv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICLiv" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Mortality-Adjusted Growth Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_FVAC">
+<span class="sig-name descname"><span class="pre">check_FVAC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_FVAC" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Finite Value of Autarky condition in the presence of income risk.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_WRIC">
+<span class="sig-name descname"><span class="pre">check_WRIC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_WRIC" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate and report on the Weak Return Impatience Condition.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_conditions" title="Link to this definition">#</a></dt>
+<dd><p>This method checks whether the instance’s type satisfies various conditions.
+When combinations of these conditions are satisfied, the solution to the
+problem exhibits different characteristics.  (For an exposition of the
+conditions, see <a class="reference external" href="https://econ-ark.github.io/BufferStockTheory/">https://econ-ark.github.io/BufferStockTheory/</a>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>boolean</em>) – Specifies different levels of verbosity of feedback. When False, it only reports whether the
+instance’s type fails to satisfy a particular condition. When True, it reports all results, i.e.
+the factor values for all conditions.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.</span></span><span class="sig-name descname"><span class="pre">KinkedRconsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pseudo_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">construct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType" title="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code></a></p>
+<p>A consumer type based on IndShockConsumerType, with different
+interest rates for saving (<span class="math notranslate nohighlight">\(\mathsf{R}_{save}\)</span>) and borrowing
+(<span class="math notranslate nohighlight">\(\mathsf{R}_{boro}\)</span>).</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\newcommand{\CRRA}{\rho}
+\newcommand{\DiePrb}{\mathsf{D}}
+\newcommand{\PermGroFac}{\Gamma}
+\newcommand{\Rfree}{\mathsf{R}}
+\newcommand{\DiscFac}{\beta}
+\begin{align*}
+v_t(m_t) &amp;= \max_{c_t} u(c_t) + \DiscFac (1-\DiePrb_{t+1})  \mathbb{E}_{t} \left[(\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+&amp; \text{s.t.}  \\
+a_t &amp;= m_t - c_t, \\
+a_t &amp;\geq \underline{a}, \\
+m_{t+1} &amp;= \Rfree_t/(\PermGroFac_{t+1} \psi_{t+1}) a_t + \theta_{t+1}, \\
+\Rfree_t &amp;= \begin{cases}
+\Rfree_{boro} &amp; \text{if } a_t &lt; 0\\
+\Rfree_{save} &amp; \text{if } a_t \geq 0,
+\end{cases}\\
+\Rfree_{boro} &amp;&gt; \Rfree_{save}, \\
+(\psi_{t+1},\theta_{t+1}) &amp;\sim F_{t+1}, \\
+\mathbb{E}[\psi]=\mathbb{E}[\theta] &amp;= 1.\\
+u(c) &amp;= \frac{c^{1-\CRRA}}{1-\CRRA} \\
+\end{align*}\end{split}\]</div>
+<dl class="field-list">
+<dt class="field-odd">Constructors<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>IncShkDstn</strong> (Constructor, <span class="math notranslate nohighlight">\(\psi\)</span>, <span class="math notranslate nohighlight">\(\theta\)</span>) – The agent’s income shock distributions.
+Its default constructor is <a class="reference internal" href="../tools/incomeprocess.html#HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment" title="HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment"><code class="xref py py-func docutils literal notranslate"><span class="pre">HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment()</span></code></a></p></li>
+<li><p><strong>aXtraGrid</strong> (<em>Constructor</em>) – The agent’s asset grid.
+Its default constructor is <a class="reference internal" href="../tools/utilities.html#HARK.utilities.make_assets_grid" title="HARK.utilities.make_assets_grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">HARK.utilities.make_assets_grid()</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Solving Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>cycles</strong> (<em>int</em>) – 0 specifies an infinite horizon model, 1 specifies a finite model.</p></li>
+<li><p><strong>T_cycle</strong> (<em>int</em>) – Number of periods in the cycle for this agent type.</p></li>
+<li><p><strong>CRRA</strong> (float, <span class="math notranslate nohighlight">\(\rho\)</span>) – Coefficient of Relative Risk Aversion.</p></li>
+<li><p><strong>Rboro</strong> (float, <span class="math notranslate nohighlight">\(\mathsf{R}_{boro}\)</span>) – Risk Free interest rate when assets are negative.</p></li>
+<li><p><strong>Rsave</strong> (float, <span class="math notranslate nohighlight">\(\mathsf{R}_{save}\)</span>) – Risk Free interest rate when assets are positive.</p></li>
+<li><p><strong>DiscFac</strong> (float, <span class="math notranslate nohighlight">\(\beta\)</span>) – Intertemporal discount factor.</p></li>
+<li><p><strong>LivPrb</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(1-\mathsf{D}\)</span>) – Survival probability after each period.</p></li>
+<li><p><strong>PermGroFac</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(\Gamma\)</span>) – Permanent income growth factor.</p></li>
+<li><p><strong>BoroCnstArt</strong> (float, <span class="math notranslate nohighlight">\(\underline{a}\)</span>) – The minimum Asset/Perminant Income ratio, None to ignore.</p></li>
+<li><p><strong>vFuncBool</strong> (<em>bool</em>) – Whether to calculate the value function during solution.</p></li>
+<li><p><strong>CubicBool</strong> (<em>bool</em>) – Whether to use cubic spline interpoliation.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Simulation Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul>
+<li><p><strong>AgentCount</strong> (<em>int</em>) – Number of agents of this kind that are created during simulations.</p></li>
+<li><p><strong>T_age</strong> (<em>int</em>) – Age after which to automatically kill agents, None to ignore.</p></li>
+<li><p><strong>T_sim</strong> (<em>int, required for simulation</em>) – Number of periods to simulate.</p></li>
+<li><p><strong>track_vars</strong> (<em>list[strings]</em>) – List of variables that should be tracked when running the simulation.
+For this agent, the options are ‘PermShk’, ‘TranShk’, ‘aLvl’, ‘aNrm’, ‘bNrm’, ‘cNrm’, ‘mNrm’, ‘pLvl’, and ‘who_dies’.</p>
+<p>PermShk is the agent’s permanent income shock</p>
+<p>TranShk is the agent’s transitory income shock</p>
+<p>aLvl is the nominal asset level</p>
+<p>aNrm is the normalized assets</p>
+<p>bNrm is the normalized resources without this period’s labor income</p>
+<p>cNrm is the normalized consumption</p>
+<p>mNrm is the normalized market resources</p>
+<p>pLvl is the permanent income level</p>
+<p>who_dies is the array of which agents died</p>
+</li>
+<li><p><strong>kLogInitMean</strong> (<em>float</em>) – Mean of Log initial Normalized Assets.</p></li>
+<li><p><strong>kLogInitStd</strong> (<em>float</em>) – Std of Log initial Normalized Assets.</p></li>
+<li><p><strong>pLogInitMean</strong> (<em>float</em>) – Mean of Log initial permanent income.</p></li>
+<li><p><strong>pLogInitStd</strong> (<em>float</em>) – Std of Log initial permanent income.</p></li>
+<li><p><strong>PermGroFacAgg</strong> (<em>float</em>) – Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).</p></li>
+<li><p><strong>PerfMITShk</strong> (<em>boolean</em>) – Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).</p></li>
+<li><p><strong>NewbornTransShk</strong> (<em>boolean</em>) – Whether Newborns have transitory shock.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><ul>
+<li><p><strong>solution</strong> (<em>list[Consumer solution object]</em>) – Created by the <code class="xref py py-func docutils literal notranslate"><span class="pre">solve()</span></code> method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.</p>
+<p>Visit <a class="reference internal" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution</span></code></a> for more information about the solution.</p>
+</li>
+<li><p><strong>history</strong> (<em>Dict[Array]</em>) – Created by running the <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate()</span></code> method.
+Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+Visit <a class="reference internal" href="../tools/core.html#HARK.core.AgentType.simulate" title="HARK.core.AgentType.simulate"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.AgentType.simulate</span></code></a> for more information.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.IncShkDstn_defaults">
+<span class="sig-name descname"><span class="pre">IncShkDstn_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'IncUnempRet':</span> <span class="pre">0.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.05,</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">0.005}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.IncShkDstn_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.aXtraGrid_defaults">
+<span class="sig-name descname"><span class="pre">aXtraGrid_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'aXtraCount':</span> <span class="pre">48,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">20,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">3}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.aXtraGrid_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.solving_defaults">
+<span class="sig-name descname"><span class="pre">solving_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'BoroCnstArt':</span> <span class="pre">None,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'CubicBool':</span> <span class="pre">False,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'Rboro':</span> <span class="pre">1.2,</span> <span class="pre">'Rsave':</span> <span class="pre">1.02,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'constructors':</span> <span class="pre">{'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_basic_CRRA_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False,</span> <span class="pre">'vFuncBool':</span> <span class="pre">False}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.solving_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.simulation_defaults">
+<span class="sig-name descname"><span class="pre">simulation_defaults</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.simulation_defaults" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'model':</span> <span class="pre">'ConsKinkedR.yaml',</span> <span class="pre">'params':</span> <span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'BoroCnstArt':</span> <span class="pre">None,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'CubicBool':</span> <span class="pre">False,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'IncUnempRet':</span> <span class="pre">0.0,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'Rboro':</span> <span class="pre">1.2,</span> <span class="pre">'Rsave':</span> <span class="pre">1.02,</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.05,</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">0.005,</span> <span class="pre">'aXtraCount':</span> <span class="pre">48,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">20,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">3,</span> <span class="pre">'constructors':</span> <span class="pre">{'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_basic_CRRA_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">-12.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False,</span> <span class="pre">'pLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'pLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'pLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False,</span> <span class="pre">'vFuncBool':</span> <span class="pre">False},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solve_one_period_ConsKinkedR&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['aNrm',</span> <span class="pre">'cNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'pLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool',</span> <span class="pre">'aXtraGrid',</span> <span class="pre">'Rboro',</span> <span class="pre">'Rsave']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.calc_bounding_values">
+<span class="sig-name descname"><span class="pre">calc_bounding_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.calc_bounding_values" title="Link to this definition">#</a></dt>
+<dd><p>Calculate human wealth plus minimum and maximum MPC in an infinite
+horizon model with only one period repeated indefinitely.  Store results
+as attributes of self.  Human wealth is the present discounted value of
+expected future income after receiving income this period, ignoring mort-
+ality.  The maximum MPC is the limit of the MPC as m –&gt; mNrmMin.  The
+minimum MPC is the limit of the MPC as m –&gt; infty.  This version deals
+with the different interest rates on borrowing vs saving.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.make_euler_error_func">
+<span class="sig-name descname"><span class="pre">make_euler_error_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approx_inc_dstn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.make_euler_error_func" title="Link to this definition">#</a></dt>
+<dd><p>Creates a “normalized Euler error” function for this instance, mapping
+from market resources to “consumption error per dollar of consumption.”
+Stores result in attribute eulerErrorFunc as an interpolated function.
+Has option to use approximate income distribution stored in self.IncShkDstn
+or to use a (temporary) very dense approximation.</p>
+<p>SHOULD BE INHERITED FROM ConsIndShockModel</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum normalized market resources for the Euler error function.</p></li>
+<li><p><strong>approx_inc_dstn</strong> (<em>Boolean</em>) – Indicator for whether to use the approximate discrete income distri-
+bution stored in self.IncShkDstn[0], or to use a very accurate
+discrete approximation instead.  When True, uses approximation in
+IncShkDstn; when False, makes and uses a very dense approximation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.get_Rport">
+<span class="sig-name descname"><span class="pre">get_Rport</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.get_Rport" title="Link to this definition">#</a></dt>
+<dd><p>Returns an array of size self.AgentCount with self.Rboro or self.Rsave in
+each entry, based on whether self.aNrmNow &gt;&lt; 0. This represents the risk-
+free portfolio return in this model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RfreeNow</strong> – Array of size self.AgentCount with risk free interest rate for each agent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.check_conditions" title="Link to this definition">#</a></dt>
+<dd><p>This empty method overwrites the version inherited from its parent class,
+IndShockConsumerType. The condition checks are not appropriate when Rfree
+has multiple values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="ConsHealthModel.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ConsHealthModel</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="ConsIndShockModelFast.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">ConsIndShockModelFast</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><code class="docutils literal notranslate"><span class="pre">ConsumerSolution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.distance_criteria"><code class="docutils literal notranslate"><span class="pre">ConsumerSolution.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution.append_solution"><code class="docutils literal notranslate"><span class="pre">ConsumerSolution.append_solution()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.solving_defaults"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.solving_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.simulation_defaults"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.simulation_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.default_"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_vary_"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.time_vary_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.state_vars"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.state_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.shock_vars_"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.shock_vars_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.distributions"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.distributions</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.pre_solve"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.pre_solve()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.post_solve"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.post_solve()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_restrictions"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_restrictions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.initialize_sim"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.initialize_sim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_birth"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.sim_birth()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.sim_death"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.sim_death()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_shocks"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.get_shocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_Rport"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.get_Rport()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.transition"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.transition()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_controls"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.get_controls()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.get_poststates"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.get_poststates()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.log_condition_result"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.log_condition_result()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_AIC"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_AIC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_GICRaw"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_GICRaw()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_RIC"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_RIC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FHWC"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_FHWC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_FVAC"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_FVAC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.describe_parameters"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.describe_parameters()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.calc_limiting_values"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.calc_limiting_values()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.check_conditions"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.check_conditions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.PerfForesightConsumerType.calc_stable_points"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType.calc_stable_points()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.IncShkDstn_defaults"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.IncShkDstn_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.aXtraGrid_defaults"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.aXtraGrid_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.solving_defaults"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.solving_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.simulation_defaults"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.simulation_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.default_"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.time_vary_"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.time_vary_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.shock_vars_"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.shock_vars_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.distributions"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.distributions</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.update_income_process"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.update_income_process()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.get_shocks"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.get_shocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.make_euler_error_func"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.make_euler_error_func()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.pre_solve"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.pre_solve()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.describe_parameters"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.describe_parameters()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.calc_limiting_values"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.calc_limiting_values()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICMod"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_GICMod()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICSdl"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_GICSdl()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICHrm"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_GICHrm()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_GICLiv"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_GICLiv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_FVAC"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_FVAC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_WRIC"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_WRIC()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType.check_conditions"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.check_conditions()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.IncShkDstn_defaults"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.IncShkDstn_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.aXtraGrid_defaults"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.aXtraGrid_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.solving_defaults"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.solving_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.simulation_defaults"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.simulation_defaults</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.default_"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.calc_bounding_values"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.calc_bounding_values()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.make_euler_error_func"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.make_euler_error_func()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.get_Rport"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.get_Rport()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsIndShockModel.KinkedRconsumerType.check_conditions"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType.check_conditions()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

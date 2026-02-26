@@ -1,0 +1,1264 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Making HA-SSJ Matrices with HARK &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/SequenceSpaceJacobians/SSJ-tutorial';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/SequenceSpaceJacobians/SSJ-tutorial.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Advanced Examples of HA-SSJ’s" href="SSJ-advanced-examples.html" />
+    <link rel="prev" title="The Sequence Space Jacobian (SSJ) method" href="SSJ_explanation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Making HA-SSJ Matrices with HARK</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb">examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="SSJ-tutorial.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Making-HA-SSJ-Matrices-with-HARK">
+<h1>Making HA-SSJ Matrices with HARK<a class="headerlink" href="#Making-HA-SSJ-Matrices-with-HARK" title="Link to this heading">#</a></h1>
+<section id="Background-on-HA-SSJs">
+<h2>Background on HA-SSJs<a class="headerlink" href="#Background-on-HA-SSJs" title="Link to this heading">#</a></h2>
+<p>HARK has functionality for constructing heterogeneous agent sequence space Jacobian (HA-SSJ) matrices for its various <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass. If you don’t know what an SSJ is, see “Using the Sequence-Space Jacobian to Solve and Estimate Heterogeneous-Agent Models” by Auclert, Bardoczy, Rognlie, and Straub (Ecma 2021); see also our overview notebook <a class="reference internal" href="SSJ_explanation.html"><span class="doc">here</span></a>.</p>
+<p>The very short version is that an HA-SSJ is the matrix of first derivatives of some HA model output with respect to some model input <em>across periods</em>. Suppose we are interested in some scalar <span class="math notranslate nohighlight">\(Y_t\)</span>– some outcome of the agents’ model– and how it changes with some model input <span class="math notranslate nohighlight">\(x_s\)</span> that can vary across time (both <span class="math notranslate nohighlight">\(t\)</span> and <span class="math notranslate nohighlight">\(s\)</span> are time subscripts). For example, <span class="math notranslate nohighlight">\(Y\)</span> might be average capital holdings, and <span class="math notranslate nohighlight">\(x\)</span> might be the interest factor. The HA-SSJ of <span class="math notranslate nohighlight">\(Y\)</span>
+with respect to <span class="math notranslate nohighlight">\(x\)</span> is a <span class="math notranslate nohighlight">\(T \times T\)</span> matrix denoted <span class="math notranslate nohighlight">\(\mathcal{J}^{Y,x}\)</span> for some time horizon <span class="math notranslate nohighlight">\(T\)</span>. Element <span class="math notranslate nohighlight">\(t,s\)</span> of the Jacobian represents the rate at which <span class="math notranslate nohighlight">\(Y_t\)</span> changes with a change in <span class="math notranslate nohighlight">\(x_s\)</span> if the agents learn this information at <span class="math notranslate nohighlight">\(t=0\)</span> when in some long run steady state.</p>
+<p>Collectively, all relevant HA-SSJs for a given model represent the dynamic behavior of aggregated microeconomic outcomes with respect to aggregate inputs <em>to first order</em>. In their paper, Auclert et al show that when combined with analogous objects at the economy level, HA-SSJs can be used to quickly compute model impulse responses with incredible accuracy. They also provide an efficient algorithm for calculating HA-SSJs for a wide class of microeconomic models. Econ-ARK has implemented their
+“fake news” algorithm in HARK, so that HA-SSJs can be automatically computed for <em>any and all</em> <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses (for which this is appropriate) with minimal user effort.</p>
+</section>
+<section id="A-First-Example">
+<h2>A First Example<a class="headerlink" href="#A-First-Example" title="Link to this heading">#</a></h2>
+<p>More details will be provided below, but let’s start with a very simple example. We’ll use <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, the canonical consumption-saving problem with a permanent-transitory income shocks structure (sometimes referred to as the “Friedman buffer stock” income process) and one risk free asset with return factor <code class="docutils literal notranslate"><span class="pre">Rfree</span></code>. In the code cells below, the SSJs for aggregate asset holdings (capital) and aggregate consumption are constructed with respect to the interest factor using the
+<code class="docutils literal notranslate"><span class="pre">make_basic_SSJ()</span></code> method.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import our AgentType subclass and basic tools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="c1"># Initialize an infinite horizon AgentType instance</span>
+<span class="n">MyType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Make a dictionary of grid specifications</span>
+<span class="n">assets_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">40.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">301</span><span class="p">,</span> <span class="s2">&quot;order&quot;</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">}</span>
+<span class="n">consumption_grid_spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">201</span><span class="p">}</span>
+<span class="n">my_grid_specs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;kNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">:</span> <span class="n">consumption_grid_spec</span><span class="p">}</span>
+
+
+<span class="c1"># Define a simple function for plotting SSJs</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_SSJ</span><span class="p">(</span><span class="n">jac</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">outcome</span><span class="p">,</span> <span class="n">shock</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">top</span> <span class="o">=</span> <span class="n">jac</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">t_max</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t_max</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">S</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="p">[</span><span class="n">S</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">jac</span><span class="p">[:,</span> <span class="n">s</span><span class="p">],</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;s=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;time $t$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;rate of change of &quot;</span> <span class="o">+</span> <span class="n">outcome</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;SSJ for &quot;</span> <span class="o">+</span> <span class="n">outcome</span> <span class="o">+</span> <span class="s2">&quot; with respect to &quot;</span> <span class="o">+</span> <span class="n">shock</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot; at time $s$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">top</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the SSJs and time it</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_r</span><span class="p">,</span> <span class="n">SSJ_C_r</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;cNrm&quot;</span><span class="p">],</span>
+    <span class="n">my_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Constructing those SSJs took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds in total.&quot;</span><span class="p">)</span>
+
+<span class="c1"># Plot some slices of the SSJs</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_K_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="s2">&quot;capital&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="n">plot_SSJ</span><span class="p">(</span><span class="n">SSJ_C_r</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">],</span> <span class="s2">&quot;consumption&quot;</span><span class="p">,</span> <span class="s2">&quot;interest factor&quot;</span><span class="p">,</span> <span class="n">t_max</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructing those SSJs took 12.001 seconds in total.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_3_1.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_3_1.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_3_2.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_3_2.png" />
+</div>
+</div>
+</section>
+<section id="Basic-SSJ-Functionality">
+<h2>Basic SSJ Functionality<a class="headerlink" href="#Basic-SSJ-Functionality" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> class (and thus its many subclasses) has a <code class="docutils literal notranslate"><span class="pre">make_basic_SSJ()</span></code> method. It is “basic” in the sense that it only works for “one period infinite horizon” models, as in the original Auclert et al paper. This just means that the same <em>kind</em> of period happens over and over again, with no lifecycle, as in a typical infinite horizon or perpetual youth model. In HARK terms, the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance <em>must</em> have <code class="docutils literal notranslate"><span class="pre">cycles=0</span></code> (infinite horizon) and <code class="docutils literal notranslate"><span class="pre">T_cycle=1</span></code> (one period repeated
+indefinitely), or the method will terminate with an error immediately.</p>
+<p>Suppose you have an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance called <code class="docutils literal notranslate"><span class="pre">ThisType</span></code>. When you call <code class="docutils literal notranslate"><span class="pre">ThisType.make_basic_SSJ()</span></code>, you <em>must</em> pass the following three arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">shock</span></code> : The name of the variable that the SSJ(s) will be computed with respect to; this is <span class="math notranslate nohighlight">\(x\)</span> from above. This doesn’t have to be a “shock” in the modeling sense of “a random variable that will realize at some point”, but it does have to be a parameter that affects the agent’s problem. See below for more.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outcomes</span></code> : The name (or a list of names) of outcome variables for which SSJs will be constructed; this is <span class="math notranslate nohighlight">\(Y\)</span> from above. These must be variables that are realized during model simulation, and the outcome of interest is their population average.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">grids</span></code> : A dictionary of <em>grid specifications</em> to be used. The keys of this dictionary are the names of model variables, including both arrival variables and outcomes of interest. The entries are dictionaries with grid information for that variable. If the variable is real-valued, then the dictionary should include a <code class="docutils literal notranslate"><span class="pre">min</span></code>, <code class="docutils literal notranslate"><span class="pre">max</span></code>, and <code class="docutils literal notranslate"><span class="pre">N</span></code>, and the grid will be equispaced by default; additionally specifying an <code class="docutils literal notranslate"><span class="pre">order</span></code> <span class="math notranslate nohighlight">\(&gt; 0\)</span> makes a polynomially spaced grid (higher orders have
+gridpoints more tightly clustered near the bottom). If the variable is discrete, then the dictionary needs only an <code class="docutils literal notranslate"><span class="pre">N</span></code> entry, and the values are assumed to be <span class="math notranslate nohighlight">\(0,..,N-1\)</span>. The user <em>must</em> provide grid specifications for all arrival variables (except one that is normalized with the “Harmenberg trick”, see below), as well as for any <code class="docutils literal notranslate"><span class="pre">outcomes</span></code> that are not continuation variables. If a named <code class="docutils literal notranslate"><span class="pre">outcome</span></code> is a continuation variable, (e.g. <code class="docutils literal notranslate"><span class="pre">aNrm</span></code>), then its grid specification is the same
+as the corresponding arrival variable (e.g. <code class="docutils literal notranslate"><span class="pre">kNrm</span></code>).</p></li>
+</ul>
+<p>You can also pass the following optional arguments, which have defaults in parentheses:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">eps</span></code> (0.0001) : The SSJ constructor uses one-sided first differences for computing derivatives. The <code class="docutils literal notranslate"><span class="pre">eps</span></code> input selects the amount by which to perturb <code class="docutils literal notranslate"><span class="pre">shock</span></code> when doing so.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_max</span></code> (300) : The time horizon of the SSJs, and thus the size of the square matrices that are generated. The method assumes that the model returns to the long run steady state at <span class="math notranslate nohighlight">\(t=T\)</span> and beyond. See Auclert et al for a discussion of how to select the time horizon.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">norm</span></code> (None) : The name of the model variable to normalize by for “Harmenberg aggregation”, if any. For many HARK models, this should be <code class="docutils literal notranslate"><span class="pre">'PermShk'</span></code>, which enables the grid over permanent income to be omitted as an explicit state. See discussion below for caveats.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">solved</span></code> (False) : Whether the agent’s long run problem has already been solved (by calling its <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method). Setting this to True is useful to save a little bit of time when computing SSJs for several shocks, as the long run model is the same for all of them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">offset</span></code> (False) : Whether the model input that is perturbed is “offset in time” and is actually indexed by <span class="math notranslate nohighlight">\(t+1\)</span> from HARK’s perspective. This usually includes anything that pertains to dynamics that happen at the <em>start</em> of a period, before the choice is made.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">construct</span></code> (True) : Whether the agent’s <code class="docutils literal notranslate"><span class="pre">construct</span></code> or <code class="docutils literal notranslate"><span class="pre">update</span></code> method should be called after the <code class="docutils literal notranslate"><span class="pre">shock</span></code> is updated. To be safe, this should be left at its default. A (very) small amount of time can be saved if the <code class="docutils literal notranslate"><span class="pre">shock</span></code> variable is a <em>direct</em> model input and not used to construct any other model inputs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code> (False) : Whether to print information about the method’s progress and timing to screen. When working with a new model, we recommend that you set this to <code class="docutils literal notranslate"><span class="pre">True</span></code> so that you can see a bit more about what’s happening.</p></li>
+</ul>
+</section>
+<section id="How-Do-I-Know-What-the-Model-Variables-Are-Called?">
+<h2>How Do I Know What the Model Variables Are Called?<a class="headerlink" href="#How-Do-I-Know-What-the-Model-Variables-Are-Called?" title="Link to this heading">#</a></h2>
+<p>To make an SSJ, the user needs to specify what <em>outcomes</em> they’re interested in and what variable is being perturbed (the “shock”); how are they supposed to know what these variables are called? Under the hood, the SSJ constructor uses a description of the model specified in a <em>model file</em> in HARK. To view information about the content of the model file, including descriptions of the various variables that are realized during simulation, just call the <code class="docutils literal notranslate"><span class="pre">describe_model()</span></code> method on your
+<code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance. <em>Any variable</em> (but not distributions or functions) named in the <code class="docutils literal notranslate"><span class="pre">SYMBOLS</span></code> section can have a grid specified for it and be an <code class="docutils literal notranslate"><span class="pre">outcome</span></code> variable.</p>
+<p>We said above that all real-valued arrival variables <em>must</em> have a grid specified. What’s an “arrival variable”? It’s an idiosyncratic variable that’s <em>inbound</em> into a period, existing at the <em>very start</em> of time <span class="math notranslate nohighlight">\(t\)</span>. For “newborn” agents who were just created, these values are initialized as specified in the <code class="docutils literal notranslate"><span class="pre">INITIALIZATION</span> <span class="pre">AT</span> <span class="pre">BIRTH</span></code> section. For other agents, arrival variables are “carried over” from the prior period’s continuation variables. In the model description, you should see
+all arrival variables set to <em>some</em> value (or drawn from a distribution) in the <code class="docutils literal notranslate"><span class="pre">INITIALIZATION</span></code> section. At the bottom, the <code class="docutils literal notranslate"><span class="pre">RELABELING</span> <span class="pre">/</span> <span class="pre">TWIST</span></code> section shows the relationships between continuation variables at <span class="math notranslate nohighlight">\(t-1\)</span> and arrival variables in <span class="math notranslate nohighlight">\(t\)</span> (for non-newborns).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get a description of the model</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">describe_model</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ConsIndShock: Consumption-saving model with permanent and transitory income shocks and a risk-free asset.
+
+----------------------------------
+%%%%%%%%%%%%% SYMBOLS %%%%%%%%%%%%
+----------------------------------
+kNrm (float)        : beginning of period capital, normalized by p_{t-1}
+pLvlPrev (float)    : inbound permanent income level, before growth
+yNrm (float)        : normalized labor income
+pLvl (float)        : permanent income level
+bNrm (float)        : normalized bank balances
+mNrm (float)        : normalized market resources
+cNrm (float)        : normalized consumption
+aNrm (float)        : normalized end-of-period assets
+live (bool)         : whether the agent survives
+Rfree (param)       : risk free return factor on assets
+PermGroFac (param)  : expected permanent income growth factor
+LivPrb (param)      : survival probability at end of period
+cFunc (func)        : consumption function over market resources
+IncShkDstn (dstn)   : joint distribution of permanent and transitory shocks
+pLvlInitDstn (dstn) : distribution of permanent income at model birth
+kNrmInitDstn (dstn) : distribution of normalized capital holdings at birth
+PermShk (float)     :
+TranShk (float)     :
+G (float)           :
+dead (bool)         : whether agent died this period
+t_seq (int)         : which period of the sequence the agent is on
+t_age (int)         : how many periods the agent has already lived for
+----------------------------------
+%%%%% INITIALIZATION AT BIRTH %%%%
+----------------------------------
+pLvlPrev ~ pLvlInitDstn : draw initial permanent income from distribution
+kNrm ~ kNrmInitDstn     : draw initial capital from distribution
+----------------------------------
+%%%% DYNAMICS WITHIN PERIOD t %%%%
+----------------------------------
+(PermShk,TranShk) ~ IncShkDstn : draw permanent and transitory income shocks
+yNrm = TranShk                 : normalized income is the transitory shock
+G = PermGroFac*PermShk         : calculate permanent income growth
+pLvl = pLvlPrev*G              : update permanent income level
+bNrm = Rfree*kNrm/G            : calculate normalized bank balances
+mNrm = bNrm+yNrm               : calculate normalized market resources
+cNrm = cFunc@(mNrm)            : evaluate consumption from market resources
+aNrm = mNrm-cNrm               : calculate normalized end-of-period assets
+live ~ {LivPrb}                : draw survival
+dead = 1-live                  : dead are non-survivors
+----------------------------------
+%%%%%%% RELABELING / TWIST %%%%%%%
+----------------------------------
+aNrm[t-1] &lt;---&gt; kNrm[t]
+pLvl[t-1] &lt;---&gt; pLvlPrev[t]
+-----------------------------------
+</pre></div></div>
+</div>
+</section>
+<section id="What-Can-Be-Used-As-a-Shock-Variable?">
+<h2>What Can Be Used As a Shock Variable?<a class="headerlink" href="#What-Can-Be-Used-As-a-Shock-Variable?" title="Link to this heading">#</a></h2>
+<p>Learning what can be used as a shock variable for an SSJ (the information that’s being perturbed) is a <em>little</em> more difficult. It’s tempting to look at the model description and assume that anything that’s listed as a <code class="docutils literal notranslate"><span class="pre">param</span></code> in the <code class="docutils literal notranslate"><span class="pre">SYMBOLS</span></code> section can be named as the <code class="docutils literal notranslate"><span class="pre">shock</span></code>, but that’s an oversimplification. You can choose as the <code class="docutils literal notranslate"><span class="pre">shock</span></code> any parameter that is real-valued, including those that live in a singleton list (say, because they’re time-varying). That includes <em>some</em> of the
+parameters listed in the model description, but not necessarily all… and it <em>also</em> includes a bunch of other parameters that don’t appear in the description anywhere!</p>
+<p>In HARK models, some parameters are “direct” in the sense that they are used literally as-is; the intertemporal discount factor <code class="docutils literal notranslate"><span class="pre">DiscFac</span></code> is (usually) simply specified as a real number, and that’s that. However, other parameters are “indirect” because they are used to construct <em>other</em> objects used by the model. For example, the default income shock process for <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> uses parameters called <code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code>, <code class="docutils literal notranslate"><span class="pre">TranShkStd</span></code>, <code class="docutils literal notranslate"><span class="pre">IncUnemp</span></code>, <code class="docutils literal notranslate"><span class="pre">UnempPrb</span></code>, etc. None of those
+parameters are named in the model description, but they are passed to a <em>constructor</em> function to build the contents of <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> at instantiation and whenever the <code class="docutils literal notranslate"><span class="pre">construct()</span></code> method is called. That constructor lives in the <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary attribute of each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance.</p>
+<p>A quick way to find the names of the inputs for a constructor function is to use the <code class="docutils literal notranslate"><span class="pre">get_arg_names</span></code> convenience function. To interpret those argument names, you might try using Python’s built-in <code class="docutils literal notranslate"><span class="pre">help</span></code> function, which prints an object’s docstring (if any). Most constructors used by HARK by default should have descriptive docstrings.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_arg_names</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">get_arg_names</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">constructors</span><span class="p">[</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&#39;T_cycle&#39;, &#39;PermShkStd&#39;, &#39;PermShkCount&#39;, &#39;TranShkStd&#39;, &#39;TranShkCount&#39;, &#39;T_retire&#39;, &#39;UnempPrb&#39;, &#39;IncUnemp&#39;, &#39;UnempPrbRet&#39;, &#39;IncUnempRet&#39;, &#39;RNG&#39;, &#39;neutral_measure&#39;)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">help</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">constructors</span><span class="p">[</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Help on function construct_lognormal_income_process_unemployment in module HARK.Calibration.Income.IncomeProcesses:
+
+construct_lognormal_income_process_unemployment(T_cycle, PermShkStd, PermShkCount, TranShkStd, TranShkCount, T_retire, UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet, RNG, neutral_measure=False)
+    Generates a list of discrete approximations to the income process for each
+    life period, from end of life to beginning of life.  Permanent shocks (:math:`\psi`) are mean
+    one lognormally distributed with standard deviation PermShkStd[t] during the
+    working life, and degenerate at 1 in the retirement period. Transitory shocks (:math:`\theta`)
+    are mean one lognormally distributed with a point mass at IncUnemp with
+    probability UnempPrb while working; they are mean one with a point mass at
+    IncUnempRet with probability UnempPrbRet.  Retirement occurs
+    after t=T_retire periods of working.
+
+    .. math::
+        \begin{align*}
+        \psi_t &amp;\sim \begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2,\textbf{PermShkStd}_{t}^{2})) &amp; \text{if } t \leq t_{\text{retire}}\\
+        1 &amp; \text{if } t &gt; t_{\text{retire}}
+        \end{cases}\\
+        p_{\text{unemp}} &amp; = \begin{cases}
+        \textbf{UnempPrb} &amp; \text{if } t \leq t_{\text{retire}} \\
+        \textbf{UnempPrbRet} &amp; \text{if } t &gt; t_{\text{retire}} \\
+        \end{cases}\\
+        &amp;\text{if } p &gt; p_{\text{unemp}} \\
+        \theta_t &amp;\sim\begin{cases}
+        \exp(\mathcal{N}(-\textbf{PermShkStd}_{t}^{2}/2-\ln(\frac{1-\textbf{IncUnemp }\textbf{UnempPrb}}{1-\textbf{UnempPrb}}),\textbf{PermShkStd}_{t}^{2})) &amp; \text{if } t\leq t_{\text{retire}}\\
+        \frac{1-\textbf{UnempPrbRet }\textbf{IncUnempRet}}{1-\textbf{UnempPrbRet}} &amp; \text{if } t &gt; t_{\text{retire}} \\
+        \end{cases}\\
+        &amp;\text{otherwise}\\
+        \theta_t &amp;\sim\begin{cases}
+        \textbf{IncUnemp} &amp; \text{if } t\leq t_{\text{retire}}\\
+        \textbf{IncUnempRet} &amp; \text{if } t\leq t_{\text{retire}}\\
+        \end{cases}\\
+        \mathbb{E}[\psi]&amp;=\mathbb{E}[\theta] = 1.\\
+        \end{align*}
+
+    All time in this function runs forward, from t=0 to t=T
+
+    Parameters
+    ----------
+    PermShkStd : [float]
+        List of standard deviations in log permanent income uncertainty during
+        the agent&#39;s life.
+    PermShkCount : int
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
+    TranShkStd : [float]
+        List of standard deviations in log transitory income uncertainty during
+        the agent&#39;s life.
+    TranShkCount : int
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
+    UnempPrb : float or [float]
+        The probability of becoming unemployed during the working period.
+    UnempPrbRet : float or None
+        The probability of not receiving typical retirement income when retired.
+    T_retire : int
+        The index value for the final working period in the agent&#39;s life.
+        If T_retire &lt;= 0 then there is no retirement.
+    IncUnemp : float or [float]
+        Transitory income received when unemployed.
+    IncUnempRet : float or None
+        Transitory income received while &#34;unemployed&#34; when retired.
+    T_cycle :  int
+        Total number of non-terminal periods in the consumer&#39;s sequence of periods.
+    RNG : np.random.RandomState
+        Random number generator for this type.
+    neutral_measure : bool
+        Indicator for whether the permanent-income-neutral measure should be used.
+
+    Returns
+    -------
+    IncShkDstn :  [distribution.Distribution]
+        A list with T_cycle elements, each of which is a
+        discrete approximation to the income process in a period.
+
+</pre></div></div>
+</div>
+<p>For more information about the constructors for your <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance, you can invoke its <code class="docutils literal notranslate"><span class="pre">describe_constructors()</span></code> method, optionally passing one or more constructed object names (passing no arguments will display information about all constructors). A checkmark means that the constructed object (or its corresponding requirement) means that it exists; an X means that it has not been constructed and does not exist, and an asterisk means that the input does not exist, but the constructor
+function has a specified default value for it.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">MyType</span><span class="o">.</span><span class="n">describe_constructors</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+✓ kNrmInitDstn : make_lognormal_kNrm_init_dstn
+    ✓ kLogInitMean
+    ✓ kLogInitStd
+    ✓ kNrmInitCount
+    ✓ RNG
+✓ pLvlInitDstn : make_lognormal_pLvl_init_dstn
+    ✓ pLogInitMean
+    ✓ pLogInitStd
+    ✓ pLvlInitCount
+    ✓ RNG
+✓ IncShkDstn : construct_lognormal_income_process_unemployment
+    ✓ T_cycle
+    ✓ PermShkStd
+    ✓ PermShkCount
+    ✓ TranShkStd
+    ✓ TranShkCount
+    ✓ T_retire
+    ✓ UnempPrb
+    ✓ IncUnemp
+    ✓ UnempPrbRet
+    ✓ IncUnempRet
+    ✓ RNG
+    ✓ neutral_measure
+✓ PermShkDstn : get_PermShkDstn_from_IncShkDstn
+    ✓ IncShkDstn
+    ✓ RNG
+✓ TranShkDstn : get_TranShkDstn_from_IncShkDstn
+    ✓ IncShkDstn
+    ✓ RNG
+✓ aXtraGrid : make_assets_grid
+    ✓ aXtraMin
+    ✓ aXtraMax
+    ✓ aXtraCount
+    ✓ aXtraExtra
+    ✓ aXtraNestFac
+✓ solution_terminal : make_basic_CRRA_solution_terminal
+    ✓ CRRA
+
+</pre></div></div>
+</div>
+<p>Any constructor inputs that are a single <code class="docutils literal notranslate"><span class="pre">float</span></code> or a singleton list of one <code class="docutils literal notranslate"><span class="pre">float</span></code> are eligible to be named as a <code class="docutils literal notranslate"><span class="pre">shock</span></code> variable. Note that in more complex models, some constructor arguments could be constructed by another constructor! In such cases, you might need to look at <em>another</em> constructor to find the “basic” or “primitive” parameter that you want to be your <code class="docutils literal notranslate"><span class="pre">shock</span></code>.</p>
+<p>To see which model objects have constructors, simply do <code class="docutils literal notranslate"><span class="pre">list(MyType.constructors.keys())</span></code>. If you want to know the names of the functions (and where their source code can be found), look at <code class="docutils literal notranslate"><span class="pre">MyType.constructors</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Constructed objects are:&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">constructors</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">MyType</span><span class="o">.</span><span class="n">constructors</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">constructors</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructed objects are: [&#39;kNrmInitDstn&#39;, &#39;pLvlInitDstn&#39;, &#39;IncShkDstn&#39;, &#39;PermShkDstn&#39;, &#39;TranShkDstn&#39;, &#39;aXtraGrid&#39;, &#39;solution_terminal&#39;]
+kNrmInitDstn : &lt;function make_lognormal_kNrm_init_dstn at 0x000001DD2ED9CF40&gt;
+pLvlInitDstn : &lt;function make_lognormal_pLvl_init_dstn at 0x000001DD2EE11120&gt;
+IncShkDstn : &lt;function construct_lognormal_income_process_unemployment at 0x000001DD2EE07880&gt;
+PermShkDstn : &lt;function get_PermShkDstn_from_IncShkDstn at 0x000001DD2EE07EC0&gt;
+TranShkDstn : &lt;function get_TranShkDstn_from_IncShkDstn at 0x000001DD2EE07F60&gt;
+aXtraGrid : &lt;function make_assets_grid at 0x000001DD2C791760&gt;
+solution_terminal : &lt;function make_basic_CRRA_solution_terminal at 0x000001DD2EE11A80&gt;
+</pre></div></div>
+</div>
+<p>One quick way to <em>more or less</em> get a list of all parameters that can be the <code class="docutils literal notranslate"><span class="pre">shock</span></code> is to look at your <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass’ default parameters, which are stored in the attribute <code class="docutils literal notranslate"><span class="pre">default_[&quot;params&quot;]</span></code>. Essentially every entry there that is a <code class="docutils literal notranslate"><span class="pre">float</span></code> or singleton list with one <code class="docutils literal notranslate"><span class="pre">float</span></code> can be a <code class="docutils literal notranslate"><span class="pre">shock</span></code> parameter. Of course, not all of them are <em>interesting</em> or <em>relevant</em> as a <code class="docutils literal notranslate"><span class="pre">shock</span></code>– we can’t imagine what it means economically for the lower bound of the <code class="docutils literal notranslate"><span class="pre">aNrm</span></code> grid (when solving)
+to change in the future!</p>
+<p>Moreover, a very small number of parameters that are otherwise eligible to be named as the <code class="docutils literal notranslate"><span class="pre">shock</span></code> should not be used in this way, because HARK’s solution methods assume that these parameters are constant within a person. The primary example of this is <code class="docutils literal notranslate"><span class="pre">CRRA</span></code>, the coefficient of relative risk aversion. We don’t think of this as something that can be changed by economic events in the future, but nothing <em>computationally</em> prevents a user from asking for SSJs with respect to <code class="docutils literal notranslate"><span class="pre">CRRA</span></code>. However,
+the output produced will be incorrect, and in some cases the finite horizon model solver might fail during the fake news algorithm.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">default_</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;constructors&quot;</span><span class="p">:</span>
+        <span class="k">continue</span>  <span class="c1"># skip this, it&#39;s shown above</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">default_</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PermShkStd : [0.1]
+PermShkCount : 7
+TranShkStd : [0.1]
+TranShkCount : 7
+UnempPrb : 0.05
+IncUnemp : 0.3
+T_retire : 0
+UnempPrbRet : 0.005
+IncUnempRet : 0.0
+kLogInitMean : -12.0
+kLogInitStd : 0.0
+kNrmInitCount : 15
+pLogInitMean : 0.0
+pLogInitStd : 0.0
+pLvlInitCount : 15
+aXtraMin : 0.001
+aXtraMax : 20
+aXtraNestFac : 3
+aXtraCount : 48
+aXtraExtra : None
+cycles : 1
+T_cycle : 1
+pseudo_terminal : False
+CRRA : 2.0
+Rfree : [1.03]
+DiscFac : 0.96
+LivPrb : [0.98]
+PermGroFac : [1.01]
+BoroCnstArt : 0.0
+vFuncBool : False
+CubicBool : False
+AgentCount : 10000
+T_age : None
+PermGroFacAgg : 1.0
+NewbornTransShk : False
+PerfMITShk : False
+neutral_measure : False
+</pre></div></div>
+</div>
+</section>
+<section id="How-Does-Permanent-Income-Normalization-Work-With-SSJs?">
+<h2>How Does Permanent Income Normalization Work With SSJs?<a class="headerlink" href="#How-Does-Permanent-Income-Normalization-Work-With-SSJs?" title="Link to this heading">#</a></h2>
+<p>Most models in HARK normalize all state and control variables by permanent income, because the model is homothetic with respect to it. E.g. agents care about the <em>ratio</em> of their market resources to their permanent income, and this is a sufficient statistic for choosing optimal normalized consumption (and thus optimal consumption by multiplying by their permanent income). Because SSJs are computed with respect to aggregate (average) outcomes, merely tracking the distribution of <em>normalized</em>
+state variables wouldn’t be enough, because the distribution of permanent income varies by normalized state, and we are interested in the distribution of outcomes in <em>levels</em>. We would need to track the joint distribution of (normalized) market resources and permanent income.</p>
+<p>Luckily, Karl Harmenberg came up with a way around this computational burden in “Aggregating heterogeneous-agent models with permanent income shocks” (JEDC 2021). In short, he showed that you can use a different probability measure over permanent income shocks, and the resulting distributions of “normalized” state variables will represent a <em>permanent income weighted</em> measure. That is, rather than tracking the mass of <em>people</em> who have a particular ratio of market resources to permanent income,
+the distribution instead tracks the mass of <em>permanent income</em> at that ratio. Hence aggregating this 1D distribution is sufficient to recover the average level of outcomes like consumption and asset holdings.</p>
+<p>Even better, applying the “Harmenberg trick” is trivial: simply multiply probabilities of permanent income realizations by their value, generating a “permanent income neutral” probability measure. HARK uses discretized approximations of continuous distributions, so this is as simple as multiplying the vector of atoms by the probability mass vector when conducting certain operations. Great!</p>
+<p>To apply “Harmenberg aggregation” when constructing SSJs, pass to the <code class="docutils literal notranslate"><span class="pre">norm</span></code> argument the name of the permanent income shock, which is <code class="docutils literal notranslate"><span class="pre">PermShk</span></code> in most (all?) HARK models. If you do, then you do <em>not</em> need to pass any grid specification for permanent income <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> (or <code class="docutils literal notranslate"><span class="pre">pLvlPrev</span></code>); the constructor will automatically make a dummy grid with one value. However, some caveats are warranted, as the Harmenberg trick is not universally applicable, and using it requires a small compromise with
+respect to the permanent income of newborn model agents.</p>
+<p>Most importantly, it can <em>only</em> be used with SSJs when the same <em>expected</em> permanent income growth factor applies to all agents (this is <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> in most HARK models). For example, with <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code>, the <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> <em>can</em> vary with the discrete state; if it does, then Harmenberg aggregation is <em>not</em> applicable, and you <em>must</em> explicitly track the distribution of permanent income. The <em>distribution</em> of permanent income shocks can vary by discrete states, <em>as long as</em> the shocks
+are mean one in all discrete states (e.g. a “low variance” state and a “high variance” state).</p>
+<p>An ancillary issue is that the expected permanent income growth factor (the “growth trend”) must be interpreted as coming from <em>macroeconomic</em> or <em>secular</em> growth, not <em>idiosyncratic</em> productivity growth. That is, if a model has <code class="docutils literal notranslate"><span class="pre">PermGroFac</span> <span class="pre">=</span> <span class="pre">1.01</span></code>, this must represent that (something like) TFP grows at a 1% rate per period, rather than each individual worker’s productivity growing at 1% per period because they are personally more experienced. In a model without death, this is a distinction
+without a difference. With mortality, however, it matters for the productivity of newborn agents who replace decedents: they must enter the model with the same <em>mean</em> permanent income as surviving agents, rather than “starting over” from some absolute baseline distribution.</p>
+<p>If your model specification requires a “personal productivity” interpretation of <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> (and there is death and replacement), then Harmenberg aggregation won’t work. Replacing decedents with newborns who have a different mean level of permanent income than surviors would be a violation of the growth trend being <em>universal</em>.</p>
+</section>
+<section id="What's-Going-On-Under-the-Hood?">
+<h2>What’s Going On Under the Hood?<a class="headerlink" href="#What's-Going-On-Under-the-Hood?" title="Link to this heading">#</a></h2>
+<p>This is all pretty neat, but this presentation mostly treated <code class="docutils literal notranslate"><span class="pre">make_basic_SSJ()</span></code> as a magic “black box”. In this section, we briefly de-mystify the structures underlying the processing of calculating sequence-space Jacobians.</p>
+<p>HARK has a new, developmental simulation structure that is intended to simplify and eventually replace the legacy “handwritten” simulation methods that it has had since its inception. Rather than write somewhat tedious code that extracts the right data for each period, the new simulation system reads a description of the model from a file and automatically handles the simulation process.</p>
+<p>A major upside of this system is that it enabled the automated generation of discretized “grid-based” representations of the solution to HARK models. The <code class="docutils literal notranslate"><span class="pre">solution</span></code> attribute of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> includes <em>functions</em> that map (usually) continuous state variables to (usually) continuous control variables, represented as (sometimes complicated) interpolants. In contrast, many other computational economists construct their “solutions” as arrays of discretized choices on a discretized state space.
+The new simulation system allows HARK to convert to this other representation, which in turn can be used to construct SSJs for most of our models.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">make_basic_SSJ()</span></code> is called, HARK makes a temporary representation of your agents’ model in the <code class="docutils literal notranslate"><span class="pre">_simulator</span></code> attribute, but throws it out just before returning results (see “black box” above). If you want to see some of the internal workings of what’s going on, just call <code class="docutils literal notranslate"><span class="pre">YourAgent.initialize_sym()</span></code> and then <code class="docutils literal notranslate"><span class="pre">YourAgent.make_transition_matrices(...)</span></code>, passing a dictionary of grid specifications to the latter, just as you would for <code class="docutils literal notranslate"><span class="pre">make_basic_SSJ()</span></code>.</p>
+<p>The first method builds the <code class="docutils literal notranslate"><span class="pre">_simulator</span></code> attribute for your agents; this enables the new simulation system via <code class="docutils literal notranslate"><span class="pre">symulate()</span></code> rather than <code class="docutils literal notranslate"><span class="pre">simulate()</span></code>, and will record Monte Carlo simulation results to the <code class="docutils literal notranslate"><span class="pre">hystory</span></code> dictionary (rather than <code class="docutils literal notranslate"><span class="pre">history</span></code>). The second method builds several attributes onto <code class="docutils literal notranslate"><span class="pre">_simulator</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">trans_arrays</span></code>: List of Markov matrices for transitioning from the arrival state space in period t to the arrival state space in t+1. This transition includes death (and replacement).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">newborn_dstn</span></code>: Stochastic vector as a NumPy array, representing the distribution of arrival states for “newborns” who were just initialized.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">state_grids</span></code>: Nested list of tuples representing the arrival state space for each period. Each element corresponds to the discretized arrival state space point with the same index in <code class="docutils literal notranslate"><span class="pre">trans_arrays</span></code> (and <code class="docutils literal notranslate"><span class="pre">newborn_dstn</span></code>). Arrival states are ordered within a tuple in the same order as the model file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outcome_arrays</span></code>: List of dictionaries of arrays that cast from the arrival state space to the grid of outcome variables, for each period. Doing <code class="docutils literal notranslate"><span class="pre">np.dot(state_dstn,</span> <span class="pre">outcome_arrays[t][var])</span></code> will yield the discretized distribution of that outcome variable.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outcome_grids</span></code>: List of dictionaries of discretized outcomes in each period. Keys are names of outcome variables, and entries are vectors of discretized values that the outcome variable can take on. Doing <code class="docutils literal notranslate"><span class="pre">np.dot(np.dot(state_dstn,</span> <span class="pre">outcome_arrays[var]),</span> <span class="pre">outcome_grids[var])</span></code> yields the <em>average</em> of that outcome in the population.</p></li>
+</ul>
+<p>You can look at and manipulate these objects to better understand how the discretized transitions and outcomes work when calculating SSJs for your model.</p>
+</section>
+<section id="Are-You-Sure-This-Thing-Works?">
+<h2>Are You Sure This Thing Works?<a class="headerlink" href="#Are-You-Sure-This-Thing-Works?" title="Link to this heading">#</a></h2>
+<p>The SSJ calculator involves a lot of moving parts, and a user might be skeptical that we have programmed it correctly. To try to alleviate these worries, we have provided a function that calculates the impulse responses of a change in a shock variable in future period <span class="math notranslate nohighlight">\(t=s\)</span>, which can be used to debug and verify the computed SSJs. That is, it essentially calculates <em>one column</em> of the SSJ matrices, and thus can be used as a comparison.</p>
+<p>The method <code class="docutils literal notranslate"><span class="pre">calc_impulse_response_manually()</span></code> works by <em>actually</em> making a <span class="math notranslate nohighlight">\(T\)</span>-period finite horizon copy of the infinite horizon agent, perturbing the information in their problem only in period <span class="math notranslate nohighlight">\(s\)</span>. It solves the model, simulates it using grid-based methods (i.e. by successive application of transition matrices on a discretized state space), and then calculates the change in the time path of outcomes relative to the steady state.</p>
+<p>The syntax for the method is identical to <code class="docutils literal notranslate"><span class="pre">make_basic_SSJ()</span></code> except for two small changes:</p>
+<ul class="simple">
+<li><p>The new argument <code class="docutils literal notranslate"><span class="pre">s</span></code> specifies the period in which the shock arrives (relative to <span class="math notranslate nohighlight">\(t=0\)</span>), with a default of <span class="math notranslate nohighlight">\(s=0\)</span>.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">construct</span></code> argument is now a list of strings naming the constructed objects that are changed when <code class="docutils literal notranslate"><span class="pre">shock</span></code> is perturbed, with a default of an empty list.</p></li>
+</ul>
+<p>As a first example, let’s calculate the response to consumption when the interest factor is perturbed at <span class="math notranslate nohighlight">\(s=100\)</span>, comparing it to the 100th column of the SSJ with respect to <code class="docutils literal notranslate"><span class="pre">Rfree</span></code> from above.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">s</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">dCdR</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">calc_impulse_response_manually</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;cNrm&quot;</span><span class="p">,</span>
+    <span class="n">my_grid_specs</span><span class="p">,</span>
+    <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Calculating an impulse response manually took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Calculating an impulse response manually took 5.378 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdR</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">SSJ_C_r</span><span class="p">[:,</span> <span class="n">s</span><span class="p">],</span> <span class="s2">&quot;--r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">301</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;time $t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_26_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_26_0.png" />
+</div>
+</div>
+<p>That looks like a tight match to me! As a second comparison exercise, let’s look at the impulse response of assets with respect to a change in permanent income risk in period <span class="math notranslate nohighlight">\(s=150\)</span>. In this case, the <code class="docutils literal notranslate"><span class="pre">shock</span></code> variable is <code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code>, but this parameter affects the constructed object <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code>, so we will name that in <code class="docutils literal notranslate"><span class="pre">construct</span></code>.</p>
+<p><strong>NB:</strong> The proper SSJ calculator doesn’t require you to name constructed objects, but this “simpler” direct approach does. Why is that? It’s complicated and has to do with memory usage. We might improve this in the near future.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SSJ_K_sigma_psi</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;aNrm&quot;</span><span class="p">,</span>
+    <span class="n">my_grid_specs</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Constructing that SSJ took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds in total.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Constructing that SSJ took 5.497 seconds in total.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">s</span> <span class="o">=</span> <span class="mi">150</span>
+<span class="n">dAds</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">calc_impulse_response_manually</span><span class="p">(</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;aNrm&quot;</span><span class="p">,</span>
+    <span class="n">my_grid_specs</span><span class="p">,</span>
+    <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span>
+    <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span>
+    <span class="n">construct</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">],</span>
+    <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">offset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Calculating that impulse response manually took </span><span class="si">{:.3f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Calculating that impulse response manually took 5.870 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dAds</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">SSJ_K_sigma_psi</span><span class="p">[:,</span> <span class="n">s</span><span class="p">],</span> <span class="s2">&quot;--r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">301</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;time $t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;assets $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_30_0.png" src="../../_images/examples_SequenceSpaceJacobians_SSJ-tutorial_30_0.png" />
+</div>
+</div>
+<p>Hey, nailed it again! Note that calculating impulse responses for <em>one particular</em> period manually takes about the same time as building the entire SSJ matrix. That’s because (other than a bit of matrix arithmetic at the end) the bulk of the computation is the same, only the methodology for computing derivatives is different. This shows just how efficient the fake news algorithm is!</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="SSJ_explanation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">The Sequence Space Jacobian (SSJ) method</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="SSJ-advanced-examples.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Advanced Examples of HA-SSJ’s</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Background-on-HA-SSJs">Background on HA-SSJs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#A-First-Example">A First Example</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Basic-SSJ-Functionality">Basic SSJ Functionality</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#How-Do-I-Know-What-the-Model-Variables-Are-Called?">How Do I Know What the Model Variables Are Called?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#What-Can-Be-Used-As-a-Shock-Variable?">What Can Be Used As a Shock Variable?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#How-Does-Permanent-Income-Normalization-Work-With-SSJs?">How Does Permanent Income Normalization Work With SSJs?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#What's-Going-On-Under-the-Hood?">What’s Going On Under the Hood?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Are-You-Sure-This-Thing-Works?">Are You Sure This Thing Works?</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

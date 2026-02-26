@@ -1,0 +1,1663 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Distribution &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/tools/distribution';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/tools/distribution.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Econforgeinterp" href="econforgeinterp.html" />
+    <link rel="prev" title="dcegm" href="dcegm.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dcegm.html">dcegm</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helpers.html">Helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interpolation.html">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsAggShockModel.html">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsHealthModel.html">ConsHealthModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsIndShockModel.html">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRiskyContribModel.html">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Distribution</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.distributions">
+<span id="distribution"></span><h1>Distribution<a class="headerlink" href="#module-HARK.distributions" title="Link to this heading">#</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">DiscreteDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pmv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.distributions.Distribution" title="HARK.distributions.base.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a></p>
+<p>A representation of a discrete probability distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pmv</strong> (<em>np.array</em>) – An array of floats representing a probability mass function.</p></li>
+<li><p><strong>atoms</strong> (<em>np.array</em>) – Discrete point values for each probability mass.
+For multivariate distributions, the last dimension of atoms must index
+“atom” or the random realization. For instance, if atoms.shape == (2,6,4),
+the random variable has 4 possible realizations and each of them has shape (2,6).</p></li>
+<li><p><strong>limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary with information about the continuous distribution from which
+this distribution was generated. The reference distribution is in the entry
+called ‘dist’.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.dim" title="Link to this definition">#</a></dt>
+<dd><p>Last dimension of self.atoms indexes “atom.”</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.draw_events">
+<span class="sig-name descname"><span class="pre">draw_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.draw_events" title="Link to this definition">#</a></dt>
+<dd><p>Draws N ‘events’ from the distribution PMF.
+These events are indices into atoms.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.draw">
+<span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.draw" title="Link to this definition">#</a></dt>
+<dd><p>Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of draws to simulate.</p></li>
+<li><p><strong>atoms</strong> (<em>None</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, or </em><em>np.array</em>) – If None, then use this distribution’s atoms for point values.
+If an int, then the index of atoms for the point values.
+If an np.array, use the array for the point values.</p></li>
+<li><p><strong>shuffle</strong> (<em>boolean</em>) – Whether the draws should “shuffle” the discrete distribution, matching
+proportions of outcomes as closely as possible to the probabilities given
+finite draws.  When True, returned draws are a random permutation of the
+N-length list that best fits the discrete distribution. When False
+(default), each draw is independent from the others and the result could
+deviate from the probabilities.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>draws</strong> – An array of draws from the discrete distribution; each element is a value in atoms.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.expected">
+<span class="sig-name descname"><span class="pre">expected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.expected" title="Link to this definition">#</a></dt>
+<dd><p>Expected value of a function, given an array of configurations of its
+inputs along with a DiscreteDistribution object that specifies the
+probability of each configuration.</p>
+<p>If no function is provided, it’s much faster to go straight to dot
+product instead of calling the dummy function.</p>
+<p>If a function is provided, we need to add one more dimension,
+the atom dimension, to any inputs that are n-dim arrays.
+This allows numpy to easily broadcast the function’s output.
+For more information on broadcasting, see:
+<a class="reference external" href="https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules">https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – The function to be evaluated.
+This function should take the full array of distribution values
+and return either arrays of arbitrary shape or scalars.
+It may also take other arguments *args.
+This function differs from the standalone <cite>calc_expectation</cite>
+method in that it uses numpy’s vectorization and broadcasting
+rules to avoid costly iteration.
+Note: If you need to use a function that acts on single outcomes
+of the distribution, consider <cite>distribution.calc_expectation</cite>.</p></li>
+<li><p><strong>*args</strong> – Other inputs for func, representing the non-stochastic arguments.
+The the expectation is computed at <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_exp</strong> – The expectation of the function at the queried values.
+Scalar if only one value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.dist_of_func">
+<span class="sig-name descname"><span class="pre">dist_of_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">func:</span> <span class="pre">~typing.Callable[[...],</span> <span class="pre">float]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">DiscreteDistribution.&lt;lambda&gt;&gt;,</span> <span class="pre">*args:</span> <span class="pre">~typing.Any</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.discrete.DiscreteDistribution"><span class="pre">DiscreteDistribution</span></a></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.dist_of_func" title="Link to this definition">#</a></dt>
+<dd><p>Finds the distribution of a random variable Y that is a function
+of discrete random variable atoms, Y=f(atoms).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – The function to be evaluated.
+This function should take the full array of distribution values.
+It may also take other arguments *args.</p></li>
+<li><p><strong>*args</strong> – Additional non-stochastic arguments for func,
+The function is computed as <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_dstn</strong> – The distribution of func(dstn).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.discrete.DiscreteDistribution"><span class="pre">DiscreteDistribution</span></a></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.discretize" title="Link to this definition">#</a></dt>
+<dd><p><cite>DiscreteDistribution</cite> is already an approximation, so this method
+returns a copy of the distribution.</p>
+<p>TODO: print warning message?</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistribution.make_univariate">
+<span class="sig-name descname"><span class="pre">make_univariate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim_to_keep</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.DiscreteDistribution.make_univariate" title="Link to this definition">#</a></dt>
+<dd><p>Make a univariate discrete distribution from this distribution, keeping
+only the specified dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dim_to_keep</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Index of the distribution to be kept. Any other dimensions will be
+“collapsed” into the univariate atoms, combining probabilities.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Seed for random number generator of univariate distribution</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>univariate_dstn</strong> – Univariate distribution with only the specified index.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">DiscreteDistributionLabeled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pmv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'DiscreteDistributionLabeled'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_attrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.discrete.DiscreteDistribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code></a></p>
+<p>A representation of a discrete probability distribution stored in an underlying <cite>xarray.Dataset</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pmv</strong> (<em>np.array</em>) – An array of values representing a probability mass function.</p></li>
+<li><p><strong>data</strong> (<em>np.array</em>) – Discrete point values for each probability mass.
+For multivariate distributions, the last dimension of atoms must index
+“atom” or the random realization. For instance, if atoms.shape == (2,6,4),
+the random variable has 4 possible realizations and each of them has shape (2,6).</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Name of the distribution.</p></li>
+<li><p><strong>attrs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Attributes for the distribution.</p></li>
+<li><p><strong>var_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Names of the variables in the distribution.</p></li>
+<li><p><strong>var_attrs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em> of </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Attributes of the variables in the distribution.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.from_unlabeled">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_unlabeled</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'DiscreteDistributionLabeled'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attrs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_attrs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.from_unlabeled" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.from_dataset">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pmf</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.from_dataset" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.variables">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">variables</span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.variables" title="Link to this definition">#</a></dt>
+<dd><p>A dict-like container of DataArrays corresponding to
+the variables of the distribution.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.name">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.name" title="Link to this definition">#</a></dt>
+<dd><p>The distribution’s name.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.attrs">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">attrs</span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.attrs" title="Link to this definition">#</a></dt>
+<dd><p>The distribution’s attributes.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.dist_of_func">
+<span class="sig-name descname"><span class="pre">dist_of_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">DiscreteDistributionLabeled.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.discrete.DiscreteDistribution"><span class="pre">DiscreteDistribution</span></a></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.dist_of_func" title="Link to this definition">#</a></dt>
+<dd><p>Finds the distribution of a random variable Y that is a function
+of discrete random variable atoms, Y=f(atoms).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – The function to be evaluated.
+This function should take the full array of distribution values.
+It may also take other arguments *args.</p></li>
+<li><p><strong>*args</strong> – Additional non-stochastic arguments for func,
+The function is computed as <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args)</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments for func. Must be xarray compatible
+in order to work with xarray broadcasting.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_dstn</strong> – The distribution of func(dstn).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a> or <a class="reference internal" href="#HARK.distributions.DiscreteDistributionLabeled" title="HARK.distributions.DiscreteDistributionLabeled">DiscreteDistributionLabeled</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.DiscreteDistributionLabeled.expected">
+<span class="sig-name descname"><span class="pre">expected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span></span><a class="headerlink" href="#HARK.distributions.DiscreteDistributionLabeled.expected" title="Link to this definition">#</a></dt>
+<dd><p>Expectation of a function, given an array of configurations of its inputs
+along with a DiscreteDistributionLabeled object that specifies the probability
+of each configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – The function to be evaluated.
+This function should take the full array of distribution values
+and return either arrays of arbitrary shape or scalars.
+It may also take other arguments *args.
+This function differs from the standalone <cite>calc_expectation</cite>
+method in that it uses numpy’s vectorization and broadcasting
+rules to avoid costly iteration.
+Note: If you need to use a function that acts on single outcomes
+of the distribution, consider <cite>distribution.calc_expectation</cite>.</p></li>
+<li><p><strong>*args</strong> – Other inputs for func, representing the non-stochastic arguments.
+The the expectation is computed at <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args)</span></code>.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, the function should use labeled indexing instead of integer
+indexing using the distribution’s underlying rv coordinates. For example,
+if <cite>dims = (‘rv’, ‘x’)</cite> and <cite>coords = {‘rv’: [‘a’, ‘b’], }</cite>, then
+the function can be <cite>lambda x: x[“a”] + x[“b”]</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_exp</strong> – The expectation of the function at the queried values.
+Scalar if only one value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.Distribution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">Distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Distribution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for all probability distributions
+with seed and random number generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Seed for random number generator.</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="HARK.distributions.Distribution.seed">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">seed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#HARK.distributions.Distribution.seed" title="Link to this definition">#</a></dt>
+<dd><p>Seed for random number generator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Seed.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Distribution.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#HARK.distributions.Distribution.reset" title="Link to this definition">#</a></dt>
+<dd><p>Reset the random number generator of this distribution.
+Resetting the seed will result in the same sequence of
+random numbers being generated.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Distribution.random_seed">
+<span class="sig-name descname"><span class="pre">random_seed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#HARK.distributions.Distribution.random_seed" title="Link to this definition">#</a></dt>
+<dd><p>Generate a new random seed derived from the random seed in this distribution.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Distribution.draw">
+<span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#HARK.distributions.Distribution.draw" title="Link to this definition">#</a></dt>
+<dd><p>Generate arrays of draws from this distribution.
+If input N is a number, output is a length N array of draws from the
+distribution. If N is a list, output is a length T list whose
+t-th entry is a length N array of draws from the distribution[t].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of draws in each row.</p></li>
+<li><p><strong>Returns</strong></p></li>
+<li><p><strong>------------</strong></p></li>
+<li><p><strong>draws</strong> (<em>np.array</em><em> or </em><em>[</em><em>np.array</em><em>]</em>) – T-length list of arrays of random variable draws each of size n, or
+a single array of size N (if sigma is a scalar).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Distribution.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'equiprobable'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoints</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><span class="pre">DiscreteDistribution</span></a></span></span><a class="headerlink" href="#HARK.distributions.Distribution.discretize" title="Link to this definition">#</a></dt>
+<dd><p>Discretize the distribution into N points using the specified method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points in the discretization.</p></li>
+<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Method for discretization, by default “equiprobable”</p></li>
+<li><p><strong>endpoints</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Whether to include endpoints in the discretization, by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>discretized_dstn</strong> – Discretized distribution.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#NotImplementedError" title="(in Python v3.14)"><strong>NotImplementedError</strong></a> – If method is not implemented for this distribution.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.IndexDistribution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">IndexDistribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distributions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RNG</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.IndexDistribution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.distributions.Distribution" title="HARK.distributions.base.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a></p>
+<p>This class provides a way to define a distribution that
+is conditional on an index.</p>
+<p>The current implementation combines a defined distribution
+class (such as Bernoulli, LogNormal, etc.) with information
+about the conditions on the parameters of the distribution.</p>
+<p>It can also wrap a list of pre-discretized distributions (previously
+provided by TimeVaryingDiscreteDistribution) and provide the same API.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>engine</strong> (<em>Distribution class</em>) – A Distribution subclass.</p></li>
+<li><p><strong>conditional</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Information about the conditional variation on the input parameters of the engine
+distribution. Keys should match the arguments to the engine class constructor.</p></li>
+<li><p><strong>distributions</strong> (<em>[</em><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a><em>]</em>) – Optional. A list of discrete distributions to wrap directly.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.distributions.IndexDistribution.conditional">
+<span class="sig-name descname"><span class="pre">conditional</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#HARK.distributions.IndexDistribution.conditional" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.distributions.IndexDistribution.engine">
+<span class="sig-name descname"><span class="pre">engine</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#HARK.distributions.IndexDistribution.engine" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.IndexDistribution.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.IndexDistribution.reset" title="Link to this definition">#</a></dt>
+<dd><p>Reset the random number generator of this distribution.
+Resetting the seed will result in the same sequence of
+random numbers being generated.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.IndexDistribution.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.IndexDistribution.discretize" title="Link to this definition">#</a></dt>
+<dd><p>Approximation of the distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<em>init</em>) – Number of discrete points to approximate
+continuous distribution into.</p></li>
+<li><p><strong>kwds</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Other keyword arguments passed to engine
+distribution approx() method.</p></li>
+<li><p><strong>Returns</strong></p></li>
+<li><p><strong>------------</strong></p></li>
+<li><p><strong>dists</strong> (<em>[</em><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a><em>] or </em><a class="reference internal" href="#HARK.distributions.IndexDistribution" title="HARK.distributions.IndexDistribution"><em>IndexDistribution</em></a>) – If parameterization is constant, returns a single DiscreteDistribution.
+If parameterization varies with index, returns an IndexDistribution in
+discrete-list mode, wrapping the corresponding discrete distributions.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.IndexDistribution.draw">
+<span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">condition</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.IndexDistribution.draw" title="Link to this definition">#</a></dt>
+<dd><p>Generate arrays of draws.
+The input is an array containing the conditions.
+The output is an array of the same length (axis 1 dimension)
+as the conditions containing random draws of the conditional
+distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>condition</strong> (<em>np.array</em>) – The input conditions to the distribution.</p></li>
+<li><p><strong>Returns</strong></p></li>
+<li><p><strong>------------</strong></p></li>
+<li><p><strong>draws</strong> (<em>np.array</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.Lognormal">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">Lognormal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Lognormal" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ContinuousFrozenDistribution</span></code></p>
+<p>A Lognormal distribution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more means of underlying normal distribution.
+Number of elements T in mu determines number of rows of output.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more standard deviations of underlying normal distribution.
+Number of elements T in sigma determines number of rows of output.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Lognormal.from_mean_std">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_mean_std</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Lognormal.from_mean_std" title="Link to this definition">#</a></dt>
+<dd><p>Construct a LogNormal distribution from its
+mean and standard deviation.</p>
+<p>This is unlike the normal constructor for the distribution,
+which takes the mu and sigma for the normal distribution
+that is the logarithm of the Log Normal distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mean</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more means.  Number of elements T in mu determines number
+of rows of output.</p></li>
+<li><p><strong>std</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more standard deviations. Number of elements T in sigma
+determines number of rows of output.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#HARK.distributions.LogNormal" title="HARK.distributions.LogNormal">LogNormal</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.distributions.LogNormal">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">LogNormal</span></span><a class="headerlink" href="#HARK.distributions.LogNormal" title="Link to this definition">#</a></dt>
+<dd><p>alias of <a class="reference internal" href="#HARK.distributions.Lognormal" title="HARK.distributions.continuous.Lognormal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lognormal</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.MeanOneLogNormal">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">MeanOneLogNormal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MeanOneLogNormal" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.distributions.Lognormal" title="HARK.distributions.continuous.Lognormal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Lognormal</span></code></a></p>
+<p>A Lognormal distribution with mean 1.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.Normal">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">Normal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Normal" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ContinuousFrozenDistribution</span></code></p>
+<p>A Normal distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more means.  Number of elements T in mu determines number
+of rows of output.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more standard deviations. Number of elements T in sigma
+determines number of rows of output.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Normal.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hermite'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Normal.discretize" title="Link to this definition">#</a></dt>
+<dd><p>For normal distributions, the Gauss-Hermite quadrature rule is
+used as the default method for discretization.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.MultivariateNormal">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">MultivariateNormal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[1,</span> <span class="pre">1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[[1,</span> <span class="pre">0],</span> <span class="pre">[0,</span> <span class="pre">1]]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MultivariateNormal" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">multivariate_normal_frozen</span></code>, <a class="reference internal" href="#HARK.distributions.Distribution" title="HARK.distributions.base.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a></p>
+<p>A Multivariate Normal distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu</strong> (<em>numpy array</em>) – Mean vector.</p></li>
+<li><p><strong>Sigma</strong> (<em>2-d numpy array. Each dimension must have length equal to that of</em>) – mu.
+Variance-covariance matrix.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.MultivariateNormal.discretize">
+<span class="sig-name descname"><span class="pre">discretize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hermite'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MultivariateNormal.discretize" title="Link to this definition">#</a></dt>
+<dd><p>For multivariate normal distributions, the Gauss-Hermite
+quadrature rule is used as the default method for discretization.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.MultivariateLogNormal">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">MultivariateLogNormal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[0.0,</span> <span class="pre">0.0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><span class="pre">List</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[[1.0,</span> <span class="pre">0.0],</span> <span class="pre">[0.0,</span> <span class="pre">1.0]]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MultivariateLogNormal" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">multi_rv_frozen</span></code>, <a class="reference internal" href="#HARK.distributions.Distribution" title="HARK.distributions.base.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a></p>
+<p>A Multivariate Lognormal distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>, </em><em>numpy.ndarray</em><em>]</em><em>, </em><em>optional</em>) – Means of underlying multivariate normal, default [0.0, 0.0].</p></li>
+<li><p><strong>Sigma</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>, </em><em>numpy.ndarray</em><em>]</em><em>, </em><em>optional</em>) – nxn variance-covariance matrix of underlying multivariate normal, default [[1.0, 0.0], [0.0, 1.0]].</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Seed for random number generator, default 0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.MultivariateLogNormal.mean">
+<span class="sig-name descname"><span class="pre">mean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MultivariateLogNormal.mean" title="Link to this definition">#</a></dt>
+<dd><p>Mean of the distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mean of the distribution.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.MultivariateLogNormal.rvs">
+<span class="sig-name descname"><span class="pre">rvs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MultivariateLogNormal.rvs" title="Link to this definition">#</a></dt>
+<dd><p>Random sample from the distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of data points to generate.</p></li>
+<li><p><strong>random_state</strong> (<em>optional</em>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Random sample from the distribution.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.Weibull">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">Weibull</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Weibull" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ContinuousFrozenDistribution</span></code></p>
+<p>A Weibull distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more scales.  Number of elements T in scale
+determines number of
+rows of output.</p></li>
+<li><p><strong>shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more shape parameters. Number of elements T in scale
+determines number of rows of output.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.Bernoulli">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">Bernoulli</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Bernoulli" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">DiscreteFrozenDistribution</span></code></p>
+<p>A Bernoulli distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Probability or probabilities of the event occurring (True).</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.Bernoulli.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Bernoulli.dim" title="Link to this definition">#</a></dt>
+<dd><p>Last dimension of self.atoms indexes “atom.”</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.approx_beta">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">approx_beta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.approx_beta" title="Link to this definition">#</a></dt>
+<dd><p>Calculate a discrete approximation to the beta distribution.  May be quite
+slow, as it uses a rudimentary numeric integration method to generate the
+discrete approximation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of discrete space vector to be returned.</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – First shape parameter (sometimes called alpha).</p></li>
+<li><p><strong>b</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Second shape parameter (sometimes called beta).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>d</strong> – Probability associated with each point in array of discrete
+points for discrete probability mass function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.make_markov_approx_to_normal">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">make_markov_approx_to_normal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">351</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.make_markov_approx_to_normal" title="Link to this definition">#</a></dt>
+<dd><p>Creates an approximation to a normal distribution with mean mu and standard
+deviation sigma, returning a stochastic vector called p_vec, corresponding
+to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
+of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_grid</strong> (<em>numpy.array</em>) – A sorted 1D array of floats representing discrete values that a normally
+distributed RV could take on.</p></li>
+<li><p><strong>mu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Mean of the normal distribution to be approximated.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Standard deviation of the normal distribution to be approximated.</p></li>
+<li><p><strong>K</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points in the normal distribution to sample.</p></li>
+<li><p><strong>bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Truncation bound of the normal distribution, as +/- bound*sigma.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>p_vec</strong> – A stochastic vector with probability weights for each x in x_grid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.make_markov_approx_to_normal_by_monte_carlo">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">make_markov_approx_to_normal_by_monte_carlo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_draws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.make_markov_approx_to_normal_by_monte_carlo" title="Link to this definition">#</a></dt>
+<dd><p>Creates an approximation to a normal distribution with mean mu and standard
+deviation sigma, by Monte Carlo.
+Returns a stochastic vector called p_vec, corresponding
+to values in x_grid.  If a RV is distributed x~N(mu,sigma), then the expectation
+of a continuous function f() is E[f(x)] = numpy.dot(p_vec,f(x_grid)).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_grid</strong> (<em>numpy.array</em>) – A sorted 1D array of floats representing discrete values that a normally
+distributed RV could take on.</p></li>
+<li><p><strong>mu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Mean of the normal distribution to be approximated.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Standard deviation of the normal distribution to be approximated.</p></li>
+<li><p><strong>N_draws</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of draws to use in Monte Carlo.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>p_vec</strong> – A stochastic vector with probability weights for each x in x_grid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.approx_lognormal_gauss_hermite">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">approx_lognormal_gauss_hermite</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.approx_lognormal_gauss_hermite" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.calc_expectation">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">calc_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.calc_expectation" title="Link to this definition">#</a></dt>
+<dd><p>Expectation of a function, given an array of configurations of its inputs
+along with a DiscreteDistribution object that specifies the probability
+of each configuration. Computation is performed by looping over each atom
+of the distribution and evaluating function one at a time. This approach is
+broadly compatible with any func, but is slow because of the loop.</p>
+<p>If func is relatively simple, and particularly if it does not involve array
+operations like tiling, reshaping, or logical indexing, consider using expected
+instead of calc_expectation. That function evaluates all atoms simultaneously,
+avoiding the costly loop, but with reduced compatibility with “complex” operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dstn</strong> (<a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a><em> or </em><a class="reference internal" href="#HARK.distributions.DiscreteDistributionLabeled" title="HARK.distributions.DiscreteDistributionLabeled"><em>DiscreteDistributionLabeled</em></a>) – The distribution over which the function is to be evaluated.</p></li>
+<li><p><strong>func</strong> (<em>function</em><em> or </em><em>None</em>) – The function to be evaluated. If dstn is a DiscreteDistribution, then this
+function should take an array of shape dstn.dim() and return either arrays
+of arbitrary shape or scalars. If dstn is a DiscreteDistributionLabeled, then
+the function should take an dictionary-like object (like an xr.dataset) and
+index into it with variable names. In either case, the function may also
+take other arguments *args. Defaults to identity function.</p></li>
+<li><p><strong>*args</strong> – Other inputs for func, representing the non-stochastic arguments.
+The expectation is computed at <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args,</span> <span class="pre">**kwargs)</span></code>.</p></li>
+<li><p><strong>*kwargs</strong> – Other keyword inputs for func, representing the non-stochastic arguments.
+The expectation is computed at <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args,</span> <span class="pre">**kwargs)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_exp</strong> – The expectation of the function at the queried values.
+Scalar if only one value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.calc_lognormal_style_pars_from_normal_pars">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">calc_lognormal_style_pars_from_normal_pars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu_normal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std_normal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.calc_lognormal_style_pars_from_normal_pars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.calc_normal_style_pars_from_lognormal_pars">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">calc_normal_style_pars_from_lognormal_pars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">avg_lognormal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std_lognormal</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.calc_normal_style_pars_from_lognormal_pars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.combine_indep_dstns">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">combine_indep_dstns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">distributions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.combine_indep_dstns" title="Link to this definition">#</a></dt>
+<dd><p>Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
+Can take multivariate discrete distributions as inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>distributions</strong> (<a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Arbitrary number of discrete distributions to combine. Their realizations must be
+vector-valued (for each D in distributions, it must be the case that len(D.dim())==1).</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Value to use as the RNG seed for the combined distribution, default is 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>A DiscreteDistribution representing the joint distribution of the given</em></p></li>
+<li><p><em>random variables.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.distr_of_function">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">distr_of_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.distr_of_function" title="Link to this definition">#</a></dt>
+<dd><p>Finds the distribution of a random variable Y that is a function
+of discrete random variable atoms, Y=f(atoms).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dstn</strong> (<a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – The distribution over which the function is to be evaluated.</p></li>
+<li><p><strong>func</strong> (<em>function</em>) – The function to be evaluated.
+This function should take an array of shape dstn.dim().
+It may also take other arguments *args.</p></li>
+<li><p><strong>*args</strong> – Additional non-stochastic arguments for func,
+The function is computed at <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_dstn</strong> – The distribution of func(dstn).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.expected">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">expected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.expected" title="Link to this definition">#</a></dt>
+<dd><p>Compute the expectation of a function, given an array of configurations of its
+inputs along with a DiscreteDistribution object that specifies the probability
+of each configuration.</p>
+<p>This approach will only work correctly with relatively simple functions that
+do not involve manipulation of arrays, including reshaping and tiling, etc.
+If the func you want to use has complex operations like this, use calc_expectation
+instead. It performs the same operation, but by looping over each atom in the
+distribution. In contrast, expected uses array operations and tries to compute
+all atoms simultaneously.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – The function to be evaluated. This function should take the full array of
+distribution values and return either arrays of arbitrary shape or scalars.
+It may also take other arguments <code class="docutils literal notranslate"><span class="pre">*args</span></code>. This function differs from the
+<cite>calc_expectation</cite> function in that it uses numpy’s vectorization and broad-
+casting rules to avoid costly iteration.
+Note: If you need to use a function that acts on single outcomes
+of the distribution, use <cite>distribution.calc_expectation</cite> instead.</p></li>
+<li><p><strong>dist</strong> (<a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a><em> or </em><a class="reference internal" href="#HARK.distributions.DiscreteDistributionLabeled" title="HARK.distributions.DiscreteDistributionLabeled"><em>DiscreteDistributionLabeled</em></a>) – The distribution over which the function is to be evaluated.</p></li>
+<li><p><strong>args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><em>tuple</em></a>) – Other inputs for func, representing the non-stochastic arguments.
+The expectation is computed at <code class="docutils literal notranslate"><span class="pre">f(dstn,</span> <span class="pre">*args)</span></code>.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, the function should use labeled indexing instead of integer
+indexing using the distribution’s underlying rv coordinates. For example,
+if <cite>dims = (‘rv’, ‘x’)</cite> and <cite>coords = {‘rv’: [‘a’, ‘b’], }</cite>, then
+the function can be <cite>lambda x: x[“a”] + x[“b”]</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>f_exp</strong> – The expectation of the function at the queried values.
+Scalar if only one value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or scalar</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.Uniform">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">Uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.Uniform" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ContinuousFrozenDistribution</span></code></p>
+<p>A Uniform distribution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more bottom values.
+Number of elements T in mu determines number
+of rows of output.</p></li>
+<li><p><strong>top</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em> or </em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – One or more top values.
+Number of elements T in top determines number of
+rows of output.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.distributions.MarkovProcess">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">MarkovProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transition_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MarkovProcess" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.distributions.Distribution" title="HARK.distributions.base.Distribution"><code class="xref py py-class docutils literal notranslate"><span class="pre">Distribution</span></code></a></p>
+<p>A representation of a discrete Markov process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transition_matrix</strong> (<em>np.array</em>) – An array of floats representing a probability mass for
+each state transition.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Seed for random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.distributions.MarkovProcess.transition_matrix">
+<span class="sig-name descname"><span class="pre">transition_matrix</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#HARK.distributions.MarkovProcess.transition_matrix" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.distributions.MarkovProcess.draw">
+<span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.MarkovProcess.draw" title="Link to this definition">#</a></dt>
+<dd><p>Draw new states fromt the transition matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em> or </em><em>nd.array</em>) – The state or states (1-D array) from which to draw new states.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>new_state</strong> – New states.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a> or nd.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.add_discrete_outcome">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">add_discrete_outcome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.add_discrete_outcome" title="Link to this definition">#</a></dt>
+<dd><p>Adds a discrete outcome of x with probability p to an existing distribution,
+holding constant the relative probabilities of other outcomes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>distribution</strong> (<a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – One-dimensional distribution to which the outcome is to be added.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The new value to be added to the distribution.</p></li>
+<li><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The probability of the discrete outcome x occuring.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>d</strong> – Probability associated with each point in array of discrete
+points for discrete probability mass function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.add_discrete_outcome_constant_mean">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">add_discrete_outcome_constant_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">distribution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.add_discrete_outcome_constant_mean" title="Link to this definition">#</a></dt>
+<dd><p>Adds a discrete outcome of x with probability p to an existing distribution,
+holding constant the relative probabilities of other outcomes and overall mean.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>distribution</strong> (<a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – A one-dimensional DiscreteDistribution.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The new value to be added to the distribution.</p></li>
+<li><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The probability of the discrete outcome x occuring.</p></li>
+<li><p><strong>sort</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Whether or not to sort atoms before returning it</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>d</strong> – Probability associated with each point in array of discrete
+points for discrete probability mass function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.distributions.make_tauchen_ar1">
+<span class="sig-prename descclassname"><span class="pre">HARK.distributions.</span></span><span class="sig-name descname"><span class="pre">make_tauchen_ar1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inflendpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.distributions.make_tauchen_ar1" title="Link to this definition">#</a></dt>
+<dd><p>Function to return a discretized version of an AR1 process.
+See <a class="reference external" href="http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf">http://www.fperri.net/TEACHING/macrotheory08/numerical.pdf</a> for details</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Size of discretized grid</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Standard deviation of the error term</p></li>
+<li><p><strong>ar_1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – AR1 coefficient</p></li>
+<li><p><strong>bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The highest (lowest) grid point will be bound (-bound) multiplied by the unconditional
+standard deviation of the process</p></li>
+<li><p><strong>inflendpoint</strong> (<em>Bool</em>) – <dl class="simple">
+<dt>If True: implement the standard method as in Tauchen (1986):</dt><dd><p>assign the probability of jumping to a point outside the grid to the closest endpoint</p>
+</dd>
+<dt>If False: implement an alternative method:</dt><dd><p>discard the probability of jumping to a point outside the grid, effectively
+reassigning it to the remaining points in proportion to their probability of being reached</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>y</strong> (<em>np.array</em>) – Grid points on which the discretized process takes values</p></li>
+<li><p><strong>trans_matrix</strong> (<em>np.array</em>) – Markov transition array for the discretized process</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="dcegm.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">dcegm</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="econforgeinterp.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Econforgeinterp</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.dim"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.dim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.draw_events"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.draw_events()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.draw"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.draw()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.expected"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.expected()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.dist_of_func"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.dist_of_func()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.discretize"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.discretize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistribution.make_univariate"><code class="docutils literal notranslate"><span class="pre">DiscreteDistribution.make_univariate()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.from_unlabeled"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.from_unlabeled()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.from_dataset"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.from_dataset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.variables"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.variables</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.name"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.name</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.attrs"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.attrs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.dist_of_func"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.dist_of_func()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.DiscreteDistributionLabeled.expected"><code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled.expected()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Distribution"><code class="docutils literal notranslate"><span class="pre">Distribution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Distribution.seed"><code class="docutils literal notranslate"><span class="pre">Distribution.seed</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Distribution.reset"><code class="docutils literal notranslate"><span class="pre">Distribution.reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Distribution.random_seed"><code class="docutils literal notranslate"><span class="pre">Distribution.random_seed()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Distribution.draw"><code class="docutils literal notranslate"><span class="pre">Distribution.draw()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Distribution.discretize"><code class="docutils literal notranslate"><span class="pre">Distribution.discretize()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.IndexDistribution"><code class="docutils literal notranslate"><span class="pre">IndexDistribution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.IndexDistribution.conditional"><code class="docutils literal notranslate"><span class="pre">IndexDistribution.conditional</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.IndexDistribution.engine"><code class="docutils literal notranslate"><span class="pre">IndexDistribution.engine</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.IndexDistribution.reset"><code class="docutils literal notranslate"><span class="pre">IndexDistribution.reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.IndexDistribution.discretize"><code class="docutils literal notranslate"><span class="pre">IndexDistribution.discretize()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.IndexDistribution.draw"><code class="docutils literal notranslate"><span class="pre">IndexDistribution.draw()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Lognormal"><code class="docutils literal notranslate"><span class="pre">Lognormal</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Lognormal.from_mean_std"><code class="docutils literal notranslate"><span class="pre">Lognormal.from_mean_std()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.LogNormal"><code class="docutils literal notranslate"><span class="pre">LogNormal</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MeanOneLogNormal"><code class="docutils literal notranslate"><span class="pre">MeanOneLogNormal</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Normal"><code class="docutils literal notranslate"><span class="pre">Normal</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Normal.discretize"><code class="docutils literal notranslate"><span class="pre">Normal.discretize()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MultivariateNormal"><code class="docutils literal notranslate"><span class="pre">MultivariateNormal</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MultivariateNormal.discretize"><code class="docutils literal notranslate"><span class="pre">MultivariateNormal.discretize()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MultivariateLogNormal"><code class="docutils literal notranslate"><span class="pre">MultivariateLogNormal</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MultivariateLogNormal.mean"><code class="docutils literal notranslate"><span class="pre">MultivariateLogNormal.mean()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MultivariateLogNormal.rvs"><code class="docutils literal notranslate"><span class="pre">MultivariateLogNormal.rvs()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Weibull"><code class="docutils literal notranslate"><span class="pre">Weibull</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Bernoulli"><code class="docutils literal notranslate"><span class="pre">Bernoulli</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Bernoulli.dim"><code class="docutils literal notranslate"><span class="pre">Bernoulli.dim()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.approx_beta"><code class="docutils literal notranslate"><span class="pre">approx_beta()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.make_markov_approx_to_normal"><code class="docutils literal notranslate"><span class="pre">make_markov_approx_to_normal()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.make_markov_approx_to_normal_by_monte_carlo"><code class="docutils literal notranslate"><span class="pre">make_markov_approx_to_normal_by_monte_carlo()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.approx_lognormal_gauss_hermite"><code class="docutils literal notranslate"><span class="pre">approx_lognormal_gauss_hermite()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.calc_expectation"><code class="docutils literal notranslate"><span class="pre">calc_expectation()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.calc_lognormal_style_pars_from_normal_pars"><code class="docutils literal notranslate"><span class="pre">calc_lognormal_style_pars_from_normal_pars()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.calc_normal_style_pars_from_lognormal_pars"><code class="docutils literal notranslate"><span class="pre">calc_normal_style_pars_from_lognormal_pars()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.combine_indep_dstns"><code class="docutils literal notranslate"><span class="pre">combine_indep_dstns()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.distr_of_function"><code class="docutils literal notranslate"><span class="pre">distr_of_function()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.expected"><code class="docutils literal notranslate"><span class="pre">expected()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.Uniform"><code class="docutils literal notranslate"><span class="pre">Uniform</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MarkovProcess"><code class="docutils literal notranslate"><span class="pre">MarkovProcess</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MarkovProcess.transition_matrix"><code class="docutils literal notranslate"><span class="pre">MarkovProcess.transition_matrix</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.MarkovProcess.draw"><code class="docutils literal notranslate"><span class="pre">MarkovProcess.draw()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.add_discrete_outcome"><code class="docutils literal notranslate"><span class="pre">add_discrete_outcome()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.add_discrete_outcome_constant_mean"><code class="docutils literal notranslate"><span class="pre">add_discrete_outcome_constant_mean()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.distributions.make_tauchen_ar1"><code class="docutils literal notranslate"><span class="pre">make_tauchen_ar1()</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

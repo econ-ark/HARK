@@ -1,0 +1,870 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Directory of Consumption-Saving Models &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/Model-List';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/Model-List.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Elements of an AgentType Subclass" href="AgentType-Intro.html" />
+    <link rel="prev" title="Numeric Methods Commonly Used in HARK" href="Methods-Intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Directory of Consumption-Saving Models</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Gentle-Intro/Model-List.ipynb">examples/Gentle-Intro/Model-List.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Gentle-Intro/Model-List.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Model-List.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Directory-of-Consumption-Saving-Models">
+<h1>Directory of Consumption-Saving Models<a class="headerlink" href="#Directory-of-Consumption-Saving-Models" title="Link to this heading">#</a></h1>
+<p>HARK has <em>many</em> consumption-saving models in several files in <code class="docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving</span></code>. This notebook provides a <a class="reference external" href="../../docs/images/directory_thumbnail.png">directory</a> of all of them, ordered (roughly) from the most basic to the most niche. We provide only brief textual descriptions of the models here. The full mathematical representation for each model can be found in its respective file and/or at the linked reference notebooks (links on <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> names).</p>
+<section id="ConsIndShockModel:-Models-With(out)-Idiosyncratic-Income-Risk-and-One-Risk-Free-Asset">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsIndShockModel</span></code>: Models With(out) Idiosyncratic Income Risk and One Risk-Free Asset<a class="headerlink" href="#ConsIndShockModel:-Models-With(out)-Idiosyncratic-Income-Risk-and-One-Risk-Free-Asset" title="Link to this heading">#</a></h2>
+<p>The model(s) that started it all! <code class="docutils literal notranslate"><span class="pre">ConsIndShockModel</span></code> has “canonical” consumption-saving models with the most fundamental / core assumptions. Most HARK models descend from the models here, in one way or another.</p>
+<p>Critically, these models are <em>permanent income normalized</em>: their state space and consumption function are expressed in terms of dollar values divided by permanent income. Actual <em>levels</em> can be recovered by multiplying by permanent income. Mathematically speaking, these models are homothetic with respect to permanent income.</p>
+<section id="PerfForesightConsumerType:-Consumption-saving-with-no-financial-risk-at-all">
+<h3><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code>: Consumption-saving with no financial risk at all<a class="headerlink" href="#PerfForesightConsumerType:-Consumption-saving-with-no-financial-risk-at-all" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html"><span class="doc">This class</span></a> represents consumers who can save in a single risk-free asset and who face mortality risk, but who face no income risk. Like all HARK models, these consumers have CRRA preferences over consumption and discount utility geometrically.</p>
+<p>The default parameters do not include a borrowing constraint, but the model <em>can</em> handle this feature and solve for the consumption function exactly (up to machine precision).</p>
+</section>
+<section id="IndShockConsumerType:-Consumption-saving-with-permanent-transitory-income-risk">
+<h3><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>: Consumption-saving with permanent-transitory income risk<a class="headerlink" href="#IndShockConsumerType:-Consumption-saving-with-permanent-transitory-income-risk" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html"><span class="doc">This class</span></a> is HARK’s core “workhorse” model, and the one for which the most theory work has been done. Agents in this model face iid income shocks each period, with two components: a fully <em>permanent</em> shock that affects their income in this period and all future periods, and a fully <em>transitory</em> component that only affects income this period.</p>
+<p>Chris Carroll has spent a lot of time pinning down the theoretical properties of this model, and HARK’s solver incorporates a lot of that mathematical material. Particularly, the consumption function will always obey theoretical constraints with respect to the perfect foresight solution, as well as boundary behavior as market resources go to their minimum level.</p>
+</section>
+<section id="KinkedRconsumerType:-Consumption-saving-with-a-higher-interest-rate-for-borrowing">
+<h3><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType</span></code>: Consumption-saving with a higher interest rate for borrowing<a class="headerlink" href="#KinkedRconsumerType:-Consumption-saving-with-a-higher-interest-rate-for-borrowing" title="Link to this heading">#</a></h3>
+<p>Agents in <a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html"><span class="doc">this class</span></a> face the exact same problem as those in <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> <em>except</em> that there is a higher interest rate for <em>borrow</em> than for <em>saving</em>. This creates two kinks in the consumption function, with a <span class="math notranslate nohighlight">\(c=m\)</span> segment in between.</p>
+<p>Notably, the first order condition does not hold with equality on the <span class="math notranslate nohighlight">\(c=m\)</span> segment. Instead, the marginal value of assets is too low to <em>save</em> any money, but it is also too high to <em>borrow</em> money.</p>
+</section>
+</section>
+<section id="GenIncProcessModel:-Non-Permanent-Income-Normalized-Models">
+<h2><code class="docutils literal notranslate"><span class="pre">GenIncProcessModel</span></code>: Non-Permanent-Income-Normalized Models<a class="headerlink" href="#GenIncProcessModel:-Non-Permanent-Income-Normalized-Models" title="Link to this heading">#</a></h2>
+<p>In this module, we lift the assumption of a permanent-transitory income shock structure and allow for a <em>generalized</em> income process. The key difference is that the permanent (or persistent) component of income now appears explicitly as a state variable in the policy function (and other components of the solution).</p>
+<section id="GenIncProcessConsumerType:-Generalized-income-processes">
+<h3><code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code>: Generalized income processes<a class="headerlink" href="#GenIncProcessConsumerType:-Generalized-income-processes" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html"><span class="doc">This class</span></a> is the base <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> for this module; the other subclasses only extend it by setting different default constructors.</p>
+<p>The permanent-income-normalizable income process is characterized by a sequence of expected permanent income growth factors and joint distributions of permanent and transitory income shocks. In contrast, the “general” income process is characterized by a sequence of “expected future income functions”. These map from current <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> values to succeeding period `pLvl’ values, as a general function.</p>
+<p>In this model, <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> isn’t “permanent” income <em>per se</em>, but instead a univariate measure of some semi-permanent or persistent component. The key restriction is that the <em>continuation-relevant</em> information has only one dimension after income shocks have been realized.</p>
+<p>For ease of compatibility, the two components of the income shock distribution are still labeled <code class="docutils literal notranslate"><span class="pre">TransShk</span></code> and <code class="docutils literal notranslate"><span class="pre">PermShk</span></code>, but the latter affects <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> multiplicatively, no matter the interpretation of <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> for your setting. The transitory shock is, of course, still fully transitory.</p>
+</section>
+<section id="IndShockExplicitPermIncConsumerType:-Workhorse-model-with-explicit-permanent-income">
+<h3><code class="docutils literal notranslate"><span class="pre">IndShockExplicitPermIncConsumerType</span></code>: Workhorse model with explicit permanent income<a class="headerlink" href="#IndShockExplicitPermIncConsumerType:-Workhorse-model-with-explicit-permanent-income" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html"><span class="doc">This class</span></a> is meant to reproduce the same model as <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, but maintains permanent income as an explicit state variable. This class mainly exists as a benchmark comparison.</p>
+<p>Note that the solution for this class will be <em>less accurate</em> than the analogous one for <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> because the grid of permanent income values is necessarily bounded, but actual permanent income can grow (or shrink!) without bound. Thus there is extrapolation error near the top and bottom of the permanent income grid, which propagates throughout the solution.</p>
+</section>
+<section id="PersistentShockConsumerType:-Consumption-saving-model-with-AR(1)-income-process">
+<h3><code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code>: Consumption-saving model with AR(1) income process<a class="headerlink" href="#PersistentShockConsumerType:-Consumption-saving-model-with-AR(1)-income-process" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html"><span class="doc">This class</span></a> is simply <code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code> with an AR(1) process (in logs) used for the persistent component of income. This model is good for working with highly persistent (but not permanent) income shocks. Because the model is not normalized, it can also be adapted to incorporate a realistic income tax structure and/or Social Security system.</p>
+<p>We think that reasonable values of the (annual) correlation or persistence coefficient are between 0.97 and 0.995, but we won’t judge any values that you use.</p>
+</section>
+</section>
+<section id="ConsMarkovModel:-Models-with-a-discrete-state-that-evolves-exogenously">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsMarkovModel</span></code>: Models with a discrete state that evolves exogenously<a class="headerlink" href="#ConsMarkovModel:-Models-with-a-discrete-state-that-evolves-exogenously" title="Link to this heading">#</a></h2>
+<p>This module has <a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html"><span class="doc">only one</span></a> <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass, <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code>, but it is arguably one of the most flexible models in HARK. It extends <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> by incorporating a discrete state that changes each period based on some Markov matrix.</p>
+<p>Most elements of the consumer’s problem can vary by discrete state, including the interest factor, expected permanent income growth, survival probability, and the distribution of income shocks.</p>
+<p>Depending on how you specify or parameterize the model, <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code> can represent many different kinds of models. It can be used to represent a model with persistent unemployment, or one whose income shock distribution has a more complicated structure than permanent-transitory. It can be used to solve models with persistent variation in returns to saving, or as a “cheap” measure of health with variable survival probabilities. There are many more strange and unusual specifications, as
+well.</p>
+</section>
+<section id="TractableBufferStockModel:-Illustrative-model-for-learning-consumption-theory">
+<h2><code class="docutils literal notranslate"><span class="pre">TractableBufferStockModel</span></code>: Illustrative model for learning consumption theory<a class="headerlink" href="#TractableBufferStockModel:-Illustrative-model-for-learning-consumption-theory" title="Link to this heading">#</a></h2>
+<p>Famously, consumption-saving models with income risk (and risk-averse agents) have no closed form solution form for their optimal consumption function prior to the terminal period. Some theoretical results to characterize the consumption function and how it changes with model parameters are fairly easy to derive and can be demonstrated for students, but others are significantly trickier.</p>
+<p>Chris Carroll developed the <a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html"><span class="doc">“tractable buffer stock” model</span></a> as a teaching tool for learning the theory of consumption-saving models. It has a very specific (and extreme) form of income uncertainty: the consumer faces a constant risk each period of becoming <em>permanently</em> unemployed and <em>never</em> receiving labor income again. Otherwise, their labor income grows by a constant factor.</p>
+<p>The model for <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code>s doesn’t <em>quite</em> have a closed form solution, but <em>more</em> of its characteristics and comparative statics can be derived on paper. Moreover, the solution method for <em>efficiently</em> constructing the consumption function is quite different to other HARK models. Broadly, the model is (more or less) only for teaching purposes, not for “serious” applied work.</p>
+</section>
+<section id="ConsRepAgentModel:-What's-this-doing-here?">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsRepAgentModel</span></code>: What’s this doing here?<a class="headerlink" href="#ConsRepAgentModel:-What's-this-doing-here?" title="Link to this heading">#</a></h2>
+<p>HARK is nominally for heterogeneous agents macroeconomics, but that can’t stop us from including a couple representative agent models anyway.</p>
+<section id="RepAgentConsumerType:-Basic-representative-agent-model">
+<h3><code class="docutils literal notranslate"><span class="pre">RepAgentConsumerType</span></code>: Basic representative agent model<a class="headerlink" href="#RepAgentConsumerType:-Basic-representative-agent-model" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html"><span class="doc">This class</span></a> is a bog standard macroeconomic model in which a representative agent allocates their resources between consumption retained assets, which are used as capital in the subsequent period. Labor supply is assumed to be exogenous, and the “income” shocks are re-interpreted as labor productivity shocks.</p>
+<p>The production technology is assumed to be Cobb-Douglas, and factor prices (wage rate and interest rate) are determined competitively as the marginal product of each factor.</p>
+</section>
+<section id="RepAgentMarkovConsumerType:-Representative-agent-model-with-a-discrete-state">
+<h3><code class="docutils literal notranslate"><span class="pre">RepAgentMarkovConsumerType</span></code>: Representative agent model with a discrete state<a class="headerlink" href="#RepAgentMarkovConsumerType:-Representative-agent-model-with-a-discrete-state" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html"><span class="doc">This class</span></a> extends the prior one by adding a discrete state with exogenous dynamics given by some Markov matrix. There are fewer model objects that vary with the discrete state as compared to <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code>, as there is no death in the model and the interest rate is endogenous.</p>
+<p>The distribution of labor productivity shocks and the expected growth rate of labor productivity are the only things that can vary by the discrete state. The model can easily be extended to allow the capital depreciation factor and capital’s share of production to also vary.</p>
+</section>
+</section>
+<section id="ConsAggShockModel:-Aggregate-Shocks-and-general-equilibrium">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsAggShockModel</span></code>: Aggregate Shocks and general equilibrium<a class="headerlink" href="#ConsAggShockModel:-Aggregate-Shocks-and-general-equilibrium" title="Link to this heading">#</a></h2>
+<p>This is the main module for <em>proper</em> heterogeneous agents macroeconomic models in HARK, and a good follow-up to the <code class="docutils literal notranslate"><span class="pre">RepAgentModel</span></code>. These models involve both idiosyncratic <em>and</em> aggregate productivity shocks, thus the name of the module.</p>
+<section id="AggShockConsumerType:-Standard-model-with-aggregate-and-idiosyncratic-income-shocks">
+<h3><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code>: Standard model with aggregate and idiosyncratic income shocks<a class="headerlink" href="#AggShockConsumerType:-Standard-model-with-aggregate-and-idiosyncratic-income-shocks" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html"><span class="doc">This class</span></a> extends <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> by adding a second state variable, <em>aggregate</em> market resources. Moreover, it adds <em>two</em> more shock variables: permanent and transitory <em>aggregate</em> shocks.</p>
+<p>The economy produces output as a Cobb-Douglas aggregation of (inelastically supplied) labor and capital. Factor prices (the interest rate and wage rate) are determined endogenously in the model using the competitive outcome (marginal product of each factor).</p>
+<p>When they make their consumption-saving decision, agents observe their own (normalized) market resources <em>and</em> (normalized) <em>aggregate</em> market resources. They have some expectation about how much will be saved in aggregate, and thus how much capital the economy will have at the start of the next period.</p>
+<p>The microeconomic model for an <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> can be solved for arbitrary expectations about how aggregate market resources map to aggregate assets. To solve the model with <em>rational expectations</em>, one or more <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> instances must be combined with a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code>, a subclass of <code class="docutils literal notranslate"><span class="pre">Market</span></code>. The <em>economy itself</em> must have its <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method run in order to iteratively find the aggregate saving rule that is consistent with rational expectations.</p>
+<p>Alternatively, an <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> can be solved with a <em>trivial</em> grid of aggregate market resources if it is combined with a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>. In this macroeconomic framework, factor prices are determined <em>exogenously</em> (e.g. based on international conditions), but aggregate shocks still occur.</p>
+</section>
+<section id="AggShockMarkovConsumerType:-Aggregate-shocks-with-a-discrete-state">
+<h3><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType</span></code>: Aggregate shocks with a discrete state<a class="headerlink" href="#AggShockMarkovConsumerType:-Aggregate-shocks-with-a-discrete-state" title="Link to this heading">#</a></h3>
+<p>Let’s do an SAT analogy: <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> : <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code> :: <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> : <code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType</span></code></p>
+<p><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html"><span class="doc">This model</span></a>. is useful for handling persistent aggregate conditions: maybe higher or lower aggregate growth rates, or different unemployment rates, etc.</p>
+</section>
+</section>
+<section id="ConsRiskyAssetModel:-Consumption-saving-with-one-risky-and-one-risk-free-asset">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsRiskyAssetModel</span></code>: Consumption-saving with one risky and one risk-free asset<a class="headerlink" href="#ConsRiskyAssetModel:-Consumption-saving-with-one-risky-and-one-risk-free-asset" title="Link to this heading">#</a></h2>
+<p>HARK has several modules with consumption-saving models that include risky asset returns, rather than a single risk-free asset. This one is the most basic among them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ConsRiskyAssetModel</span></code> actually represents <a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html"><span class="doc">two models</span></a>. In both cases, the consumer can save their assets in a risky asset (with known distribution of returns). A Boolean parameter determines whether the agents can <em>choose</em> their portfolio allocation between risky and risk-free assets. When this parameter is <code class="docutils literal notranslate"><span class="pre">False</span></code>, the <em>proportional share</em> of wealth in each asset is fixed at the value in the parameter <code class="docutils literal notranslate"><span class="pre">RiskyShareFixed</span></code>.</p>
+</section>
+<section id="ConsPortfolioModel:-Consumption-saving-with-portfolio-allocation-and-extra-features">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsPortfolioModel</span></code>: Consumption-saving with portfolio allocation and extra features<a class="headerlink" href="#ConsPortfolioModel:-Consumption-saving-with-portfolio-allocation-and-extra-features" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> is an <a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html"><span class="doc">“advanced” version</span></a> of <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code>. If you do not need to use any of its extra features, we recommend against using it; you should use <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code> instead. The solver is significantly slower <em>because</em> of the extra options.</p>
+<p>There are two key additional features, which can be combined:</p>
+<ol class="arabic simple">
+<li><p>An option to limit the agents to portfolio choice on a <em>discrete</em> grid of shares.</p></li>
+<li><p>Restricting agents to only adjust their portfolio share with <em>probability less than one</em>.</p></li>
+</ol>
+<p>Because of (2), the current allocation of assets is a state variable in the agent’s problem.</p>
+</section>
+<section id="ConsBequestModel:-Models-with-a-warm-glow-bequest-motive">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsBequestModel</span></code>: Models with a warm glow bequest motive<a class="headerlink" href="#ConsBequestModel:-Models-with-a-warm-glow-bequest-motive" title="Link to this heading">#</a></h2>
+<p>The two models here extend other HARK <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses to include a <em>warm glow bequest motive</em>. Arguably, these should be “folded into” the parent model, replacing them with a (slightly) more general model.</p>
+<section id="BequestWarmGlowConsumerType:-Idiosyncratic-income-shocks-with-a-warm-glow-bequest-motive">
+<h3><code class="docutils literal notranslate"><span class="pre">BequestWarmGlowConsumerType</span></code>: Idiosyncratic income shocks with a warm glow bequest motive<a class="headerlink" href="#BequestWarmGlowConsumerType:-Idiosyncratic-income-shocks-with-a-warm-glow-bequest-motive" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html"><span class="doc">This class</span></a> extends the core <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> by incorporating a bequest motive. Specifically, agents anticipate that at the moment of their death, they will experience one last flow of utility based on their assets, using their ordinary utility-of-consumption function.</p>
+<p>The bequest motive is parameterized by a scaling factor and an additive shifter (inside the utility function). These parameters can be algebraically rearranged to show that it is mathematically equivalent to having a linear “consumption function at death”.</p>
+</section>
+<section id="BequestWarmGlowPortfolioType:-Income-shocks-and-portfolio-choice-with-a-warm-glow-bequest-motive">
+<h3><code class="docutils literal notranslate"><span class="pre">BequestWarmGlowPortfolioType</span></code>: Income shocks and portfolio choice with a warm glow bequest motive<a class="headerlink" href="#BequestWarmGlowPortfolioType:-Income-shocks-and-portfolio-choice-with-a-warm-glow-bequest-motive" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html"><span class="doc">This class</span></a> extends <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> to include a warm glow bequest. Note that the solver includes the “bells and whistles” of <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code>, not just the “basic” options in <code class="docutils literal notranslate"><span class="pre">PortChoiceConsumerType</span></code>.</p>
+</section>
+</section>
+<section id="ConsWealthUtilityModel:-Agents-who-value-wealth-in-and-of-itself">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsWealthUtilityModel</span></code>: Agents who value wealth in and of itself<a class="headerlink" href="#ConsWealthUtilityModel:-Agents-who-value-wealth-in-and-of-itself" title="Link to this heading">#</a></h2>
+<p>The standard assumption in consumption-saving models is that agents derive utility from <em>actually consuming</em> some of their resources. Retained assets are only valuable to the extent that they <em>will</em> be consumed at some point. <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses in <code class="docutils literal notranslate"><span class="pre">ConsWealthPortfolioModel</span></code> subvert this standard assumption, with wealth holdings entering the utility function <em>directly</em>.</p>
+<section id="WealthUtilityConsumerType:-Utility-of-wealth-multiplicatively-with-consumption">
+<h3><code class="docutils literal notranslate"><span class="pre">WealthUtilityConsumerType</span></code>: Utility of wealth multiplicatively with consumption<a class="headerlink" href="#WealthUtilityConsumerType:-Utility-of-wealth-multiplicatively-with-consumption" title="Link to this heading">#</a></h3>
+<p>Most HARK agents get utility flows from a CRRA function of consumption <span class="math notranslate nohighlight">\(c_t\)</span>. In contrast, <a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html"><span class="doc">these agents</span></a> have “effective consumption” is a Cobb-Douglas aggregation of actual consumption and retained assets. This provides an additional incentive to hold wealth, as it will yield additional utility today <em>and</em> in future periods.</p>
+<p>“Money in the utility function” has long been part of explaining demand for liquidity in monetary economics, going back to at least Poterba and Rotemberg (1986). Chris Carroll raised the idea of personal wealth in the utility function around 2000, and more recently James Tzitzouris has advocated for it. You thus might see internal references to this as the “TRP utility function”.</p>
+</section>
+<section id="CapitalistSpiritConsumerType:-Utility-of-wealth-additively-with-consumption">
+<h3><code class="docutils literal notranslate"><span class="pre">CapitalistSpiritConsumerType</span></code>: Utility of wealth additively with consumption<a class="headerlink" href="#CapitalistSpiritConsumerType:-Utility-of-wealth-additively-with-consumption" title="Link to this heading">#</a></h3>
+<p>Agents in <a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html"><span class="doc">this model</span></a> have utility flows from two additively separable terms: ordinary CRRA utility from consumption and a second CRRA utility term over end-of-period assets. This idea derives from Johanna Francis’ paper “Wealth and the Capitalist Spirit,” hence the name of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass.</p>
+<p>If the risk aversion parameter for wealth is <em>lower</em> than risk aversion for consumption, then assets are a luxury good: the agent wants to allocate a greater portion of their wealth to retained assets as they become richer. Indeed, the MPC approaches zero as wealth becomes arbitrarily large. This model is thus non-normalized by permanent income, as the intent is to examine non-homothetic behavior w.r.t income.</p>
+</section>
+</section>
+<section id="ConsWealthPortfolioModel:-Agents-who-value-wealth-and-have-portfolio-choice">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsWealthPortfolioModel</span></code>: Agents who value wealth and have portfolio choice<a class="headerlink" href="#ConsWealthPortfolioModel:-Agents-who-value-wealth-and-have-portfolio-choice" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">WealthPortfolioConsumerType</span></code> <a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html"><span class="doc">represents agents</span></a> who get utility flows from a Cobb-Douglas aggregation of consumption and retained assets <em>and</em> make a portfolio choice. As the name of the class implies, this model adjusts or extends our portfolio-choice models– the agents can allocate their wealth between a risky and a risk-free asset.</p>
+</section>
+<section id="ConsLaborModel:-Models-with-endogenous-labor-supply">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsLaborModel</span></code>: Models with endogenous labor supply<a class="headerlink" href="#ConsLaborModel:-Models-with-endogenous-labor-supply" title="Link to this heading">#</a></h2>
+<p>Most models in HARK assume that the agents supply their labor inelastically: they work (when employed) up until some retirement age, and then cease working. The <code class="docutils literal notranslate"><span class="pre">ConsLaborModel</span></code> module has <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses for consumers who optimally choose their labor supply.</p>
+<p>Currently, the <a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html"><span class="doc">only model</span></a> is <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code>. These agents make a consumption-saving decision <em>and</em> choose how to allocate their time between labor and leisure. Utility flow is based on an aggregation of consumption and leisure. Labor supply choice is on the <em>intensive margin</em>, as the agents can choose any fraction of their time to work.</p>
+<p>Years ago, we began development on a <code class="docutils literal notranslate"><span class="pre">LaborExtMargConsumerType</span></code> who makes a <em>binary</em> decision about whether or not to work. This work was not completed, but we hope to resurrect it in the future.</p>
+</section>
+<section id="ConsHealthModel:-Consumption-saving-models-with-endogenous-health">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsHealthModel</span></code>: Consumption-saving models with endogenous health<a class="headerlink" href="#ConsHealthModel:-Consumption-saving-models-with-endogenous-health" title="Link to this heading">#</a></h2>
+<p>Matt White does a lot of work with consumption-saving models that include health and/or medical spending, but the public version of HARK currently only includes [one model]](../ConsHealthModel/BasicHealthConsumerType.ipynb) with endogenous health, the <code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType</span></code>.</p>
+<p>Agents in this model can allocate their market resources among consumpton, saving, and health investment. Buying health investment yields concave returns to health capital, which affects both survival probability <em>and</em> labor productivity.</p>
+<p>Unlike most other HARK models, this model is <em>not</em> permanent-income-normalized, and in fact has <em>no</em> permanent income shocks at all. All income shocks are fully transitory, which is a major reason that we have labeled it as “basic”. It is here as a demonstration or example of how health investment works in a consumption-saving framework, and as an example implementation of the <code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp</span></code> class.</p>
+<p>In the future, Matt will move more advanced health models from his private repositories into public HARK. Eventually.</p>
+</section>
+<section id="ConsMedModel:-Models-with-medical-expenses-as-an-additional-choice">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsMedModel</span></code>: Models with medical expenses as an additional choice<a class="headerlink" href="#ConsMedModel:-Models-with-medical-expenses-as-an-additional-choice" title="Link to this heading">#</a></h2>
+<p>Whereas <code class="docutils literal notranslate"><span class="pre">ConsHealthModel</span></code> concerns models with an <em>endogenous</em> health state, <code class="docutils literal notranslate"><span class="pre">ConsMedModel</span></code> is for models that care about <em>medical expenses</em> as an additional source of risk for consumers. There are currently two models.</p>
+<section id="MedShockConsumerType:-Consumption-saving-with-medical-care-as-a-second-consumption-good">
+<h3><code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code>: Consumption-saving with medical care as a second consumption good<a class="headerlink" href="#MedShockConsumerType:-Consumption-saving-with-medical-care-as-a-second-consumption-good" title="Link to this heading">#</a></h3>
+<p><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html"><span class="doc">This class</span></a> extends <code class="docutils literal notranslate"><span class="pre">GenIncProcessModel</span></code> to include medical care as a second consumption good. The utility of medical care is additive with utility of consumption, and is also CRRA. However, the risk aversion coefficient for medical care should be <em>greater</em> than that for consumption (and be greater than one).</p>
+<p>Moreover, (marginal) utility of medical care is <em>stochastic</em>, with a medical needs shock drawn at the start of each period. When medical needs are zero, the agent does not want to buy any care at all. When medical needs are positive, they want to mititgate the utility loss by purchasing care.</p>
+<p>The functional form in the current version of the model is taken directly from the “endogenous medical expenses” extension in DeNardi, French, and Jones (2010). However, we have since realized that it <em>should</em> be algebraically rearranged slightly, moving the medical needs shock from being multiplicative <em>outside</em> the CRRA term to being an inverse factor on medical care <em>inside</em> the utility function.</p>
+<p>In the near future, this model will be adjusted to incorporate that change, which has mathematically convenient properties.</p>
+</section>
+<section id="MedExtMargConsumerType:-Medical-care-choice-on-the-extensive-margin">
+<h3><code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code>: Medical care choice on the extensive margin<a class="headerlink" href="#MedExtMargConsumerType:-Medical-care-choice-on-the-extensive-margin" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code> agents purchase non-zero medical care <em>if and only if</em> their medical needs shock is strictly positive. They make a choice of the <em>intensity</em> of medical care, but whether or not they receive <em>any</em> is strictly determined by the probability that the medical needs shock is zero vs positive. Thus there cannot be any <em>extensive margin</em> choice, ruling out extensive margin moral hazard– or even richer people being more likely to get medical care at all.</p>
+<p><code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code> is an initial attempt to <a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html"><span class="doc">model medical care on the extensive margin</span></a>. Each period, along with their income shocks, agents also observe a medical shock with <em>two</em> components: medical needs and medical cost. They face a binary choice of whether to suffer the medical needs as a utility loss <em>or</em> pay the cost for treatment.</p>
+<p>As is, the model is quite basic and does not have serially correlated shocks, nor any representation of insurance. Moreover, the assumption of bivariate lognormal medical shocks is <em>hardcoded</em> into the solution method. These assumptions will be generalized in the future.</p>
+</section>
+</section>
+<section id="ConsPrefShockModel:-Consumption-saving-with-stochastic-marginal-utility">
+<h2><code class="docutils literal notranslate"><span class="pre">ConsPrefShockModel</span></code>: Consumption-saving with stochastic marginal utility<a class="headerlink" href="#ConsPrefShockModel:-Consumption-saving-with-stochastic-marginal-utility" title="Link to this heading">#</a></h2>
+<p>As a precursor to the medical expense shock model, HARK has long had models with <em>one</em> consumption good and random shocks to marginal utility.</p>
+<section id="PrefShockConsumerType:-Standard-model-with-marginal-utility-shocks">
+<h3><code class="docutils literal notranslate"><span class="pre">PrefShockConsumerType</span></code>: Standard model with marginal utility shocks<a class="headerlink" href="#PrefShockConsumerType:-Standard-model-with-marginal-utility-shocks" title="Link to this heading">#</a></h3>
+<p>Agents in <a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html"><span class="doc">this subclass</span></a> are identical to those in <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, but they <em>also</em> draw a “preference shock” each period. These shocks are multiplicative on utility, representing how valuable consumption is <em>this period</em> compared to normal (shocks should be mean 1).</p>
+<p>This model is probably most useful for handling consumption dynamics with higher frequency than usual. That is, if you were to observe someone’s consumption spending on a monthly basis, it would be (relatively) more volatile than their spending on an <em>annual</em> basis– sometimes “things just come up” and someone needs to buy more in one month than another. The model can thus generate volatile consumption without even more volatile income.</p>
+</section>
+<section id="KinkyPrefConsumerType:-Preference-shocks-and-different-interest-rates-for-borrowing-vs-saving">
+<h3><code class="docutils literal notranslate"><span class="pre">KinkyPrefConsumerType</span></code>: Preference shocks and different interest rates for borrowing vs saving<a class="headerlink" href="#KinkyPrefConsumerType:-Preference-shocks-and-different-interest-rates-for-borrowing-vs-saving" title="Link to this heading">#</a></h3>
+<p>Let’s do another SAT analogy: <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> : <code class="docutils literal notranslate"><span class="pre">PrefShockConsumerType</span></code> :: <code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType</span></code> : <code class="docutils literal notranslate"><span class="pre">KinkyPrefConsumerType</span></code>.</p>
+<p>As fun trivia, [this model]](../ConsPrefShockModel/PrefShockConsumerType.ipynb) is what gave Econ-ARK its logo– the “lightning rainbow” is a stylized image of the consumption function for a <code class="docutils literal notranslate"><span class="pre">KinkyPrefConsumerType</span></code>. We chose this because the original solver for this model was a demonstration of multiple inheritance in our <em>solver classes</em>. That is, the solver code consisted entirely of specifying a class that inherited from both <code class="docutils literal notranslate"><span class="pre">PrefShock</span></code> and <code class="docutils literal notranslate"><span class="pre">KinkedR</span></code>.</p>
+<p>We have since abandoned this complicated approach to model solvers, but the logo is still pretty nifty!</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Methods-Intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Numeric Methods Commonly Used in HARK</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="AgentType-Intro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsIndShockModel:-Models-With(out)-Idiosyncratic-Income-Risk-and-One-Risk-Free-Asset"><code class="docutils literal notranslate"><span class="pre">ConsIndShockModel</span></code>: Models With(out) Idiosyncratic Income Risk and One Risk-Free Asset</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#PerfForesightConsumerType:-Consumption-saving-with-no-financial-risk-at-all"><code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code>: Consumption-saving with no financial risk at all</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#IndShockConsumerType:-Consumption-saving-with-permanent-transitory-income-risk"><code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>: Consumption-saving with permanent-transitory income risk</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KinkedRconsumerType:-Consumption-saving-with-a-higher-interest-rate-for-borrowing"><code class="docutils literal notranslate"><span class="pre">KinkedRconsumerType</span></code>: Consumption-saving with a higher interest rate for borrowing</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#GenIncProcessModel:-Non-Permanent-Income-Normalized-Models"><code class="docutils literal notranslate"><span class="pre">GenIncProcessModel</span></code>: Non-Permanent-Income-Normalized Models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#GenIncProcessConsumerType:-Generalized-income-processes"><code class="docutils literal notranslate"><span class="pre">GenIncProcessConsumerType</span></code>: Generalized income processes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#IndShockExplicitPermIncConsumerType:-Workhorse-model-with-explicit-permanent-income"><code class="docutils literal notranslate"><span class="pre">IndShockExplicitPermIncConsumerType</span></code>: Workhorse model with explicit permanent income</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#PersistentShockConsumerType:-Consumption-saving-model-with-AR(1)-income-process"><code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code>: Consumption-saving model with AR(1) income process</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsMarkovModel:-Models-with-a-discrete-state-that-evolves-exogenously"><code class="docutils literal notranslate"><span class="pre">ConsMarkovModel</span></code>: Models with a discrete state that evolves exogenously</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#TractableBufferStockModel:-Illustrative-model-for-learning-consumption-theory"><code class="docutils literal notranslate"><span class="pre">TractableBufferStockModel</span></code>: Illustrative model for learning consumption theory</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsRepAgentModel:-What's-this-doing-here?"><code class="docutils literal notranslate"><span class="pre">ConsRepAgentModel</span></code>: What’s this doing here?</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#RepAgentConsumerType:-Basic-representative-agent-model"><code class="docutils literal notranslate"><span class="pre">RepAgentConsumerType</span></code>: Basic representative agent model</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#RepAgentMarkovConsumerType:-Representative-agent-model-with-a-discrete-state"><code class="docutils literal notranslate"><span class="pre">RepAgentMarkovConsumerType</span></code>: Representative agent model with a discrete state</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsAggShockModel:-Aggregate-Shocks-and-general-equilibrium"><code class="docutils literal notranslate"><span class="pre">ConsAggShockModel</span></code>: Aggregate Shocks and general equilibrium</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#AggShockConsumerType:-Standard-model-with-aggregate-and-idiosyncratic-income-shocks"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code>: Standard model with aggregate and idiosyncratic income shocks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#AggShockMarkovConsumerType:-Aggregate-shocks-with-a-discrete-state"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType</span></code>: Aggregate shocks with a discrete state</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsRiskyAssetModel:-Consumption-saving-with-one-risky-and-one-risk-free-asset"><code class="docutils literal notranslate"><span class="pre">ConsRiskyAssetModel</span></code>: Consumption-saving with one risky and one risk-free asset</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsPortfolioModel:-Consumption-saving-with-portfolio-allocation-and-extra-features"><code class="docutils literal notranslate"><span class="pre">ConsPortfolioModel</span></code>: Consumption-saving with portfolio allocation and extra features</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsBequestModel:-Models-with-a-warm-glow-bequest-motive"><code class="docutils literal notranslate"><span class="pre">ConsBequestModel</span></code>: Models with a warm glow bequest motive</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#BequestWarmGlowConsumerType:-Idiosyncratic-income-shocks-with-a-warm-glow-bequest-motive"><code class="docutils literal notranslate"><span class="pre">BequestWarmGlowConsumerType</span></code>: Idiosyncratic income shocks with a warm glow bequest motive</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#BequestWarmGlowPortfolioType:-Income-shocks-and-portfolio-choice-with-a-warm-glow-bequest-motive"><code class="docutils literal notranslate"><span class="pre">BequestWarmGlowPortfolioType</span></code>: Income shocks and portfolio choice with a warm glow bequest motive</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsWealthUtilityModel:-Agents-who-value-wealth-in-and-of-itself"><code class="docutils literal notranslate"><span class="pre">ConsWealthUtilityModel</span></code>: Agents who value wealth in and of itself</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#WealthUtilityConsumerType:-Utility-of-wealth-multiplicatively-with-consumption"><code class="docutils literal notranslate"><span class="pre">WealthUtilityConsumerType</span></code>: Utility of wealth multiplicatively with consumption</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#CapitalistSpiritConsumerType:-Utility-of-wealth-additively-with-consumption"><code class="docutils literal notranslate"><span class="pre">CapitalistSpiritConsumerType</span></code>: Utility of wealth additively with consumption</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsWealthPortfolioModel:-Agents-who-value-wealth-and-have-portfolio-choice"><code class="docutils literal notranslate"><span class="pre">ConsWealthPortfolioModel</span></code>: Agents who value wealth and have portfolio choice</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsLaborModel:-Models-with-endogenous-labor-supply"><code class="docutils literal notranslate"><span class="pre">ConsLaborModel</span></code>: Models with endogenous labor supply</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsHealthModel:-Consumption-saving-models-with-endogenous-health"><code class="docutils literal notranslate"><span class="pre">ConsHealthModel</span></code>: Consumption-saving models with endogenous health</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsMedModel:-Models-with-medical-expenses-as-an-additional-choice"><code class="docutils literal notranslate"><span class="pre">ConsMedModel</span></code>: Models with medical expenses as an additional choice</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#MedShockConsumerType:-Consumption-saving-with-medical-care-as-a-second-consumption-good"><code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code>: Consumption-saving with medical care as a second consumption good</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#MedExtMargConsumerType:-Medical-care-choice-on-the-extensive-margin"><code class="docutils literal notranslate"><span class="pre">MedExtMargConsumerType</span></code>: Medical care choice on the extensive margin</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#ConsPrefShockModel:-Consumption-saving-with-stochastic-marginal-utility"><code class="docutils literal notranslate"><span class="pre">ConsPrefShockModel</span></code>: Consumption-saving with stochastic marginal utility</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#PrefShockConsumerType:-Standard-model-with-marginal-utility-shocks"><code class="docutils literal notranslate"><span class="pre">PrefShockConsumerType</span></code>: Standard model with marginal utility shocks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#KinkyPrefConsumerType:-Preference-shocks-and-different-interest-rates-for-borrowing-vs-saving"><code class="docutils literal notranslate"><span class="pre">KinkyPrefConsumerType</span></code>: Preference shocks and different interest rates for borrowing vs saving</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

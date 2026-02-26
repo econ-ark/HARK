@@ -1,0 +1,746 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>“Macroeconomic” Models: the Market Class &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/Market-Intro';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/Market-Intro.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="The Sequence Space Jacobian (SSJ) method" href="../SequenceSpaceJacobians/SSJ_explanation.html" />
+    <link rel="prev" title="Elements of an AgentType Subclass" href="AgentType-Intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Gentle-Intro/Market-Intro.ipynb">examples/Gentle-Intro/Market-Intro.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Gentle-Intro/Market-Intro.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Market-Intro.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="%22Macroeconomic%22-Models:-the-Market-Class">
+<h1>“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class<a class="headerlink" href="#%22Macroeconomic%22-Models:-the-Market-Class" title="Link to this heading">#</a></h1>
+<p>When we refer to a “microeconomic” model in HARK, we mean a problem that pertains to some particular agent– maybe many agents who all share the same problem. These agents treat the inputs to their problem as exogenously given. This is the essence of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance: they have some information that characterizes their problem, and they must solve that problem with the given information.</p>
+<p>By a “macroeconomic” model, we mean that <em>some</em> of the things that individual agents treat as exogenous are actually <em>endogenous</em> in aggregate. HARK’s <a class="reference external" href="../../docs/images/market_thumbnail.jpg">framework</a> for solving for an equilibrium with respect to those object is the <code class="docutils literal notranslate"><span class="pre">Market</span></code> class. In principle, the kinds of models for which the <code class="docutils literal notranslate"><span class="pre">Market</span></code> class can find equilibria are not required to be macroeconomic <em>per se</em>, hence our use of quotation marks.</p>
+<section id="What-Do-We-Mean-By-%22Equilibrium%22?">
+<h2>What Do We Mean By “Equilibrium”?<a class="headerlink" href="#What-Do-We-Mean-By-%22Equilibrium%22?" title="Link to this heading">#</a></h2>
+<p>The equilibrium concept for the <code class="docutils literal notranslate"><span class="pre">Market</span></code> class is based on the work of Krusell and Smith in their seminal 1998 paper, but expanded to a generalized (really: generic) context. Consider a triangular mapping among <strong>beliefs</strong>, <strong>behavior</strong>, and <strong>outcomes</strong>:</p>
+<ul class="simple">
+<li><p>Agents have <strong>beliefs</strong> about some economic object(s) of interest. <em>Conditional on</em> those beliefs, they solve their microeconomic problem to choose a course of action for any situation they might find themselves in. Thus <strong>beliefs</strong> yield a description of agent <strong>behavior</strong>.</p></li>
+<li><p>If we know how all agents will <strong>behave</strong>, then we can simulate a history of micro- and macroeconomic <strong>outcomes</strong>, whatever that means in the mechanical context of the model. That is, given agents’ policy functions, how does the world actually “shake out”?</p></li>
+<li><p>Finally, if shown a hypothetical set of <strong>outcomes</strong>, the agents have <em>some way</em> to interpret them and generate <strong>beliefs</strong> about the economic objects of interest. In some cases, this might be straightforward, like observing the <em>actual value</em> that the object took on and adopting that as the belief.</p></li>
+</ul>
+<p>An <strong>equilibrium</strong> is a set of beliefs, behavior, and outcomes that are <em>internally consistent</em>: if the agents have these beliefs, then their chosen behavior will yield outcomes that in turn justify those same beliefs.</p>
+<p>A special case (so special that it’s the standard assumption in economics) is a <strong>rational expectations equilibrium</strong> in which agents’ behavior is <em>optimally</em> chosen according to their preferences <em>and</em> the beliefs that are generated from any outcomes are rational or “the right ones”.</p>
+<p>In contrast, a model <em>could</em> have agents that follow an arbitrary or non-optimal decision rule conditional on their beliefs. Or it could have a way to interpret outcomes into beliefs that is “biased” or incorrect– or maybe (some of) the agents believe the same thing <em>no matter the outcomes</em>.</p>
+<p>A closely related special case that is often used in practice is a <strong>boundedly rational equilibrium</strong> in which the agents form beliefs that are <em>approximately</em> correct, or that is based on a <em>simplified</em> or <em>restricted</em> representation of the model.</p>
+<p>For example, in Krusell &amp; Smith (1998), the interest and wage rate depend on aggregate capital, which in turn depends on the asset holdings of each individual agent. For any consumer to predict <em>future</em> factor prices, they must know how much money <em>every single person</em> has, as well as how they will consume. This is an intractable problem (literally an infinite dimensional space), so the authors suppose that individual agents can only observe some limited information about the distribution of
+wealth– say, the first one or two moments.</p>
+<p>They further restrict their agents to have beliefs about the mapping from current wealth to future capital holdings that have a particular <em>parametric form</em>. Technically speaking, <em>any</em> parametric restriction (which includes all possible <em>computationally representable</em> functions) means that we only have boundedly rational agents. Hence we don’t try to draw any firm lines about rational expectations vs boundedly rational.</p>
+</section>
+<section id="How-Does-HARK-Incorporate-these-Concepts?">
+<h2>How Does HARK Incorporate these Concepts?<a class="headerlink" href="#How-Does-HARK-Incorporate-these-Concepts?" title="Link to this heading">#</a></h2>
+<p>In HARK, the mapping from beliefs to behavior is captured by <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances running their <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method. Beliefs about the economic objects of interest are given to the agents in the <code class="docutils literal notranslate"><span class="pre">Market</span></code>, and they <code class="docutils literal notranslate"><span class="pre">solve</span></code> their problem based on those beliefs– whatever that means in context. The various consumption-saving models in HARK all involve agents solving an intertemporal utility maximization problem, but this is not “hardwired” into HARK itself.</p>
+<p>The mapping from behavior to outcomes is based on straightforward simulation and is strictly mechanical. The <code class="docutils literal notranslate"><span class="pre">Market</span></code> class uses a farming metaphor to describe the steps of this process, in terms of micro- and macro-level outcomes; see below.</p>
+<p>How a history of outcomes generates new beliefs is fully customizable and generic in HARK. As described more below, each <code class="docutils literal notranslate"><span class="pre">Market</span></code> instance has a <code class="docutils literal notranslate"><span class="pre">calc_dynamics</span></code> function that specifies how to generate beliefs from a history of outcomes. (<strong>NB:</strong> We have some regrets about the names of some <code class="docutils literal notranslate"><span class="pre">Market</span></code> attributes, including <code class="docutils literal notranslate"><span class="pre">calc_dynamics</span></code>, and might change them in the future.)</p>
+<p>Once a <code class="docutils literal notranslate"><span class="pre">Market</span></code> instance is specified (see below), you can call its <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method to iterate on the “triangular mapping” until convergence. That is, beliefs that induce new beliefs <em>sufficiently close</em> to call it “good enough”.</p>
+<section id="Elements-of-a-Market">
+<h3>Elements of a <code class="docutils literal notranslate"><span class="pre">Market</span></code><a class="headerlink" href="#Elements-of-a-Market" title="Link to this heading">#</a></h3>
+<p>Depending on your purposes, you can make a subclass of <code class="docutils literal notranslate"><span class="pre">Market</span></code> or simply fill in these attributes of an ordinary instance of <code class="docutils literal notranslate"><span class="pre">Market</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">agents</span></code>: A list of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances, representing the participants in this environment.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code>: A list of strings naming the economic objects for which an equilibrium is sought. Despite the name, these objects need not be numeric variables; they can be generic objects. The <code class="docutils literal notranslate"><span class="pre">agents</span></code>’ problem should depend in some way on things named in <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code>– they enter their problem <em>directly</em> through their <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code> function and/or <em>indirectly</em> through a constructed object that depends on things named in <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sow_vars</span></code>: A list of strings naming things that should be sent <em>from</em> the <code class="docutils literal notranslate"><span class="pre">Market</span></code> <em>to</em> its <code class="docutils literal notranslate"><span class="pre">agents</span></code> in each period of the simulation, when generating outcomes. These usually represent “macroeconomic” variables that can only be calculated at the aggregate level.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reap_vars</span></code>: A list of strings naming things that should be collected <em>from</em> the <code class="docutils literal notranslate"><span class="pre">agents</span></code> <em>by</em> the <code class="docutils literal notranslate"><span class="pre">Market</span></code> in each period of the simulation. These usually represent individual level microeconomic variables that will be aggregated by the <code class="docutils literal notranslate"><span class="pre">Market</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">const_vars</span></code>: A list of strings naming things that the <code class="docutils literal notranslate"><span class="pre">Market</span></code> needs to know in order to compute aggregate outcomes from individual outcomes. These might be constant parameters that characterize the <code class="docutils literal notranslate"><span class="pre">Market</span></code>, but is often just an empty list.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">track_vars</span></code>: A list of strings naming aggregate outcomes whose history should be tracked/recorded during simulation. This is often a subset of <code class="docutils literal notranslate"><span class="pre">sow_vars</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mill_rule</span></code>: A function or method that takes as arguments the <code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> and <code class="docutils literal notranslate"><span class="pre">const_vars</span></code> and returns the <code class="docutils literal notranslate"><span class="pre">sow_vars</span></code> (in order!). It represents the processing of individual outcomes into aggregate outcomes, whatever that means in context.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">calc_dynamics</span></code>: A function or method that takes as arguments the histories of aggregate outcomes named in <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> and returns new beliefs about the objects named in <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code>; it can also have additional arguments, which should share a name with a <code class="docutils literal notranslate"><span class="pre">Market</span></code> attribute.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">act_T</span></code>: The number of times that the “aggregate market process” should be run when generating a simulated history. This <em>usually</em> corresponds to the number of periods for which the model should be simulated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tolerance</span></code>: The maximum acceptable “distance” between successive iterations of beliefs to constitute convergence.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_loops</span></code>: The maximum number of times that the objects of interest should be updated with <code class="docutils literal notranslate"><span class="pre">calc_dynamics</span></code> before the process “gives up”. This is a failsafe, but it can be intentionally set very low (say, 3) in order to “fake solve” the model by quitting early.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">Market</span></code> class also has a method called <code class="docutils literal notranslate"><span class="pre">reset()</span></code> that specifies how to return it to its initial state, in preparation for a new history run. The default method works for most cases, but can be extended by specifying a <code class="docutils literal notranslate"><span class="pre">Market</span></code> subclass.</p>
+</section>
+<section id="Additional-Requirements-for-AgentTypes-to-Participate-in-a-Market">
+<h3>Additional Requirements for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s to Participate in a <code class="docutils literal notranslate"><span class="pre">Market</span></code><a class="headerlink" href="#Additional-Requirements-for-AgentTypes-to-Participate-in-a-Market" title="Link to this heading">#</a></h3>
+<p>Very little needs to be added to an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> to make it compatible with a <code class="docutils literal notranslate"><span class="pre">Market</span></code>. There are two specific methods it needs to have, as well as a list of strings as a class attribute (optional):</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reset()</span></code>: Resets the instance to their initial configuration, in preparation to generate a new history. This can often just be a call to <code class="docutils literal notranslate"><span class="pre">initialize_sim()</span></code>, which resets all <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>-side simulation objects.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">market_action()</span></code>: A method that specifies <em>what the agents do</em> during the “market process”. This is <em>usually</em> just “simulate one period of the model” by calling <code class="docutils literal notranslate"><span class="pre">simulate(1)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">market_vars</span></code>: List of names of attributes or parameters that should be <em>taken</em> from the <code class="docutils literal notranslate"><span class="pre">Market</span></code> in order to fully specify the agents’ problem. These usually represent “economy-level” objects or values that are shared by everyone, like the distribution of aggregate productivity shocks. After making your <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances and putting them in the <code class="docutils literal notranslate"><span class="pre">Market.agents</span></code> list, invoke your <code class="docutils literal notranslate"><span class="pre">Market</span></code>’s <code class="docutils literal notranslate"><span class="pre">give_agent_params()</span></code> method to automate this step.</p></li>
+</ol>
+<p>The other aspects of compatibility include:</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> uses the objects named in <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> <em>somehow</em> when they <code class="docutils literal notranslate"><span class="pre">solve()</span></code> their model. If one or more <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> enters <em>indirectly</em> through a constructed object, then the <code class="docutils literal notranslate"><span class="pre">pre_solve()</span></code> method should include an instruction to <code class="docutils literal notranslate"><span class="pre">construct()</span></code> that attribute.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> uses the objects named in <code class="docutils literal notranslate"><span class="pre">sow_vars</span></code> <em>somehow</em> when they execute their <code class="docutils literal notranslate"><span class="pre">market_action()</span></code>. If not, then there is essentially no communication from the <code class="docutils literal notranslate"><span class="pre">Market</span></code> to its <code class="docutils literal notranslate"><span class="pre">agents</span></code> during simulation (which is possible, but unlikely).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> generates the objects named in <code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> during their <code class="docutils literal notranslate"><span class="pre">market_action()</span></code>, storing them as attributes of <code class="docutils literal notranslate"><span class="pre">self</span></code> and/or in their <code class="docutils literal notranslate"><span class="pre">state_now</span></code> or <code class="docutils literal notranslate"><span class="pre">controls</span></code> dictionaries. HARK will throw an error if this is not the case– the <code class="docutils literal notranslate"><span class="pre">Market</span></code> expects to be able to <code class="docutils literal notranslate"><span class="pre">reap</span></code> its harvest!</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> has initial/default values for the <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> as a starting guess. These might be centrally distributed by your <code class="docutils literal notranslate"><span class="pre">Market</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<section id="How-Market's-solve-Method-Works">
+<h2>How <code class="docutils literal notranslate"><span class="pre">Market</span></code>’s <code class="docutils literal notranslate"><span class="pre">solve</span></code> Method Works<a class="headerlink" href="#How-Market's-solve-Method-Works" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">Market.solve()</span></code> method works on a fairly simple loop on the “triangular mapping”; the <code class="docutils literal notranslate"><span class="pre">max_loops</span></code> attribute limits the number of times the loop will run. Note that the <code class="docutils literal notranslate"><span class="pre">agents</span></code> must already have <em>some</em> valid <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> already on them before attempting to <code class="docutils literal notranslate"><span class="pre">solve</span></code> (their initial/default beliefs). On each iteration:</p>
+<ol class="arabic simple">
+<li><p>Each of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances in <code class="docutils literal notranslate"><span class="pre">agents</span></code> runs their <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method, generating new policy functions / decision rules (etc). By default, HARK tries to parallelize this operation using its <code class="docutils literal notranslate"><span class="pre">multi_thread_commands</span></code> utility.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">Market</span></code> resets its <code class="docutils literal notranslate"><span class="pre">history</span></code> and then generates a new one by looping <code class="docutils literal notranslate"><span class="pre">act_T</span></code> times on these steps:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sow</span></code>: Send current values of the <code class="docutils literal notranslate"><span class="pre">sow_vars</span></code> to each of the <code class="docutils literal notranslate"><span class="pre">agents</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cultivate</span></code>: Have each of the <code class="docutils literal notranslate"><span class="pre">agents</span></code> execute their <code class="docutils literal notranslate"><span class="pre">market_action</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reap</span></code>: Collect the <code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> from each of the <code class="docutils literal notranslate"><span class="pre">agents</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mill</span></code>: Execute the <code class="docutils literal notranslate"><span class="pre">mill_rule</span></code> to process the newly <code class="docutils literal notranslate"><span class="pre">reap</span></code>ed information into the next <code class="docutils literal notranslate"><span class="pre">sow_vars</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">store</span></code>: Record values of the current <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> in the <code class="docutils literal notranslate"><span class="pre">history</span></code>.</p></li>
+</ol>
+</li>
+<li><p>Generate new beliefs about <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> by passing the <code class="docutils literal notranslate"><span class="pre">history</span></code> of the <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> to <code class="docutils literal notranslate"><span class="pre">calc_dynamics</span></code>.</p></li>
+<li><p>Give those new beliefs to each of the <code class="docutils literal notranslate"><span class="pre">agents</span></code>.</p></li>
+<li><p>If this is not the first iteration, calculate the <code class="docutils literal notranslate"><span class="pre">distance</span></code> between new beliefs and prior beliefs.</p>
+<ul class="simple">
+<li><p>If it is less than the <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>, or <code class="docutils literal notranslate"><span class="pre">max_loops</span></code> iterations have passed, record the final beliefs and exit.</p></li>
+<li><p>Otherwise, go to step (1).</p></li>
+</ul>
+</li>
+</ol>
+<p>Note that while the description above said that the <em>agents</em> update their beliefs based on the history of outcomes, HARK actually does this step at the <code class="docutils literal notranslate"><span class="pre">Market</span></code> level. That is, HARK currently assumes that all of the <code class="docutils literal notranslate"><span class="pre">agents</span></code> have the same way of generating beliefs. While this is the <em>standard</em> assumption, we will loosen it in the future to allow each of the <code class="docutils literal notranslate"><span class="pre">agents</span></code> to update their beliefs independently. E.g., perhaps <em>some</em> agents generate (boundedly) rational beliefs from a history, but
+<em>other</em> agents have completely fixed, static beliefs.</p>
+<section id="Caveats-and-Notes">
+<h3>Caveats and Notes<a class="headerlink" href="#Caveats-and-Notes" title="Link to this heading">#</a></h3>
+<p>There are two aspects of <code class="docutils literal notranslate"><span class="pre">Market</span></code>’s programming that might be surprising on first take:</p>
+<ol class="arabic simple">
+<li><p>When the <code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> are passed to the <code class="docutils literal notranslate"><span class="pre">mill_rule</span></code>, each one is a <em>list</em> with one element from each of the <code class="docutils literal notranslate"><span class="pre">agents</span></code>. In the typical case in which <code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> represent idiosyncratic states or controls (as a <code class="docutils literal notranslate"><span class="pre">np.array</span></code>), the first thing a <code class="docutils literal notranslate"><span class="pre">mill_rule</span></code> should do is to <code class="docutils literal notranslate"><span class="pre">np.concatenate</span></code> each input to combine the data across the <code class="docutils literal notranslate"><span class="pre">agents</span></code>. This is not done automatically because we did not want to assume that the <code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> are always vectors– or even numbers at all!</p></li>
+<li><p>Due to a poor programming choice early in HARK’s existence, <code class="docutils literal notranslate"><span class="pre">Market</span></code> expects that <code class="docutils literal notranslate"><span class="pre">calc_dynamics</span></code> returns an object with the <em>attributes</em> named in <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code>, rather than just the <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> themselves. This will be fixed in the near future to permit multiple formats of output.</p></li>
+</ol>
+<p>For a more concrete example of <code class="docutils literal notranslate"><span class="pre">Market</span></code> in action, see the <a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html"><span class="doc">documentation notebook</span></a> for <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> and its associated <code class="docutils literal notranslate"><span class="pre">Market</span></code> subclasses: <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> and <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>. (This notebook will be improved and expanded in the near future.)</p>
+</section>
+</section>
+<section id="Why-Does-Market-Exist-At-All?">
+<h2>Why Does <code class="docutils literal notranslate"><span class="pre">Market</span></code> Exist At All?<a class="headerlink" href="#Why-Does-Market-Exist-At-All?" title="Link to this heading">#</a></h2>
+<p>You <em>might</em> be wondering why the <code class="docutils literal notranslate"><span class="pre">Market</span></code> class exists at all: why can’t <code class="docutils literal notranslate"><span class="pre">Market.solve()</span></code> just be part of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>’s structure (with a different name)? After all, it’s just trying to look for beliefs that are consistent with market outcomes.</p>
+<p>The answer is simple: We wanted this functionality to work with models <em>ex ante</em> heterogeneous agents, e.g. heterogeneous parameters. One of the academic projects that members of the Econ-ARK team were working on when HARK began was “The Distribution of Wealth and the Marginal Propensity to Consume,” (Carroll, Slacalek, Tokuoka, and White (2017)). That paper’s model involves discount factor heterogeneity– it discretizes a uniform distribution of <span class="math notranslate nohighlight">\(\beta\)</span> with seven points.</p>
+<p>The machinery of <code class="docutils literal notranslate"><span class="pre">Market</span></code> and its <code class="docutils literal notranslate"><span class="pre">agents</span></code> attribute is designed to make models like that <em>easy</em> and <em>organized</em> to specify. We wanted HARK to have the flexibility to incorporate much weirder specifications, including environments with <em>different kinds</em> of agents– their model or behavioral framework differs, not just their parameters.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="AgentType-Intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../SequenceSpaceJacobians/SSJ_explanation.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">The Sequence Space Jacobian (SSJ) method</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#What-Do-We-Mean-By-%22Equilibrium%22?">What Do We Mean By “Equilibrium”?</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#How-Does-HARK-Incorporate-these-Concepts?">How Does HARK Incorporate these Concepts?</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Elements-of-a-Market">Elements of a <code class="docutils literal notranslate"><span class="pre">Market</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Additional-Requirements-for-AgentTypes-to-Participate-in-a-Market">Additional Requirements for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s to Participate in a <code class="docutils literal notranslate"><span class="pre">Market</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#How-Market's-solve-Method-Works">How <code class="docutils literal notranslate"><span class="pre">Market</span></code>’s <code class="docutils literal notranslate"><span class="pre">solve</span></code> Method Works</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Caveats-and-Notes">Caveats and Notes</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Why-Does-Market-Exist-At-All?">Why Does <code class="docutils literal notranslate"><span class="pre">Market</span></code> Exist At All?</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1511 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HARK and the Sequence Space Jacobian (SSJ) Method &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/SequenceSpaceJacobians/HANKFiscal_example';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/SequenceSpaceJacobians/HANKFiscal_example.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Release Notes" href="../../docs/CHANGELOG.html" />
+    <link rel="prev" title="Solving Krusell Smith Model with HARK and SSJ" href="KS-HARK-presentation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">HARK and the Sequence Space Jacobian (SSJ) Method</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb">examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="HANKFiscal_example.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="HARK-and-the-Sequence-Space-Jacobian-(SSJ)-Method">
+<h1>HARK and the Sequence Space Jacobian (SSJ) Method<a class="headerlink" href="#HARK-and-the-Sequence-Space-Jacobian-(SSJ)-Method" title="Link to this heading">#</a></h1>
+<p>By William Du (<a class="reference external" href="mailto:wdu9&#37;&#52;&#48;jhu&#46;edu">wdu9<span>&#64;</span>jhu<span>&#46;</span>edu</a>)</p>
+<ul class="simple">
+<li><p>This notebook demonstrates how HARK and the SSJ toolkit can be combined to solve a HANK model with fiscal policy.</p></li>
+<li><p>Content here builds on the excellent foundation of this <a class="reference external" href="https://github.com/shade-econ/nber-workshop-2022/blob/main/Tutorials/Tutorial%201%20Fiscal%20Policy.ipynb">SSJ notebook</a></p></li>
+</ul>
+<section id="HARK-Solves-for-the-Microeconomic-Steady-State">
+<h2>HARK Solves for the Microeconomic Steady State<a class="headerlink" href="#HARK-Solves-for-the-Microeconomic-Steady-State" title="Link to this heading">#</a></h2>
+<p>Essentially all structural micro models are Bellman problems</p>
+<p>HARK is designed to solve difficult micro Bellman problems with</p>
+<ul class="simple">
+<li><p>uncertainty</p></li>
+<li><p>nondifferentiable constraints (e.g., liquidity)</p></li>
+<li><p>discontinuities</p></li>
+<li><p>and other challenging features</p></li>
+</ul>
+<p>HARK has a library of reproducible solved models:</p>
+<ul class="simple">
+<li><p>Lifecycle models</p></li>
+<li><p>Discrete-continuous choice</p>
+<ul>
+<li><p>e.g. retirement and consumption</p></li>
+<li><p>lumpy durable goods purchases</p></li>
+</ul>
+</li>
+<li><p>Portfolio choice</p>
+<ul>
+<li><p>between risky and safe, liquid and illiquid</p></li>
+</ul>
+</li>
+<li><p>Labor supply decisions</p></li>
+<li><p>And particularly problems where agents have several choices:</p>
+<ul>
+<li><p>e.g., consumption and portfolio choice</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="SSJ-toolkit-takes-micro-soln-as-input,-and-calculates-macro">
+<h2>SSJ toolkit takes micro soln as input, and calculates macro<a class="headerlink" href="#SSJ-toolkit-takes-micro-soln-as-input,-and-calculates-macro" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>SSJ was created to solve HANK models</p>
+<ul>
+<li><p>given the solution to the steady state of a micro model</p></li>
+</ul>
+</li>
+<li><p>Its big insight: Solving the microeconomic model (in steady state) can be <em>independent</em> of working out macroeconomic dynamics</p></li>
+</ul>
+</section>
+<section id="HARK-\rightarrow-SSJ-lets-us-solve-macro-models-with-rich-micro-realism">
+<h2>HARK <span class="math notranslate nohighlight">\(\rightarrow\)</span> SSJ lets us solve macro models with rich micro realism<a class="headerlink" href="#HARK-\rightarrow-SSJ-lets-us-solve-macro-models-with-rich-micro-realism" title="Link to this heading">#</a></h2>
+</section>
+</section>
+<section id="Model">
+<h1>Model<a class="headerlink" href="#Model" title="Link to this heading">#</a></h1>
+<p>We illustrate here using a HANK model from the <a class="reference external" href="https://github.com/shade-econ/nber-workshop-2022/blob/main/Lectures/Lecture%204%20Fiscal%20Policy.pdf">lecture slides</a> from the SSJ authors’ heterogeneous agent workshop.</p>
+<section id="Model-features">
+<h2>Model features<a class="headerlink" href="#Model-features" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p>Households:</p>
+<ul>
+<li><p>Have access to a riskfree asset for saving/borrowing</p></li>
+<li><p>Face realistically calibrated idiosyncratic income shocks</p></li>
+</ul>
+</li>
+<li><p>Macro:</p>
+<ul>
+<li><p>Sticky wages</p></li>
+<li><p>Government budget constraint:</p>
+<ul>
+<li><p>Expenditures: Unemployment insurance system</p></li>
+<li><p>Taxes: labor income</p></li>
+<li><p>Fiscal rule: Debt to GDP ratio</p></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="Bringing-Model-to-Code">
+<h2>Bringing Model to Code<a class="headerlink" href="#Bringing-Model-to-Code" title="Link to this heading">#</a></h2>
+<p>We first import</p>
+<ul class="simple">
+<li><p>some basic, commonly used numerical tools (e.g. numpy and scipy)</p></li>
+<li><p>the IndShockConsumerType from HARK</p></li>
+<li><p>the SSJ toolkit</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Basic scientific tools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">optimize</span>
+
+<span class="c1"># HARK agents</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">IndShockConsumerType</span><span class="p">,</span>
+    <span class="n">IndShockConsumerType_constructors_default</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.Income.IncomeProcesses</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">construct_HANK_lognormal_income_process_unemployment</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Sequence space Jacobian toolkit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sequence_jacobian.classes</span><span class="w"> </span><span class="kn">import</span> <span class="n">JacobianDict</span><span class="p">,</span> <span class="n">SteadyStateDict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sequence_jacobian</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sj</span>  <span class="c1"># SSJ will allow us to define blocks, models, compute IRFs, etc</span>
+</pre></div>
+</div>
+</div>
+<section id="Calibrate-Steady-State-Values">
+<h3>Calibrate Steady State Values<a class="headerlink" href="#Calibrate-Steady-State-Values" title="Link to this heading">#</a></h3>
+<p>Next, we calibrate the steady state values of some outcomes, and calculate a few values implied by them.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Steady state calibration</span>
+<span class="n">r_ss</span> <span class="o">=</span> <span class="mf">0.03</span>  <span class="c1"># Interest rate</span>
+<span class="n">G_ss</span> <span class="o">=</span> <span class="mf">0.2</span>  <span class="c1"># Government spending</span>
+<span class="n">B_ss</span> <span class="o">=</span> <span class="mf">0.2</span>  <span class="c1"># Government debt (bonds)</span>
+<span class="n">Y_ss</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Output</span>
+
+<span class="c1"># steady state relations</span>
+<span class="n">T_ss</span> <span class="o">=</span> <span class="n">G_ss</span> <span class="o">+</span> <span class="n">r_ss</span> <span class="o">*</span> <span class="n">B_ss</span>  <span class="c1"># Lump sum taxes to keep debt constant</span>
+<span class="n">Z_ss</span> <span class="o">=</span> <span class="n">Y_ss</span> <span class="o">-</span> <span class="n">T_ss</span>  <span class="c1"># After tax labor income</span>
+<span class="n">F_ss</span> <span class="o">=</span> <span class="n">G_ss</span> <span class="o">-</span> <span class="n">T_ss</span>  <span class="c1"># Government budget deficit</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Micro-Agent-Parameters">
+<h3>Micro Agent Parameters<a class="headerlink" href="#Micro-Agent-Parameters" title="Link to this heading">#</a></h3>
+<p>Microeconomic agents in HARK have a rich set of parameters wired into them by default.</p>
+<p>We need only specify the parameters whose values we want to highlight</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Swap out the default income process for one with a couple more parameters</span>
+<span class="n">HANK_constructors</span> <span class="o">=</span> <span class="n">IndShockConsumerType_constructors_default</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">HANK_constructors</span><span class="p">[</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">construct_HANK_lognormal_income_process_unemployment</span>
+
+<span class="n">HANK_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">r_ss</span><span class="p">],</span>  <span class="c1"># Interest factor on assets</span>
+    <span class="s2">&quot;tax_rate&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span>  <span class="c1"># Assume that labor here is actually after tax income</span>
+    <span class="s2">&quot;labor&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">Z_ss</span><span class="p">],</span>  <span class="c1"># Will be solving the micro model in steady state</span>
+    <span class="s2">&quot;wage&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>  <span class="c1"># Default value</span>
+    <span class="s2">&quot;UnempPrb&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Probability of unemployment while working</span>
+    <span class="s2">&quot;IncUnemp&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Unemployment benefits replacement rate</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.98</span><span class="p">],</span>  <span class="c1"># Turn off mortality so that resources don&#39;t vanish</span>
+    <span class="s2">&quot;aXtraMax&quot;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>  <span class="c1"># Higher than usual top of assets grid</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># And more points in the grid</span>
+    <span class="s2">&quot;constructors&quot;</span><span class="p">:</span> <span class="n">HANK_constructors</span><span class="p">,</span>  <span class="c1"># Put the replacement constructor into the parameter dictionary</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># specify that it&#39;s an infinite horizon problem</span>
+<span class="p">}</span>
+
+<span class="c1"># Specify parameters for assets (or capital) and consumption grids</span>
+<span class="n">assets_grid_spec</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span>
+    <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">501</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">cons_grid_spec</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span>
+    <span class="s2">&quot;N&quot;</span><span class="p">:</span> <span class="mi">151</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">my_grid_specs</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;kNrm&quot;</span><span class="p">:</span> <span class="n">assets_grid_spec</span><span class="p">,</span>
+    <span class="s2">&quot;cNrm&quot;</span><span class="p">:</span> <span class="n">cons_grid_spec</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Find-Equilibrium-Discount-Factor">
+<h2>Find Equilibrium Discount Factor<a class="headerlink" href="#Find-Equilibrium-Discount-Factor" title="Link to this heading">#</a></h2>
+<p>Above, we exogenously calibrated the steady state level of government debt <span class="math notranslate nohighlight">\(B_{ss}\)</span>. <span class="math notranslate nohighlight">\(B_{ss}\)</span> should be <em>owned</em> by someone, so in equilibrium our agents must want to hold the same level of assets as there are government bonds. To accomplish this, we specify a function that yields steady state asset holdings as a function of agents’ discount factor <span class="math notranslate nohighlight">\(\beta\)</span>, and another function that simply differences it with our target level of assets. The appropriate discount factor can then
+be found by performing a bounded search for a root of the difference function.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define function to compute steady-state aggregate assets as a function of the discount factor</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_SS_assets_from_discfac</span><span class="p">(</span><span class="n">beta</span><span class="p">):</span>
+    <span class="n">temp_dict</span> <span class="o">=</span> <span class="n">HANK_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">temp_dict</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beta</span>  <span class="c1"># set the proposed discount factor</span>
+    <span class="n">TempAgent</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">temp_dict</span><span class="p">)</span>  <span class="c1"># make an AgentType instance</span>
+
+    <span class="c1"># Compute and return steady state assets</span>
+    <span class="n">TempAgent</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+    <span class="n">TempAgent</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">()</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">TempAgent</span><span class="o">.</span><span class="n">_simulator</span>  <span class="c1"># for shorter typing</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">make_transition_matrices</span><span class="p">(</span><span class="n">my_grid_specs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">)</span>
+    <span class="n">X</span><span class="o">.</span><span class="n">find_steady_state</span><span class="p">()</span>
+    <span class="n">A_ss</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">get_long_run_average</span><span class="p">(</span><span class="s2">&quot;aNrm&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">A_ss</span>
+
+
+<span class="c1"># the &quot;gap&quot; is the distance between target assets and actual</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_asset_gap</span><span class="p">(</span><span class="n">beta</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">calc_SS_assets_from_discfac</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span> <span class="o">-</span> <span class="n">A_target</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Discount factor takes value that generates the (calibrated) $B$</span>
+<span class="n">A_target</span> <span class="o">=</span> <span class="n">B_ss</span>
+<span class="n">DiscFac_star</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">brentq</span><span class="p">(</span><span class="n">calc_asset_gap</span><span class="p">,</span> <span class="mf">0.85</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found discount factor of </span><span class="si">{:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">DiscFac_star</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Found discount factor of 0.97975
+</pre></div></div>
+</div>
+</section>
+<section id="Make-Agents-with-Calibrated-Discount-Factor">
+<h2>Make Agents with Calibrated Discount Factor<a class="headerlink" href="#Make-Agents-with-Calibrated-Discount-Factor" title="Link to this heading">#</a></h2>
+<p>Now that we have <span class="math notranslate nohighlight">\(\beta^{*}\)</span>, we can make an AgentType instance that will be used for the general equilibrium analysis. We make an instance of the <code class="docutils literal notranslate"><span class="pre">NewKeynesianConsumerType</span></code> whose discount factor is <span class="math notranslate nohighlight">\(\beta^{*}\)</span>.</p>
+<p>To verify that we did what we set out to do, we can check that the output goods market clears (output is accounted for by consumption and government spending) and that the asset market clears (retained assets are accounted for by government bonds). Both conditions should be very close to zero.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a HARK agent</span>
+<span class="n">HANK_dict</span><span class="p">[</span><span class="s2">&quot;DiscFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">DiscFac_star</span>
+<span class="n">Agent_GE</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">HANK_dict</span><span class="p">)</span>
+
+<span class="c1"># Calculate steady state assets and consumption</span>
+<span class="n">Agent_GE</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">Agent_GE</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">()</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">Agent_GE</span><span class="o">.</span><span class="n">_simulator</span>  <span class="c1"># for shorter typing</span>
+<span class="n">X</span><span class="o">.</span><span class="n">make_transition_matrices</span><span class="p">(</span><span class="n">my_grid_specs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">)</span>
+<span class="n">X</span><span class="o">.</span><span class="n">find_steady_state</span><span class="p">()</span>
+<span class="n">A_dstn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">steady_state_dstn</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">outcome_arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;aNrm&quot;</span><span class="p">])</span>
+<span class="n">A_ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A_dstn</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">outcome_grids</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;aNrm&quot;</span><span class="p">])</span>
+<span class="n">C_dstn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">steady_state_dstn</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">outcome_arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;cNrm&quot;</span><span class="p">])</span>
+<span class="n">C_ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">C_dstn</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">outcome_grids</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;cNrm&quot;</span><span class="p">])</span>
+
+<span class="c1"># Verify market clearing conditions</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Goods clearing condition:&quot;</span><span class="p">,</span> <span class="n">Y_ss</span> <span class="o">-</span> <span class="n">C_ss</span> <span class="o">-</span> <span class="n">G_ss</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Asset clearing condition:&quot;</span><span class="p">,</span> <span class="n">A_ss</span> <span class="o">-</span> <span class="n">B_ss</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Goods clearing condition: 0.0061186865636854715
+Asset clearing condition: -1.7947032748821812e-12
+</pre></div></div>
+</div>
+</section>
+<section id="Compute-Sequence-Space-Jacobian-Matrices">
+<h2>Compute Sequence Space Jacobian Matrices<a class="headerlink" href="#Compute-Sequence-Space-Jacobian-Matrices" title="Link to this heading">#</a></h2>
+<p>A deep insight that has recently made a major impact on our ability to handle heterogeneous agents models with serious microeconomic heterogeneity is that, even when the microeconomic problems agents face are deeply nonlinear (in ways that are fundamentally important to their sense-making), deviations from the steady state of a macroeconomy populated by such agents tend to be very close to linear. That is, the macroeconomy can be linearized.</p>
+<p>In large part this is because the measured magnitude of aggregate shocks is tiny compared to the degree of microeconomic heterogeneity. Aggregate permanent income shocks, for example, are 100 times smaller than idiosyncratic shocks.</p>
+<p>Linearization makes it appropriate to calculate the dynamics of the model with response to ‘MIT shocks,’ as opposed to needing to develop more complicated functions. In technical terms, this means that the crucial (and only) thing we need from the micro model is its response to small future disturbances– the sequence space Jacobian (SSJ) matrices.</p>
+<p>(We need to know the response to future shocks so that we can think coherently, for example, about monetary policy in which future movements in the Fed Funds rate are predictable, or where “forward guidance” is provided).</p>
+<p>HARK has a tool for calculating the SSJ matrices that characterize consumption and asset responses to an exogenous <em>transitory</em> change in the interest factor (Rfree) or labor income (labor) that will occur in the future. This is accomplished with the <code class="docutils literal notranslate"><span class="pre">calc_jacobian</span></code> method, passing as arguments the name of the variable that will be changed and the maximum number of periods in the future that a (marginal) change could occur.</p>
+<p>The outputs of this method are objects that represent the sensitivity of aggregate consumption and asset holdings (respectively) in each period to the <em>advance knowledge</em> of an exogenous change in each parameter.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Time the computation of the Jacobian matrices</span>
+<span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+<span class="c1"># Jacobians of consumption and assets w.r.t. interest factor changes up to 300 periods ahead</span>
+<span class="n">dCdR</span><span class="p">,</span> <span class="n">dAdR</span> <span class="o">=</span> <span class="n">Agent_GE</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">my_grid_specs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span> <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="c1"># Jacobians of consumption and assets w.r.t. labor supply changes up to 300 periods ahead</span>
+<span class="n">dCdZ</span><span class="p">,</span> <span class="n">dAdZ</span> <span class="o">=</span> <span class="n">Agent_GE</span><span class="o">.</span><span class="n">make_basic_SSJ</span><span class="p">(</span>
+    <span class="s2">&quot;labor&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">,</span> <span class="s2">&quot;aNrm&quot;</span><span class="p">],</span> <span class="n">my_grid_specs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span> <span class="n">solved</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="n">stop</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Time to compute Jacobians: </span><span class="si">{:.3f}</span><span class="s2"> seconds.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stop</span> <span class="o">-</span> <span class="n">start</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Time to compute Jacobians: 22.734 seconds.
+</pre></div></div>
+</div>
+</section>
+<section id="Plot-Sequence-Space-Jacobians">
+<h2>Plot Sequence Space Jacobians<a class="headerlink" href="#Plot-Sequence-Space-Jacobians" title="Link to this heading">#</a></h2>
+<p>To inspect the SSJ matrix for aggregate consumption, we can plot some of its rows/columns, representing the consumption response to a change in the interest factor or labor income <span class="math notranslate nohighlight">\(T\)</span> periods in the future.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdR</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdR</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">30</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdR</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">50</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="sa">r</span><span class="s2">&quot;Change in $R$ right now&quot;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s2">&quot;Change in $R$ 30 periods ahead&quot;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s2">&quot;Change in $R$ 50 periods ahead&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Consumption Response to Change in Interest Factor&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
+<span class="c1"># plt.yticks([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_16_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_16_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdZ</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdZ</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">20</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dCdZ</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">50</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="sa">r</span><span class="s2">&quot;Change in $Z$ right now&quot;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s2">&quot;Change in $Z$ 30 periods ahead&quot;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s2">&quot;Change in $Z$ 50 periods ahead&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Consumption Response to Change in Labor Income&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
+<span class="c1"># plt.yticks([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_17_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_17_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Government-Budget-Constraint-and-Market-Clearing">
+<h1>Government Budget Constraint and Market Clearing<a class="headerlink" href="#Government-Budget-Constraint-and-Market-Clearing" title="Link to this heading">#</a></h1>
+<p>We now need to specify the other blocks of this fiscal HANK model. The details of the model found <a class="reference external" href="https://github.com/shade-econ/nber-workshop-2022/blob/main/Lectures/Lecture%204%20Fiscal%20Policy.pdf">here</a> tell us that only the governemnt budget constraint and the market clearing conditions need to be specified explicitly to capture the dynamics of the HANK model.</p>
+<p>The sequence space Jacobian toolkit allows us to specify other blocks of the economy in a DYNARE-esque fashion as we simply need to write down the difference equations that define our model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Government Budget Constraint</span>
+<span class="nd">@sj</span><span class="o">.</span><span class="n">simple</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fiscal</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">Y</span><span class="p">):</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span> <span class="o">*</span> <span class="n">B</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">G</span> <span class="o">-</span> <span class="n">B</span>  <span class="c1"># total tax burden</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">-</span> <span class="n">T</span>  <span class="c1"># after tax income</span>
+    <span class="n">deficit</span> <span class="o">=</span> <span class="n">G</span> <span class="o">-</span> <span class="n">T</span>
+    <span class="k">return</span> <span class="n">T</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">deficit</span>
+
+
+<span class="c1"># Market Clearing Conditions</span>
+<span class="nd">@sj</span><span class="o">.</span><span class="n">simple</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mkt_clearing</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">G</span><span class="p">):</span>
+    <span class="n">asset_mkt</span> <span class="o">=</span> <span class="n">A</span> <span class="o">-</span> <span class="n">B</span>  <span class="c1"># asset market clearing</span>
+    <span class="n">goods_mkt</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">-</span> <span class="n">C</span> <span class="o">-</span> <span class="n">G</span>  <span class="c1"># goods market clearing</span>
+    <span class="k">return</span> <span class="n">asset_mkt</span><span class="p">,</span> <span class="n">goods_mkt</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Store Jacobians in JacobianDict Object.</span>
+<span class="c1"># This will capture behavior of heterogeneous hosueholds.</span>
+<span class="n">het_household_block</span> <span class="o">=</span> <span class="n">JacobianDict</span><span class="p">({</span><span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="n">dCdZ</span><span class="p">},</span> <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="n">dAdZ</span><span class="p">}})</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># SteadyStateDict:</span>
+<span class="c1"># - Steady state values of each variable; we perturb around this steady state.</span>
+<span class="n">SteadyState_dict</span> <span class="o">=</span> <span class="n">SteadyStateDict</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;asset_mkt&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s2">&quot;goods_mkt&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s2">&quot;deficit&quot;</span><span class="p">:</span> <span class="n">G_ss</span> <span class="o">-</span> <span class="n">T_ss</span><span class="p">,</span>
+        <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="n">B_ss</span><span class="p">,</span>  <span class="c1"># Gov. Debt</span>
+        <span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="n">r_ss</span><span class="p">,</span>  <span class="c1"># Interest rate</span>
+        <span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">G_ss</span><span class="p">,</span>  <span class="c1"># Gov. Spending</span>
+        <span class="s2">&quot;Y&quot;</span><span class="p">:</span> <span class="n">Y_ss</span><span class="p">,</span>  <span class="c1"># Output</span>
+        <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="n">B_ss</span><span class="p">,</span>  <span class="c1"># Assets</span>
+        <span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="n">C_ss</span><span class="p">,</span>  <span class="c1"># Consumption</span>
+        <span class="s2">&quot;Z&quot;</span><span class="p">:</span> <span class="n">Y_ss</span> <span class="o">-</span> <span class="n">T_ss</span><span class="p">,</span>  <span class="c1"># Income (post-tax)</span>
+        <span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="n">T_ss</span><span class="p">,</span>  <span class="c1"># Lump Sum Taxes</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the model by combining three blocks:</span>
+<span class="c1"># (1) microeconomic responses to macroeconomic news (Jacobians)</span>
+<span class="c1"># (2) fiscal authority behavior</span>
+<span class="c1"># (3) market clearing conditions</span>
+<span class="n">HANK</span> <span class="o">=</span> <span class="n">sj</span><span class="o">.</span><span class="n">create_model</span><span class="p">([</span><span class="n">het_household_block</span><span class="p">,</span> <span class="n">fiscal</span><span class="p">,</span> <span class="n">mkt_clearing</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;HA Model&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Choose aggregate shock parameters for the simulation</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mi">300</span>  <span class="c1"># &lt;-- the length of the impulse response function</span>
+<span class="n">rho_G</span> <span class="o">=</span> <span class="mf">0.8</span>  <span class="c1"># peristence of shock</span>
+<span class="n">dG</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">rho_G</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<span class="n">shocks</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">dG</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain impulse responses</span>
+<span class="n">unknowns_td</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">]</span>  <span class="c1"># unknowns to solve for</span>
+<span class="n">targets_td</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;asset_mkt&quot;</span><span class="p">]</span>  <span class="c1"># to clear target condition below</span>
+
+<span class="c1"># Solve for impulse responses to gov. spending shock (balanced budget)</span>
+<span class="n">irfs_G_lin</span> <span class="o">=</span> <span class="n">HANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">SteadyState_dict</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">shocks</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a function that can plot impulse response functions</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_irfs</span><span class="p">(</span>
+    <span class="n">irfs_list</span><span class="p">,</span>
+    <span class="n">variables</span><span class="p">,</span>
+    <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">],</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Percentage points (dev. from ss)&quot;</span><span class="p">,</span>
+    <span class="n">T_plot</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">irfs_list</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">irfs_list</span><span class="p">)</span>
+    <span class="n">n_var</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_var</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_var</span><span class="p">):</span>
+        <span class="c1"># plot all irfs</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">irf</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">irfs_list</span><span class="p">):</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">irf</span><span class="p">[</span><span class="n">variables</span><span class="p">[</span><span class="n">i</span><span class="p">]][:</span><span class="mi">50</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">labels</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">variables</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$t$&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ylabel</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<section id="Government-Spending-Shock-(Balanced-Budget)">
+<h2>Government Spending Shock (Balanced Budget)<a class="headerlink" href="#Government-Spending-Shock-(Balanced-Budget)" title="Link to this heading">#</a></h2>
+<p>The plot belows illustrate the impulse responses to a government spending shock that is completely funded by increases in taxes.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the Impulse Response Function</span>
+<span class="n">show_irfs</span><span class="p">([</span><span class="n">irfs_G_lin</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">],</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;balanced budget&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_27_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_27_0.png" />
+</div>
+</div>
+</section>
+<section id="Government-spending-shock-(deficit-financed)">
+<h2>Government spending shock (deficit financed)<a class="headerlink" href="#Government-spending-shock-(deficit-financed)" title="Link to this heading">#</a></h2>
+<p>Now let us produce the responses to a government spending shock when it is mostly deficit financed.</p>
+<p>To do so, we will shock government debt such that the cumulative sum of debt shock is equal to the cumulative sum of the increase in government spending.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a &#39;fiscal rule&#39; to this government spending shock</span>
+<span class="c1"># by specifying a shock to debt that will finance the gov. spending shock</span>
+<span class="n">rho_B</span> <span class="o">=</span> <span class="mf">0.9</span>  <span class="c1"># how fast to move back toward fiscal target</span>
+<span class="n">dB</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dG</span><span class="p">)</span> <span class="o">*</span> <span class="n">rho_B</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+
+<span class="c1"># Debt-financed government spending means we shock both government spending and debt</span>
+<span class="n">shocks_B</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">dG</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="n">dB</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve for impulse responses</span>
+<span class="n">irfs_B_lin</span> <span class="o">=</span> <span class="n">HANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">SteadyState_dict</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">shocks_B</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Show government spending, output, and taxes</span>
+<span class="n">show_irfs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">irfs_G_lin</span><span class="p">,</span> <span class="n">irfs_B_lin</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">],</span>
+    <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;balanced budget&quot;</span><span class="p">,</span> <span class="s2">&quot;deficit financed&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_31_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_31_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Show the deficit and consumption</span>
+<span class="n">show_irfs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">irfs_G_lin</span><span class="p">,</span> <span class="n">irfs_B_lin</span><span class="p">],</span>
+    <span class="p">[</span><span class="s2">&quot;deficit&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">],</span>
+    <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;balanced budget&quot;</span><span class="p">,</span> <span class="s2">&quot;deficit financed&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_32_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_32_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Why-does-HANK-matter?">
+<h1>Why does HANK matter?<a class="headerlink" href="#Why-does-HANK-matter?" title="Link to this heading">#</a></h1>
+<p>Let us compare deficit financed government spending responses in HANK vs TANK vs RANK.</p>
+<p>To do so, a representative agent and a two agent household block will be specified to produce a RANK and TANK model.</p>
+<section id="Specify-a-representative-agent-household">
+<h2>Specify a representative agent household<a class="headerlink" href="#Specify-a-representative-agent-household" title="Link to this heading">#</a></h2>
+<p>The representative agent household solution can be expressed analytically; below are the difference equations (Euler equation and budget constraint) that define the representative agent problem.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@sj</span><span class="o">.</span><span class="n">solved</span><span class="p">(</span>
+    <span class="n">unknowns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;euler&quot;</span><span class="p">,</span> <span class="s2">&quot;budget_constraint&quot;</span><span class="p">]</span>
+<span class="p">)</span>  <span class="c1"># solver=&quot;broyden_custom&quot;)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">hh_ra</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">eis</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+    <span class="n">euler</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">eis</span><span class="p">)</span> <span class="o">*</span> <span class="n">C</span><span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">C</span>  <span class="c1"># RA euler equation</span>
+    <span class="n">budget_constraint</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span> <span class="o">*</span> <span class="n">A</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">Z</span> <span class="o">-</span> <span class="n">C</span> <span class="o">-</span> <span class="n">A</span>  <span class="c1"># RA budget constraint</span>
+    <span class="n">MPC</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">euler</span><span class="p">,</span> <span class="n">budget_constraint</span><span class="p">,</span> <span class="n">MPC</span>
+
+
+<span class="c1"># create RANK model where heterogeneous household block hh_ha is replaced with RA block &#39;hh_ra&#39;</span>
+<span class="n">RANK</span> <span class="o">=</span> <span class="n">sj</span><span class="o">.</span><span class="n">create_model</span><span class="p">([</span><span class="n">hh_ra</span><span class="p">,</span> <span class="n">fiscal</span><span class="p">,</span> <span class="n">mkt_clearing</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Representative agent model&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Specify-a-Two-Agent-(TA)-economy-(Campbell-Mankiw)">
+<h2>Specify a Two Agent (TA) economy (Campbell-Mankiw)<a class="headerlink" href="#Specify-a-Two-Agent-(TA)-economy-(Campbell-Mankiw)" title="Link to this heading">#</a></h2>
+<p>As in the rep. agent problem, the difference equations (euler equation and budget constraint) that define the two agent problem are analytically available.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Deep in SSJ weeds, we need this object:</span>
+<span class="nd">@sj</span><span class="o">.</span><span class="n">solved</span><span class="p">(</span><span class="n">unknowns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;C_RA&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">},</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;euler&quot;</span><span class="p">,</span> <span class="s2">&quot;budget_constraint&quot;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">hh_ta</span><span class="p">(</span><span class="n">C_RA</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">eis</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">lam</span><span class="p">):</span>
+    <span class="c1"># consumption of infinitely lived household</span>
+    <span class="n">euler</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">eis</span><span class="p">)</span> <span class="o">*</span> <span class="n">C_RA</span><span class="p">(</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">C_RA</span>
+    <span class="c1"># hand to mouth agent consumes income Z</span>
+    <span class="n">C_H2M</span> <span class="o">=</span> <span class="n">Z</span>
+    <span class="c1"># aggregate C is weighted sum of C of two types</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">lam</span><span class="p">)</span> <span class="o">*</span> <span class="n">C_RA</span> <span class="o">+</span> <span class="n">lam</span> <span class="o">*</span> <span class="n">C_H2M</span>  <span class="c1"># lam is frac of hand to mouth households</span>
+    <span class="c1"># aggregate budget constraint</span>
+    <span class="n">budget_constraint</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span> <span class="o">*</span> <span class="n">A</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">Z</span> <span class="o">-</span> <span class="n">C</span> <span class="o">-</span> <span class="n">A</span>
+    <span class="n">MPC</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">euler</span><span class="p">,</span> <span class="n">budget_constraint</span><span class="p">,</span> <span class="n">C_H2M</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">MPC</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># create TANK model where heterogeneous household is replaced with &#39;hh_ta&#39;</span>
+<span class="n">TANK</span> <span class="o">=</span> <span class="n">sj</span><span class="o">.</span><span class="n">create_model</span><span class="p">([</span><span class="n">hh_ta</span><span class="p">,</span> <span class="n">fiscal</span><span class="p">,</span> <span class="n">mkt_clearing</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Two agent model&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Calibrate-and-find-steady-states-of-TANK-and-RANK-models.">
+<h2>Calibrate and find steady states of TANK and RANK models.<a class="headerlink" href="#Calibrate-and-find-steady-states-of-TANK-and-RANK-models." title="Link to this heading">#</a></h2>
+<p>Now that we have defined the representative agent and two agent models, we need to solve for a steady state in each model for which we will perturb around later to solve for dynamics.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># base dictionary for calibrating representative agent and two agent household.</span>
+<span class="n">calibration</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;eis&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># EIS</span>
+    <span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">G_ss</span><span class="p">,</span>  <span class="c1"># Government spending</span>
+    <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="n">B_ss</span><span class="p">,</span>  <span class="c1"># Government debt</span>
+    <span class="s2">&quot;Y&quot;</span><span class="p">:</span> <span class="n">Y_ss</span><span class="p">,</span>  <span class="c1"># Output</span>
+    <span class="s2">&quot;r&quot;</span><span class="p">:</span> <span class="n">r_ss</span><span class="p">,</span>
+<span class="p">}</span>  <span class="c1"># Number of productivity grid points</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Rep Agent calibration</span>
+<span class="n">calibration_ra</span> <span class="o">=</span> <span class="n">calibration</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">calibration_ra</span><span class="p">[</span><span class="s2">&quot;beta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">calibration_ra</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">])</span>  <span class="c1"># for steady state consumption</span>
+<span class="n">calibration_ra</span><span class="p">[</span><span class="s2">&quot;B&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calibration</span><span class="p">[</span><span class="s2">&quot;B&quot;</span><span class="p">]</span>
+
+<span class="n">unknowns_ra_ss</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+<span class="p">}</span>  <span class="c1"># solve for two unknowns to clear the targets below</span>
+<span class="n">targets_ra_ss</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;budget_constraint&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;asset_mkt&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
+
+<span class="c1"># solve for steady state for RANK model</span>
+<span class="n">ss_RANK</span> <span class="o">=</span> <span class="n">RANK</span><span class="o">.</span><span class="n">solve_steady_state</span><span class="p">(</span>
+    <span class="n">calibration_ra</span><span class="p">,</span> <span class="n">unknowns_ra_ss</span><span class="p">,</span> <span class="n">targets_ra_ss</span><span class="p">,</span> <span class="n">dissolve</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;hh_ra&quot;</span><span class="p">]</span>
+<span class="p">)</span>  <span class="c1"># solve steady state for RANK model</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Two Agent calibration</span>
+<span class="n">calibration_ta</span> <span class="o">=</span> <span class="n">calibration_ra</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># dictionary for two agent block</span>
+<span class="n">calibration_ta</span><span class="p">[</span><span class="s2">&quot;lam&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.25</span>  <span class="c1"># proportion of hand to mouth</span>
+<span class="n">unknowns_ta_ss</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;C_RA&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="s2">&quot;A&quot;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+<span class="p">}</span>  <span class="c1"># solve for two unknowns to clear the targets below</span>
+
+<span class="c1"># solve for steady state for TANK model</span>
+<span class="n">ss_TANK</span> <span class="o">=</span> <span class="n">TANK</span><span class="o">.</span><span class="n">solve_steady_state</span><span class="p">(</span>
+    <span class="n">calibration_ta</span><span class="p">,</span> <span class="n">unknowns_ta_ss</span><span class="p">,</span> <span class="n">targets_ra_ss</span><span class="p">,</span> <span class="n">dissolve</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;hh_ta&quot;</span><span class="p">]</span>
+<span class="p">)</span>  <span class="c1"># solve steady state for TANK model</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Impulse-responses-to-deficit-financed-G-shocks:">
+<h2>Impulse responses to deficit financed G shocks:<a class="headerlink" href="#Impulse-responses-to-deficit-financed-G-shocks:" title="Link to this heading">#</a></h2>
+<section id="HANK-vs-TANK-vs-RANK">
+<h3>HANK vs TANK vs RANK<a class="headerlink" href="#HANK-vs-TANK-vs-RANK" title="Link to this heading">#</a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">irfs_RANK</span> <span class="o">=</span> <span class="n">RANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">ss_RANK</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">shocks_B</span>
+<span class="p">)</span>  <span class="c1"># solve for impulse responses in RANK model</span>
+<span class="n">irfs_TANK</span> <span class="o">=</span> <span class="n">TANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">ss_TANK</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">shocks_B</span>
+<span class="p">)</span>  <span class="c1"># solve for impulse responses in TANK model</span>
+
+<span class="c1"># Plot irfs of HANK, RANK, and TANK</span>
+<span class="n">show_irfs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">irfs_B_lin</span><span class="p">,</span> <span class="n">irfs_RANK</span><span class="p">,</span> <span class="n">irfs_TANK</span><span class="p">],</span>
+    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;deficit&quot;</span><span class="p">,</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">],</span>
+    <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;HANK&quot;</span><span class="p">,</span> <span class="s2">&quot;RANK&quot;</span><span class="p">,</span> <span class="s2">&quot;TANK&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_44_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_44_0.png" />
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="Simulating-time-series">
+<h1>Simulating time series<a class="headerlink" href="#Simulating-time-series" title="Link to this heading">#</a></h1>
+<section id="Simulate-deficit-financed-government-spending-shocks.">
+<h2>Simulate deficit financed government spending shocks.<a class="headerlink" href="#Simulate-deficit-financed-government-spending-shocks." title="Link to this heading">#</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">estimation.routines</span><span class="w"> </span><span class="kn">import</span> <span class="n">simulate</span>
+
+<span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;deficit&quot;</span><span class="p">,</span> <span class="s2">&quot;G&quot;</span><span class="p">]</span>  <span class="c1"># aggregate variables to be simulated</span>
+
+<span class="n">impulses_ha</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">impulses_ra</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">impulses_ta</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="n">shk_std</span> <span class="o">=</span> <span class="mf">0.001</span>  <span class="c1"># standard deviation of shock</span>
+<span class="n">rho_G</span> <span class="o">=</span> <span class="mf">0.8</span>  <span class="c1"># persistence of G shock</span>
+<span class="n">rho_B</span> <span class="o">=</span> <span class="mf">0.9</span>  <span class="c1"># persistence of Deficit shock</span>
+
+<span class="n">dG</span> <span class="o">=</span> <span class="n">shk_std</span> <span class="o">*</span> <span class="mf">0.8</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># G Shock series</span>
+<span class="n">dB</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dG</span><span class="p">)</span> <span class="o">*</span> <span class="n">rho_B</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># deficit shock series (fiscal rule)</span>
+
+<span class="c1"># own_shock captures AR shock process to deficit financed G spending</span>
+<span class="n">own_shock</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="n">shk_std</span> <span class="o">*</span> <span class="n">rho_G</span> <span class="o">**</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="n">dB</span><span class="p">}</span>
+<span class="n">impulses_ha</span><span class="p">[</span><span class="s2">&quot;ha&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">HANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">SteadyState_dict</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">own_shock</span>
+<span class="p">)</span>  <span class="c1"># solve impulse responses to HANK</span>
+<span class="n">impulses_ta</span><span class="p">[</span><span class="s2">&quot;ta&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">ss_TANK</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">own_shock</span>
+<span class="p">)</span>  <span class="c1"># solve impulse responses to TANK</span>
+<span class="n">impulses_ra</span><span class="p">[</span><span class="s2">&quot;ra&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RANK</span><span class="o">.</span><span class="n">solve_impulse_linear</span><span class="p">(</span>
+    <span class="n">ss_RANK</span><span class="p">,</span> <span class="n">unknowns_td</span><span class="p">,</span> <span class="n">targets_td</span><span class="p">,</span> <span class="n">own_shock</span>
+<span class="p">)</span>  <span class="c1"># solve impulse responses to RANK</span>
+
+<span class="n">T_sim</span> <span class="o">=</span> <span class="mi">80</span>  <span class="c1"># simulate for 80 quarters</span>
+<span class="n">data_simul_ha</span> <span class="o">=</span> <span class="n">simulate</span><span class="p">(</span>
+    <span class="nb">list</span><span class="p">(</span><span class="n">impulses_ha</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">T_sim</span>
+<span class="p">)</span>  <span class="c1"># Simulate aggregate variables in &#39;outputs&#39; in HANK</span>
+<span class="n">data_simul_ta</span> <span class="o">=</span> <span class="n">simulate</span><span class="p">(</span>
+    <span class="nb">list</span><span class="p">(</span><span class="n">impulses_ta</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">T_sim</span>
+<span class="p">)</span>  <span class="c1"># Simulate aggregate variables in &#39;outputs&#39; in TANK</span>
+<span class="n">data_simul_ra</span> <span class="o">=</span> <span class="n">simulate</span><span class="p">(</span>
+    <span class="nb">list</span><span class="p">(</span><span class="n">impulses_ra</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">T_sim</span>
+<span class="p">)</span>  <span class="c1"># Simulate aggregate variables in &#39;outputs&#39; in RANK</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Comparing-time-series-of-HANK,-TANK,-and-RANK">
+<h1>Comparing time series of HANK, TANK, and RANK<a class="headerlink" href="#Comparing-time-series-of-HANK,-TANK,-and-RANK" title="Link to this heading">#</a></h1>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ha</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ta</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ra</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Output&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Quarters&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ha</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ta</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ra</span><span class="p">[</span><span class="s2">&quot;G&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Government Spending&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Quarters&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ha</span><span class="p">[</span><span class="s2">&quot;deficit&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ta</span><span class="p">[</span><span class="s2">&quot;deficit&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data_simul_ra</span><span class="p">[</span><span class="s2">&quot;deficit&quot;</span><span class="p">])</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Deficit&quot;</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Quarters&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_49_0.png" src="../../_images/examples_SequenceSpaceJacobians_HANKFiscal_example_49_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="KS-HARK-presentation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Solving Krusell Smith Model with HARK and SSJ</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../docs/CHANGELOG.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Release Notes</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#">HARK and the Sequence Space Jacobian (SSJ) Method</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK-Solves-for-the-Microeconomic-Steady-State">HARK Solves for the Microeconomic Steady State</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#SSJ-toolkit-takes-micro-soln-as-input,-and-calculates-macro">SSJ toolkit takes micro soln as input, and calculates macro</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK-\rightarrow-SSJ-lets-us-solve-macro-models-with-rich-micro-realism">HARK <span class="math notranslate nohighlight">\(\rightarrow\)</span> SSJ lets us solve macro models with rich micro realism</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Model">Model</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Model-features">Model features</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Bringing-Model-to-Code">Bringing Model to Code</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Calibrate-Steady-State-Values">Calibrate Steady State Values</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Micro-Agent-Parameters">Micro Agent Parameters</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Find-Equilibrium-Discount-Factor">Find Equilibrium Discount Factor</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Make-Agents-with-Calibrated-Discount-Factor">Make Agents with Calibrated Discount Factor</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Compute-Sequence-Space-Jacobian-Matrices">Compute Sequence Space Jacobian Matrices</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Plot-Sequence-Space-Jacobians">Plot Sequence Space Jacobians</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Government-Budget-Constraint-and-Market-Clearing">Government Budget Constraint and Market Clearing</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Government-Spending-Shock-(Balanced-Budget)">Government Spending Shock (Balanced Budget)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Government-spending-shock-(deficit-financed)">Government spending shock (deficit financed)</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Why-does-HANK-matter?">Why does HANK matter?</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Specify-a-representative-agent-household">Specify a representative agent household</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Specify-a-Two-Agent-(TA)-economy-(Campbell-Mankiw)">Specify a Two Agent (TA) economy (Campbell-Mankiw)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Calibrate-and-find-steady-states-of-TANK-and-RANK-models.">Calibrate and find steady states of TANK and RANK models.</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Impulse-responses-to-deficit-financed-G-shocks:">Impulse responses to deficit financed G shocks:</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HANK-vs-TANK-vs-RANK">HANK vs TANK vs RANK</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Simulating-time-series">Simulating time series</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Simulate-deficit-financed-government-spending-shocks.">Simulate deficit financed government spending shocks.</a></li>
+</ul>
+</li>
+<li class="toc-h1 nav-item toc-entry"><a class="reference internal nav-link" href="#Comparing-time-series-of-HANK,-TANK,-and-RANK">Comparing time series of HANK, TANK, and RANK</a></li>
+</ul>
+
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

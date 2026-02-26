@@ -1,0 +1,1558 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ConsAggShockModel &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/ConsumptionSaving/ConsAggShockModel';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/ConsumptionSaving/ConsAggShockModel.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ConsBequestModel" href="ConsBequestModel.html" />
+    <link rel="prev" title="Validators" href="../tools/validators.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tools/core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/dcegm.html">dcegm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distribution.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/helpers.html">Helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/interpolation.html">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/simulation.html">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsHealthModel.html">ConsHealthModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModel.html">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyContribModel.html">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">ConsAggShockModel</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.ConsumptionSaving.ConsAggShockModel">
+<span id="consaggshockmodel"></span><h1>ConsAggShockModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsAggShockModel" title="Link to this heading">#</a></h1>
+<p>Consumption-saving models with aggregate productivity shocks as well as idiosyn-
+cratic income shocks.  Currently only contains one microeconomic model with a
+basic solver.  Also includes a subclass of Market called CobbDouglas economy,
+used for solving “macroeconomic” models with aggregate shocks.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">AggShockConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ConsIndShockModel.html#HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType" title="HARK.ConsumptionSaving.ConsIndShockModel.IndShockConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code></a></p>
+<p>A class to represent consumers who face idiosyncratic (transitory and per-
+manent) shocks to their income and live in an economy that has aggregate
+(transitory and permanent) shocks to labor productivity.  As the capital-
+to-labor ratio varies in the economy, so does the wage rate and interest
+rate.  “Aggregate shock consumers” have beliefs about how the capital ratio
+evolves over time and take aggregate shocks into account when making their
+decision about how much to consume.</p>
+<p>NB: Unlike most AgentType subclasses, AggShockConsumerType does not automatically
+call its construct method as part of instantiation. In most cases, an instance of
+this class cannot be meaningfully solved without being associated with a Market
+instance, probably of the subclass CobbDouglasEconomy or SmallOpenEconomy.</p>
+<p>To be able to fully build and solve an instance of this class, assign it as an
+instance of the agents attribute of an appropriate Market, then run that Market’s
+give_agent_params method. This will distribute market-level parameters and
+instruct the agents to run their construct method. You should then be able to
+run the solve method on the Market or its agents.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'params':</span> <span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'BoroCnstArt':</span> <span class="pre">0.0,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'IncUnempRet':</span> <span class="pre">0.0,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'MaggCount':</span> <span class="pre">17,</span> <span class="pre">'MaggExpFac':</span> <span class="pre">0.15,</span> <span class="pre">'MaggPerturb':</span> <span class="pre">0.01,</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.0],</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.05,</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">0.005,</span> <span class="pre">'aXtraCount':</span> <span class="pre">24,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">20,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">3,</span> <span class="pre">'constructors':</span> <span class="pre">{'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">combine_ind_and_agg_income_shocks&gt;,</span> <span class="pre">'IncShkDstnInd':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'Mgrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_Mgrid&gt;,</span> <span class="pre">'MgridBase':</span> <span class="pre">&lt;function</span> <span class="pre">make_exponential_MgridBase&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'T_sim':</span> <span class="pre">&lt;HARK.utilities.get_it_from</span> <span class="pre">object&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_aggshock_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False,</span> <span class="pre">'pLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'pLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'pLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solveConsAggShock&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['aNrm',</span> <span class="pre">'cNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'pLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'aXtraGrid',</span> <span class="pre">'Mgrid',</span> <span class="pre">'AFunc',</span> <span class="pre">'Rfunc',</span> <span class="pre">'wFunc',</span> <span class="pre">'DeprRte',</span> <span class="pre">'PermGroFacAgg']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.market_vars">
+<span class="sig-name descname"><span class="pre">market_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['act_T',</span> <span class="pre">'kSS',</span> <span class="pre">'MSS',</span> <span class="pre">'AFunc',</span> <span class="pre">'Rfunc',</span> <span class="pre">'wFunc',</span> <span class="pre">'DeprRte',</span> <span class="pre">'PermGroFacAgg',</span> <span class="pre">'AggShkDstn']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.market_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.reset" title="Link to this definition">#</a></dt>
+<dd><p>Initialize this type for a new simulated history of K/L ratio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.pre_solve" title="Link to this definition">#</a></dt>
+<dd><p>Method that is run automatically just before solution by backward iteration.
+Solves the (trivial) terminal period and does a quick check on the borrowing
+constraint and MaxKinks attribute (only relevant in constrained, infinite
+horizon problems).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.sim_birth" title="Link to this definition">#</a></dt>
+<dd><p>Makes new consumers for the given indices.  Initialized variables include
+aNrm and pLvl, as well as time variables t_age and t_cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.AgentCount indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.sim_death">
+<span class="sig-name descname"><span class="pre">sim_death</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.sim_death" title="Link to this definition">#</a></dt>
+<dd><p>Randomly determine which consumers die, and distribute their wealth among the survivors.
+This method only works if there is only one period in the cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>who_dies</strong> – Boolean array of size AgentCount indicating which agents die.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array(<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_Rport">
+<span class="sig-name descname"><span class="pre">get_Rport</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_Rport" title="Link to this definition">#</a></dt>
+<dd><p>Returns an array of size self.AgentCount with self.RfreeNow in every entry.
+This is the risk-free portfolio return in this model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>RfreeNow</strong> – Array of size self.AgentCount with risk free interest rate for each agent.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Finds the effective permanent and transitory shocks this period by combining the aggregate
+and idiosyncratic shocks of each type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_controls" title="Link to this definition">#</a></dt>
+<dd><p>Calculates consumption for each consumer of this type using the consumption functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_MaggNow">
+<span class="sig-name descname"><span class="pre">get_MaggNow</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_MaggNow" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.market_action">
+<span class="sig-name descname"><span class="pre">market_action</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.market_action" title="Link to this definition">#</a></dt>
+<dd><p>In the aggregate shocks model, the “market action” is to simulate one
+period of receiving income and choosing how much to consume.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.calc_bounding_values">
+<span class="sig-name descname"><span class="pre">calc_bounding_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.calc_bounding_values" title="Link to this definition">#</a></dt>
+<dd><p>NOT YET IMPLEMENTED FOR THIS CLASS</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.make_euler_error_func">
+<span class="sig-name descname"><span class="pre">make_euler_error_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mMax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">approx_inc_dstn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.make_euler_error_func" title="Link to this definition">#</a></dt>
+<dd><p>NOT YET IMPLEMENTED FOR THIS CLASS</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.check_conditions">
+<span class="sig-name descname"><span class="pre">check_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.check_conditions" title="Link to this definition">#</a></dt>
+<dd><p>This method checks whether the instance’s type satisfies various conditions.
+When combinations of these conditions are satisfied, the solution to the
+problem exhibits different characteristics.  (For an exposition of the
+conditions, see <a class="reference external" href="https://econ-ark.github.io/BufferStockTheory/">https://econ-ark.github.io/BufferStockTheory/</a>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>verbose</strong> (<em>boolean</em>) – Specifies different levels of verbosity of feedback. When False, it only reports whether the
+instance’s type fails to satisfy a particular condition. When True, it reports all results, i.e.
+the factor values for all conditions.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.calc_limiting_values">
+<span class="sig-name descname"><span class="pre">calc_limiting_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.calc_limiting_values" title="Link to this definition">#</a></dt>
+<dd><p>Compute various scalar values that are relevant to characterizing the
+solution to an infinite horizon problem. This method should only be called
+when T_cycle=1 and cycles=0, otherwise the values generated are meaningless.
+This method adds the following values to this instance in the dictionary
+attribute called bilt.</p>
+<p>APFac : Absolute Patience Factor
+GPFacRaw : Growth Patience Factor
+GPFacMod : Risk-Modified Growth Patience Factor
+GPFacLiv : Mortality-Adjusted Growth Patience Factor
+GPFacLivMod : Modigliani Mortality-Adjusted Growth Patience Factor
+GPFacSdl : Szeidl Growth Patience Factor
+FHWFac : Finite Human Wealth Factor
+RPFac : Return Patience Factor
+WRPFac : Weak Return Patience Factor
+PFVAFac : Perfect Foresight Value of Autarky Factor
+VAFac : Value of Autarky Factor
+cNrmPDV : Present Discounted Value of Autarky Consumption
+MPCmin : Limiting minimum MPC as market resources go to infinity
+MPCmax : Limiting maximum MPC as market resources approach minimum level
+hNrm : Human wealth divided by permanent income.
+ELogPermShk : Expected log permanent income shock
+WorstPrb : Probability of worst income shock realization
+Delta_mNrm_ZeroFunc : Linear locus where expected change in market resource ratio is zero
+BalGroFunc : Linear consumption function where the level of market resources grows at the same rate as permanent income</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">AggShockMarkovConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType" title="HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code></a></p>
+<p>A class for representing ex ante heterogeneous “types” of consumers who
+experience both aggregate and idiosyncratic shocks to productivity (both
+permanent and transitory), who lives in an environment where the macroeconomic
+state is subject to Markov-style discrete state evolution.</p>
+<p>NB: Unlike most AgentType subclasses, AggMarkovShockConsumerType does not automatically
+call its construct method as part of instantiation. In most cases, an instance of
+this class cannot be meaningfully solved without being associated with a Market
+instance, probably of the subclass CobbDouglasMarkovEconomy or SmallOpenMarkovEconomy.</p>
+<p>To be able to fully build and solve an instance of this class, assign it as an
+instance of the agents attribute of an appropriate Market, then run that Market’s
+give_agent_params method. This will distribute market-level parameters and
+instruct the agents to run their construct method. You should then be able to
+run the solve method on the Market or its agents.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'aXtraGrid',</span> <span class="pre">'Mgrid',</span> <span class="pre">'AFunc',</span> <span class="pre">'Rfunc',</span> <span class="pre">'wFunc',</span> <span class="pre">'DeprRte',</span> <span class="pre">'PermGroFacAgg',</span> <span class="pre">'MrkvArray']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['PermShk',</span> <span class="pre">'TranShk',</span> <span class="pre">'Mrkv']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.shock_vars_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.market_vars">
+<span class="sig-name descname"><span class="pre">market_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['act_T',</span> <span class="pre">'kSS',</span> <span class="pre">'MSS',</span> <span class="pre">'AFunc',</span> <span class="pre">'Rfunc',</span> <span class="pre">'wFunc',</span> <span class="pre">'DeprRte',</span> <span class="pre">'PermGroFacAgg',</span> <span class="pre">'AggShkDstn',</span> <span class="pre">'MrkvArray']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.market_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'params':</span> <span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'BoroCnstArt':</span> <span class="pre">0.0,</span> <span class="pre">'CRRA':</span> <span class="pre">2.0,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.96,</span> <span class="pre">'IncUnemp':</span> <span class="pre">array([0.3,</span> <span class="pre">0.3]),</span> <span class="pre">'IncUnempRet':</span> <span class="pre">None,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'MaggCount':</span> <span class="pre">17,</span> <span class="pre">'MaggExpFac':</span> <span class="pre">0.15,</span> <span class="pre">'MaggPerturb':</span> <span class="pre">0.01,</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.0],</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">array([[0.1,</span> <span class="pre">0.1]]),</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">array([[0.1,</span> <span class="pre">0.1]]),</span> <span class="pre">'UnempPrb':</span> <span class="pre">array([0.05,</span> <span class="pre">0.05]),</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">None,</span> <span class="pre">'aXtraCount':</span> <span class="pre">24,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">20,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">3,</span> <span class="pre">'constructors':</span> <span class="pre">{'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">combine_markov_ind_and_agg_income_shocks&gt;,</span> <span class="pre">'IncShkDstnInd':</span> <span class="pre">&lt;function</span> <span class="pre">construct_markov_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'Mgrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_Mgrid&gt;,</span> <span class="pre">'MgridBase':</span> <span class="pre">&lt;function</span> <span class="pre">make_exponential_MgridBase&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn_markov&gt;,</span> <span class="pre">'T_sim':</span> <span class="pre">&lt;HARK.utilities.get_it_from</span> <span class="pre">object&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn_markov&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_aggmrkv_solution_terminal&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False,</span> <span class="pre">'pLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'pLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'pLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solve_ConsAggMarkov&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['aNrm',</span> <span class="pre">'cNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'pLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.initialize_sim" title="Link to this definition">#</a></dt>
+<dd><p>Prepares this AgentType for a new simulation.  Resets the internal random number generator,
+makes initial states for all agents (using sim_birth), clears histories of tracked variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.get_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
+each period in the cycle.  This is a copy-paste from IndShockConsumerType, with the
+addition of the Markov macroeconomic state.  Unfortunately, the get_shocks method for
+MarkovConsumerType cannot be used, as that method assumes that MrkvNow is a vector
+with a value for each agent, not just a single int.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.get_controls" title="Link to this definition">#</a></dt>
+<dd><p>Calculates consumption for each consumer of this type using the consumption functions.
+For this AgentType class, MrkvNow is the same for all consumers.  However, in an
+extension with “macroeconomic inattention”, consumers might misperceive the state
+and thus act as if they are in different states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.getMrkvNow">
+<span class="sig-name descname"><span class="pre">getMrkvNow</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.getMrkvNow" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">CobbDouglasEconomy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1200</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.Market" title="HARK.core.Market"><code class="xref py py-class docutils literal notranslate"><span class="pre">Market</span></code></a></p>
+<p>A class to represent an economy with a Cobb-Douglas aggregate production
+function over labor and capital, extending HARK.Market.  The “aggregate
+market process” for this market combines all individuals’ asset holdings
+into aggregate capital, yielding the interest factor on assets and the wage
+rate for the upcoming period.</p>
+<p>Note: The current implementation assumes a constant labor supply, but
+this will be generalized in the future.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agents</strong> (<em>[</em><em>ConsumerType</em><em>]</em>) – List of types of consumers that live in this economy.</p></li>
+<li><p><strong>tolerance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum acceptable distance between “dynamic rules” to consider the
+solution process converged.  Distance depends on intercept and slope
+of the log-linear “next capital ratio” function.</p></li>
+<li><p><strong>act_T</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of periods to simulate when making a history of of the market.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.mill_rule">
+<span class="sig-name descname"><span class="pre">mill_rule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aLvl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pLvl</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.mill_rule" title="Link to this definition">#</a></dt>
+<dd><p>Function to calculate the capital to labor ratio, interest factor, and
+wage rate based on each agent’s current state.  Just calls calc_R_and_W().</p>
+<p>See documentation for calc_R_and_W for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_dynamics">
+<span class="sig-name descname"><span class="pre">calc_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">MaggNow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AaggNow</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_dynamics" title="Link to this definition">#</a></dt>
+<dd><p>Calculates a new dynamic rule for the economy: end of period savings as
+a function of aggregate market resources.  Just calls calc_AFunc().</p>
+<p>See documentation for calc_AFunc for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.update" title="Link to this definition">#</a></dt>
+<dd><p>Use primitive parameters (and perfect foresight calibrations) to make
+interest factor and wage rate functions (of capital to labor ratio),
+as well as discrete approximations to the aggregate shock distributions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.get_PermGroFacAggLR">
+<span class="sig-name descname"><span class="pre">get_PermGroFacAggLR</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.get_PermGroFacAggLR" title="Link to this definition">#</a></dt>
+<dd><p>A trivial function that returns self.PermGroFacAgg.  Exists to be overwritten
+and extended by ConsAggShockMarkov model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>PermGroFacAggLR</strong> – Long run aggregate permanent income growth, which is the same thing
+as aggregate permanent income growth.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.make_AggShkDstn">
+<span class="sig-name descname"><span class="pre">make_AggShkDstn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.make_AggShkDstn" title="Link to this definition">#</a></dt>
+<dd><p>Creates the attributes TranShkAggDstn, PermShkAggDstn, and AggShkDstn.
+Draws on attributes TranShkAggStd, PermShkAddStd, TranShkAggCount, PermShkAggCount.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.reset" title="Link to this definition">#</a></dt>
+<dd><p>Reset the economy to prepare for a new simulation.  Sets the time index
+of aggregate shocks to zero and runs Market.reset().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.make_AggShkHist">
+<span class="sig-name descname"><span class="pre">make_AggShkHist</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.make_AggShkHist" title="Link to this definition">#</a></dt>
+<dd><p>Make simulated histories of aggregate transitory and permanent shocks.
+Histories are of length self.act_T, for use in the general equilibrium
+simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_R_and_W">
+<span class="sig-name descname"><span class="pre">calc_R_and_W</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aLvlNow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pLvlNow</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_R_and_W" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the interest factor and wage rate this period using each agent’s
+capital stock to get the aggregate capital ratio.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>aLvlNow</strong> (<em>[</em><em>np.array</em><em>]</em>) – Agents’ current end-of-period assets.  Elements of the list correspond
+to types in the economy, entries within arrays to agents of that type.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>MaggNow</strong> (<em>float</em>) – Aggregate market resources for this period normalized by mean permanent income</p></li>
+<li><p><strong>AaggNow</strong> (<em>float</em>) – Aggregate savings for this period normalized by mean permanent income</p></li>
+<li><p><strong>RfreeNow</strong> (<em>float</em>) – Interest factor on assets in the economy this period.</p></li>
+<li><p><strong>wRteNow</strong> (<em>float</em>) – Wage rate for labor in the economy this period.</p></li>
+<li><p><strong>PermShkAggNow</strong> (<em>float</em>) – Permanent shock to aggregate labor productivity this period.</p></li>
+<li><p><strong>TranShkAggNow</strong> (<em>float</em>) – Transitory shock to aggregate labor productivity this period.</p></li>
+<li><p><strong>KtoLnow</strong> (<em>float</em>) – Capital-to-labor ratio in the economy this period.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_AFunc">
+<span class="sig-name descname"><span class="pre">calc_AFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">MaggNow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AaggNow</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_AFunc" title="Link to this definition">#</a></dt>
+<dd><p>Calculate a new aggregate savings rule based on the history
+of the aggregate savings and aggregate market resources from a simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>MaggNow</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – List of the history of the simulated aggregate market resources for an economy.</p></li>
+<li><p><strong>AaggNow</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – List of the history of the simulated aggregate savings for an economy.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>(unnamed)</strong> – Object containing a new savings rule</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>CapDynamicRule</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">SmallOpenEconomy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.Market" title="HARK.core.Market"><code class="xref py py-class docutils literal notranslate"><span class="pre">Market</span></code></a></p>
+<p>A class for representing a small open economy, where the wage rate and interest rate are
+exogenously determined by some “global” rate.  However, the economy is still subject to
+aggregate productivity shocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agents</strong> (<em>[</em><em>ConsumerType</em><em>]</em>) – List of types of consumers that live in this economy.</p></li>
+<li><p><strong>tolerance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum acceptable distance between “dynamic rules” to consider the
+solution process converged.  Distance depends on intercept and slope
+of the log-linear “next capital ratio” function.</p></li>
+<li><p><strong>act_T</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of periods to simulate when making a history of of the market.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.update" title="Link to this definition">#</a></dt>
+<dd><p>Use primitive parameters to set basic objects.
+This is an extremely stripped-down version
+of update for CobbDouglasEconomy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>none</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.make_AggShkDstn">
+<span class="sig-name descname"><span class="pre">make_AggShkDstn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.make_AggShkDstn" title="Link to this definition">#</a></dt>
+<dd><p>Creates the attributes TranShkAggDstn, PermShkAggDstn, and AggShkDstn.
+Draws on attributes TranShkAggStd, PermShkAddStd, TranShkAggCount, PermShkAggCount.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.mill_rule">
+<span class="sig-name descname"><span class="pre">mill_rule</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.mill_rule" title="Link to this definition">#</a></dt>
+<dd><p>No aggregation occurs for a small open economy, because the wage and interest rates are
+exogenously determined.  However, aggregate shocks may occur.</p>
+<p>See documentation for get_AggShocks() for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.calc_dynamics">
+<span class="sig-name descname"><span class="pre">calc_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">KtoLnow</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.calc_dynamics" title="Link to this definition">#</a></dt>
+<dd><p>Calculates a new dynamic rule for the economy, which is just an empty object.
+There is no “dynamic rule” for a small open economy, because K/L does not generate w and R.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.reset" title="Link to this definition">#</a></dt>
+<dd><p>Reset the economy to prepare for a new simulation.  Sets the time index of aggregate shocks
+to zero and runs Market.reset().  This replicates the reset method for CobbDouglasEconomy;
+future version should create parent class of that class and this one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.make_AggShkHist">
+<span class="sig-name descname"><span class="pre">make_AggShkHist</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.make_AggShkHist" title="Link to this definition">#</a></dt>
+<dd><p>Make simulated histories of aggregate transitory and permanent shocks. Histories are of
+length self.act_T, for use in the general equilibrium simulation.  This replicates the same
+method for CobbDouglasEconomy; future version should create parent class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.get_AggShocks">
+<span class="sig-name descname"><span class="pre">get_AggShocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.get_AggShocks" title="Link to this definition">#</a></dt>
+<dd><p>Returns aggregate state variables and shocks for this period.  The capital-to-labor ratio
+is irrelevant and thus treated as constant, and the wage and interest rates are also
+constant.  However, aggregate shocks are assigned from a prespecified history.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>MaggNow</strong> (<em>float</em>) – Aggregate market resources for this period normalized by mean permanent income</p></li>
+<li><p><strong>AaggNow</strong> (<em>float</em>) – Aggregate savings for this period normalized by mean permanent income</p></li>
+<li><p><strong>RfreeNow</strong> (<em>float</em>) – Interest factor on assets in the economy this period.</p></li>
+<li><p><strong>wRteNow</strong> (<em>float</em>) – Wage rate for labor in the economy this period.</p></li>
+<li><p><strong>PermShkAggNow</strong> (<em>float</em>) – Permanent shock to aggregate labor productivity this period.</p></li>
+<li><p><strong>TranShkAggNow</strong> (<em>float</em>) – Transitory shock to aggregate labor productivity this period.</p></li>
+<li><p><strong>KtoLnow</strong> (<em>float</em>) – Capital-to-labor ratio in the economy this period.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">CobbDouglasMarkovEconomy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1200</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy" title="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy"><code class="xref py py-class docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code></a></p>
+<p>A class to represent an economy with a Cobb-Douglas aggregate production
+function over labor and capital, extending HARK.Market.  The “aggregate
+market process” for this market combines all individuals’ asset holdings
+into aggregate capital, yielding the interest factor on assets and the wage
+rate for the upcoming period.  This small extension incorporates a Markov
+state for the “macroeconomy”, so that the shock distribution and aggregate
+productivity growth factor can vary over time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agents</strong> (<em>[</em><em>ConsumerType</em><em>]</em>) – List of types of consumers that live in this economy.</p></li>
+<li><p><strong>tolerance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum acceptable distance between “dynamic rules” to consider the
+solution process converged.  Distance depends on intercept and slope
+of the log-linear “next capital ratio” function.</p></li>
+<li><p><strong>act_T</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of periods to simulate when making a history of of the market.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.update" title="Link to this definition">#</a></dt>
+<dd><p>Use primitive parameters (and perfect foresight calibrations) to make
+interest factor and wage rate functions (of capital to labor ratio),
+as well as discrete approximations to the aggregate shock distributions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.get_PermGroFacAggLR">
+<span class="sig-name descname"><span class="pre">get_PermGroFacAggLR</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.get_PermGroFacAggLR" title="Link to this definition">#</a></dt>
+<dd><p>Calculates and returns the long run permanent income growth factor.  This
+is the average growth factor in self.PermGroFacAgg, weighted by the long
+run distribution of Markov states (as determined by self.MrkvArray).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>PermGroFacAggLR</strong> – Long run aggregate permanent income growth factor</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_AggShkDstn">
+<span class="sig-name descname"><span class="pre">make_AggShkDstn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_AggShkDstn" title="Link to this definition">#</a></dt>
+<dd><p>Creates the attributes TranShkAggDstn, PermShkAggDstn, and AggShkDstn.
+Draws on attributes TranShkAggStd, PermShkAddStd, TranShkAggCount, PermShkAggCount.
+This version accounts for the Markov macroeconomic state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_AggShkHist">
+<span class="sig-name descname"><span class="pre">make_AggShkHist</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_AggShkHist" title="Link to this definition">#</a></dt>
+<dd><p>Make simulated histories of aggregate transitory and permanent shocks.
+Histories are of length self.act_T, for use in the general equilibrium
+simulation.  Draws on history of aggregate Markov states generated by
+internal call to make_Mrkv_history().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_Mrkv_history">
+<span class="sig-name descname"><span class="pre">make_Mrkv_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_Mrkv_history" title="Link to this definition">#</a></dt>
+<dd><p>Makes a history of macroeconomic Markov states, stored in the attribute
+MrkvNow_hist.  This version ensures that each state is reached a sufficient
+number of times to have a valid sample for calc_dynamics to produce a good
+dynamic rule.  It will sometimes cause act_T to be increased beyond its
+initially specified level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.mill_rule">
+<span class="sig-name descname"><span class="pre">mill_rule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aLvl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pLvl</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.mill_rule" title="Link to this definition">#</a></dt>
+<dd><p>Function to calculate the capital to labor ratio, interest factor, and
+wage rate based on each agent’s current state.  Just calls calc_R_and_W()
+and adds the Markov state index.</p>
+<p>See documentation for calc_R_and_W for more information.</p>
+<section id="params">
+<h2>Params<a class="headerlink" href="#params" title="Link to this heading">#</a></h2>
+<p>aLvl : float
+pLvl : float</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Mnow</strong> (<em>float</em>) – Aggregate market resources for this period.</p></li>
+<li><p><strong>Aprev</strong> (<em>float</em>) – Aggregate savings for the prior period.</p></li>
+<li><p><strong>KtoLnow</strong> (<em>float</em>) – Capital-to-labor ratio in the economy this period.</p></li>
+<li><p><strong>Rnow</strong> (<em>float</em>) – Interest factor on assets in the economy this period.</p></li>
+<li><p><strong>Wnow</strong> (<em>float</em>) – Wage rate for labor in the economy this period.</p></li>
+<li><p><strong>MrkvNow</strong> (<em>int</em>) – Binary indicator for bad (0) or good (1) macroeconomic state.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.calc_AFunc">
+<span class="sig-name descname"><span class="pre">calc_AFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">MaggNow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AaggNow</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.calc_AFunc" title="Link to this definition">#</a></dt>
+<dd><p>Calculate a new aggregate savings rule based on the history of the
+aggregate savings and aggregate market resources from a simulation.
+Calculates an aggregate saving rule for each macroeconomic Markov state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>MaggNow</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – List of the history of the simulated  aggregate market resources for an economy.</p></li>
+<li><p><strong>AaggNow</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – List of the history of the simulated  aggregate savings for an economy.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>(unnamed)</strong> – Object containing new saving rules for each Markov state.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>CapDynamicRule</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">SmallOpenMarkovEconomy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_T</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy" title="HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy"><code class="xref py py-class docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code></a>, <a class="reference internal" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy" title="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy"><code class="xref py py-class docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code></a></p>
+<p>A class for representing a small open economy, where the wage rate and interest rate are
+exogenously determined by some “global” rate.  However, the economy is still subject to
+aggregate productivity shocks.  This version supports a discrete Markov state.  All
+methods in this class inherit from the two parent classes.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.update" title="Link to this definition">#</a></dt>
+<dd><p>Use primitive parameters (and perfect foresight calibrations) to make
+interest factor and wage rate functions (of capital to labor ratio),
+as well as discrete approximations to the aggregate shock distributions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.make_AggShkDstn">
+<span class="sig-name descname"><span class="pre">make_AggShkDstn</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.make_AggShkDstn" title="Link to this definition">#</a></dt>
+<dd><p>Creates the attributes TranShkAggDstn, PermShkAggDstn, and AggShkDstn.
+Draws on attributes TranShkAggStd, PermShkAddStd, TranShkAggCount, PermShkAggCount.
+This version accounts for the Markov macroeconomic state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.mill_rule">
+<span class="sig-name descname"><span class="pre">mill_rule</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.mill_rule" title="Link to this definition">#</a></dt>
+<dd><p>Function to calculate the capital to labor ratio, interest factor, and
+wage rate based on each agent’s current state.  Just calls calc_R_and_W()
+and adds the Markov state index.</p>
+<p>See documentation for calc_R_and_W for more information.</p>
+<section id="id1">
+<h2>Params<a class="headerlink" href="#id1" title="Link to this heading">#</a></h2>
+<p>aLvl : float
+pLvl : float</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Mnow</strong> (<em>float</em>) – Aggregate market resources for this period.</p></li>
+<li><p><strong>Aprev</strong> (<em>float</em>) – Aggregate savings for the prior period.</p></li>
+<li><p><strong>KtoLnow</strong> (<em>float</em>) – Capital-to-labor ratio in the economy this period.</p></li>
+<li><p><strong>Rnow</strong> (<em>float</em>) – Interest factor on assets in the economy this period.</p></li>
+<li><p><strong>Wnow</strong> (<em>float</em>) – Wage rate for labor in the economy this period.</p></li>
+<li><p><strong>MrkvNow</strong> (<em>int</em>) – Binary indicator for bad (0) or good (1) macroeconomic state.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.calc_dynamics">
+<span class="sig-name descname"><span class="pre">calc_dynamics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.calc_dynamics" title="Link to this definition">#</a></dt>
+<dd><p>Calculates a new dynamic rule for the economy: end of period savings as
+a function of aggregate market resources.  Just calls calc_AFunc().</p>
+<p>See documentation for calc_AFunc for more information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.make_AggShkHist">
+<span class="sig-name descname"><span class="pre">make_AggShkHist</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.make_AggShkHist" title="Link to this definition">#</a></dt>
+<dd><p>Make simulated histories of aggregate transitory and permanent shocks.
+Histories are of length self.act_T, for use in the general equilibrium
+simulation.  Draws on history of aggregate Markov states generated by
+internal call to make_Mrkv_history().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggregateSavingRule">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">AggregateSavingRule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">intercept</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggregateSavingRule" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class to represent agent beliefs about aggregate saving at the end of this period (AaggNow) as
+a function of (normalized) aggregate market resources at the beginning of the period (MaggNow).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>intercept</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Intercept of the log-linear capital evolution rule.</p></li>
+<li><p><strong>slope</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Slope of the log-linear capital evolution rule.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsAggShockModel.AggShocksDynamicRule">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsAggShockModel.</span></span><span class="sig-name descname"><span class="pre">AggShocksDynamicRule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">AFunc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShocksDynamicRule" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>Just a container class for passing the dynamic rule in the aggregate shocks model to agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>AFunc</strong> (<em>CapitalEvoRule</em>) – Aggregate savings as a function of aggregate market resources.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../tools/validators.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Validators</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="ConsBequestModel.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">ConsBequestModel</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.default_"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.market_vars"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.market_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.reset"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.pre_solve"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.pre_solve()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.sim_birth"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.sim_birth()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.sim_death"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.sim_death()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_Rport"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.get_Rport()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_shocks"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.get_shocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_controls"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.get_controls()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.get_MaggNow"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.get_MaggNow()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.market_action"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.market_action()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.calc_bounding_values"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.calc_bounding_values()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.make_euler_error_func"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.make_euler_error_func()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.check_conditions"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.check_conditions()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockConsumerType.calc_limiting_values"><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType.calc_limiting_values()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.shock_vars_"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.shock_vars_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.market_vars"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.market_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.default_"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.initialize_sim"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.initialize_sim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.get_shocks"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.get_shocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.get_controls"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.get_controls()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShockMarkovConsumerType.getMrkvNow"><code class="docutils literal notranslate"><span class="pre">AggShockMarkovConsumerType.getMrkvNow()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.mill_rule"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.mill_rule()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_dynamics"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.calc_dynamics()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.update"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.update()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.get_PermGroFacAggLR"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.get_PermGroFacAggLR()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.make_AggShkDstn"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.make_AggShkDstn()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.reset"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.make_AggShkHist"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.make_AggShkHist()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_R_and_W"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.calc_R_and_W()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasEconomy.calc_AFunc"><code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy.calc_AFunc()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.update"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.update()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.make_AggShkDstn"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.make_AggShkDstn()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.mill_rule"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.mill_rule()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.calc_dynamics"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.calc_dynamics()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.reset"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.make_AggShkHist"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.make_AggShkHist()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenEconomy.get_AggShocks"><code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy.get_AggShocks()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.update"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.update()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.get_PermGroFacAggLR"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.get_PermGroFacAggLR()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_AggShkDstn"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.make_AggShkDstn()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_AggShkHist"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.make_AggShkHist()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.make_Mrkv_history"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.make_Mrkv_history()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.mill_rule"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.mill_rule()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.CobbDouglasMarkovEconomy.calc_AFunc"><code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy.calc_AFunc()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy"><code class="docutils literal notranslate"><span class="pre">SmallOpenMarkovEconomy</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.update"><code class="docutils literal notranslate"><span class="pre">SmallOpenMarkovEconomy.update()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.make_AggShkDstn"><code class="docutils literal notranslate"><span class="pre">SmallOpenMarkovEconomy.make_AggShkDstn()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.mill_rule"><code class="docutils literal notranslate"><span class="pre">SmallOpenMarkovEconomy.mill_rule()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.calc_dynamics"><code class="docutils literal notranslate"><span class="pre">SmallOpenMarkovEconomy.calc_dynamics()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.SmallOpenMarkovEconomy.make_AggShkHist"><code class="docutils literal notranslate"><span class="pre">SmallOpenMarkovEconomy.make_AggShkHist()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggregateSavingRule"><code class="docutils literal notranslate"><span class="pre">AggregateSavingRule</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsAggShockModel.AggShocksDynamicRule"><code class="docutils literal notranslate"><span class="pre">AggShocksDynamicRule</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

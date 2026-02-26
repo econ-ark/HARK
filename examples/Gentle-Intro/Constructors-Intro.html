@@ -1,0 +1,1168 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Constructed Attributes and Model Defaults &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/Constructors-Intro';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/Constructors-Intro.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Advanced and Uncommon HARK Concepts" href="Advanced-Intro.html" />
+    <link rel="prev" title="The Nature of Time for AgentTypes" href="Cycles-Intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Constructed Attributes and Model Defaults</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Gentle-Intro/Constructors-Intro.ipynb">examples/Gentle-Intro/Constructors-Intro.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Gentle-Intro/Constructors-Intro.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Constructors-Intro.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Constructed-Attributes-and-Model-Defaults">
+<h1>Constructed Attributes and Model Defaults<a class="headerlink" href="#Constructed-Attributes-and-Model-Defaults" title="Link to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+</pre></div>
+</div>
+</div>
+<p>In the other introductory notebooks, there were repeated references to default parameters and <a class="reference external" href="../../docs/images/constructors_thumbnail.jpg">constructed inputs</a>. What’s up with that? Read on for the answers!</p>
+<section id="Just-Gimme-Whatever:-Default-AgentType-Options">
+<h2>Just Gimme Whatever: Default AgentType Options<a class="headerlink" href="#Just-Gimme-Whatever:-Default-AgentType-Options" title="Link to this heading">#</a></h2>
+<p>Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass, like <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> and <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, has a dictionary called <code class="docutils literal notranslate"><span class="pre">default_</span></code> as a class attribute. It (usually) has three entries: <code class="docutils literal notranslate"><span class="pre">params</span></code>, <code class="docutils literal notranslate"><span class="pre">solver</span></code>, and <code class="docutils literal notranslate"><span class="pre">model</span></code>. The <code class="docutils literal notranslate"><span class="pre">solver</span></code> entry has a reference to the function that solves the one-period problem for the model (conditional on the solution to the succeeding period and the parameters for that period). The <code class="docutils literal notranslate"><span class="pre">model</span></code> entry is a reference to a filename that is used for the new,
+developmental simulation structure. Finally, the <code class="docutils literal notranslate"><span class="pre">params</span></code> entry has a reference to a dictionary of default model parameters, which is usually defined <em>just above</em> the class definition.</p>
+<p>If you do not want to use the default parameters (including constructors), pass <code class="docutils literal notranslate"><span class="pre">use_defaults=False</span></code> to the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass when you make an instance. This means that you must pass all required parameters (and constructors) explicitly, or the instance won’t be able to <code class="docutils literal notranslate"><span class="pre">solve</span></code> its model– or do much of anything.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">NoDefaultExample</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span>
+    <span class="n">use_defaults</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">)</span>  <span class="c1"># Has a solver, but no parameters at all!</span>
+</pre></div>
+</div>
+</div>
+<section id="Changing-Parameter-Values">
+<h3>Changing Parameter Values<a class="headerlink" href="#Changing-Parameter-Values" title="Link to this heading">#</a></h3>
+<p>Whenever you make a new instance of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass, you can pass as many arguments as you would like (in a dictionary or otherwise), but they must all be keyword arguments (e.g. <code class="docutils literal notranslate"><span class="pre">MyType</span> <span class="pre">=</span> <span class="pre">IndShockConsumerType('CRRA'</span> <span class="pre">=</span> <span class="pre">3.0)</span></code>, but not <code class="docutils literal notranslate"><span class="pre">MyType</span> <span class="pre">=</span> <span class="pre">IndShockConsumerType(3.0)</span></code>. Arguments that are explicitly passed will supercede any default value for that parameter. For any parameters that you <em>don’t</em> pass, the value in the default dictionary will be used instead.</p>
+<p>For most <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses, the default parameters include <code class="docutils literal notranslate"><span class="pre">T_cycle=1</span></code> and <code class="docutils literal notranslate"><span class="pre">cycles=1</span></code>. Thus if you make an instance of that class using only default parameters (no arguments passed), it will represent an agent that lives for only one non-trivial period. That’s not very interesting, but it <em>is</em> a model! These simple defaults were chosen so that it’s fast and easy to make <em>some</em> instance of each class, if only so that the user can investigate what’s inside it.</p>
+<p>The primary exception to the convention that default parameters have <code class="docutils literal notranslate"><span class="pre">cycles=1</span></code> are models for which there is no meaningful interpretation to a finite horizon model. This includes the <code class="docutils literal notranslate"><span class="pre">TractableBufferStockConsumerType</span></code>, which is by defintion infinite horizon (and uses a much different solution method than other HARK models) and the <code class="docutils literal notranslate"><span class="pre">RepresentativeAgentConsumerType</span></code>.</p>
+<p>If you are exploring an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass and want it to do something more interesting, the simplest approach is to set <code class="docutils literal notranslate"><span class="pre">cycles=0</span></code> and then <code class="docutils literal notranslate"><span class="pre">solve()</span></code> your instance. This will solve the <em>infinite horizon</em> model with default parameters. Alternatively, set <code class="docutils literal notranslate"><span class="pre">cycles&gt;1</span></code> to solve several non-terminal (or non-trivial) periods.</p>
+</section>
+<section id="Style-Conventions-for-Default-Parameters">
+<h3>Style Conventions for Default Parameters<a class="headerlink" href="#Style-Conventions-for-Default-Parameters" title="Link to this heading">#</a></h3>
+<p>To the greatest extent possible, we have tried to make all default parameters be single numbers, or a list with a single number. For anything more complex than that, there should be a <strong>constructor</strong> function (see below) to build the more complicated object.</p>
+<p>In some cases, it would be awkward or impossible to specify simple parameters, and a larger object needs to be passed as arguments to an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass’s initializer. That’s fine, and we do it too in our projects! The most common situation for this is when some model inputs have been pre-computed– maybe in an earlier phase of this project, or maybe the results from someone else’s project. This might be a life-cycle sequence of parameters estimated in reduced form, or transition
+probabilities among discrete states. In these situations, we recommend that your project have a <code class="docutils literal notranslate"><span class="pre">Parameters.py</span></code> file where you do the work of reading in this outside data and constructing the parameter dictionary you want to use.</p>
+</section>
+</section>
+<section id="Constructor-Functions-for-Complex-Model-Inputs">
+<h2>Constructor Functions for Complex Model Inputs<a class="headerlink" href="#Constructor-Functions-for-Complex-Model-Inputs" title="Link to this heading">#</a></h2>
+<p>Some objects needed to solve a model are complex, but can be created based on simpler “primitive” parameters. This includes the lifecycle sequence of income shock distributions, a parameterizable Markov transition matrix among discrete states, or age-dependent mortality probabilities that can be characterized with polynomial coefficients.</p>
+<p>HARK can automatically build these objects using constructor functions. Such functions are specified in each instance’s <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary, which can be passed like any other object at initialization. Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> has default constructors for some model objects, which are listed in the <code class="docutils literal notranslate"><span class="pre">constructors</span></code> entry of its default parameter dictionary.</p>
+<p>You do not need to worry about the “order” in which constructors are defined in the dictionary. The <code class="docutils literal notranslate"><span class="pre">construct</span></code> method automatically works out any dependencies among constructed attributes, constructing “lower level” objects before it builds “higher level” ones that depend on intermediate objects.</p>
+<section id="Special-Exception:-AgentType-Subclasses-for-%22Macroeconomic%22-Models">
+<h3>Special Exception: <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclasses for “Macroeconomic” Models<a class="headerlink" href="#Special-Exception:-AgentType-Subclasses-for-%22Macroeconomic%22-Models" title="Link to this heading">#</a></h3>
+<p>Typically, the <code class="docutils literal notranslate"><span class="pre">construct()</span></code> method is run as the final step of creating a new <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance (but this can be skipped by passing <code class="docutils literal notranslate"><span class="pre">construct=False</span></code> at initialization). HARK will automatically (try to) build all constructed attributes using the given parameters.</p>
+<p>However, some <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses are (usually) only meant to exist in the context of an associated <code class="docutils literal notranslate"><span class="pre">Market</span></code> instance, and some of the data they need to solve their micro model is actually associated with the “macro”-level <code class="docutils literal notranslate"><span class="pre">Market</span></code>. For example, an <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> needs to know the distribution of aggregate productivity shocks, but that distribution “comes from” the <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> or <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code> in which they operate.</p>
+<p>Those <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses are set to <em>not</em> run <code class="docutils literal notranslate"><span class="pre">construct()</span></code> at instantiation. Instead, the agents should be assigned to an appropriate <code class="docutils literal notranslate"><span class="pre">Market</span></code> instance’s list of <code class="docutils literal notranslate"><span class="pre">agents</span></code>, and then invoke the <code class="docutils literal notranslate"><span class="pre">Market</span></code>’s <code class="docutils literal notranslate"><span class="pre">give_agent_params()</span></code> method. This will distribute the necessary “macro”-level objects to the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance(s) and run their <code class="docutils literal notranslate"><span class="pre">construct()</span></code> method to build other model inputs.</p>
+</section>
+<section id="Viewing-Constructors">
+<h3>Viewing Constructors<a class="headerlink" href="#Viewing-Constructors" title="Link to this heading">#</a></h3>
+<p>The easiest way to see how an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass’s (default) constructors are set up is to use the <code class="docutils literal notranslate"><span class="pre">describe_constructors</span></code> method. Simply make a default instance of the class and run the method, like so:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ThisType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">()</span>  <span class="c1"># no parameters, only defaults</span>
+<span class="n">ThisType</span><span class="o">.</span><span class="n">describe_constructors</span><span class="p">()</span>  <span class="c1"># no arguments</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+✓ kNrmInitDstn : make_lognormal_kNrm_init_dstn
+    ✓ kLogInitMean
+    ✓ kLogInitStd
+    ✓ kNrmInitCount
+    ✓ RNG
+✓ pLvlInitDstn : make_lognormal_pLvl_init_dstn
+    ✓ pLogInitMean
+    ✓ pLogInitStd
+    ✓ pLvlInitCount
+    ✓ RNG
+✓ IncShkDstn : construct_lognormal_income_process_unemployment
+    ✓ T_cycle
+    ✓ PermShkStd
+    ✓ PermShkCount
+    ✓ TranShkStd
+    ✓ TranShkCount
+    ✓ T_retire
+    ✓ UnempPrb
+    ✓ IncUnemp
+    ✓ UnempPrbRet
+    ✓ IncUnempRet
+    ✓ RNG
+    ✓ neutral_measure
+✓ PermShkDstn : get_PermShkDstn_from_IncShkDstn
+    ✓ IncShkDstn
+    ✓ RNG
+✓ TranShkDstn : get_TranShkDstn_from_IncShkDstn
+    ✓ IncShkDstn
+    ✓ RNG
+✓ aXtraGrid : make_assets_grid
+    ✓ aXtraMin
+    ✓ aXtraMax
+    ✓ aXtraCount
+    ✓ aXtraExtra
+    ✓ aXtraNestFac
+✓ solution_terminal : make_basic_CRRA_solution_terminal
+    ✓ CRRA
+
+</pre></div></div>
+</div>
+<p>This prints to screen a summary of constructed objects. The unindented lines name attributes of this instance that are constructed, with the name of the constructor function after the colon. The indented lines following each constructed attribute name list the names of the arguments for that function; when the constructor function is run, those arguments are pulled from the instance’s attributes. Note that those constructor arguments could be parameters that were passed at instantiation (or
+default parameters), or they might be <em>other</em> constructed objects.</p>
+<p>Each line of the output of <code class="docutils literal notranslate"><span class="pre">describe_constructors</span></code> will begin with one of three symbols: a check mark, an X, or a star. Unindented lines naming constructed objects can only begin with a check mark or X. These are shorthand for the following:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\surd\)</span> : Constructed object was successfully built, or named input exists as attribute of agent.</p></li>
+<li><p><span class="math notranslate nohighlight">\(X\)</span> : Constructed object was not built, or named input was not found as attribute of agent.</p></li>
+<li><p><span class="math notranslate nohighlight">\(*\)</span> : Input was not found as attribute of agent, but constructor function has a default value for it.</p></li>
+</ul>
+<p>A constructed attribute could fail to build for any one of several reasons:</p>
+<ol class="arabic simple">
+<li><p>No proper constructor was found (the entry in the <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary is not a function)</p></li>
+<li><p>At least one required input was not found</p></li>
+<li><p>The constructor function encountered an error during execution</p></li>
+</ol>
+</section>
+<section id="Updating-Constructed-Attributes">
+<h3>Updating Constructed Attributes<a class="headerlink" href="#Updating-Constructed-Attributes" title="Link to this heading">#</a></h3>
+<p>If you change (after instantiation) the value of a parameter that a constructed attribute was based on, this does <em>not</em> update the content of the constructed attribute. You must explicitly tell HARK to do so by using the <code class="docutils literal notranslate"><span class="pre">update</span></code> or <code class="docutils literal notranslate"><span class="pre">construct</span></code> method, which are redundant “synonym” methods.</p>
+<p>The safest thing to do after changing one or more parameters is to simply invoke the <code class="docutils literal notranslate"><span class="pre">construct</span></code> method with no arguments. This will re-run all constructors, starting from scratch and re-resolving all dependencies. Data will never be “lost” in this process; if a constructor function fails, the method will restore the attribute to its state before the call to <code class="docutils literal notranslate"><span class="pre">construct</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ThisType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">PermShkCount</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Made a new instance of the agents.&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Standard deviation of log permanent income shocks is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkStd</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Permanent income shock equiprobable values: &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="n">ThisType</span><span class="o">.</span><span class="n">assign_parameters</span><span class="p">(</span><span class="n">PermShkStd</span><span class="o">=</span><span class="p">[</span><span class="mf">0.15</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Changed permanent shock standard deviation.&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Standard deviation of log permanent income shocks is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkStd</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Permanent income shock equiprobable values: &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="n">ThisType</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Rebuilt all constructed attributes.&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Permanent income shock equiprobable values: &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Made a new instance of the agents.
+Standard deviation of log permanent income shocks is [0.1]
+Permanent income shock equiprobable values: [0.86596649 0.94360411 0.99511802 1.04951926 1.14579214]
+Changed permanent shock standard deviation.
+Standard deviation of log permanent income shocks is [0.15]
+Permanent income shock equiprobable values: [0.86596649 0.94360411 0.99511802 1.04951926 1.14579214]
+Rebuilt all constructed attributes.
+Permanent income shock equiprobable values: [0.80345582 0.91327642 0.98904903 1.07128067 1.22293806]
+</pre></div></div>
+</div>
+<p>If you know which attributes need to be updated, or want to restrict what is done for some reason, pass the names of those attributes as strings to <code class="docutils literal notranslate"><span class="pre">construct</span></code> or <code class="docutils literal notranslate"><span class="pre">update</span></code>; all other constructed attributes will be ignored. In the example below, we tell the agent to rebuild its <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> attribute only, but <em>not</em> <code class="docutils literal notranslate"><span class="pre">PermShkDstn</span></code>, which is based on <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code>. We don’t know why you would do this, but it’s just an example!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ThisType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">PermShkCount</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Standard deviation of log permanent income shocks is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkStd</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Permanent income shock equiprobable values: &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="n">ThisType</span><span class="o">.</span><span class="n">assign_parameters</span><span class="p">(</span><span class="n">PermShkStd</span><span class="o">=</span><span class="p">[</span><span class="mf">0.15</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Changed permanent shock standard deviation.&quot;</span><span class="p">)</span>
+<span class="n">ThisType</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Rebuilt only IncShkDstn attribute.&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Permanent income shock equiprobable values in PermShkDstn: &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">PermShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Permanent income shock equiprobable values in IncShkDstn: &quot;</span>
+    <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">IncShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Standard deviation of log permanent income shocks is [0.1]
+Permanent income shock equiprobable values: [0.86596649 0.94360411 0.99511802 1.04951926 1.14579214]
+Changed permanent shock standard deviation.
+Rebuilt only IncShkDstn attribute.
+Permanent income shock equiprobable values in PermShkDstn: [0.86596649 0.94360411 0.99511802 1.04951926 1.14579214]
+Permanent income shock equiprobable values in IncShkDstn: [0.80345582 0.91327642 0.98904903 1.07128067 1.22293806]
+</pre></div></div>
+</div>
+</section>
+<section id="Options-for-Debugging-Constructors">
+<h3>Options for Debugging Constructors<a class="headerlink" href="#Options-for-Debugging-Constructors" title="Link to this heading">#</a></h3>
+<p>Sometimes, especially when making a new <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass or programming a new constructor, things just <em>don’t work</em> like you expected. Suppose you try to instantiate your agents, and the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> method encounters an error when constructing attributes. Now you don’t even have an instance of your class to <em>look at</em> and see what went wrong. You could turn on a debugging utility and investigate the state just before the error, but HARK has some other options.</p>
+<p>When you make a new instance of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass, you can pass the argument <code class="docutils literal notranslate"><span class="pre">construct=False</span></code> to simply <em>skip</em> the attribute construction step. The class will instantiate without trying to build <em>anything</em>. It probably won’t be able to <code class="docutils literal notranslate"><span class="pre">solve</span></code> its model, but at least it exists!</p>
+<p>In conjunction with the <code class="docutils literal notranslate"><span class="pre">describe_constructors</span></code> method, this is a quick way of seeing whether your parameter dictionary is missing any required values, like so:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">AnotherType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">construct</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">AnotherType</span><span class="o">.</span><span class="n">describe_constructors</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+X kNrmInitDstn : make_lognormal_kNrm_init_dstn
+    ✓ kLogInitMean
+    ✓ kLogInitStd
+    ✓ kNrmInitCount
+    ✓ RNG
+X pLvlInitDstn : make_lognormal_pLvl_init_dstn
+    ✓ pLogInitMean
+    ✓ pLogInitStd
+    ✓ pLvlInitCount
+    ✓ RNG
+X IncShkDstn : construct_lognormal_income_process_unemployment
+    ✓ T_cycle
+    ✓ PermShkStd
+    ✓ PermShkCount
+    ✓ TranShkStd
+    ✓ TranShkCount
+    ✓ T_retire
+    ✓ UnempPrb
+    ✓ IncUnemp
+    ✓ UnempPrbRet
+    ✓ IncUnempRet
+    ✓ RNG
+    ✓ neutral_measure
+X PermShkDstn : get_PermShkDstn_from_IncShkDstn
+    X IncShkDstn
+    ✓ RNG
+X TranShkDstn : get_TranShkDstn_from_IncShkDstn
+    X IncShkDstn
+    ✓ RNG
+X aXtraGrid : make_assets_grid
+    ✓ aXtraMin
+    ✓ aXtraMax
+    ✓ aXtraCount
+    ✓ aXtraExtra
+    ✓ aXtraNestFac
+✓ solution_terminal : make_basic_CRRA_solution_terminal
+    ✓ CRRA
+
+</pre></div></div>
+</div>
+<p>In this simple case with default parameters, we see that most of the necessary constructor arguments are present, but essentially no constructed attributes exist. The only one that does is <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code>, and it’s just the dummy default, not the <em>actual</em> terminal period solution.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span>
+    <span class="n">AnotherType</span><span class="o">.</span><span class="n">solution_terminal</span>
+<span class="p">)</span>  <span class="c1"># NullFunc is a fake function that returns NaNs no matter what</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;HARK.utilities.NullFunc object at 0x0000024C54A6E6C0&gt;
+</pre></div></div>
+</div>
+<p>One constructor input is missing… but it’s <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code>, itself a constructed attribute (that was not constructed).</p>
+<p>At this point, you could run the constructor methods one by one to see where things go wrong. In this case, they <em>won’t</em> go wrong:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">AnotherType</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="s2">&quot;aXtraGrid&quot;</span><span class="p">)</span>
+<span class="n">AnotherType</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span>
+    <span class="s2">&quot;pLvlInitDstn&quot;</span><span class="p">,</span> <span class="s2">&quot;kNrmInitDstn&quot;</span>
+<span class="p">)</span>  <span class="c1"># can pass multiple attribute names</span>
+<span class="n">AnotherType</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">)</span>
+<span class="n">AnotherType</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="s2">&quot;PermShkDstn&quot;</span><span class="p">,</span> <span class="s2">&quot;TranShkDstn&quot;</span><span class="p">)</span>
+<span class="n">AnotherType</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="s2">&quot;solution_terminal&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>But what if things <em>do</em> go wrong, what then? The <code class="docutils literal notranslate"><span class="pre">construct</span></code> method has an option to see what (if anything) went wrong with each constructor. If you pass the argument <code class="docutils literal notranslate"><span class="pre">force=True</span></code> to <code class="docutils literal notranslate"><span class="pre">construct</span></code> or <code class="docutils literal notranslate"><span class="pre">update</span></code>, it will “force” its way through any errors, trying to do as much as it can. While it does so, the method stores error messages and information about missing constructor arguments.</p>
+<p>This error information can be found in the attributes <code class="docutils literal notranslate"><span class="pre">_missing_key_data</span></code> (a list of attribute-argument pairs for missing arguments) and <code class="docutils literal notranslate"><span class="pre">_constructor_errors</span></code> (a dictionary of error messages). Consider this example:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">BrokenType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">construct</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># don&#39;t make anything at first</span>
+<span class="n">BrokenType</span><span class="o">.</span><span class="n">assign_parameters</span><span class="p">(</span>
+    <span class="n">PermShkCount</span><span class="o">=</span><span class="s2">&quot;eh, Steve!&quot;</span>
+<span class="p">)</span>  <span class="c1"># this is supposed be a whole number</span>
+<span class="n">BrokenType</span><span class="o">.</span><span class="n">construct</span><span class="p">(</span><span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># head down, power through</span>
+<span class="n">BrokenType</span><span class="o">.</span><span class="n">describe_constructors</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+✓ kNrmInitDstn : make_lognormal_kNrm_init_dstn
+    ✓ kLogInitMean
+    ✓ kLogInitStd
+    ✓ kNrmInitCount
+    ✓ RNG
+✓ pLvlInitDstn : make_lognormal_pLvl_init_dstn
+    ✓ pLogInitMean
+    ✓ pLogInitStd
+    ✓ pLvlInitCount
+    ✓ RNG
+X IncShkDstn : construct_lognormal_income_process_unemployment
+    ✓ T_cycle
+    ✓ PermShkStd
+    ✓ PermShkCount
+    ✓ TranShkStd
+    ✓ TranShkCount
+    ✓ T_retire
+    ✓ UnempPrb
+    ✓ IncUnemp
+    ✓ UnempPrbRet
+    ✓ IncUnempRet
+    ✓ RNG
+    ✓ neutral_measure
+X PermShkDstn : get_PermShkDstn_from_IncShkDstn
+    X IncShkDstn
+    ✓ RNG
+X TranShkDstn : get_TranShkDstn_from_IncShkDstn
+    X IncShkDstn
+    ✓ RNG
+✓ aXtraGrid : make_assets_grid
+    ✓ aXtraMin
+    ✓ aXtraMax
+    ✓ aXtraCount
+    ✓ aXtraExtra
+    ✓ aXtraNestFac
+✓ solution_terminal : make_basic_CRRA_solution_terminal
+    ✓ CRRA
+
+</pre></div></div>
+</div>
+<p>As expected, it failed to build anything that depends on <code class="docutils literal notranslate"><span class="pre">PermShkCount</span></code>, which has the not-very-useful value of <code class="docutils literal notranslate"><span class="pre">&quot;eh,</span> <span class="pre">Steve!&quot;</span></code>. We can see how the <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> constructor failed by looking at its entry in <code class="docutils literal notranslate"><span class="pre">_constructor_errors</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">BrokenType</span><span class="o">.</span><span class="n">_constructor_errors</span><span class="p">[</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;class &#39;TypeError&#39;&gt;: &#39;str&#39; object cannot be interpreted as an integer
+</pre></div></div>
+</div>
+<p>Indeed it cannot. We can also see that the constructors for <code class="docutils literal notranslate"><span class="pre">PermShkDstn</span></code> and <code class="docutils literal notranslate"><span class="pre">TranShkDstn</span></code> failed because their constructors couldn’t find the required input <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">BrokenType</span><span class="o">.</span><span class="n">_missing_key_data</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[(&#39;PermShkDstn&#39;, &#39;IncShkDstn&#39;), (&#39;TranShkDstn&#39;, &#39;IncShkDstn&#39;)]
+</pre></div></div>
+</div>
+<p>This same information about missing arguments is available in a different form in <code class="docutils literal notranslate"><span class="pre">_constructor_errors</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">BrokenType</span><span class="o">.</span><span class="n">_constructor_errors</span><span class="p">[</span><span class="s2">&quot;PermShkDstn&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">BrokenType</span><span class="o">.</span><span class="n">_constructor_errors</span><span class="p">[</span><span class="s2">&quot;TranShkDstn&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Missing required arguments: IncShkDstn
+Missing required arguments: IncShkDstn
+</pre></div></div>
+</div>
+</section>
+<section id="Using-Non-Default-Constructors">
+<h3>Using Non-Default Constructors<a class="headerlink" href="#Using-Non-Default-Constructors" title="Link to this heading">#</a></h3>
+<p>Each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> comes with a default set of constructors, but you can easily swap these out (or add new ones for other attributes) on an instance-by-instance basis. This can be done at instantiation (by passing a parameter dictionary with a <code class="docutils literal notranslate"><span class="pre">constructors</span></code> entry) or by changing constructors <em>after</em> instantiation (and then re-running <code class="docutils literal notranslate"><span class="pre">construct</span></code> or <code class="docutils literal notranslate"><span class="pre">update</span></code>).</p>
+<p>The default constructor for <code class="docutils literal notranslate"><span class="pre">aXtraGrid</span></code> is called <code class="docutils literal notranslate"><span class="pre">make_assets_grid</span></code>, which makes a multi-exponentially nested grid, with some additional options. Let’s replace this with our own custom function using some different arguments.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a new constructor function for aXtraGrid</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_other_assets_grid</span><span class="p">(</span><span class="n">aXtraMin</span><span class="p">,</span> <span class="n">aXtraMax</span><span class="p">,</span> <span class="n">aXtraCount</span><span class="p">,</span> <span class="n">aXtraOrder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make a grid spaced on [aXtraMin,aXtraMax] with spacing of the chosen polynomial order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">base_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">aXtraCount</span><span class="p">)</span> <span class="o">**</span> <span class="n">aXtraOrder</span>
+    <span class="n">out_grid</span> <span class="o">=</span> <span class="n">aXtraMin</span> <span class="o">+</span> <span class="p">(</span><span class="n">aXtraMax</span> <span class="o">-</span> <span class="n">aXtraMin</span><span class="p">)</span> <span class="o">*</span> <span class="n">base_grid</span>
+    <span class="k">return</span> <span class="n">out_grid</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a new instance of our AgentType subclass using this constructor</span>
+<span class="n">SpecialType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span>
+    <span class="n">constructors</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;aXtraGrid&quot;</span><span class="p">:</span> <span class="n">make_other_assets_grid</span>
+    <span class="p">},</span>  <span class="c1"># put a dictionary here to replace default constructors</span>
+    <span class="n">aXtraOrder</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>  <span class="c1"># also pass this new required parameter</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare aXtraGrids between the original version and our new special constructor</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The class default has an aXtraGrid of:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ThisType</span><span class="o">.</span><span class="n">aXtraGrid</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The example with a custom constructor has an aXtraGrid of:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">SpecialType</span><span class="o">.</span><span class="n">aXtraGrid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The class default has an aXtraGrid of:
+[1.00000000e-03 2.01713727e-02 4.04645973e-02 6.19689346e-02
+ 8.47826891e-02 1.09014323e-01 1.34783729e-01 1.62223697e-01
+ 1.91481594e-01 2.22721307e-01 2.56125489e-01 2.91898165e-01
+ 3.30267760e-01 3.71490637e-01 4.15855231e-01 4.63686907e-01
+ 5.15353678e-01 5.71272965e-01 6.31919613e-01 6.97835428e-01
+ 7.69640582e-01 8.48047286e-01 9.33876256e-01 1.02807664e+00
+ 1.13175022e+00 1.24618095e+00 1.37287121e+00 1.51358644e+00
+ 1.67041051e+00 1.84581461e+00 2.04274370e+00 2.26472534e+00
+ 2.51600777e+00 2.80173618e+00 3.12817922e+00 3.50302228e+00
+ 3.93574988e+00 4.43814835e+00 5.02497206e+00 5.71483401e+00
+ 6.53140746e+00 7.50506263e+00 8.67511887e+00 1.00929770e+01
+ 1.18265253e+01 1.39664114e+01 1.66350835e+01 2.00000000e+01]
+The example with a custom constructor has an aXtraGrid of:
+[1.00000000e-03 2.32057672e-03 8.47031001e-03 2.15857537e-02
+ 4.32584549e-02 7.48224826e-02 1.17450608e-01 1.72201961e-01
+ 2.40049920e-01 3.21900142e-01 4.18603025e-01 5.30962754e-01
+ 6.59744118e-01 8.05677793e-01 9.69464542e-01 1.15177862e+00
+ 1.35327056e+00 1.57456954e+00 1.81628533e+00 2.07901002e+00
+ 2.36331944e+00 2.66977446e+00 2.99892206e+00 3.35129636e+00
+ 3.72741947e+00 4.12780224e+00 4.55294500e+00 5.00333815e+00
+ 5.47946276e+00 5.98179106e+00 6.51078690e+00 7.06690624e+00
+ 7.65059745e+00 8.26230175e+00 8.90245351e+00 9.57148058e+00
+ 1.02698045e+01 1.09978410e+01 1.17559998e+01 1.25446854e+01
+ 1.33642968e+01 1.42152280e+01 1.50978681e+01 1.60126016e+01
+ 1.69598081e+01 1.79398633e+01 1.89531382e+01 2.00000000e+01]
+</pre></div></div>
+</div>
+<p>Notice that both the default grid and the one that we just produced have the same number of nodes and the same maximum and minimum. That’s because we used the <em>same</em> parameter names for <code class="docutils literal notranslate"><span class="pre">aXtraCount</span></code>, <code class="docutils literal notranslate"><span class="pre">aXtraMin</span></code>, and <code class="docutils literal notranslate"><span class="pre">aXtraMax</span></code>, so our custom constructor can draw on the default parameter values. That is, we specified the new <code class="docutils literal notranslate"><span class="pre">aXtraOrder</span></code> parameter, but <em>not</em> the other three when instantiating <code class="docutils literal notranslate"><span class="pre">SpecialType</span></code>.</p>
+</section>
+<section id="Special-Constructors">
+<h3>Special Constructors<a class="headerlink" href="#Special-Constructors" title="Link to this heading">#</a></h3>
+<p>There is one special case constructor, called <code class="docutils literal notranslate"><span class="pre">get_it_from</span></code> (which can be imported from <code class="docutils literal notranslate"><span class="pre">HARK.utilities</span></code>). In some cases, multiple model objects are “naturally” constructed jointly– maybe even there’s no way to make one without the other. But HARK’s constructor architecture assumes that each constructor function has <em>one</em> output, which is assigned to the attribute named in the <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary key.</p>
+<p>In this situation, you can write one constructor function, which should construct and return a dictionary of multiple model objects. The keys of this dictionary should be the names of the attributes that it constructed. Put this “multiple constructor” into the <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary, assigned to an arbitrary (but unique) name. For example, if there were several income process objects that were constructed together, the <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary might have the entry
+<code class="docutils literal notranslate"><span class="pre">&quot;income_process_stuff&quot;</span> <span class="pre">:</span> <span class="pre">make_AR1_markov_array_and_pLvlGrid</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">constructors</span></code> dictionary should also have entries for the individual constructed objects, with a value of <code class="docutils literal notranslate"><span class="pre">get_it_from(&quot;dict_name&quot;)</span></code>. In the example above, we might have <code class="docutils literal notranslate"><span class="pre">pLvlMrkvArray</span> <span class="pre">:</span> <span class="pre">get_it_from(&quot;income_process_stuff&quot;)</span></code> and <code class="docutils literal notranslate"><span class="pre">pLvlGrid</span> <span class="pre">:</span> <span class="pre">get_it_from(&quot;income_process_stuff&quot;)</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Cycles-Intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Advanced-Intro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Advanced and Uncommon HARK Concepts</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Just-Gimme-Whatever:-Default-AgentType-Options">Just Gimme Whatever: Default AgentType Options</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Changing-Parameter-Values">Changing Parameter Values</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Style-Conventions-for-Default-Parameters">Style Conventions for Default Parameters</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Constructor-Functions-for-Complex-Model-Inputs">Constructor Functions for Complex Model Inputs</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Special-Exception:-AgentType-Subclasses-for-%22Macroeconomic%22-Models">Special Exception: <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclasses for “Macroeconomic” Models</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Viewing-Constructors">Viewing Constructors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Updating-Constructed-Attributes">Updating Constructed Attributes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Options-for-Debugging-Constructors">Options for Debugging Constructors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Using-Non-Default-Constructors">Using Non-Default Constructors</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Special-Constructors">Special Constructors</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

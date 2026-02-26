@@ -1,0 +1,983 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ConsHealthModel &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/ConsumptionSaving/ConsHealthModel';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/ConsumptionSaving/ConsHealthModel.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ConsIndShockModel" href="ConsIndShockModel.html" />
+    <link rel="prev" title="ConsGenIncProcessModel" href="ConsGenIncProcessModel.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tools/core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/dcegm.html">dcegm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distribution.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/helpers.html">Helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/interpolation.html">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/simulation.html">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="ConsAggShockModel.html">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">ConsHealthModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModel.html">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyContribModel.html">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">ConsHealthModel</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.ConsumptionSaving.ConsHealthModel">
+<span id="conshealthmodel"></span><h1>ConsHealthModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsHealthModel" title="Link to this heading">#</a></h1>
+<p>Classes to represent consumers who make decisions about health investment. The
+first model here is adapted from White (2015).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.eval_health_prod">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">eval_health_prod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.eval_health_prod" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.eval_marg_health_prod">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">eval_marg_health_prod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.eval_marg_health_prod" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.calc_exp_next">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">calc_exp_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shock</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">funcs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.calc_exp_next" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.solve_one_period_ConsBasicHealth">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">solve_one_period_ConsBasicHealth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HealthProdExp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HealthProdFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DieProbMax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aLvlGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HLvlGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constrained_N</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.solve_one_period_ConsBasicHealth" title="Link to this definition">#</a></dt>
+<dd><p>Solve one period of the basic health investment / consumption-saving model
+using the endogenous grid method. Policy functions are the consumption function
+cFunc and the health investment function nFunc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="../tools/interpolation.html#HARK.interpolation.Curvilinear2DInterp" title="HARK.interpolation.Curvilinear2DInterp"><em>Curvilinear2DInterp</em></a>) – Solution to the succeeding period’s problem, represented as a multi-function
+interpolant with entries vNvrsFunc, cFunc, and nFunc.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Intertemporal discount factor, representing beta.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Risk-free rate of return on retained assets.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion, representing rho. Assumed to be
+constant across periods. Should be strictly between 0 and 1.</p></li>
+<li><p><strong>HealthProdExp</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Exponent in health production function; should be strictly b/w 0 and 1.
+This corresponds to alpha in White (2015).</p></li>
+<li><p><strong>HealthProdFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Scaling factor in health production function; should be strictly positive.
+This corresponds to gamma in White (2015).</p></li>
+<li><p><strong>DieProbMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum death probability at the end of this period, if HLvl were exactly zero.</p></li>
+<li><p><strong>ShockDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Joint distribution of income and depreciation values that could realize
+at the start of the next period.</p></li>
+<li><p><strong>aLvlGrid</strong> (<em>np.array</em>) – Grid of end-of-period assets (after all actions are accomplished).</p></li>
+<li><p><strong>HLvlGrid</strong> (<em>np.array</em>) – Grid of end-of-period post-investment health.</p></li>
+<li><p><strong>constrained_N</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of additional interpolation nodes to put in the mLvl dimension
+on the liquidity-constrained portion of the consumption function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>solution_now</strong> – Solution to this period’s problem, including policy functions cFunc and
+nFunc, as well as (marginal) value functions vFunc, dvdmFunc, and dvdhFunc.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.make_solution_terminal_ConsBasicHealth">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">make_solution_terminal_ConsBasicHealth</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.make_solution_terminal_ConsBasicHealth" title="Link to this definition">#</a></dt>
+<dd><p>Constructor for the terminal period solution for the basic health investment
+model. The trivial solution is to consume all market resources and invest
+nothing in health. Takes no parameters because CRRA is irrelevant: pseudo-inverse
+value is returned rather than value, and the former is just cLvl = mLvl.</p>
+<p>The solution representation for this model is a multiple output function that
+takes market resources and health capital level as inputs and returns pseudo-
+inverse value, consumption level, and health investment level in that order.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.make_health_grid">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">make_health_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hLvlMin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hLvlMax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hLvlCount</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.make_health_grid" title="Link to this definition">#</a></dt>
+<dd><p>Make a uniform grid of health capital levels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hLvlMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Lower bound on health capital level; should almost surely be zero.</p></li>
+<li><p><strong>hLvlMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Upper bound on health capital level.</p></li>
+<li><p><strong>hLvlCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points in uniform health capital level grid.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>hLvlGrid</strong> – Uniform grid of health capital levels</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.make_uniform_depreciation_dstn">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">make_uniform_depreciation_dstn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DeprRteMean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DeprRteSpread</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DeprRteCount</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RNG</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.make_uniform_depreciation_dstn" title="Link to this definition">#</a></dt>
+<dd><p>Constructor for DeprRteDstn that makes uniform distributions that vary by age.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_cycle</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of periods in the agent’s sequence or cycle.</p></li>
+<li><p><strong>DeprRteMean</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Age-varying list (or array) of mean depreciation rates.</p></li>
+<li><p><strong>DeprRteSpread</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>]</em>) – Age-varying list (or array) of half-widths of depreciate rate distribution.</p></li>
+<li><p><strong>DeprRteCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of equiprobable nodes in each distribution.</p></li>
+<li><p><strong>RNG</strong> (<em>np.random.RandomState</em>) – Agent’s internal random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>DeprRteDstn</strong> – List of age-dependent discrete approximations to the depreciate rate distribution.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.combine_indep_wage_and_depr_dstns">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">combine_indep_wage_and_depr_dstns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">WageRteDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DeprRteDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RNG</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.combine_indep_wage_and_depr_dstns" title="Link to this definition">#</a></dt>
+<dd><p>Combine univariate distributions of wage rate realizations and depreciation
+rate realizations at each age, treating them as independent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_cycle</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of periods in the agent’s sequence of periods (cycle).</p></li>
+<li><p><strong>WageRteDstn</strong> (<em>[</em><a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a><em>]</em>) – Age-dependent list of wage rate realizations; should have length T_cycle.</p></li>
+<li><p><strong>DeprRteDstn</strong> (<em>[</em><a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a><em>]</em>) – Age-dependent list of health depreciation rate realizatiosn; should have
+length T_cycle.</p></li>
+<li><p><strong>RNG</strong> (<em>np.random.RandomState</em>) – Internal random number generator for the AgentType instance.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ShockDstn</strong> – Age-dependent bivariate distribution with joint realizations of income
+and health depreciation rates.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.make_logistic_polynomial_die_prob">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">make_logistic_polynomial_die_prob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DieProbMaxCoeffs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.make_logistic_polynomial_die_prob" title="Link to this definition">#</a></dt>
+<dd><p>Constructor for DieProbMax, the age-varying list of maximum death probabilities
+(if health is zero). Builds the list as the logistic function evaluated on a
+polynomial of model age, given polynomial coefficients. Logistic function is
+applied to ensure probabilities are always between zero and one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_cycle</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of periods in the agent’s sequence of periods (cycle).</p></li>
+<li><p><strong>DieProbMaxCoeffs</strong> (<em>np.array</em>) – List or vector of polynomial coefficients for maximum death probability.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>DieProbMax</strong> – Age-varying list of maximum death probabilities (if health were zero).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.make_uniform_HLvl_init_dstn">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">make_uniform_HLvl_init_dstn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">HLvlInitMin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HLvlInitMax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">HLvlInitCount</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RNG</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.make_uniform_HLvl_init_dstn" title="Link to this definition">#</a></dt>
+<dd><p>Constructor for HLvlInitDstn that builds a uniform distribution for initial
+health capital at model birth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>HLvlInitMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Lower bound of initial health capital distribution.</p></li>
+<li><p><strong>HLvlInitMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Upper bound of initial health capital distribution</p></li>
+<li><p><strong>HLvlInitCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of discretized nodes in initial health capital distribution.</p></li>
+<li><p><strong>RNG</strong> (<em>np.random.RandomState</em>) – Agent’s internal RNG.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HLvlInitDstn</strong> – Discretized uniform distribution of initial health capital level.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution">DiscreteDistribution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsHealthModel.</span></span><span class="sig-name descname"><span class="pre">BasicHealthConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pseudo_terminal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">construct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../tools/core.html#HARK.core.AgentType" title="HARK.core.AgentType"><code class="xref py py-class docutils literal notranslate"><span class="pre">AgentType</span></code></a></p>
+<p>A class to represent consumers who can save in a risk-free asset and invest
+in health capital via a health production function. The model is a slight
+alteration of the one from White (2015), which was in turn lifted from Ludwig
+and Schoen. In this variation, survival probability depends on post-investment
+health capital, rather than next period’s health capital realization.</p>
+<p>Each period, the agent chooses consumption $c_t$ and health investment $n_t$.
+Consumption yields utility via CRRA function, while investment yields additional
+health capital via production function $f(n_t)$. The agent faces a mortality
+risk that depends on their post-investment health $H_t = h_t + g(n_t)$, as
+well as income risk through wage rate $omega_t$ and health capital depreciation
+rate $delta_t$. Health capital also serves as human capital in the sense that
+the agent earns more income when $h_t$ is higher.</p>
+<p>Unlike most other HARK models, this one is <em>not</em> normalized with respect to
+permanent income– indeed, there is no “permanent income” in this simple model.
+As parametric restrictions, the solver requires that $rho &lt; 1$ so that utility
+is positive everywhere. This restriction ensures that the first order conditions
+are necessary and sufficient to characterize the solution when not liquidity-
+constrained. The liquidity constrained portion of the policy function is handled.</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\newcommand{\CRRA}{\rho}
+\newcommand{\DiePrb}{\mathsf{D}}
+\newcommand{\PermGroFac}{\Gamma}
+\newcommand{\Rfree}{\mathsf{R}}
+\newcommand{\DiscFac}{\beta}
+\newcommand{\DeprRte}{\delta}
+\newcommand{\WageRte}{\omega}
+\begin{align*}
+v_t(m_t, h_t) &amp;= \max_{c_t, n_t}u(c_t) + \DiscFac (1 - \DiePrb_{t}) v_{t+1}(m_{t+1}, h_{t+1}), \\
+&amp; \text{s.t.}  \\
+H_t &amp;= h_t + g(n_t), \\
+a_t &amp;= m_t - c_t - n_t, \\
+\DiePrb_t = \phi_t / (1 + H_t), \\
+h_{t+1} &amp;= (1-\DeprRte_{t+1}) H_t, \\
+y_{t+1} &amp;= \omega_{t+1} h_{t+1}, \\
+m_{t+1} &amp;= \Rfree_{t+1} a_t + y_{t+1}, \\
+u(c) &amp;= \frac{c^{1-\CRRA}}{1-\CRRA}, \\
+g(n) = (\gamma / \alpha) n^{\alpha}, \\
+(\WageRte_{t+1}, \DeprRte_{t+1}) \sim F_{t+1}.
+\end{align*}\end{split}\]</div>
+<dl class="field-list">
+<dt class="field-odd">Solving Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cycles</strong> (<em>int</em>) – 0 specifies an infinite horizon model, 1 specifies a finite model.</p></li>
+<li><p><strong>T_cycle</strong> (<em>int</em>) – Number of periods in the cycle for this agent type.</p></li>
+<li><p><strong>CRRA</strong> (float, <span class="math notranslate nohighlight">\(\rho\)</span>) – Coefficient of Relative Risk Aversion.</p></li>
+<li><p><strong>Rfree</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(\mathsf{R}\)</span>) – Risk-free interest rate by age.</p></li>
+<li><p><strong>DiscFac</strong> (float, <span class="math notranslate nohighlight">\(\beta\)</span>) – Intertemporal discount factor.</p></li>
+<li><p><strong>DieProbMax</strong> (list[float], time varying, <span class="math notranslate nohighlight">\(\phi\)</span>) – Maximum death probability by age, if $H_t=0$.</p></li>
+<li><p><strong>HealthProdExp</strong> (float, <span class="math notranslate nohighlight">\(\alpha\)</span>) – Exponent in health production function; should be strictly b/w 0 and 1.</p></li>
+<li><p><strong>HealthProdFac</strong> (float, <span class="math notranslate nohighlight">\(\gamma\)</span>) – Scaling factor in health production function; should be strictly positive.</p></li>
+<li><p><strong>ShockDstn</strong> (<em>DiscreteDistribution, time varying</em>) – Joint distribution of income and depreciation values that could realize
+at the start of the next period.</p></li>
+<li><p><strong>aLvlGrid</strong> (<em>np.array</em>) – Grid of end-of-period assets (after all actions are accomplished).</p></li>
+<li><p><strong>HLvlGrid</strong> (<em>np.array</em>) – Grid of end-of-period post-investment health.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Simulation Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul>
+<li><p><strong>AgentCount</strong> (<em>int</em>) – Number of agents of this kind that are created during simulations.</p></li>
+<li><p><strong>T_age</strong> (<em>int</em>) – Age after which to automatically kill agents, None to ignore.</p></li>
+<li><p><strong>T_sim</strong> (<em>int, required for simulation</em>) – Number of periods to simulate.</p></li>
+<li><p><strong>track_vars</strong> (<em>list[strings]</em>) – List of variables that should be tracked when running the simulation.
+For this agent, the options are ‘kLvl’, ‘yLvl’, ‘mLvl’, ‘hLvl’, ‘cLvl’,
+‘nLvl’, ‘WageRte’, ‘DeprRte’,  ‘aLvl’, ‘HLvl’.</p>
+<p>kLvl : Beginning-of-period capital holdings, equivalent to aLvl_{t-1}</p>
+<p>yLvl : Labor income, the wage rate times health capital.</p>
+<p>mLvl : Market resources, the interest factor times capital holdings, plus labor income.</p>
+<p>hLvl : Health or human capital level at decision-time.</p>
+<p>cLvl : Consumption level.</p>
+<p>nLvl : Health investment level.</p>
+<p>WageRte : Wage rate this period.</p>
+<p>DeprRte : Health capital depreciation rate this period.</p>
+<p>aLvl : End-of-period assets: market resources less consumption and investment.</p>
+<p>HLvl : End-of-period health capital: health capital plus produced health.</p>
+</li>
+</ul>
+</dd>
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><ul>
+<li><p><strong>solution</strong> (<em>list[Consumer solution object]</em>) – Created by the <code class="xref py py-func docutils literal notranslate"><span class="pre">solve()</span></code> method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.</p>
+<p>Visit <a class="reference internal" href="ConsIndShockModel.html#HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution" title="HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution</span></code></a> for more information about the solution.</p>
+</li>
+<li><p><strong>history</strong> (<em>Dict[Array]</em>) – Created by running the <code class="xref py py-func docutils literal notranslate"><span class="pre">simulate()</span></code> method.
+Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+Visit <a class="reference internal" href="../tools/core.html#HARK.core.AgentType.simulate" title="HARK.core.AgentType.simulate"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARK.core.AgentType.simulate</span></code></a> for more information.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'params':</span> <span class="pre">{'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'CRRA':</span> <span class="pre">0.5,</span> <span class="pre">'DeprRteCount':</span> <span class="pre">7,</span> <span class="pre">'DeprRteMean':</span> <span class="pre">[0.05],</span> <span class="pre">'DeprRteSpread':</span> <span class="pre">[0.05],</span> <span class="pre">'DieProbMaxCoeffs':</span> <span class="pre">[0.0],</span> <span class="pre">'DiscFac':</span> <span class="pre">0.95,</span> <span class="pre">'HLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'HLvlInitMax':</span> <span class="pre">2.0,</span> <span class="pre">'HLvlInitMin':</span> <span class="pre">1.0,</span> <span class="pre">'HealthProdExp':</span> <span class="pre">0.35,</span> <span class="pre">'HealthProdFac':</span> <span class="pre">1.0,</span> <span class="pre">'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'Rfree':</span> <span class="pre">[1.03],</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.07,</span> <span class="pre">'WageRteCount':</span> <span class="pre">7,</span> <span class="pre">'WageRteMean':</span> <span class="pre">[0.1],</span> <span class="pre">'WageRteStd':</span> <span class="pre">[0.1],</span> <span class="pre">'aXtraCount':</span> <span class="pre">44,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">[3e-05,</span> <span class="pre">0.0001,</span> <span class="pre">0.0003,</span> <span class="pre">0.001,</span> <span class="pre">0.003,</span> <span class="pre">0.01,</span> <span class="pre">0.03],</span> <span class="pre">'aXtraMax':</span> <span class="pre">100.0,</span> <span class="pre">'aXtraMin':</span> <span class="pre">1e-05,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">1,</span> <span class="pre">'constrained_N':</span> <span class="pre">7,</span> <span class="pre">'constructors':</span> <span class="pre">{'DeprRteDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_uniform_depreciation_dstn&gt;,</span> <span class="pre">'DieProbMax':</span> <span class="pre">&lt;function</span> <span class="pre">make_logistic_polynomial_die_prob&gt;,</span> <span class="pre">'HLvlGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_health_grid&gt;,</span> <span class="pre">'HLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_uniform_HLvl_init_dstn&gt;,</span> <span class="pre">'ShockDstn':</span> <span class="pre">&lt;function</span> <span class="pre">combine_indep_wage_and_depr_dstns&gt;,</span> <span class="pre">'WageRteDstn':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_wage_dstn&gt;,</span> <span class="pre">'aLvlGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'kLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_solution_terminal_ConsBasicHealth&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'hLvlCount':</span> <span class="pre">50,</span> <span class="pre">'hLvlMax':</span> <span class="pre">50.0,</span> <span class="pre">'hLvlMin':</span> <span class="pre">0.0,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">-12.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solve_one_period_ConsBasicHealth&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['mLvl',</span> <span class="pre">'hLvl',</span> <span class="pre">'aLvl',</span> <span class="pre">'HLvl',</span> <span class="pre">'cLvl',</span> <span class="pre">'nLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.time_vary_">
+<span class="sig-name descname"><span class="pre">time_vary_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Rfree',</span> <span class="pre">'DieProbMax',</span> <span class="pre">'ShockDstn']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.time_vary_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['DiscFac',</span> <span class="pre">'CRRA',</span> <span class="pre">'HealthProdExp',</span> <span class="pre">'HealthProdFac',</span> <span class="pre">'aLvlGrid',</span> <span class="pre">'HLvlGrid',</span> <span class="pre">'constrained_N']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['kLvl',</span> <span class="pre">'yLvl',</span> <span class="pre">'mLvl',</span> <span class="pre">'hLvl',</span> <span class="pre">'aLvl',</span> <span class="pre">'HLvl']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.state_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['WageRte',</span> <span class="pre">'DeprRte']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.shock_vars_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.distributions">
+<span class="sig-name descname"><span class="pre">distributions</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['ShockDstn',</span> <span class="pre">'kLvlInitDstn',</span> <span class="pre">'HLvlInitDstn']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.distributions" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.sim_death">
+<span class="sig-name descname"><span class="pre">sim_death</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.sim_death" title="Link to this definition">#</a></dt>
+<dd><p>Draw mortality shocks for all agents, marking some for death and replacement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_agents</strong> – Boolean array of size AgentCount, indicating who dies now.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.sim_birth" title="Link to this definition">#</a></dt>
+<dd><p>Makes new consumers for the given indices.  Initialized variables include
+kLvl and HLvl, as well as time variables t_age and t_cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.AgentCount indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Draw wage and depreciation rate shocks for all simulated agents.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.transition">
+<span class="sig-name descname"><span class="pre">transition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.transition" title="Link to this definition">#</a></dt>
+<dd><p>Find current market resources and health capital from prior health capital
+and the drawn shocks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_controls">
+<span class="sig-name descname"><span class="pre">get_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_controls" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate consumption and health investment functions conditional on
+current state and model age, yielding controls cLvl and nLvl.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_poststates">
+<span class="sig-name descname"><span class="pre">get_poststates</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_poststates" title="Link to this definition">#</a></dt>
+<dd><p>Calculate end-of-period retained assets and post-investment health.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="ConsGenIncProcessModel.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ConsGenIncProcessModel</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="ConsIndShockModel.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">ConsIndShockModel</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.eval_health_prod"><code class="docutils literal notranslate"><span class="pre">eval_health_prod()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.eval_marg_health_prod"><code class="docutils literal notranslate"><span class="pre">eval_marg_health_prod()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.calc_exp_next"><code class="docutils literal notranslate"><span class="pre">calc_exp_next()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.solve_one_period_ConsBasicHealth"><code class="docutils literal notranslate"><span class="pre">solve_one_period_ConsBasicHealth()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.make_solution_terminal_ConsBasicHealth"><code class="docutils literal notranslate"><span class="pre">make_solution_terminal_ConsBasicHealth()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.make_health_grid"><code class="docutils literal notranslate"><span class="pre">make_health_grid()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.make_uniform_depreciation_dstn"><code class="docutils literal notranslate"><span class="pre">make_uniform_depreciation_dstn()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.combine_indep_wage_and_depr_dstns"><code class="docutils literal notranslate"><span class="pre">combine_indep_wage_and_depr_dstns()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.make_logistic_polynomial_die_prob"><code class="docutils literal notranslate"><span class="pre">make_logistic_polynomial_die_prob()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.make_uniform_HLvl_init_dstn"><code class="docutils literal notranslate"><span class="pre">make_uniform_HLvl_init_dstn()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.default_"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.time_vary_"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.time_vary_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.state_vars"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.state_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.shock_vars_"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.shock_vars_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.distributions"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.distributions</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.sim_death"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.sim_death()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.sim_birth"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.sim_birth()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_shocks"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.get_shocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.transition"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.transition()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_controls"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.get_controls()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsHealthModel.BasicHealthConsumerType.get_poststates"><code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType.get_poststates()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

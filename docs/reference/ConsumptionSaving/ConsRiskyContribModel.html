@@ -1,0 +1,1268 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ConsRiskyContribModel &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/ConsumptionSaving/ConsRiskyContribModel';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/ConsumptionSaving/ConsRiskyContribModel.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="TractableBufferStockModel" href="TractableBufferStockModel.html" />
+    <link rel="prev" title="ConsRiskyAssetModel" href="ConsRiskyAssetModel.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../tools/core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/dcegm.html">dcegm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/distribution.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/helpers.html">Helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/interpolation.html">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/simulation.html">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="ConsAggShockModel.html">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsHealthModel.html">ConsHealthModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModel.html">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">ConsRiskyContribModel</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.ConsumptionSaving.ConsRiskyContribModel">
+<span id="consriskycontribmodel"></span><h1>ConsRiskyContribModel<a class="headerlink" href="#module-HARK.ConsumptionSaving.ConsRiskyContribModel" title="Link to this heading">#</a></h1>
+<p>This file contains classes and functions for representing, solving, and simulating
+a consumer type with idiosyncratic shocks to permanent and transitory income,
+who can save in both a risk-free and a risky asset but faces frictions to
+moving funds between them. The agent can only consume out of his risk-free
+asset.</p>
+<p>The model is described in detail in the REMARK:
+<a class="reference external" href="https://econ-ark.org/materials/riskycontrib">https://econ-ark.org/materials/riskycontrib</a></p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@software</span><span class="p">{</span><span class="nl">mateo_velasquez_giraldo_2021_4977915</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="w">       </span><span class="p">=</span><span class="w"> </span><span class="s">{Mateo Velásquez-Giraldo}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="s">{{Mv77/RiskyContrib: A Two-Asset Savings Model with</span>
+<span class="s">                   an Income-Contribution Scheme}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">month</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="nv">jun</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="m">2021</span><span class="p">,</span>
+<span class="w">  </span><span class="na">publisher</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{Zenodo}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">version</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="s">{v1.0.1}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">{10.5281/zenodo.4977915}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">{https://doi.org/10.5281/zenodo.4977915}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.make_bounded_ShareGrid">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">make_bounded_ShareGrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ShareCount</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareMax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_bounded_ShareGrid" title="Link to this definition">#</a></dt>
+<dd><p>Make a uniformly spaced grid on the unit interval, representing shares
+contributed toward the risky asset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ShareCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points in the grid.</p></li>
+<li><p><strong>ShareMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Highest risky fraction allowed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ShareGrid</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.make_simple_dGrid">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">make_simple_dGrid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dCount</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_simple_dGrid" title="Link to this definition">#</a></dt>
+<dd><p>Make a uniformly spaced grid on the unit interval, representing rebalancing rates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Number of points in the grid.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dGrid</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.make_nNrm_grid">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">make_nNrm_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nNrmMin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmMax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmCount</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmNestFac</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_nNrm_grid" title="Link to this definition">#</a></dt>
+<dd><p>Creates the agent’s illiquid assets grid by constructing a multi-exponentially
+spaced grid of nNrm values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nNrmMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum value in the illiquid assets grid.</p></li>
+<li><p><strong>nNrmMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum value in the illiquid assets grid.</p></li>
+<li><p><strong>nNrmCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Number of gridpoints in the illiquid assets grid.</p></li>
+<li><p><strong>nNrmNestFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Degree of exponential nesting for illiquid assets.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>nNrmGrid</strong> – Constructed grid of illiquid assets.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.make_mNrm_grid">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">make_mNrm_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mNrmMin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmMax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmCount</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmNestFac</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_mNrm_grid" title="Link to this definition">#</a></dt>
+<dd><p>Creates the agent’s liquid assets grid by constructing a multi-exponentially
+spaced grid of mNrm values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mNrmMin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum value in the liquid assets grid.</p></li>
+<li><p><strong>mNrmMax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Maximum value in the liquid assets grid.</p></li>
+<li><p><strong>mNrmCount</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Number of gridpoints in the liquid assets grid.</p></li>
+<li><p><strong>mNrmNestFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Degree of exponential nesting for liquid assets.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>mNrmGrid</strong> – Constructed grid of liquid assets.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.make_solution_terminal_risky_contrib">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">make_solution_terminal_risky_contrib</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">WithdrawTax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_solution_terminal_risky_contrib" title="Link to this definition">#</a></dt>
+<dd><p>Solves the terminal period. The solution is trivial.
+Cns: agent will consume all of his liquid resources.
+Sha: irrelevant as there is no “next” period.
+Reb: agent will shift all of his resources to the risk-free asset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>WithdrawTax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tax penalty for withdrawing from the risky asset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>solution_terminal</strong> – Terminal period solution object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution">RiskyContribSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">RiskyContribRebSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dfracFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdmFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdnFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dfracFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdmFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdnFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdsFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing the solution to the asset-rebalancing stage of
+the ‘RiskyContrib’ model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vFunc_Adj</strong> (<em>ValueFunc2D</em>) – Stage value function over normalized liquid resources and normalized
+iliquid resources when the agent is able to adjust his portfolio.</p></li>
+<li><p><strong>dfracFunc_Adj</strong> (<em>Interp2D</em>) – Deposit function over normalized liquid resources and normalized
+iliquid resources when the agent is able to adjust his portfolio.</p></li>
+<li><p><strong>dvdmFunc_Adj</strong> (<em>MargValueFunc2D</em>) – Marginal value over normalized liquid resources when the agent is able
+to adjust his portfolio.</p></li>
+<li><p><strong>dvdnFunc_Adj</strong> (<em>MargValueFunc2D</em>) – Marginal value over normalized liquid resources when the agent is able
+to adjust his portfolio.</p></li>
+<li><p><strong>vFunc_Fxd</strong> (<em>ValueFunc3D</em>) – Stage value function over normalized liquid resources, normalized
+iliquid resources, and income contribution share when the agent is
+not able to adjust his portfolio.</p></li>
+<li><p><strong>dfracFunc_Fxd</strong> (<em>Interp2D</em>) – Deposit function over normalized liquid resources, normalized iliquid
+resources, and income contribution share when the agent is not able to
+adjust his portfolio.
+Must be ConstantFunction(0.0)</p></li>
+<li><p><strong>dvdmFunc_Fxd</strong> (<em>MargValueFunc3D</em>) – Marginal value over normalized liquid resources when the agent is not
+able to adjust his portfolio.</p></li>
+<li><p><strong>dvdnFunc_Fxd</strong> (<em>MargValueFunc3D</em>) – Marginal value over normalized iliquid resources when the agent is not
+able to adjust his portfolio.</p></li>
+<li><p><strong>dvdsFunc_Fxd</strong> (<em>Interp3D</em>) – Marginal value function over income contribution share when the agent
+is not able to ajust his portfolio.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['dvdmFunc_Adj',</span> <span class="pre">'dvdnFunc_Adj']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">RiskyContribShaSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdmFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdnFunc_Adj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdmFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdnFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdsFunc_Fxd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing the solution to the contribution-share stage of
+the ‘RiskyContrib’ model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vFunc_Adj</strong> (<em>ValueFunc2D</em>) – Stage value function over normalized liquid resources and normalized
+iliquid resources when the agent is able to adjust his portfolio.</p></li>
+<li><p><strong>ShareFunc_Adj</strong> (<em>Interp2D</em>) – Income contribution share function over normalized liquid resources
+and normalized iliquid resources when the agent is able to adjust his
+portfolio.</p></li>
+<li><p><strong>dvdmFunc_Adj</strong> (<em>MargValueFunc2D</em>) – Marginal value function over normalized liquid resources when the agent
+is able to adjust his portfolio.</p></li>
+<li><p><strong>dvdnFunc_Adj</strong> (<em>MargValueFunc2D</em>) – Marginal value function over normalized iliquid resources when the
+agent is able to adjust his portfolio.</p></li>
+<li><p><strong>vFunc_Fxd</strong> (<em>ValueFunc3D</em>) – Stage value function over normalized liquid resources, normalized
+iliquid resources, and income contribution share when the agent is not
+able to adjust his portfolio.</p></li>
+<li><p><strong>ShareFunc_Fxd</strong> (<em>Interp3D</em>) – Income contribution share function over normalized liquid resources,
+iliquid resources, and income contribution share when the agent is not
+able to adjust his portfolio.
+Should be an IdentityFunc.</p></li>
+<li><p><strong>dvdmFunc_Fxd</strong> (<em>MargValueFunc3D</em>) – Marginal value function over normalized liquid resources when the agent
+is not able to adjust his portfolio.</p></li>
+<li><p><strong>dvdnFunc_Fxd</strong> (<em>MargValueFunc3D</em>) – Marginal value function over normalized iliquid resources when the
+agent is not able to adjust his portfolio.</p></li>
+<li><p><strong>dvdsFunc_Fxd</strong> (<em>Interp3D</em>) – Marginal value function over income contribution share when the agent
+is not able to adjust his portfolio</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['dvdmFunc_Adj',</span> <span class="pre">'dvdnFunc_Adj']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">RiskyContribCnsSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdmFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdnFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dvdsFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing the solution to the consumption stage of the
+‘RiskyContrib’ model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vFunc</strong> (<em>ValueFunc3D</em>) – Stage-value function over normalized liquid resources, normalized
+iliquid resources, and income contribution share.</p></li>
+<li><p><strong>cFunc</strong> (<em>Interp3D</em>) – Consumption function over normalized liquid resources, normalized
+iliquid resources, and income contribution share.</p></li>
+<li><p><strong>dvdmFunc</strong> (<em>MargValueFunc3D</em>) – Marginal value function over normalized liquid resources.</p></li>
+<li><p><strong>dvdnFunc</strong> (<em>MargValueFunc3D</em>) – Marginal value function over normalized iliquid resources.</p></li>
+<li><p><strong>dvdsFunc</strong> (<em>Interp3D</em>) – Marginal value function over income contribution share.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['dvdmFunc',</span> <span class="pre">'dvdnFunc']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">RiskyContribSolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Reb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Sha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cns</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing the solution to a full time-period of the
+‘RiskyContrib’ agent type’s problem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Reb</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution"><em>RiskyContribRebSolution</em></a>) – Solution to the period’s rebalancing stage.</p></li>
+<li><p><strong>Sha</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution"><em>RiskyContribShaSolution</em></a>) – Solution to the period’s contribution-share stage.</p></li>
+<li><p><strong>Cns</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution"><em>RiskyContribCnsSolution</em></a>) – Solution to the period’s consumption stage.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['stage_sols']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.rebalance_assets">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">rebalance_assets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.rebalance_assets" title="Link to this definition">#</a></dt>
+<dd><p>A function that produces post-rebalancing assets for given initial assets,
+rebalancing action, and tax rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d</strong> (<em>np.array</em>) – Array with rebalancing decisions. d &gt; 0 represents depositing d*m into
+the risky asset account. d&lt;0 represents withdrawing <code class="docutils literal notranslate"><span class="pre">|d|*n</span></code> (pre-tax)
+from the risky account into the risky account.</p></li>
+<li><p><strong>m</strong> (<em>np.array</em>) – Initial risk-free assets.</p></li>
+<li><p><strong>n</strong> (<em>np.array</em>) – Initial risky assets.</p></li>
+<li><p><strong>tau</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tax rate on flows from the risky to the risk-free asset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>mTil</strong> (<em>np.array</em>) – Post-rebalancing risk-free assets.</p></li>
+<li><p><strong>nTil</strong> (<em>np.arrat</em>) – Post-rebalancing risky assets.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.m_nrm_next">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">m_nrm_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Share</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.m_nrm_next" title="Link to this definition">#</a></dt>
+<dd><p>Given end-of-period balances and contribution share and the
+start-of-next-period shocks, figure out next period’s normalized riskless
+assets</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shocks</strong> (<em>np.array</em>) – Length-3 array with the stochastic shocks that get realized between the
+end of the current period and the start of next period. Their order is
+(0) permanent income shock, (1) transitory income shock, (2) risky
+asset return.</p></li>
+<li><p><strong>aNrm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – End-of-period risk-free asset balances.</p></li>
+<li><p><strong>Share</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – End-of-period income deduction share.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Risk-free return factor.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Permanent income growth factor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>m_nrm_tp1</strong> – Next-period normalized riskless balance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.n_nrm_next">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">n_nrm_next</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Share</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.n_nrm_next" title="Link to this definition">#</a></dt>
+<dd><p>Given end-of-period balances and contribution share and the
+start-of-next-period shocks, figure out next period’s normalized risky
+assets</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shocks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – Dictionary with the stochastic shocks that get realized between the
+end of the current period and the start of next period: “PermShk” is the
+permanent income shock, “TranShk” is the transitory income shock, and
+“Risky” is the risky asset return.</p></li>
+<li><p><strong>nNrm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – End-of-period risky asset balances.</p></li>
+<li><p><strong>Share</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – End-of-period income deduction share.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Permanent income growth factor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>n_nrm_tp1</strong> – Next-period normalized risky balance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Cns">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">solve_RiskyContrib_Cns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RiskyDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IndepDstnBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joint_dist_solver</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">unused_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Cns" title="Link to this definition">#</a></dt>
+<dd><p>Solves the consumption stage of the agent’s problem</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution"><em>RiskyContribRebSolution</em></a>) – Solution to the first stage of the next period in the agent’s problem.</p></li>
+<li><p><strong>ShockDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Joint distribution of next period’s (0) permanent income shock, (1)
+transitory income shock, and (2) risky asset return factor.</p></li>
+<li><p><strong>IncShkDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Joint distribution of next period’s (0) permanent income shock and (1)
+transitory income shock.</p></li>
+<li><p><strong>RiskyDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Distribution of next period’s risky asset return factor.</p></li>
+<li><p><strong>IndepDstnBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Indicates whether the income and risky return distributions are
+independent.</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Probability of surviving until next period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Time-preference discount factor.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Risk-free return factor.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Deterministic permanent income growth factor.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum allowed market resources (must be 0).</p></li>
+<li><p><strong>aXtraGrid</strong> (<em>numpy array</em>) – Exogenous grid for end-of-period risk free resources.</p></li>
+<li><p><strong>nNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risky resources.</p></li>
+<li><p><strong>mNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risk-free resources.</p></li>
+<li><p><strong>ShareGrid</strong> (<em>numpt array</em>) – Exogenous grid for the income contribution share.</p></li>
+<li><p><strong>vFuncBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Boolean that determines wether the value function’s level needs to be
+computed.</p></li>
+<li><p><strong>AdjustPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Probability thet the agent will be able to adjust his portfolio next
+period.</p></li>
+<li><p><strong>DiscreteShareBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Boolean that determines whether only a discrete set of contribution
+shares (ShareGrid) is allowed.</p></li>
+<li><p><strong>joint_dist_solver</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Should the general solver be used even if income and returns are
+independent?</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>solution</strong> – Solution to the agent’s consumption stage problem.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution">RiskyContribCnsSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Sha">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">solve_RiskyContrib_Sha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">unused_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Sha" title="Link to this definition">#</a></dt>
+<dd><p>Solves the income-contribution-share stag of the agent’s problem</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution"><em>RiskyContribCnsSolution</em></a>) – Solution to the agent’s consumption stage problem that follows.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>AdjustPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Probability that the agent will be able to rebalance his portfolio
+next period.</p></li>
+<li><p><strong>mNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risk-free resources.</p></li>
+<li><p><strong>nNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risky resources.</p></li>
+<li><p><strong>ShareGrid</strong> (<em>numpy array</em>) – Exogenous grid for the income contribution share.</p></li>
+<li><p><strong>DiscreteShareBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Boolean that determines whether only a discrete set of contribution
+shares (ShareGrid) is allowed.</p></li>
+<li><p><strong>vFuncBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Determines whether the level of the value function is computed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>solution</strong> (<em>RiskyContribShaSolution</em>) – Solution to the income-contribution-share stage of the agent’s problem.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Reb">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">solve_RiskyContrib_Reb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">WithdrawTax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dfracGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">unused_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Reb" title="Link to this definition">#</a></dt>
+<dd><p>Solves the asset-rebalancing-stage of the agent’s problem</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution"><em>RiskyContribShaSolution</em></a>) – Solution to the income-contribution-share stage problem that follows.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>WithdrawTax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tax rate on risky asset withdrawals.</p></li>
+<li><p><strong>nNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risky resources.</p></li>
+<li><p><strong>mNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risk-free resources.</p></li>
+<li><p><strong>dfracGrid</strong> (<em>numpy array</em>) – Grid for rebalancing flows. The final grid will be equivalent to
+[-nNrm*dfracGrid, dfracGrid*mNrm].</p></li>
+<li><p><strong>vFuncBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Determines whether the level of th value function must be computed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>solution</strong> – Solution to the asset-rebalancing stage of the agent’s problem.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution">RiskyContribShaSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.solveRiskyContrib">
+<span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">solveRiskyContrib</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solution_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShockDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IncShkDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">RiskyDstn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IndepDstnBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LivPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Rfree</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PermGroFac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">WithdrawTax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">BoroCnstArt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aXtraGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mNrmGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ShareGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dfracGrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vFuncBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">AdjustPrb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">DiscreteShareBool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joint_dist_solver</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solveRiskyContrib" title="Link to this definition">#</a></dt>
+<dd><p>Solve a full period (with its three stages) of the agent’s problem</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solution_next</strong> (<a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution"><em>RiskyContribSolution</em></a>) – Solution to next period’s problem.</p></li>
+<li><p><strong>ShockDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Joint distribution of next period’s (0) permanent income shock, (1)
+transitory income shock, and (2) risky asset return factor.</p></li>
+<li><p><strong>IncShkDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Joint distribution of next period’s (0) permanent income shock and (1)
+transitory income shock.</p></li>
+<li><p><strong>RiskyDstn</strong> (<a class="reference internal" href="../tools/distribution.html#HARK.distributions.DiscreteDistribution" title="HARK.distributions.DiscreteDistribution"><em>DiscreteDistribution</em></a>) – Distribution of next period’s risky asset return factor.</p></li>
+<li><p><strong>IndepDstnBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Indicates whether the income and risky return distributions are
+independent.</p></li>
+<li><p><strong>LivPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Probability of surviving until next period.</p></li>
+<li><p><strong>DiscFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Time-preference discount factor.</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>Rfree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Risk-free return factor.</p></li>
+<li><p><strong>PermGroFac</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Deterministic permanent income growth factor.</p></li>
+<li><p><strong>WithdrawTax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Tax rate on risky asset withdrawals.</p></li>
+<li><p><strong>BoroCnstArt</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum allowed market resources (must be 0).</p></li>
+<li><p><strong>aXtraGrid</strong> (<em>numpy array</em>) – Exogenous grid for end-of-period risk free resources.</p></li>
+<li><p><strong>nNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risky resources.</p></li>
+<li><p><strong>mNrmGrid</strong> (<em>numpy array</em>) – Exogenous grid for risk-free resources.</p></li>
+<li><p><strong>ShareGrid</strong> (<em>numpy array</em>) – Exogenous grid for the income contribution share.</p></li>
+<li><p><strong>dfracGrid</strong> (<em>numpy array</em>) – Grid for rebalancing flows. The final grid will be equivalent to
+[-nNrm*dfracGrid, dfracGrid*mNrm].</p></li>
+<li><p><strong>vFuncBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Determines whether the level of th value function must be computed.</p></li>
+<li><p><strong>AdjustPrb</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Probability that the agent will be able to rebalance his portfolio
+next period.</p></li>
+<li><p><strong>DiscreteShareBool</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Boolean that determines whether only a discrete set of contribution
+shares (ShareGrid) is allowed.</p></li>
+<li><p><strong>joint_dist_solver</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Should the general solver be used even if income and returns are
+independent?</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>periodSol</strong> – Solution to the agent’s current-period problem.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution" title="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution">RiskyContribSolution</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.ConsumptionSaving.ConsRiskyContribModel.</span></span><span class="sig-name descname"><span class="pre">RiskyContribConsumerType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwds</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="ConsRiskyAssetModel.html#HARK.ConsumptionSaving.ConsRiskyAssetModel.IndShockRiskyAssetConsumerType" title="HARK.ConsumptionSaving.ConsRiskyAssetModel.IndShockRiskyAssetConsumerType"><code class="xref py py-class docutils literal notranslate"><span class="pre">IndShockRiskyAssetConsumerType</span></code></a></p>
+<p>A consumer type with idiosyncratic shocks to permanent and transitory income,
+who can save in both a risk-free and a risky asset but faces frictions to
+moving funds between them. The agent can only consume out of his risk-free
+asset.</p>
+<p>The frictions are:</p>
+<ul class="simple">
+<li><p>A proportional tax on funds moved from the risky to the risk-free
+asset.</p></li>
+<li><p>A stochastic inability to move funds between his accounts.</p></li>
+</ul>
+<p>To partially avoid the second friction, the agent can commit to have a
+fraction of his labor income, which is usually deposited in his risk-free
+account, diverted to his risky account. He can change this fraction
+only in periods where he is able to move funds between accounts.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.stages">
+<span class="sig-name descname"><span class="pre">stages</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Reb',</span> <span class="pre">'Sha',</span> <span class="pre">'Cns']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.stages" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.time_inv_">
+<span class="sig-name descname"><span class="pre">time_inv_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['CRRA',</span> <span class="pre">'DiscFac',</span> <span class="pre">'BoroCnstArt',</span> <span class="pre">'vFuncBool',</span> <span class="pre">'CubicBool',</span> <span class="pre">'aXtraGrid',</span> <span class="pre">'PortfolioBisect',</span> <span class="pre">'ShareGrid',</span> <span class="pre">'PortfolioBool',</span> <span class="pre">'IndepDstnBool',</span> <span class="pre">'RiskyShareFixed',</span> <span class="pre">'DiscreteShareBool',</span> <span class="pre">'joint_dist_solver',</span> <span class="pre">'ShareGrid',</span> <span class="pre">'nNrmGrid',</span> <span class="pre">'mNrmGrid',</span> <span class="pre">'RiskyDstn',</span> <span class="pre">'dfracGrid']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.time_inv_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.time_vary_">
+<span class="sig-name descname"><span class="pre">time_vary_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['LivPrb',</span> <span class="pre">'PermGroFac',</span> <span class="pre">'Rfree',</span> <span class="pre">'IncShkDstn',</span> <span class="pre">'PermShkDstn',</span> <span class="pre">'TranShkDstn',</span> <span class="pre">'ShockDstn',</span> <span class="pre">'ShareLimit',</span> <span class="pre">'WithdrawTax',</span> <span class="pre">'AdjustPrb']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.time_vary_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['kNrm',</span> <span class="pre">'pLvl',</span> <span class="pre">'bNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'aNrm',</span> <span class="pre">'aLvl',</span> <span class="pre">'gNrm',</span> <span class="pre">'nNrm',</span> <span class="pre">'mNrmTilde',</span> <span class="pre">'nNrmTilde',</span> <span class="pre">'Share']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.state_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.shock_vars_">
+<span class="sig-name descname"><span class="pre">shock_vars_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['PermShk',</span> <span class="pre">'TranShk',</span> <span class="pre">'Adjust',</span> <span class="pre">'Risky']</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.shock_vars_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.default_">
+<span class="sig-name descname"><span class="pre">default_</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'params':</span> <span class="pre">{'AdjustPrb':</span> <span class="pre">1.0,</span> <span class="pre">'AgentCount':</span> <span class="pre">10000,</span> <span class="pre">'BoroCnstArt':</span> <span class="pre">0.0,</span> <span class="pre">'CRRA':</span> <span class="pre">5.0,</span> <span class="pre">'CubicBool':</span> <span class="pre">False,</span> <span class="pre">'DiscFac':</span> <span class="pre">0.9,</span> <span class="pre">'DiscreteShareBool':</span> <span class="pre">False,</span> <span class="pre">'IncUnemp':</span> <span class="pre">0.3,</span> <span class="pre">'IncUnempRet':</span> <span class="pre">0.0,</span> <span class="pre">'IndepDstnBool':</span> <span class="pre">True,</span> <span class="pre">'LivPrb':</span> <span class="pre">[0.98],</span> <span class="pre">'NewbornTransShk':</span> <span class="pre">False,</span> <span class="pre">'PerfMITShk':</span> <span class="pre">False,</span> <span class="pre">'PermGroFac':</span> <span class="pre">[1.01],</span> <span class="pre">'PermGroFacAgg':</span> <span class="pre">1.0,</span> <span class="pre">'PermShkCount':</span> <span class="pre">7,</span> <span class="pre">'PermShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'PortfolioBisect':</span> <span class="pre">False,</span> <span class="pre">'PortfolioBool':</span> <span class="pre">False,</span> <span class="pre">'Rfree':</span> <span class="pre">[1.03],</span> <span class="pre">'RiskyAvg':</span> <span class="pre">1.0803701891,</span> <span class="pre">'RiskyCount':</span> <span class="pre">5,</span> <span class="pre">'RiskyShareFixed':</span> <span class="pre">1.0,</span> <span class="pre">'RiskyStd':</span> <span class="pre">0.162927447983,</span> <span class="pre">'ShareCount':</span> <span class="pre">10,</span> <span class="pre">'ShareMax':</span> <span class="pre">0.9,</span> <span class="pre">'T_age':</span> <span class="pre">None,</span> <span class="pre">'T_cycle':</span> <span class="pre">1,</span> <span class="pre">'T_retire':</span> <span class="pre">0,</span> <span class="pre">'TranShkCount':</span> <span class="pre">7,</span> <span class="pre">'TranShkStd':</span> <span class="pre">[0.1],</span> <span class="pre">'UnempPrb':</span> <span class="pre">0.05,</span> <span class="pre">'UnempPrbRet':</span> <span class="pre">0.005,</span> <span class="pre">'WithdrawTax':</span> <span class="pre">[0.1],</span> <span class="pre">'aXtraCount':</span> <span class="pre">50,</span> <span class="pre">'aXtraExtra':</span> <span class="pre">None,</span> <span class="pre">'aXtraMax':</span> <span class="pre">250,</span> <span class="pre">'aXtraMin':</span> <span class="pre">0.001,</span> <span class="pre">'aXtraNestFac':</span> <span class="pre">1,</span> <span class="pre">'constructors':</span> <span class="pre">{'AdjustDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_AdjustDstn&gt;,</span> <span class="pre">'IncShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">construct_lognormal_income_process_unemployment&gt;,</span> <span class="pre">'PermShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_PermShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'RiskyDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_RiskyDstn&gt;,</span> <span class="pre">'ShareGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_bounded_ShareGrid&gt;,</span> <span class="pre">'ShareLimit':</span> <span class="pre">&lt;function</span> <span class="pre">calc_ShareLimit_for_CRRA&gt;,</span> <span class="pre">'ShockDstn':</span> <span class="pre">&lt;function</span> <span class="pre">combine_IncShkDstn_and_RiskyDstn&gt;,</span> <span class="pre">'TranShkDstn':</span> <span class="pre">&lt;function</span> <span class="pre">get_TranShkDstn_from_IncShkDstn&gt;,</span> <span class="pre">'aXtraGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_assets_grid&gt;,</span> <span class="pre">'dfracGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_simple_dGrid&gt;,</span> <span class="pre">'kNrmInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_kNrm_init_dstn&gt;,</span> <span class="pre">'mNrmGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_mNrm_grid&gt;,</span> <span class="pre">'nNrmGrid':</span> <span class="pre">&lt;function</span> <span class="pre">make_nNrm_grid&gt;,</span> <span class="pre">'pLvlInitDstn':</span> <span class="pre">&lt;function</span> <span class="pre">make_lognormal_pLvl_init_dstn&gt;,</span> <span class="pre">'solution_terminal':</span> <span class="pre">&lt;function</span> <span class="pre">make_solution_terminal_risky_contrib&gt;},</span> <span class="pre">'cycles':</span> <span class="pre">1,</span> <span class="pre">'dCount':</span> <span class="pre">20,</span> <span class="pre">'joint_dist_solver':</span> <span class="pre">False,</span> <span class="pre">'kLogInitMean':</span> <span class="pre">-12.0,</span> <span class="pre">'kLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'kNrmInitCount':</span> <span class="pre">15,</span> <span class="pre">'mNrmCount':</span> <span class="pre">50,</span> <span class="pre">'mNrmMax':</span> <span class="pre">250,</span> <span class="pre">'mNrmMin':</span> <span class="pre">1e-06,</span> <span class="pre">'mNrmNestFac':</span> <span class="pre">1,</span> <span class="pre">'nNrmCount':</span> <span class="pre">50,</span> <span class="pre">'nNrmMax':</span> <span class="pre">250,</span> <span class="pre">'nNrmMin':</span> <span class="pre">1e-06,</span> <span class="pre">'nNrmNestFac':</span> <span class="pre">1,</span> <span class="pre">'neutral_measure':</span> <span class="pre">False,</span> <span class="pre">'pLogInitMean':</span> <span class="pre">0.0,</span> <span class="pre">'pLogInitStd':</span> <span class="pre">0.0,</span> <span class="pre">'pLvlInitCount':</span> <span class="pre">15,</span> <span class="pre">'pseudo_terminal':</span> <span class="pre">False,</span> <span class="pre">'sim_common_Rrisky':</span> <span class="pre">True,</span> <span class="pre">'vFuncBool':</span> <span class="pre">False},</span> <span class="pre">'solver':</span> <span class="pre">&lt;function</span> <span class="pre">solveRiskyContrib&gt;,</span> <span class="pre">'track_vars':</span> <span class="pre">['aNrm',</span> <span class="pre">'cNrm',</span> <span class="pre">'mNrm',</span> <span class="pre">'nNrm',</span> <span class="pre">'dfrac',</span> <span class="pre">'Share',</span> <span class="pre">'pLvl']}</span></span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.default_" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.pre_solve">
+<span class="sig-name descname"><span class="pre">pre_solve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.pre_solve" title="Link to this definition">#</a></dt>
+<dd><p>Method that is run automatically just before solution by backward iteration.
+Solves the (trivial) terminal period and does a quick check on the borrowing
+constraint and MaxKinks attribute (only relevant in constrained, infinite
+horizon problems).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.initialize_sim" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the state of simulation attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.sim_birth" title="Link to this definition">#</a></dt>
+<dd><p>Create new agents to replace ones who have recently died; takes draws of
+initial aNrm and pLvl, as in ConsIndShockModel, then sets Share, Adjust
+and post-rebalancing risky asset nNrmTilde to zero as initial values.
+:param which_agents: Boolean array of size AgentCount indicating which agents should be “born”.
+:type which_agents: np.array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.sim_one_period">
+<span class="sig-name descname"><span class="pre">sim_one_period</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.sim_one_period" title="Link to this definition">#</a></dt>
+<dd><p>Simulates one period for this type.</p>
+<p>Has to be re-defined instead of using AgentType.sim_one_period() because
+of the “stages” structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>None</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Reb">
+<span class="sig-name descname"><span class="pre">get_states_Reb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Reb" title="Link to this definition">#</a></dt>
+<dd><p>Get states for the first “stage”: rebalancing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Reb">
+<span class="sig-name descname"><span class="pre">get_controls_Reb</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Reb" title="Link to this definition">#</a></dt>
+<dd><p>Get controls for the first stage: rebalancing</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Sha">
+<span class="sig-name descname"><span class="pre">get_states_Sha</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Sha" title="Link to this definition">#</a></dt>
+<dd><p>Get states for the second “stage”: choosing the contribution share.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Sha">
+<span class="sig-name descname"><span class="pre">get_controls_Sha</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Sha" title="Link to this definition">#</a></dt>
+<dd><p>Get controls for the second “stage”: choosing the contribution share.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Cns">
+<span class="sig-name descname"><span class="pre">get_states_Cns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Cns" title="Link to this definition">#</a></dt>
+<dd><p>Get states for the third “stage”: consumption.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Cns">
+<span class="sig-name descname"><span class="pre">get_controls_Cns</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Cns" title="Link to this definition">#</a></dt>
+<dd><p>Get controls for the third “stage”: consumption.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_post_states">
+<span class="sig-name descname"><span class="pre">get_post_states</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_post_states" title="Link to this definition">#</a></dt>
+<dd><p>Set variables that are not a state to any problem but need to be
+computed in order to interact with shocks and produce next period’s
+states.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="ConsRiskyAssetModel.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">ConsRiskyAssetModel</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="TractableBufferStockModel.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">TractableBufferStockModel</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_bounded_ShareGrid"><code class="docutils literal notranslate"><span class="pre">make_bounded_ShareGrid()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_simple_dGrid"><code class="docutils literal notranslate"><span class="pre">make_simple_dGrid()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_nNrm_grid"><code class="docutils literal notranslate"><span class="pre">make_nNrm_grid()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_mNrm_grid"><code class="docutils literal notranslate"><span class="pre">make_mNrm_grid()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.make_solution_terminal_risky_contrib"><code class="docutils literal notranslate"><span class="pre">make_solution_terminal_risky_contrib()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution"><code class="docutils literal notranslate"><span class="pre">RiskyContribRebSolution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribRebSolution.distance_criteria"><code class="docutils literal notranslate"><span class="pre">RiskyContribRebSolution.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution"><code class="docutils literal notranslate"><span class="pre">RiskyContribShaSolution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribShaSolution.distance_criteria"><code class="docutils literal notranslate"><span class="pre">RiskyContribShaSolution.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution"><code class="docutils literal notranslate"><span class="pre">RiskyContribCnsSolution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribCnsSolution.distance_criteria"><code class="docutils literal notranslate"><span class="pre">RiskyContribCnsSolution.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution"><code class="docutils literal notranslate"><span class="pre">RiskyContribSolution</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribSolution.distance_criteria"><code class="docutils literal notranslate"><span class="pre">RiskyContribSolution.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.rebalance_assets"><code class="docutils literal notranslate"><span class="pre">rebalance_assets()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.m_nrm_next"><code class="docutils literal notranslate"><span class="pre">m_nrm_next()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.n_nrm_next"><code class="docutils literal notranslate"><span class="pre">n_nrm_next()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Cns"><code class="docutils literal notranslate"><span class="pre">solve_RiskyContrib_Cns()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Sha"><code class="docutils literal notranslate"><span class="pre">solve_RiskyContrib_Sha()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solve_RiskyContrib_Reb"><code class="docutils literal notranslate"><span class="pre">solve_RiskyContrib_Reb()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.solveRiskyContrib"><code class="docutils literal notranslate"><span class="pre">solveRiskyContrib()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.stages"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.stages</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.time_inv_"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.time_inv_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.time_vary_"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.time_vary_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.state_vars"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.state_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.shock_vars_"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.shock_vars_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.default_"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.default_</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.pre_solve"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.pre_solve()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.initialize_sim"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.initialize_sim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.sim_birth"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.sim_birth()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.sim_one_period"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.sim_one_period()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Reb"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_states_Reb()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Reb"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_controls_Reb()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Sha"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_states_Sha()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Sha"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_controls_Sha()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_states_Cns"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_states_Cns()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_controls_Cns"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_controls_Cns()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.ConsumptionSaving.ConsRiskyContribModel.RiskyContribConsumerType.get_post_states"><code class="docutils literal notranslate"><span class="pre">RiskyContribConsumerType.get_post_states()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

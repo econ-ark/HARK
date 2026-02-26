@@ -1,0 +1,1105 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Perfect Foresight Model &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsIndShockModel/PerfForesightConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsIndShockModel/PerfForesightConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Tractable Buffer Stock Model" href="../TractableBufferStockModel/TractableConsumerType.html" />
+    <link rel="prev" title="Journey: Economics PhD Student" href="../Journeys/Journey-PhD.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Perfect Foresight Model</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsIndShockModel/PerfForesightConsumerType.ipynb">examples/ConsIndShockModel/PerfForesightConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsIndShockModel/PerfForesightConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="PerfForesightConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Perfect-Foresight-Model">
+<h1>Perfect Foresight Model<a class="headerlink" href="#Perfect-Foresight-Model" title="Link to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initial imports and notebook setup, click arrow to show</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">PerfForesightConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>The module <code class="docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving.ConsIndShockModel</span></code> concerns consumption-saving models with idiosyncratic shocks to (non-capital) income. All of the models assume CRRA utility with geometric discounting, no bequest motive, and income shocks that are either fully transitory or fully permanent.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ConsIndShockModel</span></code> currently includes three models:</p>
+<ol class="arabic simple">
+<li><p>A very basic “perfect foresight” model with no uncertainty.</p></li>
+<li><p>A model with risk over transitory and permanent income shocks.</p></li>
+<li><p>The model described in (2), with an interest rate for debt that differs from the interest rate for savings.</p></li>
+</ol>
+<p>This notebook provides documentation for the first of these three models. <span class="math notranslate nohighlight">\(\newcommand{\CRRA}{\rho}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\DiePrb}{\mathsf{D}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\LivPrb}{\mathsf{S}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PermGroFac}{\Gamma}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Rfree}{\mathsf{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\DiscFac}{\beta}\)</span></p>
+<section id="Statement-of-perfect-foresight-consumption-saving-model">
+<h2>Statement of perfect foresight consumption-saving model<a class="headerlink" href="#Statement-of-perfect-foresight-consumption-saving-model" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> class models the problem of a consumer with Constant Relative Risk Aversion utility specified by <span class="math">\begin{align*}
+U(C) = \frac{C^{1-\CRRA}}{1-\rho},
+\end{align*}</span> who has perfect foresight about everything except whether he will die between the end of period <span class="math notranslate nohighlight">\(t\)</span> and the beginning of period <span class="math notranslate nohighlight">\(t+1\)</span>, which occurs with probability <span class="math notranslate nohighlight">\(\DiePrb_{t} = 1 - \LivPrb_t\)</span>. Permanent labor income <span class="math notranslate nohighlight">\(P_t\)</span> grows from period <span class="math notranslate nohighlight">\(t\)</span> to period <span class="math notranslate nohighlight">\(t+1\)</span> by factor <span class="math notranslate nohighlight">\(\PermGroFac_{t+1}\)</span>.</p>
+<p>At the beginning of period <span class="math notranslate nohighlight">\(t\)</span>, the consumer has an amount of market resources <span class="math notranslate nohighlight">\(M_t\)</span> (which includes both market wealth and current income) and must choose how much of those resources to consume <span class="math notranslate nohighlight">\(C_t\)</span>, while retaining the rest in a riskless asset <span class="math notranslate nohighlight">\(A_t\)</span>, which will earn return factor <span class="math notranslate nohighlight">\(\Rfree\)</span>. The consumer cannot necessarily borrow arbitrarily; instead, he might be constrained to have a wealth-to-income ratio at least as great as some “artificial borrowing
+constraint” <span class="math notranslate nohighlight">\(\underline{a} \leq 0\)</span>.</p>
+<p>The agent’s flow of future utility <span class="math notranslate nohighlight">\(U(C_{t+n})\)</span> from consumption is geometrically discounted by factor <span class="math notranslate nohighlight">\(\DiscFac^n\)</span>. If the consumer dies, he receives zero utility flow for the rest of time.</p>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math">\begin{align*}
+V_t(M_t,P_t) &= \max_{C_t}U(C_t) + \DiscFac \LivPrb_{t} V_{t+1}(M_{t+1},P_{t+1}), \\
+& \text{s.t.} \\
+A_t &= M_t - C_t, \\
+A_t/P_t &\geq \underline{a}, \\
+M_{t+1} &= \Rfree_{t+1} A_t + Y_{t+1}, \\
+Y_{t+1} &= P_{t+1}, \\
+P_{t+1} &= \PermGroFac_{t+1} P_t.
+\end{align*}</span></p>
+<p>The consumer’s problem is characterized by the coefficient of relative risk aversion <span class="math notranslate nohighlight">\(\CRRA\)</span> and intertemporal discount factor <span class="math notranslate nohighlight">\(\DiscFac\)</span>, and age-varying sequences of the permanent income growth factor <span class="math notranslate nohighlight">\(\PermGroFac_t\)</span>, interest factor <span class="math notranslate nohighlight">\(\Rfree_{t}\)</span> and survival probability <span class="math notranslate nohighlight">\(\LivPrb_t\)</span>.</p>
+<p>While it does not reduce the computational complexity of the problem (as permanent income is deterministic, given its initial condition <span class="math notranslate nohighlight">\(P_0\)</span>), HARK represents this problem with <em>normalized</em> variables (represented in lower case), dividing all real variables by permanent income <span class="math notranslate nohighlight">\(P_t\)</span> and utility levels by <span class="math notranslate nohighlight">\(P_t^{1-\CRRA}\)</span>. The Bellman form of the model thus reduces to:</p>
+<p><span class="math">\begin{align*}
+v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac \LivPrb_t \PermGroFac_{t+1}^{1-\CRRA} v_{t+1}(m_{t+1}), \\
+& \text{s.t.}  \\
+a_t &= m_t - c_t, \\
+a_t &\geq \underline{a}, \\
+m_{t+1} &= \Rfree_{t+1} a_t/\PermGroFac_{t+1} + 1.
+\end{align*}</span></p>
+</section>
+<section id="Solution-method-for-PerfForesightConsumerType">
+<h2>Solution method for PerfForesightConsumerType<a class="headerlink" href="#Solution-method-for-PerfForesightConsumerType" title="Link to this heading">#</a></h2>
+<p>Because of the assumptions of CRRA utility and no risk other than mortality, the problem has a closed form solution when there is no artificial borrowing constraint. In fact, the consumption function is perfectly linear, and the value function composed with the inverse utility function is also linear. The mathematical solution of this model is described in detail in the lecture notes
+<a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/public/lecturenotes/consumption/PerfForesightCRRA">PerfForesightCRRA</a>.</p>
+<p>The one period problem for this model is solved by the function <code class="docutils literal notranslate"><span class="pre">solveConsPerfForesight</span></code>, which creates an instance of the class <code class="docutils literal notranslate"><span class="pre">ConsPerfForesightSolver</span></code>. To construct an instance of the class <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code>, several parameters must be passed to its constructor as shown in the table below.</p>
+</section>
+<section id="Example-parameter-values-to-construct-an-instance-of-PerfForesightConsumerType">
+<h2>Example parameter values to construct an instance of PerfForesightConsumerType<a class="headerlink" href="#Example-parameter-values-to-construct-an-instance-of-PerfForesightConsumerType" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Example value</p></th>
+<th class="head"><p>Time-varying?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\DiscFac\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.96\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\CRRA\)</span></p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Rfree_t\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.03]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\LivPrb_t\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.98]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\PermGroFac_{t+1}\)</span></p></td>
+<td><p>Permanent income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.01]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BoroCnstArt</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(None\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Maximum number of gridpoints in consumption function</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(200\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(T\)</span></p></td>
+<td><p>Number of periods in this type’s “cycle”</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_cycle</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Number of times the “cycle” occurs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cycles</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Note that the survival probability and income growth factor have time subscripts; likewise, the example values for these parameters are <em>lists</em> rather than simply single floats. This is because those parameters are <em>time-varying</em>: their values can depend on which period of the problem the agent is in. All time-varying parameters <em>must</em> be specified as lists, even if the same value occurs in each period for this type.</p>
+<p>The artificial borrowing constraint can be any non-positive <code class="docutils literal notranslate"><span class="pre">float</span></code>, or it can be <code class="docutils literal notranslate"><span class="pre">None</span></code> to indicate no artificial borrowing constraint. The maximum number of gridpoints in the consumption function is only relevant if the borrowing constraint is not <code class="docutils literal notranslate"><span class="pre">None</span></code>; without an upper bound on the number of gridpoints, kinks in the consumption function will propagate indefinitely in an infinite horizon model if there is a borrowing constraint, eventually resulting in an overflow error. If there is no
+artificial borrowing constraint, then the number of gridpoints used to represent the consumption function is always exactly two.</p>
+<p>The last two parameters in the table specify the “nature of time” for this type: the number of (non-terminal) periods in this type’s “cycle”, and the number of times that the “cycle” occurs. <em>Every</em> subclass of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> uses these two code parameters to define the nature of time. Here, <code class="docutils literal notranslate"><span class="pre">T_cycle</span></code> has the value <span class="math notranslate nohighlight">\(1\)</span>, indicating that there is exactly one period in the cycle, while <code class="docutils literal notranslate"><span class="pre">cycles</span></code> is <span class="math notranslate nohighlight">\(0\)</span>, indicating that the cycle is repeated in <em>infinite</em> number of times– it is an
+infinite horizon model, with the same “kind” of period repeated over and over.</p>
+<p>In contrast, we could instead specify a life-cycle model by setting <code class="docutils literal notranslate"><span class="pre">T_cycle</span></code> to <span class="math notranslate nohighlight">\(1\)</span>, and specifying age-varying sequences of income growth and survival probability. In all cases, the number of elements in each time-varying parameter should exactly equal <code class="docutils literal notranslate"><span class="pre">T_cycle</span></code>.</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code> specifies how many consumers there are of this <em>type</em>– how many individuals have these exact parameter values and are <em>ex ante</em> homogeneous. This information is not relevant for solving the model, but is needed in order to simulate a population of agents, introducing <em>ex post</em> heterogeneity through idiosyncratic shocks. Of course, simulating a perfect foresight model is quite boring, as there are <em>no</em> idiosyncratic shocks other than death!</p>
+<p>The cell below defines a dictionary that can be passed to the constructor method for <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code>, with the values from the table here.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PerfForesightDict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># Parameters actually used in the solution method</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>  <span class="c1"># Coefficient of relative risk aversion</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">],</span>  <span class="c1"># Interest factor on assets</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="mf">0.96</span><span class="p">,</span>  <span class="c1"># Default intertemporal discount factor</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.98</span><span class="p">],</span>  <span class="c1"># Survival probability</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.01</span><span class="p">],</span>  <span class="c1"># Permanent income growth factor</span>
+    <span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Artificial borrowing constraint</span>
+    <span class="s2">&quot;aXtraCount&quot;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>  <span class="c1"># Maximum number of gridpoints in consumption function</span>
+    <span class="c1"># Parameters that characterize the nature of time</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Number of periods in the cycle for this agent type</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># Number of times the cycle occurs (0 --&gt; infinitely repeated)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Solving-and-examining-the-solution-of-the-perfect-foresight-model">
+<h2>Solving and examining the solution of the perfect foresight model<a class="headerlink" href="#Solving-and-examining-the-solution-of-the-perfect-foresight-model" title="Link to this heading">#</a></h2>
+<p>With the dictionary we have just defined, we can create an instance of <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> by passing the dictionary to the class (as if the class were a function). This instance can then be solved by invoking its <code class="docutils literal notranslate"><span class="pre">solve</span></code> method.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PFexample</span> <span class="o">=</span> <span class="n">PerfForesightConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">PerfForesightDict</span><span class="p">)</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">solve</span></code> method fills in the instance’s attribute <code class="docutils literal notranslate"><span class="pre">solution</span></code> as a time-varying list of solutions to each period of the consumer’s problem. In this case, <code class="docutils literal notranslate"><span class="pre">solution</span></code> will be a list with exactly one instance of the class <code class="docutils literal notranslate"><span class="pre">ConsumerSolution</span></code>, representing the solution to the infinite horizon model we specified.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&lt;HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution object at 0x00000147E11CFB30&gt;]
+</pre></div></div>
+</div>
+<p>Each element of <code class="docutils literal notranslate"><span class="pre">solution</span></code> has a few attributes. To see all of them, we can use the <code class="docutils literal notranslate"><span class="pre">vars</span></code> built in function:</p>
+<p>the consumption functions reside in the attribute <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> of each element of <code class="docutils literal notranslate"><span class="pre">ConsumerType.solution</span></code>. This method creates a (time varying) attribute <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> that contains a list of consumption functions.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="nb">vars</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;cFunc&#39;: &lt;HARK.interpolation.LinearInterp object at 0x00000147E0EA0AD0&gt;, &#39;vFunc&#39;: &lt;HARK.interpolation.ValueFuncCRRA object at 0x00000147E11CBE90&gt;, &#39;vPfunc&#39;: &lt;HARK.interpolation.MargValueFuncCRRA object at 0x00000147E11A3FE0&gt;, &#39;vPPfunc&#39;: &lt;HARK.utilities.NullFunc object at 0x00000147E11CFCB0&gt;, &#39;mNrmMin&#39;: -50.49994992551661, &#39;hNrm&#39;: 50.49994992551661, &#39;MPCmin&#39;: 0.04428139169919579, &#39;MPCmax&#39;: 0.04428139169919579, &#39;mNrmStE&#39;: -50.499910819847685, &#39;mNrmTrg&#39;: nan}
+</pre></div></div>
+</div>
+<p>The two most important attributes of a single period solution of this model are the (normalized) consumption function <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> and the (normalized) value function <code class="docutils literal notranslate"><span class="pre">vFunc</span></code>. Let’s plot those functions near the lower bound of the permissible state space (the attribute <code class="docutils literal notranslate"><span class="pre">mNrmMin</span></code> tells us the lower bound of <span class="math notranslate nohighlight">\(m_t\)</span> where the consumption function is defined).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Linear perfect foresight consumption function:&quot;</span><span class="p">)</span>
+<span class="n">mMin</span> <span class="o">=</span> <span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">mMin</span><span class="p">,</span> <span class="n">mMin</span> <span class="o">+</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Linear perfect foresight consumption function:
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_14_1.png" src="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_14_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Value function $v(m_t)$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">5000</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">vFunc</span><span class="p">,</span> <span class="n">mMin</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">mMin</span> <span class="o">+</span> <span class="mf">10.1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_15_0.png" src="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_15_0.png" />
+</div>
+</div>
+<p>An element of <code class="docutils literal notranslate"><span class="pre">solution</span></code> also includes the (normalized) marginal value function <code class="docutils literal notranslate"><span class="pre">vPfunc</span></code>, and the lower and upper bounds of the marginal propensity to consume (MPC) <code class="docutils literal notranslate"><span class="pre">MPCmin</span></code> and <code class="docutils literal notranslate"><span class="pre">MPCmax</span></code>. Note that with a linear consumption function, the MPC is constant, so its lower and upper bound are identical.</p>
+<section id="Liquidity-constrained-perfect-foresight-example">
+<h3>Liquidity constrained perfect foresight example<a class="headerlink" href="#Liquidity-constrained-perfect-foresight-example" title="Link to this heading">#</a></h3>
+<p>Without an artificial borrowing constraint, a perfect foresight consumer is free to borrow against the PDV of his entire future stream of labor income – his “human wealth” <code class="docutils literal notranslate"><span class="pre">hNrm</span></code> – and he will consume a constant proportion of his total wealth (market resources plus human wealth). If we introduce an artificial borrowing constraint, both of these features vanish. In the cell below, we define a parameter dictionary that prevents the consumer from borrowing <em>at all</em>, create and solve a new
+instance of <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> with it, and then plot its consumption function.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">LiqConstrDict</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">PerfForesightDict</span><span class="p">)</span>
+<span class="n">LiqConstrDict</span><span class="p">[</span><span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Set the artificial borrowing constraint to zero</span>
+
+<span class="n">LiqConstrExample</span> <span class="o">=</span> <span class="n">PerfForesightConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">LiqConstrDict</span><span class="p">)</span>
+<span class="n">LiqConstrExample</span><span class="o">.</span><span class="n">cycles</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Make this type be infinite horizon</span>
+<span class="n">LiqConstrExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">LiqConstrExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_17_0.png" src="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_17_0.png" />
+</div>
+</div>
+<p>At this time, the value function for a perfect foresight consumer with an artificial borrowing constraint is not computed nor included as part of its <code class="docutils literal notranslate"><span class="pre">solution</span></code>.</p>
+</section>
+</section>
+<section id="Simulating-the-perfect-foresight-consumer-model">
+<h2>Simulating the perfect foresight consumer model<a class="headerlink" href="#Simulating-the-perfect-foresight-consumer-model" title="Link to this heading">#</a></h2>
+<p>Suppose we wanted to simulate many consumers who share the parameter values that we passed to <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> – an <em>ex ante</em> homogeneous <em>type</em> of consumers. To do this, our instance would have to know <em>how many</em> agents there are of this type, as well as their initial levels of assets <span class="math notranslate nohighlight">\(a_t\)</span> and permanent income <span class="math notranslate nohighlight">\(P_t\)</span>.</p>
+<section id="Setting-simulation-parameters">
+<h3>Setting simulation parameters<a class="headerlink" href="#Setting-simulation-parameters" title="Link to this heading">#</a></h3>
+<p>Let’s fill in this information by passing another dictionary to <code class="docutils literal notranslate"><span class="pre">PFexample</span></code> with simulation parameters. The table below lists the parameters that an instance of <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> needs in order to successfully simulate its model using the <code class="docutils literal notranslate"><span class="pre">simulate</span></code> method.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Example value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Number of consumers of this type</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AgentCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(10000\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>Number of periods to simulate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_sim</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(120\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>Mean of initial log (normalized) assets</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kLogInitMean</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(-6.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>Stdev of initial log (normalized) assets</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kLogInitStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>Mean of initial log permanent income</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogInitMean</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>Stdev of initial log permanent income</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLogInitStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>Aggregrate productivity growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFacAgg</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>Age after which consumers are automatically killed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_age</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(None\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>We have specified the model so that initial assets and permanent income are both distributed lognormally, with mean and standard deviation of the underlying normal distributions provided by the user.</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">PermGroFacAgg</span></code> exists for compatibility with more advanced models that employ aggregate productivity shocks; it can simply be set to 1.</p>
+<p>In infinite horizon models, it might be useful to prevent agents from living extraordinarily long lives through a fortuitous sequence of mortality shocks. We have thus provided the option of setting <code class="docutils literal notranslate"><span class="pre">T_age</span></code> to specify the maximum number of periods that a consumer can live before they are automatically killed (and replaced with a new consumer with initial state drawn from the specified distributions). This can be turned off by setting it to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>The cell below puts these parameters into a dictionary, then gives them to <code class="docutils literal notranslate"><span class="pre">PFexample</span></code>. Note that all of these parameters <em>could</em> have been passed as part of the original dictionary; we omitted them above for simplicity.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">SimulationParams</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;AgentCount&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>  <span class="c1"># Number of agents of this type</span>
+    <span class="s2">&quot;T_sim&quot;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>  <span class="c1"># Number of periods to simulate</span>
+    <span class="s2">&quot;kLogInitMean&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">6.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial assets</span>
+    <span class="s2">&quot;kLogInitStd&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial assets</span>
+    <span class="s2">&quot;pLogInitMean&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Mean of log initial permanent income</span>
+    <span class="s2">&quot;pLogInitStd&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>  <span class="c1"># Standard deviation of log initial permanent income</span>
+    <span class="s2">&quot;PermGroFacAgg&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Aggregate permanent income growth factor</span>
+    <span class="s2">&quot;T_age&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Age after which simulated agents are automatically killed</span>
+<span class="p">}</span>
+
+<span class="n">PFexample</span><span class="o">.</span><span class="n">assign_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">SimulationParams</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>To generate simulated data, we need to specify which variables we want to track the “history” of for this instance. To do so, we set the <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> attribute of our <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> instance to be a list of strings with the simulation variables we want to track.</p>
+<p>In this model, valid arguments to <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> include <code class="docutils literal notranslate"><span class="pre">mNrm</span></code>, <code class="docutils literal notranslate"><span class="pre">cNrm</span></code>, <code class="docutils literal notranslate"><span class="pre">aNrm</span></code>, and <code class="docutils literal notranslate"><span class="pre">pLvl</span></code>. Because this model has no idiosyncratic shocks, our simulated data will be quite boring.</p>
+</section>
+<section id="Generating-simulated-data">
+<h3>Generating simulated data<a class="headerlink" href="#Generating-simulated-data" title="Link to this heading">#</a></h3>
+<p>Before simulating, the <code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> method must be invoked. This resets our instance back to its initial state, drawing a set of initial <code class="docutils literal notranslate"><span class="pre">aNrm</span></code> and <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> values from the specified distributions and storing them in the attributes <code class="docutils literal notranslate"><span class="pre">aNrmNow_init</span></code> and <code class="docutils literal notranslate"><span class="pre">pLvlNow_init</span></code>. It also resets this instance’s internal random number generator, so that the same initial states will be set every time <code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> is called. In models with non-trivial shocks, this also ensures that the same
+sequence of shocks will be generated on every simulation run.</p>
+<p>Finally, the <code class="docutils literal notranslate"><span class="pre">simulate</span></code> method can be called.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PFexample</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mNrm&quot;</span><span class="p">]</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>Each simulation variable <code class="docutils literal notranslate"><span class="pre">X</span></code> named in <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> will have the <em>history</em> of that variable for each agent stored in the attribute <code class="docutils literal notranslate"><span class="pre">X_hist</span></code> as an array of shape <code class="docutils literal notranslate"><span class="pre">(T_sim,</span> <span class="pre">AgentCount)</span></code>. To see that the simulation worked as intended, we can plot the mean of <span class="math notranslate nohighlight">\(m_t\)</span> in each simulated period:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;mNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Mean normalized market resources&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_24_0.png" src="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_24_0.png" />
+</div>
+</div>
+<p>A perfect foresight consumer can borrow against the PDV of his future income – his human wealth – and thus as time goes on, our simulated agents approach the (very negative) steady state level of <span class="math notranslate nohighlight">\(m_t\)</span> while being steadily replaced with consumers with roughly <span class="math notranslate nohighlight">\(m_t=1\)</span>.</p>
+<p>The slight wiggles in the plotted curve are due to consumers randomly dying and being replaced; their replacement will have an initial state drawn from the distributions specified by the user. To see the current distribution of ages, we can look at the attribute <code class="docutils literal notranslate"><span class="pre">t_age</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="n">PFexample</span><span class="o">.</span><span class="n">AgentCount</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">t_age</span><span class="p">),</span> <span class="n">F</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Current age of consumers&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Cumulative distribution&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_26_0.png" src="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_26_0.png" />
+</div>
+</div>
+<p>The distribution is (discretely) exponential, with a point mass at 120 with consumers who have survived since the beginning of the simulation.</p>
+<p>One might wonder why HARK requires users to call <code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> before calling <code class="docutils literal notranslate"><span class="pre">simulate</span></code>: Why doesn’t <code class="docutils literal notranslate"><span class="pre">simulate</span></code> just call <code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> as its first step? We have broken up these two steps so that users can simulate some number of periods, change something in the environment, and then resume the simulation.</p>
+<p>When called with no argument, <code class="docutils literal notranslate"><span class="pre">simulate</span></code> will simulate the model for <code class="docutils literal notranslate"><span class="pre">T_sim</span></code> periods. The user can optionally pass an integer specifying the number of periods to simulate (which should not exceed <code class="docutils literal notranslate"><span class="pre">T_sim</span></code>).</p>
+<p>In the cell below, we simulate our perfect foresight consumers for 80 periods, then seize a bunch of their assets (dragging their wealth even more negative), then simulate for the remaining 40 periods.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">state_prev</span></code> attribute of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> stores the values of the model’s state variables in the <em>previous</em> period of the simulation.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PFexample</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">state_now</span><span class="p">[</span>
+    <span class="s2">&quot;aNrm&quot;</span>
+<span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="mf">5.0</span>  <span class="c1"># Adjust all simulated consumers&#39; assets downward by 5</span>
+<span class="n">PFexample</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">PFexample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;mNrm&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Mean normalized market resources&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_28_0.png" src="../../_images/examples_ConsIndShockModel_PerfForesightConsumerType_28_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../Journeys/Journey-PhD.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Journey: Economics PhD Student</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../TractableBufferStockModel/TractableConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Tractable Buffer Stock Model</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Statement-of-perfect-foresight-consumption-saving-model">Statement of perfect foresight consumption-saving model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solution-method-for-PerfForesightConsumerType">Solution method for PerfForesightConsumerType</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-parameter-values-to-construct-an-instance-of-PerfForesightConsumerType">Example parameter values to construct an instance of PerfForesightConsumerType</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-and-examining-the-solution-of-the-perfect-foresight-model">Solving and examining the solution of the perfect foresight model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Liquidity-constrained-perfect-foresight-example">Liquidity constrained perfect foresight example</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Simulating-the-perfect-foresight-consumer-model">Simulating the perfect foresight consumer model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Setting-simulation-parameters">Setting simulation parameters</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Generating-simulated-data">Generating simulated data</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

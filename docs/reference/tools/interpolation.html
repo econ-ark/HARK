@@ -1,0 +1,2061 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Interpolation &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/tools/interpolation';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/tools/interpolation.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Calibration" href="incomeprocess.html" />
+    <link rel="prev" title="Helpers" href="helpers.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dcegm.html">dcegm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distribution.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helpers.html">Helpers</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsAggShockModel.html">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsHealthModel.html">ConsHealthModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsIndShockModel.html">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRiskyContribModel.html">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Interpolation</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.interpolation">
+<span id="interpolation"></span><h1>Interpolation<a class="headerlink" href="#module-HARK.interpolation" title="Link to this heading">#</a></h1>
+<p>Custom interpolation methods for representing approximations to functions.
+It also includes wrapper classes to enforce standard methods across classes.
+Each interpolation class must have a distance() method that compares itself to
+another instance; this is used in HARK.core’s solve() method to check for solution
+convergence.  The interpolator classes currently in this module inherit their
+distance method from MetricObject.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator1D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">HARKinterpolator1D</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator1D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A wrapper class for 1D interpolation methods in HARK.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator1D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator1D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator1D.derivative">
+<span class="sig-name descname"><span class="pre">derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator1D.derivative" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the derivative of the interpolated function at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dydx</strong> – The interpolated function’s first derivative evaluated at x:
+dydx = f’(x), with the same shape as x.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator1D.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator1D.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the derivative of the interpolated function at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dydx</strong> – The interpolated function’s first derivative evaluated at x:
+dydx = f’(x), with the same shape as x.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator1D.eval_with_derivative">
+<span class="sig-name descname"><span class="pre">eval_with_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator1D.eval_with_derivative" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the interpolated function and its derivative at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>y</strong> (<em>np.array or float</em>) – The interpolated function evaluated at x: y = f(x), with the same
+shape as x.</p></li>
+<li><p><strong>dydx</strong> (<em>np.array or float</em>) – The interpolated function’s first derivative evaluated at x:
+dydx = f’(x), with the same shape as x.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator2D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">HARKinterpolator2D</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator2D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A wrapper class for 2D interpolation methods in HARK.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator2D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator2D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator2D.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator2D.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative of interpolated function with respect
+to x (the first argument) at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If both
+are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdx</strong> – The derivative of the interpolated function with respect to x, eval-
+uated at x,y: dfdx = f_x(x,y), with the same shape as x and y.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator2D.derivativeY">
+<span class="sig-name descname"><span class="pre">derivativeY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator2D.derivativeY" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative of interpolated function with respect
+to y (the second argument) at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If both
+are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdy</strong> – The derivative of the interpolated function with respect to y, eval-
+uated at x,y: dfdx = f_y(x,y), with the same shape as x and y.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator3D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">HARKinterpolator3D</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator3D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A wrapper class for 3D interpolation methods in HARK.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator3D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator3D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator3D.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator3D.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative of the interpolated function with respect
+to x (the first argument) at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdx</strong> – The derivative with respect to x of the interpolated function evaluated
+at x,y,z: dfdx = f_x(x,y,z), with the same shape as x, y, and z.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator3D.derivativeY">
+<span class="sig-name descname"><span class="pre">derivativeY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator3D.derivativeY" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative of the interpolated function with respect
+to y (the second argument) at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdy</strong> – The derivative with respect to y of the interpolated function evaluated
+at x,y,z: dfdy = f_y(x,y,z), with the same shape as x, y, and z.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator3D.derivativeZ">
+<span class="sig-name descname"><span class="pre">derivativeZ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator3D.derivativeZ" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative of the interpolated function with respect
+to z (the third argument) at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdz</strong> – The derivative with respect to z of the interpolated function evaluated
+at x,y,z: dfdz = f_z(x,y,z), with the same shape as x, y, and z.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator4D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">HARKinterpolator4D</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator4D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A wrapper class for 4D interpolation methods in HARK.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator4D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator4D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator4D.derivativeW">
+<span class="sig-name descname"><span class="pre">derivativeW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator4D.derivativeW" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative with respect to w (the first argument)
+of the interpolated function at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdw</strong> – The derivative with respect to w of the interpolated function eval-
+uated at w,x,y,z: dfdw = f_w(w,x,y,z), with the same shape as inputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator4D.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator4D.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative with respect to x (the second argument)
+of the interpolated function at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdx</strong> – The derivative with respect to x of the interpolated function eval-
+uated at w,x,y,z: dfdx = f_x(w,x,y,z), with the same shape as inputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator4D.derivativeY">
+<span class="sig-name descname"><span class="pre">derivativeY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator4D.derivativeY" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative with respect to y (the third argument)
+of the interpolated function at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdy</strong> – The derivative with respect to y of the interpolated function eval-
+uated at w,x,y,z: dfdy = f_y(w,x,y,z), with the same shape as inputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.HARKinterpolator4D.derivativeZ">
+<span class="sig-name descname"><span class="pre">derivativeZ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.HARKinterpolator4D.derivativeZ" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates the partial derivative with respect to z (the fourth argument)
+of the interpolated function at the given input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+<li><p><strong>z</strong> (<em>np.array</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Real values to be evaluated in the interpolated function. If multiple
+inputs are arrays, they must be broadcastable to the same shape.
+Scalar inputs will be broadcast to match array inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dfdz</strong> – The derivative with respect to z of the interpolated function eval-
+uated at w,x,y,z: dfdz = f_z(w,x,y,z), with the same shape as inputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">IdentityFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IdentityFunction" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A fairly trivial interpolator that simply returns one of its arguments.  Useful for avoiding
+numeric error in extreme cases.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Index of the dimension on which the identity is defined.  <code class="docutils literal notranslate"><span class="pre">f(*x)</span> <span class="pre">=</span> <span class="pre">x[i]</span></code></p></li>
+<li><p><strong>n_dims</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Total number of input dimensions for this function.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['i_dim']</span></span><a class="headerlink" href="#HARK.interpolation.IdentityFunction.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction.derivative">
+<span class="sig-name descname"><span class="pre">derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IdentityFunction.derivative" title="Link to this definition">#</a></dt>
+<dd><p>Returns the derivative of the function with respect to the first dimension.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IdentityFunction.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Returns the derivative of the function with respect to the X dimension.
+This is the first input whenever n_dims &lt; 4 and the second input otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction.derivativeY">
+<span class="sig-name descname"><span class="pre">derivativeY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IdentityFunction.derivativeY" title="Link to this definition">#</a></dt>
+<dd><p>Returns the derivative of the function with respect to the Y dimension.
+This is the second input whenever n_dims &lt; 4 and the third input otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction.derivativeZ">
+<span class="sig-name descname"><span class="pre">derivativeZ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IdentityFunction.derivativeZ" title="Link to this definition">#</a></dt>
+<dd><p>Returns the derivative of the function with respect to the Z dimension.
+This is the third input whenever n_dims &lt; 4 and the fourth input otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.IdentityFunction.derivativeW">
+<span class="sig-name descname"><span class="pre">derivativeW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IdentityFunction.derivativeW" title="Link to this definition">#</a></dt>
+<dd><p>Returns the derivative of the function with respect to the W dimension.
+This should only exist when n_dims &gt;= 4.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">ConstantFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing trivial functions that return the same real output for any input.  This
+is convenient for models where an object might be a (non-trivial) function, but in some variations
+that object is just a constant number.  Rather than needing to make a (Bi/Tri/Quad)-
+LinearInterpolation with trivial state grids and the same f_value in every entry, ConstantFunction
+allows the user to quickly make a constant/trivial function.  This comes up, e.g., in models
+with endogenous pricing of insurance contracts; a contract’s premium might depend on some state
+variables of the individual, but in some variations the premium of a contract is just a number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – The constant value that the function returns.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.convergence_criteria">
+<span class="sig-name descname"><span class="pre">convergence_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['value']</span></span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.convergence_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.eval_with_derivative">
+<span class="sig-name descname"><span class="pre">eval_with_derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.eval_with_derivative" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.derivative">
+<span class="sig-name descname"><span class="pre">derivative</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.derivative" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the function.  The first input must exist and should be an array.
+Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the function.  The first input must exist and should be an array.
+Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.derivativeY">
+<span class="sig-name descname"><span class="pre">derivativeY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.derivativeY" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the function.  The first input must exist and should be an array.
+Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.derivativeZ">
+<span class="sig-name descname"><span class="pre">derivativeZ</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.derivativeZ" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the function.  The first input must exist and should be an array.
+Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.derivativeW">
+<span class="sig-name descname"><span class="pre">derivativeW</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.derivativeW" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the function.  The first input must exist and should be an array.
+Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ConstantFunction.derivativeXX">
+<span class="sig-name descname"><span class="pre">derivativeXX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ConstantFunction.derivativeXX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the function.  The first input must exist and should be an array.
+Returns an array of identical shape to args[0] (if it exists).  This is an array of zeros.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.LinearInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">LinearInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_extrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_compute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indexer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.LinearInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator1D</span></code></a></p>
+<p>A “from scratch” 1D linear interpolation class.  Allows for linear or decay
+extrapolation (approaching a limiting linear function from below).</p>
+<p>NOTE: When no input is given for the limiting linear function, linear
+extrapolation is used above the highest gridpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_list</strong> (<em>np.array</em>) – List of x values composing the grid.</p></li>
+<li><p><strong>y_list</strong> (<em>np.array</em>) – List of y values, representing f(x) at the points in x_list.</p></li>
+<li><p><strong>intercept_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Intercept of limiting linear function.</p></li>
+<li><p><strong>slope_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Slope of limiting linear function.</p></li>
+<li><p><strong>lower_extrap</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Indicator for whether lower extrapolation is allowed.  False means
+f(x) = NaN for x &lt; min(x_list); True means linear extrapolation.</p></li>
+<li><p><strong>pre_compute</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Indicator for whether interpolation coefficients should be pre-computed
+and stored as attributes of self (default False). More memory will be used,
+and instantiation will take slightly longer, but later evaluation will
+be faster due to less arithmetic.</p></li>
+<li><p><strong>indexer</strong> (<em>function</em><em> or </em><em>None</em><em> (</em><em>default</em><em>)</em>) – If provided, a custom function that identifies the index of the interpolant
+segment for each query point. Should return results identically to the
+default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
+WARNING: User is responsible for verifying that their custom indexer is
+actually correct versus default behavior.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.LinearInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['x_list',</span> <span class="pre">'y_list']</span></span><a class="headerlink" href="#HARK.interpolation.LinearInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">CubicInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dydx_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_extrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator1D</span></code></a></p>
+<p>An interpolating function using piecewise cubic splines.  Matches level and
+slope of 1D function at gridpoints, smoothly interpolating in between.
+Extrapolation above highest gridpoint approaches a limiting linear function
+if desired (linear extrapolation also enabled.)</p>
+<dl class="simple">
+<dt>NOTE: When no input is given for the limiting linear function, linear</dt><dd><p>extrapolation is used above the highest gridpoint.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_list</strong> (<em>np.array</em>) – List of x values composing the grid.</p></li>
+<li><p><strong>y_list</strong> (<em>np.array</em>) – List of y values, representing f(x) at the points in x_list.</p></li>
+<li><p><strong>dydx_list</strong> (<em>np.array</em>) – List of dydx values, representing f’(x) at the points in x_list</p></li>
+<li><p><strong>intercept_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Intercept of limiting linear function.</p></li>
+<li><p><strong>slope_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Slope of limiting linear function.</p></li>
+<li><p><strong>lower_extrap</strong> (<em>boolean</em>) – Indicator for whether lower extrapolation is allowed.  False means
+f(x) = NaN for x &lt; min(x_list); True means linear extrapolation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['x_list',</span> <span class="pre">'y_list',</span> <span class="pre">'dydx_list']</span></span><a class="headerlink" href="#HARK.interpolation.CubicInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">CubicHermiteInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dydx_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intercept_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slope_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_extrap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator1D</span></code></a></p>
+<p>An interpolating function using piecewise cubic splines.  Matches level and
+slope of 1D function at gridpoints, smoothly interpolating in between.
+Extrapolation above highest gridpoint approaches a limiting linear function
+if desired (linear extrapolation also enabled.)</p>
+<dl class="simple">
+<dt>NOTE: When no input is given for the limiting linear function, linear</dt><dd><p>extrapolation is used above the highest gridpoint.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_list</strong> (<em>np.array</em>) – List of x values composing the grid.</p></li>
+<li><p><strong>y_list</strong> (<em>np.array</em>) – List of y values, representing f(x) at the points in x_list.</p></li>
+<li><p><strong>dydx_list</strong> (<em>np.array</em>) – List of dydx values, representing f’(x) at the points in x_list</p></li>
+<li><p><strong>intercept_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Intercept of limiting linear function.</p></li>
+<li><p><strong>slope_limit</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Slope of limiting linear function.</p></li>
+<li><p><strong>lower_extrap</strong> (<em>boolean</em>) – Indicator for whether lower extrapolation is allowed.  False means
+f(x) = NaN for x &lt; min(x_list); True means linear extrapolation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['x_list',</span> <span class="pre">'y_list',</span> <span class="pre">'dydx_list']</span></span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.out_of_bounds">
+<span class="sig-name descname"><span class="pre">out_of_bounds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.out_of_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.der_interp">
+<span class="sig-name descname"><span class="pre">der_interp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.der_interp" title="Link to this definition">#</a></dt>
+<dd><p>Construct a new piecewise polynomial representing the derivative.
+See <cite>scipy</cite> for additional documentation:
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.antider_interp">
+<span class="sig-name descname"><span class="pre">antider_interp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.antider_interp" title="Link to this definition">#</a></dt>
+<dd><p>Construct a new piecewise polynomial representing the antiderivative.</p>
+<p>Antiderivative is also the indefinite integral of the function,
+and derivative is its inverse operation.</p>
+<p>See <cite>scipy</cite> for additional documentation:
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.integrate">
+<span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extrapolate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.integrate" title="Link to this definition">#</a></dt>
+<dd><p>Compute a definite integral over a piecewise polynomial.</p>
+<p>See <cite>scipy</cite> for additional documentation:
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.roots">
+<span class="sig-name descname"><span class="pre">roots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">discontinuity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extrapolate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.roots" title="Link to this definition">#</a></dt>
+<dd><p>Find real roots of the the piecewise polynomial.</p>
+<p>See <cite>scipy</cite> for additional documentation:
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html</a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.CubicHermiteInterp.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discontinuity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extrapolate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.CubicHermiteInterp.solve" title="Link to this definition">#</a></dt>
+<dd><p>Find real solutions of the the equation <code class="docutils literal notranslate"><span class="pre">pp(x)</span> <span class="pre">==</span> <span class="pre">y</span></code>.</p>
+<p>See <cite>scipy</cite> for additional documentation:
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicHermiteSpline.html</a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.BilinearInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">BilinearInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xSearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ySearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.BilinearInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator2D</span></code></a></p>
+<p>Bilinear full (or tensor) grid interpolation of a function f(x,y).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f_values</strong> (<em>numpy.array</em>) – An array of size (x_n,y_n) such that f_values[i,j] = f(x_list[i],y_list[j])</p></li>
+<li><p><strong>x_list</strong> (<em>numpy.array</em>) – An array of x values, with length designated x_n.</p></li>
+<li><p><strong>y_list</strong> (<em>numpy.array</em>) – An array of y values, with length designated y_n.</p></li>
+<li><p><strong>xSearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for x values:
+indices = xSearchFunc(x_list,x).  Default is np.searchsorted</p></li>
+<li><p><strong>ySearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for y values:
+indices = ySearchFunc(y_list,y).  Default is np.searchsorted</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.BilinearInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['x_list',</span> <span class="pre">'y_list',</span> <span class="pre">'f_values']</span></span><a class="headerlink" href="#HARK.interpolation.BilinearInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.TrilinearInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">TrilinearInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xSearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ySearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zSearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.TrilinearInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator3D" title="HARK.interpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator3D</span></code></a></p>
+<p>Trilinear full (or tensor) grid interpolation of a function f(x,y,z).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f_values</strong> (<em>numpy.array</em>) – An array of size (x_n,y_n,z_n) such that f_values[i,j,k] =
+f(x_list[i],y_list[j],z_list[k])</p></li>
+<li><p><strong>x_list</strong> (<em>numpy.array</em>) – An array of x values, with length designated x_n.</p></li>
+<li><p><strong>y_list</strong> (<em>numpy.array</em>) – An array of y values, with length designated y_n.</p></li>
+<li><p><strong>z_list</strong> (<em>numpy.array</em>) – An array of z values, with length designated z_n.</p></li>
+<li><p><strong>xSearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for x values:
+indices = xSearchFunc(x_list,x).  Default is np.searchsorted</p></li>
+<li><p><strong>ySearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for y values:
+indices = ySearchFunc(y_list,y).  Default is np.searchsorted</p></li>
+<li><p><strong>zSearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for z values:
+indices = zSearchFunc(z_list,z).  Default is np.searchsorted</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.TrilinearInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['f_values',</span> <span class="pre">'x_list',</span> <span class="pre">'y_list',</span> <span class="pre">'z_list']</span></span><a class="headerlink" href="#HARK.interpolation.TrilinearInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.QuadlinearInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">QuadlinearInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wSearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xSearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ySearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zSearchFunc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.QuadlinearInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator4D" title="HARK.interpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator4D</span></code></a></p>
+<p>Quadlinear full (or tensor) grid interpolation of a function f(w,x,y,z).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f_values</strong> (<em>numpy.array</em>) – An array of size (w_n,x_n,y_n,z_n) such that f_values[i,j,k,l] =
+f(w_list[i],x_list[j],y_list[k],z_list[l])</p></li>
+<li><p><strong>w_list</strong> (<em>numpy.array</em>) – An array of x values, with length designated w_n.</p></li>
+<li><p><strong>x_list</strong> (<em>numpy.array</em>) – An array of x values, with length designated x_n.</p></li>
+<li><p><strong>y_list</strong> (<em>numpy.array</em>) – An array of y values, with length designated y_n.</p></li>
+<li><p><strong>z_list</strong> (<em>numpy.array</em>) – An array of z values, with length designated z_n.</p></li>
+<li><p><strong>wSearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for w values:
+indices = wSearchFunc(w_list,w).  Default is np.searchsorted</p></li>
+<li><p><strong>xSearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for x values:
+indices = xSearchFunc(x_list,x).  Default is np.searchsorted</p></li>
+<li><p><strong>ySearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for y values:
+indices = ySearchFunc(y_list,y).  Default is np.searchsorted</p></li>
+<li><p><strong>zSearchFunc</strong> (<em>function</em>) – An optional function that returns the reference location for z values:
+indices = zSearchFunc(z_list,z).  Default is np.searchsorted</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.QuadlinearInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['f_values',</span> <span class="pre">'w_list',</span> <span class="pre">'x_list',</span> <span class="pre">'y_list',</span> <span class="pre">'z_list']</span></span><a class="headerlink" href="#HARK.interpolation.QuadlinearInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.LowerEnvelope">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">LowerEnvelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">functions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nan_bool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.LowerEnvelope" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator1D</span></code></a></p>
+<p>The lower envelope of a finite set of 1D functions, each of which can be of
+any class that has the methods __call__, derivative, and eval_with_derivative.
+Generally: it combines HARKinterpolator1Ds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*functions</strong> (<em>function</em>) – Any number of real functions; often instances of HARKinterpolator1D</p></li>
+<li><p><strong>nan_bool</strong> (<em>boolean</em>) – An indicator for whether the solver should exclude NA’s when
+forming the lower envelope</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.LowerEnvelope.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['functions']</span></span><a class="headerlink" href="#HARK.interpolation.LowerEnvelope.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.UpperEnvelope">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">UpperEnvelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">functions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nan_bool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.UpperEnvelope" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator1D</span></code></a></p>
+<p>The upper envelope of a finite set of 1D functions, each of which can be of
+any class that has the methods __call__, derivative, and eval_with_derivative.
+Generally: it combines HARKinterpolator1Ds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*functions</strong> (<em>function</em>) – Any number of real functions; often instances of HARKinterpolator1D</p></li>
+<li><p><strong>nan_bool</strong> (<em>boolean</em>) – An indicator for whether the solver should exclude NA’s when forming
+the lower envelope.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.UpperEnvelope.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['functions']</span></span><a class="headerlink" href="#HARK.interpolation.UpperEnvelope.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.LowerEnvelope2D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">LowerEnvelope2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">functions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nan_bool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.LowerEnvelope2D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator2D</span></code></a></p>
+<p>The lower envelope of a finite set of 2D functions, each of which can be of
+any class that has the methods __call__, derivativeX, and derivativeY.
+Generally: it combines HARKinterpolator2Ds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*functions</strong> (<em>function</em>) – Any number of real functions; often instances of HARKinterpolator2D</p></li>
+<li><p><strong>nan_bool</strong> (<em>boolean</em>) – An indicator for whether the solver should exclude NA’s when forming
+the lower envelope.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.LowerEnvelope2D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['functions']</span></span><a class="headerlink" href="#HARK.interpolation.LowerEnvelope2D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.LowerEnvelope3D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">LowerEnvelope3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">functions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nan_bool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.LowerEnvelope3D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator3D" title="HARK.interpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator3D</span></code></a></p>
+<p>The lower envelope of a finite set of 3D functions, each of which can be of
+any class that has the methods __call__, derivativeX, derivativeY, and
+derivativeZ. Generally: it combines HARKinterpolator2Ds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*functions</strong> (<em>function</em>) – Any number of real functions; often instances of HARKinterpolator3D</p></li>
+<li><p><strong>nan_bool</strong> (<em>boolean</em>) – An indicator for whether the solver should exclude NA’s when forming
+the lower envelope.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.LowerEnvelope3D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['functions']</span></span><a class="headerlink" href="#HARK.interpolation.LowerEnvelope3D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.VariableLowerBoundFunc2D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">VariableLowerBoundFunc2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lowerBound</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.VariableLowerBoundFunc2D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator2D</span></code></a></p>
+<p>A class for representing a function with two real inputs whose lower bound
+in the first input depends on the second input.  Useful for managing curved
+natural borrowing constraints, as occurs in the persistent shocks model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – A function f: (R_+ x R) –&gt; R representing the function of interest
+shifted by its lower bound in the first input.</p></li>
+<li><p><strong>lowerBound</strong> (<em>function</em>) – The lower bound in the first input of the function of interest, as
+a function of the second input.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.VariableLowerBoundFunc2D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['func',</span> <span class="pre">'lowerBound']</span></span><a class="headerlink" href="#HARK.interpolation.VariableLowerBoundFunc2D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.VariableLowerBoundFunc3D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">VariableLowerBoundFunc3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lowerBound</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.VariableLowerBoundFunc3D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator3D" title="HARK.interpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator3D</span></code></a></p>
+<p>A class for representing a function with three real inputs whose lower bound
+in the first input depends on the second input.  Useful for managing curved
+natural borrowing constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> (<em>function</em>) – A function f: (R_+ x R^2) –&gt; R representing the function of interest
+shifted by its lower bound in the first input.</p></li>
+<li><p><strong>lowerBound</strong> (<em>function</em>) – The lower bound in the first input of the function of interest, as
+a function of the second input.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.VariableLowerBoundFunc3D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['func',</span> <span class="pre">'lowerBound']</span></span><a class="headerlink" href="#HARK.interpolation.VariableLowerBoundFunc3D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.LinearInterpOnInterp1D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">LinearInterpOnInterp1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xInterpolators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.LinearInterpOnInterp1D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator2D</span></code></a></p>
+<p>A 2D interpolator that linearly interpolates among a list of 1D interpolators.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xInterpolators</strong> (<em>[</em><a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><em>HARKinterpolator1D</em></a><em>]</em>) – A list of 1D interpolations over the x variable.  The nth element of
+xInterpolators represents f(x,y_values[n]).</p></li>
+<li><p><strong>y_values</strong> (<em>numpy.array</em>) – An array of y values equal in length to xInterpolators.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.LinearInterpOnInterp1D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['xInterpolators',</span> <span class="pre">'y_list']</span></span><a class="headerlink" href="#HARK.interpolation.LinearInterpOnInterp1D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.BilinearInterpOnInterp1D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">BilinearInterpOnInterp1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xInterpolators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.BilinearInterpOnInterp1D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator3D" title="HARK.interpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator3D</span></code></a></p>
+<p>A 3D interpolator that bilinearly interpolates among a list of lists of 1D
+interpolators.</p>
+<p>Constructor for the class, generating an approximation to a function of
+the form f(x,y,z) using interpolations over f(x,y_0,z_0) for a fixed grid
+of y_0 and z_0 values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xInterpolators</strong> (<em>[</em><em>[</em><a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><em>HARKinterpolator1D</em></a><em>]</em><em>]</em>) – A list of lists of 1D interpolations over the x variable.  The i,j-th
+element of xInterpolators represents f(x,y_values[i],z_values[j]).</p></li>
+<li><p><strong>y_values</strong> (<em>numpy.array</em>) – An array of y values equal in length to xInterpolators.</p></li>
+<li><p><strong>z_values</strong> (<em>numpy.array</em>) – An array of z values equal in length to xInterpolators[0].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.BilinearInterpOnInterp1D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['xInterpolators',</span> <span class="pre">'y_list',</span> <span class="pre">'z_list']</span></span><a class="headerlink" href="#HARK.interpolation.BilinearInterpOnInterp1D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.TrilinearInterpOnInterp1D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">TrilinearInterpOnInterp1D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wInterpolators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.TrilinearInterpOnInterp1D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator4D" title="HARK.interpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator4D</span></code></a></p>
+<p>A 4D interpolator that trilinearly interpolates among a list of lists of 1D interpolators.</p>
+<p>Constructor for the class, generating an approximation to a function of
+the form f(w,x,y,z) using interpolations over f(w,x_0,y_0,z_0) for a fixed
+grid of y_0 and z_0 values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wInterpolators</strong> (<em>[</em><em>[</em><em>[</em><a class="reference internal" href="#HARK.interpolation.HARKinterpolator1D" title="HARK.interpolation.HARKinterpolator1D"><em>HARKinterpolator1D</em></a><em>]</em><em>]</em><em>]</em>) – A list of lists of lists of 1D interpolations over the x variable.
+The i,j,k-th element of wInterpolators represents f(w,x_values[i],y_values[j],z_values[k]).</p></li>
+<li><p><strong>x_values</strong> (<em>numpy.array</em>) – An array of x values equal in length to wInterpolators.</p></li>
+<li><p><strong>y_values</strong> (<em>numpy.array</em>) – An array of y values equal in length to wInterpolators[0].</p></li>
+<li><p><strong>z_values</strong> (<em>numpy.array</em>) – An array of z values equal in length to wInterpolators[0][0]</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.TrilinearInterpOnInterp1D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['wInterpolators',</span> <span class="pre">'x_list',</span> <span class="pre">'y_list',</span> <span class="pre">'z_list']</span></span><a class="headerlink" href="#HARK.interpolation.TrilinearInterpOnInterp1D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.LinearInterpOnInterp2D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">LinearInterpOnInterp2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xyInterpolators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.LinearInterpOnInterp2D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator3D" title="HARK.interpolation.HARKinterpolator3D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator3D</span></code></a></p>
+<p>A 3D interpolation method that linearly interpolates between “layers” of
+arbitrary 2D interpolations.  Useful for models with two endogenous state
+variables and one exogenous state variable when solving with the endogenous
+grid method.  NOTE: should not be used if an exogenous 3D grid is used, will
+be significantly slower than TrilinearInterp.</p>
+<p>Constructor for the class, generating an approximation to a function of
+the form f(x,y,z) using interpolations over f(x,y,z_0) for a fixed grid
+of z_0 values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xyInterpolators</strong> (<em>[</em><a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><em>HARKinterpolator2D</em></a><em>]</em>) – A list of 2D interpolations over the x and y variables.  The nth
+element of xyInterpolators represents f(x,y,z_values[n]).</p></li>
+<li><p><strong>z_values</strong> (<em>numpy.array</em>) – An array of z values equal in length to xyInterpolators.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.LinearInterpOnInterp2D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['xyInterpolators',</span> <span class="pre">'z_list']</span></span><a class="headerlink" href="#HARK.interpolation.LinearInterpOnInterp2D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.BilinearInterpOnInterp2D">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">BilinearInterpOnInterp2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wxInterpolators</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.BilinearInterpOnInterp2D" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator4D" title="HARK.interpolation.HARKinterpolator4D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator4D</span></code></a></p>
+<p>A 4D interpolation method that bilinearly interpolates among “layers” of
+arbitrary 2D interpolations.  Useful for models with two endogenous state
+variables and two exogenous state variables when solving with the endogenous
+grid method.  NOTE: should not be used if an exogenous 4D grid is used, will
+be significantly slower than QuadlinearInterp.</p>
+<p>Constructor for the class, generating an approximation to a function of
+the form f(w,x,y,z) using interpolations over f(w,x,y_0,z_0) for a fixed
+grid of y_0 and z_0 values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wxInterpolators</strong> (<em>[</em><em>[</em><a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><em>HARKinterpolator2D</em></a><em>]</em><em>]</em>) – A list of lists of 2D interpolations over the w and x variables.
+The i,j-th element of wxInterpolators represents
+f(w,x,y_values[i],z_values[j]).</p></li>
+<li><p><strong>y_values</strong> (<em>numpy.array</em>) – An array of y values equal in length to wxInterpolators.</p></li>
+<li><p><strong>z_values</strong> (<em>numpy.array</em>) – An array of z values equal in length to wxInterpolators[0].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.BilinearInterpOnInterp2D.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['wxInterpolators',</span> <span class="pre">'y_list',</span> <span class="pre">'z_list']</span></span><a class="headerlink" href="#HARK.interpolation.BilinearInterpOnInterp2D.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">Curvilinear2DInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.interpolation.HARKinterpolator2D" title="HARK.interpolation.HARKinterpolator2D"><code class="xref py py-class docutils literal notranslate"><span class="pre">HARKinterpolator2D</span></code></a></p>
+<p>A 2D interpolation method for curvilinear or “warped grid” interpolation, as
+in White (2015). Used for models with two endogenous states that are solved
+with the endogenous grid method. Allows multiple function outputs, but all of
+the interpolated functions must share a common curvilinear grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f_values</strong> (<em>numpy.array</em><em> or </em><em>[</em><em>numpy.array</em><em>]</em>) – One or more 2D arrays of function values such that f_values[i,j] =
+f(x_values[i,j],y_values[i,j]).</p></li>
+<li><p><strong>x_values</strong> (<em>numpy.array</em>) – A 2D array of x values of the same shape as f_values.</p></li>
+<li><p><strong>y_values</strong> (<em>numpy.array</em>) – A 2D array of y values of the same shape as f_values.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['f_values',</span> <span class="pre">'x_values',</span> <span class="pre">'y_values']</span></span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Modification of HARKinterpolator2D.derivativeX to account for multiple outputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp.derivativeY">
+<span class="sig-name descname"><span class="pre">derivativeY</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp.derivativeY" title="Link to this definition">#</a></dt>
+<dd><p>Modification of HARKinterpolator2D.derivativeY to account for multiple outputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp.update_polarity">
+<span class="sig-name descname"><span class="pre">update_polarity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp.update_polarity" title="Link to this definition">#</a></dt>
+<dd><p>Fills in the polarity attribute of the interpolation, determining whether
+the “plus” (True) or “minus” (False) solution of the system of equations
+should be used for each sector.  Needs to be called in __init__.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>none</strong></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>none</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp.find_sector">
+<span class="sig-name descname"><span class="pre">find_sector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp.find_sector" title="Link to this definition">#</a></dt>
+<dd><p>Finds the quadrilateral “sector” for each (x,y) point in the input.
+Only called as a subroutine of _evaluate(), etc. Uses a numba helper
+function below to accelerate computation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em>) – Values whose sector should be found.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em>) – Values whose sector should be found.  Should be same size as x.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>x_pos</strong> (<em>np.array</em>) – Sector x-coordinates for each point of the input, of the same size.</p></li>
+<li><p><strong>y_pos</strong> (<em>np.array</em>) – Sector y-coordinates for each point of the input, of the same size.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.Curvilinear2DInterp.find_coords">
+<span class="sig-name descname"><span class="pre">find_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.Curvilinear2DInterp.find_coords" title="Link to this definition">#</a></dt>
+<dd><p>Calculates the relative coordinates (alpha,beta) for each point (x,y),
+given the sectors (x_pos,y_pos) in which they reside.  Only called as
+a subroutine of _evaluate(), etc. Uses a numba helper function to acc-
+elerate computation, and has a “backup method” for when the math fails.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>np.array</em>) – Values whose sector should be found.</p></li>
+<li><p><strong>y</strong> (<em>np.array</em>) – Values whose sector should be found.  Should be same size as x.</p></li>
+<li><p><strong>x_pos</strong> (<em>np.array</em>) – Sector x-coordinates for each point in (x,y), of the same size.</p></li>
+<li><p><strong>y_pos</strong> (<em>np.array</em>) – Sector y-coordinates for each point in (x,y), of the same size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>alpha</strong> (<em>np.array</em>) – Relative “horizontal” position of the input in their respective sectors.</p></li>
+<li><p><strong>beta</strong> (<em>np.array</em>) – Relative “vertical” position of the input in their respective sectors.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.interpolation.boundary_check">
+<span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">boundary_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.boundary_check" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.interpolation.find_sector_numba">
+<span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">find_sector_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.find_sector_numba" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.interpolation.find_coords_numba">
+<span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">find_coords_numba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polarity</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.find_coords_numba" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.DiscreteInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">DiscreteInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discrete_vals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.DiscreteInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>An interpolator for variables that can only take a discrete set of values.</p>
+<p>If the function we wish to interpolate, f(args) can take on the list of
+values discrete_vals, this class expects an interpolator for the index of
+f’s value in discrete_vals.
+E.g., if f(a,b,c) = discrete_vals[5], then index_interp(a,b,c) = 5.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>index_interp</strong> (<em>HARKInterpolator</em>) – An interpolator giving an approximation to the index of the value in
+discrete_vals that corresponds to a given set of arguments.</p></li>
+<li><p><strong>discrete_vals</strong> (<em>numpy.array</em>) – A 1D array containing the values in the range of the discrete function
+to be interpolated.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.DiscreteInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['index_interp']</span></span><a class="headerlink" href="#HARK.interpolation.DiscreteInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.IndexedInterp">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">IndexedInterp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">functions</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.IndexedInterp" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>An interpolator for functions whose first argument is an integer-valued index.
+Constructor takes in a list of functions as its only argument. When evaluated
+at f(i,X), interpolator returns f[i](X), where X can be any number of inputs.
+This simply provides a different interface for accessing the same functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>functions</strong> (<em>[</em><em>Callable</em><em>]</em>) – List of one or more functions to be indexed.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.IndexedInterp.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['functions']</span></span><a class="headerlink" href="#HARK.interpolation.IndexedInterp.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.interpolation.calc_log_sum_choice_probs">
+<span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">calc_log_sum_choice_probs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.calc_log_sum_choice_probs" title="Link to this definition">#</a></dt>
+<dd><p>Returns the final optimal value and choice probabilities given the choice
+specific value functions <cite>Vals</cite>. Probabilities are degenerate if sigma == 0.0.
+:param Vals: A numpy.array that holds choice specific values at common grid points.
+:type Vals: [numpy.array]
+:param sigma: A number that controls the variance of the taste shocks
+:type sigma: float</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>V</strong> (<em>[numpy.array]</em>) – A numpy.array that holds the integrated value function.</p></li>
+<li><p><strong>P</strong> (<em>[numpy.array]</em>) – A numpy.array that holds the discrete choice probabilities</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.interpolation.calc_choice_probs">
+<span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">calc_choice_probs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.calc_choice_probs" title="Link to this definition">#</a></dt>
+<dd><p>Returns the choice probabilities given the choice specific value functions
+<cite>Vals</cite>. Probabilities are degenerate if sigma == 0.0.
+:param Vals: A numpy.array that holds choice specific values at common grid points.
+:type Vals: [numpy.array]
+:param sigma: A number that controls the variance of the taste shocks
+:type sigma: float</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Probs</strong> – A numpy.array that holds the discrete choice probabilities</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>[numpy.array]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.interpolation.calc_log_sum">
+<span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">calc_log_sum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Vals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.calc_log_sum" title="Link to this definition">#</a></dt>
+<dd><p>Returns the optimal value given the choice specific value functions Vals.
+:param Vals: A numpy.array that holds choice specific values at common grid points.
+:type Vals: [numpy.array]
+:param sigma: A number that controls the variance of the taste shocks
+:type sigma: float</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>V</strong> – A numpy.array that holds the integrated value function.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>[numpy.array]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.ValueFuncCRRA">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">ValueFuncCRRA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vFuncNvrs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">illegal_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ValueFuncCRRA" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing a value function.  The underlying interpolation is
+in the space of (state,u_inv(v)); this class “re-curves” to the value function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vFuncNvrs</strong> (<em>function</em>) – A real function representing the value function composed with the
+inverse utility function, defined on the state: u_inv(vFunc(state))</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+<li><p><strong>illegal_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – If provided, value to return for “out-of-bounds” inputs that return NaN
+from the pseudo-inverse value function. Most common choice is -np.inf,
+which makes the outcome infinitely bad.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.ValueFuncCRRA.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['func',</span> <span class="pre">'CRRA']</span></span><a class="headerlink" href="#HARK.interpolation.ValueFuncCRRA.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.ValueFuncCRRA.gradient">
+<span class="sig-name descname"><span class="pre">gradient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.ValueFuncCRRA.gradient" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.MargValueFuncCRRA">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">MargValueFuncCRRA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cFunc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.MargValueFuncCRRA" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing a marginal value function in models where the
+standard envelope condition of dvdm(state) = u’(c(state)) holds (with CRRA utility).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cFunc</strong> (<em>function.</em>) – Its first argument must be normalized market resources m.
+A real function representing the marginal value function composed
+with the inverse marginal utility function, defined on the state
+variables: uP_inv(dvdmFunc(state)).  Called cFunc because when standard
+envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.MargValueFuncCRRA.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['cFunc',</span> <span class="pre">'CRRA']</span></span><a class="headerlink" href="#HARK.interpolation.MargValueFuncCRRA.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.interpolation.MargValueFuncCRRA.derivativeX">
+<span class="sig-name descname"><span class="pre">derivativeX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">cFuncArgs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.MargValueFuncCRRA.derivativeX" title="Link to this definition">#</a></dt>
+<dd><p>Evaluate the derivative of the marginal value function with respect to
+market resources at given state; this is the marginal marginal value
+function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cFuncArgs</strong> (<em>floats</em><em> or </em><em>np.arrays</em>) – State variables.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>vPP</strong> – Marginal marginal lifetime value of beginning this period with
+state cFuncArgs; has same size as inputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a> or np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.interpolation.MargMargValueFuncCRRA">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.interpolation.</span></span><span class="sig-name descname"><span class="pre">MargMargValueFuncCRRA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cFunc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CRRA</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.interpolation.MargMargValueFuncCRRA" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">MetricObject</span></code></p>
+<p>A class for representing a marginal marginal value function in models where
+the standard envelope condition of dvdm = u’(c(state)) holds (with CRRA utility).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cFunc</strong> (<em>function.</em>) – Its first argument must be normalized market resources m.
+A real function representing the marginal value function composed
+with the inverse marginal utility function, defined on the state
+variables: uP_inv(dvdmFunc(state)).  Called cFunc because when standard
+envelope condition applies, uP_inv(dvdm(state)) = cFunc(state).</p></li>
+<li><p><strong>CRRA</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Coefficient of relative risk aversion.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.interpolation.MargMargValueFuncCRRA.distance_criteria">
+<span class="sig-name descname"><span class="pre">distance_criteria</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['cFunc',</span> <span class="pre">'CRRA']</span></span><a class="headerlink" href="#HARK.interpolation.MargMargValueFuncCRRA.distance_criteria" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="helpers.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Helpers</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="incomeprocess.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Calibration</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator1D"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator1D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator1D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator1D.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator1D.derivative"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator1D.derivative()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator1D.derivativeX"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator1D.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator1D.eval_with_derivative"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator1D.eval_with_derivative()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator2D"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator2D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator2D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator2D.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator2D.derivativeX"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator2D.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator2D.derivativeY"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator2D.derivativeY()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator3D"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator3D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator3D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator3D.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator3D.derivativeX"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator3D.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator3D.derivativeY"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator3D.derivativeY()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator3D.derivativeZ"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator3D.derivativeZ()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator4D"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator4D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator4D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator4D.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator4D.derivativeW"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator4D.derivativeW()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator4D.derivativeX"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator4D.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator4D.derivativeY"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator4D.derivativeY()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.HARKinterpolator4D.derivativeZ"><code class="docutils literal notranslate"><span class="pre">HARKinterpolator4D.derivativeZ()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction"><code class="docutils literal notranslate"><span class="pre">IdentityFunction</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction.distance_criteria"><code class="docutils literal notranslate"><span class="pre">IdentityFunction.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction.derivative"><code class="docutils literal notranslate"><span class="pre">IdentityFunction.derivative()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction.derivativeX"><code class="docutils literal notranslate"><span class="pre">IdentityFunction.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction.derivativeY"><code class="docutils literal notranslate"><span class="pre">IdentityFunction.derivativeY()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction.derivativeZ"><code class="docutils literal notranslate"><span class="pre">IdentityFunction.derivativeZ()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IdentityFunction.derivativeW"><code class="docutils literal notranslate"><span class="pre">IdentityFunction.derivativeW()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction"><code class="docutils literal notranslate"><span class="pre">ConstantFunction</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.convergence_criteria"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.convergence_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.eval_with_derivative"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.eval_with_derivative()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.derivative"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.derivative()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.derivativeX"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.derivativeY"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.derivativeY()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.derivativeZ"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.derivativeZ()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.derivativeW"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.derivativeW()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ConstantFunction.derivativeXX"><code class="docutils literal notranslate"><span class="pre">ConstantFunction.derivativeXX()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LinearInterp"><code class="docutils literal notranslate"><span class="pre">LinearInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LinearInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">LinearInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicInterp"><code class="docutils literal notranslate"><span class="pre">CubicInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">CubicInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.out_of_bounds"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.out_of_bounds()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.der_interp"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.der_interp()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.antider_interp"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.antider_interp()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.integrate"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.integrate()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.roots"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.roots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.CubicHermiteInterp.solve"><code class="docutils literal notranslate"><span class="pre">CubicHermiteInterp.solve()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.BilinearInterp"><code class="docutils literal notranslate"><span class="pre">BilinearInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.BilinearInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">BilinearInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.TrilinearInterp"><code class="docutils literal notranslate"><span class="pre">TrilinearInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.TrilinearInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">TrilinearInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.QuadlinearInterp"><code class="docutils literal notranslate"><span class="pre">QuadlinearInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.QuadlinearInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">QuadlinearInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LowerEnvelope"><code class="docutils literal notranslate"><span class="pre">LowerEnvelope</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LowerEnvelope.distance_criteria"><code class="docutils literal notranslate"><span class="pre">LowerEnvelope.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.UpperEnvelope"><code class="docutils literal notranslate"><span class="pre">UpperEnvelope</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.UpperEnvelope.distance_criteria"><code class="docutils literal notranslate"><span class="pre">UpperEnvelope.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LowerEnvelope2D"><code class="docutils literal notranslate"><span class="pre">LowerEnvelope2D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LowerEnvelope2D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">LowerEnvelope2D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LowerEnvelope3D"><code class="docutils literal notranslate"><span class="pre">LowerEnvelope3D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LowerEnvelope3D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">LowerEnvelope3D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.VariableLowerBoundFunc2D"><code class="docutils literal notranslate"><span class="pre">VariableLowerBoundFunc2D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.VariableLowerBoundFunc2D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">VariableLowerBoundFunc2D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.VariableLowerBoundFunc3D"><code class="docutils literal notranslate"><span class="pre">VariableLowerBoundFunc3D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.VariableLowerBoundFunc3D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">VariableLowerBoundFunc3D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LinearInterpOnInterp1D"><code class="docutils literal notranslate"><span class="pre">LinearInterpOnInterp1D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LinearInterpOnInterp1D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">LinearInterpOnInterp1D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.BilinearInterpOnInterp1D"><code class="docutils literal notranslate"><span class="pre">BilinearInterpOnInterp1D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.BilinearInterpOnInterp1D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">BilinearInterpOnInterp1D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.TrilinearInterpOnInterp1D"><code class="docutils literal notranslate"><span class="pre">TrilinearInterpOnInterp1D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.TrilinearInterpOnInterp1D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">TrilinearInterpOnInterp1D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LinearInterpOnInterp2D"><code class="docutils literal notranslate"><span class="pre">LinearInterpOnInterp2D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.LinearInterpOnInterp2D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">LinearInterpOnInterp2D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.BilinearInterpOnInterp2D"><code class="docutils literal notranslate"><span class="pre">BilinearInterpOnInterp2D</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.BilinearInterpOnInterp2D.distance_criteria"><code class="docutils literal notranslate"><span class="pre">BilinearInterpOnInterp2D.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp.derivativeX"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp.derivativeX()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp.derivativeY"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp.derivativeY()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp.update_polarity"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp.update_polarity()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp.find_sector"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp.find_sector()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.Curvilinear2DInterp.find_coords"><code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp.find_coords()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.boundary_check"><code class="docutils literal notranslate"><span class="pre">boundary_check()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.find_sector_numba"><code class="docutils literal notranslate"><span class="pre">find_sector_numba()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.find_coords_numba"><code class="docutils literal notranslate"><span class="pre">find_coords_numba()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.DiscreteInterp"><code class="docutils literal notranslate"><span class="pre">DiscreteInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.DiscreteInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">DiscreteInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IndexedInterp"><code class="docutils literal notranslate"><span class="pre">IndexedInterp</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.IndexedInterp.distance_criteria"><code class="docutils literal notranslate"><span class="pre">IndexedInterp.distance_criteria</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.calc_log_sum_choice_probs"><code class="docutils literal notranslate"><span class="pre">calc_log_sum_choice_probs()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.calc_choice_probs"><code class="docutils literal notranslate"><span class="pre">calc_choice_probs()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.calc_log_sum"><code class="docutils literal notranslate"><span class="pre">calc_log_sum()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ValueFuncCRRA"><code class="docutils literal notranslate"><span class="pre">ValueFuncCRRA</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ValueFuncCRRA.distance_criteria"><code class="docutils literal notranslate"><span class="pre">ValueFuncCRRA.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.ValueFuncCRRA.gradient"><code class="docutils literal notranslate"><span class="pre">ValueFuncCRRA.gradient()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.MargValueFuncCRRA"><code class="docutils literal notranslate"><span class="pre">MargValueFuncCRRA</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.MargValueFuncCRRA.distance_criteria"><code class="docutils literal notranslate"><span class="pre">MargValueFuncCRRA.distance_criteria</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.MargValueFuncCRRA.derivativeX"><code class="docutils literal notranslate"><span class="pre">MargValueFuncCRRA.derivativeX()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.MargMargValueFuncCRRA"><code class="docutils literal notranslate"><span class="pre">MargMargValueFuncCRRA</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.interpolation.MargMargValueFuncCRRA.distance_criteria"><code class="docutils literal notranslate"><span class="pre">MargMargValueFuncCRRA.distance_criteria</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

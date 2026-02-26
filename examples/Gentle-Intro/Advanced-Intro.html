@@ -1,0 +1,1835 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Advanced and Uncommon HARK Concepts &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Gentle-Intro/Advanced-Intro';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Gentle-Intro/Advanced-Intro.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Numeric Methods Commonly Used in HARK" href="Methods-Intro.html" />
+    <link rel="prev" title="Constructed Attributes and Model Defaults" href="Constructors-Intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Advanced and Uncommon HARK Concepts</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Gentle-Intro/Advanced-Intro.ipynb">examples/Gentle-Intro/Advanced-Intro.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Gentle-Intro/Advanced-Intro.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Advanced-Intro.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Advanced-and-Uncommon-HARK-Concepts">
+<h1>Advanced and Uncommon HARK Concepts<a class="headerlink" href="#Advanced-and-Uncommon-HARK-Concepts" title="Link to this heading">#</a></h1>
+<p>The “Gentle Introduction to HARK” and other notebooks <em>mostly</em> focused on the most important features that a new user would want to be familiar with. But HARK has a <em>lot</em> more options and deeper structure, and this notebook describes some of those “advanced” topics.</p>
+<section id="Measuring-Up:-Distance-in-HARK">
+<h2>Measuring Up: Distance in HARK<a class="headerlink" href="#Measuring-Up:-Distance-in-HARK" title="Link to this heading">#</a></h2>
+<p>In heterogeneous agents macroeconomics, we are often interested in infinite horizon models. Such models are usually solved by “finite horizon approximation”: iteratively solving backward one period at a time until consecutive solutions are sufficiently close together that we conclude the process has converged. When using Bellman value functions, this logic relies on the fact that the Bellman operator is a contraction mapping.</p>
+<section id="The-Universal-Distance-Metric">
+<h3>The Universal Distance Metric<a class="headerlink" href="#The-Universal-Distance-Metric" title="Link to this heading">#</a></h3>
+<p>But what does it mean to be “sufficiently close”? What are we even comparing when we talk about the “distance” between two candidate solutions? It depends on the context, and so HARK has a system for easily identifying “what matters” when calculating the distance between two abstract objects.</p>
+<p>Particularly, all classes in HARK that could reasonably be part of the representation of a model solution inherit from the superclass <code class="docutils literal notranslate"><span class="pre">HARK.metric.MetricObject</span></code>. Essentially all this class does is provide a “universal distance metric” with simple customization.</p>
+<p>The <em>only</em> thing that a subclass of <code class="docutils literal notranslate"><span class="pre">MetricObject</span></code> needs to specify is a class attribute called <code class="docutils literal notranslate"><span class="pre">distance_criteria</span></code>, which must be a list of strings. Each element of <code class="docutils literal notranslate"><span class="pre">distance_criteria</span></code> names an attribute of that class that should be compared if HARK is ever asked to compare two instances of that class.</p>
+<p>HARK’s universal distance metric is nothing more than a “recursive supremum norm”. That is, it returns the <em>highest</em> value among element-wise distances. Its logic to compare <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> is straightforward and obvious:</p>
+<ul class="simple">
+<li><p>if <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> are both numbers, their distance is the absolute value of their difference</p></li>
+<li><p>if <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> are both lists, then:</p>
+<ul>
+<li><p>if the lists have the same length, their distance is the maximum distance between corresponding elements</p></li>
+<li><p>otherwise, the distance is the difference in their lengths</p></li>
+</ul>
+</li>
+<li><p>if <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> are both <code class="docutils literal notranslate"><span class="pre">numpy.array</span></code>, then:</p>
+<ul>
+<li><p>if the arrays have the same shape, then the distance is the absolute value of the maximum difference between corresponding elements</p></li>
+<li><p>if the arrays have different numbers of dimensions, return 10000 times the difference in cardinality</p></li>
+<li><p>else return the sum of absolute differences in size in each dimension</p></li>
+</ul>
+</li>
+<li><p>if <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> are both dictionaries, then:</p>
+<ul>
+<li><p>if they both have <code class="docutils literal notranslate"><span class="pre">distance_criteria</span></code> entries that match, their distance is the maximum distance among keys named in distance criteria</p></li>
+<li><p>else if they have the same keys, their distance is the maximum distance among their entries</p></li>
+<li><p>otherwise, their distance is 1000, a large number</p></li>
+</ul>
+</li>
+<li><p>if <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> are objects of the same class, and neither is a lambda function, then their distance is given by their <code class="docutils literal notranslate"><span class="pre">distance</span></code> method</p></li>
+<li><p>otherwise, the distance is 1000 because the objects cannot be meaningfully compared</p></li>
+</ul>
+<p>As long as you are coding with <code class="docutils literal notranslate"><span class="pre">MetricObject</span></code> subclasses (like the interpolators in <code class="docutils literal notranslate"><span class="pre">HARK.interpolation</span></code>) and standard numeric Python objects, the distance metric will always succeed in comparing objects.</p>
+<p>Note that comparing “incomparable” objects, like arrays of different shapes, will return a somewhat arbitrary “large” number (not near zero). This is because the sole purpose of measuring “distance” in HARK is to evaluate whether two solutions are sufficiently close. The tolerance level for such operations is usually on the order of <span class="math notranslate nohighlight">\(10^{-4}\)</span> to <span class="math notranslate nohighlight">\(10^{-8}\)</span>, not <span class="math notranslate nohighlight">\(10\)</span> or <span class="math notranslate nohighlight">\(1000\)</span>. Thus those “error code distances” mostly serve to ensure that a convergence criteria will
+<em>definitely</em> not be met when the comparitors are incomparable.</p>
+<p>The tolerance for convergence is stored in the <code class="docutils literal notranslate"><span class="pre">tolerance</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances. It has a default of <span class="math notranslate nohighlight">\(10^{-6}\)</span> but can be freely changed.</p>
+<p>HARK only compares solutions from <em>consecutive</em> iterations when solving an infinite horizon model. In the future, we might add extended options to (say) compare a new solution to the one <span class="math notranslate nohighlight">\(N\)</span> periods prior.</p>
+</section>
+<section id="Getting-a-Description-of-the-Distance-Metric">
+<h3>Getting a Description of the Distance Metric<a class="headerlink" href="#Getting-a-Description-of-the-Distance-Metric" title="Link to this heading">#</a></h3>
+<p>We’re not going to sugarcoat it: solution objects in HARK can be <em>very</em> complicated, with several layers of nesting. The objects that are actually being <em>numerically</em> compared by the distance metric might be three to six layers deep, buried in attributes, lists, and/or dictionaries.</p>
+<p>To make it a little bit easier to understand what’s actually being compared, <code class="docutils literal notranslate"><span class="pre">MetricObject</span></code> (and its many descendant classes) have a <code class="docutils literal notranslate"><span class="pre">describe_distance</span></code> method that produces a nested description of how an object’s distance metric would be computed. Let’s see a quick example:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+
+<span class="n">MyType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">()</span>  <span class="c1"># default parameters, only one non-terminal period</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">describe_distance</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(ConsumerSolution): largest distance among these attributes:
+  - vPfunc (MargValueFuncCRRA): largest distance among these attributes:
+    - cFunc (LowerEnvelope): largest distance among these attributes:
+      - functions (list) largest distance among:
+        - [0] (LinearInterp): largest distance among these attributes:
+          - x_list (array(49,)): greatest absolute difference among elements
+          - y_list (array(49,)): greatest absolute difference among elements
+        - [1] (LinearInterp): largest distance among these attributes:
+          - x_list (array(2,)): greatest absolute difference among elements
+          - y_list (array(2,)): greatest absolute difference among elements
+    - CRRA (scalar): absolute difference of values
+</pre></div></div>
+</div>
+<p>First, notice that the distance metric <em>wasn’t actually used</em> in this case– it’s a finite horizon model with only one non-terminal period! The <code class="docutils literal notranslate"><span class="pre">describe_distance</span></code> method is independent of <code class="docutils literal notranslate"><span class="pre">distance_metric</span></code>, and simply produces what <em>would be done</em> if the object were compared to itself.</p>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">describe_distance</span></code> prints its description to screen; if you would rather have it returned as a string, pass the argument <code class="docutils literal notranslate"><span class="pre">display=False</span></code>.</p>
+<p>The first line indicates that the <code class="docutils literal notranslate"><span class="pre">solution</span></code> itself has a distance metric that depends <em>only</em> on its <code class="docutils literal notranslate"><span class="pre">vPfunc</span></code> attribute, the only item at the first level of indentation. The marginal value function <code class="docutils literal notranslate"><span class="pre">vPfunc</span></code> has <code class="docutils literal notranslate"><span class="pre">distance</span> <span class="pre">criteria</span></code> of <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> (the pseudo-inverse marginal value function, which is the same thing as the consumption function) and risk aversion <code class="docutils literal notranslate"><span class="pre">CRRA</span></code> (very last line).</p>
+<p>Why would <code class="docutils literal notranslate"><span class="pre">CRRA</span></code> be compared if it <em>never</em> changes during the model? Because we want <code class="docutils literal notranslate"><span class="pre">distance_metric</span></code> to properly compare two objects to see if they’re the same (or close to the same), and <em>generically</em> two marginal value functions would be <em>different functions</em> if they had the same pseudo-inverse marginal value function but <em>different</em> values of <span class="math notranslate nohighlight">\(\rho\)</span>.</p>
+<p>The upshot is that for an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, convergence of the solution depends on the consumption function, which is what you probably guessed in the first place. But what does that actually mean numerically?</p>
+<p>The consumption function in this model is an instance of <code class="docutils literal notranslate"><span class="pre">LowerEnvelope</span></code>, an interpolation wrapper class that evaluates to the <em>lowest</em> function value (pointwise). The two component <code class="docutils literal notranslate"><span class="pre">functions</span></code> are the unconstrained consumption function (if the artificial borrowing constraint were not imposed <em>that period</em>) and the borrowing constraint itself; whenever the unconstrained consumption function would exceed the constraint, the agent actually consumes on the constraint.</p>
+<p>Each of those component functions (indexed by <code class="docutils literal notranslate"><span class="pre">0</span></code> and <code class="docutils literal notranslate"><span class="pre">1</span></code>) is an instance of <code class="docutils literal notranslate"><span class="pre">LinearInterp</span></code>, and the <code class="docutils literal notranslate"><span class="pre">distance_metric</span></code> compares their interpoling grid and function values– the <code class="docutils literal notranslate"><span class="pre">x_list</span></code> and <code class="docutils literal notranslate"><span class="pre">y_list</span></code> arrays.</p>
+<p>In some cases, the output from <code class="docutils literal notranslate"><span class="pre">describe_distance</span></code> is so large that it’s difficult to read. To handle this, you can specify a <code class="docutils literal notranslate"><span class="pre">max_depth</span></code> to indicate how many layers deep the description should go. For example, we can suppress the description of the consumption function like so:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">MyType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">describe_distance</span><span class="p">(</span><span class="n">max_depth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(ConsumerSolution): largest distance among these attributes:
+  - vPfunc (MargValueFuncCRRA): largest distance among these attributes:
+    - cFunc (LowerEnvelope): largest distance among these attributes:
+      SUPPRESSED OUTPUT
+    - CRRA (scalar): absolute difference of values
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="Uncommon-Options-When-Solving-Models">
+<h2>Uncommon Options When Solving Models<a class="headerlink" href="#Uncommon-Options-When-Solving-Models" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">solve()</span></code> method is usually called without any arguments, but there are a few options you can specify.</p>
+<section id="Tell-Me-More,-Tell-Me-More:-verbose">
+<h3>Tell Me More, Tell Me More: <code class="docutils literal notranslate"><span class="pre">verbose</span></code><a class="headerlink" href="#Tell-Me-More,-Tell-Me-More:-verbose" title="Link to this heading">#</a></h3>
+<p>First, passing <code class="docutils literal notranslate"><span class="pre">verbose=True</span></code> (or just <code class="docutils literal notranslate"><span class="pre">True</span></code>, because it is the first argument) when solving an infinite horizon model (<code class="docutils literal notranslate"><span class="pre">cycles=0</span></code>) will print solution progress to screen. This can be useful when developing a new model, if you want to know how long iterations take and how the solver is doing with respect to convergence.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">VerboseType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">VerboseType</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Finished cycle #1 in 0.0 seconds, solution distance = 100.0
+Finished cycle #2 in 0.0020132064819335938 seconds, solution distance = 10.088015890333434
+Finished cycle #3 in 0.0009868144989013672 seconds, solution distance = 3.3534114736589693
+Finished cycle #4 in 0.0010135173797607422 seconds, solution distance = 1.6699529613894306
+Finished cycle #5 in 0.0009999275207519531 seconds, solution distance = 0.9967360674688486
+Finished cycle #6 in 0.0010001659393310547 seconds, solution distance = 0.6602619046109499
+Finished cycle #7 in 0.0010004043579101562 seconds, solution distance = 0.4680948423143789
+Finished cycle #8 in 0.0 seconds, solution distance = 0.34807706501006663
+Finished cycle #9 in 0.0010013580322265625 seconds, solution distance = 0.2681341538834978
+Finished cycle #10 in 0.0009989738464355469 seconds, solution distance = 0.21223248168627507
+Finished cycle #11 in 0.0010001659393310547 seconds, solution distance = 0.17162798586899441
+Finished cycle #12 in 0.0010004043579101562 seconds, solution distance = 0.14121714401876462
+Finished cycle #13 in 0.0010001659393310547 seconds, solution distance = 0.11786112023934692
+Finished cycle #14 in 0.0010013580322265625 seconds, solution distance = 0.09954374358267515
+Finished cycle #15 in 0.0009989738464355469 seconds, solution distance = 0.08492077965589839
+Finished cycle #16 in 0.0010004043579101562 seconds, solution distance = 0.07306820983636841
+Finished cycle #17 in 0.0010001659393310547 seconds, solution distance = 0.06333371450893921
+Finished cycle #18 in 0.0010001659393310547 seconds, solution distance = 0.055246317280595036
+Finished cycle #19 in 0.0 seconds, solution distance = 0.04845886926538645
+Finished cycle #20 in 0.0010004043579101562 seconds, solution distance = 0.04271110960013802
+Finished cycle #21 in 0.0010001659393310547 seconds, solution distance = 0.03780486582230225
+Finished cycle #22 in 0.0010001659393310547 seconds, solution distance = 0.03358704056809492
+Finished cycle #23 in 0.001001596450805664 seconds, solution distance = 0.02993783577570497
+Finished cycle #24 in 0.0009987354278564453 seconds, solution distance = 0.026762425833982917
+Finished cycle #25 in 0.0010001659393310547 seconds, solution distance = 0.02398495974448922
+Finished cycle #26 in 0.0010030269622802734 seconds, solution distance = 0.02154418103929423
+Finished cycle #27 in 0.000997781753540039 seconds, solution distance = 0.019390181762538816
+Finished cycle #28 in 0.0 seconds, solution distance = 0.017481967390489572
+Finished cycle #29 in 0.0010025501251220703 seconds, solution distance = 0.015785611379662612
+Finished cycle #30 in 0.000997781753540039 seconds, solution distance = 0.014272839895086431
+Finished cycle #31 in 0.0010001659393310547 seconds, solution distance = 0.012919936192925974
+Finished cycle #32 in 0.0010001659393310547 seconds, solution distance = 0.011706884785618321
+Finished cycle #33 in 0.0010001659393310547 seconds, solution distance = 0.010616703056520294
+Finished cycle #34 in 0.0010001659393310547 seconds, solution distance = 0.009634898474986997
+Finished cycle #35 in 0.0009877681732177734 seconds, solution distance = 0.008749044420678587
+Finished cycle #36 in 0.001013040542602539 seconds, solution distance = 0.007948413988064118
+Finished cycle #37 in 0.0 seconds, solution distance = 0.007223724470822646
+Finished cycle #38 in 0.0010027885437011719 seconds, solution distance = 0.006566906564932307
+Finished cycle #39 in 0.0009984970092773438 seconds, solution distance = 0.005970916077072452
+Finished cycle #40 in 0.0009992122650146484 seconds, solution distance = 0.005429579002498741
+Finished cycle #41 in 0.0010025501251220703 seconds, solution distance = 0.004937463273915199
+Finished cycle #42 in 0.0009989738464355469 seconds, solution distance = 0.004489772052600927
+Finished cycle #43 in 0.0010001659393310547 seconds, solution distance = 0.00408225454644251
+Finished cycle #44 in 0.0 seconds, solution distance = 0.0037111311701636396
+Finished cycle #45 in 0.00099945068359375 seconds, solution distance = 0.003373030500464669
+Finished cycle #46 in 0.0010001659393310547 seconds, solution distance = 0.0030649359736796278
+Finished cycle #47 in 0.0010023117065429688 seconds, solution distance = 0.0027841406665807256
+Finished cycle #48 in 0.0009989738464355469 seconds, solution distance = 0.0025282088157077
+Finished cycle #49 in 0.0009992122650146484 seconds, solution distance = 0.0022949429754119954
+Finished cycle #50 in 0.0010001659393310547 seconds, solution distance = 0.0020823559119378388
+Finished cycle #51 in 0.001001596450805664 seconds, solution distance = 0.0018886464739757969
+Finished cycle #52 in 0.0 seconds, solution distance = 0.0017121788176552855
+Finished cycle #53 in 0.0010013580322265625 seconds, solution distance = 0.0015514644867233862
+Finished cycle #54 in 0.0009989738464355469 seconds, solution distance = 0.0014051468883913287
+Finished cycle #55 in 0.0010001659393310547 seconds, solution distance = 0.0012719878080478253
+Finished cycle #56 in 0.0010001659393310547 seconds, solution distance = 0.0011508556554602478
+Finished cycle #57 in 0.0010001659393310547 seconds, solution distance = 0.0010407151830378325
+Finished cycle #58 in 0.0010004043579101562 seconds, solution distance = 0.0009406184572169352
+Finished cycle #59 in 0.0009999275207519531 seconds, solution distance = 0.0008496968979514463
+Finished cycle #60 in 0.0 seconds, solution distance = 0.000767154229857514
+Finished cycle #61 in 0.0010001659393310547 seconds, solution distance = 0.0006922602130678968
+Finished cycle #62 in 0.0010018348693847656 seconds, solution distance = 0.000624345042195884
+Finished cycle #63 in 0.0010001659393310547 seconds, solution distance = 0.0005627943195669616
+Finished cycle #64 in 0.0009989738464355469 seconds, solution distance = 0.0005070445234864884
+Finished cycle #65 in 0.0010001659393310547 seconds, solution distance = 0.0004565789051689251
+Finished cycle #66 in 0.0 seconds, solution distance = 0.0004109237583840297
+Finished cycle #67 in 0.0010018348693847656 seconds, solution distance = 0.00036964501506320246
+Finished cycle #68 in 0.0009984970092773438 seconds, solution distance = 0.00033234512761959323
+Finished cycle #69 in 0.0009996891021728516 seconds, solution distance = 0.0002986602050079057
+Finished cycle #70 in 0.0010001659393310547 seconds, solution distance = 0.0002682573749837047
+Finished cycle #71 in 0.0010018348693847656 seconds, solution distance = 0.00024083234929284103
+Finished cycle #72 in 0.0010001659393310547 seconds, solution distance = 0.00021610717220754694
+Finished cycle #73 in 0.0009989738464355469 seconds, solution distance = 0.0001938281357389826
+Finished cycle #74 in 0.001001596450805664 seconds, solution distance = 0.0001737638473713332
+Finished cycle #75 in 0.0 seconds, solution distance = 0.00015570343805260123
+Finished cycle #76 in 0.0009987354278564453 seconds, solution distance = 0.00013945489982702952
+Finished cycle #77 in 0.001001596450805664 seconds, solution distance = 0.00012484354371933293
+Finished cycle #78 in 0.0009987354278564453 seconds, solution distance = 0.00011171056964087711
+Finished cycle #79 in 0.0010001659393310547 seconds, solution distance = 9.991174074386322e-05
+Finished cycle #80 in 0.0010001659393310547 seconds, solution distance = 8.931615549556682e-05
+Finished cycle #81 in 0.0 seconds, solution distance = 7.980511119587419e-05
+Finished cycle #82 in 0.0010018348693847656 seconds, solution distance = 7.12710531196592e-05
+Finished cycle #83 in 0.0009989738464355469 seconds, solution distance = 6.361660386744461e-05
+Finished cycle #84 in 0.0009999275207519531 seconds, solution distance = 5.675366786039859e-05
+Finished cycle #85 in 0.0010018348693847656 seconds, solution distance = 5.060260605649347e-05
+Finished cycle #86 in 0.0010001659393310547 seconds, solution distance = 4.5091476412739695e-05
+Finished cycle #87 in 0.0 seconds, solution distance = 4.0155335675251536e-05
+Finished cycle #88 in 0.0009996891021728516 seconds, solution distance = 3.573559836667073e-05
+Finished cycle #89 in 0.0010006427764892578 seconds, solution distance = 3.1779449082502964e-05
+Finished cycle #90 in 0.0009984970092773438 seconds, solution distance = 2.8239304256771902e-05
+Finished cycle #91 in 0.0010004043579101562 seconds, solution distance = 2.507231993220671e-05
+Finished cycle #92 in 0.0010001659393310547 seconds, solution distance = 2.2239942116364375e-05
+Finished cycle #93 in 0.0010004043579101562 seconds, solution distance = 1.970749654489623e-05
+Finished cycle #94 in 0.0 seconds, solution distance = 1.7443814823714376e-05
+Finished cycle #95 in 0.0010013580322265625 seconds, solution distance = 1.54208941594014e-05
+Finished cycle #96 in 0.0010001659393310547 seconds, solution distance = 1.3613587938721139e-05
+Finished cycle #97 in 0.0009989738464355469 seconds, solution distance = 1.1999324726730265e-05
+Finished cycle #98 in 0.0010001659393310547 seconds, solution distance = 1.0557853295622976e-05
+Finished cycle #99 in 0.0 seconds, solution distance = 9.271011538913854e-06
+Finished cycle #100 in 0.0010001659393310547 seconds, solution distance = 8.122517190400913e-06
+Finished cycle #101 in 0.0010004043579101562 seconds, solution distance = 7.097778525810838e-06
+Finished cycle #102 in 0.0010004043579101562 seconds, solution distance = 6.183723237906946e-06
+Finished cycle #103 in 0.0010001659393310547 seconds, solution distance = 5.368643900993675e-06
+Finished cycle #104 in 0.0010001659393310547 seconds, solution distance = 4.642058520687442e-06
+Finished cycle #105 in 0.0010020732879638672 seconds, solution distance = 3.99458479938275e-06
+Finished cycle #106 in 0.0 seconds, solution distance = 3.4178268535356437e-06
+Finished cycle #107 in 0.0009987354278564453 seconds, solution distance = 2.9042732059281207e-06
+Finished cycle #108 in 0.0009868144989013672 seconds, solution distance = 2.4472050079715757e-06
+Finished cycle #109 in 0.0010151863098144531 seconds, solution distance = 2.0406135377015744e-06
+Finished cycle #110 in 0.0009999275207519531 seconds, solution distance = 1.679126009790366e-06
+Finished cycle #111 in 0.0009987354278564453 seconds, solution distance = 1.357939007018416e-06
+Finished cycle #112 in 0.0010018348693847656 seconds, solution distance = 1.0727586712278026e-06
+Finished cycle #113 in 0.0 seconds, solution distance = 8.19747068891985e-07
+</pre></div></div>
+</div>
+<p>Notice that the solver terminated as soon as the distance went below <span class="math notranslate nohighlight">\(10^{-6}\)</span>, the default value for <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>.</p>
+</section>
+<section id="Turning-Off-pre_solve-and-post_solve">
+<h3>Turning Off <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> and <code class="docutils literal notranslate"><span class="pre">post_solve</span></code><a class="headerlink" href="#Turning-Off-pre_solve-and-post_solve" title="Link to this heading">#</a></h3>
+<p>When <code class="docutils literal notranslate"><span class="pre">solve()</span></code> is invoked, the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance usually runs their <code class="docutils literal notranslate"><span class="pre">pre_solve()</span></code> method before jumping into the main solver loop over periods. In some situations, the user might want to <em>skip</em> the call to <code class="docutils literal notranslate"><span class="pre">pre_solve()</span></code>– maybe it would undo some unusual work that the user wants in place. To do so, simply pass <code class="docutils literal notranslate"><span class="pre">presolve=False</span></code> in the call to <code class="docutils literal notranslate"><span class="pre">solve()</span></code>.</p>
+<p>Likewise, <em>after</em> the solution loop has completed its work, just before exiting the call to <code class="docutils literal notranslate"><span class="pre">solve()</span></code>, HARK runs the <code class="docutils literal notranslate"><span class="pre">post_solve()</span></code> method for that <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass. In the unusual situation in which a user does <em>not</em> want that method run, just pass <code class="docutils literal notranslate"><span class="pre">postsolve=False</span></code> to <code class="docutils literal notranslate"><span class="pre">solve()</span></code>.</p>
+</section>
+<section id="Take-It-From-the-Middle:-from_solution-and-from_t">
+<h3>Take It From the Middle: <code class="docutils literal notranslate"><span class="pre">from_solution</span></code> and <code class="docutils literal notranslate"><span class="pre">from_t</span></code><a class="headerlink" href="#Take-It-From-the-Middle:-from_solution-and-from_t" title="Link to this heading">#</a></h3>
+<p>HARK’s default behavior is to solve all model periods, starting from <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> and working back to the very first period. A user can override this with two interrelated options.</p>
+<p>In case of some <em>custom</em> terminal solution (or continuation solution), the solution object can be passed in the <code class="docutils literal notranslate"><span class="pre">from_solution</span></code> argument. One use case for this is solving an infinite horizon model by starting from the solution to a “nearby” model, rather than from the proper terminal period.</p>
+<p>Likewise, the <code class="docutils literal notranslate"><span class="pre">from_t</span></code> optional argument can be used to indicate which time index to <em>actually</em> start the solver from. This option is <em>only</em> compatible with <code class="docutils literal notranslate"><span class="pre">cycles=1</span></code>. In conjunction with <code class="docutils literal notranslate"><span class="pre">from_solution</span></code>, this can be used to (say) impose some terminal solution in the <em>middle</em> of the life-cycle, and only solve the problem from that point backward. That terminal solution <em>might</em> be the first period of some <em>other</em> model for a “later phase” of life.</p>
+<p>If you pass an argument for <code class="docutils literal notranslate"><span class="pre">from_t</span></code> but not <code class="docutils literal notranslate"><span class="pre">from_solution</span></code>, then HARK will use <code class="docutils literal notranslate"><span class="pre">solution_terminal</span></code> as the succeeding solution when trying to solve the one-period problem at time index <code class="docutils literal notranslate"><span class="pre">from_t</span></code>.</p>
+</section>
+</section>
+<section id="Utility-Functions">
+<h2>Utility Functions<a class="headerlink" href="#Utility-Functions" title="Link to this heading">#</a></h2>
+<p>Utility functions and related objects can be imported from <code class="docutils literal notranslate"><span class="pre">HARK.rewards</span></code>. These functions used to be in <code class="docutils literal notranslate"><span class="pre">HARK.utilities</span></code>, but we decided that it was too confusing to have both “utility functions” and “utility tools” in the same file.</p>
+<p>Almost all consumption-saving models in HARK use constant absolute risk aversion (CRRA) utility functions over consumption. There are two main ways to use CRRA utility from <code class="docutils literal notranslate"><span class="pre">HARK.rewards</span></code>.</p>
+<section id="In-Line-Utility-Functions">
+<h3>In-Line Utility Functions<a class="headerlink" href="#In-Line-Utility-Functions" title="Link to this heading">#</a></h3>
+<p>First, there are individual functions like <code class="docutils literal notranslate"><span class="pre">CRRAutility</span></code> and <code class="docutils literal notranslate"><span class="pre">CRRAutilityP</span></code> that take in a (possibly vector-valued) consumption argument and a CRRA coefficient. They do exactly what you’d expect, and are programmed to correctly handle <span class="math notranslate nohighlight">\(\rho=1\)</span> being log utility.</p>
+<p>In most circumstances, it’s convenient to locally define the (marginal) utility function for the currently relevant value of <span class="math notranslate nohighlight">\(\rho\)</span>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.rewards</span><span class="w"> </span><span class="kn">import</span> <span class="n">CRRAutility</span><span class="p">,</span> <span class="n">CRRAutilityP</span><span class="p">,</span> <span class="n">UtilityFuncCRRA</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rho</span> <span class="o">=</span> <span class="mf">2.5</span>  <span class="c1"># maybe this parameter was passed from elsewhere</span>
+<span class="n">u</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">CRRAutility</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rho</span><span class="p">)</span>
+<span class="n">uP</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">CRRAutilityP</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">rho</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;utility&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;marginal utility&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">uP</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_23_0.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_23_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_23_1.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_23_1.png" />
+</div>
+</div>
+<p>As a notational convention, HARK uses a capital <code class="docutils literal notranslate"><span class="pre">P</span></code> to denote “prime”, and <code class="docutils literal notranslate"><span class="pre">_inv</span></code> for “inverse”. <code class="docutils literal notranslate"><span class="pre">HARK.rewards</span></code> defines several layers of derivative and inverses for CRRA utility:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutility</span></code> : utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutilityP</span></code> : marginal utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutilityPP</span></code> : marginal marginal utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutilityPPP</span></code> : marginal marginal marginal utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutilityPPPP</span></code> : marginal marginal marginal marginal utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutility_inv</span></code> : inverse utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutilityP_inv</span></code> : inverse marginal utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutility_invP</span></code> : marginal inverse utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CRRAutilityP_invP</span></code> : marginal inverse marginal utility function</p></li>
+</ul>
+</section>
+<section id="Utility-Function-Structure">
+<h3>Utility Function Structure<a class="headerlink" href="#Utility-Function-Structure" title="Link to this heading">#</a></h3>
+<p>The second way to use CRRA utility is to simply import the class <code class="docutils literal notranslate"><span class="pre">UtilityFuncCRRA</span></code> and instantiate it with a single argument for <span class="math notranslate nohighlight">\(\rho\)</span>. This object then represents the utility function and <em>all</em> of its derivatives and inverses. Let’s see an example.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">U</span> <span class="o">=</span> <span class="n">UtilityFuncCRRA</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span>  <span class="c1"># CRRA utility function with rho=2</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;utility&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>  <span class="c1"># treat it like a function</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;marginal utility&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">derivative</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>  <span class="c1"># use its derivative method for marginal utility</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;utility&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">inverse</span><span class="p">,</span> <span class="o">-</span><span class="mf">10.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>  <span class="c1"># use its inverse method</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_27_0.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_27_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_27_1.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_27_1.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_27_2.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_27_2.png" />
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">derivative</span></code> method accepts a second optional argument of <code class="docutils literal notranslate"><span class="pre">order</span></code> with a default of 1, indicating the order of the derivative (first to fourth order).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">inverse</span></code> method also accepts an <code class="docutils literal notranslate"><span class="pre">order</span></code> argument as an ordered pair <code class="docutils literal notranslate"><span class="pre">(0,0)</span></code> to <code class="docutils literal notranslate"><span class="pre">(1,1)</span></code>. For a simple mnemonic, <code class="docutils literal notranslate"><span class="pre">order</span></code> refers to the number of <code class="docutils literal notranslate"><span class="pre">P</span></code>s in the function <code class="docutils literal notranslate"><span class="pre">CRRAutility[#1]_inv[#2]</span></code>. The default is <code class="docutils literal notranslate"><span class="pre">(0,0)</span></code>, which is just the inverse of utility.</p>
+</section>
+<section id="Other-Utility-Functions-in-HARK.rewards">
+<h3>Other Utility Functions in <code class="docutils literal notranslate"><span class="pre">HARK.rewards</span></code><a class="headerlink" href="#Other-Utility-Functions-in-HARK.rewards" title="Link to this heading">#</a></h3>
+<p>Four other utility functions have various levels of support in HARK, but are rarely used:</p>
+<ul class="simple">
+<li><p><strong>Stone-Geary:</strong> Modified CRRA utility of the form <span class="math notranslate nohighlight">\(U(c) = b \frac{(c+a)^{1-\rho}}{1-\rho}\)</span>, with a default of <span class="math notranslate nohighlight">\(b=1\)</span>.</p></li>
+<li><p><strong>Constant Absolute Risk Aversion (CARA):</strong> Normalized exponential utility of the form <span class="math notranslate nohighlight">\(U(c) = 1 - \exp(-\alpha c) / \alpha\)</span>.</p></li>
+<li><p><strong>Cobb-Douglas:</strong> Cobb-Douglas aggregator for an aribtrary number of goods: <span class="math notranslate nohighlight">\(U(x) = \prod_{j=1}^J x_j^{\zeta_j}\)</span>.</p></li>
+<li><p><strong>Constant Elastisticity of Substitution (CES)</strong>: CES aggregator characterized by elasticity <span class="math notranslate nohighlight">\(\epsilon\)</span>, shares <span class="math notranslate nohighlight">\(\zeta\)</span>, scaling factor <span class="math notranslate nohighlight">\(\alpha\)</span> and homogeneity degree <span class="math notranslate nohighlight">\(\eta\)</span>: <span class="math notranslate nohighlight">\(U(x) = \alpha \left(\prod_{j=1}^J \zeta_j x_j^\epsilon \right)^{\eta / \epsilon}\)</span>.</p></li>
+</ul>
+<p>Each of these utility forms has a utility function class, but the inverse methods are not defined for multiple-input forms.</p>
+</section>
+</section>
+<section id="Representing-Distributions">
+<h2>Representing Distributions<a class="headerlink" href="#Representing-Distributions" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">HARK.distributions</span></code> module provides a fairly wide array of representations of distributions for random variables.</p>
+<section id="Basics-of-Distributions-in-HARK">
+<h3>Basics of Distributions in HARK<a class="headerlink" href="#Basics-of-Distributions-in-HARK" title="Link to this heading">#</a></h3>
+<p>All distribution classes have some common methods and attributes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code> : An integer attribute that can be set at instantiation. It is used as the seed for the distribution’s internal random number generator.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">random_seed()</span></code> : A method to draw a <em>new</em> random seed for the distribution. This is not recommended for computations that need to be precisely replicated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reset()</span></code> : A method to reset the distribution’s internal RNG by using its own stored <code class="docutils literal notranslate"><span class="pre">seed</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">draw(N)</span></code> : A method to generate <span class="math notranslate nohighlight">\(N\)</span> random draws from the distribution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">discretize(N,</span> <span class="pre">method)</span></code> : A method to generate a <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code> based on this distribution object. The only universally required input is <span class="math notranslate nohighlight">\(N\)</span>, the number of nodes in the discretization, but a string <code class="docutils literal notranslate"><span class="pre">method</span></code> can be passed as well, along with method-specific <code class="docutils literal notranslate"><span class="pre">kwds</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infimum</span></code> : The greatest lower bound for the support of the distribution; it is always an array, even for univariate distributions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">supremum</span></code> : The least upper bound for the support of the distribution; it is always an array.</p></li>
+</ul>
+</section>
+<section id="Our-Workhorse:-DiscreteDistribution">
+<h3>Our Workhorse: <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code><a class="headerlink" href="#Our-Workhorse:-DiscreteDistribution" title="Link to this heading">#</a></h3>
+<p><em>Almost</em> all computation in HARK actually uses <em>discretized</em> approximations of continuous RVs. The default discretization method is <code class="docutils literal notranslate"><span class="pre">equiprobable</span></code> (which actually has options for <em>non</em>-equiprobable discretizations in some cases), rather than Gaussian methods. This approach is meant to ensure that the <em>mean</em> of the distribution is exactly preserved by the discretization.</p>
+<p>The key attributes of a <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code> are <code class="docutils literal notranslate"><span class="pre">pmv</span></code> and <code class="docutils literal notranslate"><span class="pre">atoms</span></code>. The <code class="docutils literal notranslate"><span class="pre">pmv</span></code> is the <strong>probability mass vector</strong>, a <code class="docutils literal notranslate"><span class="pre">np.array</span></code> that should sum to 1, representing the probability masses for each of the nodes.</p>
+<p>The discretized nodes are stored in the <code class="docutils literal notranslate"><span class="pre">atoms</span></code> attribute as a 2D <code class="docutils literal notranslate"><span class="pre">np.array</span></code>, even for univariate distributions. The first dimension (<code class="docutils literal notranslate"><span class="pre">axis=0</span></code>) indexes multiple components of a multivariate distribution, and the second dimension (<code class="docutils literal notranslate"><span class="pre">axis=1</span></code>) index the nodes.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code> that is created from a continuous distribution object using its <code class="docutils literal notranslate"><span class="pre">discretize</span></code> method should have an attribute called <code class="docutils literal notranslate"><span class="pre">limit</span></code> with information about how it was generated:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dist</span></code> : a reference to the continuous distribution itself</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">method</span></code> : the name of the method that was used to build the approximation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span></code> : the number of nodes requested</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infimum</span></code> : the infimum of the continuous distribution from which it was made</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">supremum</span></code> : the supremum of the continuous distribution from which it was made</p></li>
+</ul>
+<p>We included this so that HARK’s solvers can use (particularly) information about the “best” and “worst” things that can happen, even if they don’t appear in the discretization. This is sometimes important for bounding behavior of the model solution.</p>
+</section>
+<section id="Say-My-Name:-DiscreteDistributionLabeled">
+<h3>Say My Name: <code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled</span></code><a class="headerlink" href="#Say-My-Name:-DiscreteDistributionLabeled" title="Link to this heading">#</a></h3>
+<p>The default behavior in HARK is for multivariate distributions to simply be indexed by number. E.g. a joint distribution of permanent and transitory income shocks might have <span class="math notranslate nohighlight">\(\psi\)</span> at index 0 and <span class="math notranslate nohighlight">\(\theta\)</span> at index 1. However, we also have an extended class called <code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled</span></code> that allows more information to be provided.</p>
+<p>The additional fields for a <code class="docutils literal notranslate"><span class="pre">Labeled</span></code> distribution are (all optional):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> : a name or title for the distribution, for describing its purpose</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">attrs</span></code> : a dictionary of attributes, for arbitrary use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">var_names</span></code> : a list of strings naming each variable in the distribution</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">var_attrs</span></code> : a list of dictionaries with attributes for each variable in the distribution</p></li>
+</ul>
+<p>A <code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled</span></code> can be instantiated in two ways:</p>
+<ol class="arabic simple">
+<li><p>Passing a <code class="docutils literal notranslate"><span class="pre">pmv</span></code>, <code class="docutils literal notranslate"><span class="pre">atoms</span></code>, and <code class="docutils literal notranslate"><span class="pre">seed</span></code> along with any of the optional arguments, generating a completely new object.</p></li>
+<li><p>Passing a <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code> along with any optional arguments, effectively “converting” the input distribution.</p></li>
+</ol>
+</section>
+<section id="Example-Usage">
+<h3>Example Usage<a class="headerlink" href="#Example-Usage" title="Link to this heading">#</a></h3>
+<p>We won’t show <em>everything</em> in <code class="docutils literal notranslate"><span class="pre">HARK.distribution</span></code> here, but this is a sampling (no pun intended) of some key features.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.distributions</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Lognormal</span><span class="p">,</span>
+    <span class="n">add_discrete_outcome</span><span class="p">,</span>
+    <span class="n">add_discrete_outcome_constant_mean</span><span class="p">,</span>
+    <span class="n">DiscreteDistributionLabeled</span><span class="p">,</span>
+    <span class="n">expected</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a lognormal distribution and draw twenty numbers from it</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">Lognormal</span><span class="p">(</span><span class="n">mu</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">10202025</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0.88164369 1.27060758 0.82340037 0.32759431 1.57918536 1.23739098
+ 1.52478804 2.82758116 1.77216365 0.45260362 1.03188809 0.77631269
+ 4.06323317 0.97823279 2.11448412 2.90854828 0.89516082 2.9296455
+ 0.8560163  0.75149165]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a discrete approximation of the lognormal and print information about it</span>
+<span class="n">F_approx</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">discretize</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">F_approx</span><span class="o">.</span><span class="n">pmv</span><span class="p">)</span>  <span class="c1"># equiprobable!</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">F_approx</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>  <span class="c1"># univariate, but is a 2D array</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">F_approx</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">F_approx</span><span class="o">.</span><span class="n">pmv</span><span class="p">))</span>  <span class="c1"># mean of discretization</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mean of true distribution is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">mu</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">F</span><span class="o">.</span><span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0.11111111 0.11111111 0.11111111 0.11111111 0.11111111 0.11111111
+ 0.11111111 0.11111111 0.11111111]
+[[0.38465583 0.61952063 0.80874565 1.0034799  1.2233456  1.49178328
+  1.85298459 2.4281933  4.231703  ]]
+[1.5604902]
+Mean of true distribution is 1.5604901958326667
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Draw twenty numbers from the discretization</span>
+<span class="n">F_approx</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([2.4281933 , 0.38465583, 0.80874565, 0.61952063, 4.231703  ,
+       0.61952063, 0.61952063, 2.4281933 , 1.49178328, 1.2233456 ,
+       1.49178328, 1.0034799 , 2.4281933 , 1.85298459, 1.49178328,
+       2.4281933 , 1.0034799 , 1.0034799 , 0.80874565, 0.61952063])
+</pre></div></div>
+</div>
+<p>Notice that when drawing from the true distribution <code class="docutils literal notranslate"><span class="pre">F</span></code>, we got values from its entire support (any positive real), but when drawing from the 9 point equiprobable discretization, we can <em>only</em> get 9 different values.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add a point mass at zero</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">add_discrete_outcome</span><span class="p">(</span><span class="n">F_approx</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">pmv</span><span class="p">)</span>  <span class="c1"># other probabilities proportionally scaled down</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">G</span><span class="o">.</span><span class="n">pmv</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1]
+[[0.         0.38465583 0.61952063 0.80874565 1.0034799  1.2233456
+  1.49178328 1.85298459 2.4281933  4.231703  ]]
+[1.40444118]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add a point mass at zero, but preserve the original mean</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">add_discrete_outcome_constant_mean</span><span class="p">(</span><span class="n">F_approx</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">pmv</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">atoms</span><span class="p">,</span> <span class="n">H</span><span class="o">.</span><span class="n">pmv</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1]
+[[0.         0.42739536 0.68835626 0.89860627 1.11497766 1.35927289
+  1.65753698 2.05887176 2.69799255 4.70189222]]
+[1.5604902]
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a labeled version of that distribution</span>
+<span class="n">H_labeled</span> <span class="o">=</span> <span class="n">DiscreteDistributionLabeled</span><span class="o">.</span><span class="n">from_unlabeled</span><span class="p">(</span>
+    <span class="n">H</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;permanent income shocks&quot;</span><span class="p">,</span> <span class="n">var_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PermShk&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calculate the expectation of a function of our random variable</span>
+<span class="n">temp_func</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;PermShk&quot;</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">y</span>
+<span class="n">expected_value</span> <span class="o">=</span> <span class="n">expected</span><span class="p">(</span><span class="n">temp_func</span><span class="p">,</span> <span class="n">H_labeled</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">expected_value</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+7.092812838769875
+</pre></div></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">expected</span></code> utility is useful for writing shorter code within our solvers. It can be used with both ordinary <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code>s and with <code class="docutils literal notranslate"><span class="pre">Labeled</span></code> ones. The function passed to <code class="docutils literal notranslate"><span class="pre">expected</span></code> as its first argument should always take a distribution as <em>its</em> first argument, and index by number or name. Additional arguments are provided <em>in order</em> as <code class="docutils literal notranslate"><span class="pre">args</span></code>.</p>
+</section>
+</section>
+<section id="Estimation-and-Optimization">
+<h2>Estimation and Optimization<a class="headerlink" href="#Estimation-and-Optimization" title="Link to this heading">#</a></h2>
+<p>HARK doesn’t provide many tools for estimating the parameters of particular models– our take is that the details of each particular application are too bespoke to provide a meaningful interface for estimation. We do have a <code class="docutils literal notranslate"><span class="pre">HARK.estimation</span></code> module, but it is <em>mostly</em> a remapping of functions from <code class="docutils literal notranslate"><span class="pre">scipy.optimize</span></code>.</p>
+<p>In particular, the functions <code class="docutils literal notranslate"><span class="pre">minimize_nelder_mead</span></code> and <code class="docutils literal notranslate"><span class="pre">minimize_powell</span></code> remap <code class="docutils literal notranslate"><span class="pre">scipy.optimize.fmin</span></code> and <code class="docutils literal notranslate"><span class="pre">scipy.optimize.fmin_powell</span></code>, with a few additional options. In particular, the former function permits an optional argument of <code class="docutils literal notranslate"><span class="pre">which_vars</span></code> as a Boolean array with length equal to the number of arguments of the function to be minimized; it indicates which dimensions should <em>actually</em> be optimized.</p>
+<p>As usual for <code class="docutils literal notranslate"><span class="pre">scipy.optimize</span></code> functions, the minimand should accept a single <em>input vector</em>. That is, if there are 5 arguments to the function to be minimized, they should be passed as a single <code class="docutils literal notranslate"><span class="pre">np.array</span></code>.</p>
+<p>HARK does provide one hand-programmed optimizer: a parallelized Nelder-Mead minimizer, adapted from Lee and Wiswall. This uses “embarrassingly parallel” techniques from <code class="docutils literal notranslate"><span class="pre">joblib</span></code>, literally writing to and reading from disk as it spawns and deletes new Python processes. Because of this significant overhead, it should <em>only</em> be used for functions that are relatively “expensive” to evaluate– a few seconds, at least.</p>
+<p>See the full documentation for <code class="docutils literal notranslate"><span class="pre">parallelNelderMead</span></code> for all of the options, but the key inputs are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">obj_func</span></code> : The function to be optimized, with the same format as usual.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">guess</span></code> : Starting point for the optimization, around which a simplex will be built.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">perturb</span></code> : A vector of perturbations in each argument, used for building the simplex. If <code class="docutils literal notranslate"><span class="pre">perturb[j]</span></code> is <code class="docutils literal notranslate"><span class="pre">0</span></code>, that dimension is excluded from the optimization. If no <code class="docutils literal notranslate"><span class="pre">perturb</span></code> is provided, the default is to optimize all dimensions with an initial simplex of 10% of the <code class="docutils literal notranslate"><span class="pre">guess</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">P</span></code> : The degree of parallelization– how many nodes of the simplex to attempt to update on each iteration. Defaults to 1, which is standard Nelder-Mead.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxthreads</span></code> : The largest number of Python threads to run simultaneously. This can be no greater or less than <code class="docutils literal notranslate"><span class="pre">P</span></code>, which is relevant when evaluating the initial simplex or executing a shrink step.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> : A filename for optionally storing progress of the search; must be used in conjuction with next two arguments. Useful for very long optimizations that might be interupted by computer downtime.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">resume</span></code> : Whether the optimization should resume from prior saved progress (in file <code class="docutils literal notranslate"><span class="pre">name</span></code>) or start from scratch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">savefreq</span></code> : Frequency (in number of iterations) of writing progress to disk, defaulting to 1 (write after every iteration).</p></li>
+</ul>
+</section>
+<section id="Parallelizing-Operations">
+<h2>Parallelizing Operations<a class="headerlink" href="#Parallelizing-Operations" title="Link to this heading">#</a></h2>
+<p>HARK has a basic tool for parallelizing operations across <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances. If you have a population of agents that has <em>ex ante</em> heterogeneity– they differ in their parameters, or possibly even in their model, their microeconomic problems can be solved independently and simultaneously. If there is no macroeconomic interaction <em>among</em> <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances, then their models can be <em>simulated</em> independently as well.</p>
+<p>The relevant function is <code class="docutils literal notranslate"><span class="pre">HARK.parallel.multi_thread_commands</span></code>, which takes three arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">agent_list</span></code> : a list of <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances for which parallel work should be performed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">command_list</span></code> : a list of strings naming methods to be run</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_jobs</span></code> : optionally, a maximum number of Python threads to spawn</p></li>
+</ul>
+<p>The function returns no output; <code class="docutils literal notranslate"><span class="pre">agent_list</span></code> itself is changed by running <code class="docutils literal notranslate"><span class="pre">multi_thread_commands</span></code>.</p>
+<p>There are two caveats when using <code class="docutils literal notranslate"><span class="pre">multi_thread_commands</span></code>:</p>
+<ol class="arabic simple">
+<li><p>Each element of <code class="docutils literal notranslate"><span class="pre">command_list</span></code> must include <code class="docutils literal notranslate"><span class="pre">()</span></code> at the end, e.g. <code class="docutils literal notranslate"><span class="pre">solve()</span></code>. This will be changed in the future.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances can be large and thus take considerable time to <code class="docutils literal notranslate"><span class="pre">pickle</span></code> when writing to disk (and then reading from disk). This is particularly the case when model is solved and simulated by the multithreaded process, as both <code class="docutils literal notranslate"><span class="pre">solution</span></code> and <code class="docutils literal notranslate"><span class="pre">history</span></code> can be large. If you find that this is a problem, try to find ways to “pre-process” the output at the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance level, before it exits the spawned thread, and delete the attributes that you don’t strictly “need”.</p></li>
+</ol>
+<p>We have also included a trivial <code class="docutils literal notranslate"><span class="pre">multi_thread_commands_fake</span></code> function, which replicates the interface of <code class="docutils literal notranslate"><span class="pre">multi_thread_commands</span></code> but does <em>not</em> use the <code class="docutils literal notranslate"><span class="pre">Parallel</span></code> package for spawning processes. Instead, it simply loops over the elements of <code class="docutils literal notranslate"><span class="pre">agent_list</span></code> and executes the methods for each one. This function is included to have a quick way to “turn off” multi-threading in your code.</p>
+</section>
+<section id="Life-Cycle-Parameter-Calibrations">
+<h2>Life-Cycle Parameter Calibrations<a class="headerlink" href="#Life-Cycle-Parameter-Calibrations" title="Link to this heading">#</a></h2>
+<p>The default parameters for each <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass are just meant to be workable examples, not represent anything “realistic”. Some of the default parameters are reasonable or vaguely in the ballpark of values you might get from empirical measurements (e.g. a <code class="docutils literal notranslate"><span class="pre">CRRA</span></code> of 2 or risk free interest factor of 1.02), but this is mostly coincidence or us being too lazy to make up unreasonable values.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">HARK.Calibration</span></code> module includes some off-the-shelf calibrations of life-cycle processes, estimated by people who are better with data than we are. It also has some functions for making particular parametric distributions for income processes.</p>
+<section id="Income-Processes">
+<h3>Income Processes<a class="headerlink" href="#Income-Processes" title="Link to this heading">#</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.Income.IncomeTools</span><span class="w"> </span><span class="kn">import</span> <span class="n">Cagetti_income</span><span class="p">,</span> <span class="n">parse_income_spec</span>
+</pre></div>
+</div>
+</div>
+<p>See the documentation for full details, but the main tool for handling life-cycle income specifications is <code class="docutils literal notranslate"><span class="pre">parse_income_spec</span></code>. This function takes a large number of inputs, but <em>conveniently</em> we have provided some dictionaries for quick use. This function produces a dictionary with a variety of income process parameters, which can be passed to an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass to produce a realistically calibrated instance of that class (with HARK’s default income process, or something similar to
+it).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make an income process dictionary for high-school-educated men based on Cagetti (2003)</span>
+<span class="n">my_income_params</span> <span class="o">=</span> <span class="n">parse_income_spec</span><span class="p">(</span><span class="n">age_min</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">age_max</span><span class="o">=</span><span class="mi">110</span><span class="p">,</span> <span class="o">**</span><span class="n">Cagetti_income</span><span class="p">[</span><span class="s2">&quot;HS&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">my_income_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="nb">len</span><span class="p">(</span><span class="n">my_income_params</span><span class="p">[</span><span class="s2">&quot;PermShkStd&quot;</span><span class="p">])</span>
+<span class="p">)</span>  <span class="c1"># number of non-terminal periods in the model</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+dict_keys([&#39;PermGroFacAgg&#39;, &#39;PermGroFac&#39;, &#39;PermShkStd&#39;, &#39;TranShkStd&#39;, &#39;P0&#39;, &#39;pLogInitMean&#39;, &#39;T_retire&#39;])
+88
+</pre></div></div>
+</div>
+</section>
+<section id="Mortality-Processes">
+<h3>Mortality Processes<a class="headerlink" href="#Mortality-Processes" title="Link to this heading">#</a></h3>
+<p>HARK can also construct life-cycle mortality probabilities based on Social Security Administration actuarial tables. This tool is currently buried quite deep in HARK, at <code class="docutils literal notranslate"><span class="pre">HARK.Calibration.life_tables.us_ssa.SSATools.parse_ssa_life_table</span></code>, but we will expose it more conveniently in the near future.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.life_tables.us_ssa.SSATools</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_ssa_life_table</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make survival probabilities for men born in 1980</span>
+<span class="n">my_LivPrb</span> <span class="o">=</span> <span class="n">parse_ssa_life_table</span><span class="p">(</span><span class="n">age_min</span><span class="o">=</span><span class="mi">22</span><span class="p">,</span> <span class="n">age_max</span><span class="o">=</span><span class="mi">110</span><span class="p">,</span> <span class="n">female</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cohort</span><span class="o">=</span><span class="mi">1980</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">my_LivPrb</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">my_LivPrb</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span>  <span class="c1"># first 10 survival probabilities, from start of model life</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+88
+[0.998541, 0.998511, 0.998545, 0.99852, 0.998489, 0.998549, 0.998583, 0.998606, 0.998592, 0.998535]
+</pre></div></div>
+</div>
+<p>Unlike <code class="docutils literal notranslate"><span class="pre">parse_income_spec</span></code>, this function returns <em>only</em> survival probabilities, which are used as <code class="docutils literal notranslate"><span class="pre">LivPrb</span></code> in most HARK models.</p>
+</section>
+<section id="Using-Parsed-Parameters-in-a-Model">
+<h3>Using Parsed Parameters in a Model<a class="headerlink" href="#Using-Parsed-Parameters-in-a-Model" title="Link to this heading">#</a></h3>
+<p>Let’s show a simple example of how to use the parameters we imported in an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Put the parsed parameters together into an IndShockConsumerType</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mi">110</span> <span class="o">-</span> <span class="mi">22</span>  <span class="c1"># number of non-terminal periods</span>
+<span class="n">CalibratedType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span>
+    <span class="n">LivPrb</span><span class="o">=</span><span class="n">my_LivPrb</span><span class="p">,</span>
+    <span class="n">T_cycle</span><span class="o">=</span><span class="n">T</span><span class="p">,</span>
+    <span class="n">Rfree</span><span class="o">=</span><span class="n">T</span> <span class="o">*</span> <span class="p">[</span><span class="mf">1.02</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">my_income_params</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve the life-cycle problem for this agent</span>
+<span class="n">CalibratedType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function at all ages</span>
+<span class="n">CalibratedType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">CalibratedType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_66_0.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_66_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Quick-and-Dirty-Function-Plots">
+<h2>Quick and Dirty Function Plots<a class="headerlink" href="#Quick-and-Dirty-Function-Plots" title="Link to this heading">#</a></h2>
+<p>HARK has some basic convenience functions for making simple function plots. These are mostly meant to be used in live/interactive sessions when you’re exploring your model, <em>not</em> to produce perfectly formatted figures for publication. We have provided very limited formatting options, and no option to save anyway.</p>
+<section id="Basic-1D-Plotting:-plot_funcs">
+<h3>Basic 1D Plotting: <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code><a class="headerlink" href="#Basic-1D-Plotting:-plot_funcs" title="Link to this heading">#</a></h3>
+<p>Throughout this notebook and others, you’ve probably noticed us using <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code>, which is used for plotting one or more real functions with simple syntax: <code class="docutils literal notranslate"><span class="pre">plot_funcs(your_function(s),</span> <span class="pre">bottom,</span> <span class="pre">top)</span></code>. Note that <code class="docutils literal notranslate"><span class="pre">your_function(s)</span></code> can be a single function or a list of functions.</p>
+<p>You can pre-format the figure with <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> instructions <em>before</em> calling <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code>. In this notebook, we sometimes set the <code class="docutils literal notranslate"><span class="pre">ylim</span></code>, <code class="docutils literal notranslate"><span class="pre">xlabel</span></code>, and <code class="docutils literal notranslate"><span class="pre">ylabel</span></code>. The arguments <code class="docutils literal notranslate"><span class="pre">xlabel</span></code>, <code class="docutils literal notranslate"><span class="pre">ylabel</span></code>, and <code class="docutils literal notranslate"><span class="pre">legend_kwds</span></code> can also optionally be passed to <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code>.</p>
+</section>
+<section id="Plotting-%22Slices%22-of-Functions-with-Multiple-Arguments">
+<h3>Plotting “Slices” of Functions with Multiple Arguments<a class="headerlink" href="#Plotting-%22Slices%22-of-Functions-with-Multiple-Arguments" title="Link to this heading">#</a></h3>
+<p>Many functions produced by HARK have more than one argument, such as when there is more than one continuous state variable. HARK includes a simple function for quickly plotting cross-sections or “slices” of such functions with <code class="docutils literal notranslate"><span class="pre">plot_func_slices</span></code>.</p>
+<p>The key concepts for <code class="docutils literal notranslate"><span class="pre">plot_func_slices</span></code> are the <code class="docutils literal notranslate"><span class="pre">xdim</span></code> and <code class="docutils literal notranslate"><span class="pre">zdim</span></code>, representing the <span class="math notranslate nohighlight">\(x\)</span> plotting dimension (the function argument that is continuously varied along the horizontal axis) and the discretized <span class="math notranslate nohighlight">\(z\)</span> dimension (the function argument that takes on a different value for each slice). Both of these are index numbers referencing the argument number for the function to be plotted; by default, <code class="docutils literal notranslate"><span class="pre">xdim=0</span></code> and <code class="docutils literal notranslate"><span class="pre">zdim=1</span></code>.</p>
+<p>The syntax for <code class="docutils literal notranslate"><span class="pre">plot_func_slices</span></code> is somewhat more complex than for <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code>. In addition to passing the function itself and the lower and upper bounds on <span class="math notranslate nohighlight">\(x\)</span>, you must also specify which values of <span class="math notranslate nohighlight">\(z\)</span> should be plotted. This can be done in two ways:</p>
+<ol class="arabic simple">
+<li><p>Pass arguments called <code class="docutils literal notranslate"><span class="pre">zmin</span></code> and <code class="docutils literal notranslate"><span class="pre">zmax</span></code> to specify the lower and upper bounds of <span class="math notranslate nohighlight">\(z\)</span>. By default, a grid with 11 linearly spaced points will be used, but this can be changed with the arguments <code class="docutils literal notranslate"><span class="pre">zn</span></code> and <code class="docutils literal notranslate"><span class="pre">zorder</span></code>.</p></li>
+<li><p>Pass an argument called <code class="docutils literal notranslate"><span class="pre">Z</span></code> as a list (or array) of user-specified <span class="math notranslate nohighlight">\(z\)</span> values.</p></li>
+</ol>
+<p>You must choose exactly one of these methods; passing neither or both will result in an error.</p>
+<p>Let’s use the consumption function for <code class="docutils literal notranslate"><span class="pre">PrefShockConsumerType</span></code> as an example, first importing what we need.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrefShockConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_func_slices</span>
+
+<span class="n">PrefType</span> <span class="o">=</span> <span class="n">PrefShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">PrefType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">PrefType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>  <span class="c1"># make solution[t].cFunc available as cFunc[t] for convenience</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_func_slices</span><span class="p">(</span>
+    <span class="n">PrefType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">5.0</span><span class="p">,</span>
+    <span class="n">zmin</span><span class="o">=</span><span class="mf">0.35</span><span class="p">,</span>
+    <span class="n">zmax</span><span class="o">=</span><span class="mf">2.7</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_73_0.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_73_0.png" />
+</div>
+</div>
+<p>Each one of those plots represents the consumption function when holding fixed preference shock <span class="math notranslate nohighlight">\(\eta\)</span> at some level of interest (for values between 0.35 and 2.7). We could instead plot consumption with respect to <span class="math notranslate nohighlight">\(\eta\)</span> while holding <span class="math notranslate nohighlight">\(m_t\)</span> fixed by specifying <code class="docutils literal notranslate"><span class="pre">xdim</span></code> and <code class="docutils literal notranslate"><span class="pre">zdim</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_func_slices</span><span class="p">(</span>
+    <span class="n">PrefType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="mf">0.35</span><span class="p">,</span>
+    <span class="mf">2.7</span><span class="p">,</span>
+    <span class="n">xdim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">zdim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">zmin</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">zmax</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+    <span class="n">zn</span><span class="o">=</span><span class="mi">26</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Preference shock $\eta_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Gentle-Intro_Advanced-Intro_75_0.png" src="../../_images/examples_Gentle-Intro_Advanced-Intro_75_0.png" />
+</div>
+</div>
+<p>Notice here that for low market resource levels (the blue, orange, and green plots near the bottom), the consumption function is <em>flat</em> with respect to <span class="math notranslate nohighlight">\(\eta\)</span>. That represents the <em>liquidity constrained</em> portion of the consumption function where the agent is already spending as much as they can. Increasing their preference for consumption makes them <em>want</em> to consume more, but they don’t <em>actually</em> consume more. At somewhat higher values of <span class="math notranslate nohighlight">\(m_t\)</span>, they have high enough market
+resources that they are unconstrained for low <span class="math notranslate nohighlight">\(\eta\)</span> but become constrained for higher <span class="math notranslate nohighlight">\(\eta\)</span>. At sufficiently high <span class="math notranslate nohighlight">\(m_t\)</span>, the consumer is not liquidity constrained for any <span class="math notranslate nohighlight">\(\eta\)</span> plotted here.</p>
+</section>
+</section>
+<section id="Finding-%22Target%22-or-Steady-State-Values">
+<h2>Finding “Target” or Steady-State Values<a class="headerlink" href="#Finding-%22Target%22-or-Steady-State-Values" title="Link to this heading">#</a></h2>
+<p>Most HARK <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses now have a method to automatically calculate the “target” level of an endogenous state variable, using the <code class="docutils literal notranslate"><span class="pre">find_target</span></code> method. The target level of a state <span class="math notranslate nohighlight">\(x\)</span> satisfies <span class="math notranslate nohighlight">\(\mathbb{E}[ \Delta x ] = 0\)</span>, so that an agent currently at <span class="math notranslate nohighlight">\(x_t\)</span> expects to be at the same value (on average) in <span class="math notranslate nohighlight">\(t+1\)</span> if they survive. Moreover, a target level must be <em>locally stable</em>, so that at values of <span class="math notranslate nohighlight">\(x_t\)</span> below the target, the agent expects
+<span class="math notranslate nohighlight">\(\mathbb{E}[ \Delta x ] &gt; 0\)</span> and for <span class="math notranslate nohighlight">\(x_t\)</span> above the target, they expect the state to fall.</p>
+<section id="Basic-Usage-for-find_target">
+<h3>Basic Usage for <code class="docutils literal notranslate"><span class="pre">find_target</span></code><a class="headerlink" href="#Basic-Usage-for-find_target" title="Link to this heading">#</a></h3>
+<p>The basic syntax is straightforward in many cases: the user simply names the variable they want to find the target for, e.g. <code class="docutils literal notranslate"><span class="pre">MyType.find_target(&quot;mNrm&quot;)</span></code>. (Recall from the <a class="reference internal" href="Simulation-Intro.html"><span class="doc">simulation introduction</span></a> that you can view a list of model variable names with <code class="docutils literal notranslate"><span class="pre">MyType.describe_model()</span></code>.) Let’s first do a quick example with the workhorse <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">MyType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># default parameters, infinite horizon</span>
+<span class="n">MyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>  <span class="c1"># need to solve the model in order to find target or steady state</span>
+<span class="n">m_targ</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;mNrm&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found target market resources ratio of </span><span class="si">{:.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m_targ</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Found target market resources ratio of 1.492786
+</pre></div></div>
+</div>
+<p>Because it’s the canonical workhorse model in HARK, <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> already had a “handwritten” method for finding target market resources, long before we added the generic method. As a quick test, let’s compare that “hand calculated” value to the one from the general method:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">m_targ_old</span> <span class="o">=</span> <span class="n">MyType</span><span class="o">.</span><span class="n">bilt</span><span class="p">[</span><span class="s2">&quot;mNrmTrg&quot;</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;The hand-coded method found a target market resources ratio of </span><span class="si">{:.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">m_targ_old</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The hand-coded method found a target market resources ratio of 1.492786
+</pre></div></div>
+</div>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">find_target</span></code> method has some limitations:</p>
+<ol class="arabic simple">
+<li><p>It only works on standard infinite horizon models: <code class="docutils literal notranslate"><span class="pre">cycles=0</span></code> and <code class="docutils literal notranslate"><span class="pre">T_cycle=1</span></code>.</p></li>
+<li><p>It can currently only solve for one endogenous state variable at a time; this excludes <code class="docutils literal notranslate"><span class="pre">BasicHealthConsumerType</span></code>.</p></li>
+</ol>
+</section>
+<section id="Providing-Additional-Required-Information">
+<h3>Providing Additional Required Information<a class="headerlink" href="#Providing-Additional-Required-Information" title="Link to this heading">#</a></h3>
+<p>HARK has several models with one or more <em>exogenous</em> state variables, e.g. the persistent income level <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> for <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> or the preference shock <code class="docutils literal notranslate"><span class="pre">PrefShk</span></code> for the <code class="docutils literal notranslate"><span class="pre">PrefShockConsumerType</span></code>. For those types, <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> and <code class="docutils literal notranslate"><span class="pre">PrefShk</span></code> must respectively be known at the time the consumption decision is made. For <code class="docutils literal notranslate"><span class="pre">find_target</span></code> to work, the user needs to <em>also</em> pass the steady-state value of the exogenous state variable(s) as keyword arguments. In all current HARK models,
+the steady state of such variables should be obvious to the user based on the parameters.</p>
+<p>For example, the default parameters for <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> have agents being “born” with an average <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> of <span class="math notranslate nohighlight">\(1\)</span>, and then they experience mean one persistent income shocks with no growth trend. It should be pretty obvious that the “steady state” value of <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> is <span class="math notranslate nohighlight">\(1\)</span>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">PersistentShockConsumerType</span>
+
+<span class="n">PersistentType</span> <span class="o">=</span> <span class="n">PersistentShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">PersistentType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">m_targ_prst</span> <span class="o">=</span> <span class="n">PersistentType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;mLvl&quot;</span><span class="p">,</span> <span class="n">pLvl</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;The default persistent shock consumer type has target market resources level of </span><span class="si">{:.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">m_targ_prst</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The default persistent shock consumer type has target market resources level of 1.730613
+</pre></div></div>
+</div>
+<p>As a second example, the default parameters for a <code class="docutils literal notranslate"><span class="pre">PrefShockConsumerType</span></code> involve a mean one preference shock distribution, so target market resources can be found with:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrefShockConsumerType</span>
+
+<span class="n">PrefShockType</span> <span class="o">=</span> <span class="n">PrefShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">PrefShockType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">m_targ_pref</span> <span class="o">=</span> <span class="n">PrefShockType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;mNrm&quot;</span><span class="p">,</span> <span class="n">PrefShk</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;The default preference shock consumer type has target market resources level of </span><span class="si">{:.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">m_targ_pref</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The default preference shock consumer type has target market resources level of 1.525104
+</pre></div></div>
+</div>
+</section>
+<section id="Common-Failure-Modes-for-find_target">
+<h3>Common Failure Modes for <code class="docutils literal notranslate"><span class="pre">find_target</span></code><a class="headerlink" href="#Common-Failure-Modes-for-find_target" title="Link to this heading">#</a></h3>
+<p>The target level of a state variable does not always exist. When <code class="docutils literal notranslate"><span class="pre">find_target</span></code> fails to find <em>any</em> target level, it returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>. Note that this can occur for several reasons:</p>
+<ol class="arabic simple">
+<li><p>There really is no target value anywhere.</p></li>
+<li><p>There is a target value, but it is outside of the search bounds; by default, <span class="math notranslate nohighlight">\(x \in [0,100]\)</span> but can be changed with argument <code class="docutils literal notranslate"><span class="pre">bounds</span></code>.</p></li>
+<li><p>There is a target value, but additional state information needed to be passed to <code class="docutils literal notranslate"><span class="pre">find_target</span></code>.</p></li>
+</ol>
+<p>Let’s see an example for each of these failure modes. First, the agent might be so patient that (even though their policy function is well defined), they always want to accumulate more wealth, and there is simply no target anywhere.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PatientType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">DiscFac</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">PatientType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">PatientType</span><span class="o">.</span><span class="n">bilt</span><span class="p">[</span><span class="s2">&quot;mNrmTrg&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">PatientType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;mNrm&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+nan
+nan
+</pre></div></div>
+</div>
+<p>Second, the target value exists, but is outside the default bounds. To make this happen, we’ll construct a consumer who has no artificial borrowing constraint <em>and</em> never faces a low-income “unemployment” shock. The lower bound of their <code class="docutils literal notranslate"><span class="pre">mNrm</span></code> state space goes to a significantly negative level, and the target <span class="math notranslate nohighlight">\(m_t\)</span> is below zero, outside of the default search region.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">UnboundType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">UnempPrb</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">BoroCnstArt</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">UnboundType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">UnboundType</span><span class="o">.</span><span class="n">bilt</span><span class="p">[</span><span class="s2">&quot;mNrmTrg&quot;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">UnboundType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;mNrm&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+-1.7250338547911441
+nan
+</pre></div></div>
+</div>
+<p>To fix this, let’s get the lower boundary of <code class="docutils literal notranslate"><span class="pre">mNrm</span></code> and use that as the lower bound of the search.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mNrmMin</span> <span class="o">=</span> <span class="n">UnboundType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">UnboundType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;mNrm&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">[</span><span class="n">mNrmMin</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+-1.7250338508597622
+</pre></div></div>
+</div>
+<p>The third failure mode is an error by the user in providing sufficient information. Suppose you wanted to know steady state <code class="docutils literal notranslate"><span class="pre">bNrm</span></code>, bank balances before receiving labor income <code class="docutils literal notranslate"><span class="pre">yNrm</span></code>. Because transitory income shocks are mean one in the default parameters, and <code class="docutils literal notranslate"><span class="pre">yNrm=TranShk</span></code>, we should expect that target <code class="docutils literal notranslate"><span class="pre">bNrm</span></code> is <em>exactly</em> one less than target <code class="docutils literal notranslate"><span class="pre">mNrm</span></code>. But if we just ask <code class="docutils literal notranslate"><span class="pre">find_target</span></code> for target <code class="docutils literal notranslate"><span class="pre">bNrm</span></code>, it will fail:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;bNrm&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+nan
+</pre></div></div>
+</div>
+<p>What happened here? To understand, we need to look at how the agent’s model is written out:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">MyType</span><span class="o">.</span><span class="n">describe_model</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+ConsIndShock: Consumption-saving model with permanent and transitory income shocks and a risk-free asset.
+
+----------------------------------
+%%%%%%%%%%%%% SYMBOLS %%%%%%%%%%%%
+----------------------------------
+kNrm (float)        : beginning of period capital, normalized by p_{t-1}
+pLvlPrev (float)    : inbound permanent income level, before growth
+yNrm (float)        : normalized labor income
+pLvl (float)        : permanent income level
+bNrm (float)        : normalized bank balances
+mNrm (float)        : normalized market resources
+cNrm (float)        : normalized consumption
+aNrm (float)        : normalized end-of-period assets
+live (bool)         : whether the agent survives
+Rfree (param)       : risk free return factor on assets
+PermGroFac (param)  : expected permanent income growth factor
+LivPrb (param)      : survival probability at end of period
+cFunc (func)        : consumption function over market resources
+IncShkDstn (dstn)   : joint distribution of permanent and transitory shocks
+pLvlInitDstn (dstn) : distribution of permanent income at model birth
+kNrmInitDstn (dstn) : distribution of normalized capital holdings at birth
+PermShk (float)     :
+TranShk (float)     :
+G (float)           :
+dead (bool)         : whether agent died this period
+t_seq (int)         : which period of the sequence the agent is on
+t_age (int)         : how many periods the agent has already lived for
+----------------------------------
+%%%%% INITIALIZATION AT BIRTH %%%%
+----------------------------------
+pLvlPrev ~ pLvlInitDstn : draw initial permanent income from distribution
+kNrm ~ kNrmInitDstn     : draw initial capital from distribution
+----------------------------------
+%%%% DYNAMICS WITHIN PERIOD t %%%%
+----------------------------------
+(PermShk,TranShk) ~ IncShkDstn : draw permanent and transitory income shocks
+yNrm = TranShk                 : normalized income is the transitory shock
+G = PermGroFac*PermShk         : calculate permanent income growth
+pLvl = pLvlPrev*G              : update permanent income level
+bNrm = Rfree*kNrm/G            : calculate normalized bank balances
+mNrm = bNrm+yNrm               : calculate normalized market resources
+cNrm = cFunc@(mNrm)            : evaluate consumption from market resources
+aNrm = mNrm-cNrm               : calculate normalized end-of-period assets
+live ~ {LivPrb}                : draw survival
+dead = 1-live                  : dead are non-survivors
+----------------------------------
+%%%%%%% RELABELING / TWIST %%%%%%%
+----------------------------------
+aNrm[t-1] &lt;---&gt; kNrm[t]
+pLvl[t-1] &lt;---&gt; pLvlPrev[t]
+-----------------------------------
+</pre></div></div>
+</div>
+<p>When <code class="docutils literal notranslate"><span class="pre">find_target</span></code> is asked to find target <span class="math notranslate nohighlight">\(b_t\)</span>, it looks through the dynamics and finds where <code class="docutils literal notranslate"><span class="pre">bNrm</span></code> is set, then tests different values of it by <em>starting</em> the period at that point and looping back around to the same spot. When it does so, it uses fake / dummy values for <em>all</em> model variables that should have been assigned before <code class="docutils literal notranslate"><span class="pre">bNrm</span></code>. That <em>includes</em> income <code class="docutils literal notranslate"><span class="pre">yNrm</span></code>, so in the <em>very next step</em>, it calculates <code class="docutils literal notranslate"><span class="pre">mNrm</span> <span class="pre">=</span> <span class="pre">bNrm</span> <span class="pre">+</span> <span class="pre">yNrm</span></code>… and uses nonsense data for <code class="docutils literal notranslate"><span class="pre">yNrm</span></code>. It thus
+fails to find a target <span class="math notranslate nohighlight">\(b_t\)</span> because it doesn’t have correct information about <span class="math notranslate nohighlight">\(y_t\)</span>.</p>
+<p>To fix this, we need to pass <code class="docutils literal notranslate"><span class="pre">yNrm=1.0</span></code>, the average or steady state value, to the method as well:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">MyType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;bNrm&quot;</span><span class="p">,</span> <span class="n">yNrm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.49278579223515967
+</pre></div></div>
+</div>
+<p>As expected, target <span class="math notranslate nohighlight">\(b_t\)</span> is exactly <span class="math notranslate nohighlight">\(1\)</span> less than target <span class="math notranslate nohighlight">\(m_t\)</span> for this agent.</p>
+</section>
+<section id="Guiding-Principle-for-Additional-Required-Information">
+<h3>Guiding Principle for Additional Required Information<a class="headerlink" href="#Guiding-Principle-for-Additional-Required-Information" title="Link to this heading">#</a></h3>
+<p>In general, you should only try to calculate a target value at “informational chokepoints”: moments in the sequence of events where you <em>know</em> what variables will ever be referenced beyond that point. The most straightforward “informational chokepoint” is <em>usually</em> the decision-time state space: whatever the control variable (and Bellman value function) is conditioned on.</p>
+<p>To make this point clear, consider the preference shock model. To get a sensible target for <span class="math notranslate nohighlight">\(m_t\)</span>, we needed to pass the mean or steady state value of preference shock <span class="math notranslate nohighlight">\(\eta_t\)</span>, which was known to be <span class="math notranslate nohighlight">\(1\)</span>. However, we do <em>not</em> need to pass <code class="docutils literal notranslate"><span class="pre">PrefShk</span> <span class="pre">=</span> <span class="pre">1.0</span></code> if we ask for target end-of-period assets <span class="math notranslate nohighlight">\(a_t\)</span>. At the <em>end</em> of the period, <span class="math notranslate nohighlight">\(\eta_t\)</span> has already played its role and is water under the bridge; it is not informative about the future.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">PrefShockType</span><span class="o">.</span><span class="n">find_target</span><span class="p">(</span><span class="s2">&quot;aNrm&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.623920206603688
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="Constructors-Intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Constructed Attributes and Model Defaults</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="Methods-Intro.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Numeric Methods Commonly Used in HARK</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Measuring-Up:-Distance-in-HARK">Measuring Up: Distance in HARK</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#The-Universal-Distance-Metric">The Universal Distance Metric</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Getting-a-Description-of-the-Distance-Metric">Getting a Description of the Distance Metric</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Uncommon-Options-When-Solving-Models">Uncommon Options When Solving Models</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Tell-Me-More,-Tell-Me-More:-verbose">Tell Me More, Tell Me More: <code class="docutils literal notranslate"><span class="pre">verbose</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Turning-Off-pre_solve-and-post_solve">Turning Off <code class="docutils literal notranslate"><span class="pre">pre_solve</span></code> and <code class="docutils literal notranslate"><span class="pre">post_solve</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Take-It-From-the-Middle:-from_solution-and-from_t">Take It From the Middle: <code class="docutils literal notranslate"><span class="pre">from_solution</span></code> and <code class="docutils literal notranslate"><span class="pre">from_t</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Utility-Functions">Utility Functions</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#In-Line-Utility-Functions">In-Line Utility Functions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Utility-Function-Structure">Utility Function Structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Other-Utility-Functions-in-HARK.rewards">Other Utility Functions in <code class="docutils literal notranslate"><span class="pre">HARK.rewards</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Representing-Distributions">Representing Distributions</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Basics-of-Distributions-in-HARK">Basics of Distributions in HARK</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Our-Workhorse:-DiscreteDistribution">Our Workhorse: <code class="docutils literal notranslate"><span class="pre">DiscreteDistribution</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Say-My-Name:-DiscreteDistributionLabeled">Say My Name: <code class="docutils literal notranslate"><span class="pre">DiscreteDistributionLabeled</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Usage">Example Usage</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Estimation-and-Optimization">Estimation and Optimization</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Parallelizing-Operations">Parallelizing Operations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Life-Cycle-Parameter-Calibrations">Life-Cycle Parameter Calibrations</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Income-Processes">Income Processes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Mortality-Processes">Mortality Processes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Using-Parsed-Parameters-in-a-Model">Using Parsed Parameters in a Model</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Quick-and-Dirty-Function-Plots">Quick and Dirty Function Plots</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Basic-1D-Plotting:-plot_funcs">Basic 1D Plotting: <code class="docutils literal notranslate"><span class="pre">plot_funcs</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Plotting-%22Slices%22-of-Functions-with-Multiple-Arguments">Plotting “Slices” of Functions with Multiple Arguments</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Finding-%22Target%22-or-Steady-State-Values">Finding “Target” or Steady-State Values</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Basic-Usage-for-find_target">Basic Usage for <code class="docutils literal notranslate"><span class="pre">find_target</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Providing-Additional-Required-Information">Providing Additional Required Information</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Common-Failure-Modes-for-find_target">Common Failure Modes for <code class="docutils literal notranslate"><span class="pre">find_target</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Guiding-Principle-for-Additional-Required-Information">Guiding Principle for Additional Required Information</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

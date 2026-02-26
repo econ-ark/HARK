@@ -1,0 +1,1040 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Journey: Economics PhD Student &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/Journeys/Journey-PhD';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/Journeys/Journey-PhD.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Perfect Foresight Model" href="../ConsIndShockModel/PerfForesightConsumerType.html" />
+    <link rel="prev" title="Advanced Examples of HA-SSJ’s" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Journey: Economics PhD Student</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/Journeys/Journey-PhD.ipynb">examples/Journeys/Journey-PhD.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/Journeys/Journey-PhD.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="Journey-PhD.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Journey:-Economics-PhD-Student">
+<h1>Journey: Economics PhD Student<a class="headerlink" href="#Journey:-Economics-PhD-Student" title="Link to this heading">#</a></h1>
+<section id="1-Introduction">
+<h2>1 Introduction<a class="headerlink" href="#1-Introduction" title="Link to this heading">#</a></h2>
+<p>This notebook is designed as an introduction to someone with the training of a 1st year Economics student, but perhaps without much background in computer programming or scientific computation. As it is a “journey,” it is not one big tutorial, but a set of links to notebooks and other resources which will help you understand the different HARK objects and functionalities.</p>
+<p>This journey does not require any special skill in programming. However, we recommend you take a few introductory tutorials in Python and object-oriented programming (OOP) to make you familiar with the basic concepts. Moreover, we assume some knowledge in economic theory.</p>
+<p>As you have found this journey, you probably have a concept of what a heterogeneous agent model is, but here is a short recap. Think about a basic, infinitely lived consumer problem as you know from first-year graduate courses (letting alone the companies and general equilibrium for now). Using the Bellman equation, we can write it as:</p>
+<p><span class="math">\begin{eqnarray*}
+V(M_t) &=& \max_{C_t} U(C_t) + \beta V(M_{t+1}), \\
+& s.t. & \\
+A_t &=& M_t - C_t, \\
+M_{t+1} &=& R (M_{t}-C_{t}) + Y_t, \\
+\end{eqnarray*}</span></p>
+<p>Where <span class="math notranslate nohighlight">\(\beta &lt;1\)</span> is a discount factor, <span class="math notranslate nohighlight">\(C_t\)</span> is consumption, <span class="math notranslate nohighlight">\(A_t\)</span> - assets, <span class="math notranslate nohighlight">\(Y_t\)</span> - income and <span class="math notranslate nohighlight">\(U(C)\)</span> is a standard CRRA utility function:</p>
+<div class="math notranslate nohighlight">
+\[U(C)=\frac{C^{1-\rho}}{1-\rho}.\]</div>
+<p>Now assume that every consumer faces some uncertainty on her income which is subject to idiosyncratic shocks - the realizations of each shock is (potentially) different for each agent. In this setting, it follows an AR (1) process, so that the current value of <span class="math notranslate nohighlight">\(Y\)</span> is a state variable that predicts future values of <span class="math notranslate nohighlight">\(Y\)</span>.</p>
+<p>Then, the Bellman equation looks like:</p>
+<p><span class="math">\begin{eqnarray*}
+V(M_t, Y_t) &=& \max_{C_t} U(C_t) + E[\beta V(M_{t+1}, Y_{t+1})], \\
+& s.t. & \\
+A_t &=& M_t - C_t, \\
+M_{t+1} &=& R (M_{t}-C_{t}) + Y_t, \\
+\end{eqnarray*}</span></p>
+<p>Finding a distribution of agent assets (consumption, savings) must involve much more advanced numerical tools than in the representative agent setting. This is more demanding task to accomplish and master. Moreover, the knowledge about involved numerical methods is less systematic, and often hard to find. To quote the HARK <a class="reference external" href="https://docs.econ-ark.org/docs/overview/introduction.html">Documentation</a>:</p>
+<p><em>“After months of effort, you may have had the character-improving experience of proudly explaining to your adviser that not only had you grafted two ideas together, you also found a trick that speeded the solution by an order of magnitude, only to be told that your breathtaking insight had been understood for many years, as reflected in an appendix to a 2008 paper; or, worse, your discovery was something that “everybody knows” but did not exist at all in published form!”</em></p>
+<p>HARK was designed to help you avoid similar experiences. We see two main uses of this package and its tools:</p>
+<ul class="simple">
+<li><p>To simulate the standard heterogeneous agent models without learning all the numerical methods</p></li>
+<li><p>To solve your own models building-on the already implemented algorithms</p></li>
+</ul>
+<p>This journey will help you mostly with using HARK in the first way. We do not elaborate here the numerical methods; however, in the last sections you can find some guidance on which methods were used and how the source code is structured.</p>
+<p>Although using the prepared package is easier than writing your own solution (what you will need to do sooner or later if you create an original heterogeneous agent model), there is much effort in comprehending the main classes and functionalities of HARK. We hope that this journey will make it easier! We believe that it also will be your first step into the world of the heterogeneous agents modeling.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p>NOTE *** We will be
+very happy to see your
+feedback. If you have
+any questions regarding
+this tutorial or HARK as
+a whole please see our
+<a class="reference external" href="https://github.com/econ-ark/HARK">Github
+page</a>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="2-Before-you-start">
+<h2>2 Before you start<a class="headerlink" href="#2-Before-you-start" title="Link to this heading">#</a></h2>
+<p>As we have mentioned before, this journey does not require any special skill in programming. However, some knowledge about Python and object-oriented programing (OOP) is needed. We propose two possible ways to gather the basic concepts; however, plenty of others resources are available:</p>
+<ul class="simple">
+<li><p>Quick introduction to Python and OOP: chapters five to seven from <a class="reference external" href="https://python-programming.quantecon.org/intro.html">Quantecon</a> should familiarize you with everything what you need for the first tutorials.</p></li>
+<li><p>A little longer introduction (if you want to learn something about used numerical methods):</p>
+<ul>
+<li><p>Start with the basic Python <a class="reference external" href="https://docs.python.org/3/tutorial">tutorial</a></p></li>
+<li><p>Get some knowledge about <a class="reference external" href="https://numpy.org/doc/stable/user/quickstart.html">Numpy</a></p></li>
+</ul>
+</li>
+<li><p>You can also learn Python by learning Machine learning, as there are many tutorials constructed in that way (one example is <a class="reference external" href="https://scikit-learn.org/stable/tutorial/index.html">scikit-learn tutorials</a>).</p></li>
+</ul>
+</section>
+<section id="3-Few-words-about-HARK-structure">
+<h2>3 Few words about HARK structure<a class="headerlink" href="#3-Few-words-about-HARK-structure" title="Link to this heading">#</a></h2>
+<p>HARK was written using OOP (we hope that you skimmed the tutorials and have some understanding of this). This means that different parts of the model, like different types of consumers, firms, and general equilibrium conditions (if you have these components in the model), are implemented as different <em>objects</em>. Such structure enables you to build your own models with different consumer-type distributions / company structure (if you want some). Importantly, learning the package with such
+structure implies learning the different types of objects (classes).</p>
+<p>In HARK there are two main classes: <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> (think consumers, microeconomic models) and <code class="docutils literal notranslate"><span class="pre">Market</span></code> (think general equilibrium, macroeconomic models). As AgentType objects are the attributes of the Market, we first present this type (additionally, if you are interested only in microeconomic research, you may not want to study the Market class).</p>
+<p>In practice, it will take more than two classes to accommodate the variety of models constructed using the toolkit. Thus, each class will have subclasses and those their own subclasses. In general, a more sophisticated class will be defined as a subclass. This journey will reflect this structure, first by presenting the most primitive models, and then the more fancy ones.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p>NOTE *<strong>In OOP,
+objects are organized
+in</strong> classes <strong>(the
+general structure of the
+objects) and more
+specific</strong>
+subclasses**. The
+subclass inherits the
+methods and attributes
+from the its parent
+class. Thus, everything
+which you can do with
+the object from a
+general class can be
+done with the object
+from its subclass. In
+case of the economic
+models, the basic one
+are always the parent
+classes of the more
+sophisticated ones.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="4-Agent-type-class">
+<h2>4 Agent-type class<a class="headerlink" href="#4-Agent-type-class" title="Link to this heading">#</a></h2>
+<p>Agent-type class enables you to build microeconomic models (such as the one presented in the introduction). It is also the essential part of the macroeconomic model in HARK. So remember: <em>to use HARK, you always need to use agent-type classes!</em></p>
+<section id="4.1-Introductory-example">
+<h3>4.1 Introductory example<a class="headerlink" href="#4.1-Introductory-example" title="Link to this heading">#</a></h3>
+<p>As an example, let’s solve the stochastic model from the introduction. Assume the income process of the agent <span class="math notranslate nohighlight">\(i\)</span> in the period t, <span class="math notranslate nohighlight">\(Y_{i,t}\)</span>, is given by:</p>
+<p><span class="math">\begin{eqnarray*}
+Y_{i,t}  &=& \varepsilon_t(\theta_{i,t} p_{i,t}) \\
+p_{i,t+1} &=& p_{i,t}\psi_{i,t+1}\\
+\psi_{i,t} & \sim & N(1,\sigma_{\varrho})\\
+\theta_{i,t} & \sim & N(1,\sigma_{\theta})\\
+\end{eqnarray*}</span></p>
+<p>To get a universal solution of this problem, we need to find a policy function (in this case consumption function). This can be done easily using the HARK <code class="docutils literal notranslate"><span class="pre">solve</span></code> function.</p>
+<p>Before doing this, we need to declare our model (we assume standard parametrization: R= 1.03, <span class="math notranslate nohighlight">\(\rho = 2\)</span>, <span class="math notranslate nohighlight">\(\beta = 0.96\)</span>, <span class="math notranslate nohighlight">\(P(\varepsilon=0)= 0.005\)</span>, <span class="math notranslate nohighlight">\(P(\varepsilon=1)= 0.995\)</span>, <span class="math notranslate nohighlight">\(\sigma_{\psi}= \sigma_{\theta}=0.1)\)</span>:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>  <span class="c1"># set path of the notebook</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;../../.&quot;</span><span class="p">))</span>
+<span class="c1"># we previously defined the paramters to not bother you about it now</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">JourneyPhDparam</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">Params</span>  <span class="c1"># imported paramters</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>  <span class="c1"># import the module for the idiosyncratic shocks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>  <span class="c1"># useful function</span>
+
+<span class="n">Example</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>Next we can solve the model and plot the consumption function:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Example</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">min_v</span> <span class="o">=</span> <span class="n">Example</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span>
+    <span class="mi">0</span>
+<span class="p">]</span><span class="o">.</span><span class="n">mNrmMin</span>  <span class="c1"># minimal value for which the consumption function is defined</span>
+<span class="n">max_v</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Consumption function&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">([</span><span class="n">Example</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">],</span> <span class="n">min_v</span><span class="p">,</span> <span class="n">max_v</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Journeys_Journey-PhD_7_1.png" src="../../_images/examples_Journeys_Journey-PhD_7_1.png" />
+</div>
+</div>
+</section>
+<section id="4.2-The-Agent-Type-structure">
+<h3>4.2 The Agent-Type structure<a class="headerlink" href="#4.2-The-Agent-Type-structure" title="Link to this heading">#</a></h3>
+<p>To understand the microeconomic models in HARK, you need to have some concept of the Agent-type class structure. As it was mentioned, in HARK more advanced models are subclasses of the more primitive ones. The following diagram illustrates this structure: the deterministic class <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> is the parent for the class of the consumers with idiosyncratic income shocks <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>. Subsequently, there is a class defined with both idiosyncratic and aggregate income
+shocks <code class="docutils literal notranslate"><span class="pre">𝙼𝚊𝚛𝚔𝚘𝚟ConsumerType</span></code>.</p>
+<img alt="HARK structure" src="../../_images/HARK-struct-2.png" />
+<p>However, it doesn’t end there! There are subclasses of the <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> which are designed to be integrated with macroeconomic models (we will discuss them in the section devoted to the Market class), as well as there are many other subclasses (which we will mention in the supplementary section).</p>
+</section>
+<section id="4.3-Main-tutorials">
+<h3>4.3 Main tutorials<a class="headerlink" href="#4.3-Main-tutorials" title="Link to this heading">#</a></h3>
+<p>To reflect the agent-type structure, we propose you start with the Quickstart notebook (it is devoted to the deterministic case). Then proceed to the idiosyncratic consumers and then to consumers with aggregate and idiosyncratic shocks. The exact order of the suggested tutorials is given in the table.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Number</p></th>
+<th class="head"><p>Tutorial</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/examples/Journeys/Quickstart_tutorial/Quick_start_with_solution.ipynb">Quickstart</a></p></td>
+<td><p>This tutorial familiarize you with the basic HARK objects and functionalities. You will learn how to create, solve, plot and simulate the deterministic
+microeconomic models (<span class="math notranslate nohighlight">\(\texttt{PerfForesightConsumerType}\)</span> class).</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/examples/ConsIndShockModel/IndShockConsumerType.ipynb">Idiosyncratic consumers</a></p></td>
+<td><p>In this tutorial you will learn how to deal with the microeconomic models with agents with idiosyncratic shocks: individual productivity shocks
+(<span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span> class). It builds on the Quickstart.</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/DemARK/blob/master/notebooks/Nondurables-During-Great-Recession.ipynb">Nondurables during great recession</a></p></td>
+<td><p>Use you knowledge about HARK to conduct a few economic experiments! You will examine the effects of the uncertinity increase on the heterogenous agents with
+idiosyncratic income risk.</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/DemARK/blob/master/notebooks/Chinese-Growth.ipynb">Chinese-Growth</a></p></td>
+<td><p>Learn how to dealt with models with idiosyncratic and aggregate risk (<span class="math notranslate nohighlight">\(\texttt{𝙼𝚊𝚛𝚔𝚘𝚟ConsumerType}\)</span> class). Next build advanced simulation with many agent
+types.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="4.4-Supplementary-tutorials">
+<h3>4.4 Supplementary tutorials<a class="headerlink" href="#4.4-Supplementary-tutorials" title="Link to this heading">#</a></h3>
+<p>The aforementioned four tutorials are the most essential ones. However, in HARK there are a few other classes with a similar structure as three basic ones (with some minor differences). Here is a list of the notebooks which familiarize you with them (if you so wish, as it is not required to understand the next topics).</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Number</p></th>
+<th class="head"><p>Tutorial</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1*</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/examples/ConsIndShockModel/KinkedRconsumerType.ipynb">Kinked consumer</a></p></td>
+<td><p><span class="math notranslate nohighlight">\(\texttt{KinkedRconsumerType}\)</span> is a subclass of <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span>. In enables to set different borrowing and lending interest rate.</p></td>
+</tr>
+<tr class="row-odd"><td><p>2*</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/DemARK/blob/master/notebooks/Gentle-Intro-To-HARK-Buffer-Stock-Model.ipynb">Buffer-stock consumer</a></p></td>
+<td><p>In the Buffer Stock model, the unemployment state (zero income stat) is irreversible. This framework is implemented by <span class="math notranslate nohighlight">\(\texttt{TractableConsumerType}\)</span>
+class. For the analytical properties of buffer stock model check this <a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/public/LectureNotes/Consumption/TractableBufferStock/">lecture
+notes</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p>3*</p></td>
+<td><p><a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/examples/GenIncProcessModel/GenIncProcessModel.ipynb">Generalized income process</a></p></td>
+<td><p>In <span class="math notranslate nohighlight">\(\texttt{IndShockConsumerType}\)</span> class, the idiosyncratic income shocks were assumed to be or purely permanent or purely transitory. In the similar class
+<span class="math notranslate nohighlight">\(\texttt{PersistentShockConsumerType}\)</span> the income shocks follows AR(1) process with parameter &lt;1, thus there are not full permanent nor transitory (it was
+called generalized income process).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="5-Market-class">
+<h2>5 Market class<a class="headerlink" href="#5-Market-class" title="Link to this heading">#</a></h2>
+<p>In macroeconomic models, the consumers are only one possible type of agent. In such models, the economy contains also firms and a government (or other types of agents). In HARK, several standard macro models were implemented using the <strong>Market</strong> class and its subclasses.</p>
+<section id="5.1-Introductory-example">
+<h3>5.1 Introductory example<a class="headerlink" href="#5.1-Introductory-example" title="Link to this heading">#</a></h3>
+<p>Let’s extend our model from the previous section. Assume the perfect competition and Cobb-Douglas production function:</p>
+<p><span class="math">\begin{eqnarray*}
+y_t = k_t^{\alpha} n_t^{1-\alpha}
+\end{eqnarray*}</span> Thus, the producers’ problem is: <span class="math">\begin{eqnarray*}
+\max_{k_t, n_t} &\: k_t^{\alpha} n_t^{1-\alpha} - (R_t +\delta)k_t-w_t n_t
+\end{eqnarray*}</span></p>
+<p>Where <span class="math notranslate nohighlight">\(k_t\)</span> is capital, <span class="math notranslate nohighlight">\(n_t\)</span> is labour, <span class="math notranslate nohighlight">\(\delta\)</span> is a depreciation rate.</p>
+<p>In this case, consumers’ incomes are determined by the wage:</p>
+<p><span class="math">\begin{eqnarray*}
+V(M_{i,t}, Y_{i,t}) &=& \max_{C_{i,t}, M_{i,t+1}} U(C_{i,t}) + E[\beta V(M_{i,t+1}, Y_{i,t+1})], \\
+& s.t. & \\
+A_{i,t} &=& M_{i,t} - C_{i,t}, \\
+M_{i,t+1} &=& R_{t+1} (M_{i,t}-C_{i,t}) + w_{t+1} Y_{i,t+1}, \\
+\end{eqnarray*}</span></p>
+<p>Additionally, assume that the distribution of the consumers over capital is given by the measure <span class="math notranslate nohighlight">\(\Gamma_t\)</span>. To close the economy, there are the market clearing conditions: <span class="math">\begin{eqnarray*}
+n_t &= \int Y{_i,t} d \Gamma_t \\
+k_{t+1} &= \int A_{i,t}^i d \Gamma_t \\
+k_{t+1}+ \int C_{i,t} d\Gamma_t &= y_t+(1-\delta)k_t
+\end{eqnarray*}</span></p>
+<p>In HARK, you can solve this basic case by using the <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> class. However, to add the consumers to the economy you need the <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> class, which is a subclass of <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> Let’s declare the economy (assuming depreciation rate <span class="math notranslate nohighlight">\(\delta = 0.025\)</span>):</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsAggShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>  <span class="c1"># module with the economy classes</span>
+
+<span class="n">AggShockExample</span> <span class="o">=</span> <span class="n">AggShockConsumerType</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">Params</span><span class="o">.</span><span class="n">init_agg_shocks</span><span class="p">,</span>
+<span class="p">)</span>  <span class="c1"># declare the consumer, using the previously prepared parameters</span>
+
+<span class="c1"># Make a Cobb-Douglas economy for the agents</span>
+<span class="n">EconomyExample</span> <span class="o">=</span> <span class="n">CobbDouglasEconomy</span><span class="p">(</span>
+    <span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">AggShockExample</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">Params</span><span class="o">.</span><span class="n">init_cobb_douglas</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Now, you can solve the economy and plot the aggregate savings function:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">EconomyExample</span><span class="o">.</span><span class="n">make_AggShkHist</span><span class="p">()</span>  <span class="c1"># Simulate a history of aggregate shocks</span>
+<span class="n">EconomyExample</span><span class="o">.</span><span class="n">give_agent_params</span><span class="p">()</span>  <span class="c1"># Distribute market-level parameters to the agents</span>
+<span class="n">AggShockExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>  <span class="c1"># solve the model</span>
+
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;capital-level steady state: &quot;</span><span class="p">,</span>
+    <span class="n">EconomyExample</span><span class="o">.</span><span class="n">kSS</span><span class="p">,</span>
+<span class="p">)</span>  <span class="c1"># print the capital-level steady stae</span>
+
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="n">AggShockExample</span><span class="o">.</span><span class="n">AFunc</span><span class="p">,</span>
+    <span class="mf">0.1</span><span class="p">,</span>
+    <span class="mi">2</span> <span class="o">*</span> <span class="n">EconomyExample</span><span class="o">.</span><span class="n">kSS</span><span class="p">,</span>
+<span class="p">)</span>  <span class="c1"># plot the aggregate savings function</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+capital-level steady state:  13.943289665216982
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_Journeys_Journey-PhD_15_1.png" src="../../_images/examples_Journeys_Journey-PhD_15_1.png" />
+</div>
+</div>
+</section>
+<section id="5.2-Market-class-structure">
+<h3>5.2 Market class structure<a class="headerlink" href="#5.2-Market-class-structure" title="Link to this heading">#</a></h3>
+<p>As in the case of the agent-type, the more complicated macroeconomic models are the subclasses of more primitive ones. The subclasses of Market include <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> and <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>. The main difference between them is that for <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code>, the capital and labour prices are endogenous, while in the (small) open economy class both are set exogenously.</p>
+<p>Nevertheless, both basic classes enable the aggregate fluctuation in the economy, that is:</p>
+<p><span class="math">\begin{eqnarray*}
+Y_{i,t}  &=& \varepsilon_t(\epsilon_{i,t}p_{i,t}\Theta_t P_t )\\
+P_{t+1} &=& P_{t}\Psi_{t+1}\\
+\Psi_{t}  &\sim & {N}(1,\sigma_{\Psi})\\
+\Theta_t  &\sim &{N}(1,\sigma_{\Theta})\\
+\end{eqnarray*}</span></p>
+<p>The consumers, which are attributes of such market classes, need to include the aggregate fluctuations of the whole economy in their optimization problem. This is the reason why the <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> class (and their subclasses) must be used to construct the macro-model.</p>
+<p>The subclass of <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> is <code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code>. In this setting, there exists an additional aggregate fluctuation in the economy (the distribution of which is given by the finite Markov matrix).</p>
+<img alt="HARK_struct_2" src="../../_images/HARK-struct-4.png" />
+</section>
+<section id="5.3-Tutorial">
+<h3>5.3 Tutorial<a class="headerlink" href="#5.3-Tutorial" title="Link to this heading">#</a></h3>
+<p>To learn the functionalities of the market-type classes in HARK we suggest studying the following notebook devoted to <a class="reference external" href="https://github.com/econ-ark/REMARK/blob/master/REMARKs/KrusellSmith.md">Krussel-Smith economy</a>. In this notebook, the classical <a class="reference external" href="https://www.journals.uchicago.edu/doi/abs/10.1086/250034?journalCode=jpe">Krussell-Smith model</a> is implemented (with some extensions) using the <code class="docutils literal notranslate"><span class="pre">CobbDouglasMarkovEconomy</span></code> class.</p>
+<p>Before that, you may want to check the main function from <a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/examples/ConsumptionSaving/example_ConsAggShockModel.ipynb">ConsAggShockModel module</a> or its <a class="reference external" href="https://github.com/econ-ark/HARK/blob/master//HARK/ConsumptionSaving/ConsAggShockModel.py">source code</a> to see the basic steps to create the market type objects.</p>
+<section id="5.3.1-If-you-want-to-learn-(a-little)-how-the-Market-class-works">
+<h4>5.3.1 If you want to learn (a little) how the Market class works<a class="headerlink" href="#5.3.1-If-you-want-to-learn-(a-little)-how-the-Market-class-works" title="Link to this heading">#</a></h4>
+<p>The Market class was designed to be a general framework for many different macro models. It involves a procedure of aggregating the agents’ choices: eg. aggregating consumption and savings (<code class="docutils literal notranslate"><span class="pre">reap_vars</span></code> in the code) and then transforming the aggregated variables (<code class="docutils literal notranslate"><span class="pre">mill_rule</span></code> in the code).</p>
+<p>If you would like to get better knowledge about this structure, first take a look at the <a class="reference external" href="https://docs.econ-ark.org/docs/overview/ARKitecture.html">Hark documentation</a>. Next, to understand how the HARK Market class works in less standard setting, look at the <a class="reference external" href="https://github.com/econ-ark/DemARK/blob/99948acb7b59cc9a6fb7de758972266fa4b03a06/notebooks/Fashion-Victim-Model.ipynb">Fashion victim model</a>.</p>
+</section>
+</section>
+</section>
+<section id="6-If-you-need-to-study-a-source-code">
+<h2>6 If you need to study a source code<a class="headerlink" href="#6-If-you-need-to-study-a-source-code" title="Link to this heading">#</a></h2>
+<p>In the previous sections we saw an example of how to solve different models using HARK. However, we know that you may also need to work with the source code for a few reasons (e.g. to learn used numerical methods, write your own code).</p>
+<p>Working directly with code (even if well-written) is a much more complicated tasks than just working with finished functions, and no tutorial will let you go through this painlessly. However, we hope that this partelaborating on the HARK structure and numerical methods will help you with this task.</p>
+<section id="6.1-A-few-more-words-on-HARK-structure">
+<h3>6.1 A few more words on HARK structure<a class="headerlink" href="#6.1-A-few-more-words-on-HARK-structure" title="Link to this heading">#</a></h3>
+<p>When you look at the <a class="reference external" href="https://github.com/econ-ark/HARK">HARK</a> sources, you will find the subdirectory called HARK. Next there is a script called “core. py”. Surprisingly, you will not find this code in many of the subclasses which you learned during this journey!</p>
+<p>The reason for this is that HARK.core.py is a core of the package: a framework for all models which can be coded in HARK. It contains the general framework of the agent-type classes (AgentType class) and for the market. The exact structure of modules in the HARK core you can find in the <a class="reference external" href="https://docs.econ-ark.org/docs/overview/ARKitecture.html#general-purpose-tools">Hark documentation</a>. Here, you can also find the general structure of the
+<a class="reference external" href="https://docs.econ-ark.org/docs/overview/ARKitecture.html#agenttype-class">AgentType</a> and <a class="reference external" href="https://docs.econ-ark.org/docs/overview/ARKitecture.html#market-class">Market classes</a>.</p>
+<p>Where are the subclasses which you’v learned during the journey? In HARK, the subclasses are located in the separate directories. For the AgentType subclasses, you need to look at HARK.ConsumptionSaving directory. For example, <code class="docutils literal notranslate"><span class="pre">PerfForesightConsumerType</span></code> and <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> can be found in ConsIndShockModel.py. Nevertheless, if you want to understand any of the HARK modules, you must first understand <code class="docutils literal notranslate"><span class="pre">HARK.core</span></code>.</p>
+</section>
+<section id="6.2-HARK-solution">
+<h3>6.2 HARK solution<a class="headerlink" href="#6.2-HARK-solution" title="Link to this heading">#</a></h3>
+<p>For the consumer problems, solutions of the one-period consumer’s problem are found using the attribute function <code class="docutils literal notranslate"><span class="pre">solve_one_period</span></code>. The inputs passed to this function also include data from the subsequent periods. Before solve_one_period is called, the function pre_solve() is applied, which prepare the solution (eg. transmit the solution of the sub-sequent period as an input).</p>
+<p>The structure of the functions which are used as solve_one_period reflects the agent-type class structures. Thus, when you will study the source code, you will first read the solve classes.</p>
+<img alt="Hark_struct3" src="../../_images/HARK-struct-3.png" />
+<section id="6.2.1-Solution-method-for-agent-problem">
+<h4>6.2.1 Solution method for agent problem<a class="headerlink" href="#6.2.1-Solution-method-for-agent-problem" title="Link to this heading">#</a></h4>
+<p>However, knowing the structure of the code may not be very beneficial if you do not know the solution method! While for the perfect foresight consumer has an analytic solution, the policy functions for the stochastic consumer (thus with the idiosyncratic or the aggregate shocks) are solved by the <strong>endogenous grid method</strong>.</p>
+<p>The method of endogenous gridpoints is now widely used in macroeconomic simulations. There are a few resources to learn it; here, we suggest Professor Carroll’s <a class="reference external" href="https://www.econ2.jhu.edu/people/ccarroll/SolvingMicroDSOPs/">lecture notes</a>. If you prefer a very quick version, we suggest appendix to the Kruger and Kindermann <a class="reference external" href="https://www.nber.org/papers/w20601.pdf">paper</a> (they develop a slightly bigger model with a different notation, but the idea is the same).</p>
+</section>
+<section id="6.2.2-Finding-general-equilibrium">
+<h4>6.2.2 Finding general equilibrium<a class="headerlink" href="#6.2.2-Finding-general-equilibrium" title="Link to this heading">#</a></h4>
+<p>In general, the rational expectations general equilibrium is found by updating the agents’ expectations and the aggregate choices up to the point at which the actual aggregated variables (like interest rate or capital) are equal to the expected ones. However, one may need to refer to the papers cited in the notebooks to understand the exact methods used.</p>
+</section>
+</section>
+<section id="6.3-How-to-study-HARK-codes">
+<h3>6.3 How to study HARK codes<a class="headerlink" href="#6.3-How-to-study-HARK-codes" title="Link to this heading">#</a></h3>
+<p>We hope that this section gave you some idea how the HARK library works. However, HARK contains much more than is discussed here. Here is some more guidance on how to continue your journey:</p>
+<ul class="simple">
+<li><p>Before you start make sure that you understand the endogenous grid method, as well as the general framework structure for AgentType and Market from <a class="reference external" href="https://docs.econ-ark.org/docs/overview/ARKitecture.html#agenttype-class">HARK documentation</a>.</p></li>
+<li><p>When working through HARK.core, make sure that you see the connection between the structure in the documentation and the code (check autodoc from the <a class="reference external" href="https://docs.econ-ark.org/docs/reference/tools/core.html">HARK documentation</a> webpage).</p></li>
+<li><p>Proceed to the ConsumptionSaving/ConsIndShockModel.py and compare the tutorials with the source code.</p></li>
+<li><p>Proceed to the ConsumptionSaving/ConsAggShockModel.py and compare the tutorial on the Market class with the source code, check <a class="reference external" href="https://docs.econ-ark.org/docs/reference/ConsumptionSaving/ConsAggShockModel.html">autodoc</a>.</p></li>
+</ul>
+<p>So in general, when you want to learn any of the modules in the HARK toolkit, first check autodoc from the <a class="reference external" href="https://docs.econ-ark.org/docs/reference/index.html">HARK documentation</a> webpage.</p>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../SequenceSpaceJacobians/SSJ-advanced-examples.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Advanced Examples of HA-SSJ’s</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsIndShockModel/PerfForesightConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Perfect Foresight Model</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#1-Introduction">1 Introduction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#2-Before-you-start">2 Before you start</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#3-Few-words-about-HARK-structure">3 Few words about HARK structure</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#4-Agent-type-class">4 Agent-type class</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.1-Introductory-example">4.1 Introductory example</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.2-The-Agent-Type-structure">4.2 The Agent-Type structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.3-Main-tutorials">4.3 Main tutorials</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#4.4-Supplementary-tutorials">4.4 Supplementary tutorials</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#5-Market-class">5 Market class</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#5.1-Introductory-example">5.1 Introductory example</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#5.2-Market-class-structure">5.2 Market class structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#5.3-Tutorial">5.3 Tutorial</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#5.3.1-If-you-want-to-learn-(a-little)-how-the-Market-class-works">5.3.1 If you want to learn (a little) how the Market class works</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#6-If-you-need-to-study-a-source-code">6 If you need to study a source code</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#6.1-A-few-more-words-on-HARK-structure">6.1 A few more words on HARK structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#6.2-HARK-solution">6.2 HARK solution</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#6.2.1-Solution-method-for-agent-problem">6.2.1 Solution method for agent problem</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#6.2.2-Finding-general-equilibrium">6.2.2 Finding general equilibrium</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#6.3-How-to-study-HARK-codes">6.3 How to study HARK codes</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

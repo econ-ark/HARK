@@ -1,0 +1,1300 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Medical Care on the Intensive Margin &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsMedModel/MedShockConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsMedModel/MedShockConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Medical Care on the Extensive Margin" href="MedExtMargConsumerType.html" />
+    <link rel="prev" title="Basic Health Investment" href="../ConsHealthModel/BasicHealthConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/example_WealthPortfolio.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Medical Care on the Intensive Margin</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsMedModel/MedShockConsumerType.ipynb">examples/ConsMedModel/MedShockConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsMedModel/MedShockConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="MedShockConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Medical-Care-on-the-Intensive-Margin">
+<h1>Medical Care on the Intensive Margin<a class="headerlink" href="#Medical-Care-on-the-Intensive-Margin" title="Link to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsMedModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">MedShockConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.rewards</span><span class="w"> </span><span class="kn">import</span> <span class="n">CRRAutility_inv</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="n">do_simulation</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+</div>
+<p>The foundational <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> lays out the standard permanent-transitory income shock structure, and the <code class="docutils literal notranslate"><span class="pre">GenIncomeProcessConsumerType</span></code> extends this to more generalized income dynamics. Extending the latter model further, <code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code> represents agents who make consumption-saving decisions subject to income risk (with one risk-free asset), and who also have a <em>second</em> consumption good that can represent medical care. Unlike ordinary consumption, medical care is subject
+to iid <em>medical need shocks</em>, representing a marginal utility shock for medical care.</p>
+<section id="Medical-Need-Shocks-Model">
+<h2>Medical Need Shocks Model<a class="headerlink" href="#Medical-Need-Shocks-Model" title="Link to this heading">#</a></h2>
+<p>The agent’s problem can be written in Bellman form as:</p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t,\eta_t) &=& \max_{C_t, H_t} U(C_t, H_t; \eta_t) + \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(M_{t+1}, P_{t+1}, \eta_{t+1})], \\
+A_t &=& M_t - C_t - \pi_t H_t, \\
+A_t &\geq& \underline{a} P_t, \\
+M_{t+1} &=& R_{t+1} A_t + Y_{t+1}, \\
+Y_{t+1} &=& P_{t+1} \theta_{t+1}, \\
+P_{t+1} &=& \gimel_{t+1}(P_t)\psi_{t+1}, \\
+\eta_{t} &\sim& G_{t},\\
+(\psi_t,\theta_t) &\sim& F_t, \qquad\mathbb{E} [\psi_t] = 1, \\
+U(C, H; \eta) &=& \frac{C^{1-\rho}}{1-\rho} + \frac{((H+\xi)/\eta)^{1-\nu}}{1-\nu}.
+\end{eqnarray*}</span></p>
+<p>The agent’s state at the moment they make their choice of action is characterized by their level of market resources <span class="math notranslate nohighlight">\(M_t\)</span>, their permanent (or persistent) income level <span class="math notranslate nohighlight">\(P_t\)</span>, and their medical needs shock <span class="math notranslate nohighlight">\(\eta_t \geq 0\)</span>. They choose their levels of ordinary consumption <span class="math notranslate nohighlight">\(C_t\)</span> and medical care <span class="math notranslate nohighlight">\(H_t\)</span> (mnemonic: health care) to maximize their utility today plus expected discounted future value.</p>
+<p>Utility flow is the sum of two CRRA terms with different coefficients, <span class="math notranslate nohighlight">\(\rho\)</span> for consumption and <span class="math notranslate nohighlight">\(\nu\)</span> for medical care. “Effective medical care” is the sum of <span class="math notranslate nohighlight">\(H_t\)</span> and a shifter term <span class="math notranslate nohighlight">\(\xi\)</span>, which can represent “self-care” (interventions that do not require formal medical care), divided by <span class="math notranslate nohighlight">\(\eta_t\)</span>. As a parameter restriction, we must have <span class="math notranslate nohighlight">\(\nu &gt; 1\)</span> so that even when medical need <span class="math notranslate nohighlight">\(\eta_t\)</span> approaches zero, utility from medical care is finite.</p>
+<p>Consumption is the implicit numeraire, and medical care has relative price <span class="math notranslate nohighlight">\(\pi_t\)</span>. The relative price could represent a coinsurance rate on care (applied to all agents), or it could be used to model <em>medical inflation</em> over time. The agent is constrained by some lower bound on how much they can borrow relative to their permanent income (often zero), and retained assets accumulate interest at risk free factor <span class="math notranslate nohighlight">\(R\)</span>.</p>
+<p>Each period, the persistent component of income is altered by some expected growth function <span class="math notranslate nohighlight">\(\gimel\)</span> (e.g. a log-linear function for an AR(1)), and subject to mean one shocks. Income flow itself is also subject to a transitory shock <span class="math notranslate nohighlight">\(\theta\)</span>, drawn jointly with permanent shock <span class="math notranslate nohighlight">\(\psi\)</span>. Medical need shocks <span class="math notranslate nohighlight">\(\eta\)</span> are drawn from some distribution <span class="math notranslate nohighlight">\(G\)</span>, and the agent survives to the next period with probability <span class="math notranslate nohighlight">\(\mathsf{S}_{t}\)</span>.</p>
+<section id="Revisions-to-the-Model">
+<h3>Revisions to the Model<a class="headerlink" href="#Revisions-to-the-Model" title="Link to this heading">#</a></h3>
+<p>Note that the utility function used here is a revision of the one used through HARK 0.17.0. In addition to adding the <span class="math notranslate nohighlight">\(\xi\)</span> parameter (<code class="docutils literal notranslate"><span class="pre">MedShift</span></code>), the older utility function placed the medical needs shock <em>outside</em> of the CRRA exponentiation:</p>
+<p><span class="math">\begin{equation*}
+U(C, H; \eta) = \frac{C^{1-\rho}}{1-\rho} + \eta \frac{H^{1-\nu}}{1-\nu}.
+\end{equation*}</span></p>
+<p>This is algebraically identical, but the distribution of <span class="math notranslate nohighlight">\(\eta\)</span> will be different. In the original specification, the standard deviation of medical need shocks would need to be scaled linearly with <span class="math notranslate nohighlight">\(\nu\)</span> in order to generate meaningful variation in medical care. The <span class="math notranslate nohighlight">\(\nu\)</span> parameter can be quite large (say, around <span class="math notranslate nohighlight">\(20\)</span>), which necessitates an extremely wide distribution of <span class="math notranslate nohighlight">\(\eta\)</span>. With the revised utility function, the distribution of <span class="math notranslate nohighlight">\(\eta\)</span> scales with
+<span class="math notranslate nohighlight">\(1 - 1/\nu\)</span>, which is close to one for all reasonable values of <span class="math notranslate nohighlight">\(\nu\)</span>.</p>
+<p>Mathematically, the <span class="math notranslate nohighlight">\(\xi\)</span> parameter can be used to endogenize the probability that the agent buys any care. With <span class="math notranslate nohighlight">\(\xi = 0\)</span>, the consumer will purchase <span class="math notranslate nohighlight">\(H_t &gt; 0\)</span> if and only if <span class="math notranslate nohighlight">\(\eta_t &gt; 0\)</span>. With <span class="math notranslate nohighlight">\(\xi &gt; 0\)</span>, there are sufficiently small but positive medical needs shocks such that the agent does not want to buy any care at all. In the default parameters below, we leave <span class="math notranslate nohighlight">\(\xi\)</span> at a very small value, barely above zero.</p>
+</section>
+</section>
+<section id="Solving-the-Medical-Needs-Shock-Model">
+<h2>Solving the Medical Needs Shock Model<a class="headerlink" href="#Solving-the-Medical-Needs-Shock-Model" title="Link to this heading">#</a></h2>
+<p>Like most other models in HARK, this problem can be solved using the endogenous grid method (EGM). As usual, define the end-of-period (marginal) value function as:</p>
+<p><span class="math">\begin{eqnarray*}
+\mathfrak{V}_t(A_t,P_t) &=& \beta \mathsf{S}_{t} \mathbb{E} [V_{t+1}(R_{t+1} A_t + \theta_{t+1}, ~~\gimel_{t+1}(P_t)\psi_{t+1}, \eta_{t+1})], \\
+\mathfrak{V}^A_t(A_t,P_t) &=& \beta R_{t+1} \mathsf{S}_{t} \mathbb{E} [V^M_{t+1}(R_{t+1} A_t + \theta_{t+1}, ~~\gimel_{t+1}(P_t)\psi_{t+1}, \eta_{t+1})].
+\end{eqnarray*}</span></p>
+<p>Substituting the first equation into the Bellman form of the model definition, we have:</p>
+<p><span class="math">\begin{eqnarray*}
+V_t(M_t,P_t,\eta_t) &=& \max_{C_t, H_t} \frac{C^{1-\rho}}{1-\rho} + \frac{((H+\xi)/\eta_t)^{1-\nu}}{1-\nu} + \mathfrak{V}_t(A_t,P_t), \\
+A_t &=& M_t - C_t - \pi_t H_t, \\
+A_t &\geq& \underline{a} P_t, \\
+\eta_{t} &\sim& G_{t},\\
+(\psi_t,\theta_t) &\sim& F_t, \qquad\mathbb{E} [\psi_t] = 1. \\
+\end{eqnarray*}</span></p>
+<p>This has two first order conditions for optimality, momentarily assuming an interior solution:</p>
+<p><span class="math">\begin{eqnarray*}
+\text{FOC-C:} ~~ & C_t^{-\rho} - \mathfrak{V}^A_t(A_t,P_t) = 0, \\
+\text{FOC-H:} ~~ & \eta_t^{\nu-1} (H_t + \xi)^{-\nu} - \pi_t \mathfrak{V}^A_t(A_t,P_t) = 0. \\
+\end{eqnarray*}</span></p>
+<p>Rearranging the FOCs yields simple forms for <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> from the end-of-period state <span class="math notranslate nohighlight">\((A_t, P_t)\)</span>:</p>
+<p><span class="math">\begin{eqnarray*}
+C_t &=& \mathfrak{V}^A_t(A_t,P_t)^{-1/\rho}, \\
+H_t &=& \eta_t^{1-1/\nu} \left( \pi_t \mathfrak{V}^A_t(A_t,P_t) \right)^{-1/\nu} - \xi = \eta_t^{1-1/\nu} \cdot \pi_t^{-1/\nu} \cdot C_t^{\rho/\nu} - \xi.
+\end{eqnarray*}</span></p>
+<p>When optimal <span class="math notranslate nohighlight">\(H_t &lt; 0\)</span>, the agent chooses <span class="math notranslate nohighlight">\(H_t = 0\)</span> instead.</p>
+<p>If you were to take the logarithm of this expression for <span class="math notranslate nohighlight">\(H_t\)</span> and consider its derivatives with respect to <span class="math notranslate nohighlight">\(\eta_t\)</span>, <span class="math notranslate nohighlight">\(\pi_t\)</span>, and <span class="math notranslate nohighlight">\(P_t\)</span>, several nice results emerge that help to interpret the parameters. First, the elasticity of medical care with respect to the medical need shock <span class="math notranslate nohighlight">\(\eta\)</span> is <span class="math notranslate nohighlight">\(1 - 1/\nu \approx 1\)</span> for large-ish <span class="math notranslate nohighlight">\(\nu\)</span>, so the scale of medical need shocks is closely related to the scale of medical care. Second, price elasticity of demand for
+medical care is <span class="math notranslate nohighlight">\(-1/\nu\)</span>. Finally, assuming that consumption scales approximately linearly with permanent income <span class="math notranslate nohighlight">\(P_t\)</span>, then the income elasticity of demand for care is close to the ratio of CRRA coefficients <span class="math notranslate nohighlight">\(\rho/\nu\)</span>.</p>
+<p>In data, higher income people do buy more care than lower income people, but not by a lot– an elasticity of maybe <span class="math notranslate nohighlight">\(0.15\)</span>. Thus even when <span class="math notranslate nohighlight">\(\rho\)</span> is fairly low (say, <span class="math notranslate nohighlight">\(1\)</span> to <span class="math notranslate nohighlight">\(3\)</span>), <span class="math notranslate nohighlight">\(\nu\)</span> can end up being in the <span class="math notranslate nohighlight">\(10\)</span> to <span class="math notranslate nohighlight">\(20\)</span> range when plausibly calibrated.</p>
+<p>Inverting the intraperiod budget constraint, we can easily recover the endogenous <span class="math notranslate nohighlight">\(M_t\)</span> gridpoint from which these optimal interior controls must have been chosen:</p>
+<p><span class="math">\begin{equation*}
+M_t = A_t + C_t + \pi_t H_t.
+\end{equation*}</span></p>
+<p>Notice that when computing end-of-period marginal value of assets <span class="math notranslate nohighlight">\(A_t\)</span>, the current period’s <span class="math notranslate nohighlight">\(\eta_t\)</span> is irrelevant– it’s a “transitory state variable” that matters at decision-time but not beyond, because its draws are not serially correlated. Thus the same computation of <span class="math notranslate nohighlight">\(\mathfrak{V}^A_t(A_t,P_t)\)</span> can be used for <em>all</em> values of interest for <span class="math notranslate nohighlight">\(\eta_t\)</span>. Very convenient!</p>
+<p>The envelope condition in this model follows the usual logic of other consumption-saving models in HARK. If an agent was consuming at an optimal unconstrained solution, and they received a marginal dollar, they are indifferent between its allocation between <span class="math notranslate nohighlight">\(A_t\)</span>, <span class="math notranslate nohighlight">\(C_t\)</span>, and <span class="math notranslate nohighlight">\(H_t\)</span> (because they were satisfying the FOCs). Hence the <em>marginal value</em> of market resources <span class="math notranslate nohighlight">\(M_t\)</span> is the composition of the marginal utility (of consumption) function with the consumption function–
+the agent “might as well” allocate the marginal dollar to consumption because they get the same marginal value for any choice.</p>
+<p>The preceding logic suggests the following general algorithm for solving one period of the medical need shocks model:</p>
+<ol class="arabic simple">
+<li><p>Choose relevant grids of <span class="math notranslate nohighlight">\(P_t\)</span> and <span class="math notranslate nohighlight">\(A_t\)</span>; it’s wise to allow the the <span class="math notranslate nohighlight">\(A_t\)</span> grid to vary by <span class="math notranslate nohighlight">\(P_t\)</span>.</p></li>
+<li><p>Choose an appropriate discretized grid of <span class="math notranslate nohighlight">\(\eta_t\)</span>, along with probability masses.</p></li>
+<li><p>Evaluate <span class="math notranslate nohighlight">\(\mathfrak{V}^A_t(A_t,P_t)\)</span> at each end-of-state gridpoint.</p></li>
+<li><p>Calculate solutions for <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> using the equations above, combining <span class="math notranslate nohighlight">\((A_t,P_t)\)</span> with the medical needs shock <span class="math notranslate nohighlight">\(\eta_t\)</span></p></li>
+<li><p>Recover the endogenous <span class="math notranslate nohighlight">\(M_t\)</span> gridpoint for each end-of-period state – medical needs shock combination.</p></li>
+<li><p>Construct interpolations of <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> over <span class="math notranslate nohighlight">\(M_t\)</span> for each <span class="math notranslate nohighlight">\((P_t, \eta_t)\)</span> pair.</p></li>
+<li><p>Make a representation of the marginal value function as the composition of the marginal utility function and consumption function.</p></li>
+<li><p>Choose a <strong>new</strong> exogenous grid of <span class="math notranslate nohighlight">\(M_t\)</span> for each <span class="math notranslate nohighlight">\(P_t\)</span>.</p></li>
+<li><p>Compute expectation of marginal value over <span class="math notranslate nohighlight">\(\eta_t\)</span> for each <span class="math notranslate nohighlight">\((M_t,P_t)\)</span> pair.</p></li>
+<li><p>Build an interpolated representation of the “expected marginal value” function, using the “pseudo-inverse” method.</p></li>
+</ol>
+</section>
+<section id="Solution-When-Liquidity-Constrained-and-Representation-of-the-Policy-Function">
+<h2>Solution When Liquidity Constrained and Representation of the Policy Function<a class="headerlink" href="#Solution-When-Liquidity-Constrained-and-Representation-of-the-Policy-Function" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">solve_one_period_ConsMedShock</span></code> function uses this algorithm in broad strokes, but an observant reader might note that we haven’t addressed the <em>liquidity constrained</em> portion of the state space. In models with only one control variable (<span class="math notranslate nohighlight">\(C_t\)</span>), this is trivial: if the agent is ending the period with the minimum allowable assets, then it <em>must</em> be that they spent all allowable market resources on consumption. In the basic case with a no-borrowing constraint, <span class="math notranslate nohighlight">\(A_t \geq 0\)</span>, being
+liquidity constrained means that <span class="math notranslate nohighlight">\(C_t = M_t\)</span>.</p>
+<p>In this model, however, there are <em>two</em> controls, <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span>. When liquidity constrained, <em>total expenditure</em> <span class="math notranslate nohighlight">\(X_t \equiv C_t + \pi_t H_t\)</span> must exhaust all available market resources, but that doesn’t tell us <em>how</em> to split them between the two goods.</p>
+<p>We already have a <em>characterization</em> of the liquidity constrained solution: the <em>intratemporal</em> FOC derived above that links optimal medical care to optimal consumption:</p>
+<p><span class="math">\begin{equation*}
+\underbrace{H_t + \xi}_{\equiv \widehat{H}_t} = \eta_t^{1-1/\nu} \cdot \pi_t^{-1/\nu} \cdot C_t^{\rho/\nu}.
+\end{equation*}</span></p>
+<p>This condition must hold at <em>all</em> points on the solution. It says that the marginal utility of a dollar spent on consumption must equal the marginal utility of a dollar spent on medical care, else the agent could reallocate and improve their outcome.</p>
+<p>(The following math and narrative is adapted from Appendix B.1 of “Heterogeneity in Willingness to Pay for Health Insurance Reform” by Khwaja and White, but most of the method there is based on the one that was originally developed for this model in HARK.)</p>
+<p>Combining the definition of total expenditure <span class="math notranslate nohighlight">\(X_t\)</span> and the intratemporal FOC yields a system of two equations with two unknowns (if we treat <span class="math notranslate nohighlight">\(X_t\)</span> as a “variable constant” whose value is known). The system has no closed form solution for <span class="math notranslate nohighlight">\((C_t,H_t)\)</span>, but that doesn’t mean we need to conduct a numeric search to solve the constrained portion of the policy function. Let’s instead do some semi-clever math, starting by substituting the intratemporal FOC into the definition of
+expenditure (and dropping the <span class="math notranslate nohighlight">\(t\)</span> subscript):</p>
+<p><span class="math">\begin{equation*}
+\underbrace{X + \pi \xi}_{\equiv \widehat{X}} = C + \pi \cdot \eta^{1-1/\nu} \cdot \pi^{-1/\nu} \cdot C^{\rho/\nu} = C + (\pi \eta)^{1-1/\nu} \cdot C^{\rho/\nu}.
+\end{equation*}</span></p>
+<p>Next (and you’ll just have to take a leap of faith with me here), we’ll define consumption’s “logit share” of adjusted expenditure <span class="math notranslate nohighlight">\(\widehat{X}\)</span> as:</p>
+<p><span class="math">\begin{equation*}
+Q \equiv -\log \left( \frac{\widehat{X}}{C} - 1\right) \Longleftrightarrow C = \frac{\widehat{X}}{1 + \exp(-Q)}.
+\end{equation*}</span></p>
+<p>This is just a change of variables whose purpose will become apparent soon enough.</p>
+<p>Now substitute the <span class="math notranslate nohighlight">\(Q\)</span>-based definition of <span class="math notranslate nohighlight">\(C\)</span> into our combined system equation above:</p>
+<p><span class="math">\begin{equation*}
+\widehat{X} = \frac{\widehat{X}}{1 + \exp(-Q)} + (\pi \eta)^{1-1/\nu} \cdot \left( \frac{\widehat{X}}{1 + \exp(-Q)} \right)^{\rho/\nu}.
+\end{equation*}</span></p>
+<p>Move the first term of the RHS over to the LHS and combine the terms under a common denominator:</p>
+<p><span class="math">\begin{equation*}
+\frac{\widehat{X} \exp(-Q)}{1 + \exp(-Q)} = (\pi \eta)^{1-1/\nu} \cdot \left( \frac{1}{1 + \exp(-Q)} \right)^{\rho/\nu} \widehat{X}^{\rho/\nu}.
+\end{equation*}</span></p>
+<p>Then divide the equation by <span class="math notranslate nohighlight">\(\widehat{X}\)</span>:</p>
+<p><span class="math">\begin{equation*}
+\frac{\exp(-Q)}{1 + \exp(-Q)} = (\pi \eta)^{1-1/\nu} \cdot \left( \frac{1}{1 + \exp(-Q)} \right)^{\rho/\nu} \widehat{X}^{\rho/\nu - 1}.
+\end{equation*}</span></p>
+<p>Take the logarithm of both sides:</p>
+<p><span class="math">\begin{equation*}
+-Q - \log(1 + \exp(-Q)) = \left(1 - \frac{1}{\nu} \right) \log(\pi \eta) - \frac{\rho}{\nu} \log(1 + \exp(-Q)) + \left(\frac{\rho}{\nu} -1\right) \log(\widehat{X}).
+\end{equation*}</span></p>
+<p>And rearrange the terms as follows:</p>
+<p><span class="math">\begin{equation*}
+\underbrace{\left(1 - \frac{\rho}{\nu} \right) \log(\widehat{X}) - \left(1 - \frac{1}{\nu} \right) \log(\pi \eta)}_{ \equiv \chi} = Q + \left(1 - \frac{\rho}{\nu} \right) \log(1 + \exp(-Q)).
+\end{equation*}</span></p>
+<p>Let’s take stock of what we have: <span class="math notranslate nohighlight">\(\rho\)</span>, <span class="math notranslate nohighlight">\(\nu\)</span>, and <span class="math notranslate nohighlight">\(\pi\)</span> are fixed parameter values, while <span class="math notranslate nohighlight">\(\widehat{X}\)</span> and <span class="math notranslate nohighlight">\(\eta\)</span> are variable objects. In the context of the model, we will know <span class="math notranslate nohighlight">\(\widehat{X}\)</span> and <span class="math notranslate nohighlight">\(\eta\)</span>, and want to recover <span class="math notranslate nohighlight">\(Q\)</span> (which in turn yields the optimal allocation of <span class="math notranslate nohighlight">\(C\)</span> and <span class="math notranslate nohighlight">\(H\)</span>). Thus the LHS has <em>only</em> parameters and known information, while the RHS has parameters and the unknown variable.</p>
+<p>This equation <em>still</em> can’t be solved in closed form for <span class="math notranslate nohighlight">\(Q\)</span>– we can easily go from <span class="math notranslate nohighlight">\(Q\)</span> to the LHS value (labeled as <span class="math notranslate nohighlight">\(\chi\)</span>), but there’s no algebraic inversion. Here’s where clever math gives way to clever computation: we don’t need an <em>algebraic</em> inversion, just a <em>numeric</em> one. We can build one by mapping values of <span class="math notranslate nohighlight">\(Q\)</span> to values of <span class="math notranslate nohighlight">\(\chi\)</span>, then interpolating those <span class="math notranslate nohighlight">\(\chi\)</span> on the grid of <span class="math notranslate nohighlight">\(Q\)</span>.</p>
+<ol class="arabic simple">
+<li><p>Choose a grid of <span class="math notranslate nohighlight">\(Q\)</span> that is dense around 0 and becomes increasingly sparse at very low and very high values.</p></li>
+<li><p>Evaluate <span class="math notranslate nohighlight">\(\chi = Q + \left(1 - \frac{\rho}{\nu} \right) \log(1 + \exp(-Q))\)</span> for each <span class="math notranslate nohighlight">\(Q\)</span> in the grid.</p></li>
+<li><p>Evaluate <span class="math notranslate nohighlight">\(\frac{\text{d}\chi}{\text{d}Q} = 1 + (1 - \rho/\nu) \exp(-Q) / (1 + \exp(-Q)\)</span> for each <span class="math notranslate nohighlight">\(Q\)</span> in the grid.</p></li>
+<li><p>Apply calculus principles to find <span class="math notranslate nohighlight">\(\frac{\text{d}Q}{\text{d}\chi} = \frac{\text{d}\chi}{\text{d}Q}^{-1}\)</span> at each point <span class="math notranslate nohighlight">\((\chi, Q)\)</span> on the grids.</p></li>
+<li><p>Make a cubic interpolation that maps from the calculated vector of <span class="math notranslate nohighlight">\(\chi\)</span> values to the grid of <span class="math notranslate nohighlight">\(Q\)</span> values, with linear extrapolation on both ends.</p></li>
+</ol>
+<p>The interpolant <span class="math notranslate nohighlight">\(\mathbf{Q}(\chi)\)</span> can be used to recover optimal <span class="math notranslate nohighlight">\(C\)</span> and <span class="math notranslate nohighlight">\(H\)</span> given total (adjusted) expenditure <span class="math notranslate nohighlight">\(\widehat{X}\)</span> and the medical needs shock <span class="math notranslate nohighlight">\(\eta\)</span>. It needs to be constructed only <em>once</em> and can be used for all periods of the model– it depends only on utility parameters <span class="math notranslate nohighlight">\(\rho\)</span> and <span class="math notranslate nohighlight">\(\nu\)</span>.</p>
+<p>Linear extrapolation is especially appropriate for this function because of its form. As <span class="math notranslate nohighlight">\(Q \rightarrow \infty\)</span>, the exponential term goes to zero, so the log factor goes to 0, leaving only the first term of <span class="math notranslate nohighlight">\(Q\)</span>. On the other side, as <span class="math notranslate nohighlight">\(Q \rightarrow -\infty\)</span>, the log factor approaches <span class="math notranslate nohighlight">\(-Q\)</span>, so the entire expression approaches <span class="math notranslate nohighlight">\(\frac{\rho}{\nu} Q\)</span>. That is, the function is <em>asymptotically linear</em> on both ends, bending from a lower slope of <span class="math notranslate nohighlight">\(\frac{\rho}{\nu}\)</span> to
+an upper slope of one.</p>
+<p>Recall that the motivation for this discussion was that on the constrained portion of the state space, we know total expenditure <span class="math notranslate nohighlight">\(X_t\)</span> but not how to allocate it. The upshot is that we can actually represent the entire policy function as the <em>expenditure function</em> <span class="math notranslate nohighlight">\(\mathbf{X}_t(M_t, P_t, \eta_t)\)</span> and then recover <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> using <span class="math notranslate nohighlight">\(\mathbf{Q}(\chi)\)</span> when they are needed. That is, step (6) of the “general solution algorithm” above should actually construct the
+expenditure function, not separate consumption and medical care functions… and the constrained portion is just the standard slope 1 segment as usual!</p>
+<p>Putting it all together, suppose we solved the model and have expenditure function <span class="math notranslate nohighlight">\(\mathbf{X}_t(\cdot)\)</span> and pre-computed <span class="math notranslate nohighlight">\(\mathbf{Q}(\cdot)\)</span>. When simulating the model, the agent is at some state space point <span class="math notranslate nohighlight">\((M_t,P_t,\eta_t)\)</span>, and we want to know <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span>. We would do the following:</p>
+<ol class="arabic simple">
+<li><p>Find total expenditure as <span class="math notranslate nohighlight">\(X_t = \mathbf{X}_t(M_t, P_t, \eta_t)\)</span>.</p></li>
+<li><p>If <span class="math notranslate nohighlight">\(\eta_t = 0\)</span> or <span class="math notranslate nohighlight">\(X_t \leq \pi_t^{1/\rho} \cdot \xi^{\nu/\rho} \cdot \eta^{(1 - \nu) / \rho}\)</span>, then <span class="math notranslate nohighlight">\(C_t = X_t\)</span> and <span class="math notranslate nohighlight">\(H_t = 0\)</span>.</p></li>
+<li><p>Otherwise, calculate adjusted expenditure as <span class="math notranslate nohighlight">\(\widehat{X}_t = X_t + \pi_t \xi\)</span>.</p></li>
+<li><p>Calculate <span class="math notranslate nohighlight">\(\chi_t = \left(1 - \frac{\rho}{\nu} \right) \log(\widehat{X}_t) - \left(1 - \frac{1}{\nu} \right) \log(\pi_t \eta_t)\)</span>.</p></li>
+<li><p>Find the “logit share” for consumption as <span class="math notranslate nohighlight">\(Q_t = \mathbf{Q}(\chi_t)\)</span>.</p></li>
+<li><p>Calculate consumption as <span class="math notranslate nohighlight">\(C_t = \widehat{X}_t / (1 + \exp(-Q_t))\)</span>.</p></li>
+<li><p>Calculate medical care as <span class="math notranslate nohighlight">\(H_t = (M_t - C_t) / \pi_t - \xi\)</span>.</p></li>
+</ol>
+<p>This method is used by the class <code class="docutils literal notranslate"><span class="pre">cAndMedFunc</span></code> to represent the consumption and medical spending functions. The “transformed consumption share function” <span class="math notranslate nohighlight">\(\mathbf{Q}(\chi)\)</span> is represented in HARK with instances of the class <code class="docutils literal notranslate"><span class="pre">TransConShareFunc</span></code>. Each <code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code> instance builds this function and stores it as the attribute <code class="docutils literal notranslate"><span class="pre">qFunc</span></code>.</p>
+<p>In step 2, the critical level of spending at which the agent would want to optimially buy <em>exactly</em> zero medical care can be derived from the intraperiod FOC between <span class="math notranslate nohighlight">\(C_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> by setting <span class="math notranslate nohighlight">\(H_t = 0\)</span> and solving for <span class="math notranslate nohighlight">\(C_t = X_t\)</span>.</p>
+</section>
+<section id="Example-Parameters-for-MedShockConsumerType">
+<h2>Example Parameters for MedShockConsumerType<a class="headerlink" href="#Example-Parameters-for-MedShockConsumerType" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Param</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Constructed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p>0.96</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Coefficient of relative risk aversion for consumption</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p>2.0</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\nu\)</span></p></td>
+<td><p>Coefficient of relative risk aversion for medical care</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRAmed</span></code></p></td>
+<td><p>5.0</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\xi_t\)</span></p></td>
+<td><p>Additive shifter for medical care in utility; “self care”</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedShift</span></code></p></td>
+<td><p>[1e-8]</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R_t\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p>[1.03]</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\pi_t\)</span></p></td>
+<td><p>Relative price of medical care</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedPrice</span></code></p></td>
+<td><p>[1.5]</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathsf{S}_{t}\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p>[0.98]</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BoroCnstArt</span></code></p></td>
+<td><p>0.0</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Indicator of whether <code class="docutils literal notranslate"><span class="pre">vFunc</span></code> should be computed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">vFuncBool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(F\)</span></p></td>
+<td><p>Distribution of permanent &amp; transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(G\)</span></p></td>
+<td><p>Distribution of medical need shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MedShkDstn</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\gimel_t\)</span></p></td>
+<td><p>Expected persistent income next period, as a function of current value</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathbf{Q}(\chi)\)</span></p></td>
+<td><p>Transformed consumption share function</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">qFunc</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Array of persistent income levels</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Array of end-of-period assets-above-minimum values</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraGrid</span></code></p></td>
+<td><ul class="simple">
+<li></li>
+</ul>
+</td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="Constructed-Inputs-for-MedShockConsumerType">
+<h2>Constructed Inputs for MedShockConsumerType<a class="headerlink" href="#Constructed-Inputs-for-MedShockConsumerType" title="Link to this heading">#</a></h2>
+<p>The default parameter dictionary for <code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code> specifies several key model inputs as constructed inputs, as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">construct_lognormal_income_process_unemployment</span></code>, like most other consumption-saving models in HARK. In turn, <code class="docutils literal notranslate"><span class="pre">PermShkDstn</span></code> and <code class="docutils literal notranslate"><span class="pre">TranShkDstn</span></code> are constructed by separating the components of <code class="docutils literal notranslate"><span class="pre">IncomeDstn</span></code> (sometimes useful).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">aXtraGrid</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_assets_grid</span></code>, like other HARK models. For non-permanent-income-normalized models like this one, it is still interpreted as <em>normalized</em> assets above minimum, so the actual <span class="math notranslate nohighlight">\(A_t\)</span> grid used for each <span class="math notranslate nohighlight">\(P_t\)</span> is multiplied by that <span class="math notranslate nohighlight">\(P_t\)</span>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_AR1_style_pLvlNextFunc</span></code>, which specifies <span class="math notranslate nohighlight">\(\gimel_t\)</span> as log-linear in <span class="math notranslate nohighlight">\(p_t\)</span> based on <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> and <code class="docutils literal notranslate"><span class="pre">PrstIncCorr</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pLvlGrid</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_pLvlGrid_by_simulation</span></code>, which does what it says on the tin. It uses the subsidiary constructed attribute <code class="docutils literal notranslate"><span class="pre">pLvlPctiles</span></code> and simulates the model’s sequence of persistent income dynamics, extracting the designated percentiles and storing them in a grid. This method is robust to any shock structure and <code class="docutils literal notranslate"><span class="pre">pLvlNextFunc</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pLvlPctiles</span></code> in turn has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_basic_pLvlPctiles</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MedShkDstn</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_lognormal_MedShkDstn</span></code>, which relies on time-varying inputs like <code class="docutils literal notranslate"><span class="pre">MedShkAvg</span></code> and <code class="docutils literal notranslate"><span class="pre">MedShkStd</span></code>. The default parameter set has these as contants, but you can easily provide a constructor for those distribution parameters to make (e.g.) polynomial-in-age <code class="docutils literal notranslate"><span class="pre">MedShkAvg</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">qFunc</span></code> has a default constructor of <code class="docutils literal notranslate"><span class="pre">make_qFunc</span></code>, which is only one line long: it makes and returns and instance of <code class="docutils literal notranslate"><span class="pre">TransConShareFunc</span></code> using <code class="docutils literal notranslate"><span class="pre">CRRA</span></code> and <code class="docutils literal notranslate"><span class="pre">CRRAmed</span></code>.</p></li>
+</ul>
+</section>
+<section id="Example-Implementation-of-MedShockConsumerType">
+<h2>Example Implementation of MedShockConsumerType<a class="headerlink" href="#Example-Implementation-of-MedShockConsumerType" title="Link to this heading">#</a></h2>
+<p>The one period problem for this model is solved by the function <code class="docutils literal notranslate"><span class="pre">solve_one_period_ConsMedShock</span></code>. The class <code class="docutils literal notranslate"><span class="pre">MedShockConsumerType</span></code> extends <code class="docutils literal notranslate"><span class="pre">PersistentShockConsumerType</span></code> from <code class="docutils literal notranslate"><span class="pre">GenIncProcessModel</span></code> to represent agents in this model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve an example medical shocks consumer type with mostly default parameters</span>
+<span class="n">MedicalExample</span> <span class="o">=</span> <span class="n">MedShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vFuncBool</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">t_start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MedicalExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t_end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon medical shocks consumer took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\ConsumptionSaving\ConsMedModel.py:209: RuntimeWarning: divide by zero encountered in power
+  xLvlCrit = self.factor * MedShk ** ((1.0 - self.CRRAmed) / self.CRRA)
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\ConsumptionSaving\ConsMedModel.py:450: RuntimeWarning: divide by zero encountered in divide
+  (MedGrid + MedShift_T) / MedShkGrid_tiled, rho=CRRAmed
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving an infinite horizon medical shocks consumer took 48.6889 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function holding permanent income fixed</span>
+<span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="n">pLvl</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">pLvl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">MedShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pmv</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+    <span class="n">MedShk</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">MedShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;mLvlMin&quot;</span><span class="p">](</span><span class="n">pLvl</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;PolicyFunc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">MedShk</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Consumption function by medical need shock (constant permanent income P = 1)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Consumption level $C_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function by medical need shock (constant permanent income P = 1)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_32_1.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_32_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function holding medical needs shock fixed</span>
+<span class="n">eta</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">MedShk</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;mLvlMin&quot;</span><span class="p">](</span><span class="n">pLvl</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;PolicyFunc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">MedShk</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;Consumption function by permanent income (constant medical needs shock eta = 2)&quot;</span>
+<span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Consumption level $C_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Consumption function by permanent income (constant medical needs shock eta = 2)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_33_1.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_33_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the medical care function holding permanent income fixed</span>
+<span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="n">pLvl</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">pLvl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">MedShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pmv</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+    <span class="n">MedShk</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">MedShkDstn</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;mLvlMin&quot;</span><span class="p">](</span><span class="n">pLvl</span><span class="p">)</span>
+    <span class="n">Med</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;PolicyFunc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">MedFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">MedShk</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">Med</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Medical care function by medical need shock (constant permanent income P = 1)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Medical care level $H_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Medical care function by medical need shock (constant permanent income P = 1)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_34_1.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_34_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the medical care function holding medical needs shock fixed</span>
+<span class="n">eta</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">MedShk</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;mLvlMin&quot;</span><span class="p">](</span><span class="n">pLvl</span><span class="p">)</span>
+    <span class="n">Med</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;PolicyFunc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">MedFunc</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">MedShk</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">Med</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;Medical care function by permanent income (constant medical needs shock eta = 2)&quot;</span>
+<span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Medical care level $H_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Medical care function by permanent income (constant medical needs shock eta = 2)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_35_1.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_35_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the marginal value function (expectation after income shocks but before medical needs shock)</span>
+<span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+    <span class="n">pLvl</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">p</span><span class="p">]</span>
+    <span class="n">P</span> <span class="o">=</span> <span class="n">pLvl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+    <span class="n">vP</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;vPfunc&quot;</span><span class="p">](</span><span class="n">M</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">CRRA</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">vP</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Marginal value function (pseudo inverse)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Pseudo-inverse marg value $(u&#39;)^{-1}(V_t^M(M_t,P_t))$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Marginal value function (pseudo inverse)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\rewards.py:79: RuntimeWarning: divide by zero encountered in power
+  return c**-rho
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_36_2.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_36_2.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">vFuncBool</span><span class="p">:</span>
+    <span class="c1"># Plot the value function (expectation after income shocks but before medical needs)</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+        <span class="n">pLvl</span> <span class="o">=</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">pLvlGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">p</span><span class="p">]</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="n">pLvl</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+        <span class="n">M_temp</span> <span class="o">=</span> <span class="n">M</span> <span class="o">+</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;mLvlMin&quot;</span><span class="p">](</span><span class="n">pLvl</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">CRRAutility_inv</span><span class="p">(</span>
+            <span class="n">MedicalExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;vFunc&quot;</span><span class="p">](</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">P</span><span class="p">),</span>
+            <span class="n">MedicalExample</span><span class="o">.</span><span class="n">CRRA</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">M_temp</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Value function (pseudo inverse)&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">30.0</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Market resources level $M_t$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Pseudo-inverse value $u^{-1}(V_t(M_t,P_t))$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\rewards.py:55: RuntimeWarning: divide by zero encountered in reciprocal
+  return c ** (1.0 - rho) / (1.0 - rho)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Value function (pseudo inverse)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_37_2.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_37_2.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">do_simulation</span><span class="p">:</span>
+    <span class="n">t_start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="n">MedicalExample</span><span class="o">.</span><span class="n">T_sim</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">MedicalExample</span><span class="o">.</span><span class="n">track_vars</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;cLvl&quot;</span><span class="p">,</span> <span class="s2">&quot;MedLvl&quot;</span><span class="p">]</span>
+    <span class="n">MedicalExample</span><span class="o">.</span><span class="n">initialize_sim</span><span class="p">()</span>
+    <span class="n">MedicalExample</span><span class="o">.</span><span class="n">simulate</span><span class="p">()</span>
+    <span class="n">t_end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s2">&quot;Simulating &quot;</span>
+        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">AgentCount</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot; agents for &quot;</span>
+        <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">T_sim</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot; periods took &quot;</span>
+        <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating 10000 agents for 100 periods took 6.4094 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">do_simulation</span><span class="p">:</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;aLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;retained assets&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;cLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;consumption&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">MedicalExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;MedLvl&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;medical care&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">MedicalExample</span><span class="o">.</span><span class="n">T_sim</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Population means during simulation&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Time $t$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsMedModel_MedShockConsumerType_39_0.png" src="../../_images/examples_ConsMedModel_MedShockConsumerType_39_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsHealthModel/BasicHealthConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Basic Health Investment</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="MedExtMargConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Medical Care on the Extensive Margin</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Medical-Need-Shocks-Model">Medical Need Shocks Model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Revisions-to-the-Model">Revisions to the Model</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Medical-Needs-Shock-Model">Solving the Medical Needs Shock Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solution-When-Liquidity-Constrained-and-Representation-of-the-Policy-Function">Solution When Liquidity Constrained and Representation of the Policy Function</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Parameters-for-MedShockConsumerType">Example Parameters for MedShockConsumerType</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Constructed-Inputs-for-MedShockConsumerType">Constructed Inputs for MedShockConsumerType</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Implementation-of-MedShockConsumerType">Example Implementation of MedShockConsumerType</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

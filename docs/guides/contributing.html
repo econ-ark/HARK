@@ -1,0 +1,1133 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Contributing to Econ-ARK &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/guides/contributing';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/guides/contributing.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Overview" href="../overview/index.html" />
+    <link rel="prev" title="Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0" href="migration_case_study.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Usage</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">HARK installation guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">New Simulation System and Model Specification Files for HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="krusell_smith.html">Krusell-Smith Model in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_case_study.html">Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Contributing to Econ-ARK</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Contributing to Econ-ARK</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="contributing-to-econ-ark">
+<h1>Contributing to Econ-ARK<a class="headerlink" href="#contributing-to-econ-ark" title="Link to this heading">#</a></h1>
+<section id="code-of-conduct">
+<h2>Code of Conduct<a class="headerlink" href="#code-of-conduct" title="Link to this heading">#</a></h2>
+<p>The Econ-ARK project has a <a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md">Code of Conduct</a>
+to which all contributors must adhere.
+See details in the <a class="reference external" href="https://github.com/econ-ark/HARK/blob/master/.github/CODE_OF_CONDUCT.md">written policy statement</a>.</p>
+</section>
+<section id="welcome">
+<h2>Welcome!<a class="headerlink" href="#welcome" title="Link to this heading">#</a></h2>
+<p>Thank you for considering contributing to Econ-ARK!
+We’re a young project with a small but committed community
+that’s hoping to grow while maintaining our friendly and responsive culture.
+Whether you’re an economist or a technologist,
+a writer or a coder, an undergrad or a full professor,
+a professional or a hobbyist, there’s a place for you in the Econ-ARK community.</p>
+<p>We’re still creating our contribution infrastructure,
+so this document is a work in progress.
+If you have any questions, please feel free to &#64;
+or otherwise reach out to project leaders <a class="reference external" href="https://github.com/llorracc">Chris</a> and <a class="reference external" href="https://github.com/mnwhite">Matt</a>.
+If you prefer to connect through email,
+you can send it to <strong>econ-ark at jhuecon dot org</strong>.
+We also have a (rarely used) <a class="reference external" href="https://discord.gg/RwHg7sZrPY">Discord channel</a>.</p>
+</section>
+<section id="how-to-contribute">
+<h2>How to Contribute<a class="headerlink" href="#how-to-contribute" title="Link to this heading">#</a></h2>
+<p>We’re open to all kinds of contributions, from bug reports to help with our
+docs to suggestions on how to improve our code. The best way to figure out
+if the contribution you’d like to make is something we’d merge or otherwise
+accept, is to open up an issue in our issue tracker. Please create an issue
+rather than immediately submitting a pull request, unless the change you’d like
+to make is so minor you won’t mind if the pull request is rejected. For
+bigger contributions, we want to proactively talk things through, so that we
+don’t end up wasting your time.</p>
+<p>While we’re thrilled to receive all kinds of contributions,
+there are a few key areas we’d especially like help with:</p>
+<ul class="simple">
+<li><p>porting existing heterogeneous agent/agent-based models into HARK</p></li>
+<li><p>curating and expanding the collection of projects which use Econ-ARK
+(which we store in the <a class="reference external" href="https://github.com/econ-ark/REMARK">REMARK</a> repository)</p></li>
+<li><p>creating demonstrations of how to use Econ-ARK
+(which we store in the <a class="reference external" href="https://github.com/econ-ark/DemARK">DemARK</a> repository)</p></li>
+<li><p>expanding test coverage of our existing code</p></li>
+</ul>
+<p>If you’d like to help with those or any other kind of contribution,
+reach out to us, and we’ll help you to do so.</p>
+<p>We don’t currently have guidelines for opening issues or pull requests,
+so include as much information as seems relevant to you,
+and we’ll ask you if we need to know more.</p>
+</section>
+<section id="responding-to-issues-and-pull-requests">
+<h2>Responding to Issues and Pull Requests<a class="headerlink" href="#responding-to-issues-and-pull-requests" title="Link to this heading">#</a></h2>
+<p>We’re trying to get better at managing our open issues and pull requests.
+We’ve created a new set of goals for all issues and pull requests in our Econ-ARK repos:</p>
+<ol class="arabic simple">
+<li><p>Initial response within one or two days.</p></li>
+<li><p>Substantive response within two weeks.</p></li>
+<li><p>Resolution of issue/pull request within three months.</p></li>
+</ol>
+<p>If you’ve been waiting on us for more than two weeks for any reason,
+please feel free to give us a nudge.
+Correspondingly, we ask that you respond to any questions or requests
+from us within two weeks as well,
+even if it’s just to say, “Sorry, I can’t get to this for a while yet”.
+If we don’t hear back from you, we may close your issue or pull request.
+If you want to re-open it, just ask—we’re glad to do so.</p>
+</section>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">#</a></h2>
+<p>The Contributing Guide below provides instructions for how to get started running HARK.
+This also serves as a setup guide for new contributors.
+If you run into any problems, please let us know by opening an issue in the issue tracker.</p>
+<p>Thanks again! We’re so glad to have you in our community.</p>
+<section id="contributing-guide">
+<h3>Contributing Guide<a class="headerlink" href="#contributing-guide" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p>If you are a first-time contributor:</p>
+<ul>
+<li><p>Go to https://github.com/econ-ark/HARK and click the
+“fork” button to create your own copy of the project. If you are new to GitHub, you can perform the next steps using GitHub Desktop as well.</p></li>
+<li><p>Clone the project to your local computer</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:your-username/HARK
+</pre></div>
+</div>
+</li>
+<li><p>Navigate to the folder HARK and add the upstream repository</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>git@github.com:econ-ark/HARK
+</pre></div>
+</div>
+</li>
+<li><p>Now, have remote repositories named:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">upstream</span></code>, which refers to the <code class="docutils literal notranslate"><span class="pre">HARK</span></code> repository</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">origin</span></code>, which refers to your personal fork of <code class="docutils literal notranslate"><span class="pre">HARK</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Develop your contribution:</p>
+<ul>
+<li><p>Pull the latest changes from upstream</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">checkout</span> <span class="n">master</span>
+<span class="n">git</span> <span class="n">pull</span> <span class="n">upstream</span> <span class="n">master</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create a branch for the feature you want to work on.
+Since the
+branch name will appear in the merge message, use a sensible name
+such as ‘bugfix-for-issue-220’</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">checkout</span> <span class="o">-</span><span class="n">b</span> <span class="n">bugfix</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">issue</span><span class="o">-</span><span class="mi">220</span>
+</pre></div>
+</div>
+</li>
+<li><p>Commit locally as you progress (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">add</span></code> and <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code>)</p></li>
+</ul>
+</li>
+<li><p>To submit your contribution:</p>
+<ul>
+<li><p>Push your changes back to your fork on GitHub</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">push</span> <span class="n">origin</span> <span class="n">bugfix</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">issue</span><span class="o">-</span><span class="mi">220</span>
+</pre></div>
+</div>
+</li>
+<li><p>Go to GitHub.
+The new branch will show up with a green Pull Request
+button—click it.</p></li>
+</ul>
+</li>
+<li><p>Review process:</p>
+<ul class="simple">
+<li><p>Reviewers (the other developers and interested community members) will
+write inline and/or general comments on your Pull Request (PR) to help
+you improve its implementation, documentation, and style.
+Every single
+developer working on the project has their code reviewed, and we’ve come
+to see it as friendly conversation from which we all learn and the
+overall code quality benefits.
+Therefore, please don’t let the review
+discourage you from contributing: its only aim is to improve the quality
+of the project, not to criticize
+(we are, after all, very grateful for the time you’re donating!).</p></li>
+<li><p>To update your pull request, make your changes in your local repository
+and commit.
+As soon as those changes are pushed up
+(to the same branch as before)
+the pull request will update automatically.</p></li>
+<li><p><a class="reference external" href="https://github.com/econ-ark/HARK/actions">GitHub Actions</a>,
+a continuous integration service,
+is triggered after each Pull Request update to build the code and run unit
+tests of your branch.
+The tests must pass before your PR can be merged.
+If the tests fail, you can find out why by clicking on the “failed” icon
+(red cross) and inspecting the build and test log.</p></li>
+</ul>
+</li>
+</ol>
+<p>NOTE: If closing a bug, also add “Fixes #1480” where 1480 is the issue number.</p>
+</section>
+<section id="build-environment-setup">
+<h3>Build environment setup<a class="headerlink" href="#build-environment-setup" title="Link to this heading">#</a></h3>
+<p>Once you’ve cloned your fork of the HARK repository,
+you should set up a Python development environment tailored for HARK.
+HARK currently supports Python 3.10 to 3.13; we recommend version 3.13.
+You may choose the environment manager of your choice.
+Here we provide instructions for two popular environment managers:
+<code class="docutils literal notranslate"><span class="pre">venv</span></code> (pip-based) and <code class="docutils literal notranslate"><span class="pre">conda</span></code> (Anaconda or Miniconda).</p>
+<section id="venv">
+<h4>venv<a class="headerlink" href="#venv" title="Link to this heading">#</a></h4>
+<p>When using <code class="docutils literal notranslate"><span class="pre">venv</span></code>, you may find the following bash commands useful</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a virtualenv named ``econ-dev`` that lives in the directory of</span>
+<span class="c1"># the same name</span>
+python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>econ-dev
+<span class="c1"># Activate it</span>
+<span class="nb">source</span><span class="w"> </span>econ-dev/bin/activate
+<span class="c1"># Build and install HARK from source with developer requirements</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+<span class="c1"># Test your installation</span>
+pytest<span class="w"> </span>HARK/
+</pre></div>
+</div>
+</section>
+<section id="conda">
+<h4>conda<a class="headerlink" href="#conda" title="Link to this heading">#</a></h4>
+<p>When using conda, you may find the following bash commands useful</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a conda environment named ``econ-dev``</span>
+conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>econ-dev<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.13
+<span class="c1"># Activate it</span>
+conda<span class="w"> </span>activate<span class="w"> </span>econ-dev
+<span class="c1"># Build and install HARK from source with developer requirements</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+<span class="c1"># Test your installation</span>
+pytest<span class="w"> </span>HARK/
+</pre></div>
+</div>
+</section>
+</section>
+<section id="guidelines">
+<h3>Guidelines<a class="headerlink" href="#guidelines" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>All code should have tests.</p></li>
+<li><p>All code should be documented, to the same
+<a class="reference external" href="https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard">standard</a>
+as NumPy and SciPy.</p></li>
+<li><p>All changes are reviewed.</p></li>
+<li><p><a class="reference external" href="https://docs.astral.sh/ruff/"><code class="docutils literal notranslate"><span class="pre">ruff</span></code></a> is used to handle code style requirements.</p></li>
+</ul>
+</section>
+<section id="naming-conventions">
+<h3>Naming Conventions<a class="headerlink" href="#naming-conventions" title="Link to this heading">#</a></h3>
+<p>The following conventions apply throughout HARK:</p>
+<ul class="simple">
+<li><p>Functions and methods are always in ‘’snake case’’: underscores separating
+each word in the name; capital letters only for abbreviations (e.g. <code class="docutils literal notranslate"><span class="pre">SS</span></code>
+for “steady state”) or when referring to a variable name.</p></li>
+<li><p>Function and method names should accurately and concisely describe what the function does;
+the first word in the name <em>must be a verb</em> in the imperative tense
+(e.g. <code class="docutils literal notranslate"><span class="pre">make_assets_grid</span></code>).</p></li>
+<li><p>Variable and class names <em>should not</em> have a verb as their first word.</p></li>
+<li><p>Class names should use no underscores and capitalize the first letter of each word;
+moreover, a class name <em>must include a noun</em>, e.g. <strong><em>ConsumerSolution</em></strong>.</p></li>
+</ul>
+<p>When naming variables in model modules, the HARK team strongly discourages
+using single letter names, like <code class="docutils literal notranslate"><span class="pre">c</span></code> for consumption. Likewise, you should
+generally not use variable names that are simply the math symbol for that
+variable, like <code class="docutils literal notranslate"><span class="pre">theta</span></code>. The primary exception to this rule is when writing
+small functions (2-5 lines) whose purpose is clear in context: the function’s
+name is descriptive, and when it is actually called, “properly named”
+variables are passed to it.</p>
+<p>In general, we encourage contributors to use longer, more descriptive variable
+names using additional words and common abbreviations to specify the variable
+more precisely. You may find it useful to look through HARK’s code to get a
+sense of the variable naming style, but here are some commonly used abbreviations:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">k</span></code> : capital holdings at the very beginning of a period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">c</span></code> : consumption</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m</span></code> : market resources (cash on hand)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">a</span></code> : end-of-period assets (after all actions are accomplished)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">b</span></code> : bank balances after interest but before labor income</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">y</span></code> : labor income</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">p</span></code> : permanent/persistent income or productivity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">h</span></code> : human wealth (usually) OR health</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">v</span></code> : value (in the Bellman sense)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">t</span></code> : time generally; can refer to “this period” when used as <code class="docutils literal notranslate"><span class="pre">_t</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T</span></code> : terminal period, or the count of periods in some sense</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Lvl</span></code> : absolute level</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Nrm</span></code> : normalized by permanent/persistent income level</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Now</span></code> : pertaining to the current period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Next</span></code> : pertaining to the succeeding period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Prev</span></code> : pertaining to the prior period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Func</span></code> : function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">P</span></code> : “prime” as a shorthand for first derivative of a univariate function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PP</span></code> : “prime prime” as a shorthand for second derivative of a univariate function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Nvrs</span></code> : “pseudo-inverse”, values decurved by the inverse (marginal) utility function</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Xtra</span></code> : quantity above the minimum allowable for something</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Dstn</span></code> : distribution</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Shk</span></code> : shock or random variable</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Cnst</span></code> : constrained or constraint</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Unc</span></code> : un-constrained</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Perm</span></code> : pertaining to the permanent or persistent component of income</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Trans</span></code> : pertaining to the transitory component of income</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Prb</span></code> : probability</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ex</span></code> : expected or expectation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Avg</span></code> : average or mean (is often <code class="docutils literal notranslate"><span class="pre">Mean</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Std</span></code> : standard deviation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Var</span></code> : variance</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Val</span></code> : values (as in numeric quantities)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Init</span></code> : initial, as in “at the moment the model starts”</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPC</span></code> : marginal propensity to consume</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Min</span></code> : minimum, lower bound, or infimum</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Max</span></code> : maximum, upper bound, or supremum</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SS</span></code> : steady state</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PF</span></code> : perfect foresight</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EndOfPrd</span></code> : end-of-period</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Fac</span></code> : factor</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rte</span></code> : rate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Liv</span></code> : live or survive</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Boro</span></code> : borrow</p></li>
+</ul>
+<p>These abbreviations are usually combined to make short but descriptive names.
+For example, the consumption function when ignoring the borrowing constraint
+is <code class="docutils literal notranslate"><span class="pre">cFuncUnc</span></code>; normalized market resources that might be achieved next period
+are <code class="docutils literal notranslate"><span class="pre">mNrmNext</span></code>; and the marginal marginal value function this period is <code class="docutils literal notranslate"><span class="pre">vPPfuncNow</span></code>.
+Additional descriptors beyond abbreviations like this usually use underscores,
+e.g. <code class="docutils literal notranslate"><span class="pre">vFunc_before_PrefShk</span></code>.</p>
+<p>Variable naming conventions within functions in HARK’s numeric tool modules
+(like <code class="docutils literal notranslate"><span class="pre">HARK.interpolation</span></code>) is significantly looser than in the model files in
+<code class="docutils literal notranslate"><span class="pre">HARK.ConsumptionSaving</span></code>. We want the economic code to be as clear and specific
+as reasonably possible: exactly what consumption do you mean here? In contrast,
+the numeric methods employed within the numeric tool modules are usually well
+known. As long as your code is well commented and variable names are reasonable
+in context, it’s probably fine.</p>
+<p>We strongly encourage you to be liberal with code comments. For each section of
+code that does something mathematically or economically describable, put a
+comment above it that says what it does, and leave a line break between such
+snippets. If there is an “unusual” line of code that deals with an unexpected
+issue or complication, leave a short comment in-line.</p>
+</section>
+<section id="documentation-convention">
+<h3>Documentation Convention<a class="headerlink" href="#documentation-convention" title="Link to this heading">#</a></h3>
+<p>The HARK team wants the toolKit to be as accessible to users as possible;
+our greatest fear (other than spiders, of course) is that a new user will open up our code,
+get hopelessly confused trying to read it, and then never look at HARK again.
+To prevent this tragic outcome, we have tried hard to provide comprehensive,
+accurate documentation and comments within the code describing our methods.
+HARK uses the Sphinx utility to generate a website with <a class="reference external" href="https://docs.econ-ark.org/">online documentation</a>
+for all of our tool and model modules, so that users can learn about what’s
+available in HARK without digging through the source code. Moreover, many of the
+example notebooks are automatically rendered to the website. When making contributions
+to HARK, the development team asks users to format their inline documentation to
+work with Sphinx by following a few simple rules.</p>
+<ul class="simple">
+<li><p>The top of every module should begin with a docstring providing a clear description
+of the contents of the module. The first sentence should concisely summarize the file,
+as it may appear in an index or summary of all modules without the remaining sentences.
+A docstring at the top of a module should be formatted as:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Specifies an economic model and provides methods for solving it.</span>
+
+<span class="sd">More specific description of the key features of the model and variations of it in this module.</span>
+
+<span class="sd">Maybe some comments about the solution method or limitations of the model.</span>
+
+<span class="sd">Your bank account routing number.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The line directly below the declaration of a function, method or class should begin a docstring describing that object.
+As with modules, the first sentence should concisely summarize the function or class,
+as it might be included in an index or summary.
+For functions and methods, the docstring should be formatted as:</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">function_name</span><span class="p">(</span><span class="n">input1</span><span class="p">,</span> <span class="n">input2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concise description of the function. More details about what</span>
+<span class="sd">    the function does, options or modes available, and maybe mathematical</span>
+<span class="sd">    methods used. Credit to a source if you poached their algorithm.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    input1: type</span>
+<span class="sd">        Description of what input1 represents.</span>
+<span class="sd">    input2: type</span>
+<span class="sd">        Description of what input2 represents.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    output_name: type</span>
+<span class="sd">        Description of the output(s) of the function.  Might have</span>
+<span class="sd">        multiple entries.  If no output, this is just &quot;None&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Provide ample comments within a function or method so that a relatively
+intelligent reader can follow along with your algorithm. Short comments can
+follow at the end of a line, longer comments (or descriptions of the step
+or task about to be performed) should precede a block of code on the line(s) above it.</p></li>
+</ul>
+<p>Finally, if you write a new model, the HARK team asks that you also provide
+a writeup of the model in a Jupyter notebook. The notebook should be put into
+<code class="docutils literal notranslate"><span class="pre">/examples/ModuleName/</span></code> and named <code class="docutils literal notranslate"><span class="pre">AgentTypeSubclassName.ipynb</span></code>,
+e.g. <code class="docutils literal notranslate"><span class="pre">/examples/ConsIndShockModel/IndShockConsumerType.ipynb</span></code>.
+This document does not need to go into great detail about the solution method for
+the model or the functions and classes included in the module, but it should:</p>
+<ul class="simple">
+<li><p>Provide a brief textual description of the model, focusing on the feature(s) that
+make it different from other models in HARK.</p></li>
+<li><p>Specify the problem mathematically in Bellman form.</p></li>
+<li><p>(Optional) Explain how the problem is solved, in broad strokes.</p></li>
+<li><p>Provide a mapping from model symbols to names in code.</p></li>
+<li><p>(Optional) Describe or summarize the default constructors used.</p></li>
+<li><p>Solve one or more examples of the model, maybe just using default parameters, and display policy and/or value functions.</p></li>
+</ul>
+<p>The docstring for an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass should be substantial and include the following:</p>
+<ul class="simple">
+<li><p>A brief textual description of the model, noting the feature(s) that make it different from other models in HARK.</p></li>
+<li><p>The one-period problem stated mathematically in Bellman form.</p></li>
+<li><p>(Optional) Describe or summarize the default constructors used.</p></li>
+</ul>
+<section id="contributing-to-documentation">
+<h4>Contributing to Documentation<a class="headerlink" href="#contributing-to-documentation" title="Link to this heading">#</a></h4>
+<p>Econ-ARK’s documentation is managed with <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a>.
+The documentation is written in <a class="reference external" href="https://www.restructuredtext.org">reStructuredText</a> and
+<a class="reference external" href="https://myst-parser.readthedocs.io/en/latest/index.html">MyST Markdown</a>.</p>
+<p>Contributing to documentation involves editing the file you want to change,
+and creating a pull request in the usual fashion above.
+All changes to documentation are automatically rendered and deployed to
+<code class="docutils literal notranslate"><span class="pre">docs.econ-ark.org</span></code> by our automated infrastructure.</p>
+<p>To test your changes to the documentation locally, you can render as follows:</p>
+<ol class="arabic">
+<li><p>Install the dependencies for the documentation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>doc<span class="o">]</span>
+<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pandoc
+</pre></div>
+</div>
+</li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code>:</p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>sphinx-build<span class="w"> </span>-M<span class="w"> </span>html<span class="w"> </span>.<span class="w"> </span>HARK-docs<span class="w"> </span>-T<span class="w"> </span>-c<span class="w"> </span>docs<span class="w"> </span>-W
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>View the rendered HTML by opening the
+<code class="docutils literal notranslate"><span class="pre">./HARK-docs/html/index.html</span></code> file.</p></li>
+</ol>
+</section>
+<section id="adding-examples-to-the-documentation">
+<h4>Adding examples to the documentation<a class="headerlink" href="#adding-examples-to-the-documentation" title="Link to this heading">#</a></h4>
+<p>HARK’s example notebooks are stored in the <code class="docutils literal notranslate"><span class="pre">examples/</span></code> directory.
+Every pull request to HARK automatically reruns every example notebook
+to keep them up to date.</p>
+<p>To add a notebook from the examples folder to the documentation, add a link
+to the notebook to the <code class="docutils literal notranslate"><span class="pre">docs/overview/index.rst</span></code> file. It should
+the format <code class="docutils literal notranslate"><span class="pre">../../examples/AAA/BBB.ipynb</span></code>. Then add a link to the notebook
+in the <code class="docutils literal notranslate"><span class="pre">docs/example_notebooks/Include_list.txt</span></code> file. It should have
+the format <code class="docutils literal notranslate"><span class="pre">examples/AAA/BBB.ipynb</span></code>.</p>
+<p>Sphinx requires its example notebooks to have a title, and headings in order of
+decreasing size. Make sure the notebook you added has those qualities before you push.
+Otherwise sphinx will fail to build.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Make sure not to include the HARK-docs folder in your pull request if you’re
+testing locally. HARK will automatically build this file when the pull request
+is made. Including the HARK-docs folder may create unexpected conflicts.</p>
+<p>If you would like to build the documentation without warnings being treated as errors use the command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">       </span>sphinx-build<span class="w"> </span>-M<span class="w"> </span>html<span class="w"> </span>.<span class="w"> </span>HARK-docs<span class="w"> </span>-T<span class="w"> </span>-c<span class="w"> </span>docs
+</pre></div>
+</div>
+<p>This lets you see every warning without sphinx quitting after the first issue it finds.
+If you’re doing this, make sure to delete the HARK-docs folder before running it again.
+Otherwise it won’t show the warnings again, and you won’t be able to check if they’ve been fixed.</p>
+</div>
+</section>
+</section>
+<section id="testing">
+<h3>Testing<a class="headerlink" href="#testing" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">HARK</span></code> has a test suite that ensures correct execution on your system.
+The test suite has to pass before a pull request can be merged, and tests should
+be added to cover any modifications to the code base.</p>
+<p>We make use of the <a class="reference external" href="https://docs.pytest.org/en/latest/">pytest</a> and unittests
+testing framework, with all tests located in <code class="docutils literal notranslate"><span class="pre">/tests/</span></code> and its subdirectories,
+which match the subdirectory structure of <code class="docutils literal notranslate"><span class="pre">/HARK/</span></code>.</p>
+<p>To use <code class="docutils literal notranslate"><span class="pre">pytest</span></code>, ensure that the library is installed in development mode</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>Now, run all tests using</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pytest<span class="w"> </span>HARK
+</pre></div>
+</div>
+<p>Or the tests for a specific submodule</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pytest<span class="w"> </span>HARK/ConsumptionSaving
+</pre></div>
+</div>
+<p>Or tests from a specific file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pytest<span class="w"> </span>HARK/ConsumptionSaving/tests/test_ConsAggShockModel.py
+</pre></div>
+</div>
+<p>To view current coverage of HARK’s tests, see <a class="reference external" href="https://remote-unzip.deno.dev/econ-ark/HARK/main">here</a>, which is also
+linked from the front page of the GitHub repo. The Pytest coverage is automatically
+re-run and re-published every Sunday. Some sections of code are hard or
+impossible to reach within <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and are thus exempted; this includes platform-specific
+code and all <code class="docutils literal notranslate"><span class="pre">numba</span></code> functions that are marked for compilation with <code class="docutils literal notranslate"><span class="pre">&#64;jit</span></code>, as well
+as very unusual exceptions that are difficult to build tests for.</p>
+</section>
+<section id="pre-commit-hooks">
+<h3>Pre-commit Hooks<a class="headerlink" href="#pre-commit-hooks" title="Link to this heading">#</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">HARK</span></code> uses <a class="reference external" href="https://pre-commit.com/">pre-commit</a> to ensure that all code is well
+organized and formatted, as well as to ensure the integrity of example notebooks.
+To install <code class="docutils literal notranslate"><span class="pre">pre-commit</span></code>, run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pre-commit
+$<span class="w"> </span>pre-commit<span class="w"> </span>install
+</pre></div>
+</div>
+<p>Once you do this, it will run the pre-commit hooks on every commit while only
+affecting modified files. If you want to run the pre-commit hooks manually on every
+file, run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</pre></div>
+</div>
+<p>Because this is an optional feature, it does not come installed with <code class="docutils literal notranslate"><span class="pre">HARK</span></code> by default.
+This is to avoid overhead for new users and contributors who might be new to GitHub
+and software development in general.</p>
+<p>If you are having issues with pre-commit, and just want to commit your changes, you can
+use the <code class="docutils literal notranslate"><span class="pre">--no-verify</span></code> flag to bypass the pre-commit hooks.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;commit message&quot;</span><span class="w"> </span>--no-verify
+</pre></div>
+</div>
+<p>If you do this, please alert one of the core developers so that we can review your
+changes to make sure that there are no issues and that your code is formatted correctly.</p>
+<p>The following pre-commit hooks are currently configured:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://docs.astral.sh/ruff/">ruff</a> file formatting</p></li>
+<li><p>[pre-commit-hooks] fix end-of-file, trailing whitespace, and requirements.txt</p></li>
+</ul>
+<p>If you are interested in using pre-commit, please see the <a class="reference external" href="https://pre-commit.com/">pre-commit documentation</a> for more information.</p>
+</section>
+<section id="pull-request-codes">
+<h3>Pull Request Codes<a class="headerlink" href="#pull-request-codes" title="Link to this heading">#</a></h3>
+<p>When you submit a pull request to GitHub, GitHub will ask you for a summary.
+If your code is not ready to merge, but you want to get feedback, please consider
+using <code class="docutils literal notranslate"><span class="pre">[WIP]</span> <span class="pre">experimental</span> <span class="pre">optimization</span></code> or similar for the title of your pull
+request. That way we will all know that it’s not yet ready to merge and that
+you may be interested in more fundamental comments about design.</p>
+<p>When you think the pull request is ready to merge, change the title (using the
+<em>Edit</em> button) to remove the <code class="docutils literal notranslate"><span class="pre">[WIP]</span></code>.</p>
+</section>
+<section id="bugs">
+<h3>Bugs<a class="headerlink" href="#bugs" title="Link to this heading">#</a></h3>
+<p>Please <a class="reference external" href="https://github.com/econ-ark/HARK/issues">report bugs on GitHub</a>.</p>
+</section>
+</section>
+<section id="developer-s-certificate-of-origin-1-1">
+<h2>Developer’s Certificate of Origin 1.1<a class="headerlink" href="#developer-s-certificate-of-origin-1-1" title="Link to this heading">#</a></h2>
+<p>By making a contribution to this project, I certify that:</p>
+<ul class="simple">
+<li><p>(a) The contribution was created in whole or in part by me and I
+have the right to submit it under the open source license
+indicated in the file; or</p></li>
+<li><p>(b) The contribution is based upon previous work that, to the best
+of my knowledge, is covered under an appropriate open source
+license and I have the right under that license to submit that
+work with modifications, whether created in whole or in part
+by me, under the same open source license (unless I am
+permitted to submit under a different license), as indicated
+in the file; or</p></li>
+<li><p>(c) The contribution was provided directly to me by some other
+person who certified (a), (b) or (c) and I have not modified
+it.</p></li>
+<li><p>(d) I understand and agree that this project and the contribution
+are public and that a record of the contribution (including all
+personal information I submit with it, including my sign-off) is
+maintained indefinitely and may be redistributed consistent with
+this project or the open source license(s) involved.</p></li>
+</ul>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="migration_case_study.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../overview/index.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Overview</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#code-of-conduct">Code of Conduct</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#welcome">Welcome!</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-to-contribute">How to Contribute</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#responding-to-issues-and-pull-requests">Responding to Issues and Pull Requests</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#getting-started">Getting Started</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#contributing-guide">Contributing Guide</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-environment-setup">Build environment setup</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#venv">venv</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#conda">conda</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#guidelines">Guidelines</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#naming-conventions">Naming Conventions</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#documentation-convention">Documentation Convention</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#contributing-to-documentation">Contributing to Documentation</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#adding-examples-to-the-documentation">Adding examples to the documentation</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#testing">Testing</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pre-commit-hooks">Pre-commit Hooks</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pull-request-codes">Pull Request Codes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bugs">Bugs</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#developer-s-certificate-of-origin-1-1">Developer’s Certificate of Origin 1.1</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
