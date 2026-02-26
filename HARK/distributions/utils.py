@@ -513,7 +513,9 @@ def calc_expectation(dstn, func=None, *args, **kwargs):
         f_query = []
         for i in range(len(dstn.pmv)):
             temp_dict = {
-                key: float(dstn.variables[key][i]) for key in dstn.variables.keys()
+                key: float(dstn.variables[key][i])
+                for key in dstn.variables.keys()
+                if "atom" in dstn.dataset[key].dims
             }
             f_query.append(func(temp_dict, *args, **kwargs))
     else:
