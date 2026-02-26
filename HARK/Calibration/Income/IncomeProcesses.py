@@ -639,7 +639,6 @@ def construct_markov_lognormal_income_process_unemployment(
             IncUnemp_K = IncUnemp.shape[0]
         K = PermShkStd_K
         assert K == TranShkStd_K
-        assert K == TranShkStd_K
         assert K == UnempPrb_K
         assert K == IncUnemp_K
     except:
@@ -1477,3 +1476,77 @@ def make_persistent_income_process_dict(
         "pLvlMean": pLvlMean,
     }
     return IncomeProcessDict
+
+
+###############################################################################
+
+
+def combine_ind_and_agg_income_shocks(IncShkDstnInd, AggShkDstn, RNG, T_cycle):
+    """
+    Updates attribute IncShkDstn by combining idiosyncratic shocks with aggregate shocks.
+
+    Parameters
+    ----------
+    IncShkDstnInd : [DiscreteDistribution]
+        Age-varying list of idiosyncratic income shock distributions.
+    AggShkDstn : DiscreteDistribution
+        Aggregate productivity shock distribution.
+    RNG : RandomState
+        Internal random number generator.
+    T_cycle : int
+        Number of periods in the agent's sequence of problems.
+
+    Returns
+    -------
+    IncShkDstn : [DiscreteDistribution]
+        Combined idiosyncratic and aggregate income shocks, discretized, by age.
+    """
+    IncShkDstn = [
+        combine_indep_dstns(
+            IncShkDstnInd[t], AggShkDstn, seed=RNG.integers(0, 2**31 - 1)
+        )
+        for t in range(T_cycle)
+    ]
+    return IncShkDstn
+
+
+def combine_markov_ind_and_agg_income_shocks(
+    IncShkDstnInd, AggShkDstn, MrkvArray, RNG, T_cycle
+):
+    """
+    Updates attribute IncShkDstn by combining idiosyncratic shocks with aggregate shocks,
+    for a model with an aggregate Markov discrete state.
+
+    Parameters
+    ----------
+    IncShkDstnInd : [DiscreteDistribution]
+        Age-varying list of idiosyncratic income shock distributions.
+    AggShkDstn : DiscreteDistribution
+        Aggregate productivity shock distribution.
+    MrkvArray : np.array
+        Markov transition matrix among discrete macroeconomic states.
+    RNG : RandomState
+        Internal random number generator.
+    T_cycle : int
+        Number of periods in the agent's sequence of problems.
+
+    Returns
+    -------
+    IncShkDstn : [[DiscreteDistribution]]
+        Combined idiosyncratic and aggregate income shocks, discretized, by age
+        and Markov state.
+    """
+    IncShkDstn = []
+    N = MrkvArray.shape[0]
+    for t in range(T_cycle):
+        IncShkDstn.append(
+            [
+                combine_indep_dstns(
+                    IncShkDstnInd[t][n],
+                    AggShkDstn[n],
+                    seed=RNG.integers(0, 2**31 - 1),
+                )
+                for n in range(N)
+            ]
+        )
+    return IncShkDstn
