@@ -26,10 +26,13 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     MargValueFuncCRRA,
     MargMargValueFuncCRRA,
+    HARKinterpolator1D,
 )
 
 import numpy as np
 import unittest
+
+from tests import HARK_PRECISION
 
 
 class TestInterp1D(unittest.TestCase):
@@ -72,20 +75,26 @@ class TestInterp1D(unittest.TestCase):
     def test_der(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivative(self.test_vals)
+        checks = HARKinterpolator1D._der(self.interpolant, self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_allclose(derivs, checks, 1e-5)
 
     def test_eval_and_der(self):
         if self.interpolant is None:
             return
         output = self.interpolant(self.test_vals)
         vals, ders = self.interpolant.eval_with_derivative(self.test_vals)
+        checks, d_checks = HARKinterpolator1D._evalAndDer(
+            self.interpolant, self.test_vals
+        )
         self.assertTrue(np.all(np.logical_not(np.isnan(ders))))
         self.assertTrue(np.all(np.logical_not(np.isinf(ders))))
         self.assertTrue(np.all(np.isclose(output, vals)))
+        np.testing.assert_almost_equal(ders, d_checks, HARK_PRECISION)
 
 
 class TestInterp2D(unittest.TestCase):
@@ -131,20 +140,26 @@ class TestInterp2D(unittest.TestCase):
     def test_derX(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeX(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derX(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
     def test_derY(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeY(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derY(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
 
 class TestInterp3D(TestInterp2D):
@@ -176,11 +191,14 @@ class TestInterp3D(TestInterp2D):
     def test_derZ(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeZ(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base.derivativeZ(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
 
 class TestInterp4D(TestInterp3D):

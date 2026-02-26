@@ -4,7 +4,7 @@ This file tests whether HARK's models are initialized correctly.
 
 # Bring in modules we need
 import unittest
-
+from copy import deepcopy
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -15,6 +15,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.Calibration.Income.IncomeProcesses import (
+    construct_lognormal_income_process_with_mvg_medical_expenses,
+)
 
 
 class testInitialization(unittest.TestCase):
@@ -101,3 +104,29 @@ class testInitialization(unittest.TestCase):
             self.fail(
                 "MarkovConsumerType failed to initialize with boom/bust unemployment."
             )
+
+
+class testMVGmedExpenseShockDstn(unittest.TestCase):
+    def setUp(self):
+        params = deepcopy(init_lifecycle)
+        params["constructors"] = {
+            "IncShkDstn": construct_lognormal_income_process_with_mvg_medical_expenses
+        }
+        params["age_min"] = 25
+        self.params = params
+
+    def testCollege(self):
+        CollegeType = IndShockConsumerType(**self.params)
+        CollegeType.solve()
+        self.ColType = CollegeType
+        self.assertEqual(CollegeType.TranShkDstn[0].pmv.size, 8)
+        self.assertEqual(CollegeType.TranShkDstn[30].pmv.size, 56)
+
+    def testHighSchool(self):
+        HS_params = deepcopy(self.params)
+        HS_params["CollegeBool"] = False
+        HighSchoolType = IndShockConsumerType(**HS_params)
+        HighSchoolType.solve()
+        self.HStype = HighSchoolType
+        self.assertEqual(HighSchoolType.TranShkDstn[0].pmv.size, 8)
+        self.assertEqual(HighSchoolType.TranShkDstn[30].pmv.size, 56)

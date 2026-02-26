@@ -298,3 +298,10 @@ uv.lock
 .specstory/
 .cursorignore
 .cursorindexingignore
+
+# Generated test artifacts
+test.jpg
+test.pdf
+test.png
+test.svg
+test_progress.txt
