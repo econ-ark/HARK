@@ -17,7 +17,7 @@ Release Date: TBD
 There are some breaking changes:
 
 - `AgentType` subclasses that had a `get_economy_data` method now use the general `AgentType.get_market_params` method, which exactly replicates their prior operation. See #1719
-- As a consequence of the above, random seeds on the distributions some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
+- As a consequence of the above, random seeds on the distributions of some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
 
 #### Major Changes
 

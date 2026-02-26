@@ -825,7 +825,7 @@ class AggShockConsumerType(IndShockConsumerType):
 
     To be able to fully build and solve an instance of this class, assign it as an
     instance of the agents attribute of an appropriate Market, then run that Market's
-    give_agent_params method. This will distribution market-level parameters and
+    give_agent_params method. This will distribute market-level parameters and
     instruct the agents to run their construct method. You should then be able to
     run the solve method on the Market or its agents.
     """
@@ -1082,7 +1082,7 @@ class AggShockMarkovConsumerType(AggShockConsumerType):
 
     To be able to fully build and solve an instance of this class, assign it as an
     instance of the agents attribute of an appropriate Market, then run that Market's
-    give_agent_params method. This will distribution market-level parameters and
+    give_agent_params method. This will distribute market-level parameters and
     instruct the agents to run their construct method. You should then be able to
     run the solve method on the Market or its agents.
     """
@@ -1371,7 +1371,7 @@ class KrusellSmithType(AgentType):
 
     To be able to fully build and solve an instance of this class, assign it as an
     instance of the agents attribute of an appropriate Market, then run that Market's
-    give_agent_params method. This will distribution market-level parameters and
+    give_agent_params method. This will distribute market-level parameters and
     instruct the agents to run their construct method. You should then be able to
     run the solve method on the Market or its agents.
     """
