@@ -1011,6 +1011,11 @@ def construct_lognormal_income_process_with_mvg_medical_expenses(
     IncShkDstn = []
     for t in range(T_cycle):
         age = age_min + t
+        if age >= len(exp_shks_all):
+            raise ValueError(
+                f"Age {age} is outside the supported calibration range for expense shocks "
+                f"(maximum supported index is {len(exp_shks_all) - 1})."
+            )
         exp_shks_t = exp_shks_all[age]
 
         # If age <= 50, just use the baseline income shock distribution
