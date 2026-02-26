@@ -58,6 +58,73 @@ def _validate_shock_keys(
         )
 
 
+def _base_continuation(
+    transitions,
+    post_state: dict[str, Any],
+    shocks: dict[str, Any],
+    value_next: "ValueFuncCRRALabeled",
+    params: "SimpleNamespace",
+    return_factor: Any,
+) -> dict[str, Any]:
+    """
+    Shared computation kernel for stochastic continuation methods.
+
+    Computes the next state, permanent income scaling (psi), value (v),
+    marginal value (v_der), contributions, and aggregate value that are
+    common to all stochastic transition classes.
+
+    Parameters
+    ----------
+    transitions : Transitions instance
+        The calling transitions object, whose ``post_state`` method is
+        used to map the post-decision state forward through shocks.
+    post_state : dict
+        Post-decision state (e.g. containing 'aNrm').
+    shocks : dict
+        Realized shocks for this quadrature node (must include 'perm').
+    value_next : ValueFuncCRRALabeled
+        Next period's value function, callable and with a ``derivative``
+        method.
+    params : SimpleNamespace
+        Model parameters; must expose ``PermGroFac`` and ``CRRA``.
+    return_factor : scalar, array, or callable
+        Factor that scales the marginal value ``v_der``.  Pass
+        ``params.Rfree`` for IndShock, ``shocks["risky"]`` for
+        RiskyAsset, ``1.0`` for Portfolio (which applies its own scaling
+        afterward), or a callable ``(next_state) -> factor`` when the
+        factor depends on ``next_state`` (e.g. ``lambda ns: ns["rPort"]``
+        for FixedPortfolio).
+
+    Returns
+    -------
+    dict
+        Variables dict containing: all entries from ``next_state``,
+        ``psi``, ``v``, ``v_der``, ``contributions``, and ``value``.
+    """
+    variables = {}
+    next_state = transitions.post_state(post_state, shocks, params)
+    variables.update(next_state)
+
+    psi = params.PermGroFac * shocks["perm"]
+    variables["psi"] = psi
+
+    # Allow return_factor to depend on next_state without a second post_state call.
+    if callable(return_factor):
+        factor = return_factor(next_state)
+    else:
+        factor = return_factor
+
+    variables["v"] = psi ** (1 - params.CRRA) * value_next(next_state)
+    variables["v_der"] = (
+        factor * psi ** (-params.CRRA) * value_next.derivative(next_state)
+    )
+
+    variables["contributions"] = variables["v"]
+    variables["value"] = np.sum(variables["v"])
+
+    return variables
+
+
 @runtime_checkable
 class Transitions(Protocol):
     """
@@ -261,23 +328,9 @@ class IndShockTransitions:
         dict
             Continuation value variables.
         """
-        variables = {}
-        next_state = self.post_state(post_state, shocks, params)
-        variables.update(next_state)
-
-        # Permanent income scaling
-        psi = params.PermGroFac * shocks["perm"]
-        variables["psi"] = psi
-
-        variables["v"] = psi ** (1 - params.CRRA) * value_next(next_state)
-        variables["v_der"] = (
-            params.Rfree * psi ** (-params.CRRA) * value_next.derivative(next_state)
+        return _base_continuation(
+            self, post_state, shocks, value_next, params, params.Rfree
         )
-
-        variables["contributions"] = variables["v"]
-        variables["value"] = np.sum(variables["v"])
-
-        return variables
 
 
 class RiskyAssetTransitions:
@@ -359,23 +412,9 @@ class RiskyAssetTransitions:
         dict
             Continuation value variables.
         """
-        variables = {}
-        next_state = self.post_state(post_state, shocks, params)
-        variables.update(next_state)
-
-        psi = params.PermGroFac * shocks["perm"]
-        variables["psi"] = psi
-
-        variables["v"] = psi ** (1 - params.CRRA) * value_next(next_state)
-        # Risky return scales marginal value
-        variables["v_der"] = (
-            shocks["risky"] * psi ** (-params.CRRA) * value_next.derivative(next_state)
+        return _base_continuation(
+            self, post_state, shocks, value_next, params, shocks["risky"]
         )
-
-        variables["contributions"] = variables["v"]
-        variables["value"] = np.sum(variables["v"])
-
-        return variables
 
 
 class FixedPortfolioTransitions:
@@ -466,25 +505,9 @@ class FixedPortfolioTransitions:
         dict
             Continuation value variables.
         """
-        variables = {}
-        next_state = self.post_state(post_state, shocks, params)
-        variables.update(next_state)
-
-        psi = params.PermGroFac * shocks["perm"]
-        variables["psi"] = psi
-
-        variables["v"] = psi ** (1 - params.CRRA) * value_next(next_state)
-        # Portfolio return scales marginal value
-        variables["v_der"] = (
-            next_state["rPort"]
-            * psi ** (-params.CRRA)
-            * value_next.derivative(next_state)
+        return _base_continuation(
+            self, post_state, shocks, value_next, params, lambda ns: ns["rPort"]
         )
-
-        variables["contributions"] = variables["v"]
-        variables["value"] = np.sum(variables["v"])
-
-        return variables
 
 
 class PortfolioTransitions:
@@ -555,9 +578,10 @@ class PortfolioTransitions:
         """
         Compute continuation value with optimal portfolio.
 
-        Also computes derivatives needed for portfolio optimization:
-        - dvda: used for consumption FOC
-        - dvds: used for portfolio FOC (should equal 0 at optimum)
+        Uses ``return_factor=1.0`` so that ``v_der`` is unscaled.
+        Then adds ``dvda`` (portfolio return times ``v_der``) for the
+        consumption FOC and ``dvds`` (excess return times assets times
+        ``v_der``) for the portfolio FOC (should equal 0 at optimum).
 
         Parameters
         ----------
@@ -577,23 +601,12 @@ class PortfolioTransitions:
         dict
             Continuation value variables including dvda and dvds.
         """
-        variables = {}
-        next_state = self.post_state(post_state, shocks, params)
-        variables.update(next_state)
-
-        psi = params.PermGroFac * shocks["perm"]
-        variables["psi"] = psi
-
-        variables["v"] = psi ** (1 - params.CRRA) * value_next(next_state)
-        variables["v_der"] = psi ** (-params.CRRA) * value_next.derivative(next_state)
-
-        # Derivatives for portfolio optimization
-        variables["dvda"] = next_state["rPort"] * variables["v_der"]
-        variables["dvds"] = (
-            next_state["rDiff"] * post_state["aNrm"] * variables["v_der"]
+        variables = _base_continuation(
+            self, post_state, shocks, value_next, params, 1.0
         )
 
-        variables["contributions"] = variables["v"]
-        variables["value"] = np.sum(variables["v"])
+        # Derivatives for portfolio optimization
+        variables["dvda"] = variables["rPort"] * variables["v_der"]
+        variables["dvds"] = variables["rDiff"] * post_state["aNrm"] * variables["v_der"]
 
         return variables

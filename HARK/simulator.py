@@ -603,50 +603,42 @@ class SimBlock:
                         "Could not find a function called " + event._func_name + "!"
                     )
 
-    def make_transition_matrices(self, grid_specs, twist=None, norm=None):
+    def _build_input_grids(self, grid_specs, arrival_N):
         """
-        Construct a transition matrix for this block, moving from a discretized
-        grid of arrival variables to a discretized grid of end-of-block variables.
-        User specifies how the grids of pre-states should be built. Output is
-        stored in attributes of self as follows:
+        Build input and output grid dictionaries from grid specifications.
 
-        - matrices : A dictionary of arrays that cast from the arrival state space
-                     to the grid of outcome variables. Doing np.dot(dstn, matrices[var])
-                     will yield the discretized distribution of that outcome variable.
-        - grids : A dictionary of discretized grids for outcome variables. Doing
-                  np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
-                  of that outcome in the population.
+        Creates grids_in for arrival variables and grids_out for outcome variables,
+        tracking which arrival variables have been covered and whether each output
+        grid is continuous.
 
         Parameters
         ----------
         grid_specs : dict
-            Dictionary of dictionaries of grid specifications. For now, these have
-            at most a minimum value, a maximum value, a number of nodes, and a poly-
-            nomial order. They are equispaced if a min and max are specified, and
-            polynomially spaced with the specified order > 0 if provided. Otherwise,
-            they are set at 0,..,N if only N is provided.
-        twist : dict or None
-            Mapping from end-of-period (continuation) variables to successor's
-            arrival variables. When this is specified, additional output is created
-            for the "full period" arrival-to-arrival transition matrix.
-        norm : str or None
-            Name of the shock variable by which to normalize for Harmenberg
-            aggregation. By default, no normalization happens.
+            Dictionary of grid specifications keyed by variable name.
+        arrival_N : int
+            Number of arrival variables in this block.
 
         Returns
         -------
-        None
+        grids_in : dict
+            Grids for arrival (input) variables.
+        grids_out : dict
+            Grids for outcome (output) variables.
+        continuous_grid_out_bool : list
+            List of booleans indicating whether each output grid is continuous.
+        grid_orders : dict
+            Polynomial order for each variable grid (-1 for discrete, None if unknown).
+        dummy_grid : np.ndarray or None
+            Dummy grid used only when arrival_N == 0.
         """
-        # Initialize dictionaries of input and output grids
-        arrival_N = len(self.arrival)
         completed = arrival_N * [False]
         grids_in = {}
         grids_out = {}
+        dummy_grid = None
         if arrival_N == 0:  # should only be for initializer block
             dummy_grid = np.array([0])
             grids_in["_dummy"] = dummy_grid
 
-        # Construct a grid for each requested variable
         continuous_grid_out_bool = []
         grid_orders = {}
         for var in grid_specs.keys():
@@ -684,66 +676,106 @@ class SimBlock:
         for j in range(len(self.arrival)):
             if not completed[j]:
                 raise ValueError(
-                    "No grid specification was provided for " + self.arrival[var] + "!"
+                    "No grid specification was provided for " + self.arrival[j] + "!"
                 )
 
-        # If an intertemporal twist was specified, make result grids for continuation variables.
-        # This overrides any grids for these variables that were explicitly specified
-        if twist is not None:
-            for cont_var in twist.keys():
-                arr_var = twist[cont_var]
-                if cont_var not in list(grids_out.keys()):
-                    is_cont = grids_in[arr_var].dtype is np.dtype(np.float64)
-                    continuous_grid_out_bool.append(is_cont)
-                grids_out[cont_var] = copy(grids_in[arr_var])
-                grid_orders[cont_var] = grid_orders[arr_var]
+        return grids_in, grids_out, continuous_grid_out_bool, grid_orders, dummy_grid
+
+    def _build_twist_grids(
+        self, twist, grids_in, grid_orders, grids_out, continuous_grid_out_bool
+    ):
+        """
+        Override output grids with arrival-matching grids for continuation variables.
+
+        When an intertemporal twist is provided, the result grids for continuation
+        variables are set to match the corresponding arrival variable grids.
+
+        Parameters
+        ----------
+        twist : dict
+            Mapping from continuation variable names to arrival variable names.
+        grids_in : dict
+            Grids for arrival variables.
+        grid_orders : dict
+            Polynomial orders for each variable grid (modified in place).
+        grids_out : dict
+            Grids for output variables (modified in place).
+        continuous_grid_out_bool : list
+            Boolean continuity flags for output grids (extended in place).
+
+        Returns
+        -------
+        grids_out : dict
+            Updated output grids.
+        grid_orders : dict
+            Updated grid orders.
+        grid_out_is_continuous : np.ndarray
+            Boolean array indicating continuity of each output grid.
+        """
+        for cont_var in twist.keys():
+            arr_var = twist[cont_var]
+            if cont_var not in list(grids_out.keys()):
+                is_cont = grids_in[arr_var].dtype is np.dtype(np.float64)
+                continuous_grid_out_bool.append(is_cont)
+            grids_out[cont_var] = copy(grids_in[arr_var])
+            grid_orders[cont_var] = grid_orders[arr_var]
         grid_out_is_continuous = np.array(continuous_grid_out_bool)
+        return grids_out, grid_orders, grid_out_is_continuous
 
-        # Make meshes of all the arrival grids, which will be the initial simulation data
-        if arrival_N > 0:
-            state_meshes = np.meshgrid(
-                *[grids_in[k] for k in self.arrival], indexing="ij"
-            )
-        else:  # this only happens in the initializer block
-            state_meshes = [dummy_grid.copy()]
-        state_init = {
-            self.arrival[k]: state_meshes[k].flatten() for k in range(arrival_N)
-        }
-        N_orig = state_meshes[0].size
-        mesh_tuples = [
-            [state_init[self.arrival[k]][n] for k in range(arrival_N)]
-            for n in range(N_orig)
-        ]
+    def _project_onto_output_grids(
+        self,
+        grids_out,
+        grid_out_is_continuous,
+        grid_orders,
+        cont_vars,
+        twist,
+        N_orig,
+        J,
+        N,
+    ):
+        """
+        Project quasi-simulation results onto the discretized output grids.
 
-        # Quasi-simulate this block
-        self.run_quasi_sim(state_init, norm=norm)
+        Loops over each output variable, dispatching to the appropriate
+        aggregation routine based on whether the grid is continuous or discrete.
+
+        Parameters
+        ----------
+        grids_out : dict
+            Output grids (may be updated for None grids).
+        grid_out_is_continuous : np.ndarray
+            Boolean continuity flags for each output variable.
+        grid_orders : dict
+            Polynomial orders for each variable grid.
+        cont_vars : list
+            Names of continuation variables.
+        twist : dict or None
+            The intertemporal twist mapping (used only to check if provided).
+        N_orig : int
+            Number of original arrival-state grid points.
+        J : int
+            Size of the arrival state mesh.
+        N : int
+            Number of agents in this block.
+
+        Returns
+        -------
+        matrices_out : dict
+            Transition matrices for each output variable.
+        cont_idx : dict
+            Lower-bracket indices for continuation variables.
+        cont_alpha : dict
+            Interpolation weights for continuation variables.
+        cont_M : dict
+            Grid sizes for continuation variables.
+        cont_discrete : dict
+            Whether each continuation variable uses a discrete grid.
+        grids_out : dict
+            Updated output grids (some None entries may be filled in).
+        grid_out_is_continuous : np.ndarray
+            Updated continuity flags (may be changed for size-1 float grids).
+        """
         origin_array = self.origin_array
-
-        # Add survival to output if mortality is in the model
-        if "dead" in self.data.keys():
-            grids_out["dead"] = None
-
-        # Get continuation variable names, making sure they're in the same order
-        # as named by the arrival variables. This should maybe be done in the
-        # simulator when it's initialized.
-        if twist is not None:
-            cont_vars_orig = list(twist.keys())
-            temp_dict = {twist[var]: var for var in cont_vars_orig}
-            cont_vars = []
-            for var in self.arrival:
-                cont_vars.append(temp_dict[var])
-            if "dead" in self.data.keys():
-                cont_vars.append("dead")
-                grid_out_is_continuous = np.concatenate(
-                    (grid_out_is_continuous, [False])
-                )
-        else:
-            cont_vars = list(grids_out.keys())  # all outcomes are arrival vars
-        D = len(cont_vars)
-
-        # Now project the final results onto the output or result grids
-        N = self.N
-        J = state_meshes[0].size
         matrices_out = {}
         cont_idx = {}
         cont_alpha = {}
@@ -812,10 +844,52 @@ class SimBlock:
             matrices_out[var] = trans_matrix
             k += 1
 
-        # Construct an overall transition matrix from arrival to continuation variables.
-        # If this is the initializer block, the "arrival" variable is just the initial
-        # dummy state, and the "continuation" variables are actually the arrival variables
-        # for ordinary blocks/periods.
+        return (
+            matrices_out,
+            cont_idx,
+            cont_alpha,
+            cont_M,
+            cont_discrete,
+            grids_out,
+            grid_out_is_continuous,
+        )
+
+    def _build_master_transition_array(
+        self, cont_vars, cont_idx, cont_alpha, cont_M, cont_discrete, N_orig, N, D
+    ):
+        """
+        Construct the master arrival-to-continuation transition array.
+
+        Combines per-variable index arrays and interpolation weights into a
+        single tensor using multilinear interpolation. The offset index arithmetic
+        and continuation-variable ordering are load-bearing.
+
+        Parameters
+        ----------
+        cont_vars : list
+            Names of continuation variables, ordered to match arrival variables.
+        cont_idx : dict
+            Lower-bracket indices for each continuation variable.
+        cont_alpha : dict
+            Interpolation weights (upper bracket) for each continuation variable.
+        cont_M : dict
+            Grid size for each continuation variable.
+        cont_discrete : dict
+            Whether each continuation variable uses a discrete (not continuous) grid.
+        N_orig : int
+            Number of arrival-state grid points.
+        N : int
+            Total number of quasi-simulated agents.
+        D : int
+            Number of continuation dimensions.
+
+        Returns
+        -------
+        master_trans_array_X : np.ndarray
+            Unnormalized master transition array of shape (N_orig, prod(cont_M)).
+        """
+        pmv = self.data["pmv_"]
+        origin_array = self.origin_array
 
         # Count the number of non-trivial dimensions. A continuation dimension
         # is non-trivial if it is both continuous and has more than one grid node.
@@ -862,12 +936,158 @@ class SimBlock:
         master_trans_array_X = calc_overall_trans_probs(
             blank, idx_array, alpha_array, bin_array, offsets, pmv, origin_array
         )
+        return master_trans_array_X
+
+    def _condition_on_survival(self, master_trans_array_X, matrices_out, N_orig):
+        """
+        Condition the master transition array on agent survival.
+
+        Divides through by the survival probability so that the transition
+        array represents the distribution conditional on not dying this period.
+
+        Parameters
+        ----------
+        master_trans_array_X : np.ndarray
+            Unconditioned master transition array of shape (N_orig, M) where
+            M = prod(cont_M).  Reshaped internally to (N_orig, N_orig, 2)
+            assuming one binary continuation variable (dead/alive).
+        matrices_out : dict
+            Per-variable transition matrices; must contain 'dead'.
+        N_orig : int
+            Number of arrival-state grid points.
+
+        Returns
+        -------
+        master_trans_array_X : np.ndarray
+            Survival-conditioned master transition array of shape (N_orig, N_orig).
+        """
+        master_trans_array_X = np.reshape(master_trans_array_X, (N_orig, N_orig, 2))
+        survival_probs = np.reshape(matrices_out["dead"][:, 0], [N_orig, 1])
+        master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
+        return master_trans_array_X
+
+    def make_transition_matrices(self, grid_specs, twist=None, norm=None):
+        """
+        Construct a transition matrix for this block, moving from a discretized
+        grid of arrival variables to a discretized grid of end-of-block variables.
+        User specifies how the grids of pre-states should be built. Output is
+        stored in attributes of self as follows:
+
+        - matrices : A dictionary of arrays that cast from the arrival state space
+                     to the grid of outcome variables. Doing np.dot(dstn, matrices[var])
+                     will yield the discretized distribution of that outcome variable.
+        - grids : A dictionary of discretized grids for outcome variables. Doing
+                  np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
+                  of that outcome in the population.
+
+        Parameters
+        ----------
+        grid_specs : dict
+            Dictionary of dictionaries of grid specifications. For now, these have
+            at most a minimum value, a maximum value, a number of nodes, and a poly-
+            nomial order. They are equispaced if a min and max are specified, and
+            polynomially spaced with the specified order > 0 if provided. Otherwise,
+            they are set at 0,..,N if only N is provided.
+        twist : dict or None
+            Mapping from end-of-period (continuation) variables to successor's
+            arrival variables. When this is specified, additional output is created
+            for the "full period" arrival-to-arrival transition matrix.
+        norm : str or None
+            Name of the shock variable by which to normalize for Harmenberg
+            aggregation. By default, no normalization happens.
+
+        Returns
+        -------
+        None
+        """
+        arrival_N = len(self.arrival)
+
+        # Build input and output grids from grid specifications
+        grids_in, grids_out, continuous_grid_out_bool, grid_orders, dummy_grid = (
+            self._build_input_grids(grid_specs, arrival_N)
+        )
+
+        # If a twist was specified, override output grids for continuation variables
+        if twist is not None:
+            grids_out, grid_orders, grid_out_is_continuous = self._build_twist_grids(
+                twist, grids_in, grid_orders, grids_out, continuous_grid_out_bool
+            )
+        else:
+            grid_out_is_continuous = np.array(continuous_grid_out_bool)
+
+        # Make meshes of all the arrival grids, which will be the initial simulation data
+        if arrival_N > 0:
+            state_meshes = np.meshgrid(
+                *[grids_in[k] for k in self.arrival], indexing="ij"
+            )
+        else:  # this only happens in the initializer block
+            state_meshes = [dummy_grid.copy()]
+        state_init = {
+            self.arrival[k]: state_meshes[k].flatten() for k in range(arrival_N)
+        }
+        N_orig = state_meshes[0].size
+        mesh_tuples = [
+            [state_init[self.arrival[k]][n] for k in range(arrival_N)]
+            for n in range(N_orig)
+        ]
+
+        # Quasi-simulate this block
+        self.run_quasi_sim(state_init, norm=norm)
+
+        # Add survival to output if mortality is in the model
+        if "dead" in self.data.keys():
+            grids_out["dead"] = None
+
+        # Get continuation variable names, making sure they're in the same order
+        # as named by the arrival variables. This should maybe be done in the
+        # simulator when it's initialized.
+        if twist is not None:
+            cont_vars_orig = list(twist.keys())
+            temp_dict = {twist[var]: var for var in cont_vars_orig}
+            cont_vars = []
+            for var in self.arrival:
+                cont_vars.append(temp_dict[var])
+            if "dead" in self.data.keys():
+                cont_vars.append("dead")
+                grid_out_is_continuous = np.concatenate(
+                    (grid_out_is_continuous, [False])
+                )
+        else:
+            cont_vars = list(grids_out.keys())  # all outcomes are arrival vars
+        D = len(cont_vars)
+
+        # Project the final results onto the output or result grids
+        N = self.N
+        J = state_meshes[0].size
+        (
+            matrices_out,
+            cont_idx,
+            cont_alpha,
+            cont_M,
+            cont_discrete,
+            grids_out,
+            grid_out_is_continuous,
+        ) = self._project_onto_output_grids(
+            grids_out,
+            grid_out_is_continuous,
+            grid_orders,
+            cont_vars,
+            twist,
+            N_orig,
+            J,
+            N,
+        )
+
+        # Construct the master arrival-to-continuation transition array
+        master_trans_array_X = self._build_master_transition_array(
+            cont_vars, cont_idx, cont_alpha, cont_M, cont_discrete, N_orig, N, D
+        )
 
         # Condition on survival if relevant
         if "dead" in self.data.keys():
-            master_trans_array_X = np.reshape(master_trans_array_X, (N_orig, N_orig, 2))
-            survival_probs = np.reshape(matrices_out["dead"][:, 0], [N_orig, 1])
-            master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
+            master_trans_array_X = self._condition_on_survival(
+                master_trans_array_X, matrices_out, N_orig
+            )
 
         # Reshape the transition matrix depending on what kind of block this is
         if arrival_N == 0:
@@ -1439,7 +1659,7 @@ class AgentSimulator:
         states) can also be specified.
 
         The search procedure is to first examine a grid of candidates on the bounds,
-        calculating E[\Delta x] for state x, and then perform a local search for each
+        calculating E[Delta x] for state x, and then perform a local search for each
         interval where it flips from positive to negative.
 
         This procedure ignores mortality entirely. It represents a stable or target
@@ -1462,7 +1682,7 @@ class AgentSimulator:
             If not provided, defaults to 201. This affects the "resolution" when there
             are multiple possible target levels (uncommon).
         tol : float, optional
-            Maximum acceptable deviation from true target E[\Delta x] = 0 to be accepted.
+            Maximum acceptable deviation from true target E[Delta x] = 0 to be accepted.
             If not specified, defaults to 1e-8.
 
         Returns
@@ -1792,6 +2012,157 @@ class AgentSimulator:
             return output
 
 
+def _parse_model_fields(model, common_override=None):
+    """
+    Extract the top-level fields from a parsed model dictionary.
+
+    Uses dict.get() with safe defaults rather than try/except for each field,
+    so that missing keys silently receive their default values.
+
+    Parameters
+    ----------
+    model : dict
+        Parsed YAML model dictionary.
+    common_override : list or None
+        If provided, overrides the model's 'common' field entirely.
+
+    Returns
+    -------
+    model_name : str
+        Name of the model, or 'DEFAULT_NAME' if absent.
+    description : str
+        Human-readable description, or a placeholder if absent.
+    variables : list
+        Declared variable lines from model['symbols']['variables'].
+    twist : dict
+        Intertemporal twist mapping, or empty dict if absent.
+    common : list
+        Variables shared across all agents.
+    arrival : list
+        Explicitly listed arrival variable names.
+    """
+    symbols = model.get("symbols", {})
+    model_name = model.get("name", "DEFAULT_NAME")
+    description = model.get("description", "(no description provided)")
+    variables = symbols.get("variables", [])
+    twist = model.get("twist", {})
+    arrival = symbols.get("arrival", [])
+    if common_override is not None:
+        common = common_override
+    else:
+        common = symbols.get("common", [])
+    return model_name, description, variables, twist, common, arrival
+
+
+def _build_periods(
+    template, agent, content, solution, offset, time_vary, time_inv, RNG, T_seq, T_cycle
+):
+    """
+    Construct the list of per-period SimBlock copies for an AgentSimulator.
+
+    For each period in the solution sequence, a deep copy of the template block
+    is made and populated with the appropriate parameter data drawn from the agent.
+
+    Parameters
+    ----------
+    template : SimBlock
+        Template block with structure but no parameter values.
+    agent : AgentType
+        The agent whose solution and time-varying attributes supply parameter values.
+    content : dict
+        Keys are the names of objects needed by the template block.
+    solution : list
+        Names of objects that come from the agent's solution attribute.
+    offset : list
+        Names of time-varying objects whose index is shifted back by one period.
+    time_vary : list
+        Names of objects that vary across periods (drawn from agent attributes).
+    time_inv : list
+        Names of objects that are time-invariant (same across all periods).
+    RNG : np.random.Generator
+        Random number generator used to assign unique seeds to MarkovEvents.
+    T_seq : int
+        Number of periods in the solution sequence.
+    T_cycle : int
+        Number of periods per cycle (used to wrap the time index).
+
+    Returns
+    -------
+    periods : list[SimBlock]
+        Fully populated list of period blocks, one per entry in the solution.
+    """
+    # Build the time-invariant parameter dictionary once
+    time_inv_dict = {}
+    for name in content:
+        if name in time_inv:
+            if not hasattr(agent, name):
+                raise ValueError(
+                    "Couldn't get a value for time-invariant object "
+                    + name
+                    + ": attribute does not exist on the agent."
+                )
+            time_inv_dict[name] = getattr(agent, name)
+
+    periods = []
+    t_cycle = 0
+    for t in range(T_seq):
+        # Make a fresh copy of the template period
+        new_period = deepcopy(template)
+
+        # Make sure each period's events have unique seeds; this is only for MarkovEvents
+        for event in new_period.events:
+            if hasattr(event, "seed"):
+                event.seed = RNG.integers(0, 2**31 - 1)
+
+        # Make the parameter dictionary for this period
+        new_param_dict = deepcopy(time_inv_dict)
+        for name in content:
+            if name in solution:
+                if type(agent.solution[t]) is dict:
+                    new_param_dict[name] = agent.solution[t][name]
+                else:
+                    new_param_dict[name] = getattr(agent.solution[t], name)
+            elif name in time_vary:
+                s = (t_cycle - 1) if name in offset else t_cycle
+                attr = getattr(agent, name, None)
+                if attr is None:
+                    raise ValueError(
+                        "Couldn't get a value for time-varying object "
+                        + name
+                        + ": attribute does not exist on the agent."
+                    )
+                try:
+                    new_param_dict[name] = attr[s]
+                except (IndexError, TypeError):
+                    raise ValueError(
+                        "Couldn't get a value for time-varying object "
+                        + name
+                        + " at time index "
+                        + str(s)
+                        + "!"
+                    )
+            elif name in time_inv:
+                continue
+            else:
+                raise ValueError(
+                    "The object called "
+                    + name
+                    + " is not named in time_inv nor time_vary!"
+                )
+
+        # Fill in content for this period, then add it to the list
+        new_period.content = new_param_dict
+        new_period.distribute_content()
+        periods.append(new_period)
+
+        # Advance time according to the cycle
+        t_cycle += 1
+        if t_cycle == T_cycle:
+            t_cycle = 0
+
+    return periods
+
+
 def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=None):
     """
     Build an AgentSimulator instance based on an AgentType instance. The AgentType
@@ -1840,34 +2211,10 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
     comments = {}
     RNG = agent.RNG  # this is only for generating seeds for MarkovEvents
 
-    # Extract basic fields from the model
-    try:
-        model_name = model["name"]
-    except:
-        model_name = "DEFAULT_NAME"
-    try:
-        description = model["description"]
-    except:
-        description = "(no description provided)"
-    try:
-        variables = model["symbols"]["variables"]
-    except:
-        variables = []
-    try:
-        twist = model["twist"]
-    except:
-        twist = {}
-    if common is None:
-        try:
-            common = model["symbols"]["common"]
-        except:
-            common = []
-
-    # Extract arrival variable names that were explicitly listed
-    try:
-        arrival = model["symbols"]["arrival"]
-    except:
-        arrival = []
+    # Extract basic fields from the model using helper
+    model_name, description, variables, twist, common, arrival = _parse_model_fields(
+        model, common_override=common
+    )
 
     # Make a dictionary of declared data types and add comments
     types = {}
@@ -1948,69 +2295,21 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
     initializer.content = init_dict
     initializer.distribute_content()
 
-    # Make a dictionary of time-invariant parameters
-    time_inv_dict = {}
-    for name in content:
-        if name in time_inv:
-            try:
-                time_inv_dict[name] = getattr(agent, name)
-            except:
-                raise ValueError(
-                    "Couldn't get a value for time-invariant object " + name + "!"
-                )
-
     # Create a list of periods, pulling appropriate data from the agent for each one
     T_seq = len(agent.solution)  # Number of periods in the solution sequence
-    periods = []
     T_cycle = agent.T_cycle
-    t_cycle = 0
-    for t in range(T_seq):
-        # Make a fresh copy of the template period
-        new_period = deepcopy(template_period)
-
-        # Make sure each period's events have unique seeds; this is only for MarkovEvents
-        for event in new_period.events:
-            if hasattr(event, "seed"):
-                event.seed = RNG.integers(0, 2**31 - 1)
-
-        # Make the parameter dictionary for this period
-        new_param_dict = deepcopy(time_inv_dict)
-        for name in content:
-            if name in solution:
-                if type(agent.solution[t]) is dict:
-                    new_param_dict[name] = agent.solution[t][name]
-                else:
-                    new_param_dict[name] = getattr(agent.solution[t], name)
-            elif name in time_vary:
-                s = (t_cycle - 1) if name in offset else t_cycle
-                try:
-                    new_param_dict[name] = getattr(agent, name)[s]
-                except:
-                    raise ValueError(
-                        "Couldn't get a value for time-varying object "
-                        + name
-                        + " at time index "
-                        + str(s)
-                        + "!"
-                    )
-            elif name in time_inv:
-                continue
-            else:
-                raise ValueError(
-                    "The object called "
-                    + name
-                    + " is not named in time_inv nor time_vary!"
-                )
-
-        # Fill in content for this period, then add it to the list
-        new_period.content = new_param_dict
-        new_period.distribute_content()
-        periods.append(new_period)
-
-        # Advance time according to the cycle
-        t_cycle += 1
-        if t_cycle == T_cycle:
-            t_cycle = 0
+    periods = _build_periods(
+        template_period,
+        agent,
+        content,
+        solution,
+        offset,
+        time_vary,
+        time_inv,
+        RNG,
+        T_seq,
+        T_cycle,
+    )
 
     # Calculate maximum age
     if T_age is None:
@@ -2047,6 +2346,69 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
     )
     new_simulator.solution = solution  # this is for use by SSJ constructor
     return new_simulator
+
+
+def _extract_symbol_class(
+    model, class_name, constructor, validator_msg, offset, solution, comments
+):
+    """
+    Parse and collect one class of symbols (parameters, functions, or distributions).
+
+    Handles the near-identical pattern repeated for each symbol class:
+    iterate over declaration lines, build the result dict, record comments,
+    and append names to the offset and solution lists as flagged.
+
+    Parameters
+    ----------
+    model : dict
+        Parsed model dictionary containing a 'symbols' sub-dict.
+    class_name : str
+        Key within model['symbols'] to look up ('parameters', 'functions', or
+        'distributions').
+    constructor : callable or None
+        Called with no arguments to create each entry's value. Pass None for
+        parameters (which use None as their placeholder value).
+    validator_msg : str or None
+        If provided, the expected datatype string (e.g. 'func' or 'dstn'). When a
+        declaration carries a different datatype, a ValueError is raised. Pass None
+        to skip validation (used for parameters).
+    offset : list
+        Accumulated list of offset-flagged names; extended in place.
+    solution : list
+        Accumulated list of solution-flagged names; extended in place.
+    comments : dict
+        Accumulated comment strings keyed by name; updated in place.
+
+    Returns
+    -------
+    result : dict
+        Mapping from symbol name to its constructed value (or None for parameters).
+    """
+    result = {}
+    symbols = model.get("symbols", {})
+    if class_name not in symbols:
+        return result
+    lines = symbols[class_name]
+    for line in lines:
+        name, datatype, flags, desc = parse_declaration_for_parts(line)
+        if (
+            (validator_msg is not None)
+            and (datatype is not None)
+            and (datatype != validator_msg)
+        ):
+            raise ValueError(
+                name
+                + " was declared as a "
+                + class_name[:-1]
+                + ", but given a different datatype!"
+            )
+        result[name] = constructor() if constructor is not None else None
+        comments[name] = desc
+        if ("offset" in flags) and (name not in offset):
+            offset.append(name)
+        if ("solution" in flags) and (name not in solution):
+            solution.append(name)
+    return result
 
 
 def make_template_block(model, arrival=None, common=None):
@@ -2088,68 +2450,23 @@ def make_template_block(model, arrival=None, common=None):
     if common is None:
         common = []
 
-    # Extract explicitly listed metadata
-    try:
-        name = model["name"]
-    except:
-        name = "DEFAULT_NAME"
-    try:
-        offset = model["symbols"]["offset"]
-    except:
-        offset = []
-    try:
-        solution = model["symbols"]["solution"]
-    except:
-        solution = []
+    # Extract explicitly listed metadata using dict.get for safe defaults
+    symbols = model.get("symbols", {})
+    name = model.get("name", None)
+    offset = symbols.get("offset", [])
+    solution = symbols.get("solution", [])
 
-    # Extract parameters, functions, and distributions
+    # Extract parameters, functions, and distributions using the shared helper
     comments = {}
-    parameters = {}
-    if "parameters" in model["symbols"].keys():
-        param_lines = model["symbols"]["parameters"]
-        for line in param_lines:
-            param_name, datatype, flags, desc = parse_declaration_for_parts(line)
-            parameters[param_name] = None
-            comments[param_name] = desc
-            # TODO: what to do with parameter types?
-            if ("offset" in flags) and (param_name not in offset):
-                offset.append(param_name)
-            if ("solution" in flags) and (param_name not in solution):
-                solution.append(param_name)
-
-    functions = {}
-    if "functions" in model["symbols"].keys():
-        func_lines = model["symbols"]["functions"]
-        for line in func_lines:
-            func_name, datatype, flags, desc = parse_declaration_for_parts(line)
-            if (datatype is not None) and (datatype != "func"):
-                raise ValueError(
-                    func_name
-                    + " was declared as a function, but given a different datatype!"
-                )
-            functions[func_name] = NullFunc()
-            comments[func_name] = desc
-            if ("offset" in flags) and (func_name not in offset):
-                offset.append(func_name)
-            if ("solution" in flags) and (func_name not in solution):
-                solution.append(func_name)
-
-    distributions = {}
-    if "distributions" in model["symbols"].keys():
-        dstn_lines = model["symbols"]["distributions"]
-        for line in dstn_lines:
-            dstn_name, datatype, flags, desc = parse_declaration_for_parts(line)
-            if (datatype is not None) and (datatype != "dstn"):
-                raise ValueError(
-                    dstn_name
-                    + " was declared as a distribution, but given a different datatype!"
-                )
-            distributions[dstn_name] = Distribution()
-            comments[dstn_name] = desc
-            if ("offset" in flags) and (dstn_name not in offset):
-                offset.append(dstn_name)
-            if ("solution" in flags) and (dstn_name not in solution):
-                solution.append(dstn_name)
+    parameters = _extract_symbol_class(
+        model, "parameters", None, None, offset, solution, comments
+    )
+    functions = _extract_symbol_class(
+        model, "functions", NullFunc, "func", offset, solution, comments
+    )
+    distributions = _extract_symbol_class(
+        model, "distributions", Distribution, "dstn", offset, solution, comments
+    )
 
     # Combine those dictionaries into a single "information" dictionary, which
     # represents objects available *at that point* in the dynamic block
