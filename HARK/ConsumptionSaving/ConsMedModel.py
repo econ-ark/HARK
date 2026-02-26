@@ -302,7 +302,7 @@ def make_lognormal_MedShkDstn(
         The AgentType's internal random number generator.
     MedShkTailBound : [float,float]
         CDF bounds for the tail of the discretization.
-    MedShkZeroProb : [float]
+    MedShkZeroPrb : [float]
         Probability of getting a zero medical need shock in each period (default zero).
 
     Returns
