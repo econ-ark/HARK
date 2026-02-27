@@ -2232,9 +2232,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstn = self.IncShkDstn[0]
         else:
             TranShkDstn = MeanOneLogNormal(sigma=self.TranShkStd[0]).discretize(
-                N=200,
+                N=100,
                 method="equiprobable",
-                tail_N=50,
+                tail_N=25,
                 tail_order=1.3,
                 tail_bound=[0.05, 0.95],
             )
@@ -2242,9 +2242,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 TranShkDstn, p=self.UnempPrb, x=self.IncUnemp
             )
             PermShkDstn = MeanOneLogNormal(sigma=self.PermShkStd[0]).discretize(
-                N=200,
+                N=100,
                 method="equiprobable",
-                tail_N=50,
+                tail_N=25,
                 tail_order=1.3,
                 tail_bound=[0.05, 0.95],
             )
