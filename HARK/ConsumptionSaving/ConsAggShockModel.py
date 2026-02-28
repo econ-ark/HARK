@@ -31,7 +31,7 @@ from HARK.distributions import (
     MarkovProcess,
     MeanOneLogNormal,
     Uniform,
-    calc_expectation,
+    expected,
     combine_indep_dstns,
 )
 from HARK.interpolation import (
@@ -188,7 +188,6 @@ def solveConsAggShock(
     AFunc,
     Rfunc,
     wFunc,
-    DeprRte,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -231,8 +230,6 @@ def solveConsAggShock(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprRte : float
-        Capital Depreciation Rate
 
     Returns
     -------
@@ -296,9 +293,7 @@ def solveConsAggShock(
 
     # Compute end-of-period marginal value of assets
     MaggNow = np.tile(np.reshape(Mgrid, (1, Mcount)), (aCount, 1))  # Tiled Mgrid
-    EndOfPrdvP = (
-        DiscFac * LivPrb * calc_expectation(IncShkDstn, vPnextFunc, *(aNrmNow, MaggNow))
-    )
+    EndOfPrdvP = DiscFac * LivPrb * expected(vPnextFunc, IncShkDstn, (aNrmNow, MaggNow))
 
     # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
     cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
@@ -406,8 +401,6 @@ def solve_ConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprRte : float
-        Capital Depreciation Rate
 
     Returns
     -------
@@ -836,7 +829,7 @@ class AggShockConsumerType(IndShockConsumerType):
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
     time_inv_ = IndShockConsumerType.time_inv_.copy()
-    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "DeprRte", "PermGroFacAgg"]
+    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "PermGroFacAgg"]
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
@@ -849,7 +842,6 @@ class AggShockConsumerType(IndShockConsumerType):
         "AFunc",
         "Rfunc",
         "wFunc",
-        "DeprRte",
         "PermGroFacAgg",
         "AggShkDstn",
     ]
@@ -1220,7 +1212,17 @@ def make_assets_grid_KS(aMin, aMax, aCount, aNestFac):
 
 
 def make_KS_transition_arrays(
-    aGrid, Mgrid, AFunc, LbrInd, UrateB, UrateG, ProdB, ProdG, MrkvIndArray
+    aGrid,
+    Mgrid,
+    AFunc,
+    LbrInd,
+    UrateB,
+    UrateG,
+    ProdB,
+    ProdG,
+    MrkvIndArray,
+    CapShare,
+    DeprRte,
 ):
     """
     Construct the attributes ProbArray, mNextArray, MnextArray, and RnextArray,
@@ -1248,6 +1250,10 @@ def make_KS_transition_arrays(
         TFP in the "good" aggregate state.
     MrkvIndArray : np.array
         Markov transition probabilities from the perspective of the individual.
+    CapShare : float
+        Capital's share of production.
+    DeprRte : float
+        Capital depreciation rate.
 
     Returns
     -------
@@ -1651,52 +1657,24 @@ class KrusellSmithType(AgentType):
 ###############################################################################
 
 
-CRRA = 2.0
-DiscFac = 0.96
-
-# Parameters for a Cobb-Douglas economy
-PermGroFacAgg = 1.00  # Aggregate permanent income growth factor
-PermShkAggCount = (
-    3  # Number of points in discrete approximation to aggregate permanent shock dist
-)
-TranShkAggCount = (
-    3  # Number of points in discrete approximation to aggregate transitory shock dist
-)
-PermShkAggStd = 0.0063  # Standard deviation of log aggregate permanent shocks
-TranShkAggStd = 0.0031  # Standard deviation of log aggregate transitory shocks
-DeprRte = 0.025  # Capital depreciation rate
-CapShare = 0.36  # Capital's share of income
-DiscFacPF = DiscFac  # Discount factor of perfect foresight calibration
-CRRAPF = CRRA  # Coefficient of relative risk aversion of perfect foresight calibration
-intercept_prev = 0.0  # Intercept of aggregate savings function
-slope_prev = 1.0  # Slope of aggregate savings function
-verbose_cobb_douglas = (
-    True  # Whether to print solution progress to screen while solving
-)
-T_discard = 200  # Number of simulated "burn in" periods to discard when updating AFunc
-# Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
-DampingFac = 0.5
-max_loops = 20  # Maximum number of AFunc updating loops to allow
-
-
 # Make a dictionary to specify a Cobb-Douglas economy
 init_cobb_douglas = {
-    "PermShkAggCount": PermShkAggCount,
-    "TranShkAggCount": TranShkAggCount,
-    "PermShkAggStd": PermShkAggStd,
-    "TranShkAggStd": TranShkAggStd,
-    "DeprRte": DeprRte,
-    "CapShare": CapShare,
-    "DiscFac": DiscFacPF,
-    "CRRA": CRRAPF,
-    "PermGroFacAgg": PermGroFacAgg,
+    "PermShkAggCount": 3,  # Number of points in discrete approximation to aggregate permanent shock dist
+    "TranShkAggCount": 3,  # Number of points in discrete approximation to aggregate transitory shock dist
+    "PermShkAggStd": 0.0063,  # Standard deviation of log aggregate permanent shocks
+    "TranShkAggStd": 0.0031,  # Standard deviation of log aggregate transitory shocks
+    "DeprRte": 0.025,  # Capital depreciation rate
+    "CapShare": 0.36,  # Capital's share of income
+    "DiscFac": 0.96,  # Discount factor of perfect foresight calibration
+    "CRRA": 2.0,  # Coefficient of relative risk aversion of perfect foresight calibration
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "AggregateL": 1.0,
-    "intercept_prev": intercept_prev,
-    "slope_prev": slope_prev,
-    "verbose": verbose_cobb_douglas,
-    "T_discard": T_discard,
-    "DampingFac": DampingFac,
-    "max_loops": max_loops,
+    "intercept_prev": 0.0,  # Intercept of aggregate savings function
+    "slope_prev": 1.0,  # Slope of aggregate savings function,
+    "verbose": True,  # Whether to print solution progress to screen while solving
+    "T_discard": 200,  # Number of simulated "burn in" periods to discard when updating AFunc
+    "DampingFac": 0.5,  # Damping factor when updating AFunc
+    "max_loops": 20,  # Maximum number of AFunc updating loops to allow
 }
 
 
@@ -2014,6 +1992,25 @@ class CobbDouglasEconomy(Market):
         return AggShocksDynamicRule(AFunc)
 
 
+# Make a dictionary to specify a small open economy
+init_small_open_economy = {
+    "PermShkAggCount": 3,  # Number of points in discrete approximation to aggregate permanent shock dist
+    "TranShkAggCount": 3,  # Number of points in discrete approximation to aggregate transitory shock dist
+    "PermShkAggStd": 0.0063,  # Standard deviation of log aggregate permanent shocks
+    "TranShkAggStd": 0.0031,  # Standard deviation of log aggregate transitory shocks
+    "Rfree": 1.02,  # exogenous and fixed return factor on assets
+    "wRte": 1.0,  # exogenous and fixed wage rate
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "AggregateL": 1.0,
+    "intercept_prev": 0.0,  # Intercept of aggregate savings function
+    "slope_prev": 1.0,  # Slope of aggregate savings function,
+    "verbose": True,  # Whether to print solution progress to screen while solving
+    "T_discard": 200,  # Number of simulated "burn in" periods to discard when updating AFunc
+    "DampingFac": 0.5,  # Damping factor when updating AFunc
+    "max_loops": 1,  # Maximum number of AFunc updating loops to allow, should always be 1
+}
+
+
 class SmallOpenEconomy(Market):
     """
     A class for representing a small open economy, where the wage rate and interest rate are
@@ -2034,6 +2031,8 @@ class SmallOpenEconomy(Market):
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         agents = agents if agents is not None else list()
+        params = init_small_open_economy.copy()
+        params.update(**kwds)
         Market.__init__(
             self,
             agents=agents,
@@ -2052,6 +2051,7 @@ class SmallOpenEconomy(Market):
             distributions=["PermShkAggDstn", "TranShkAggDstn", "AggShkDstn"],
             tolerance=tolerance,
             act_T=act_T,
+            **params,
         )
         self.assign_parameters(**kwds)
         self.update()
@@ -2230,8 +2230,8 @@ init_mrkv_cobb_douglas["TranShkAggStd"] = [0.006, 0.003]
 init_mrkv_cobb_douglas["PermGroFacAgg"] = [0.98, 1.02]
 init_mrkv_cobb_douglas["MrkvArray"] = MrkvArray
 init_mrkv_cobb_douglas["MrkvInit"] = 0
-init_mrkv_cobb_douglas["slope_prev"] = 2 * [slope_prev]
-init_mrkv_cobb_douglas["intercept_prev"] = 2 * [intercept_prev]
+init_mrkv_cobb_douglas["slope_prev"] = 2 * [0.0]
+init_mrkv_cobb_douglas["intercept_prev"] = 2 * [1.0]
 
 
 class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
