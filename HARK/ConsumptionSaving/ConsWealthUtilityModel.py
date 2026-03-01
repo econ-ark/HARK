@@ -50,7 +50,12 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
     GenIncProcessConsumerType,
 )
-from HARK.rewards import UtilityFuncCRRA, CRRAutility
+from HARK.rewards import (
+    UtilityFuncCRRA,
+    CRRAutility,
+    CRRAWealthUtility,
+    CRRAWealthUtilityP,
+)
 from HARK.utilities import NullFunc, make_assets_grid
 
 
@@ -218,16 +223,6 @@ def make_ChiFromOmega_function(CRRA, WealthShare, ChiFromOmega_N, ChiFromOmega_b
     )
 
 
-def utility(c, a, CRRA, share=0.0, intercept=0.0):
-    w = a + intercept
-    return (c ** (1 - share) * w**share) ** (1 - CRRA) / (1 - CRRA)
-
-
-def dudc(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * (1 - share) / c
-
-
 def calc_m_nrm_next(shocks, a_nrm, G, R):
     """
     Calculate future realizations of market resources mNrm from the income
@@ -371,7 +366,7 @@ def solve_one_period_WealthUtility(
     m_temp = aXtraGrid.copy() + mNrmMinNow
     c_temp = cFuncNow(m_temp)
     a_temp = m_temp - c_temp
-    dudc_now = dudc(c_temp, a_temp, CRRA, WealthShare, WealthShift)
+    dudc_now = CRRAWealthUtilityP(c_temp, a_temp, CRRA, WealthShare, WealthShift)
     dudc_nvrs_now = np.insert(uFunc.derinv(dudc_now, order=(1, 0)), 0, 0.0)
     dudc_nvrs_func_now = LinearInterp(np.insert(m_temp, 0, mNrmMinNow), dudc_nvrs_now)
 
@@ -384,7 +379,7 @@ def solve_one_period_WealthUtility(
             calc_v_next, IncShkDstn, args=(a_temp, PermGroFac, Rfree, CRRA, vFuncNext)
         )
         EndOfPrd_v *= DiscFacEff
-        u_now = utility(c_temp, a_temp, CRRA, WealthShare, WealthShift)
+        u_now = CRRAWealthUtility(c_temp, a_temp, CRRA, WealthShare, WealthShift)
         v_now = u_now + EndOfPrd_v
         vNvrs_now = np.insert(uFunc.inverse(v_now), 0, 0.0)
         vNvrsFunc = LinearInterp(np.insert(m_temp, 0, mNrmMinNow), vNvrs_now)

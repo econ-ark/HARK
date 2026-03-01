@@ -9,6 +9,7 @@ from HARK.rewards import (
     CRRAutilityP_inv,
     CRRAutilityP_invP,
     CRRAutilityPP_X,
+    vNvrsSlope as vNvrsSlope_py,
 )
 
 CRRAutility = njit(CRRAutility_X, cache=True)
@@ -18,6 +19,7 @@ CRRAutilityP_inv = njit(CRRAutilityP_inv, cache=True)
 CRRAutility_invP = njit(CRRAutility_invP, cache=True)
 CRRAutility_inv = njit(CRRAutility_inv, cache=True)
 CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
+vNvrsSlope = njit(vNvrsSlope_py, cache=True)
 
 
 @njit(cache=True, error_model="numpy")

@@ -115,6 +115,33 @@ class testIndShockConsumerType(unittest.TestCase):
         TestType = IndShockConsumerType(cycles=0, CRRA=1.0)
         TestType.check_conditions()
 
+    def test_CRRA_equals_one_solves(self):
+        """
+        Test that IndShockConsumerType solves correctly with CRRA=1 (log utility).
+
+        This tests fix for issue #75 where CRRA=1 would cause ZeroDivisionError
+        due to expressions like MPC ** (-CRRA / (1.0 - CRRA)).
+        """
+        agent = IndShockConsumerType(cycles=0, CRRA=1.0)
+        # Should not raise any errors
+        agent.solve()
+
+        # Verify the solution exists and is reasonable
+        self.assertIsNotNone(agent.solution[0].cFunc)
+
+        # Consumption at m=5 should be positive
+        c_at_5 = agent.solution[0].cFunc(5.0)
+        self.assertGreater(c_at_5, 0.0)
+
+        # Consumption should be less than resources
+        self.assertLess(c_at_5, 5.0)
+
+        # MPC at bottom should be 1.0 (consume everything at constraint)
+        mpc_at_min = agent.solution[0].cFunc.derivativeX(
+            agent.solution[0].mNrmMin + 0.0001
+        )
+        self.assertAlmostEqual(mpc_at_min, 1.0, places=2)
+
     def test_invalid_beta(self):
         TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
         self.assertRaises(ValueError, TestType.solve)
