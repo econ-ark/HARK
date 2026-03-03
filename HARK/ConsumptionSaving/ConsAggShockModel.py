@@ -758,8 +758,8 @@ default_IncShkDstn_params = {
 default_aXtraGrid_params = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 24,  # Number of points in the grid of "assets above minimum"
+    "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 36,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
@@ -1668,12 +1668,11 @@ init_cobb_douglas = {
     "DiscFac": 0.96,  # Discount factor of perfect foresight calibration
     "CRRA": 2.0,  # Coefficient of relative risk aversion of perfect foresight calibration
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
-    "AggregateL": 1.0,
     "intercept_prev": 0.0,  # Intercept of aggregate savings function
     "slope_prev": 1.0,  # Slope of aggregate savings function,
-    "verbose": True,  # Whether to print solution progress to screen while solving
+    "verbose": False,  # Whether to print solution progress to screen while solving
     "T_discard": 200,  # Number of simulated "burn in" periods to discard when updating AFunc
-    "DampingFac": 0.5,  # Damping factor when updating AFunc
+    "DampingFac": 0.1,  # Damping factor when updating AFunc
     "max_loops": 20,  # Maximum number of AFunc updating loops to allow
 }
 
@@ -2001,12 +2000,9 @@ init_small_open_economy = {
     "Rfree": 1.02,  # exogenous and fixed return factor on assets
     "wRte": 1.0,  # exogenous and fixed wage rate
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
-    "AggregateL": 1.0,
     "intercept_prev": 0.0,  # Intercept of aggregate savings function
     "slope_prev": 1.0,  # Slope of aggregate savings function,
-    "verbose": True,  # Whether to print solution progress to screen while solving
-    "T_discard": 200,  # Number of simulated "burn in" periods to discard when updating AFunc
-    "DampingFac": 0.5,  # Damping factor when updating AFunc
+    "verbose": False,  # Whether to print solution progress to screen while solving
     "max_loops": 1,  # Maximum number of AFunc updating loops to allow, should always be 1
 }
 
@@ -2230,8 +2226,8 @@ init_mrkv_cobb_douglas["TranShkAggStd"] = [0.006, 0.003]
 init_mrkv_cobb_douglas["PermGroFacAgg"] = [0.98, 1.02]
 init_mrkv_cobb_douglas["MrkvArray"] = MrkvArray
 init_mrkv_cobb_douglas["MrkvInit"] = 0
-init_mrkv_cobb_douglas["slope_prev"] = 2 * [0.0]
-init_mrkv_cobb_douglas["intercept_prev"] = 2 * [1.0]
+init_mrkv_cobb_douglas["slope_prev"] = 2 * [1.0]
+init_mrkv_cobb_douglas["intercept_prev"] = 2 * [0.0]
 
 
 class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
