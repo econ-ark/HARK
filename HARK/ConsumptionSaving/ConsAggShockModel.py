@@ -2619,6 +2619,19 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         return AggShocksDynamicRule(AFunc_list)
 
 
+# Make a dictionary to specify a small open Markov economy
+init_mrkv_small_open_economy = init_small_open_economy.copy()
+init_mrkv_small_open_economy["PermShkAggStd"] = [0.012, 0.006]
+init_mrkv_small_open_economy["TranShkAggStd"] = [0.006, 0.003]
+init_mrkv_small_open_economy["PermGroFacAgg"] = [0.98, 1.02]
+init_mrkv_small_open_economy["MrkvArray"] = MrkvArray
+init_mrkv_small_open_economy["MrkvInit"] = 0
+init_mrkv_small_open_economy["slope_prev"] = 2 * [1.0]
+init_mrkv_small_open_economy["intercept_prev"] = 2 * [0.0]
+init_mrkv_small_open_economy["Rfree"] = 1.02
+init_mrkv_small_open_economy["wRte"] = 1.0
+
+
 class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
     """
     A class for representing a small open economy, where the wage rate and interest rate are
@@ -2629,7 +2642,7 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         agents = agents if agents is not None else list()
-        temp_dict = init_mrkv_cobb_douglas.copy()
+        temp_dict = init_mrkv_small_open_economy.copy()
         temp_dict.update(kwds)
         CobbDouglasMarkovEconomy.__init__(
             self,
