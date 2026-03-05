@@ -75,10 +75,10 @@ class HabitFormationInverter:
     Instances of this class take two arguments when called as a function: end-of-
     period habit stock H and transformed end-of-period marginal value chi.
 
-    chi = (W_a(a,H) - alpha * W_H(a,H)) ** (-1/CRRA)
+    chi = (W_a(a,H) - lambda * W_H(a,H)) ** (-1/CRRA)
 
     a = m - c
-    H = alpha * c + (1-alpha) * h
+    H = lambda * c + (1-lambda) * h
     m' = R a / psi + theta
     h' = H / psi
     """
@@ -236,9 +236,9 @@ def solve_one_period_ConsHabit(
         and the decision-time habit stock from which it was chose.
     HabitWgt : float
         Exponent on habit stock, which is used as a divisor on consumption in
-        the utility function: U(c,h) = u(c / h**gamma). Should be on unit interval.
+        the utility function: U(c,h) = u(c / h**alpha). Should be on unit interval.
     HabitRte : float
-        Rate at which habit stock is updated by new consumption: H = alpha*c + (1-alpha)*h.
+        Rate at which habit stock is updated by new consumption: H = lambda*c + (1-lambda)*h.
         Should be on the unit interval.
 
     Returns
@@ -273,7 +273,7 @@ def solve_one_period_ConsHabit(
         # Evaluate end-of-period marginal value on those grids, then calculate chi
         EndOfPrd_dvda = DiscFacEff * solution_next["dvdkFunc"](aNrm, HNrm)
         EndOfPrd_dvdH = DiscFacEff * solution_next["dvdhFunc"](aNrm, HNrm)
-        chi = (EndOfPrd_dvda - HabitRte * EndOfPrd_dvdH) ** (-1.0 / CRRA)
+        chi = U.derinv(EndOfPrd_dvda - HabitRte * EndOfPrd_dvdH)
 
         # Recover c and h using the FOC inverter, then find endogenous m gridpoints
         cNrm, hNrm = FOCinverter(HNrm, chi)
