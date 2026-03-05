@@ -1,0 +1,51 @@
+name: ConsHabit
+description: >-
+  Consumption-saving model with permanent and transitory income shocks
+  and a risk-free asset, with habit formation.
+symbols:
+  variables:
+    - kNrm!              \\ beginning of period capital, normalized by p_{t-1}
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - hPre!              \\ inbound habit stock, normalized by p_{t-1}
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - aNrm               \\ normalized end-of-period assets
+    - HNrm               \\ normalized end-of-period habit stock
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - PermGroFac         \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+    - HabitRte           \\ rate of habit stock updating
+  functions:
+    - cFunc*             \\ consumption function over market resources
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+    - HabitInitDstn      \\ distribution of normalized habit stock at birth
+
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+  hPre ~ HabitInitDstn             \\ draw initial habit stock from distribution
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  yNrm = TranShk                   \\ normalized income is the transitory shock
+  G    = PermGroFac * PermShk      \\ calculate permanent income growth
+  pLvl = pLvlPrev * G              \\ update permanent income level
+  hNrm = hPre / G                  \\ update habit stock to new normalization
+  bNrm = Rfree * kNrm / G          \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm               \\ calculate normalized market resources
+  cNrm = cFunc@(mNrm, hNrm)        \\ evaluate consumption from market resources and habit
+  aNrm = mNrm - cNrm               \\ calculate normalized end-of-period assets
+  HNrm = HabitRte*cNrm + (1-HabitRte)*hNrm \\ habit stock evolves
+  live ~ {LivPrb}                  \\ draw survival
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
+  HNrm: hPre
