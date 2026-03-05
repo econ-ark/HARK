@@ -108,18 +108,18 @@ class HabitFormationInverter:
         func = LinearInterpOnInterp1D(func_by_chi, xGrid)
 
         self.hFunc = func
-        self.alpha = HabitRte
+        self.rate = HabitRte
 
     def __call__(self, H, chi):
         h = self.hFunc(H, chi)
-        alpha = self.alpha
-        c = (H - (1 - alpha) * h) / (alpha)
+        rate = self.rate
+        c = (H - (1 - rate) * h) / (rate)
         return c, h
 
     def cFunc(self, H, chi):
         h = self.hFunc(H, chi)
-        alpha = self.alpha
-        c = (H - (1 - alpha) * h) / (alpha)
+        rate = self.rate
+        c = (H - (1 - rate) * h) / (rate)
         return c
 
 
@@ -465,8 +465,8 @@ class HabitConsumerType(AgentType):
         \newcommand{\PermGroFac}{\Gamma}
         \newcommand{\Rfree}{\mathsf{R}}
         \newcommand{\DiscFac}{\beta}
-        \newcommand{\HabitWgt}{\gamma}
-        \newcommand{\HabitRte}{\alpha}
+        \newcommand{\HabitWgt}{\alpha}
+        \newcommand{\HabitRte}{\lambda}
         \begin{align*}
         v_t(m_t,h_t) &= \max_{c_t,h_t}u(c_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ ((1-\HabitWgt)(\PermGroFac_{t+1} \psi_{t+1}))^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
         & \text{s.t.}  \\
