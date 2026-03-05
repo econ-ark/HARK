@@ -1,0 +1,475 @@
+"""
+Strategic unit tests for the housing portfolio choice model.
+
+Tests are organized into four categories:
+1. Mortgage utilities: payment calculation and LTV dynamics
+2. Terminal condition: correct bequest values and homogeneity
+3. Model solution: the solver runs and produces sensible policy functions
+4. Economic logic: policy functions satisfy known theoretical predictions
+"""
+
+import numpy as np
+import pytest
+
+from HARK.ConsumptionSaving.ConsHousingPortfolioModel import (
+    HousingPortfolioConsumerType,
+    HousingPortfolioSolution,
+    ltv_next,
+    make_housing_portfolio_solution_terminal,
+    make_ltv_grid,
+    mortgage_payment_rate,
+)
+
+
+# ===================================================================
+# 1. Mortgage payment utilities
+# ===================================================================
+
+
+class TestMortgagePayment:
+    """Test the fixed-rate mortgage payment formula."""
+
+    def test_standard_30yr(self):
+        """A 4% mortgage with d=0.8 and 30 periods remaining."""
+        d = 0.8
+        r_m = 0.04
+        periods = 30
+        pi = mortgage_payment_rate(d, r_m, periods)
+        # Standard annuity: d * r*(1+r)^n / ((1+r)^n - 1)
+        R = 1.04
+        expected = d * 0.04 * R**30 / (R**30 - 1.0)
+        np.testing.assert_almost_equal(pi, expected, decimal=10)
+
+    def test_zero_periods_remaining(self):
+        """No payments when mortgage is fully amortized."""
+        pi = mortgage_payment_rate(0.5, 0.04, 0)
+        assert pi == 0.0
+
+    def test_one_period_remaining(self):
+        """With 1 period left, payment equals d*(1+r)."""
+        d = 0.3
+        r_m = 0.05
+        pi = mortgage_payment_rate(d, r_m, 1)
+        expected = d * (1.0 + r_m)
+        np.testing.assert_almost_equal(pi, expected, decimal=10)
+
+    def test_payment_proportional_to_d(self):
+        """Payment scales linearly with LTV."""
+        r_m = 0.04
+        periods = 20
+        pi_low = mortgage_payment_rate(0.4, r_m, periods)
+        pi_high = mortgage_payment_rate(0.8, r_m, periods)
+        np.testing.assert_almost_equal(pi_high / pi_low, 2.0, decimal=10)
+
+    def test_vectorized(self):
+        """Payment function works with numpy arrays."""
+        d = np.array([0.2, 0.5, 0.8])
+        pi = mortgage_payment_rate(d, 0.04, 30)
+        assert pi.shape == (3,)
+        assert np.all(pi > 0)
+
+
+class TestLTVEvolution:
+    """Test the LTV transition d_{t+1} = (d*R_m - pi) / G."""
+
+    def test_amortization_reduces_ltv(self):
+        """LTV decreases over time with positive amortization and G=1."""
+        d = 0.8
+        r_m = 0.04
+        periods = 30
+        d_next = ltv_next(d, r_m, periods, G=1.0)
+        assert d_next < d
+
+    def test_appreciation_accelerates_ltv_decline(self):
+        """Housing appreciation (G>1) makes LTV fall faster."""
+        d = 0.8
+        r_m = 0.04
+        periods = 30
+        d_g1 = ltv_next(d, r_m, periods, G=1.0)
+        d_g105 = ltv_next(d, r_m, periods, G=1.05)
+        assert d_g105 < d_g1
+
+    def test_full_amortization(self):
+        """After all periods, LTV should reach zero (approximately)."""
+        d = 0.8
+        r_m = 0.04
+        for periods_remaining in range(30, 0, -1):
+            d = ltv_next(d, r_m, periods_remaining, G=1.0)
+        np.testing.assert_almost_equal(d, 0.0, decimal=6)
+
+
+class TestLTVGrid:
+    """Test the LTV grid constructor."""
+
+    def test_grid_range(self):
+        grid = make_ltv_grid(dGridCount=10, dMax=1.2)
+        assert grid[0] == 0.0
+        assert grid[-1] == 1.2
+        assert len(grid) == 10
+
+    def test_grid_monotone(self):
+        grid = make_ltv_grid(dGridCount=20, dMax=0.95)
+        assert np.all(np.diff(grid) > 0)
+
+
+# ===================================================================
+# 2. Terminal condition
+# ===================================================================
+
+
+class TestTerminalCondition:
+    """Test the terminal-period bequest value function."""
+
+    @pytest.fixture()
+    def terminal_sol(self):
+        return make_housing_portfolio_solution_terminal(
+            CRRA=5.0, alpha=0.2, hbar=3.0, BeqWt=1.0
+        )
+
+    def test_terminal_value_negative_for_high_rra(self, terminal_sol):
+        """With rho=5, gamma=-4.8, value is negative for positive net worth."""
+        v = terminal_sol.vFuncOwn(2.0, 0.5)
+        assert v < 0  # gamma < 0 implies v = w^gamma / gamma < 0
+
+    def test_terminal_value_increases_with_m(self, terminal_sol):
+        """Value increases with liquid wealth m."""
+        v_low = terminal_sol.vFuncOwn(1.0, 0.5)
+        v_high = terminal_sol.vFuncOwn(3.0, 0.5)
+        assert v_high > v_low
+
+    def test_terminal_value_decreases_with_d(self, terminal_sol):
+        """Value decreases with LTV (more debt = less equity)."""
+        v_low_d = terminal_sol.vFuncOwn(2.0, 0.2)
+        v_high_d = terminal_sol.vFuncOwn(2.0, 0.8)
+        assert v_low_d > v_high_d
+
+    def test_terminal_marginal_value_positive(self, terminal_sol):
+        """Marginal value of m is positive."""
+        vp = terminal_sol.vPfuncOwn(2.0, 0.5)
+        assert vp > 0
+
+    def test_terminal_renter_no_housing_equity(self, terminal_sol):
+        """Renter's terminal value depends only on liquid wealth (no housing)."""
+        # Value increases with m
+        v_low = terminal_sol.vFuncRent(1.0)
+        v_high = terminal_sol.vFuncRent(3.0)
+        assert v_high > v_low
+        # Matches bequest formula with zero housing equity
+        rho = 5.0
+        alpha = 0.2
+        gamma = (1.0 + alpha) * (1.0 - rho)
+        m = 2.0
+        v = terminal_sol.vFuncRent(m)
+        expected = 1.0 * m**gamma / gamma  # BeqWt=1, no housing
+        np.testing.assert_almost_equal(v, expected, decimal=10)
+
+    def test_homogeneity_exponent(self, terminal_sol):
+        """Terminal value has correct homogeneity degree (1+alpha)(1-rho)."""
+        rho = 5.0
+        alpha = 0.2
+        gamma = (1.0 + alpha) * (1.0 - rho)  # = -4.8
+        hbar = 3.0
+
+        m, d = 2.0, 0.3
+        w = m + (1.0 - d) * hbar
+
+        v = terminal_sol.vFuncOwn(m, d)
+        expected = 1.0 * w**gamma / gamma  # BeqWt=1
+        np.testing.assert_almost_equal(v, expected, decimal=10)
+
+    def test_consume_all_at_terminal(self, terminal_sol):
+        """At terminal date, consume all liquid wealth."""
+        m = 5.0
+        c = terminal_sol.cFuncOwn(m, 0.3)
+        np.testing.assert_almost_equal(c, m, decimal=10)
+
+    def test_terminal_share_zero(self, terminal_sol):
+        """At terminal date, risky share is zero (no future returns)."""
+        assert terminal_sol.ShareFuncOwn(5.0) == 0.0
+        assert terminal_sol.ShareFuncRent(5.0) == 0.0
+
+
+# ===================================================================
+# 3. Solver runs and produces valid output
+# ===================================================================
+
+
+class TestSolverRuns:
+    """Smoke tests: the model solves without errors and returns valid objects."""
+
+    @pytest.fixture(scope="class")
+    def small_model(self):
+        """A small model (3 periods) for fast testing."""
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.98, 0.97],
+            "PermGroFac": [1.02, 1.01, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.1, 0.1, 0.05],
+            "TranShkStd": [0.1, 0.1, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.0,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_solution_length(self, small_model):
+        """Solution has one element per period plus terminal."""
+        assert len(small_model.solution) == 3
+
+    def test_solution_has_owner_functions(self, small_model):
+        """Each period's solution has consumption and value functions for owners."""
+        for sol in small_model.solution:
+            assert hasattr(sol, "cFuncOwn")
+            assert hasattr(sol, "vFuncOwn")
+            assert hasattr(sol, "ShareFuncOwn")
+
+    def test_solution_has_renter_functions(self, small_model):
+        """Each period's solution has consumption and value functions for renters."""
+        for sol in small_model.solution:
+            assert hasattr(sol, "cFuncRent")
+            assert hasattr(sol, "vFuncRent")
+
+    def test_consumption_positive(self, small_model):
+        """Consumption is positive for positive market resources."""
+        sol = small_model.solution[0]
+        for m in [0.5, 1.0, 5.0, 10.0]:
+            c = sol.cFuncOwn(m, 0.5)
+            assert c > 0, f"c should be positive at m={m}, got {c}"
+
+    def test_consumption_less_than_resources(self, small_model):
+        """Consumption does not exceed available resources."""
+        sol = small_model.solution[0]
+        m = 5.0
+        d = 0.3
+        c = sol.cFuncOwn(m, d)
+        # c must be less than m (household also pays mortgage, maintenance)
+        assert c < m, f"c={c} exceeds m={m}"
+
+    def test_share_bounded_01(self, small_model):
+        """Risky share is between 0 and 1."""
+        sol = small_model.solution[0]
+        for m in [1.0, 5.0, 10.0]:
+            s = sol.ShareFuncOwn(m, 0.5)
+            assert -0.01 <= s <= 1.01, f"Share out of bounds: {s}"
+
+    def test_renter_consumption_positive(self, small_model):
+        """Renter consumption is positive."""
+        sol = small_model.solution[0]
+        c = sol.cFuncRent(3.0)
+        assert c > 0
+
+    def test_renter_share_bounded(self, small_model):
+        """Renter's risky share is between 0 and 1."""
+        sol = small_model.solution[0]
+        for m in [1.0, 5.0, 10.0]:
+            s = sol.ShareFuncRent(m)
+            assert -0.01 <= s <= 1.01, f"Renter share out of bounds at m={m}: {s}"
+
+
+# ===================================================================
+# 4. Economic logic tests
+# ===================================================================
+
+
+class TestEconomicLogic:
+    """Test that policy functions satisfy known theoretical predictions."""
+
+    @pytest.fixture(scope="class")
+    def model_low_rate(self):
+        """Model with a low 3% mortgage rate."""
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortRate": 0.03,
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.0,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    @pytest.fixture(scope="class")
+    def model_high_rate(self):
+        """Model with a high 7% mortgage rate."""
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortRate": 0.07,
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.0,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_consumption_increases_with_m(self, model_low_rate):
+        """Consumption is increasing in cash-on-hand (normal good)."""
+        sol = model_low_rate.solution[0]
+        d = 0.5
+        m_vals = [1.0, 3.0, 5.0, 10.0]
+        c_vals = [sol.cFuncOwn(m, d) for m in m_vals]
+        for i in range(len(c_vals) - 1):
+            assert c_vals[i + 1] > c_vals[i], (
+                f"Consumption should increase: c({m_vals[i]})={c_vals[i]}, "
+                f"c({m_vals[i+1]})={c_vals[i+1]}"
+            )
+
+    def test_sell_when_deeply_underwater(self, model_low_rate):
+        """Household exits homeownership when deeply underwater with low wealth."""
+        sol = model_low_rate.solution[0]
+        if sol.tenureFunc is not None:
+            # At high d and low m, tenure should round to sell (1) or default (2)
+            tenure = float(sol.tenureFunc(0.5, 0.95))
+            assert round(tenure) > 0, (
+                f"Expected sell or default at m=0.5, d=0.95, got tenure={tenure:.2f}"
+            )
+
+    def test_value_decreases_with_debt(self, model_low_rate):
+        """Higher LTV means lower value (more debt is bad)."""
+        sol = model_low_rate.solution[0]
+        m = 5.0
+        v_low_d = sol.vFuncOwn(m, 0.2)
+        v_high_d = sol.vFuncOwn(m, 0.8)
+        assert v_low_d > v_high_d, (
+            f"Value should decrease with debt: v(d=0.2)={v_low_d}, v(d=0.8)={v_high_d}"
+        )
+
+    def test_mpc_decreases_with_wealth(self, model_low_rate):
+        """Marginal propensity to consume decreases with wealth (concave cFunc)."""
+        sol = model_low_rate.solution[0]
+        d = 0.5
+        # MPC ~ dc/dm
+        dm = 0.01
+        mpc_low = (sol.cFuncOwn(1.0 + dm, d) - sol.cFuncOwn(1.0, d)) / dm
+        mpc_high = (sol.cFuncOwn(10.0 + dm, d) - sol.cFuncOwn(10.0, d)) / dm
+        assert mpc_low > mpc_high, (
+            f"MPC should decrease with wealth: MPC(m=1)={mpc_low}, MPC(m=10)={mpc_high}"
+        )
+
+    def test_renter_value_increases_with_m(self, model_low_rate):
+        """Renter value function is increasing in liquid wealth."""
+        sol = model_low_rate.solution[0]
+        v_low = sol.vFuncRent(1.0)
+        v_high = sol.vFuncRent(5.0)
+        assert v_high > v_low, (
+            f"Renter value should increase with m: v(1)={v_low}, v(5)={v_high}"
+        )
+
+    def test_sell_dominates_default_with_equity(self, model_low_rate):
+        """With positive equity, selling beats defaulting (recovers equity)."""
+        sol = model_low_rate.solution[0]
+        if sol.tenureFunc is not None:
+            # At low d (positive equity) and moderate m, should own or sell, not default
+            tenure = float(sol.tenureFunc(3.0, 0.2))
+            assert round(tenure) < 2, (
+                f"Expected own or sell at m=3.0, d=0.2, got tenure={tenure:.2f}"
+            )
+
+    def test_higher_rate_does_not_increase_value(self, model_low_rate, model_high_rate):
+        """Higher mortgage rate cannot increase homeowner value."""
+        # With a short (3-period) model and coarse grids, both models may choose
+        # the same tenure at some points, giving identical values. But a higher
+        # rate should never strictly increase value at any (m, d).
+        sol_low = model_low_rate.solution[0]
+        sol_high = model_high_rate.solution[0]
+        for m in [3.0, 5.0, 10.0]:
+            for d in [0.0, 0.25, 0.5]:
+                v_low = float(sol_low.vFuncOwn(m, d))
+                v_high = float(sol_high.vFuncOwn(m, d))
+                assert v_low >= v_high - 1e-10, (
+                    f"Higher rate should not increase value at m={m}, d={d}: "
+                    f"v(3%)={v_low}, v(7%)={v_high}"
+                )
+
+
+# ===================================================================
+# 5. Parameter validation tests
+# ===================================================================
+
+
+class TestParameterValidation:
+    """Test that invalid parameters are caught by check_restrictions."""
+
+    @pytest.fixture()
+    def base_agent(self):
+        """A valid 1-period agent for testing restrictions."""
+        params = {
+            "T_cycle": 1,
+            "LivPrb": [0.99],
+            "PermGroFac": [1.02],
+            "Rfree": [1.02],
+            "MortPeriods": [1],
+            "PermShkStd": [0.1],
+            "TranShkStd": [0.1],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 10,
+            "aXtraMax": 10,
+            "ShareCount": 3,
+            "dGridCount": 3,
+            "dMax": 1.0,
+        }
+        return HousingPortfolioConsumerType(**params)
+
+    def test_crra_below_one_raises(self, base_agent):
+        base_agent.CRRA = 0.5
+        with pytest.raises(ValueError, match="CRRA must be > 1"):
+            base_agent.check_restrictions()
+
+    def test_negative_alpha_raises(self, base_agent):
+        base_agent.alpha = -0.1
+        with pytest.raises(ValueError, match="alpha must be positive"):
+            base_agent.check_restrictions()
+
+    def test_zero_rent_rate_raises(self, base_agent):
+        base_agent.RentRate = 0.0
+        with pytest.raises(ValueError, match="RentRate must be positive"):
+            base_agent.check_restrictions()
+
+    def test_negative_mort_rate_raises(self, base_agent):
+        base_agent.MortRate = -0.01
+        with pytest.raises(ValueError, match="MortRate must be non-negative"):
+            base_agent.check_restrictions()
+
+    def test_zero_mort_rate_accepted(self):
+        """Zero mortgage rate is valid (interest-free loan)."""
+        pi = mortgage_payment_rate(0.8, 0.0, 30)
+        expected = 0.8 / 30
+        np.testing.assert_almost_equal(pi, expected, decimal=10)
+
+
+# ===================================================================
+# Run with: uv run pytest HARK/tests/test_ConsHousingPortfolioModel.py -v
+# ===================================================================
