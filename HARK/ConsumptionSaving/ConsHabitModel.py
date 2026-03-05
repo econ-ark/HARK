@@ -468,7 +468,7 @@ class HabitConsumerType(AgentType):
         \newcommand{\HabitWgt}{\alpha}
         \newcommand{\HabitRte}{\lambda}
         \begin{align*}
-        v_t(m_t,h_t) &= \max_{c_t,h_t}u(c_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ ((1-\HabitWgt)(\PermGroFac_{t+1} \psi_{t+1}))^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        v_t(m_t,h_t) &= \max_{c_t}u(c_t,h_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)} v_{t+1}(m_{t+1}, h_{t+1}) \right], \\
         & \text{s.t.}  \\
         a_t &= m_t - c_t, \\
         H_t &= \HabitRte c_t + (1-\HabitRte) h_t, \\
