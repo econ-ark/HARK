@@ -14,6 +14,8 @@ Bellman (owner):
     v_t(m,d) = max_{c,varsigma} hbar^{alpha(1-rho)} * c^{1-rho}/(1-rho)
                + beta * s_t * E[G^{(1+alpha)(1-rho)} * v_{t+1}(m',d')]
 
+where beta = DiscFac, s_t = LivPrb, rho = CRRA.
+
 Terminal:
     v_T(m,d) = omega * (m + (1-d)*hbar)^{(1+alpha)(1-rho)} / ((1+alpha)(1-rho))
 """
@@ -50,6 +52,9 @@ __all__ = [
     "HousingPortfolioConsumerType",
     "MarkovHousingPortfolioConsumerType",
 ]
+
+# Number of points for tenure- and repurchase-envelope evaluation grids.
+_N_ENVELOPE_POINTS = 100
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +94,11 @@ def ltv_next(d, r_m, periods_remaining, G):
     """LTV evolution under amortization.
 
     d_{t+1} = (d_t * R_m - pi_tilde_t(d_t)) / G_{t+1}
+
+    When periods_remaining <= 0 the mortgage is fully paid off and d_next = 0.
     """
+    if periods_remaining <= 0:
+        return np.zeros_like(d) if np.ndim(d) > 0 else 0.0
     R_m = 1.0 + r_m
     pi = mortgage_payment_rate(d, r_m, periods_remaining)
     return (d * R_m - pi) / G
@@ -128,6 +137,11 @@ def _build_joint_shocks(inc_dstn, risky_rets_base, prob_ret_arr,
     if StockIncCorr != 0.0:
         risky_j = risky_j * perm_j**StockIncCorr
     G_j = PermGroFac * perm_j
+    if np.any(G_j <= 0):
+        raise ValueError(
+            f"Non-positive growth factor G_j (min={G_j.min():.6g}). "
+            "Check that PermGroFac > 0 and permanent shocks exclude zero."
+        )
     G_gamma_j = G_j**gamma
     return perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j
 
@@ -146,7 +160,9 @@ def _renter_egm_envelope(
     ----------
     EndOfPrd_dvda, EndOfPrd_v : np.ndarray, shape (aNrmCount, ShareCount)
     aNrmGrid, ShareGrid : np.ndarray
-    alpha, rho, kappa_r, gamma, ParticCost : float
+    alpha : float
+        Housing preference weight (used in budget constraint m = (1+alpha)*c + a).
+    rho, kappa_r, gamma, ParticCost : float
 
     Returns
     -------
@@ -314,8 +330,8 @@ def _participation_envelope(m_partic, c_partic, v_partic, s_partic,
     m_env, v_env, env_inds = upper_envelope(all_v_segs)
 
     # Interpolate c and share from winning segments
-    c_env = np.empty_like(m_env)
-    s_env = np.empty_like(m_env)
+    c_env = np.full_like(m_env, np.nan)
+    s_env = np.full_like(m_env, np.nan)
     for seg_idx in range(len(all_v_segs)):
         mask = env_inds == seg_idx
         if mask.any():
@@ -369,7 +385,6 @@ def _value_envelope(m_eval, v_arrays, policy_arrays):
     # Build segments for upper_envelope: each branch is one segment
     # (filter out -inf to keep segments well-defined)
     segs = []
-    seg_to_branch = []
     for b in range(n_branches):
         v = v_arrays[b]
         valid = np.isfinite(v) & (v > -1e100)
@@ -378,16 +393,15 @@ def _value_envelope(m_eval, v_arrays, policy_arrays):
         else:
             # Dummy single-point segment that can never win
             segs.append([m_eval[:1].copy(), np.array([-1e200])])
-        seg_to_branch.append(b)
 
     m_env, v_env, seg_inds = upper_envelope(segs)
-    # Map segment indices back to branch indices
-    env_inds = np.array([seg_to_branch[i] for i in seg_inds])
+    # One segment per branch, so segment index == branch index
+    env_inds = np.asarray(seg_inds)
 
     # Interpolate policies from winning branches
     policy_envs = []
     for p in range(n_policies):
-        pol = np.empty_like(m_env)
+        pol = np.full_like(m_env, np.nan)
         for b in range(n_branches):
             mask = env_inds == b
             if mask.any():
@@ -418,8 +432,9 @@ class HousingPortfolioSolution(MetricObject):
         Value function for homeowners.
     vPfuncOwn : callable(m, d) -> dv/dm
         Marginal value of cash-on-hand for homeowners.
-    tenureFunc : callable(m, d) -> int
-        Tenure choice: 0=own, 1=sell, 2=default.
+    tenureFunc : callable(m, d) -> float
+        Tenure choice index (use round() to recover discrete choice):
+        0=own, 1=sell, 2=default.
     cFuncRent : callable(m) -> c
         Consumption function for renters.
     ShareFuncRent : callable(m) -> varsigma
@@ -448,7 +463,7 @@ class HousingPortfolioSolution(MetricObject):
         self.ShareFuncOwn = ShareFuncOwn if ShareFuncOwn is not None else NullFunc()
         self.vFuncOwn = vFuncOwn if vFuncOwn is not None else NullFunc()
         self.vPfuncOwn = vPfuncOwn if vPfuncOwn is not None else NullFunc()
-        self.tenureFunc = tenureFunc
+        self.tenureFunc = tenureFunc if tenureFunc is not None else NullFunc()
         self.cFuncRent = cFuncRent if cFuncRent is not None else NullFunc()
         self.ShareFuncRent = (
             ShareFuncRent if ShareFuncRent is not None else NullFunc()
@@ -507,7 +522,8 @@ def make_housing_portfolio_solution_terminal(
         return BeqWt * w ** (gamma - 1.0)
 
     def _c_own_terminal(m, d):
-        # At terminal period, consume all liquid wealth
+        # At terminal period, consume all liquid wealth (d accepted for
+        # interface compatibility but does not affect consumption)
         return np.maximum(m, 1e-12)
 
     # --- Renter terminal functions over m only ---
@@ -623,7 +639,10 @@ def construct_markov_income_process(
         perm_shks = emp_dstn.atoms[0]
         probs = emp_dstn.pmv
 
-        # Marginalize over transitory shocks to get permanent-only weights
+        # Marginalize over transitory shocks to get permanent-only weights.
+        # np.unique uses exact float comparison; this is safe because HARK's
+        # Gauss-Hermite quadrature repeats each permanent node identically
+        # across transitory nodes via np.repeat.
         unique_perms, inverse = np.unique(perm_shks, return_inverse=True)
         perm_probs = np.bincount(inverse, weights=probs)
 
@@ -726,7 +745,7 @@ def solve_renter_subproblem(
     ShareCount = ShareGrid.size
 
     # Precompute joint shock arrays
-    perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
+    _, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
         IncShkDstn, RiskyDstn.atoms[0], RiskyDstn.pmv,
         PermGroFac, gamma, StockIncCorr,
     )
@@ -834,7 +853,7 @@ def solve_owner_subproblem(
     R_m = 1.0 + r_m
 
     # Precompute joint shock arrays
-    perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
+    _, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
         IncShkDstn, RiskyDstn.atoms[0], RiskyDstn.pmv,
         PermGroFac, gamma, StockIncCorr,
     )
@@ -1162,7 +1181,7 @@ def solve_one_period_HousingPortfolio(
     )
 
     # Step 3: Tenure envelope (own vs sell vs default)
-    m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 100)
+    m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, _N_ENVELOPE_POINTS)
     d_eval = dGrid
 
     cFuncOwn_final, ShareFuncOwn_final, vFuncOwn_final, vPfuncOwn_final, tenureFunc = (
@@ -1274,7 +1293,7 @@ def solve_renter_subproblem_markov(
             vPf = solution_next.vPfuncRent[e_next]
             vFn = solution_next.vFuncRent[e_next]
 
-            perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
+            _, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
                 dstn, risky_rets_base, prob_ret_arr,
                 PermGroFac, gamma, StockIncCorr,
             )
@@ -1395,7 +1414,7 @@ def solve_owner_subproblem_markov(
                 vPfOwn = solution_next.vPfuncOwn[e_next]
                 vFOwn = solution_next.vFuncOwn[e_next]
 
-                perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
+                _, tran_j, prob_j, risky_j, G_j, G_gamma_j = _build_joint_shocks(
                     dstn, risky_rets_base, prob_ret_arr,
                     PermGroFac, gamma, StockIncCorr,
                 )
@@ -1560,7 +1579,7 @@ def solve_one_period_HousingPortfolioMarkov(
         )
 
         # Step 3: Tenure envelope (own vs sell vs default)
-        m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 100)
+        m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, _N_ENVELOPE_POINTS)
         d_eval = dGrid
 
         cFuncOwn_2d, ShareFuncOwn_2d, vFuncOwn_2d, vPfuncOwn_2d, tenureFunc_2d = (
@@ -2051,13 +2070,19 @@ class MarkovHousingPortfolioConsumerType(HousingPortfolioConsumerType):
     def check_restrictions(self):
         """Check model parameter restrictions including Markov-specific ones."""
         super().check_restrictions()
-        MrkvArray = self.MrkvArray
-        if isinstance(MrkvArray, list):
-            MrkvArray = MrkvArray[0]
-        if MrkvArray.shape[0] != MrkvArray.shape[1]:
-            raise ValueError("MrkvArray must be square.")
-        row_sums = MrkvArray.sum(axis=1)
-        if not np.allclose(row_sums, 1.0):
-            raise ValueError(
-                f"MrkvArray rows must sum to 1, got {row_sums}."
-            )
+        matrices = (
+            self.MrkvArray
+            if isinstance(self.MrkvArray, list)
+            else [self.MrkvArray]
+        )
+        for t, mat in enumerate(matrices):
+            mat = np.asarray(mat)
+            if mat.shape[0] != mat.shape[1]:
+                raise ValueError(
+                    f"MrkvArray[{t}] must be square, got shape {mat.shape}."
+                )
+            row_sums = mat.sum(axis=1)
+            if not np.allclose(row_sums, 1.0):
+                raise ValueError(
+                    f"MrkvArray[{t}] rows must sum to 1, got {row_sums}."
+                )

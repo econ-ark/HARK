@@ -408,10 +408,10 @@ class TestEconomicLogic:
         """With positive equity, selling beats defaulting (recovers equity)."""
         sol = model_low_rate.solution[0]
         assert sol.tenureFunc is not None, "tenureFunc should exist after solving"
-        # At low d (positive equity) and moderate m, should own or sell, not default
-        tenure = float(sol.tenureFunc(3.0, 0.2))
-        assert round(tenure) < 2, (
-            f"Expected own or sell at m=3.0, d=0.2, got tenure={tenure:.2f}"
+        # At low d (positive equity) and moderate m, should own (0) or sell (1)
+        tenure = round(float(sol.tenureFunc(3.0, 0.2)))
+        assert tenure in (0, 1), (
+            f"Expected own (0) or sell (1) at m=3.0, d=0.2, got tenure={tenure}"
         )
 
     def test_higher_rate_does_not_increase_value(self, model_low_rate, model_high_rate):
@@ -1025,6 +1025,201 @@ class TestMarkovRenterEGMCorrectness:
                     vp, vp_expected, rtol=0.15,
                     err_msg=f"Markov renter vP inconsistent at m={m}, state={e}",
                 )
+
+
+# ===================================================================
+# 11. Additional coverage from PR review
+# ===================================================================
+
+
+class TestLTVEdgeCases:
+    """Test ltv_next edge cases identified by review."""
+
+    def test_ltv_next_zero_periods(self):
+        """When mortgage is paid off, d_next should be 0 regardless of d."""
+        assert ltv_next(0.5, 0.04, 0, 1.0) == 0.0
+
+    def test_ltv_next_depreciation(self):
+        """Housing depreciation (G < 1) should increase LTV."""
+        d = 0.5
+        d_next_grow = ltv_next(d, 0.04, 30, 1.05)
+        d_next_shrink = ltv_next(d, 0.04, 30, 0.95)
+        assert d_next_shrink > d_next_grow, (
+            f"Depreciation should raise LTV: G=0.95 -> {d_next_shrink:.4f}, "
+            f"G=1.05 -> {d_next_grow:.4f}"
+        )
+
+
+class TestTerminalUnderwaterMortgage:
+    """Test terminal condition behavior when d > 1 (underwater)."""
+
+    def test_terminal_value_underwater(self):
+        """Terminal value should be finite even when deeply underwater."""
+        sol = make_housing_portfolio_solution_terminal(
+            CRRA=5.0, alpha=0.2, hbar=3.0, BeqWt=1.0,
+        )
+        # d=1.5 means net equity is (1-1.5)*3 = -1.5
+        v = float(sol.vFuncOwn(2.0, 1.5))
+        assert np.isfinite(v), f"Terminal value should be finite at d=1.5, got {v}"
+
+    def test_terminal_consumption_underwater(self):
+        """Terminal consumption is still m (liquid wealth) when underwater."""
+        sol = make_housing_portfolio_solution_terminal(
+            CRRA=5.0, alpha=0.2, hbar=3.0, BeqWt=1.0,
+        )
+        c = float(sol.cFuncOwn(2.0, 1.5))
+        assert c == pytest.approx(2.0, abs=1e-10)
+
+
+class TestTenureMonotonicity:
+    """Tenure choice should weakly increase with debt (own -> sell -> default)."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        params = _base_params_3period(dMax=1.2, SellCost=0.06, DefaultPenalty=0.1)
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_tenure_weakly_increasing_in_d(self, model):
+        """At fixed m, tenure index should weakly increase as d rises."""
+        sol = model.solution[0]
+        m = 5.0
+        d_vals = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        tenure_vals = [round(float(sol.tenureFunc(m, d))) for d in d_vals]
+        for i in range(len(tenure_vals) - 1):
+            assert tenure_vals[i + 1] >= tenure_vals[i], (
+                f"Tenure should weakly increase with d: "
+                f"tenure(d={d_vals[i]})={tenure_vals[i]}, "
+                f"tenure(d={d_vals[i+1]})={tenure_vals[i+1]}"
+            )
+
+
+class TestShareCountOne:
+    """Test the ShareCount=1 degenerate case (no portfolio choice)."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        params = _base_params_3period(ShareCount=1)
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_solves_without_error(self, model):
+        assert len(model.solution) == 3
+
+    def test_share_is_zero(self, model):
+        """With ShareCount=1, the only share is 0 (no risky assets)."""
+        sol = model.solution[0]
+        for m in [3.0, 5.0, 10.0]:
+            s = float(sol.ShareFuncOwn(m, 0.3))
+            assert s == pytest.approx(0.0, abs=1e-6), (
+                f"ShareCount=1 should give share=0, got {s} at m={m}"
+            )
+
+    def test_renter_positive_consumption(self, model):
+        sol = model.solution[0]
+        for m in [2.0, 5.0, 10.0]:
+            c = float(sol.cFuncRent(m))
+            assert c > 0, f"Renter c should be positive at m={m}, got {c}"
+
+
+class TestNegativeStockCorrelation:
+    """Negative stock-income correlation should increase risky share."""
+
+    @pytest.fixture(scope="class")
+    def model_neg_corr(self):
+        params = _base_params_3period(StockIncCorr=-0.15)
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    @pytest.fixture(scope="class")
+    def model_no_corr(self):
+        params = _base_params_3period(StockIncCorr=0.0)
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_neg_corr_solves(self, model_neg_corr):
+        assert len(model_neg_corr.solution) == 3
+
+    def test_neg_corr_changes_share(self, model_neg_corr, model_no_corr):
+        """Negative correlation should change portfolio allocation."""
+        s_0 = model_no_corr.solution[0].ShareFuncOwn(5.0, 0.3)
+        s_neg = model_neg_corr.solution[0].ShareFuncOwn(5.0, 0.3)
+        assert s_0 != pytest.approx(s_neg, abs=1e-10), (
+            f"Shares should differ: s(corr=0)={s_0:.4f}, s(corr=-0.15)={s_neg:.4f}"
+        )
+
+
+class TestPolicyFunctionsFinite:
+    """Sweep policy functions for NaN/Inf at a dense grid of points."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        agent = HousingPortfolioConsumerType(**_base_params_3period())
+        agent.solve()
+        return agent
+
+    def test_owner_functions_finite(self, model):
+        sol = model.solution[0]
+        m_test = np.linspace(0.5, 15.0, 30)
+        d_test = np.linspace(0.01, 0.95, 5)
+        mm, dd = np.meshgrid(m_test, d_test)
+        c_vals = sol.cFuncOwn(mm.ravel(), dd.ravel())
+        assert np.all(np.isfinite(c_vals)), (
+            f"cFuncOwn has {np.sum(~np.isfinite(c_vals))} non-finite values"
+        )
+        v_vals = sol.vFuncOwn(mm.ravel(), dd.ravel())
+        assert np.all(np.isfinite(v_vals)), (
+            f"vFuncOwn has {np.sum(~np.isfinite(v_vals))} non-finite values"
+        )
+
+    def test_renter_functions_finite(self, model):
+        sol = model.solution[0]
+        m_test = np.linspace(0.5, 15.0, 50)
+        c_vals = np.array([float(sol.cFuncRent(m)) for m in m_test])
+        assert np.all(np.isfinite(c_vals)), (
+            f"cFuncRent has {np.sum(~np.isfinite(c_vals))} non-finite values"
+        )
+        v_vals = np.array([float(sol.vFuncRent(m)) for m in m_test])
+        assert np.all(np.isfinite(v_vals)), (
+            f"vFuncRent has {np.sum(~np.isfinite(v_vals))} non-finite values"
+        )
+
+
+class TestMrkvArrayValidation:
+    """Test that check_restrictions validates all MrkvArray periods."""
+
+    def test_bad_second_matrix_raises(self):
+        """A valid first matrix but invalid second matrix should raise."""
+        params = _base_params_1period(
+            T_cycle=2,
+            LivPrb=[0.99, 0.99],
+            PermGroFac=[1.02, 1.00],
+            Rfree=[1.02, 1.02],
+            MortPeriods=[2, 1],
+            PermShkStd=[0.1, 0.1],
+            TranShkStd=[0.1, 0.1],
+            MrkvArray=[
+                np.array([[0.95, 0.05], [0.50, 0.50]]),
+                np.array([[0.5, 0.3], [0.4, 0.6]]),  # rows don't sum to 1
+            ],
+        )
+        agent = MarkovHousingPortfolioConsumerType(**params)
+        with pytest.raises(ValueError, match="sum to 1"):
+            agent.check_restrictions()
+
+
+class TestDiscFacValidation:
+    """Test DiscFac < 0 raises."""
+
+    def test_negative_discfac_raises(self):
+        params = _base_params_1period(DiscFac=-0.5)
+        agent = HousingPortfolioConsumerType(**params)
+        with pytest.raises(ValueError, match="DiscFac"):
+            agent.check_restrictions()
 
 
 # ===================================================================
