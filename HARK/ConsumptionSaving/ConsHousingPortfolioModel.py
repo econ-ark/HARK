@@ -42,6 +42,9 @@ from HARK.interpolation import (
     ConstantFunction,
     LinearInterp,
     LinearInterpOnInterp1D,
+    LowerEnvelope,
+    MargValueFuncCRRA,
+    ValueFuncCRRA,
 )
 from HARK.metric import MetricObject
 from HARK.distributions.discrete import DiscreteDistribution
@@ -201,8 +204,16 @@ def _renter_egm_envelope(
     )
     vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
 
+    # Constrained consumption function: at a=0, budget gives c = m/(1+alpha).
+    # LowerEnvelope ensures c stays below this bound even if EGM extrapolates.
+    cFuncUnc = LinearInterp(m_env, c_env)
+    cFuncCnst = LinearInterp(
+        np.array([0.0, 1.0]), np.array([0.0, 1.0 / (1.0 + alpha)])
+    )
+    cFunc = LowerEnvelope(cFuncUnc, cFuncCnst)
+
     return (
-        LinearInterp(m_env, c_env),
+        cFunc,
         LinearInterp(m_env, s_env),
         LinearInterp(m_env, v_env),
         LinearInterp(m_env, vp_env),
@@ -458,6 +469,7 @@ class HousingPortfolioSolution(MetricObject):
         ShareFuncRent=None,
         vFuncRent=None,
         vPfuncRent=None,
+        mNrmMin=0.0,
     ):
         self.cFuncOwn = cFuncOwn if cFuncOwn is not None else NullFunc()
         self.ShareFuncOwn = ShareFuncOwn if ShareFuncOwn is not None else NullFunc()
@@ -470,6 +482,7 @@ class HousingPortfolioSolution(MetricObject):
         )
         self.vFuncRent = vFuncRent if vFuncRent is not None else NullFunc()
         self.vPfuncRent = vPfuncRent if vPfuncRent is not None else NullFunc()
+        self.mNrmMin = mNrmMin
         # Store grids for diagnostics
         self.mGrid = None
         self.dGrid = None
@@ -1201,6 +1214,10 @@ def solve_one_period_HousingPortfolio(
         )
     )
 
+    # With portfolio choice (risky asset), the natural borrowing constraint is 0
+    # because worst-case risky return can be arbitrarily low.
+    mNrmMin = 0.0
+
     solution_now = HousingPortfolioSolution(
         cFuncOwn=cFuncOwn_final,
         ShareFuncOwn=ShareFuncOwn_final,
@@ -1211,6 +1228,7 @@ def solve_one_period_HousingPortfolio(
         ShareFuncRent=ShareFuncRent_final,
         vFuncRent=vFuncRent_final,
         vPfuncRent=vPfuncRent_final,
+        mNrmMin=mNrmMin,
     )
     solution_now.mGrid = m_eval
     solution_now.dGrid = d_eval
@@ -1625,6 +1643,7 @@ def solve_one_period_HousingPortfolioMarkov(
         ShareFuncRent=[s.ShareFuncRent for s in state_solutions],
         vFuncRent=[s.vFuncRent for s in state_solutions],
         vPfuncRent=[s.vPfuncRent for s in state_solutions],
+        mNrmMin=0.0,
     )
     return combined
 

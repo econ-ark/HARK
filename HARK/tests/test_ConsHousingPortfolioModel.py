@@ -1222,6 +1222,78 @@ class TestDiscFacValidation:
             agent.check_restrictions()
 
 
+class TestMNrmMinTracking:
+    """Test that mNrmMin is tracked in solutions."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        agent = HousingPortfolioConsumerType(**_base_params_3period())
+        agent.solve()
+        return agent
+
+    def test_mnrm_min_exists(self, model):
+        """Each period's solution should have mNrmMin attribute."""
+        for t, sol in enumerate(model.solution):
+            assert hasattr(sol, "mNrmMin"), f"solution[{t}] missing mNrmMin"
+
+    def test_mnrm_min_non_negative(self, model):
+        """mNrmMin should be non-negative (risky assets cannot guarantee returns)."""
+        for t, sol in enumerate(model.solution):
+            assert sol.mNrmMin >= 0.0, f"solution[{t}].mNrmMin = {sol.mNrmMin}"
+
+    def test_terminal_mnrm_min_zero(self, model):
+        """Terminal solution mNrmMin should be 0."""
+        assert model.solution[-1].mNrmMin == 0.0
+
+
+class TestLowerEnvelopeRenter:
+    """Test that LowerEnvelope properly bounds renter consumption."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        agent = HousingPortfolioConsumerType(**_base_params_3period())
+        agent.solve()
+        return agent
+
+    def test_renter_c_bounded_by_budget(self, model):
+        """Renter c should never exceed m/(1+alpha) at any m."""
+        alpha = model.alpha
+        sol = model.solution[0]
+        for m in np.linspace(0.01, 20.0, 100):
+            c = float(sol.cFuncRent(m))
+            bound = m / (1.0 + alpha)
+            assert c <= bound + 1e-10, (
+                f"c={c:.6f} exceeds budget bound {bound:.6f} at m={m:.4f}"
+            )
+
+    def test_renter_c_near_zero_at_zero_m(self, model):
+        """As m approaches 0, renter c should approach 0."""
+        sol = model.solution[0]
+        c = float(sol.cFuncRent(0.001))
+        assert c < 0.01, f"c={c:.6f} too large near m=0"
+
+
+class TestMarkovMNrmMin:
+    """Test mNrmMin tracking in Markov model."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        agent = MarkovHousingPortfolioConsumerType(
+            **_markov_params_3period()
+        )
+        agent.solve()
+        return agent
+
+    def test_markov_mnrm_min_exists(self, model):
+        for t, sol in enumerate(model.solution):
+            assert hasattr(sol, "mNrmMin"), f"solution[{t}] missing mNrmMin"
+
+    def test_markov_mnrm_min_zero(self, model):
+        """With risky assets, mNrmMin should be 0 in all periods."""
+        for t, sol in enumerate(model.solution):
+            assert sol.mNrmMin == 0.0
+
+
 # ===================================================================
 # Run with: uv run pytest HARK/tests/test_ConsHousingPortfolioModel.py -v
 # ===================================================================
