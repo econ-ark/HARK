@@ -21,7 +21,7 @@ symbols:
     - LivPrb             \\ survival probability at end of period
     - HabitRte           \\ rate of habit stock updating
   functions:
-    - cFunc*             \\ consumption function over market resources
+    - cFunc*             \\ consumption function over market resources and habit stock
   distributions:
     - IncShkDstn         \\ joint distribution of permanent and transitory shocks
     - pLvlInitDstn       \\ distribution of permanent income at model birth

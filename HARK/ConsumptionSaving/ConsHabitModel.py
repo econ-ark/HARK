@@ -41,7 +41,7 @@ def make_lognormal_habit_init_dstn(hLogInitMean, hLogInitStd, HabitInitCount, RN
     Parameters
     ----------
     hLogInitMean : float
-        Mean of log habit stockfor newborns.
+        Mean of log habit stock for newborns.
     hLogInitStd : float
         Stdev of log habit stock for newborns.
     HabitInitCount : int
@@ -52,7 +52,7 @@ def make_lognormal_habit_init_dstn(hLogInitMean, hLogInitStd, HabitInitCount, RN
     Returns
     -------
     HabitInitDstn : DiscreteDistribution
-        Discretized distribution of initial capital holdings for newborns.
+        Discretized distribution of initial habit stock for newborns.
     """
     dstn = Lognormal(
         mu=hLogInitMean,
@@ -75,12 +75,36 @@ class HabitFormationInverter:
     Instances of this class take two arguments when called as a function: end-of-
     period habit stock H and transformed end-of-period marginal value chi.
 
-    chi = (W_a(a,H) - lambda * W_H(a,H)) ** (-1/CRRA)
+    chi = (W_a(a,H) - lambda * W_H(a,H)) ** (-1/rho)
 
     a = m - c
     H = lambda * c + (1-lambda) * h
     m' = R a / psi + theta
     h' = H / psi
+
+    Parameters
+    ----------
+    CRRA : float
+        Coefficient of relative risk aversion, rho.
+    HabitRte : float
+        Rate of habit stock updating with new consumption, lambda. Must be greater
+        than zero but less than one.
+    HabitWgt : float
+        Weight of habit stock in preferences; exponent on habits as a divisior
+        in utility function. Must be greater than zero but less than one.
+    ChiMax : float
+        Largest value of "transformed marginal value" to consider in the grid.
+        The minimum value is always zero. These chi values are "consumption-like".
+    ChiCount : int
+        Number of gridpoints in the "transformed marginal value" grid.
+    ChiOrder : float
+        Strictly positive exponential order for the "transformed marginal value" grid.
+    HabitMax : float
+        Largest value in the habit grid to consider; minimum is always zero.
+    HabitCount : int
+        Number of gridpoints in the habit stock grid.
+    HabitOrder : float
+        Strictly positive exponential order for the habit stock grid.
     """
 
     def __init__(
@@ -95,6 +119,16 @@ class HabitFormationInverter:
         HabitCount,
         HabitOrder,
     ):
+        # Validation
+        if HabitRte > 1.0:
+            raise ValueError("HabitRte must be no greater than 1!")
+        if HabitRte <= 0.0:
+            raise ValueError("HabitRte must be strictly positive!")
+        if HabitWgt > 1.0:
+            raise ValueError("HabitWgt must be no greater than 1!")
+        if HabitWgt <= 0.0:
+            raise ValueError("HabitWgt must be strictly positive!")
+
         xGrid = make_exponential_grid(0.0, ChiMax, ChiCount, ChiOrder)
         hGrid = make_exponential_grid(0.0, HabitMax, HabitCount, HabitOrder)
         hMesh, xMesh = np.meshgrid(hGrid, xGrid, indexing="ij")
@@ -233,7 +267,7 @@ def solve_one_period_ConsHabit(
         Grid of consumption habit stocks on which to solve the problem.
     FOCinverter : HabitFormationInverter
         Function that inverts the first order conditions to yield optimal consumption
-        and the decision-time habit stock from which it was chose.
+        and the decision-time habit stock from which it was chosen.
     HabitWgt : float
         Exponent on habit stock, which is used as a divisor on consumption in
         the utility function: U(c,h) = u(c / h**alpha). Should be on unit interval.
@@ -282,7 +316,11 @@ def solve_one_period_ConsHabit(
         # Construct the unconstrained consumption as a Curvilinear2Dinterp
         cNrm = np.concatenate((np.zeros((1, HabitGrid.size)), cNrm), axis=0)
         mNrm = np.concatenate((aNrmMin * np.ones((1, HabitGrid.size)), mNrm), axis=0)
-        hBot = np.reshape(HabitGrid / (1.0 - HabitRte), (1, HabitGrid.size))
+        hBot = (
+            np.reshape(hNrm[0, :], (1, HabitGrid.size))
+            if HabitRte == 1.0
+            else np.reshape(HabitGrid / (1.0 - HabitRte), (1, HabitGrid.size))
+        )
         hNrm = np.concatenate((hBot, hNrm), axis=0)
         cFuncUnc = Curvilinear2DInterp(cNrm, mNrm, hNrm)
 
@@ -428,7 +466,7 @@ HabitConsumerType_solving_default = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "HabitWgt": 0.5,  # Weight on consumption habit
+    "HabitWgt": 0.5,  # Weight on consumption habit; exponent on habit divisor in utility
     "HabitRte": 0.2,  # Speed of consumption habit updating
 }
 HabitConsumerType_simulation_default = {
