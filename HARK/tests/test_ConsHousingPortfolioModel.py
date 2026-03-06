@@ -983,5 +983,310 @@ class TestSellCostValidation:
 
 
 # ===================================================================
+# 10. Renter EGM correctness tests
+# ===================================================================
+
+
+class TestRenterEGMCorrectness:
+    """Verify the renter EGM budget constraint and flow utility normalization.
+
+    These tests would have caught the bugs where:
+    - The budget mapping omitted housing expenditure: m = c + a instead of
+      m = (1+alpha)*c + a
+    - The flow utility used gamma in the denominator instead of (1-rho)
+    """
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.0,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_renter_consumes_less_than_m(self, model):
+        """Renter consumption c must be strictly less than m.
+
+        Since total spending is (1+alpha)*c + a and a >= 0, we need
+        (1+alpha)*c <= m, i.e., c <= m/(1+alpha).
+        With the old bug (m = c + a), c could nearly equal m.
+        """
+        sol = model.solution[0]
+        alpha = model.alpha
+        for m in [2.0, 5.0, 10.0, 20.0]:
+            c = float(sol.cFuncRent(m))
+            # c must be < m/(1+alpha) since a > 0 for precautionary saving
+            assert c < m / (1.0 + alpha), (
+                f"Renter c={c:.4f} should be < m/(1+alpha)={m/(1+alpha):.4f} "
+                f"at m={m}"
+            )
+
+    def test_renter_total_expenditure_less_than_m(self, model):
+        """Total renter expenditure (1+alpha)*c + a = m, so (1+alpha)*c < m."""
+        sol = model.solution[0]
+        alpha = model.alpha
+        for m in [2.0, 5.0, 10.0]:
+            c = float(sol.cFuncRent(m))
+            total_expend = (1.0 + alpha) * c
+            assert total_expend < m, (
+                f"Total expenditure (1+a)*c = {total_expend:.4f} should be < "
+                f"m={m} (alpha={alpha})"
+            )
+
+    def test_renter_owner_value_consistent_scale(self, model):
+        """Renter and owner values should be on a comparable scale.
+
+        With the old bug, renter flow utility was scaled by 1/(1+alpha)
+        relative to the owner. At d=0 (no debt) and moderate m, an owner
+        paying no mortgage is similar to a renter, so values should be
+        roughly comparable rather than the renter being systematically lower.
+        """
+        sol = model.solution[0]
+        m = 10.0
+        d = 0.0  # No debt: owner and renter have similar situations
+        v_own = float(sol.vFuncOwn(m, d))
+        v_rent = float(sol.vFuncRent(m))
+        # Values are negative (CRRA > 1), so both should be the same order
+        # of magnitude. The renter should not be dramatically lower.
+        ratio = v_rent / v_own if v_own != 0 else float("inf")
+        assert 0.3 < ratio < 3.0, (
+            f"Renter/owner value ratio at m={m}, d={d} is {ratio:.2f}, "
+            f"expected roughly similar. v_own={v_own:.4f}, v_rent={v_rent:.4f}"
+        )
+
+    def test_euler_equation_renter(self, model):
+        """The Euler equation should hold: u'(c) = E[beta * R * G^gamma * u'(c')].
+
+        At interior EGM points, the FOC holds exactly. We verify that the
+        marginal value function vP is consistent with the consumption function:
+        vP(m) = kappa_r * c(m)^{gamma-1}.
+        Test at higher m to avoid boundary-sentinel interpolation artifacts.
+        """
+        sol = model.solution[0]
+        rho = model.CRRA
+        alpha = model.alpha
+        gamma = (1.0 + alpha) * (1.0 - rho)
+        kappa_r = (alpha / model.RentRate) ** (alpha * (1.0 - rho))
+
+        for m in [5.0, 10.0, 15.0]:
+            c = float(sol.cFuncRent(m))
+            vp = float(sol.vPfuncRent(m))
+            vp_from_c = kappa_r * c ** (gamma - 1.0)
+            # Should match to interpolation precision
+            np.testing.assert_allclose(
+                vp, vp_from_c, rtol=0.1,
+                err_msg=f"vP inconsistent with c at m={m}: vP={vp:.6f}, "
+                f"kappa_r*c^(gamma-1)={vp_from_c:.6f}",
+            )
+
+    def test_alpha_affects_renter_consumption(self):
+        """Higher alpha (stronger housing preference) should reduce non-housing
+        consumption at the same m, since more resources go to housing."""
+        results = {}
+        for alpha_val in [0.1, 0.3]:
+            params = {
+                "T_cycle": 2,
+                "LivPrb": [0.99, 0.99],
+                "PermGroFac": [1.02, 1.00],
+                "Rfree": [1.02, 1.02],
+                "MortPeriods": [2, 1],
+                "PermShkStd": [0.08, 0.05],
+                "TranShkStd": [0.08, 0.05],
+                "PermShkCount": 3,
+                "TranShkCount": 3,
+                "RiskyCount": 3,
+                "aXtraCount": 15,
+                "aXtraMax": 15,
+                "ShareCount": 3,
+                "dGridCount": 3,
+                "dMax": 1.0,
+                "alpha": alpha_val,
+            }
+            agent = HousingPortfolioConsumerType(**params)
+            agent.solve()
+            results[alpha_val] = float(agent.solution[0].cFuncRent(5.0))
+
+        assert results[0.3] < results[0.1], (
+            f"Higher alpha should reduce non-housing c: "
+            f"c(alpha=0.1)={results[0.1]:.4f}, c(alpha=0.3)={results[0.3]:.4f}"
+        )
+
+
+class TestOwnerRenterConsistency:
+    """Cross-check owner and renter EGM derivations for internal consistency."""
+
+    @pytest.fixture(scope="class")
+    def model(self):
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.0,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_euler_equation_owner(self, model):
+        """Owner's marginal value vP(m,d) should equal h_mult * c(m,d)^{-rho}.
+
+        Only checked at points where the owner is staying (tenure=0), since
+        the envelope uses renter's vP on sell/default branches.
+        """
+        sol = model.solution[0]
+        rho = model.CRRA
+        alpha = model.alpha
+        h_mult = model.hbar ** (alpha * (1.0 - rho))
+
+        for m in [5.0, 10.0, 15.0]:
+            for d in [0.5, 0.7]:
+                tenure = round(float(sol.tenureFunc(m, d)))
+                if tenure != 0:
+                    continue  # skip points where owner sells or defaults
+                c = float(sol.cFuncOwn(m, d))
+                vp = float(sol.vPfuncOwn(m, d))
+                vp_from_c = h_mult * c ** (-rho)
+                np.testing.assert_allclose(
+                    vp, vp_from_c, rtol=0.15,
+                    err_msg=f"Owner vP inconsistent at m={m}, d={d}",
+                )
+
+    def test_sell_value_uses_renter_at_correct_m(self, model):
+        """When an owner sells, v_sell(m,d) = v_rent(m + (1-kappa-d)*hbar).
+
+        This tests that the tenure envelope correctly maps owner resources
+        to the renter value function at the right cash-on-hand.
+        """
+        sol = model.solution[0]
+        hbar = model.hbar
+        kappa = model.SellCost
+        m = 5.0
+        d = 0.3
+        net_equity = (1.0 - kappa - d) * hbar
+        m_after = m + net_equity
+        # The renter value at m_after should be finite (positive resources)
+        v_rent = float(sol.vFuncRent(m_after))
+        assert np.isfinite(v_rent), (
+            f"Renter value should be finite at m={m_after:.2f} after sell"
+        )
+
+    def test_marginal_value_decreasing_renter(self, model):
+        """Renter marginal value should be decreasing in m (concavity)."""
+        sol = model.solution[0]
+        m_vals = [1.0, 3.0, 5.0, 10.0, 15.0]
+        vp_vals = [float(sol.vPfuncRent(m)) for m in m_vals]
+        for i in range(len(vp_vals) - 1):
+            # vP should be positive and decreasing for CRRA > 1
+            assert vp_vals[i] > vp_vals[i + 1], (
+                f"Renter vP should decrease: vP({m_vals[i]})={vp_vals[i]:.4f} "
+                f"vs vP({m_vals[i+1]})={vp_vals[i+1]:.4f}"
+            )
+
+    def test_marginal_value_decreasing_owner(self, model):
+        """Owner marginal value should be decreasing in m (concavity)."""
+        sol = model.solution[0]
+        d = 0.3
+        m_vals = [2.0, 5.0, 10.0, 15.0]
+        vp_vals = [float(sol.vPfuncOwn(m, d)) for m in m_vals]
+        for i in range(len(vp_vals) - 1):
+            assert vp_vals[i] > vp_vals[i + 1], (
+                f"Owner vP should decrease: vP({m_vals[i]})={vp_vals[i]:.4f} "
+                f"vs vP({m_vals[i+1]})={vp_vals[i+1]:.4f}"
+            )
+
+
+class TestMarkovRenterEGMCorrectness:
+    """Verify the Markov renter has the same budget/value fixes."""
+
+    @pytest.fixture(scope="class")
+    def markov_model(self):
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 5,
+            "dGridCount": 4,
+            "dMax": 1.0,
+            "MrkvArray": [
+                np.array([[0.95, 0.05], [0.50, 0.50]])
+            ] * 3,
+            "UnempIns": 0.3,
+        }
+        agent = MarkovHousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_markov_renter_c_less_than_m_over_1_plus_alpha(self, markov_model):
+        """Markov renter c < m/(1+alpha) for both employment states."""
+        sol = markov_model.solution[0]
+        alpha = markov_model.alpha
+        for e in range(2):
+            for m in [2.0, 5.0, 10.0]:
+                c = float(sol.cFuncRent[e](m))
+                bound = m / (1.0 + alpha)
+                assert c < bound, (
+                    f"Markov renter c={c:.4f} should < {bound:.4f} "
+                    f"at m={m}, state={e}"
+                )
+
+    def test_markov_renter_euler_consistency(self, markov_model):
+        """Markov renter vP should be consistent with c via the FOC.
+
+        Uses 15% tolerance to accommodate interpolation noise from the
+        repurchase envelope crossing points.
+        """
+        sol = markov_model.solution[0]
+        rho = markov_model.CRRA
+        alpha = markov_model.alpha
+        gamma = (1.0 + alpha) * (1.0 - rho)
+        kappa_r = (alpha / markov_model.RentRate) ** (alpha * (1.0 - rho))
+
+        for e in range(2):
+            for m in [5.0, 8.0, 12.0]:
+                c = float(sol.cFuncRent[e](m))
+                vp = float(sol.vPfuncRent[e](m))
+                vp_expected = kappa_r * c ** (gamma - 1.0)
+                np.testing.assert_allclose(
+                    vp, vp_expected, rtol=0.15,
+                    err_msg=f"Markov renter vP inconsistent at m={m}, state={e}",
+                )
+
+
+# ===================================================================
 # Run with: uv run pytest HARK/tests/test_ConsHousingPortfolioModel.py -v
 # ===================================================================

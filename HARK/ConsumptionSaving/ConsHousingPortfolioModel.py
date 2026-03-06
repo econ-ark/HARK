@@ -556,7 +556,7 @@ def solve_renter_subproblem(
 
     The renter chooses c_t, ell_t (housing services), and varsigma_t.
     With Cobb-Douglas preferences, optimal ell given c yields indirect
-    utility u_renter(c) = kappa_r * c^gamma / gamma.
+    utility u_renter(c) = kappa_r * c^gamma / (1-rho).
 
     Parameters
     ----------
@@ -630,7 +630,7 @@ def solve_renter_subproblem(
     # => c = (EndOfPrd_dvda / kappa_r)^{1/(gamma-1)}
     cNrmGrid = (EndOfPrd_dvda / kappa_r) ** (1.0 / (gamma - 1.0))
     cNrmGrid = np.maximum(cNrmGrid, 1e-12)
-    mNrmGrid = cNrmGrid + aNrmGrid[:, np.newaxis]
+    mNrmGrid = (1.0 + alpha) * cNrmGrid + aNrmGrid[:, np.newaxis]
 
     # Best share among positive shares (participation branch)
     arange_a = np.arange(aNrmCount)
@@ -642,13 +642,13 @@ def solve_renter_subproblem(
     m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
     s_partic = ShareGrid[opt_pos_idx]
     v_partic = (
-        kappa_r * c_partic**gamma / gamma + EndOfPrd_v[arange_a, opt_pos_idx]
+        kappa_r * c_partic**gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
     )
 
     # Non-participation branch: share = 0
     c_nopartic = cNrmGrid[:, 0]
     m_nopartic = mNrmGrid[:, 0]
-    v_nopartic = kappa_r * c_nopartic**gamma / gamma + EndOfPrd_v[:, 0]
+    v_nopartic = kappa_r * c_nopartic**gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
 
     # DC-EGM upper envelope across participation decision
     m_env, c_env, s_env, v_env = _participation_envelope(
@@ -1264,7 +1264,7 @@ def solve_renter_subproblem_markov(
         c = (dvda / kappa_r) ** (1.0 / (gamma - 1.0))
         c = np.maximum(c, 1e-12)
         cNrmGrid[:, i_s] = c
-        mNrmGrid[:, i_s] = c + aNrmGrid
+        mNrmGrid[:, i_s] = (1.0 + alpha) * c + aNrmGrid
 
     # Best share among positive shares (participation branch)
     arange_a = np.arange(aNrmCount)
@@ -1276,13 +1276,13 @@ def solve_renter_subproblem_markov(
     m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
     s_partic = ShareGrid[opt_pos_idx]
     v_partic = (
-        kappa_r * c_partic**gamma / gamma + EndOfPrd_v[arange_a, opt_pos_idx]
+        kappa_r * c_partic**gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
     )
 
     # Non-participation branch: share = 0
     c_nopartic = cNrmGrid[:, 0]
     m_nopartic = mNrmGrid[:, 0]
-    v_nopartic = kappa_r * c_nopartic**gamma / gamma + EndOfPrd_v[:, 0]
+    v_nopartic = kappa_r * c_nopartic**gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
 
     # DC-EGM upper envelope across participation decision
     m_env, c_env, s_env, v_env = _participation_envelope(
