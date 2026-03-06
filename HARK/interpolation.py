@@ -2500,7 +2500,6 @@ class LowerEnvelope3D(HARKinterpolator3D):
         for j in range(self.funcCount):
             temp[:, j] = self.functions[j](x, y, z)
         i = self.argcompare(temp, axis=1)
-        y = temp[np.arange(m), i]
         dfdz = np.zeros_like(x)
         for j in np.unique(i):
             c = i == j
