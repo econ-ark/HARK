@@ -3,12 +3,20 @@ Life-cycle model of housing and portfolio choice with collateralized borrowing.
 
 Cocco-style (m, h) model from the FINRA grant proposal:
 - Continuous states: m_t = M_t/P_t (cash-on-hand), h_t = H_t/P_t (housing ratio)
+- Discrete state: P_t in {0, 1} — stock market participant (Gomes-Michaelides 2005)
 - Continuous choices: c_t (consumption), varsigma_t (risky share)
 - Discrete choices: tenure (own / sell / move / default) and market participation
 - Discrete Markov states: employment e in {E, U}, regime nu in {B, S}
 - Independent income and housing growth: G^P, G^H(nu)
 - Transitory house price shock: eps^H_t ~ MeanOneLogNormal, iid each period
 - Housing growth shock: eta_t ~ MeanOneLogNormal, iid each period
+
+Participation follows Gomes-Michaelides (2005) entry cost:
+- A non-participant pays fixed cost F to enter the stock market.
+- A participant stays for free or exits freely.
+- V^P(m,h)   = max{V^in(m,h),   V^out(m,h)}
+- V^{NP}(m,h) = max{V^in(m-F,h), V^out(m,h)}
+- V^in uses V^P_{t+1} as continuation; V^out uses V^{NP}_{t+1}.
 
 Value function:
     V(M,H,P; e,nu) = P^gamma * v(m,h; e,nu)
@@ -249,25 +257,36 @@ def _build_joint_shocks(inc_dstn, risky_rets_base, prob_ret_arr,
 
 def _renter_egm_envelope(
     EndOfPrd_dvda, EndOfPrd_v, aNrmGrid, ShareGrid,
-    alpha, rho, kappa_r, gamma, ParticCost,
+    alpha, rho, kappa_r, gamma, EntryCost,
 ):
     """EGM inversion + DC-EGM participation envelope for the renter.
 
-    Shared between base and Markov renter solvers. Takes end-of-period
-    marginal value and value arrays (after integration), returns interpolated
-    policy and value functions.
+    Implements Gomes-Michaelides (2005) entry cost: the "in" (participate)
+    and "out" (non-participate) branches use different continuation values
+    baked into EndOfPrd arrays.  The envelope is computed twice:
+
+    - V^P: participant can stay in or exit freely.
+    - V^{NP}: non-participant must pay EntryCost to enter (m shifted by F
+      on the "in" branch).
 
     Parameters
     ----------
     EndOfPrd_dvda, EndOfPrd_v : np.ndarray, shape (aNrmCount, ShareCount)
+        End-of-period marginal value and value after integration.
+        Column 0 uses V^{NP}_{t+1} continuation; columns 1+ use V^P_{t+1}.
     aNrmGrid, ShareGrid : np.ndarray
     alpha : float
-        Housing preference weight (used in budget constraint m = (1+alpha)*c + a).
-    rho, kappa_r, gamma, ParticCost : float
+        Housing preference weight (budget: m = (1+alpha)*c + a).
+    rho, kappa_r, gamma : float
+    EntryCost : float
+        One-time entry cost F (Gomes-Michaelides 2005).
 
     Returns
     -------
     cFunc, ShareFunc, vFunc, vPfunc : LinearInterp
+        Participant (V^P) policy and value functions.
+    vFunc_NP, vPfunc_NP : LinearInterp
+        Non-participant (V^{NP}) value and marginal value functions.
     """
     aNrmCount = aNrmGrid.size
     ShareCount = ShareGrid.size
@@ -277,52 +296,63 @@ def _renter_egm_envelope(
     cNrmGrid = np.maximum(cNrmGrid, 1e-12)
     mNrmGrid = (1.0 + alpha) * cNrmGrid + aNrmGrid[:, np.newaxis]
 
-    # Best share among positive shares (participation branch)
+    # Best share among positive shares ("in" branch: participate)
     arange_a = np.arange(aNrmCount)
     if ShareCount > 1:
         opt_pos_idx = np.argmax(EndOfPrd_v[:, 1:], axis=1) + 1
     else:
         opt_pos_idx = np.zeros(aNrmCount, dtype=int)
-    c_partic = cNrmGrid[arange_a, opt_pos_idx]
-    m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
-    s_partic = ShareGrid[opt_pos_idx]
-    v_partic = (
-        kappa_r * c_partic ** gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
-    )
+    c_in = cNrmGrid[arange_a, opt_pos_idx]
+    m_in = mNrmGrid[arange_a, opt_pos_idx]
+    s_in = ShareGrid[opt_pos_idx]
+    v_in = kappa_r * c_in ** gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
 
-    # Non-participation branch: share = 0
-    c_nopartic = cNrmGrid[:, 0]
-    m_nopartic = mNrmGrid[:, 0]
-    v_nopartic = kappa_r * c_nopartic ** gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
+    # "out" branch: share = 0 (non-participation)
+    c_out = cNrmGrid[:, 0]
+    m_out = mNrmGrid[:, 0]
+    v_out = kappa_r * c_out ** gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
 
-    # DC-EGM upper envelope across participation decision
-    m_env, c_env, s_env, v_env = _participation_envelope(
-        m_partic, c_partic, v_partic, s_partic,
-        m_nopartic, c_nopartic, v_nopartic,
+    # --- V^P envelope: participant can stay in or exit freely ---
+    m_env_P, c_env_P, s_env_P, v_env_P = _participation_envelope(
+        m_in, c_in, v_in, s_in,
+        m_out, c_out, v_out,
     )
-    vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
+    vp_env_P = np.concatenate([[1e10], kappa_r * c_env_P[1:] ** (gamma - 1.0)])
 
     # Constrained consumption function: at a=0, budget gives c = m/(1+alpha).
-    # LowerEnvelope ensures c stays below this bound even if EGM extrapolates.
-    cFuncUnc = LinearInterp(m_env, c_env)
+    cFuncUnc = LinearInterp(m_env_P, c_env_P)
     cFuncCnst = LinearInterp(
         np.array([0.0, 1.0]), np.array([0.0, 1.0 / (1.0 + alpha)])
     )
     cFunc = LowerEnvelope(cFuncUnc, cFuncCnst)
 
+    # --- V^{NP} envelope: non-participant pays F to enter ---
+    # Shift the "in" branch m-grid rightward by EntryCost
+    m_env_NP, c_env_NP, s_env_NP, v_env_NP = _participation_envelope(
+        m_in + EntryCost, c_in, v_in, s_in,
+        m_out, c_out, v_out,
+    )
+    vp_env_NP = np.concatenate([[1e10], kappa_r * c_env_NP[1:] ** (gamma - 1.0)])
+
     return (
         cFunc,
-        LinearInterp(m_env, s_env),
-        LinearInterp(m_env, v_env),
-        LinearInterp(m_env, vp_env),
+        LinearInterp(m_env_P, s_env_P),
+        LinearInterp(m_env_P, v_env_P),
+        LinearInterp(m_env_P, vp_env_P),
+        LinearInterp(m_env_NP, v_env_NP),
+        LinearInterp(m_env_NP, vp_env_NP),
     )
 
 
 def _owner_egm_envelope(
     EndOfPrd_dvda, EndOfPrd_v, aXtraGrid, ShareGrid, hGrid,
-    alpha, rho, LTV, MortRate, MaintRate, ParticCost,
+    alpha, rho, LTV, MortRate, MaintRate, EntryCost,
 ):
     """EGM inversion + DC-EGM participation envelope for the owner.
+
+    Implements Gomes-Michaelides (2005) entry cost.  The "in" (ς > 0) and
+    "out" (ς = 0) branches use different continuations baked into EndOfPrd.
+    Produces participant (V^P) and non-participant (V^{NP}) value functions.
 
     Parameters
     ----------
@@ -333,32 +363,33 @@ def _owner_egm_envelope(
         Collateral fraction lbar.
     MortRate : float
         Mortgage interest rate r_m.
-    MaintRate, ParticCost : float
+    MaintRate : float
+    EntryCost : float
+        One-time entry cost F (Gomes-Michaelides 2005).
 
     Returns
     -------
     cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : LinearInterpOnInterp1D
+        Participant (V^P) functions.
+    vFuncOwn_NP, vPfuncOwn_NP : LinearInterpOnInterp1D
+        Non-participant (V^{NP}) value and marginal value.
     """
     aNrmCount = aXtraGrid.size
     ShareCount = ShareGrid.size
     hCount = hGrid.size
 
     # Vectorized EGM inversion across all h-slices and shares
-    # h_mult: shape (1, hCount, 1)
     h_mult_all = hGrid[np.newaxis, :, np.newaxis] ** (alpha * (1.0 - rho))
     mandatory_cost_all = (MortRate * LTV + MaintRate) * hGrid[np.newaxis, :, np.newaxis]
 
     # FOC: c = (dvda / h_mult)^{-1/rho}  for all (a, h, s)
     cNrmGrid = np.maximum((EndOfPrd_dvda / h_mult_all) ** (-1.0 / rho), 1e-12)
 
-    # Budget: m = c + a + mandatory_cost + chi (chi = ParticCost for s > 0)
-    chi = np.zeros(ShareCount)
-    chi[1:] = ParticCost
+    # Budget: m = c + a + mandatory_cost (no per-period participation cost)
     mNrmGrid = (
         cNrmGrid
         + aXtraGrid[:, np.newaxis, np.newaxis]
         + mandatory_cost_all
-        + chi[np.newaxis, np.newaxis, :]
     )
 
     # DC-EGM participation envelope for each h slice
@@ -370,36 +401,50 @@ def _owner_egm_envelope(
 
     cFunc_list = []
     shareFunc_list = []
-    vFunc_list = []
-    vpFunc_list = []
+    vFunc_P_list = []
+    vpFunc_P_list = []
+    vFunc_NP_list = []
+    vpFunc_NP_list = []
 
     for i_h in range(hCount):
         h_mult = hGrid[i_h] ** (alpha * (1.0 - rho))
-        idx_p = opt_pos_idx[:, i_h]
-        c_p = cNrmGrid[arange_a, i_h, idx_p]
-        m_p = mNrmGrid[arange_a, i_h, idx_p]
-        s_p = ShareGrid[idx_p]
-        v_p = h_mult * c_p ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_h, idx_p]
+        idx_in = opt_pos_idx[:, i_h]
+        c_in = cNrmGrid[arange_a, i_h, idx_in]
+        m_in = mNrmGrid[arange_a, i_h, idx_in]
+        s_in = ShareGrid[idx_in]
+        v_in = h_mult * c_in ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_h, idx_in]
 
-        c_np = cNrmGrid[:, i_h, 0]
-        m_np = mNrmGrid[:, i_h, 0]
-        v_np = h_mult * c_np ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_h, 0]
+        c_out = cNrmGrid[:, i_h, 0]
+        m_out = mNrmGrid[:, i_h, 0]
+        v_out = h_mult * c_out ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_h, 0]
 
-        m_env, c_env, s_env, v_env = _participation_envelope(
-            m_p, c_p, v_p, s_p, m_np, c_np, v_np,
+        # V^P envelope: participant can stay in or exit freely
+        m_env_P, c_env_P, s_env_P, v_env_P = _participation_envelope(
+            m_in, c_in, v_in, s_in, m_out, c_out, v_out,
         )
-        vp_env = np.concatenate([[1e10], h_mult * c_env[1:] ** (-rho)])
+        vp_env_P = np.concatenate([[1e10], h_mult * c_env_P[1:] ** (-rho)])
 
-        cFunc_list.append(LinearInterp(m_env, c_env))
-        shareFunc_list.append(LinearInterp(m_env, s_env))
-        vFunc_list.append(LinearInterp(m_env, v_env))
-        vpFunc_list.append(LinearInterp(m_env, vp_env))
+        cFunc_list.append(LinearInterp(m_env_P, c_env_P))
+        shareFunc_list.append(LinearInterp(m_env_P, s_env_P))
+        vFunc_P_list.append(LinearInterp(m_env_P, v_env_P))
+        vpFunc_P_list.append(LinearInterp(m_env_P, vp_env_P))
+
+        # V^{NP} envelope: non-participant pays F to enter
+        m_env_NP, c_env_NP, _, v_env_NP = _participation_envelope(
+            m_in + EntryCost, c_in, v_in, s_in, m_out, c_out, v_out,
+        )
+        vp_env_NP = np.concatenate([[1e10], h_mult * c_env_NP[1:] ** (-rho)])
+
+        vFunc_NP_list.append(LinearInterp(m_env_NP, v_env_NP))
+        vpFunc_NP_list.append(LinearInterp(m_env_NP, vp_env_NP))
 
     return (
         LinearInterpOnInterp1D(cFunc_list, hGrid),
         LinearInterpOnInterp1D(shareFunc_list, hGrid),
-        LinearInterpOnInterp1D(vFunc_list, hGrid),
-        LinearInterpOnInterp1D(vpFunc_list, hGrid),
+        LinearInterpOnInterp1D(vFunc_P_list, hGrid),
+        LinearInterpOnInterp1D(vpFunc_P_list, hGrid),
+        LinearInterpOnInterp1D(vFunc_NP_list, hGrid),
+        LinearInterpOnInterp1D(vpFunc_NP_list, hGrid),
     )
 
 
@@ -531,28 +576,41 @@ class HousingPortfolioSolution(MetricObject):
 
     Stores policy and value functions for current owners (facing four
     tenure choices: stay, sell, move, or default) and for renters.
+    Each set of functions exists in two versions: participant (P) and
+    non-participant (NP), following the Gomes-Michaelides (2005) entry
+    cost formulation.  The "plain" attributes (vFuncOwn, vFuncRent, etc.)
+    are the participant versions (V^P).  The ``_NP`` suffixed attributes
+    are the non-participant versions (V^{NP}).
 
     Attributes
     ----------
     cFuncOwn : callable(m, h) -> c
-        Consumption function for homeowners.
+        Consumption function for homeowners (participant).
     ShareFuncOwn : callable(m, h) -> varsigma
-        Risky share function for homeowners.
+        Risky share function for homeowners (participant).
     vFuncOwn : callable(m, h) -> v
-        Value function for homeowners.
+        Value function for homeowners (participant, V^P).
     vPfuncOwn : callable(m, h) -> dv/dm
-        Marginal value of cash-on-hand for homeowners.
+        Marginal value of cash-on-hand for homeowners (participant).
+    vFuncOwn_NP : callable(m, h) -> v
+        Value function for homeowners (non-participant, V^{NP}).
+    vPfuncOwn_NP : callable(m, h) -> dv/dm
+        Marginal value for homeowners (non-participant).
     tenureFunc : callable(m, h) -> float
         Tenure choice index (use round() to recover discrete choice):
         0=own, 1=sell, 2=move, 3=default.
     cFuncRent : callable(m) -> c
-        Consumption function for renters.
+        Consumption function for renters (participant).
     ShareFuncRent : callable(m) -> varsigma
-        Risky share function for renters.
+        Risky share function for renters (participant).
     vFuncRent : callable(m) -> v
-        Value function for renters.
+        Value function for renters (participant, V^P).
     vPfuncRent : callable(m) -> dv/dm
-        Marginal value of cash-on-hand for renters.
+        Marginal value of cash-on-hand for renters (participant).
+    vFuncRent_NP : callable(m) -> v
+        Value function for renters (non-participant, V^{NP}).
+    vPfuncRent_NP : callable(m) -> dv/dm
+        Marginal value for renters (non-participant).
     """
 
     distance_criteria = ["vPfuncOwn"]
@@ -563,17 +621,23 @@ class HousingPortfolioSolution(MetricObject):
         ShareFuncOwn=None,
         vFuncOwn=None,
         vPfuncOwn=None,
+        vFuncOwn_NP=None,
+        vPfuncOwn_NP=None,
         tenureFunc=None,
         cFuncRent=None,
         ShareFuncRent=None,
         vFuncRent=None,
         vPfuncRent=None,
+        vFuncRent_NP=None,
+        vPfuncRent_NP=None,
         mNrmMin=0.0,
     ):
         self.cFuncOwn = cFuncOwn if cFuncOwn is not None else NullFunc()
         self.ShareFuncOwn = ShareFuncOwn if ShareFuncOwn is not None else NullFunc()
         self.vFuncOwn = vFuncOwn if vFuncOwn is not None else NullFunc()
         self.vPfuncOwn = vPfuncOwn if vPfuncOwn is not None else NullFunc()
+        self.vFuncOwn_NP = vFuncOwn_NP if vFuncOwn_NP is not None else NullFunc()
+        self.vPfuncOwn_NP = vPfuncOwn_NP if vPfuncOwn_NP is not None else NullFunc()
         self.tenureFunc = tenureFunc if tenureFunc is not None else NullFunc()
         self.cFuncRent = cFuncRent if cFuncRent is not None else NullFunc()
         self.ShareFuncRent = (
@@ -581,6 +645,8 @@ class HousingPortfolioSolution(MetricObject):
         )
         self.vFuncRent = vFuncRent if vFuncRent is not None else NullFunc()
         self.vPfuncRent = vPfuncRent if vPfuncRent is not None else NullFunc()
+        self.vFuncRent_NP = vFuncRent_NP if vFuncRent_NP is not None else NullFunc()
+        self.vPfuncRent_NP = vPfuncRent_NP if vPfuncRent_NP is not None else NullFunc()
         self.mNrmMin = mNrmMin
         # Store grids for diagnostics
         self.mGrid = None
@@ -680,16 +746,21 @@ def make_housing_portfolio_solution_terminal(
     def _c_rent_terminal(m):
         return np.maximum(m, 1e-12)
 
+    # At terminal: V^P = V^{NP} (no future, so participation status irrelevant)
     solution_terminal = HousingPortfolioSolution(
         cFuncOwn=_c_own_terminal,
         ShareFuncOwn=ConstantFunction(0.0),
         vFuncOwn=_v_own_terminal,
         vPfuncOwn=_vp_own_terminal,
+        vFuncOwn_NP=_v_own_terminal,
+        vPfuncOwn_NP=_vp_own_terminal,
         tenureFunc=None,
         cFuncRent=_c_rent_terminal,
         ShareFuncRent=ConstantFunction(0.0),
         vFuncRent=_v_rent_terminal,
         vPfuncRent=_vp_rent_terminal,
+        vFuncRent_NP=_v_rent_terminal,
+        vPfuncRent_NP=_vp_rent_terminal,
     )
     return solution_terminal
 
@@ -805,11 +876,15 @@ def make_markov_housing_solution_terminal(
         ShareFuncOwn=[base.ShareFuncOwn] * N,
         vFuncOwn=[base.vFuncOwn] * N,
         vPfuncOwn=[base.vPfuncOwn] * N,
+        vFuncOwn_NP=[base.vFuncOwn_NP] * N,
+        vPfuncOwn_NP=[base.vPfuncOwn_NP] * N,
         tenureFunc=[base.tenureFunc] * N,
         cFuncRent=[base.cFuncRent] * N,
         ShareFuncRent=[base.ShareFuncRent] * N,
         vFuncRent=[base.vFuncRent] * N,
         vPfuncRent=[base.vPfuncRent] * N,
+        vFuncRent_NP=[base.vFuncRent_NP] * N,
+        vPfuncRent_NP=[base.vPfuncRent_NP] * N,
     )
 
 
@@ -831,7 +906,7 @@ def solve_renter_subproblem(
     aXtraGrid,
     ShareGrid,
     RentRate,
-    ParticCost,
+    EntryCost,
     IndepDstnBool=True,
     StockIncCorr=0.0,
 ):
@@ -841,9 +916,15 @@ def solve_renter_subproblem(
     With Cobb-Douglas preferences, optimal ell given c yields indirect
     utility u_renter(c) = kappa_r * c^gamma / (1-rho).
 
+    Uses Gomes-Michaelides (2005) entry cost: share > 0 ("in") uses
+    V^P_{t+1} continuation; share = 0 ("out") uses V^{NP}_{t+1}.
+
     Returns
     -------
     cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent : callables
+        Participant (V^P) functions.
+    vFuncRent_NP, vPfuncRent_NP : callables
+        Non-participant (V^{NP}) value and marginal value.
     """
     rho = CRRA
     gamma = (1.0 + alpha) * (1.0 - rho)
@@ -873,8 +954,20 @@ def solve_renter_subproblem(
         / G_j[np.newaxis, np.newaxis, :]
     )
     m_flat = m_next_full.ravel()
-    vP_next = solution_next.vPfuncRent(m_flat).reshape(m_next_full.shape)
-    v_next = solution_next.vFuncRent(m_flat).reshape(m_next_full.shape)
+
+    # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
+    # Evaluate V^P continuation for all shares (used by share > 0)
+    vP_next_P = solution_next.vPfuncRent(m_flat).reshape(m_next_full.shape)
+    v_next_P = solution_next.vFuncRent(m_flat).reshape(m_next_full.shape)
+    # Evaluate V^{NP} continuation (used by share = 0)
+    vP_next_NP = solution_next.vPfuncRent_NP(m_flat).reshape(m_next_full.shape)
+    v_next_NP = solution_next.vFuncRent_NP(m_flat).reshape(m_next_full.shape)
+
+    # Build hybrid continuation: share 0 -> NP, shares 1+ -> P
+    vP_next = vP_next_P.copy()
+    vP_next[0] = vP_next_NP[0]  # share index 0
+    v_next = v_next_P.copy()
+    v_next[0] = v_next_NP[0]
 
     # Integration weights: (ShareCount, 1, n_shocks)
     w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
@@ -890,7 +983,7 @@ def solve_renter_subproblem(
 
     return _renter_egm_envelope(
         EndOfPrd_dvda, EndOfPrd_v, aNrmGrid, ShareGrid,
-        alpha, rho, kappa_r, gamma, ParticCost,
+        alpha, rho, kappa_r, gamma, EntryCost,
     )
 
 
@@ -915,7 +1008,7 @@ def solve_owner_subproblem(
     LTV,
     MortRate,
     MaintRate,
-    ParticCost,
+    EntryCost,
     HousingGroFac,
     HousingGrowthShkDstn=None,
     IndepDstnBool=True,
@@ -929,11 +1022,15 @@ def solve_owner_subproblem(
         v^own_t(m,h) = max_{c,varsigma} (c h^alpha)^{1-rho}/(1-rho)
                        + beta s_t E[G^gamma v_{t+1}(m',h')]
 
+    Uses Gomes-Michaelides (2005) entry cost: share > 0 ("in") uses
+    V^P_{t+1} continuation; share = 0 ("out") uses V^{NP}_{t+1}.
+
     h-transition: h' = h * HousingGroFac * eta / G^P
 
     Returns
     -------
-    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : 2D callables over (m, h)
+    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : 2D callables (V^P)
+    vFuncOwn_NP, vPfuncOwn_NP : 2D callables (V^{NP})
     """
     rho = CRRA
     gamma = (1.0 + alpha) * (1.0 - rho)
@@ -978,8 +1075,17 @@ def solve_owner_subproblem(
         m_flat = m_next.ravel()
         h_flat = np.tile(h_next_j, ShareCount * aNrmCount)
 
-        vP_next = solution_next.vPfuncOwn(m_flat, h_flat).reshape(m_next.shape)
-        v_next = solution_next.vFuncOwn(m_flat, h_flat).reshape(m_next.shape)
+        # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
+        vP_next_P = solution_next.vPfuncOwn(m_flat, h_flat).reshape(m_next.shape)
+        v_next_P = solution_next.vFuncOwn(m_flat, h_flat).reshape(m_next.shape)
+        vP_next_NP = solution_next.vPfuncOwn_NP(m_flat, h_flat).reshape(m_next.shape)
+        v_next_NP = solution_next.vFuncOwn_NP(m_flat, h_flat).reshape(m_next.shape)
+
+        # Hybrid: share 0 -> NP, shares 1+ -> P
+        vP_next = vP_next_P.copy()
+        vP_next[0] = vP_next_NP[0]
+        v_next = v_next_P.copy()
+        v_next[0] = v_next_NP[0]
 
         # Integration: (ShareCount, 1, n_shocks) broadcasting
         w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
@@ -995,7 +1101,7 @@ def solve_owner_subproblem(
 
     return _owner_egm_envelope(
         EndOfPrd_dvda, EndOfPrd_v, aXtraGrid, ShareGrid, hGrid,
-        alpha, rho, LTV, MortRate, MaintRate, ParticCost,
+        alpha, rho, LTV, MortRate, MaintRate, EntryCost,
     )
 
 
@@ -1317,7 +1423,7 @@ def solve_one_period_HousingPortfolio(
     LTV,
     MortRate,
     MaintRate,
-    ParticCost,
+    EntryCost,
     SellCost,
     DefaultPenalty,
     RentRate,
@@ -1337,17 +1443,18 @@ def solve_one_period_HousingPortfolio(
     """Solve one period of the housing portfolio choice model.
 
     This function:
-    1. Solves the renter subproblem (1D in m).
-    2. Solves the owner continuation subproblem (2D in (m, h)).
-    3. Takes the upper envelope across tenure choices (own/sell/move/default).
-    4. Computes repurchase option for renters.
+    1. Solves the renter subproblem (1D in m), producing V^P and V^{NP}.
+    2. Solves the owner continuation subproblem (2D in (m, h)), producing V^P and V^{NP}.
+    3. Takes the upper envelope across tenure choices, separately for P and NP.
+    4. Computes repurchase option for renters, separately for P and NP.
 
     Returns
     -------
     solution_now : HousingPortfolioSolution
     """
-    # Step 1: Solve the renter subproblem
-    cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent = solve_renter_subproblem(
+    # Step 1: Solve the renter subproblem (returns P and NP)
+    (cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent,
+     vFuncRent_NP, vPfuncRent_NP) = solve_renter_subproblem(
         solution_next,
         IncShkDstn,
         RiskyDstn,
@@ -1360,13 +1467,14 @@ def solve_one_period_HousingPortfolio(
         aXtraGrid,
         ShareGrid,
         RentRate,
-        ParticCost,
+        EntryCost,
         IndepDstnBool,
         StockIncCorr,
     )
 
-    # Step 2: Solve the owner continuation (conditional on staying)
-    cFuncOwn, ShareFuncOwn, vFuncOwn_stay, vPfuncOwn_stay = solve_owner_subproblem(
+    # Step 2: Solve the owner continuation (returns P and NP)
+    (cFuncOwn, ShareFuncOwn, vFuncOwn_stay, vPfuncOwn_stay,
+     vFuncOwn_stay_NP, vPfuncOwn_stay_NP) = solve_owner_subproblem(
         solution_next,
         IncShkDstn,
         RiskyDstn,
@@ -1382,7 +1490,7 @@ def solve_one_period_HousingPortfolio(
         LTV,
         MortRate,
         MaintRate,
-        ParticCost,
+        EntryCost,
         HousingGroFac,
         HousingGrowthShkDstn,
         IndepDstnBool,
@@ -1391,7 +1499,7 @@ def solve_one_period_HousingPortfolio(
         HousingStockCorr,
     )
 
-    # Step 3: Tenure envelope (own vs sell vs move vs default)
+    # Step 3: Tenure envelope — participant (V^P)
     m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, _N_ENVELOPE_POINTS)
     h_eval = hGrid
 
@@ -1404,11 +1512,30 @@ def solve_one_period_HousingPortfolio(
         )
     )
 
-    # Step 4: Repurchase envelope for renters
+    # Tenure envelope — non-participant (V^{NP})
+    _, _, vFuncOwn_final_NP, vPfuncOwn_final_NP, _ = (
+        _compute_tenure_envelope(
+            m_eval, h_eval, vFuncOwn_stay_NP, vPfuncOwn_stay_NP, cFuncOwn, ShareFuncOwn,
+            vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
+            LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
+            SellCost, DefaultPenalty, HousePriceShkDstn,
+        )
+    )
+
+    # Step 4: Repurchase envelope — participant (V^P)
     cFuncRent_final, ShareFuncRent_final, vFuncRent_final, vPfuncRent_final = (
         _compute_repurchase_option(
             aXtraGrid, vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
             vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
+            LTV, MaxDTI, hGrid,
+        )
+    )
+
+    # Repurchase envelope — non-participant (V^{NP})
+    _, _, vFuncRent_final_NP, vPfuncRent_final_NP = (
+        _compute_repurchase_option(
+            aXtraGrid, vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
+            vFuncOwn_stay_NP, vPfuncOwn_stay_NP, cFuncOwn, ShareFuncOwn,
             LTV, MaxDTI, hGrid,
         )
     )
@@ -1420,11 +1547,15 @@ def solve_one_period_HousingPortfolio(
         ShareFuncOwn=ShareFuncOwn_final,
         vFuncOwn=vFuncOwn_final,
         vPfuncOwn=vPfuncOwn_final,
+        vFuncOwn_NP=vFuncOwn_final_NP,
+        vPfuncOwn_NP=vPfuncOwn_final_NP,
         tenureFunc=tenureFunc,
         cFuncRent=cFuncRent_final,
         ShareFuncRent=ShareFuncRent_final,
         vFuncRent=vFuncRent_final,
         vPfuncRent=vPfuncRent_final,
+        vFuncRent_NP=vFuncRent_final_NP,
+        vPfuncRent_NP=vPfuncRent_final_NP,
         mNrmMin=mNrmMin,
     )
     solution_now.mGrid = m_eval
@@ -1452,20 +1583,19 @@ def solve_renter_subproblem_markov(
     aXtraGrid,
     ShareGrid,
     RentRate,
-    ParticCost,
+    EntryCost,
     IndepDstnBool=True,
     StockIncCorr=0.0,
 ):
     """Solve the renter's one-period problem with Markov transitions.
 
-    The continuation value integrates over all next-period states: for current
-    state *i*, next-period state *j* occurs with probability ``MrkvRow[j]``,
-    using income distribution ``IncShkDstn_list[j]`` and value function
-    ``solution_next.vFuncRent[j]``.
+    Uses Gomes-Michaelides (2005) entry cost: share > 0 uses V^P_{t+1},
+    share = 0 uses V^{NP}_{t+1}.
 
     Returns
     -------
-    cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent : callables
+    cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent : callables (V^P)
+    vFuncRent_NP, vPfuncRent_NP : callables (V^{NP})
     """
     rho = CRRA
     gamma = (1.0 + alpha) * (1.0 - rho)
@@ -1495,13 +1625,16 @@ def solve_renter_subproblem_markov(
             tran_j, prob_j * trans_prob, risky_j, G_j, G_gamma_j,
             solution_next.vPfuncRent[e_next],
             solution_next.vFuncRent[e_next],
+            solution_next.vPfuncRent_NP[e_next],
+            solution_next.vFuncRent_NP[e_next],
         ))
 
     # Vectorize over shares: R_port shape (ShareCount, n_shocks_j)
     EndOfPrd_dvda = np.zeros((aNrmCount, ShareCount))
     EndOfPrd_v = np.zeros((aNrmCount, ShareCount))
 
-    for tran_j, prob_j, risky_j, G_j, G_gamma_j, vPf, vFn in shock_data:
+    for (tran_j, prob_j, risky_j, G_j, G_gamma_j,
+         vPf_P, vFn_P, vPf_NP, vFn_NP) in shock_data:
         R_port = ShareGrid[:, np.newaxis] * risky_j[np.newaxis, :] + (
             (1.0 - ShareGrid[:, np.newaxis]) * Rfree
         )
@@ -1513,8 +1646,17 @@ def solve_renter_subproblem_markov(
             / G_j[np.newaxis, np.newaxis, :]
         )
         m_flat = m_next_full.ravel()
-        vP_next = vPf(m_flat).reshape(m_next_full.shape)
-        v_next = vFn(m_flat).reshape(m_next_full.shape)
+
+        # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
+        vP_next_P = vPf_P(m_flat).reshape(m_next_full.shape)
+        v_next_P = vFn_P(m_flat).reshape(m_next_full.shape)
+        vP_next_NP = vPf_NP(m_flat).reshape(m_next_full.shape)
+        v_next_NP = vFn_NP(m_flat).reshape(m_next_full.shape)
+
+        vP_next = vP_next_P.copy()
+        vP_next[0] = vP_next_NP[0]
+        v_next = v_next_P.copy()
+        v_next[0] = v_next_NP[0]
 
         w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
         w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
@@ -1530,7 +1672,7 @@ def solve_renter_subproblem_markov(
 
     return _renter_egm_envelope(
         EndOfPrd_dvda, EndOfPrd_v, aNrmGrid, ShareGrid,
-        alpha, rho, kappa_r, gamma, ParticCost,
+        alpha, rho, kappa_r, gamma, EntryCost,
     )
 
 
@@ -1556,7 +1698,7 @@ def solve_owner_subproblem_markov(
     LTV,
     MortRate,
     MaintRate,
-    ParticCost,
+    EntryCost,
     HousingGroFac,
     HousingGrowthShkDstn=None,
     IndepDstnBool=True,
@@ -1566,9 +1708,13 @@ def solve_owner_subproblem_markov(
 ):
     """Solve the homeowner's continuation problem with Markov transitions.
 
+    Uses Gomes-Michaelides (2005) entry cost: share > 0 uses V^P_{t+1},
+    share = 0 uses V^{NP}_{t+1}.
+
     Returns
     -------
-    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : 2D callables over (m, h)
+    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : 2D callables (V^P)
+    vFuncOwn_NP, vPfuncOwn_NP : 2D callables (V^{NP})
     """
     rho = CRRA
     gamma = (1.0 + alpha) * (1.0 - rho)
@@ -1602,12 +1748,15 @@ def solve_owner_subproblem_markov(
             tran_j, prob_j * trans_prob, risky_j, G_j, G_gamma_j, eta_j,
             solution_next.vPfuncOwn[e_next],
             solution_next.vFuncOwn[e_next],
+            solution_next.vPfuncOwn_NP[e_next],
+            solution_next.vFuncOwn_NP[e_next],
         ))
 
     EndOfPrd_dvda = np.zeros((aNrmCount, hCount, ShareCount))
     EndOfPrd_v = np.zeros((aNrmCount, hCount, ShareCount))
 
-    for tran_j, prob_j, risky_j, G_j, G_gamma_j, eta_j, vPfOwn, vFOwn in shock_data:
+    for (tran_j, prob_j, risky_j, G_j, G_gamma_j, eta_j,
+         vPfOwn_P, vFOwn_P, vPfOwn_NP, vFOwn_NP) in shock_data:
         n_shocks = prob_j.size
         # R_port: (ShareCount, n_shocks)
         R_port = ShareGrid[:, np.newaxis] * risky_j[np.newaxis, :] + (
@@ -1627,8 +1776,16 @@ def solve_owner_subproblem_markov(
             m_flat = m_next.ravel()
             h_flat = np.tile(h_next_j, ShareCount * aNrmCount)
 
-            vP_next = vPfOwn(m_flat, h_flat).reshape(m_next.shape)
-            v_next = vFOwn(m_flat, h_flat).reshape(m_next.shape)
+            # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
+            vP_next_P = vPfOwn_P(m_flat, h_flat).reshape(m_next.shape)
+            v_next_P = vFOwn_P(m_flat, h_flat).reshape(m_next.shape)
+            vP_next_NP = vPfOwn_NP(m_flat, h_flat).reshape(m_next.shape)
+            v_next_NP = vFOwn_NP(m_flat, h_flat).reshape(m_next.shape)
+
+            vP_next = vP_next_P.copy()
+            vP_next[0] = vP_next_NP[0]
+            v_next = v_next_P.copy()
+            v_next[0] = v_next_NP[0]
 
             w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
             w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
@@ -1645,7 +1802,7 @@ def solve_owner_subproblem_markov(
 
     return _owner_egm_envelope(
         EndOfPrd_dvda, EndOfPrd_v, aXtraGrid, ShareGrid, hGrid,
-        alpha, rho, LTV, MortRate, MaintRate, ParticCost,
+        alpha, rho, LTV, MortRate, MaintRate, EntryCost,
     )
 
 
@@ -1670,7 +1827,7 @@ def solve_one_period_HousingPortfolioMarkov(
     LTV,
     MortRate,
     MaintRate,
-    ParticCost,
+    EntryCost,
     SellCost,
     DefaultPenalty,
     RentRate,
@@ -1719,8 +1876,9 @@ def solve_one_period_HousingPortfolioMarkov(
         nu_state = i_state % 2
         GH_now = float(GH_arr[nu_state]) if nu_state < len(GH_arr) else float(GH_arr[-1])
 
-        # Step 1: Solve the renter subproblem
-        cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent = (
+        # Step 1: Solve the renter subproblem (P and NP)
+        (cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent,
+         vFuncRent_NP, vPfuncRent_NP) = (
             solve_renter_subproblem_markov(
                 solution_next,
                 MrkvRow,
@@ -1735,14 +1893,15 @@ def solve_one_period_HousingPortfolioMarkov(
                 aXtraGrid,
                 ShareGrid,
                 RentRate,
-                ParticCost,
+                EntryCost,
                 IndepDstnBool,
                 StockIncCorr,
             )
         )
 
-        # Step 2: Solve the owner subproblem
-        cFuncOwn, ShareFuncOwn, vFuncOwn_stay, vPfuncOwn_stay = (
+        # Step 2: Solve the owner subproblem (P and NP)
+        (cFuncOwn, ShareFuncOwn, vFuncOwn_stay, vPfuncOwn_stay,
+         vFuncOwn_stay_NP, vPfuncOwn_stay_NP) = (
             solve_owner_subproblem_markov(
                 solution_next,
                 MrkvRow,
@@ -1760,7 +1919,7 @@ def solve_one_period_HousingPortfolioMarkov(
                 LTV,
                 MortRate,
                 MaintRate,
-                ParticCost,
+                EntryCost,
                 GH_now,
                 HousingGrowthShkDstn,
                 IndepDstnBool,
@@ -1770,7 +1929,7 @@ def solve_one_period_HousingPortfolioMarkov(
             )
         )
 
-        # Step 3: Tenure envelope
+        # Step 3: Tenure envelope — participant (V^P)
         m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, _N_ENVELOPE_POINTS)
         h_eval = hGrid
 
@@ -1783,11 +1942,31 @@ def solve_one_period_HousingPortfolioMarkov(
             )
         )
 
-        # Step 4: Repurchase envelope for renters
+        # Tenure envelope — non-participant (V^{NP})
+        _, _, vFuncOwn_2d_NP, vPfuncOwn_2d_NP, _ = (
+            _compute_tenure_envelope(
+                m_eval, h_eval, vFuncOwn_stay_NP, vPfuncOwn_stay_NP,
+                cFuncOwn, ShareFuncOwn,
+                vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
+                LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
+                SellCost, DefaultPenalty, HousePriceShkDstn,
+            )
+        )
+
+        # Step 4: Repurchase envelope — participant (V^P)
         cFuncRent_final, ShareFuncRent_final, vFuncRent_final, vPfuncRent_final = (
             _compute_repurchase_option(
                 aXtraGrid, vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
                 vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
+                LTV, MaxDTI, hGrid,
+            )
+        )
+
+        # Repurchase envelope — non-participant (V^{NP})
+        _, _, vFuncRent_final_NP, vPfuncRent_final_NP = (
+            _compute_repurchase_option(
+                aXtraGrid, vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
+                vFuncOwn_stay_NP, vPfuncOwn_stay_NP, cFuncOwn, ShareFuncOwn,
                 LTV, MaxDTI, hGrid,
             )
         )
@@ -1797,11 +1976,15 @@ def solve_one_period_HousingPortfolioMarkov(
             ShareFuncOwn=ShareFuncOwn_2d,
             vFuncOwn=vFuncOwn_2d,
             vPfuncOwn=vPfuncOwn_2d,
+            vFuncOwn_NP=vFuncOwn_2d_NP,
+            vPfuncOwn_NP=vPfuncOwn_2d_NP,
             tenureFunc=tenureFunc_2d,
             cFuncRent=cFuncRent_final,
             ShareFuncRent=ShareFuncRent_final,
             vFuncRent=vFuncRent_final,
             vPfuncRent=vPfuncRent_final,
+            vFuncRent_NP=vFuncRent_final_NP,
+            vPfuncRent_NP=vPfuncRent_final_NP,
         )
         sol_i.mGrid = m_eval
         sol_i.hGrid = h_eval
@@ -1812,11 +1995,15 @@ def solve_one_period_HousingPortfolioMarkov(
         ShareFuncOwn=[s.ShareFuncOwn for s in state_solutions],
         vFuncOwn=[s.vFuncOwn for s in state_solutions],
         vPfuncOwn=[s.vPfuncOwn for s in state_solutions],
+        vFuncOwn_NP=[s.vFuncOwn_NP for s in state_solutions],
+        vPfuncOwn_NP=[s.vPfuncOwn_NP for s in state_solutions],
         tenureFunc=[s.tenureFunc for s in state_solutions],
         cFuncRent=[s.cFuncRent for s in state_solutions],
         ShareFuncRent=[s.ShareFuncRent for s in state_solutions],
         vFuncRent=[s.vFuncRent for s in state_solutions],
         vPfuncRent=[s.vPfuncRent for s in state_solutions],
+        vFuncRent_NP=[s.vFuncRent_NP for s in state_solutions],
+        vPfuncRent_NP=[s.vPfuncRent_NP for s in state_solutions],
         mNrmMin=0.0,
     )
     return combined
@@ -1913,7 +2100,7 @@ HousingPortfolioType_solving_default = {
     "SellCost": 0.06,
     "DefaultPenalty": 0.5,
     "RentRate": 0.05,
-    "ParticCost": 0.01,
+    "EntryCost": 0.01,
     "BeqWt": 1.0,
     "AffordabilityLimit": np.inf,
     # Housing growth
@@ -2021,7 +2208,7 @@ MarkovHousingPortfolioType_solving_default = {
     "SellCost": 0.06,
     "DefaultPenalty": 0.5,
     "RentRate": 0.05,
-    "ParticCost": 0.01,
+    "EntryCost": 0.01,
     "BeqWt": 1.0,
     "AffordabilityLimit": np.inf,
     "MaxDTI": 4.0,
@@ -2112,7 +2299,7 @@ class HousingPortfolioConsumerType(IndShockConsumerType):
         "SellCost",
         "DefaultPenalty",
         "RentRate",
-        "ParticCost",
+        "EntryCost",
         "BeqWt",
         "AffordabilityLimit",
         "MaxDTI",
@@ -2226,7 +2413,7 @@ class MarkovHousingPortfolioConsumerType(HousingPortfolioConsumerType):
         "SellCost",
         "DefaultPenalty",
         "RentRate",
-        "ParticCost",
+        "EntryCost",
         "BeqWt",
         "ShareGrid",
         "hGrid",

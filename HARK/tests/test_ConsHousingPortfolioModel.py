@@ -1297,7 +1297,7 @@ class TestTenureCoverage:
 
 
 class TestParticipationCoverage:
-    """Verify that both participation states (share=0 and share>0) are reached."""
+    """Verify GM (2005) entry cost: participant and non-participant values differ."""
 
     @pytest.fixture(scope="class")
     def model(self):
@@ -1317,40 +1317,46 @@ class TestParticipationCoverage:
         s = float(sol.ShareFuncRent(5.0))
         assert s > 0.01, f"Expected positive renter share at m=5, got {s}"
 
-    def test_renter_does_not_participate_near_zero(self, model):
-        """Near zero wealth, the renter should not participate."""
+    def test_np_value_leq_p_value_renter(self, model):
+        """Non-participant renter value should be <= participant value (entry cost hurts)."""
         sol = model.solution[0]
-        s = float(sol.ShareFuncRent(0.1))
-        assert s < 0.01, f"Expected zero renter share at m=0.1, got {s}"
+        for m in [1.0, 5.0, 10.0]:
+            v_P = float(sol.vFuncRent(m))
+            v_NP = float(sol.vFuncRent_NP(m))
+            assert v_NP <= v_P + 1e-8, (
+                f"V^NP > V^P at m={m}: {v_NP} > {v_P}"
+            )
 
-    def test_renter_participation_switch_is_discrete(self, model):
-        """The renter's share should jump from 0 to a positive value (discrete choice)."""
+    def test_np_value_leq_p_value_owner(self, model):
+        """Non-participant owner value should be <= participant value."""
         sol = model.solution[0]
-        m_fine = np.linspace(0.01, 3.0, 200)
-        shares = np.array([float(sol.ShareFuncRent(m)) for m in m_fine])
-        # Find the first m where share becomes positive
-        positive = shares > 0.005
-        if not positive.any() or positive.all():
-            pytest.skip("No participation switch found in scanned range")
-        first_pos = np.argmax(positive)
-        assert first_pos > 0, "Share is positive from the start"
-        # The jump from 0 to positive should be non-trivial (discrete, not smooth)
-        jump = shares[first_pos] - shares[first_pos - 1]
-        assert jump > 0.02, (
-            f"Participation switch too smooth (jump={jump:.4f}); "
-            "expected a discrete jump from the DC-EGM envelope"
-        )
+        for m in [3.0, 8.0]:
+            for h in [1.5, 3.0]:
+                v_P = float(sol.vFuncOwn(m, h))
+                v_NP = float(sol.vFuncOwn_NP(m, h))
+                assert v_NP <= v_P + 1e-8, (
+                    f"V^NP_own > V^P_own at (m={m}, h={h}): {v_NP} > {v_P}"
+                )
 
-    def test_high_partic_cost_kills_participation(self):
-        """With very high participation cost, nobody participates."""
-        agent = HousingPortfolioConsumerType(
-            **_base_params_3period(ParticCost=0.5)
+    def test_high_entry_cost_widens_gap(self):
+        """Higher entry cost should widen the V^P - V^{NP} gap."""
+        agent_low = HousingPortfolioConsumerType(
+            **_base_params_3period(EntryCost=0.01)
         )
-        agent.solve()
-        sol = agent.solution[0]
-        for m in [1.0, 5.0, 10.0, 15.0]:
-            s = float(sol.ShareFuncRent(m))
-            assert s < 0.01, f"Expected zero share with high ParticCost at m={m}, got {s}"
+        agent_low.solve()
+        agent_high = HousingPortfolioConsumerType(
+            **_base_params_3period(EntryCost=0.5)
+        )
+        agent_high.solve()
+        m_test = 5.0
+        gap_low = float(agent_low.solution[0].vFuncRent(m_test)) - \
+                  float(agent_low.solution[0].vFuncRent_NP(m_test))
+        gap_high = float(agent_high.solution[0].vFuncRent(m_test)) - \
+                   float(agent_high.solution[0].vFuncRent_NP(m_test))
+        assert gap_high >= gap_low - 1e-8, (
+            f"Higher entry cost should widen P-NP gap: "
+            f"gap_low={gap_low:.6f}, gap_high={gap_high:.6f}"
+        )
 
 
 # ===================================================================
