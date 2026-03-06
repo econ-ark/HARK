@@ -420,17 +420,9 @@ def solve_renter_subproblem(
 ):
     """Solve the renter's one-period problem.
 
-    .. note:: Currently assumes independent income and return shocks
-       (``IndepDstnBool=True``). Correlated shocks are not yet supported.
-
     The renter chooses c_t, ell_t (housing services), and varsigma_t.
-    With Cobb-Douglas u(c, ell) = (c * ell^alpha)^{1-rho}/(1-rho),
-    optimal ell given c satisfies ell = alpha*c/(rbar), yielding indirect
-    utility over total expenditure.
-
-    For simplicity in the baseline, we assume the renter picks ell optimally
-    each period, reducing to a single continuous state m with modified
-    CRRA utility and a rental cost that scales consumption.
+    With Cobb-Douglas preferences, optimal ell given c yields indirect
+    utility u_renter(c) = kappa_r * c^gamma / gamma.
 
     Parameters
     ----------
@@ -438,12 +430,9 @@ def solve_renter_subproblem(
     IncShkDstn, RiskyDstn : distributions
     LivPrb, DiscFac, CRRA, alpha, Rfree, PermGroFac : float
     aXtraGrid, ShareGrid : np.ndarray
-    hbar : float
-    RentRate : float
-        Rental rate per unit of housing services (rbar).
-    ParticCost : float
-        Participation cost chi.
+    hbar, RentRate, ParticCost : float
     IndepDstnBool : bool
+    StockIncCorr : float
 
     Returns
     -------
@@ -451,122 +440,82 @@ def solve_renter_subproblem(
     """
     rho = CRRA
     gamma = (1.0 + alpha) * (1.0 - rho)
-
-    # With optimal housing services, the renter's problem reduces to
-    # choosing c with modified utility:
-    #   u_renter(c) = kappa_r * c^{gamma} / gamma
-    # where kappa_r = (alpha/rbar)^{alpha(1-rho)} absorbs the optimal ell choice.
-    # The Euler equation for c is standard with effective CRRA = -(gamma-1):
-    # u'(c) = kappa_r * c^{gamma-1}
-    # In practice, we use the indirect utility and its inverse for EGM.
-
     kappa_r = (alpha / RentRate) ** (alpha * (1.0 - rho))
-    effective_crra = 1.0 - gamma  # = (1+alpha)(rho-1)+1 = 1-(1+alpha)(1-rho)
-
     DiscFacEff = DiscFac * LivPrb
 
-    # End-of-period assets grid
     aNrmGrid = aXtraGrid
-
-    # For the renter, next period wealth: m' = y' + a*R_port / G'
-    # where R_port = varsigma*R^s + (1-varsigma)*R^f
-    # and the continuation value uses vFuncRent_next (renter stays renter for now).
-
-    # We solve a 1D EGM over (a, Share) like the standard portfolio model.
     aNrmCount = aNrmGrid.size
     ShareCount = ShareGrid.size
 
-    # Get next-period functions
-    vPfuncRent_next = solution_next.vPfuncRent
+    # Precompute joint shock arrays: all (inc, ret) combinations
+    perm_shks = IncShkDstn.atoms[0]  # (N_inc,)
+    tran_shks = IncShkDstn.atoms[1]  # (N_inc,)
+    prob_inc = IncShkDstn.pmv  # (N_inc,)
+    risky_rets_base = RiskyDstn.atoms[0]  # (N_ret,)
+    prob_ret = RiskyDstn.pmv  # (N_ret,)
 
-    # Compute end-of-period marginal value for each (a, Share) combination
+    # Build joint shock grid: (N_inc, N_ret) -> flatten to N_shk
+    perm_j = np.repeat(perm_shks, risky_rets_base.size)  # (N_shk,)
+    tran_j = np.repeat(tran_shks, risky_rets_base.size)
+    prob_j = np.repeat(prob_inc, risky_rets_base.size) * np.tile(
+        prob_ret, perm_shks.size
+    )
+    risky_j = np.tile(risky_rets_base, perm_shks.size)
+    if StockIncCorr != 0.0:
+        risky_j = risky_j * perm_j**StockIncCorr
+    G_j = PermGroFac * perm_j  # (N_shk,)
+    G_gamma_j = G_j**gamma
+
+    # For each share, vectorize over (a, shocks)
     EndOfPrd_dvda = np.zeros((aNrmCount, ShareCount))
-
-    for i_s, share in enumerate(ShareGrid):
-        for i_a, a_nrm in enumerate(aNrmGrid):
-            if a_nrm < 1e-12:
-                EndOfPrd_dvda[i_a, i_s] = 1e10  # very high marginal value at 0
-                continue
-
-            # Integrate over income and return shocks
-            dvda_vals = []
-            for i_inc in range(IncShkDstn.pmv.size):
-                perm_shk = IncShkDstn.atoms[0, i_inc]
-                tran_shk = IncShkDstn.atoms[1, i_inc]
-                prob_inc = IncShkDstn.pmv[i_inc]
-
-                for i_ret in range(RiskyDstn.pmv.size):
-                    risky_ret = _adjust_risky_return(
-                        RiskyDstn.atoms[0, i_ret], perm_shk, StockIncCorr
-                    )
-                    prob_ret = RiskyDstn.pmv[i_ret]
-
-                    R_port = share * risky_ret + (1.0 - share) * Rfree
-                    G_next = PermGroFac * perm_shk
-                    m_next = tran_shk + a_nrm * R_port / G_next
-
-                    dvdm_next = vPfuncRent_next(m_next)
-                    dvda_val = (
-                        R_port / G_next * G_next**gamma * dvdm_next
-                    )
-                    dvda_vals.append(prob_inc * prob_ret * dvda_val)
-
-            EndOfPrd_dvda[i_a, i_s] = DiscFacEff * np.sum(dvda_vals)
-
-    # For each Share, do EGM to find optimal consumption
-    # FOC: kappa_r * c^{gamma-1} = EndOfPrd_dvda  =>  c = (EndOfPrd_dvda / kappa_r)^{1/(gamma-1)}
-    cNrmGrid = np.zeros((aNrmCount, ShareCount))
-    mNrmGrid = np.zeros((aNrmCount, ShareCount))
-
-    for i_s in range(ShareCount):
-        dvda = EndOfPrd_dvda[:, i_s]
-        # Invert marginal utility
-        c = (dvda / kappa_r) ** (1.0 / (gamma - 1.0))
-        c = np.maximum(c, 1e-12)
-        cNrmGrid[:, i_s] = c
-        mNrmGrid[:, i_s] = c + aNrmGrid
-
-    # Now find optimal share for each a by checking which share gives highest value
-    # For simplicity, use the share that satisfies dvds = 0 (interpolate over shares)
-    # or pick the share that maximizes end-of-period value.
-
-    # Compute end-of-period value for share optimization
     EndOfPrd_v = np.zeros((aNrmCount, ShareCount))
+
     for i_s, share in enumerate(ShareGrid):
-        for i_a, a_nrm in enumerate(aNrmGrid):
-            if a_nrm < 1e-12:
-                EndOfPrd_v[i_a, i_s] = -1e10
-                continue
+        R_port_j = share * risky_j + (1.0 - share) * Rfree  # (N_shk,)
 
-            v_vals = []
-            for i_inc in range(IncShkDstn.pmv.size):
-                perm_shk = IncShkDstn.atoms[0, i_inc]
-                tran_shk = IncShkDstn.atoms[1, i_inc]
-                prob_inc = IncShkDstn.pmv[i_inc]
+        # m_next[i_a, j] = tran_j[j] + aNrmGrid[i_a] * R_port_j[j] / G_j[j]
+        # Shape: (aNrmCount, N_shk)
+        m_next = tran_j[np.newaxis, :] + (
+            aNrmGrid[:, np.newaxis] * R_port_j[np.newaxis, :] / G_j[np.newaxis, :]
+        )
 
-                for i_ret in range(RiskyDstn.pmv.size):
-                    risky_ret = _adjust_risky_return(
-                        RiskyDstn.atoms[0, i_ret], perm_shk, StockIncCorr
-                    )
-                    prob_ret = RiskyDstn.pmv[i_ret]
+        # Evaluate next-period functions vectorized
+        m_next_flat = m_next.ravel()
+        vP_next_flat = solution_next.vPfuncRent(m_next_flat)
+        v_next_flat = solution_next.vFuncRent(m_next_flat)
+        vP_next = vP_next_flat.reshape(m_next.shape)
+        v_next = v_next_flat.reshape(m_next.shape)
 
-                    R_port = share * risky_ret + (1.0 - share) * Rfree
-                    G_next = PermGroFac * perm_shk
-                    m_next = tran_shk + a_nrm * R_port / G_next
+        # Weighted sums: prob_j * (R_port/G * G^gamma * vP) and prob_j * G^gamma * v
+        weight_dvda = (
+            prob_j[np.newaxis, :]
+            * R_port_j[np.newaxis, :]
+            / G_j[np.newaxis, :]
+            * G_gamma_j[np.newaxis, :]
+            * vP_next
+        )
+        weight_v = prob_j[np.newaxis, :] * G_gamma_j[np.newaxis, :] * v_next
 
-                    v_next = solution_next.vFuncRent(m_next)
-                    v_val = G_next**gamma * v_next
-                    v_vals.append(prob_inc * prob_ret * v_val)
+        EndOfPrd_dvda[:, i_s] = DiscFacEff * weight_dvda.sum(axis=1)
+        EndOfPrd_v[:, i_s] = DiscFacEff * weight_v.sum(axis=1)
 
-            EndOfPrd_v[i_a, i_s] = DiscFacEff * np.sum(v_vals)
+    # Handle a=0 boundary
+    EndOfPrd_dvda[aNrmGrid < 1e-12, :] = 1e10
+    EndOfPrd_v[aNrmGrid < 1e-12, :] = -1e10
 
-    # Optimal share at each a: argmax over ShareGrid
+    # EGM inversion (already vectorized over a for each share)
+    cNrmGrid = (EndOfPrd_dvda / kappa_r) ** (1.0 / (gamma - 1.0))
+    cNrmGrid = np.maximum(cNrmGrid, 1e-12)
+    mNrmGrid = cNrmGrid + aNrmGrid[:, np.newaxis]
+
+    # Optimal share at each a
     opt_share_idx = np.argmax(EndOfPrd_v, axis=1)
     opt_share = ShareGrid[opt_share_idx]
 
-    # Extract c and m at optimal share
-    c_opt = np.array([cNrmGrid[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)])
-    m_opt = np.array([mNrmGrid[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)])
+    # Extract c and m at optimal share (vectorized advanced indexing)
+    arange_a = np.arange(aNrmCount)
+    c_opt = cNrmGrid[arange_a, opt_share_idx]
+    m_opt = mNrmGrid[arange_a, opt_share_idx]
 
     # Handle participation cost: non-participant gets varsigma=0
     # Participation branch
@@ -593,11 +542,8 @@ def solve_renter_subproblem(
     shareFunc_partic = LinearInterp(m_p, s_p)
     cFunc_nopartic = LinearInterp(m_np, c_np)
 
-    # Continuation value interpolants for participation decision.
-    # EndOfPrd_v[i_a, i_s] = beta*s*E[G^gamma * v_{t+1}(m')] at (a, Share).
-    EndOfPrd_v_opt = np.array(
-        [EndOfPrd_v[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
-    )
+    # Continuation value interpolants for participation decision
+    EndOfPrd_v_opt = EndOfPrd_v[arange_a, opt_share_idx]
     cont_v_partic = LinearInterp(
         np.concatenate([[0.0], aNrmGrid]),
         np.concatenate([[EndOfPrd_v_opt[0]], EndOfPrd_v_opt]),
@@ -607,20 +553,37 @@ def solve_renter_subproblem(
         np.concatenate([[EndOfPrd_v[0, 0]], EndOfPrd_v[:, 0]]),
     )
 
-    # Combined functions: compare total value (flow + continuation)
+    # Build vFunc and vPfunc for renters on a fine grid (vectorized)
+    m_fine_max = max(m_p[-1] * 1.5, aNrmGrid[-1] * 2.0)
+    m_fine = np.linspace(1e-6, m_fine_max, 200)
+
+    c_p_fine = cFunc_partic(m_fine)
+    a_p_fine = np.maximum(m_fine - c_p_fine - ParticCost, 0.0)
+    v_p_fine = kappa_r * c_p_fine**gamma / gamma + cont_v_partic(a_p_fine)
+
+    c_np_fine = cFunc_nopartic(m_fine)
+    a_np_fine = np.maximum(m_fine - c_np_fine, 0.0)
+    v_np_fine = kappa_r * c_np_fine**gamma / gamma + cont_v_nopartic(a_np_fine)
+
+    partic_better = v_p_fine > v_np_fine
+    v_fine = np.where(partic_better, v_p_fine, v_np_fine)
+    c_best = np.where(partic_better, c_p_fine, c_np_fine)
+    vp_fine = kappa_r * c_best ** (gamma - 1.0)
+
+    vFuncRent = LinearInterp(m_fine, v_fine)
+    vPfuncRent = LinearInterp(m_fine, vp_fine)
+
+    # Combined policy functions with participation decision
     def cFuncRent(m):
         m = np.asarray(m, dtype=float)
         scalar = m.ndim == 0
         m = np.atleast_1d(m)
-
         c_p = cFunc_partic(m)
         a_p = np.maximum(m - c_p - ParticCost, 0.0)
         v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
-
         c_np = cFunc_nopartic(m)
         a_np = np.maximum(m - c_np, 0.0)
         v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
-
         c_out = np.where(v_p > v_np, c_p, c_np)
         return float(c_out[0]) if scalar else c_out
 
@@ -628,43 +591,14 @@ def solve_renter_subproblem(
         m = np.asarray(m, dtype=float)
         scalar = m.ndim == 0
         m = np.atleast_1d(m)
-
         c_p = cFunc_partic(m)
         a_p = np.maximum(m - c_p - ParticCost, 0.0)
         v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
-
         c_np = cFunc_nopartic(m)
         a_np = np.maximum(m - c_np, 0.0)
         v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
-
         s_out = np.where(v_p > v_np, shareFunc_partic(m), 0.0)
         return float(s_out[0]) if scalar else s_out
-
-    # Build vFunc and vPfunc for renters on a fine grid.
-    # Extend domain to cover tenure envelope evaluation range.
-    m_fine_max = max(m_p[-1] * 1.5, aNrmGrid[-1] * 2.0)
-    m_fine = np.linspace(1e-6, m_fine_max, 200)
-    v_fine = np.zeros_like(m_fine)
-    vp_fine = np.zeros_like(m_fine)
-
-    for i_m, mi in enumerate(m_fine):
-        c_p_i = float(cFunc_partic(mi))
-        a_p_i = max(mi - c_p_i - ParticCost, 0.0)
-        v_p_i = kappa_r * c_p_i**gamma / gamma + float(cont_v_partic(a_p_i))
-
-        c_np_i = float(cFunc_nopartic(mi))
-        a_np_i = max(mi - c_np_i, 0.0)
-        v_np_i = kappa_r * c_np_i**gamma / gamma + float(cont_v_nopartic(a_np_i))
-
-        if v_p_i > v_np_i:
-            v_fine[i_m] = v_p_i
-            vp_fine[i_m] = kappa_r * c_p_i ** (gamma - 1.0)
-        else:
-            v_fine[i_m] = v_np_i
-            vp_fine[i_m] = kappa_r * c_np_i ** (gamma - 1.0)
-
-    vFuncRent = LinearInterp(m_fine, v_fine)
-    vPfuncRent = LinearInterp(m_fine, vp_fine)
 
     return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
 
@@ -729,54 +663,61 @@ def solve_owner_subproblem(
     r_m = MortRate
     R_m = 1.0 + r_m
 
+    # Precompute joint shock arrays (same pattern as renter)
+    perm_shks = IncShkDstn.atoms[0]
+    tran_shks = IncShkDstn.atoms[1]
+    prob_inc = IncShkDstn.pmv
+    risky_rets_base = RiskyDstn.atoms[0]
+    prob_ret_arr = RiskyDstn.pmv
+
+    perm_j = np.repeat(perm_shks, risky_rets_base.size)
+    tran_j = np.repeat(tran_shks, risky_rets_base.size)
+    prob_j = np.repeat(prob_inc, risky_rets_base.size) * np.tile(
+        prob_ret_arr, perm_shks.size
+    )
+    risky_j = np.tile(risky_rets_base, perm_shks.size)
+    if StockIncCorr != 0.0:
+        risky_j = risky_j * perm_j**StockIncCorr
+    G_j = PermGroFac * perm_j
+    G_gamma_j = G_j**gamma
+
     for i_d, d_now in enumerate(dGrid):
         pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
+        # d_next is the same for all (a, share) at this d
+        d_next_j = (d_now * R_m - pi_now) / G_j  # (N_shk,)
+        d_next_j = np.clip(d_next_j, dGrid[0], dGrid[-1])
 
         for i_s, share in enumerate(ShareGrid):
-            for i_a, a_nrm in enumerate(aXtraGrid):
-                if a_nrm < 1e-12:
-                    EndOfPrd_dvda[i_a, i_d, i_s] = 1e10
-                    EndOfPrd_v[i_a, i_d, i_s] = -1e10
-                    continue
+            R_port_j = share * risky_j + (1.0 - share) * Rfree  # (N_shk,)
 
-                dvda_accum = 0.0
-                v_accum = 0.0
+            # m_next[i_a, j] = tran_j[j] + aNrmGrid[i_a] * R_port_j[j] / G_j[j]
+            m_next = tran_j[np.newaxis, :] + (
+                aXtraGrid[:, np.newaxis] * R_port_j[np.newaxis, :] / G_j[np.newaxis, :]
+            )  # (aNrmCount, N_shk)
 
-                for i_inc in range(IncShkDstn.pmv.size):
-                    perm_shk = IncShkDstn.atoms[0, i_inc]
-                    tran_shk = IncShkDstn.atoms[1, i_inc]
-                    prob_inc = IncShkDstn.pmv[i_inc]
+            # d_next broadcast: (1, N_shk) repeated for each a
+            m_flat = m_next.ravel()
+            d_flat = np.tile(d_next_j, aNrmCount)
 
-                    for i_ret in range(RiskyDstn.pmv.size):
-                        risky_ret = _adjust_risky_return(
-                            RiskyDstn.atoms[0, i_ret], perm_shk, StockIncCorr
-                        )
-                        prob_ret = RiskyDstn.pmv[i_ret]
+            vP_next = solution_next.vPfuncOwn(m_flat, d_flat).reshape(m_next.shape)
+            v_next = solution_next.vFuncOwn(m_flat, d_flat).reshape(m_next.shape)
 
-                        R_port = share * risky_ret + (1.0 - share) * Rfree
-                        G_next = PermGroFac * perm_shk
+            # Weighted sums over shocks
+            w_dvda = (
+                prob_j[np.newaxis, :]
+                * R_port_j[np.newaxis, :]
+                / G_j[np.newaxis, :]
+                * G_gamma_j[np.newaxis, :]
+                * vP_next
+            )
+            w_v = prob_j[np.newaxis, :] * G_gamma_j[np.newaxis, :] * v_next
 
-                        # Next-period states
-                        m_next = tran_shk + a_nrm * R_port / G_next
-                        d_next = (d_now * R_m - pi_now) / G_next
+            EndOfPrd_dvda[:, i_d, i_s] = DiscFacEff * w_dvda.sum(axis=1)
+            EndOfPrd_v[:, i_d, i_s] = DiscFacEff * w_v.sum(axis=1)
 
-                        # Clamp d_next to grid bounds; the owner subproblem
-                        # is conditional on staying, so the tenure envelope
-                        # handles cases where exit would be optimal.
-                        d_next = np.clip(d_next, dGrid[0], dGrid[-1])
-
-                        # Owner continuation
-                        dvdm_next = solution_next.vPfuncOwn(m_next, d_next)
-                        v_next = solution_next.vFuncOwn(m_next, d_next)
-
-                        prob = prob_inc * prob_ret
-                        G_factor = G_next**gamma
-
-                        dvda_accum += prob * R_port / G_next * G_factor * dvdm_next
-                        v_accum += prob * G_factor * v_next
-
-                EndOfPrd_dvda[i_a, i_d, i_s] = DiscFacEff * dvda_accum
-                EndOfPrd_v[i_a, i_d, i_s] = DiscFacEff * v_accum
+    # Handle a=0 boundary
+    EndOfPrd_dvda[aXtraGrid < 1e-12, :, :] = 1e10
+    EndOfPrd_v[aXtraGrid < 1e-12, :, :] = -1e10
 
     # --- EGM inversion for each (d, Share) ---
     # FOC: h_mult * c^{-rho} = EndOfPrd_dvda
@@ -801,26 +742,19 @@ def solve_owner_subproblem(
     opt_share_idx = np.argmax(EndOfPrd_v, axis=2)  # (aNrmCount, dCount)
     opt_share = ShareGrid[opt_share_idx]
 
-    # Extract policy at optimal share
-    c_star = np.zeros((aNrmCount, dCount))
-    m_star = np.zeros((aNrmCount, dCount))
-    v_star = np.zeros((aNrmCount, dCount))
+    # Extract policy at optimal share (vectorized advanced indexing)
+    arange_a = np.arange(aNrmCount)
+    arange_d = np.arange(dCount)
+    idx_a, idx_d = np.meshgrid(arange_a, arange_d, indexing="ij")
+    idx_s = opt_share_idx  # (aNrmCount, dCount)
 
-    for i_d in range(dCount):
-        for i_a in range(aNrmCount):
-            i_s = opt_share_idx[i_a, i_d]
-            c_star[i_a, i_d] = cNrmGrid[i_a, i_d, i_s]
-            m_star[i_a, i_d] = mNrmGrid[i_a, i_d, i_s]
+    c_star = cNrmGrid[idx_a, idx_d, idx_s]
+    m_star = mNrmGrid[idx_a, idx_d, idx_s]
 
-    # Compute value at optimal choices
-    for i_d in range(dCount):
-        for i_a in range(aNrmCount):
-            c = c_star[i_a, i_d]
-            a = aXtraGrid[i_a]
-            i_s = opt_share_idx[i_a, i_d]
-            flow = h_mult * c ** (1.0 - rho) / (1.0 - rho)
-            cont = EndOfPrd_v[i_a, i_d, i_s]
-            v_star[i_a, i_d] = flow + cont
+    # Compute value at optimal choices (vectorized)
+    flow = h_mult * c_star ** (1.0 - rho) / (1.0 - rho)
+    cont = EndOfPrd_v[idx_a, idx_d, idx_s]
+    v_star = flow + cont
 
     # Marginal value at optimal choices
     vp_star = h_mult * c_star ** (-rho)
@@ -990,61 +924,59 @@ def solve_one_period_HousingPortfolio(
     m_eval = np.linspace(1e-6, aXtraGrid[-1] * 1.5, 100)
     d_eval = dGrid.copy()
 
-    # Create arrays for the three tenure values
-    v_own = np.zeros((m_eval.size, d_eval.size))
-    v_sell = np.zeros((m_eval.size, d_eval.size))
-    v_default = np.zeros((m_eval.size, d_eval.size))
-    tenure_choice = np.zeros((m_eval.size, d_eval.size), dtype=int)
+    # Vectorized tenure envelope computation
+    # Affordability check for each d
+    pi_d_vec = np.array([mortgage_payment_rate(d, MortRate, MortPeriods) for d in d_eval])
+    affordable = (pi_d_vec * hbar <= AffordabilityLimit)  # (dCount,)
 
-    for i_m, m in enumerate(m_eval):
-        for i_d, d in enumerate(d_eval):
-            # Affordability constraint: if payment-to-income exceeds limit,
-            # the household cannot continue owning.
-            pi_d = mortgage_payment_rate(d, MortRate, MortPeriods)
-            if pi_d * hbar > AffordabilityLimit:
-                v_own[i_m, i_d] = -np.inf
-            else:
-                v_own[i_m, i_d] = vFuncOwn_stay(m, d)
+    # Own values: evaluate vFuncOwn_stay on full grid
+    mm, dd = np.meshgrid(m_eval, d_eval, indexing="ij")
+    v_own = vFuncOwn_stay(mm.ravel(), dd.ravel()).reshape(mm.shape)
+    v_own[:, ~affordable] = -np.inf
 
-            # Sell value: net equity added to liquid wealth, become renter
-            net_equity = (1.0 - SellCost - d) * hbar
-            m_after_sell = m + net_equity
-            if m_after_sell >= 0:
-                v_sell[i_m, i_d] = vFuncRent(max(m_after_sell, 1e-6))
-            else:
-                v_sell[i_m, i_d] = -np.inf  # Can't sell if underwater net of costs
+    # Sell values
+    net_equity = (1.0 - SellCost - d_eval[np.newaxis, :]) * hbar  # (1, dCount)
+    m_after_sell = m_eval[:, np.newaxis] + net_equity  # (mCount, dCount)
+    m_sell_safe = np.maximum(m_after_sell, 1e-6)
+    v_sell = np.where(
+        m_after_sell >= 0,
+        vFuncRent(m_sell_safe.ravel()).reshape(mm.shape),
+        -np.inf,
+    )
 
-            # Default value: keep liquid wealth, lose house, pay utility penalty
-            v_default[i_m, i_d] = vFuncRent(m) - DefaultPenalty
+    # Default values: broadcast to (mCount, dCount)
+    v_default_1d = vFuncRent(m_eval)  # (mCount,)
+    v_default = np.broadcast_to(
+        v_default_1d[:, np.newaxis] - DefaultPenalty, mm.shape
+    ).copy()
 
     # Take upper envelope
     v_stack = np.stack([v_own, v_sell, v_default], axis=2)
     tenure_choice = np.argmax(v_stack, axis=2)
     v_best = np.max(v_stack, axis=2)
 
-    # Build final owner value and policy functions incorporating tenure choice
-    # For policy: if tenure=0 (own), use owner's c and share; if 1 (sell) or 2 (default), use renter's
-    c_final = np.zeros((m_eval.size, d_eval.size))
-    share_final = np.zeros((m_eval.size, d_eval.size))
-    vp_final = np.zeros((m_eval.size, d_eval.size))
+    # Compute policies for each tenure choice (vectorized)
+    is_own = tenure_choice == 0
+    is_sell = tenure_choice == 1
 
-    for i_m, m in enumerate(m_eval):
-        for i_d, d in enumerate(d_eval):
-            choice = tenure_choice[i_m, i_d]
-            if choice == 0:  # Own
-                c_final[i_m, i_d] = cFuncOwn(m, d)
-                share_final[i_m, i_d] = ShareFuncOwn(m, d)
-                vp_final[i_m, i_d] = vPfuncOwn_stay(m, d)
-            elif choice == 1:  # Sell
-                net_equity = (1.0 - SellCost - d) * hbar
-                m_after = m + net_equity
-                c_final[i_m, i_d] = cFuncRent(max(m_after, 1e-6))
-                share_final[i_m, i_d] = ShareFuncRent(max(m_after, 1e-6))
-                vp_final[i_m, i_d] = vPfuncRent(max(m_after, 1e-6))
-            else:  # Default
-                c_final[i_m, i_d] = cFuncRent(m)
-                share_final[i_m, i_d] = ShareFuncRent(m)
-                vp_final[i_m, i_d] = vPfuncRent(m)
+    # Own policies
+    c_own = cFuncOwn(mm.ravel(), dd.ravel()).reshape(mm.shape)
+    s_own = ShareFuncOwn(mm.ravel(), dd.ravel()).reshape(mm.shape)
+    vp_own = vPfuncOwn_stay(mm.ravel(), dd.ravel()).reshape(mm.shape)
+
+    # Sell policies
+    c_sell = cFuncRent(m_sell_safe.ravel()).reshape(mm.shape)
+    s_sell = ShareFuncRent(m_sell_safe.ravel()).reshape(mm.shape)
+    vp_sell = vPfuncRent(m_sell_safe.ravel()).reshape(mm.shape)
+
+    # Default policies (broadcast to 2D)
+    c_def = np.broadcast_to(cFuncRent(m_eval)[:, np.newaxis], mm.shape)
+    s_def = np.broadcast_to(ShareFuncRent(m_eval)[:, np.newaxis], mm.shape)
+    vp_def = np.broadcast_to(vPfuncRent(m_eval)[:, np.newaxis], mm.shape)
+
+    c_final = np.where(is_own, c_own, np.where(is_sell, c_sell, c_def))
+    share_final = np.where(is_own, s_own, np.where(is_sell, s_sell, s_def))
+    vp_final = np.where(is_own, vp_own, np.where(is_sell, vp_sell, vp_def))
 
     # Build 2D interpolants for the final (enveloped) owner functions
     cFunc_own_list = []
@@ -1082,22 +1014,29 @@ def solve_one_period_HousingPortfolio(
     can_originate = pi_orig * hbar <= AffordabilityLimit
 
     if d_0 > 0 and can_originate:
-        # Build renter value with buy option on the same fine grid
+        # Build renter value with buy option on the same fine grid (vectorized)
         m_rent_fine = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 200)
-        v_rent_vals = np.array([vFuncRent(mi) for mi in m_rent_fine])
-        vp_rent_vals = np.array([vPfuncRent(mi) for mi in m_rent_fine])
-        c_rent_vals = np.array([cFuncRent(mi) for mi in m_rent_fine])
-        s_rent_vals = np.array([ShareFuncRent(mi) for mi in m_rent_fine])
+        v_rent_vals = vFuncRent(m_rent_fine)
+        vp_rent_vals = vPfuncRent(m_rent_fine)
+        c_rent_vals = cFuncRent(m_rent_fine)
+        s_rent_vals = ShareFuncRent(m_rent_fine)
 
-        for i_m, m in enumerate(m_rent_fine):
-            m_after_buy = m - down_cost
-            if m_after_buy >= 1e-6:
-                v_buy = vFuncOwn_stay(m_after_buy, d_0)
-                if v_buy > v_rent_vals[i_m]:
-                    v_rent_vals[i_m] = v_buy
-                    c_rent_vals[i_m] = cFuncOwn(m_after_buy, d_0)
-                    s_rent_vals[i_m] = ShareFuncOwn(m_after_buy, d_0)
-                    vp_rent_vals[i_m] = vPfuncOwn_stay(m_after_buy, d_0)
+        m_after_buy = m_rent_fine - down_cost
+        can_buy = m_after_buy >= 1e-6
+        m_buy_safe = np.where(can_buy, m_after_buy, 1e-6)
+
+        v_buy = vFuncOwn_stay(m_buy_safe, np.full_like(m_buy_safe, d_0))
+        buy_better = can_buy & (v_buy > v_rent_vals)
+
+        if np.any(buy_better):
+            c_buy = cFuncOwn(m_buy_safe, np.full_like(m_buy_safe, d_0))
+            s_buy = ShareFuncOwn(m_buy_safe, np.full_like(m_buy_safe, d_0))
+            vp_buy = vPfuncOwn_stay(m_buy_safe, np.full_like(m_buy_safe, d_0))
+
+            v_rent_vals = np.where(buy_better, v_buy, v_rent_vals)
+            c_rent_vals = np.where(buy_better, c_buy, c_rent_vals)
+            s_rent_vals = np.where(buy_better, s_buy, s_rent_vals)
+            vp_rent_vals = np.where(buy_better, vp_buy, vp_rent_vals)
 
         # Rebuild renter functions with buy option
         cFuncRent_final = LinearInterp(m_rent_fine, c_rent_vals)
@@ -1187,50 +1126,59 @@ def solve_renter_subproblem_markov(
     EndOfPrd_dvda = np.zeros((aNrmCount, ShareCount))
     EndOfPrd_v = np.zeros((aNrmCount, ShareCount))
 
+    risky_rets_base = RiskyDstn.atoms[0]
+    prob_ret_arr = RiskyDstn.pmv
+
     for i_s, share in enumerate(ShareGrid):
-        for i_a, a_nrm in enumerate(aNrmGrid):
-            if a_nrm < 1e-12:
-                EndOfPrd_dvda[i_a, i_s] = 1e10
-                EndOfPrd_v[i_a, i_s] = -1e10
+        dvda_total = np.zeros(aNrmCount)
+        v_total = np.zeros(aNrmCount)
+
+        for e_next in range(n_states):
+            trans_prob = MrkvRow[e_next]
+            if trans_prob < 1e-15:
                 continue
+            dstn = IncShkDstn_list[e_next]
+            vPf = solution_next.vPfuncRent[e_next]
+            vFn = solution_next.vFuncRent[e_next]
 
-            dvda_accum = 0.0
-            v_accum = 0.0
+            # Build joint shocks for this employment state
+            perm_j = np.repeat(dstn.atoms[0], risky_rets_base.size)
+            tran_j = np.repeat(dstn.atoms[1], risky_rets_base.size)
+            prob_j = trans_prob * np.repeat(dstn.pmv, risky_rets_base.size) * np.tile(
+                prob_ret_arr, dstn.pmv.size
+            )
+            risky_j = np.tile(risky_rets_base, dstn.pmv.size)
+            if StockIncCorr != 0.0:
+                risky_j = risky_j * perm_j**StockIncCorr
+            G_j = PermGroFac * perm_j
+            G_gamma_j = G_j**gamma
+            R_port_j = share * risky_j + (1.0 - share) * Rfree
 
-            for e_next in range(n_states):
-                trans_prob = MrkvRow[e_next]
-                if trans_prob < 1e-15:
-                    continue
-                dstn = IncShkDstn_list[e_next]
-                vPf = solution_next.vPfuncRent[e_next]
-                vFn = solution_next.vFuncRent[e_next]
+            m_next = tran_j[np.newaxis, :] + (
+                aNrmGrid[:, np.newaxis] * R_port_j[np.newaxis, :] / G_j[np.newaxis, :]
+            )
+            m_flat = m_next.ravel()
+            vP_next = vPf(m_flat).reshape(m_next.shape)
+            v_next = vFn(m_flat).reshape(m_next.shape)
 
-                for i_inc in range(dstn.pmv.size):
-                    perm_shk = dstn.atoms[0, i_inc]
-                    tran_shk = dstn.atoms[1, i_inc]
-                    prob_inc = dstn.pmv[i_inc]
+            w_dvda = (
+                prob_j[np.newaxis, :]
+                * R_port_j[np.newaxis, :]
+                / G_j[np.newaxis, :]
+                * G_gamma_j[np.newaxis, :]
+                * vP_next
+            )
+            w_v = prob_j[np.newaxis, :] * G_gamma_j[np.newaxis, :] * v_next
 
-                    for i_ret in range(RiskyDstn.pmv.size):
-                        risky_ret = _adjust_risky_return(
-                            RiskyDstn.atoms[0, i_ret], perm_shk,
-                            StockIncCorr,
-                        )
-                        prob_ret = RiskyDstn.pmv[i_ret]
+            dvda_total += w_dvda.sum(axis=1)
+            v_total += w_v.sum(axis=1)
 
-                        R_port = share * risky_ret + (1.0 - share) * Rfree
-                        G_next = PermGroFac * perm_shk
-                        m_next = tran_shk + a_nrm * R_port / G_next
+        EndOfPrd_dvda[:, i_s] = DiscFacEff * dvda_total
+        EndOfPrd_v[:, i_s] = DiscFacEff * v_total
 
-                        prob = trans_prob * prob_inc * prob_ret
-                        G_factor = G_next**gamma
-
-                        dvda_accum += (
-                            prob * R_port / G_next * G_factor * vPf(m_next)
-                        )
-                        v_accum += prob * G_factor * vFn(m_next)
-
-            EndOfPrd_dvda[i_a, i_s] = DiscFacEff * dvda_accum
-            EndOfPrd_v[i_a, i_s] = DiscFacEff * v_accum
+    # Handle a=0 boundary
+    EndOfPrd_dvda[aNrmGrid < 1e-12, :] = 1e10
+    EndOfPrd_v[aNrmGrid < 1e-12, :] = -1e10
 
     # EGM inversion for each Share
     cNrmGrid = np.zeros((aNrmCount, ShareCount))
@@ -1247,12 +1195,9 @@ def solve_renter_subproblem_markov(
     opt_share_idx = np.argmax(EndOfPrd_v, axis=1)
     opt_share = ShareGrid[opt_share_idx]
 
-    c_opt = np.array(
-        [cNrmGrid[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
-    )
-    m_opt = np.array(
-        [mNrmGrid[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
-    )
+    arange_a = np.arange(aNrmCount)
+    c_opt = cNrmGrid[arange_a, opt_share_idx]
+    m_opt = mNrmGrid[arange_a, opt_share_idx]
 
     # Participation branches
     c_partic = c_opt.copy()
@@ -1274,9 +1219,7 @@ def solve_renter_subproblem_markov(
     cFunc_nopartic = LinearInterp(m_np, c_np)
 
     # Continuation value interpolants for participation decision
-    EndOfPrd_v_opt = np.array(
-        [EndOfPrd_v[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
-    )
+    EndOfPrd_v_opt = EndOfPrd_v[arange_a, opt_share_idx]
     cont_v_partic = LinearInterp(
         np.concatenate([[0.0], aNrmGrid]),
         np.concatenate([[EndOfPrd_v_opt[0]], EndOfPrd_v_opt]),
@@ -1313,27 +1256,22 @@ def solve_renter_subproblem_markov(
         s_out = np.where(v_p > v_np, shareFunc_partic(m), 0.0)
         return float(s_out[0]) if scalar else s_out
 
-    # vFunc and vPfunc on fine grid
+    # vFunc and vPfunc on fine grid (vectorized)
     m_fine_max = max(m_p[-1] * 1.5, aNrmGrid[-1] * 2.0)
     m_fine = np.linspace(1e-6, m_fine_max, 200)
-    v_fine = np.zeros_like(m_fine)
-    vp_fine = np.zeros_like(m_fine)
 
-    for i_m, mi in enumerate(m_fine):
-        c_p_i = float(cFunc_partic(mi))
-        a_p_i = max(mi - c_p_i - ParticCost, 0.0)
-        v_p_i = kappa_r * c_p_i**gamma / gamma + float(cont_v_partic(a_p_i))
-        c_np_i = float(cFunc_nopartic(mi))
-        a_np_i = max(mi - c_np_i, 0.0)
-        v_np_i = kappa_r * c_np_i**gamma / gamma + float(
-            cont_v_nopartic(a_np_i)
-        )
-        if v_p_i > v_np_i:
-            v_fine[i_m] = v_p_i
-            vp_fine[i_m] = kappa_r * c_p_i ** (gamma - 1.0)
-        else:
-            v_fine[i_m] = v_np_i
-            vp_fine[i_m] = kappa_r * c_np_i ** (gamma - 1.0)
+    c_p_fine = cFunc_partic(m_fine)
+    a_p_fine = np.maximum(m_fine - c_p_fine - ParticCost, 0.0)
+    v_p_fine = kappa_r * c_p_fine**gamma / gamma + cont_v_partic(a_p_fine)
+
+    c_np_fine = cFunc_nopartic(m_fine)
+    a_np_fine = np.maximum(m_fine - c_np_fine, 0.0)
+    v_np_fine = kappa_r * c_np_fine**gamma / gamma + cont_v_nopartic(a_np_fine)
+
+    partic_better = v_p_fine > v_np_fine
+    v_fine = np.where(partic_better, v_p_fine, v_np_fine)
+    c_best = np.where(partic_better, c_p_fine, c_np_fine)
+    vp_fine = kappa_r * c_best ** (gamma - 1.0)
 
     vFuncRent = LinearInterp(m_fine, v_fine)
     vPfuncRent = LinearInterp(m_fine, vp_fine)
@@ -1405,64 +1343,66 @@ def solve_owner_subproblem_markov(
     r_m = MortRate
     R_m = 1.0 + r_m
 
+    risky_rets_base = RiskyDstn.atoms[0]
+    prob_ret_arr = RiskyDstn.pmv
+
     for i_d, d_now in enumerate(dGrid):
         pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
 
         for i_s, share in enumerate(ShareGrid):
-            for i_a, a_nrm in enumerate(aXtraGrid):
-                if a_nrm < 1e-12:
-                    EndOfPrd_dvda[i_a, i_d, i_s] = 1e10
-                    EndOfPrd_v[i_a, i_d, i_s] = -1e10
+            dvda_total = np.zeros(aNrmCount)
+            v_total = np.zeros(aNrmCount)
+
+            for e_next in range(n_states):
+                trans_prob = MrkvRow[e_next]
+                if trans_prob < 1e-15:
                     continue
+                dstn = IncShkDstn_list[e_next]
+                vPfOwn = solution_next.vPfuncOwn[e_next]
+                vFOwn = solution_next.vFuncOwn[e_next]
 
-                dvda_accum = 0.0
-                v_accum = 0.0
+                perm_j = np.repeat(dstn.atoms[0], risky_rets_base.size)
+                tran_j = np.repeat(dstn.atoms[1], risky_rets_base.size)
+                prob_j = trans_prob * np.repeat(dstn.pmv, risky_rets_base.size) * np.tile(
+                    prob_ret_arr, dstn.pmv.size
+                )
+                risky_j = np.tile(risky_rets_base, dstn.pmv.size)
+                if StockIncCorr != 0.0:
+                    risky_j = risky_j * perm_j**StockIncCorr
+                G_j = PermGroFac * perm_j
+                G_gamma_j = G_j**gamma
+                R_port_j = share * risky_j + (1.0 - share) * Rfree
 
-                for e_next in range(n_states):
-                    trans_prob = MrkvRow[e_next]
-                    if trans_prob < 1e-15:
-                        continue
-                    dstn = IncShkDstn_list[e_next]
-                    vPfOwn = solution_next.vPfuncOwn[e_next]
-                    vFOwn = solution_next.vFuncOwn[e_next]
+                d_next_j = (d_now * R_m - pi_now) / G_j
+                d_next_j = np.clip(d_next_j, dGrid[0], dGrid[-1])
 
-                    for i_inc in range(dstn.pmv.size):
-                        perm_shk = dstn.atoms[0, i_inc]
-                        tran_shk = dstn.atoms[1, i_inc]
-                        prob_inc = dstn.pmv[i_inc]
+                m_next = tran_j[np.newaxis, :] + (
+                    aXtraGrid[:, np.newaxis] * R_port_j[np.newaxis, :] / G_j[np.newaxis, :]
+                )
+                m_flat = m_next.ravel()
+                d_flat = np.tile(d_next_j, aNrmCount)
 
-                        for i_ret in range(RiskyDstn.pmv.size):
-                            risky_ret = _adjust_risky_return(
-                                RiskyDstn.atoms[0, i_ret], perm_shk,
-                                StockIncCorr,
-                            )
-                            prob_ret = RiskyDstn.pmv[i_ret]
+                vP_next = vPfOwn(m_flat, d_flat).reshape(m_next.shape)
+                v_next = vFOwn(m_flat, d_flat).reshape(m_next.shape)
 
-                            R_port = (
-                                share * risky_ret + (1.0 - share) * Rfree
-                            )
-                            G_next = PermGroFac * perm_shk
-                            m_next = tran_shk + a_nrm * R_port / G_next
-                            d_next = (d_now * R_m - pi_now) / G_next
-                            d_next = np.clip(d_next, dGrid[0], dGrid[-1])
+                w_dvda = (
+                    prob_j[np.newaxis, :]
+                    * R_port_j[np.newaxis, :]
+                    / G_j[np.newaxis, :]
+                    * G_gamma_j[np.newaxis, :]
+                    * vP_next
+                )
+                w_v = prob_j[np.newaxis, :] * G_gamma_j[np.newaxis, :] * v_next
 
-                            prob = trans_prob * prob_inc * prob_ret
-                            G_factor = G_next**gamma
+                dvda_total += w_dvda.sum(axis=1)
+                v_total += w_v.sum(axis=1)
 
-                            dvdm_next = vPfOwn(m_next, d_next)
-                            v_next = vFOwn(m_next, d_next)
+            EndOfPrd_dvda[:, i_d, i_s] = DiscFacEff * dvda_total
+            EndOfPrd_v[:, i_d, i_s] = DiscFacEff * v_total
 
-                            dvda_accum += (
-                                prob
-                                * R_port
-                                / G_next
-                                * G_factor
-                                * dvdm_next
-                            )
-                            v_accum += prob * G_factor * v_next
-
-                EndOfPrd_dvda[i_a, i_d, i_s] = DiscFacEff * dvda_accum
-                EndOfPrd_v[i_a, i_d, i_s] = DiscFacEff * v_accum
+    # Handle a=0 boundary
+    EndOfPrd_dvda[aXtraGrid < 1e-12, :, :] = 1e10
+    EndOfPrd_v[aXtraGrid < 1e-12, :, :] = -1e10
 
     # EGM inversion for each (d, Share)
     cNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
@@ -1484,23 +1424,18 @@ def solve_owner_subproblem_markov(
     opt_share_idx = np.argmax(EndOfPrd_v, axis=2)
     opt_share = ShareGrid[opt_share_idx]
 
-    c_star = np.zeros((aNrmCount, dCount))
-    m_star = np.zeros((aNrmCount, dCount))
-    v_star = np.zeros((aNrmCount, dCount))
+    # Extract policy at optimal share (vectorized advanced indexing)
+    arange_a = np.arange(aNrmCount)
+    arange_d = np.arange(dCount)
+    idx_a, idx_d = np.meshgrid(arange_a, arange_d, indexing="ij")
+    idx_s = opt_share_idx
 
-    for i_d in range(dCount):
-        for i_a in range(aNrmCount):
-            i_s = opt_share_idx[i_a, i_d]
-            c_star[i_a, i_d] = cNrmGrid[i_a, i_d, i_s]
-            m_star[i_a, i_d] = mNrmGrid[i_a, i_d, i_s]
+    c_star = cNrmGrid[idx_a, idx_d, idx_s]
+    m_star = mNrmGrid[idx_a, idx_d, idx_s]
 
-    for i_d in range(dCount):
-        for i_a in range(aNrmCount):
-            c = c_star[i_a, i_d]
-            i_s = opt_share_idx[i_a, i_d]
-            flow = h_mult * c ** (1.0 - rho) / (1.0 - rho)
-            cont = EndOfPrd_v[i_a, i_d, i_s]
-            v_star[i_a, i_d] = flow + cont
+    flow = h_mult * c_star ** (1.0 - rho) / (1.0 - rho)
+    cont = EndOfPrd_v[idx_a, idx_d, idx_s]
+    v_star = flow + cont
 
     vp_star = h_mult * c_star ** (-rho)
 
@@ -1661,56 +1596,53 @@ def solve_one_period_HousingPortfolioMarkov(
         m_eval = np.linspace(1e-6, aXtraGrid[-1] * 1.5, 100)
         d_eval = dGrid.copy()
 
-        v_own = np.zeros((m_eval.size, d_eval.size))
-        v_sell = np.zeros((m_eval.size, d_eval.size))
-        v_default = np.zeros((m_eval.size, d_eval.size))
+        # Vectorized tenure envelope
+        pi_d_vec = np.array(
+            [mortgage_payment_rate(d, MortRate, MortPeriods) for d in d_eval]
+        )
+        affordable = pi_d_vec * hbar <= AffordabilityLimit
 
-        for i_m, m in enumerate(m_eval):
-            for i_d, d in enumerate(d_eval):
-                # Affordability constraint
-                pi_d = mortgage_payment_rate(d, MortRate, MortPeriods)
-                if pi_d * hbar > AffordabilityLimit:
-                    v_own[i_m, i_d] = -np.inf
-                else:
-                    v_own[i_m, i_d] = vFuncOwn_stay(m, d)
+        mm, dd = np.meshgrid(m_eval, d_eval, indexing="ij")
+        v_own = vFuncOwn_stay(mm.ravel(), dd.ravel()).reshape(mm.shape)
+        v_own[:, ~affordable] = -np.inf
 
-                net_equity = (1.0 - SellCost - d) * hbar
-                m_after_sell = m + net_equity
-                if m_after_sell >= 0:
-                    v_sell[i_m, i_d] = vFuncRent(max(m_after_sell, 1e-6))
-                else:
-                    v_sell[i_m, i_d] = -np.inf
+        net_equity = (1.0 - SellCost - d_eval[np.newaxis, :]) * hbar
+        m_after_sell = m_eval[:, np.newaxis] + net_equity
+        m_sell_safe = np.maximum(m_after_sell, 1e-6)
+        v_sell = np.where(
+            m_after_sell >= 0,
+            vFuncRent(m_sell_safe.ravel()).reshape(mm.shape),
+            -np.inf,
+        )
 
-                v_default[i_m, i_d] = vFuncRent(m) - DefaultPenalty
+        v_default_1d = vFuncRent(m_eval)
+        v_default = np.broadcast_to(
+            v_default_1d[:, np.newaxis] - DefaultPenalty, mm.shape
+        ).copy()
 
         v_stack = np.stack([v_own, v_sell, v_default], axis=2)
         tenure_choice = np.argmax(v_stack, axis=2)
         v_best = np.max(v_stack, axis=2)
 
-        # Build final policy functions with tenure envelope
-        c_final = np.zeros((m_eval.size, d_eval.size))
-        share_final = np.zeros((m_eval.size, d_eval.size))
-        vp_final = np.zeros((m_eval.size, d_eval.size))
+        # Vectorized policy extraction
+        is_own = tenure_choice == 0
+        is_sell = tenure_choice == 1
 
-        for i_m, m in enumerate(m_eval):
-            for i_d, d in enumerate(d_eval):
-                choice = tenure_choice[i_m, i_d]
-                if choice == 0:
-                    c_final[i_m, i_d] = cFuncOwn(m, d)
-                    share_final[i_m, i_d] = ShareFuncOwn(m, d)
-                    vp_final[i_m, i_d] = vPfuncOwn_stay(m, d)
-                elif choice == 1:
-                    net_equity = (1.0 - SellCost - d) * hbar
-                    m_after = m + net_equity
-                    c_final[i_m, i_d] = cFuncRent(max(m_after, 1e-6))
-                    share_final[i_m, i_d] = ShareFuncRent(
-                        max(m_after, 1e-6)
-                    )
-                    vp_final[i_m, i_d] = vPfuncRent(max(m_after, 1e-6))
-                else:
-                    c_final[i_m, i_d] = cFuncRent(m)
-                    share_final[i_m, i_d] = ShareFuncRent(m)
-                    vp_final[i_m, i_d] = vPfuncRent(m)
+        c_own = cFuncOwn(mm.ravel(), dd.ravel()).reshape(mm.shape)
+        s_own = ShareFuncOwn(mm.ravel(), dd.ravel()).reshape(mm.shape)
+        vp_own = vPfuncOwn_stay(mm.ravel(), dd.ravel()).reshape(mm.shape)
+
+        c_sell = cFuncRent(m_sell_safe.ravel()).reshape(mm.shape)
+        s_sell = ShareFuncRent(m_sell_safe.ravel()).reshape(mm.shape)
+        vp_sell = vPfuncRent(m_sell_safe.ravel()).reshape(mm.shape)
+
+        c_def = np.broadcast_to(cFuncRent(m_eval)[:, np.newaxis], mm.shape)
+        s_def = np.broadcast_to(ShareFuncRent(m_eval)[:, np.newaxis], mm.shape)
+        vp_def = np.broadcast_to(vPfuncRent(m_eval)[:, np.newaxis], mm.shape)
+
+        c_final = np.where(is_own, c_own, np.where(is_sell, c_sell, c_def))
+        share_final = np.where(is_own, s_own, np.where(is_sell, s_sell, s_def))
+        vp_final = np.where(is_own, vp_own, np.where(is_sell, vp_sell, vp_def))
 
         # Build 2D interpolants
         cFunc_own_list = []
@@ -1744,20 +1676,27 @@ def solve_one_period_HousingPortfolioMarkov(
 
         if d_0 > 0 and can_originate:
             m_rent_fine = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 200)
-            v_rent_vals = np.array([vFuncRent(mi) for mi in m_rent_fine])
-            vp_rent_vals = np.array([vPfuncRent(mi) for mi in m_rent_fine])
-            c_rent_vals = np.array([cFuncRent(mi) for mi in m_rent_fine])
-            s_rent_vals = np.array([ShareFuncRent(mi) for mi in m_rent_fine])
+            v_rent_vals = vFuncRent(m_rent_fine)
+            vp_rent_vals = vPfuncRent(m_rent_fine)
+            c_rent_vals = cFuncRent(m_rent_fine)
+            s_rent_vals = ShareFuncRent(m_rent_fine)
 
-            for i_m, m in enumerate(m_rent_fine):
-                m_after_buy = m - down_cost
-                if m_after_buy >= 1e-6:
-                    v_buy = vFuncOwn_stay(m_after_buy, d_0)
-                    if v_buy > v_rent_vals[i_m]:
-                        v_rent_vals[i_m] = v_buy
-                        c_rent_vals[i_m] = cFuncOwn(m_after_buy, d_0)
-                        s_rent_vals[i_m] = ShareFuncOwn(m_after_buy, d_0)
-                        vp_rent_vals[i_m] = vPfuncOwn_stay(m_after_buy, d_0)
+            m_after_buy = m_rent_fine - down_cost
+            can_buy = m_after_buy >= 1e-6
+            m_buy_safe = np.where(can_buy, m_after_buy, 1e-6)
+
+            v_buy = vFuncOwn_stay(m_buy_safe, np.full_like(m_buy_safe, d_0))
+            buy_better = can_buy & (v_buy > v_rent_vals)
+
+            if np.any(buy_better):
+                c_buy = cFuncOwn(m_buy_safe, np.full_like(m_buy_safe, d_0))
+                s_buy = ShareFuncOwn(m_buy_safe, np.full_like(m_buy_safe, d_0))
+                vp_buy = vPfuncOwn_stay(m_buy_safe, np.full_like(m_buy_safe, d_0))
+
+                v_rent_vals = np.where(buy_better, v_buy, v_rent_vals)
+                c_rent_vals = np.where(buy_better, c_buy, c_rent_vals)
+                s_rent_vals = np.where(buy_better, s_buy, s_rent_vals)
+                vp_rent_vals = np.where(buy_better, vp_buy, vp_rent_vals)
 
             cFuncRent_final = LinearInterp(m_rent_fine, c_rent_vals)
             ShareFuncRent_final = LinearInterp(m_rent_fine, s_rent_vals)
