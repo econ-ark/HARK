@@ -22,6 +22,67 @@ from HARK.ConsumptionSaving.ConsHousingPortfolioModel import (
 )
 
 
+
+# ===================================================================
+# Shared parameter helpers (eliminate repeated param dicts)
+# ===================================================================
+
+
+def _base_params_3period(**overrides):
+    """Common 3-period model parameters. Override any key via kwargs."""
+    params = {
+        "T_cycle": 3,
+        "LivPrb": [0.99, 0.99, 0.99],
+        "PermGroFac": [1.02, 1.02, 1.00],
+        "Rfree": [1.02, 1.02, 1.02],
+        "MortPeriods": [3, 2, 1],
+        "PermShkStd": [0.08, 0.08, 0.05],
+        "TranShkStd": [0.08, 0.08, 0.05],
+        "PermShkCount": 3,
+        "TranShkCount": 3,
+        "RiskyCount": 3,
+        "aXtraCount": 24,
+        "aXtraMax": 20,
+        "ShareCount": 7,
+        "dGridCount": 5,
+        "dMax": 1.0,
+    }
+    params.update(overrides)
+    return params
+
+
+def _base_params_1period(**overrides):
+    """Common 1-period model parameters for validation tests."""
+    params = {
+        "T_cycle": 1,
+        "LivPrb": [0.99],
+        "PermGroFac": [1.02],
+        "Rfree": [1.02],
+        "MortPeriods": [1],
+        "PermShkStd": [0.1],
+        "TranShkStd": [0.1],
+        "PermShkCount": 3,
+        "TranShkCount": 3,
+        "RiskyCount": 3,
+        "aXtraCount": 10,
+        "aXtraMax": 10,
+        "ShareCount": 3,
+        "dGridCount": 3,
+        "dMax": 1.0,
+    }
+    params.update(overrides)
+    return params
+
+
+def _markov_params_3period(**overrides):
+    """Common 3-period Markov model parameters."""
+    params = _base_params_3period(
+        MrkvArray=[np.array([[0.95, 0.05], [0.50, 0.50]])] * 3,
+    )
+    params.update(overrides)
+    return params
+
+
 # ===================================================================
 # 1. Mortgage payment utilities
 # ===================================================================
@@ -201,23 +262,12 @@ class TestSolverRuns:
     @pytest.fixture(scope="class")
     def small_model(self):
         """A small model (3 periods) for fast testing."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.98, 0.97],
-            "PermGroFac": [1.02, 1.01, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.1, 0.1, 0.05],
-            "TranShkStd": [0.1, 0.1, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-        }
+        params = _base_params_3period(
+            LivPrb=[0.99, 0.98, 0.97],
+            PermGroFac=[1.02, 1.01, 1.00],
+            PermShkStd=[0.1, 0.1, 0.05],
+            TranShkStd=[0.1, 0.1, 0.05],
+        )
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -287,50 +337,14 @@ class TestEconomicLogic:
     @pytest.fixture(scope="class")
     def model_low_rate(self):
         """Model with a low 3% mortgage rate."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortRate": 0.03,
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-        }
-        agent = HousingPortfolioConsumerType(**params)
+        agent = HousingPortfolioConsumerType(**_base_params_3period(MortRate=0.03))
         agent.solve()
         return agent
 
     @pytest.fixture(scope="class")
     def model_high_rate(self):
         """Model with a high 7% mortgage rate."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortRate": 0.07,
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-        }
-        agent = HousingPortfolioConsumerType(**params)
+        agent = HousingPortfolioConsumerType(**_base_params_3period(MortRate=0.07))
         agent.solve()
         return agent
 
@@ -428,24 +442,7 @@ class TestParameterValidation:
     @pytest.fixture()
     def base_agent(self):
         """A valid 1-period agent for testing restrictions."""
-        params = {
-            "T_cycle": 1,
-            "LivPrb": [0.99],
-            "PermGroFac": [1.02],
-            "Rfree": [1.02],
-            "MortPeriods": [1],
-            "PermShkStd": [0.1],
-            "TranShkStd": [0.1],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 10,
-            "aXtraMax": 10,
-            "ShareCount": 3,
-            "dGridCount": 3,
-            "dMax": 1.0,
-        }
-        return HousingPortfolioConsumerType(**params)
+        return HousingPortfolioConsumerType(**_base_params_1period())
 
     def test_crra_below_one_raises(self, base_agent):
         base_agent.CRRA = 0.5
@@ -485,26 +482,13 @@ class TestMarkovSolverRuns:
     @pytest.fixture(scope="class")
     def markov_model(self):
         """A small Markov model (3 periods, 2 employment states)."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.98, 0.97],
-            "PermGroFac": [1.02, 1.01, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.1, 0.1, 0.05],
-            "TranShkStd": [0.1, 0.1, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 10,
-            "aXtraMax": 10,
-            "ShareCount": 3,
-            "dGridCount": 3,
-            "dMax": 1.0,
-            "MrkvArray": [
-                np.array([[0.95, 0.05], [0.50, 0.50]])
-            ] * 3,
-        }
+        params = _markov_params_3period(
+            LivPrb=[0.99, 0.98, 0.97],
+            PermGroFac=[1.02, 1.01, 1.00],
+            PermShkStd=[0.1, 0.1, 0.05],
+            TranShkStd=[0.1, 0.1, 0.05],
+            aXtraCount=10, aXtraMax=10, ShareCount=3, dGridCount=3,
+        )
         agent = MarkovHousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -539,27 +523,9 @@ class TestMarkovEconomicLogic:
 
     @pytest.fixture(scope="class")
     def markov_model(self):
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 15,
-            "aXtraMax": 15,
-            "ShareCount": 5,
-            "dGridCount": 4,
-            "dMax": 1.0,
-            "MrkvArray": [
-                np.array([[0.95, 0.05], [0.50, 0.50]])
-            ] * 3,
-            "UnempIns": 0.3,
-        }
+        params = _markov_params_3period(
+            aXtraCount=15, aXtraMax=15, ShareCount=5, dGridCount=4, UnempIns=0.3,
+        )
         agent = MarkovHousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -619,24 +585,9 @@ class TestMarkovParameterValidation:
 
     @pytest.fixture()
     def base_agent(self):
-        params = {
-            "T_cycle": 1,
-            "LivPrb": [0.99],
-            "PermGroFac": [1.02],
-            "Rfree": [1.02],
-            "MortPeriods": [1],
-            "PermShkStd": [0.1],
-            "TranShkStd": [0.1],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 10,
-            "aXtraMax": 10,
-            "ShareCount": 3,
-            "dGridCount": 3,
-            "dMax": 1.0,
-            "MrkvArray": [np.array([[0.95, 0.05], [0.50, 0.50]])],
-        }
+        params = _base_params_1period(
+            MrkvArray=[np.array([[0.95, 0.05], [0.50, 0.50]])],
+        )
         return MarkovHousingPortfolioConsumerType(**params)
 
     def test_non_square_mrkv_raises(self, base_agent):
@@ -661,25 +612,7 @@ class TestOriginationConstraints:
     @pytest.fixture(scope="class")
     def model_with_repurchase(self):
         """Model with default origination constraints."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-            "DownPayment": 0.20,
-            "MaxDTI": 4.0,
-        }
+        params = _base_params_3period(DownPayment=0.20, MaxDTI=4.0)
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -687,25 +620,7 @@ class TestOriginationConstraints:
     @pytest.fixture(scope="class")
     def model_no_repurchase(self):
         """Model where repurchase is impossible (100% down payment)."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-            "DownPayment": 1.0,  # 100% down payment = no mortgage possible
-            "MaxDTI": 4.0,
-        }
+        params = _base_params_3period(DownPayment=1.0, MaxDTI=4.0)
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -736,25 +651,7 @@ class TestOriginationConstraints:
 
     def test_tight_dti_binds(self):
         """When MaxDTI is very low, DTI constraint binds over LTV."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-            "DownPayment": 0.20,
-            "MaxDTI": 0.5,  # Very tight: d_0 * 3.0 <= 0.5 => d_0 <= 0.167
-        }
+        params = _base_params_3period(DownPayment=0.20, MaxDTI=0.5)
         agent = HousingPortfolioConsumerType(**params)
         d_0 = min(1.0 - agent.DownPayment, agent.MaxDTI / agent.hbar)
         # DTI should bind: d_0 = 0.5/3.0 ≈ 0.167 < 0.80
@@ -772,48 +669,14 @@ class TestStockIncomeCorrelation:
 
     @pytest.fixture(scope="class")
     def model_no_corr(self):
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-            "StockIncCorr": 0.0,
-        }
+        params = _base_params_3period(StockIncCorr=0.0)
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
 
     @pytest.fixture(scope="class")
     def model_pos_corr(self):
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-            "StockIncCorr": 0.15,
-        }
+        params = _base_params_3period(StockIncCorr=0.15)
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -855,24 +718,7 @@ class TestAffordabilityConstraint:
     @pytest.fixture(scope="class")
     def model_tight_affordability(self):
         """Model with a very tight affordability limit."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-            "AffordabilityLimit": 0.01,  # Very tight: almost no mortgage affordable
-        }
+        params = _base_params_3period(AffordabilityLimit=0.01)
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -896,25 +742,9 @@ class TestDefaultBranch:
     @pytest.fixture(scope="class")
     def model_costly_sell(self):
         """Model where selling is very costly, making default attractive."""
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.2,  # Allow underwater mortgages
-            "SellCost": 0.5,  # 50% transaction cost makes selling very costly
-            "DefaultPenalty": 0.05,  # Low default penalty
-        }
+        params = _base_params_3period(
+            dMax=1.2, SellCost=0.5, DefaultPenalty=0.05,
+        )
         agent = HousingPortfolioConsumerType(**params)
         agent.solve()
         return agent
@@ -936,47 +766,13 @@ class TestSellCostValidation:
     """Test SellCost parameter validation."""
 
     def test_sell_cost_negative_raises(self):
-        params = {
-            "T_cycle": 1,
-            "LivPrb": [0.99],
-            "PermGroFac": [1.02],
-            "Rfree": [1.02],
-            "MortPeriods": [1],
-            "PermShkStd": [0.1],
-            "TranShkStd": [0.1],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 10,
-            "aXtraMax": 10,
-            "ShareCount": 3,
-            "dGridCount": 3,
-            "dMax": 1.0,
-            "SellCost": -0.1,
-        }
+        params = _base_params_1period(SellCost=-0.1)
         agent = HousingPortfolioConsumerType(**params)
         with pytest.raises(ValueError, match="SellCost"):
             agent.check_restrictions()
 
     def test_sell_cost_above_one_raises(self):
-        params = {
-            "T_cycle": 1,
-            "LivPrb": [0.99],
-            "PermGroFac": [1.02],
-            "Rfree": [1.02],
-            "MortPeriods": [1],
-            "PermShkStd": [0.1],
-            "TranShkStd": [0.1],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 10,
-            "aXtraMax": 10,
-            "ShareCount": 3,
-            "dGridCount": 3,
-            "dMax": 1.0,
-            "SellCost": 1.5,
-        }
+        params = _base_params_1period(SellCost=1.5)
         agent = HousingPortfolioConsumerType(**params)
         with pytest.raises(ValueError, match="SellCost"):
             agent.check_restrictions()
@@ -998,24 +794,7 @@ class TestRenterEGMCorrectness:
 
     @pytest.fixture(scope="class")
     def model(self):
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-        }
-        agent = HousingPortfolioConsumerType(**params)
+        agent = HousingPortfolioConsumerType(**_base_params_3period())
         agent.solve()
         return agent
 
@@ -1099,24 +878,20 @@ class TestRenterEGMCorrectness:
         consumption at the same m, since more resources go to housing."""
         results = {}
         for alpha_val in [0.1, 0.3]:
-            params = {
-                "T_cycle": 2,
-                "LivPrb": [0.99, 0.99],
-                "PermGroFac": [1.02, 1.00],
-                "Rfree": [1.02, 1.02],
-                "MortPeriods": [2, 1],
-                "PermShkStd": [0.08, 0.05],
-                "TranShkStd": [0.08, 0.05],
-                "PermShkCount": 3,
-                "TranShkCount": 3,
-                "RiskyCount": 3,
-                "aXtraCount": 15,
-                "aXtraMax": 15,
-                "ShareCount": 3,
-                "dGridCount": 3,
-                "dMax": 1.0,
-                "alpha": alpha_val,
-            }
+            params = _base_params_3period(
+                T_cycle=2,
+                LivPrb=[0.99, 0.99],
+                PermGroFac=[1.02, 1.00],
+                Rfree=[1.02, 1.02],
+                MortPeriods=[2, 1],
+                PermShkStd=[0.08, 0.05],
+                TranShkStd=[0.08, 0.05],
+                aXtraCount=15,
+                aXtraMax=15,
+                ShareCount=3,
+                dGridCount=3,
+                alpha=alpha_val,
+            )
             agent = HousingPortfolioConsumerType(**params)
             agent.solve()
             results[alpha_val] = float(agent.solution[0].cFuncRent(5.0))
@@ -1132,24 +907,7 @@ class TestOwnerRenterConsistency:
 
     @pytest.fixture(scope="class")
     def model(self):
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 7,
-            "dGridCount": 5,
-            "dMax": 1.0,
-        }
-        agent = HousingPortfolioConsumerType(**params)
+        agent = HousingPortfolioConsumerType(**_base_params_3period())
         agent.solve()
         return agent
 
@@ -1226,27 +984,9 @@ class TestMarkovRenterEGMCorrectness:
 
     @pytest.fixture(scope="class")
     def markov_model(self):
-        params = {
-            "T_cycle": 3,
-            "LivPrb": [0.99, 0.99, 0.99],
-            "PermGroFac": [1.02, 1.02, 1.00],
-            "Rfree": [1.02, 1.02, 1.02],
-            "MortPeriods": [3, 2, 1],
-            "PermShkStd": [0.08, 0.08, 0.05],
-            "TranShkStd": [0.08, 0.08, 0.05],
-            "PermShkCount": 3,
-            "TranShkCount": 3,
-            "RiskyCount": 3,
-            "aXtraCount": 24,
-            "aXtraMax": 20,
-            "ShareCount": 5,
-            "dGridCount": 4,
-            "dMax": 1.0,
-            "MrkvArray": [
-                np.array([[0.95, 0.05], [0.50, 0.50]])
-            ] * 3,
-            "UnempIns": 0.3,
-        }
+        params = _markov_params_3period(
+            ShareCount=5, dGridCount=4, UnempIns=0.3,
+        )
         agent = MarkovHousingPortfolioConsumerType(**params)
         agent.solve()
         return agent

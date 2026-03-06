@@ -132,6 +132,148 @@ def _build_joint_shocks(inc_dstn, risky_rets_base, prob_ret_arr,
     return perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j
 
 
+def _renter_egm_envelope(
+    EndOfPrd_dvda, EndOfPrd_v, aNrmGrid, ShareGrid,
+    alpha, rho, kappa_r, gamma, ParticCost,
+):
+    """EGM inversion + DC-EGM participation envelope for the renter.
+
+    Shared between base and Markov renter solvers. Takes end-of-period
+    marginal value and value arrays (after integration), returns interpolated
+    policy and value functions.
+
+    Parameters
+    ----------
+    EndOfPrd_dvda, EndOfPrd_v : np.ndarray, shape (aNrmCount, ShareCount)
+    aNrmGrid, ShareGrid : np.ndarray
+    alpha, rho, kappa_r, gamma, ParticCost : float
+
+    Returns
+    -------
+    cFunc, ShareFunc, vFunc, vPfunc : LinearInterp
+    """
+    aNrmCount = aNrmGrid.size
+    ShareCount = ShareGrid.size
+
+    # FOC: kappa_r * c^{gamma-1} = EndOfPrd_dvda
+    cNrmGrid = (EndOfPrd_dvda / kappa_r) ** (1.0 / (gamma - 1.0))
+    cNrmGrid = np.maximum(cNrmGrid, 1e-12)
+    mNrmGrid = (1.0 + alpha) * cNrmGrid + aNrmGrid[:, np.newaxis]
+
+    # Best share among positive shares (participation branch)
+    arange_a = np.arange(aNrmCount)
+    if ShareCount > 1:
+        opt_pos_idx = np.argmax(EndOfPrd_v[:, 1:], axis=1) + 1
+    else:
+        opt_pos_idx = np.zeros(aNrmCount, dtype=int)
+    c_partic = cNrmGrid[arange_a, opt_pos_idx]
+    m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
+    s_partic = ShareGrid[opt_pos_idx]
+    v_partic = (
+        kappa_r * c_partic**gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
+    )
+
+    # Non-participation branch: share = 0
+    c_nopartic = cNrmGrid[:, 0]
+    m_nopartic = mNrmGrid[:, 0]
+    v_nopartic = kappa_r * c_nopartic**gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
+
+    # DC-EGM upper envelope across participation decision
+    m_env, c_env, s_env, v_env = _participation_envelope(
+        m_partic, c_partic, v_partic, s_partic,
+        m_nopartic, c_nopartic, v_nopartic,
+    )
+    vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
+
+    return (
+        LinearInterp(m_env, c_env),
+        LinearInterp(m_env, s_env),
+        LinearInterp(m_env, v_env),
+        LinearInterp(m_env, vp_env),
+    )
+
+
+def _owner_egm_envelope(
+    EndOfPrd_dvda, EndOfPrd_v, aXtraGrid, ShareGrid, dGrid,
+    rho, h_mult, hbar, r_m, MortPeriods, MaintRate, ParticCost,
+):
+    """EGM inversion + DC-EGM participation envelope for the owner.
+
+    Shared between base and Markov owner solvers.
+
+    Parameters
+    ----------
+    EndOfPrd_dvda, EndOfPrd_v : np.ndarray, shape (aNrmCount, dCount, ShareCount)
+    aXtraGrid, ShareGrid, dGrid : np.ndarray
+    rho, h_mult, hbar, r_m : float
+    MortPeriods : int
+    MaintRate, ParticCost : float
+
+    Returns
+    -------
+    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : LinearInterpOnInterp1D
+    """
+    aNrmCount = aXtraGrid.size
+    ShareCount = ShareGrid.size
+    dCount = dGrid.size
+
+    # EGM inversion for each (d, Share)
+    cNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
+    mNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
+
+    for i_d, d_now in enumerate(dGrid):
+        pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
+        mandatory_cost = pi_now * hbar + MaintRate * hbar
+
+        for i_s in range(ShareCount):
+            dvda = EndOfPrd_dvda[:, i_d, i_s]
+            c = (dvda / h_mult) ** (-1.0 / rho)
+            c = np.maximum(c, 1e-12)
+            cNrmGrid[:, i_d, i_s] = c
+            chi = ParticCost if i_s > 0 else 0.0
+            mNrmGrid[:, i_d, i_s] = c + aXtraGrid + mandatory_cost + chi
+
+    # DC-EGM participation envelope for each d slice
+    arange_a = np.arange(aNrmCount)
+    if ShareCount > 1:
+        opt_pos_idx = np.argmax(EndOfPrd_v[:, :, 1:], axis=2) + 1
+    else:
+        opt_pos_idx = np.zeros((aNrmCount, dCount), dtype=int)
+
+    cFunc_list = []
+    shareFunc_list = []
+    vFunc_list = []
+    vpFunc_list = []
+
+    for i_d in range(dCount):
+        idx_p = opt_pos_idx[:, i_d]
+        c_p = cNrmGrid[arange_a, i_d, idx_p]
+        m_p = mNrmGrid[arange_a, i_d, idx_p]
+        s_p = ShareGrid[idx_p]
+        v_p = h_mult * c_p ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_d, idx_p]
+
+        c_np = cNrmGrid[:, i_d, 0]
+        m_np = mNrmGrid[:, i_d, 0]
+        v_np = h_mult * c_np ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_d, 0]
+
+        m_env, c_env, s_env, v_env = _participation_envelope(
+            m_p, c_p, v_p, s_p, m_np, c_np, v_np,
+        )
+        vp_env = np.concatenate([[1e10], h_mult * c_env[1:] ** (-rho)])
+
+        cFunc_list.append(LinearInterp(m_env, c_env))
+        shareFunc_list.append(LinearInterp(m_env, s_env))
+        vFunc_list.append(LinearInterp(m_env, v_env))
+        vpFunc_list.append(LinearInterp(m_env, vp_env))
+
+    return (
+        LinearInterpOnInterp1D(cFunc_list, dGrid),
+        LinearInterpOnInterp1D(shareFunc_list, dGrid),
+        LinearInterpOnInterp1D(vFunc_list, dGrid),
+        LinearInterpOnInterp1D(vpFunc_list, dGrid),
+    )
+
+
 def _participation_envelope(m_partic, c_partic, v_partic, s_partic,
                             m_nopartic, c_nopartic, v_nopartic):
     """Apply DC-EGM upper envelope across participation branches.
@@ -626,43 +768,10 @@ def solve_renter_subproblem(
     EndOfPrd_dvda[aNrmGrid < 1e-12, :] = 1e10
     EndOfPrd_v[aNrmGrid < 1e-12, :] = -1e10
 
-    # FOC: kappa_r * c^{gamma-1} = EndOfPrd_dvda
-    # => c = (EndOfPrd_dvda / kappa_r)^{1/(gamma-1)}
-    cNrmGrid = (EndOfPrd_dvda / kappa_r) ** (1.0 / (gamma - 1.0))
-    cNrmGrid = np.maximum(cNrmGrid, 1e-12)
-    mNrmGrid = (1.0 + alpha) * cNrmGrid + aNrmGrid[:, np.newaxis]
-
-    # Best share among positive shares (participation branch)
-    arange_a = np.arange(aNrmCount)
-    if ShareCount > 1:
-        opt_pos_idx = np.argmax(EndOfPrd_v[:, 1:], axis=1) + 1
-    else:
-        opt_pos_idx = np.zeros(aNrmCount, dtype=int)
-    c_partic = cNrmGrid[arange_a, opt_pos_idx]
-    m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
-    s_partic = ShareGrid[opt_pos_idx]
-    v_partic = (
-        kappa_r * c_partic**gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
+    return _renter_egm_envelope(
+        EndOfPrd_dvda, EndOfPrd_v, aNrmGrid, ShareGrid,
+        alpha, rho, kappa_r, gamma, ParticCost,
     )
-
-    # Non-participation branch: share = 0
-    c_nopartic = cNrmGrid[:, 0]
-    m_nopartic = mNrmGrid[:, 0]
-    v_nopartic = kappa_r * c_nopartic**gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
-
-    # DC-EGM upper envelope across participation decision
-    m_env, c_env, s_env, v_env = _participation_envelope(
-        m_partic, c_partic, v_partic, s_partic,
-        m_nopartic, c_nopartic, v_nopartic,
-    )
-    vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
-
-    cFuncRent = LinearInterp(m_env, c_env)
-    ShareFuncRent = LinearInterp(m_env, s_env)
-    vFuncRent = LinearInterp(m_env, v_env)
-    vPfuncRent = LinearInterp(m_env, vp_env)
-
-    return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
 
 
 # ---------------------------------------------------------------------------
@@ -768,66 +877,9 @@ def solve_owner_subproblem(
     EndOfPrd_dvda[aXtraGrid < 1e-12, :, :] = 1e10
     EndOfPrd_v[aXtraGrid < 1e-12, :, :] = -1e10
 
-    # --- EGM inversion for each (d, Share) ---
-    # FOC: h_mult * c^{-rho} = EndOfPrd_dvda
-    # => c = (EndOfPrd_dvda / h_mult)^{-1/rho}
-    cNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
-    mNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
-
-    for i_d, d_now in enumerate(dGrid):
-        pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
-        mandatory_cost = pi_now * hbar + MaintRate * hbar  # in income units
-
-        for i_s in range(ShareCount):
-            dvda = EndOfPrd_dvda[:, i_d, i_s]
-            c = (dvda / h_mult) ** (-1.0 / rho)
-            c = np.maximum(c, 1e-12)
-            cNrmGrid[:, i_d, i_s] = c
-            # m = c + a + mandatory cost + participation cost (if participating)
-            chi = ParticCost if i_s > 0 else 0.0
-            mNrmGrid[:, i_d, i_s] = c + aXtraGrid + mandatory_cost + chi
-
-    # --- DC-EGM participation envelope for each d slice ---
-    # Best share among positive shares (participation branch)
-    arange_a = np.arange(aNrmCount)
-    if ShareCount > 1:
-        opt_pos_idx = np.argmax(EndOfPrd_v[:, :, 1:], axis=2) + 1  # (aNrmCount, dCount)
-    else:
-        opt_pos_idx = np.zeros((aNrmCount, dCount), dtype=int)
-
-    cFunc_list = []
-    shareFunc_list = []
-    vFunc_list = []
-    vpFunc_list = []
-
-    for i_d in range(dCount):
-        # Participation branch for this d
-        idx_p = opt_pos_idx[:, i_d]
-        c_p = cNrmGrid[arange_a, i_d, idx_p]
-        m_p = mNrmGrid[arange_a, i_d, idx_p]  # already includes ParticCost
-        s_p = ShareGrid[idx_p]
-        v_p = h_mult * c_p ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_d, idx_p]
-
-        # Non-participation branch for this d
-        c_np = cNrmGrid[:, i_d, 0]
-        m_np = mNrmGrid[:, i_d, 0]
-        v_np = h_mult * c_np ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_d, 0]
-
-        m_env, c_env, s_env, v_env = _participation_envelope(
-            m_p, c_p, v_p, s_p, m_np, c_np, v_np,
-        )
-        vp_env = np.concatenate([[1e10], h_mult * c_env[1:] ** (-rho)])
-
-        cFunc_list.append(LinearInterp(m_env, c_env))
-        shareFunc_list.append(LinearInterp(m_env, s_env))
-        vFunc_list.append(LinearInterp(m_env, v_env))
-        vpFunc_list.append(LinearInterp(m_env, vp_env))
-
-    return (
-        LinearInterpOnInterp1D(cFunc_list, dGrid),
-        LinearInterpOnInterp1D(shareFunc_list, dGrid),
-        LinearInterpOnInterp1D(vFunc_list, dGrid),
-        LinearInterpOnInterp1D(vpFunc_list, dGrid),
+    return _owner_egm_envelope(
+        EndOfPrd_dvda, EndOfPrd_v, aXtraGrid, ShareGrid, dGrid,
+        rho, h_mult, hbar, r_m, MortPeriods, MaintRate, ParticCost,
     )
 
 
@@ -1255,48 +1307,10 @@ def solve_renter_subproblem_markov(
     EndOfPrd_dvda[aNrmGrid < 1e-12, :] = 1e10
     EndOfPrd_v[aNrmGrid < 1e-12, :] = -1e10
 
-    # EGM inversion for each Share
-    cNrmGrid = np.zeros((aNrmCount, ShareCount))
-    mNrmGrid = np.zeros((aNrmCount, ShareCount))
-
-    for i_s in range(ShareCount):
-        dvda = EndOfPrd_dvda[:, i_s]
-        c = (dvda / kappa_r) ** (1.0 / (gamma - 1.0))
-        c = np.maximum(c, 1e-12)
-        cNrmGrid[:, i_s] = c
-        mNrmGrid[:, i_s] = (1.0 + alpha) * c + aNrmGrid
-
-    # Best share among positive shares (participation branch)
-    arange_a = np.arange(aNrmCount)
-    if ShareCount > 1:
-        opt_pos_idx = np.argmax(EndOfPrd_v[:, 1:], axis=1) + 1
-    else:
-        opt_pos_idx = np.zeros(aNrmCount, dtype=int)
-    c_partic = cNrmGrid[arange_a, opt_pos_idx]
-    m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
-    s_partic = ShareGrid[opt_pos_idx]
-    v_partic = (
-        kappa_r * c_partic**gamma / (1.0 - rho) + EndOfPrd_v[arange_a, opt_pos_idx]
+    return _renter_egm_envelope(
+        EndOfPrd_dvda, EndOfPrd_v, aNrmGrid, ShareGrid,
+        alpha, rho, kappa_r, gamma, ParticCost,
     )
-
-    # Non-participation branch: share = 0
-    c_nopartic = cNrmGrid[:, 0]
-    m_nopartic = mNrmGrid[:, 0]
-    v_nopartic = kappa_r * c_nopartic**gamma / (1.0 - rho) + EndOfPrd_v[:, 0]
-
-    # DC-EGM upper envelope across participation decision
-    m_env, c_env, s_env, v_env = _participation_envelope(
-        m_partic, c_partic, v_partic, s_partic,
-        m_nopartic, c_nopartic, v_nopartic,
-    )
-    vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
-
-    cFuncRent = LinearInterp(m_env, c_env)
-    ShareFuncRent = LinearInterp(m_env, s_env)
-    vFuncRent = LinearInterp(m_env, v_env)
-    vPfuncRent = LinearInterp(m_env, vp_env)
-
-    return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
 
 
 # ---------------------------------------------------------------------------
@@ -1419,60 +1433,9 @@ def solve_owner_subproblem_markov(
     EndOfPrd_dvda[aXtraGrid < 1e-12, :, :] = 1e10
     EndOfPrd_v[aXtraGrid < 1e-12, :, :] = -1e10
 
-    # EGM inversion for each (d, Share)
-    cNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
-    mNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
-
-    for i_d, d_now in enumerate(dGrid):
-        pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
-        mandatory_cost = pi_now * hbar + MaintRate * hbar
-
-        for i_s in range(ShareCount):
-            dvda = EndOfPrd_dvda[:, i_d, i_s]
-            c = (dvda / h_mult) ** (-1.0 / rho)
-            c = np.maximum(c, 1e-12)
-            cNrmGrid[:, i_d, i_s] = c
-            chi = ParticCost if i_s > 0 else 0.0
-            mNrmGrid[:, i_d, i_s] = c + aXtraGrid + mandatory_cost + chi
-
-    # --- DC-EGM participation envelope for each d slice ---
-    arange_a = np.arange(aNrmCount)
-    if ShareCount > 1:
-        opt_pos_idx = np.argmax(EndOfPrd_v[:, :, 1:], axis=2) + 1
-    else:
-        opt_pos_idx = np.zeros((aNrmCount, dCount), dtype=int)
-
-    cFunc_list = []
-    shareFunc_list = []
-    vFunc_list = []
-    vpFunc_list = []
-
-    for i_d in range(dCount):
-        idx_p = opt_pos_idx[:, i_d]
-        c_p = cNrmGrid[arange_a, i_d, idx_p]
-        m_p = mNrmGrid[arange_a, i_d, idx_p]
-        s_p = ShareGrid[idx_p]
-        v_p = h_mult * c_p ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_d, idx_p]
-
-        c_np = cNrmGrid[:, i_d, 0]
-        m_np = mNrmGrid[:, i_d, 0]
-        v_np = h_mult * c_np ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_d, 0]
-
-        m_env, c_env, s_env, v_env = _participation_envelope(
-            m_p, c_p, v_p, s_p, m_np, c_np, v_np,
-        )
-        vp_env = np.concatenate([[1e10], h_mult * c_env[1:] ** (-rho)])
-
-        cFunc_list.append(LinearInterp(m_env, c_env))
-        shareFunc_list.append(LinearInterp(m_env, s_env))
-        vFunc_list.append(LinearInterp(m_env, v_env))
-        vpFunc_list.append(LinearInterp(m_env, vp_env))
-
-    return (
-        LinearInterpOnInterp1D(cFunc_list, dGrid),
-        LinearInterpOnInterp1D(shareFunc_list, dGrid),
-        LinearInterpOnInterp1D(vFunc_list, dGrid),
-        LinearInterpOnInterp1D(vpFunc_list, dGrid),
+    return _owner_egm_envelope(
+        EndOfPrd_dvda, EndOfPrd_v, aXtraGrid, ShareGrid, dGrid,
+        rho, h_mult, hbar, r_m, MortPeriods, MaintRate, ParticCost,
     )
 
 
