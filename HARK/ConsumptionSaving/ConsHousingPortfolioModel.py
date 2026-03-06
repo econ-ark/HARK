@@ -23,6 +23,7 @@ from copy import deepcopy
 import numpy as np
 
 from HARK import NullFunc
+from HARK.dcegm import calc_nondecreasing_segments, upper_envelope
 from HARK.Calibration.Assets.AssetProcesses import (
     calc_ShareLimit_for_CRRA,
     combine_IncShkDstn_and_RiskyDstn,
@@ -129,6 +130,129 @@ def _build_joint_shocks(inc_dstn, risky_rets_base, prob_ret_arr,
     G_j = PermGroFac * perm_j
     G_gamma_j = G_j**gamma
     return perm_j, tran_j, prob_j, risky_j, G_j, G_gamma_j
+
+
+def _participation_envelope(m_partic, c_partic, v_partic, s_partic,
+                            m_nopartic, c_nopartic, v_nopartic):
+    """Apply DC-EGM upper envelope across participation branches.
+
+    Splits each branch into non-decreasing segments, then computes the upper
+    envelope to find exact crossing points between participation and
+    non-participation value functions.
+
+    Parameters
+    ----------
+    m_partic, c_partic, v_partic, s_partic : np.ndarray
+        Endogenous m, consumption, value, and share for participation branch.
+    m_nopartic, c_nopartic, v_nopartic : np.ndarray
+        Same for non-participation branch (share is 0).
+
+    Returns
+    -------
+    m_env, c_env, s_env, v_env : np.ndarray
+        Upper envelope arrays with boundary point (0, ...) prepended.
+    """
+    s_nopartic = np.zeros_like(c_nopartic)
+
+    all_v_segs = []
+    all_c_data = []
+    all_s_data = []
+
+    for m_br, c_br, v_br, s_br in [
+        (m_partic, c_partic, v_partic, s_partic),
+        (m_nopartic, c_nopartic, v_nopartic, s_nopartic),
+    ]:
+        starts, ends = calc_nondecreasing_segments(m_br, v_br)
+        for j in range(len(starts)):
+            sl = slice(starts[j], ends[j] + 1)
+            all_v_segs.append([m_br[sl].copy(), v_br[sl].copy()])
+            all_c_data.append((m_br[sl].copy(), c_br[sl].copy()))
+            all_s_data.append((m_br[sl].copy(), s_br[sl].copy()))
+
+    m_env, v_env, env_inds = upper_envelope(all_v_segs)
+
+    # Interpolate c and share from winning segments
+    c_env = np.empty_like(m_env)
+    s_env = np.empty_like(m_env)
+    for seg_idx in range(len(all_v_segs)):
+        mask = env_inds == seg_idx
+        if mask.any():
+            c_env[mask] = np.interp(
+                m_env[mask], all_c_data[seg_idx][0], all_c_data[seg_idx][1],
+            )
+            s_env[mask] = np.interp(
+                m_env[mask], all_s_data[seg_idx][0], all_s_data[seg_idx][1],
+            )
+
+    # Prepend boundary
+    m_env = np.concatenate([[0.0], m_env])
+    c_env = np.concatenate([[0.0], c_env])
+    s_env = np.concatenate([[0.0], s_env])
+    v_env = np.concatenate([[-1e10], v_env])
+
+    return m_env, c_env, s_env, v_env
+
+
+def _value_envelope(m_eval, v_arrays, policy_arrays):
+    """Apply upper envelope across discrete value function branches.
+
+    Used for tenure choice (own/sell/default) and repurchase (rent/buy)
+    envelopes where value functions are already interpolated on a common
+    m grid and each branch is monotonically non-decreasing.
+
+    Parameters
+    ----------
+    m_eval : np.ndarray
+        Common m grid where all branches are evaluated.
+    v_arrays : list of np.ndarray
+        Value function evaluations for each branch, shape (len(m_eval),).
+        Use -np.inf for infeasible points.
+    policy_arrays : list of tuples of np.ndarray
+        For each branch, a tuple of policy arrays (c, share, vp, ...) on m_eval.
+
+    Returns
+    -------
+    m_env : np.ndarray
+        Envelope m grid (with crossing points inserted).
+    v_env : np.ndarray
+        Envelope value.
+    policy_envs : list of np.ndarray
+        One array per policy variable, interpolated from the winning branch.
+    env_inds : np.ndarray
+        Branch index at each m_env point.
+    """
+    n_branches = len(v_arrays)
+    n_policies = len(policy_arrays[0])
+
+    # Build segments for upper_envelope: each branch is one segment
+    # (filter out -inf to keep segments well-defined)
+    segs = []
+    seg_to_branch = []
+    for b in range(n_branches):
+        v = v_arrays[b]
+        valid = np.isfinite(v) & (v > -1e100)
+        if valid.any():
+            segs.append([m_eval[valid].copy(), v[valid].copy()])
+        else:
+            # Dummy single-point segment that can never win
+            segs.append([m_eval[:1].copy(), np.array([-1e200])])
+        seg_to_branch.append(b)
+
+    m_env, v_env, seg_inds = upper_envelope(segs)
+    # Map segment indices back to branch indices
+    env_inds = np.array([seg_to_branch[i] for i in seg_inds])
+
+    # Interpolate policies from winning branches
+    policy_envs = []
+    for p in range(n_policies):
+        pol = np.empty_like(m_env)
+        for b in range(n_branches):
+            mask = env_inds == b
+            if mask.any():
+                pol[mask] = np.interp(m_env[mask], m_eval, policy_arrays[b][p])
+        policy_envs.append(pol)
+
+    return m_env, v_env, policy_envs, env_inds
 
 
 # ---------------------------------------------------------------------------
@@ -508,97 +632,35 @@ def solve_renter_subproblem(
     cNrmGrid = np.maximum(cNrmGrid, 1e-12)
     mNrmGrid = cNrmGrid + aNrmGrid[:, np.newaxis]
 
-    # Optimal share at each a
-    opt_share_idx = np.argmax(EndOfPrd_v, axis=1)
-    opt_share = ShareGrid[opt_share_idx]
-
-    # Extract c and m at optimal share (vectorized advanced indexing)
+    # Best share among positive shares (participation branch)
     arange_a = np.arange(aNrmCount)
-    c_opt = cNrmGrid[arange_a, opt_share_idx]
-    m_opt = mNrmGrid[arange_a, opt_share_idx]
-
-    # Handle participation cost: non-participant gets varsigma=0
-    # Participation branch
-    c_partic = c_opt.copy()
-    m_partic = m_opt + ParticCost  # cost shifts m rightward in EGM
-
-    # Non-participation branch: varsigma=0 (ShareGrid[0] must be 0)
-    c_nopartic = cNrmGrid[:, 0].copy()
-    m_nopartic = mNrmGrid[:, 0].copy()
-
-    # Build interpolants
-    # Sort by m for interpolation
-    sort_p = np.argsort(m_partic)
-    sort_np = np.argsort(m_nopartic)
-
-    m_p = np.concatenate([[0.0], m_partic[sort_p]])
-    c_p = np.concatenate([[0.0], c_partic[sort_p]])
-    s_p = np.concatenate([[opt_share[sort_p[0]]], opt_share[sort_p]])
-
-    m_np = np.concatenate([[0.0], m_nopartic[sort_np]])
-    c_np = np.concatenate([[0.0], c_nopartic[sort_np]])
-
-    cFunc_partic = LinearInterp(m_p, c_p)
-    shareFunc_partic = LinearInterp(m_p, s_p)
-    cFunc_nopartic = LinearInterp(m_np, c_np)
-
-    # Continuation value interpolants for participation decision
-    EndOfPrd_v_opt = EndOfPrd_v[arange_a, opt_share_idx]
-    cont_v_partic = LinearInterp(
-        np.concatenate([[0.0], aNrmGrid]),
-        np.concatenate([[EndOfPrd_v_opt[0]], EndOfPrd_v_opt]),
-    )
-    cont_v_nopartic = LinearInterp(
-        np.concatenate([[0.0], aNrmGrid]),
-        np.concatenate([[EndOfPrd_v[0, 0]], EndOfPrd_v[:, 0]]),
+    if ShareCount > 1:
+        opt_pos_idx = np.argmax(EndOfPrd_v[:, 1:], axis=1) + 1
+    else:
+        opt_pos_idx = np.zeros(aNrmCount, dtype=int)
+    c_partic = cNrmGrid[arange_a, opt_pos_idx]
+    m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
+    s_partic = ShareGrid[opt_pos_idx]
+    v_partic = (
+        kappa_r * c_partic**gamma / gamma + EndOfPrd_v[arange_a, opt_pos_idx]
     )
 
-    # Build vFunc and vPfunc for renters on a fine grid (vectorized)
-    m_fine_max = max(m_p[-1] * 1.5, aNrmGrid[-1] * 2.0)
-    m_fine = np.linspace(1e-6, m_fine_max, 200)
+    # Non-participation branch: share = 0
+    c_nopartic = cNrmGrid[:, 0]
+    m_nopartic = mNrmGrid[:, 0]
+    v_nopartic = kappa_r * c_nopartic**gamma / gamma + EndOfPrd_v[:, 0]
 
-    c_p_fine = cFunc_partic(m_fine)
-    a_p_fine = np.maximum(m_fine - c_p_fine - ParticCost, 0.0)
-    v_p_fine = kappa_r * c_p_fine**gamma / gamma + cont_v_partic(a_p_fine)
+    # DC-EGM upper envelope across participation decision
+    m_env, c_env, s_env, v_env = _participation_envelope(
+        m_partic, c_partic, v_partic, s_partic,
+        m_nopartic, c_nopartic, v_nopartic,
+    )
+    vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
 
-    c_np_fine = cFunc_nopartic(m_fine)
-    a_np_fine = np.maximum(m_fine - c_np_fine, 0.0)
-    v_np_fine = kappa_r * c_np_fine**gamma / gamma + cont_v_nopartic(a_np_fine)
-
-    partic_better = v_p_fine > v_np_fine
-    v_fine = np.where(partic_better, v_p_fine, v_np_fine)
-    c_best = np.where(partic_better, c_p_fine, c_np_fine)
-    vp_fine = kappa_r * c_best ** (gamma - 1.0)
-
-    vFuncRent = LinearInterp(m_fine, v_fine)
-    vPfuncRent = LinearInterp(m_fine, vp_fine)
-
-    # Combined policy functions with participation decision
-    def cFuncRent(m):
-        m = np.asarray(m, dtype=float)
-        scalar = m.ndim == 0
-        m = np.atleast_1d(m)
-        c_p = cFunc_partic(m)
-        a_p = np.maximum(m - c_p - ParticCost, 0.0)
-        v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
-        c_np = cFunc_nopartic(m)
-        a_np = np.maximum(m - c_np, 0.0)
-        v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
-        c_out = np.where(v_p > v_np, c_p, c_np)
-        return float(c_out[0]) if scalar else c_out
-
-    def ShareFuncRent(m):
-        m = np.asarray(m, dtype=float)
-        scalar = m.ndim == 0
-        m = np.atleast_1d(m)
-        c_p = cFunc_partic(m)
-        a_p = np.maximum(m - c_p - ParticCost, 0.0)
-        v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
-        c_np = cFunc_nopartic(m)
-        a_np = np.maximum(m - c_np, 0.0)
-        v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
-        s_out = np.where(v_p > v_np, shareFunc_partic(m), 0.0)
-        return float(s_out[0]) if scalar else s_out
+    cFuncRent = LinearInterp(m_env, c_env)
+    ShareFuncRent = LinearInterp(m_env, s_env)
+    vFuncRent = LinearInterp(m_env, v_env)
+    vPfuncRent = LinearInterp(m_env, vp_env)
 
     return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
 
@@ -725,61 +787,41 @@ def solve_owner_subproblem(
             chi = ParticCost if i_s > 0 else 0.0
             mNrmGrid[:, i_d, i_s] = c + aXtraGrid + mandatory_cost + chi
 
-    # --- Optimal share for each (a, d): maximize end-of-period value ---
-    opt_share_idx = np.argmax(EndOfPrd_v, axis=2)  # (aNrmCount, dCount)
-    opt_share = ShareGrid[opt_share_idx]
-
-    # Extract policy at optimal share (vectorized advanced indexing)
+    # --- DC-EGM participation envelope for each d slice ---
+    # Best share among positive shares (participation branch)
     arange_a = np.arange(aNrmCount)
-    arange_d = np.arange(dCount)
-    idx_a, idx_d = np.meshgrid(arange_a, arange_d, indexing="ij")
-    idx_s = opt_share_idx  # (aNrmCount, dCount)
+    if ShareCount > 1:
+        opt_pos_idx = np.argmax(EndOfPrd_v[:, :, 1:], axis=2) + 1  # (aNrmCount, dCount)
+    else:
+        opt_pos_idx = np.zeros((aNrmCount, dCount), dtype=int)
 
-    c_star = cNrmGrid[idx_a, idx_d, idx_s]
-    m_star = mNrmGrid[idx_a, idx_d, idx_s]
-
-    # Compute value at optimal choices (vectorized)
-    flow = h_mult * c_star ** (1.0 - rho) / (1.0 - rho)
-    cont = EndOfPrd_v[idx_a, idx_d, idx_s]
-    v_star = flow + cont
-
-    # Marginal value at optimal choices
-    vp_star = h_mult * c_star ** (-rho)
-
-    return _build_owner_2d_interpolants(
-        m_star, c_star, opt_share, v_star, vp_star, dGrid,
-    )
-
-
-def _build_owner_2d_interpolants(m_star, c_star, opt_share, v_star, vp_star, dGrid):
-    """Build 2D owner interpolants from EGM output arrays.
-
-    For each d gridpoint, builds sorted 1D interpolants over m, then wraps
-    them as ``LinearInterpOnInterp1D`` objects.
-
-    Returns
-    -------
-    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : LinearInterpOnInterp1D
-    """
-    dCount = dGrid.size
     cFunc_list = []
     shareFunc_list = []
     vFunc_list = []
     vpFunc_list = []
 
     for i_d in range(dCount):
-        m_col = m_star[:, i_d]
-        sort_idx = np.argsort(m_col)
-        m_sorted = np.concatenate([[0.0], m_col[sort_idx]])
-        c_sorted = np.concatenate([[0.0], c_star[:, i_d][sort_idx]])
-        s_sorted = np.concatenate([[0.0], opt_share[:, i_d][sort_idx]])
-        v_sorted = np.concatenate([[-1e10], v_star[:, i_d][sort_idx]])
-        vp_sorted = np.concatenate([[1e10], vp_star[:, i_d][sort_idx]])
+        # Participation branch for this d
+        idx_p = opt_pos_idx[:, i_d]
+        c_p = cNrmGrid[arange_a, i_d, idx_p]
+        m_p = mNrmGrid[arange_a, i_d, idx_p]  # already includes ParticCost
+        s_p = ShareGrid[idx_p]
+        v_p = h_mult * c_p ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_d, idx_p]
 
-        cFunc_list.append(LinearInterp(m_sorted, c_sorted))
-        shareFunc_list.append(LinearInterp(m_sorted, s_sorted))
-        vFunc_list.append(LinearInterp(m_sorted, v_sorted))
-        vpFunc_list.append(LinearInterp(m_sorted, vp_sorted))
+        # Non-participation branch for this d
+        c_np = cNrmGrid[:, i_d, 0]
+        m_np = mNrmGrid[:, i_d, 0]
+        v_np = h_mult * c_np ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_d, 0]
+
+        m_env, c_env, s_env, v_env = _participation_envelope(
+            m_p, c_p, v_p, s_p, m_np, c_np, v_np,
+        )
+        vp_env = np.concatenate([[1e10], h_mult * c_env[1:] ** (-rho)])
+
+        cFunc_list.append(LinearInterp(m_env, c_env))
+        shareFunc_list.append(LinearInterp(m_env, s_env))
+        vFunc_list.append(LinearInterp(m_env, v_env))
+        vpFunc_list.append(LinearInterp(m_env, vp_env))
 
     return (
         LinearInterpOnInterp1D(cFunc_list, dGrid),
@@ -796,6 +838,9 @@ def _compute_tenure_envelope(
 ):
     """Compute the tenure choice envelope over a (m, d) grid.
 
+    Uses the DC-EGM upper envelope per d-slice to find exact crossing points
+    between own, sell, and default value functions.
+
     Returns
     -------
     cFuncOwn_final, ShareFuncOwn_final, vFuncOwn_final, vPfuncOwn_final,
@@ -806,58 +851,20 @@ def _compute_tenure_envelope(
     )
     affordable = pi_d_vec * hbar <= AffordabilityLimit
 
+    # Pre-evaluate renter functions on m_eval (shared across d slices)
+    v_rent_m = vFuncRent(m_eval)
+    c_rent_m = cFuncRent(m_eval)
+    s_rent_m = ShareFuncRent(m_eval)
+    vp_rent_m = vPfuncRent(m_eval)
+
+    # Pre-evaluate owner functions on (m_eval x d_eval) grid
     mm, dd = np.meshgrid(m_eval, d_eval, indexing="ij")
-    v_own = vFuncOwn_stay(mm.ravel(), dd.ravel()).reshape(mm.shape)
-    v_own[:, ~affordable] = -np.inf
-
-    net_equity = (1.0 - SellCost - d_eval[np.newaxis, :]) * hbar
-    m_after_sell = m_eval[:, np.newaxis] + net_equity
-    m_sell_safe = np.maximum(m_after_sell, 1e-6)
-    v_sell = np.where(
-        m_after_sell >= 0,
-        vFuncRent(m_sell_safe.ravel()).reshape(mm.shape),
-        -np.inf,
-    )
-
-    v_default_1d = vFuncRent(m_eval)
-    v_default = np.broadcast_to(
-        v_default_1d[:, np.newaxis] - DefaultPenalty, mm.shape
-    )
-
-    v_stack = np.stack([v_own, v_sell, v_default], axis=2)
-    tenure_choice = np.argmax(v_stack, axis=2)
-    v_best = np.max(v_stack, axis=2)
-
-    is_own = tenure_choice == 0
-    is_sell = tenure_choice == 1
-
-    c_own = cFuncOwn(mm.ravel(), dd.ravel()).reshape(mm.shape)
-    s_own = ShareFuncOwn(mm.ravel(), dd.ravel()).reshape(mm.shape)
-    vp_own = vPfuncOwn_stay(mm.ravel(), dd.ravel()).reshape(mm.shape)
-
-    c_sell = np.where(
-        m_after_sell >= 0,
-        cFuncRent(m_sell_safe.ravel()).reshape(mm.shape),
-        0.0,
-    )
-    s_sell = np.where(
-        m_after_sell >= 0,
-        ShareFuncRent(m_sell_safe.ravel()).reshape(mm.shape),
-        0.0,
-    )
-    vp_sell = np.where(
-        m_after_sell >= 0,
-        vPfuncRent(m_sell_safe.ravel()).reshape(mm.shape),
-        0.0,
-    )
-
-    c_def = np.broadcast_to(cFuncRent(m_eval)[:, np.newaxis], mm.shape)
-    s_def = np.broadcast_to(ShareFuncRent(m_eval)[:, np.newaxis], mm.shape)
-    vp_def = np.broadcast_to(vPfuncRent(m_eval)[:, np.newaxis], mm.shape)
-
-    c_final = np.where(is_own, c_own, np.where(is_sell, c_sell, c_def))
-    share_final = np.where(is_own, s_own, np.where(is_sell, s_sell, s_def))
-    vp_final = np.where(is_own, vp_own, np.where(is_sell, vp_sell, vp_def))
+    flat_m, flat_d = mm.ravel(), dd.ravel()
+    v_own_all = vFuncOwn_stay(flat_m, flat_d).reshape(mm.shape)
+    c_own_all = cFuncOwn(flat_m, flat_d).reshape(mm.shape)
+    s_own_all = ShareFuncOwn(flat_m, flat_d).reshape(mm.shape)
+    vp_own_all = vPfuncOwn_stay(flat_m, flat_d).reshape(mm.shape)
+    v_own_all[:, ~affordable] = -np.inf
 
     cFunc_own_list = []
     shareFunc_own_list = []
@@ -866,13 +873,48 @@ def _compute_tenure_envelope(
     tenure_list = []
 
     for i_d in range(d_eval.size):
-        cFunc_own_list.append(LinearInterp(m_eval, c_final[:, i_d]))
-        shareFunc_own_list.append(LinearInterp(m_eval, share_final[:, i_d]))
-        vFunc_own_list.append(LinearInterp(m_eval, v_best[:, i_d]))
-        vpFunc_own_list.append(LinearInterp(m_eval, vp_final[:, i_d]))
-        tenure_list.append(
-            LinearInterp(m_eval, tenure_choice[:, i_d].astype(float))
+        d = d_eval[i_d]
+
+        # --- Own branch (pre-computed) ---
+        v_own_col = v_own_all[:, i_d]
+        c_own_col = c_own_all[:, i_d] if affordable[i_d] else np.zeros_like(m_eval)
+        s_own_col = s_own_all[:, i_d] if affordable[i_d] else np.zeros_like(m_eval)
+        vp_own_col = vp_own_all[:, i_d] if affordable[i_d] else np.zeros_like(m_eval)
+
+        # --- Sell branch ---
+        net_equity = (1.0 - SellCost - d) * hbar
+        m_after_sell = m_eval + net_equity
+        m_sell_safe = np.maximum(m_after_sell, 1e-6)
+        can_sell = m_after_sell >= 0
+        v_sell_col = np.where(can_sell, vFuncRent(m_sell_safe), -np.inf)
+        c_sell_col = np.where(can_sell, cFuncRent(m_sell_safe), 0.0)
+        s_sell_col = np.where(can_sell, ShareFuncRent(m_sell_safe), 0.0)
+        vp_sell_col = np.where(can_sell, vPfuncRent(m_sell_safe), 0.0)
+
+        # --- Default branch ---
+        v_def_col = v_rent_m - DefaultPenalty
+        c_def_col = c_rent_m.copy()
+        s_def_col = s_rent_m.copy()
+        vp_def_col = vp_rent_m.copy()
+
+        # Upper envelope across three tenure branches
+        m_env, v_env, pol_envs, env_inds = _value_envelope(
+            m_eval,
+            [v_own_col, v_sell_col, v_def_col],
+            [
+                (c_own_col, s_own_col, vp_own_col),
+                (c_sell_col, s_sell_col, vp_sell_col),
+                (c_def_col, s_def_col, vp_def_col),
+            ],
         )
+        c_env, s_env, vp_env = pol_envs
+        tenure_env = env_inds.astype(float)
+
+        cFunc_own_list.append(LinearInterp(m_env, c_env))
+        shareFunc_own_list.append(LinearInterp(m_env, s_env))
+        vFunc_own_list.append(LinearInterp(m_env, v_env))
+        vpFunc_own_list.append(LinearInterp(m_env, vp_env))
+        tenure_list.append(LinearInterp(m_env, tenure_env))
 
     return (
         LinearInterpOnInterp1D(cFunc_own_list, d_eval),
@@ -908,32 +950,40 @@ def _compute_repurchase_option(
     if d_0 > 0 and can_originate:
         m_rent_fine = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 200)
         v_rent_vals = vFuncRent(m_rent_fine)
-        vp_rent_vals = vPfuncRent(m_rent_fine)
         c_rent_vals = cFuncRent(m_rent_fine)
         s_rent_vals = ShareFuncRent(m_rent_fine)
+        vp_rent_vals = vPfuncRent(m_rent_fine)
 
         m_after_buy = m_rent_fine - down_cost
         can_buy = m_after_buy >= 1e-6
         m_buy_safe = np.where(can_buy, m_after_buy, 1e-6)
+        d_0_arr = np.full_like(m_buy_safe, d_0)
 
-        v_buy = vFuncOwn_stay(m_buy_safe, np.full_like(m_buy_safe, d_0))
-        buy_better = can_buy & (v_buy > v_rent_vals)
+        v_buy_vals = np.where(
+            can_buy,
+            vFuncOwn_stay(m_buy_safe, d_0_arr),
+            -np.inf,
+        )
+        c_buy_vals = np.where(can_buy, cFuncOwn(m_buy_safe, d_0_arr), 0.0)
+        s_buy_vals = np.where(can_buy, ShareFuncOwn(m_buy_safe, d_0_arr), 0.0)
+        vp_buy_vals = np.where(can_buy, vPfuncOwn_stay(m_buy_safe, d_0_arr), 0.0)
 
-        if np.any(buy_better):
-            c_buy = cFuncOwn(m_buy_safe, np.full_like(m_buy_safe, d_0))
-            s_buy = ShareFuncOwn(m_buy_safe, np.full_like(m_buy_safe, d_0))
-            vp_buy = vPfuncOwn_stay(m_buy_safe, np.full_like(m_buy_safe, d_0))
-
-            v_rent_vals = np.where(buy_better, v_buy, v_rent_vals)
-            c_rent_vals = np.where(buy_better, c_buy, c_rent_vals)
-            s_rent_vals = np.where(buy_better, s_buy, s_rent_vals)
-            vp_rent_vals = np.where(buy_better, vp_buy, vp_rent_vals)
+        # Upper envelope of rent vs buy
+        m_env, v_env, pol_envs, _ = _value_envelope(
+            m_rent_fine,
+            [v_rent_vals, v_buy_vals],
+            [
+                (c_rent_vals, s_rent_vals, vp_rent_vals),
+                (c_buy_vals, s_buy_vals, vp_buy_vals),
+            ],
+        )
+        c_env, s_env, vp_env = pol_envs
 
         return (
-            LinearInterp(m_rent_fine, c_rent_vals),
-            LinearInterp(m_rent_fine, s_rent_vals),
-            LinearInterp(m_rent_fine, v_rent_vals),
-            LinearInterp(m_rent_fine, vp_rent_vals),
+            LinearInterp(m_env, c_env),
+            LinearInterp(m_env, s_env),
+            LinearInterp(m_env, v_env),
+            LinearInterp(m_env, vp_env),
         )
     return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
 
@@ -1216,90 +1266,35 @@ def solve_renter_subproblem_markov(
         cNrmGrid[:, i_s] = c
         mNrmGrid[:, i_s] = c + aNrmGrid
 
-    # Optimal share at each a
-    opt_share_idx = np.argmax(EndOfPrd_v, axis=1)
-    opt_share = ShareGrid[opt_share_idx]
-
+    # Best share among positive shares (participation branch)
     arange_a = np.arange(aNrmCount)
-    c_opt = cNrmGrid[arange_a, opt_share_idx]
-    m_opt = mNrmGrid[arange_a, opt_share_idx]
-
-    # Participation branches
-    c_partic = c_opt.copy()
-    m_partic = m_opt + ParticCost
-    c_nopartic = cNrmGrid[:, 0].copy()
-    m_nopartic = mNrmGrid[:, 0].copy()
-
-    sort_p = np.argsort(m_partic)
-    sort_np = np.argsort(m_nopartic)
-
-    m_p = np.concatenate([[0.0], m_partic[sort_p]])
-    c_p = np.concatenate([[0.0], c_partic[sort_p]])
-    s_p = np.concatenate([[opt_share[sort_p[0]]], opt_share[sort_p]])
-    m_np = np.concatenate([[0.0], m_nopartic[sort_np]])
-    c_np = np.concatenate([[0.0], c_nopartic[sort_np]])
-
-    cFunc_partic = LinearInterp(m_p, c_p)
-    shareFunc_partic = LinearInterp(m_p, s_p)
-    cFunc_nopartic = LinearInterp(m_np, c_np)
-
-    # Continuation value interpolants for participation decision
-    EndOfPrd_v_opt = EndOfPrd_v[arange_a, opt_share_idx]
-    cont_v_partic = LinearInterp(
-        np.concatenate([[0.0], aNrmGrid]),
-        np.concatenate([[EndOfPrd_v_opt[0]], EndOfPrd_v_opt]),
-    )
-    cont_v_nopartic = LinearInterp(
-        np.concatenate([[0.0], aNrmGrid]),
-        np.concatenate([[EndOfPrd_v[0, 0]], EndOfPrd_v[:, 0]]),
+    if ShareCount > 1:
+        opt_pos_idx = np.argmax(EndOfPrd_v[:, 1:], axis=1) + 1
+    else:
+        opt_pos_idx = np.zeros(aNrmCount, dtype=int)
+    c_partic = cNrmGrid[arange_a, opt_pos_idx]
+    m_partic = mNrmGrid[arange_a, opt_pos_idx] + ParticCost
+    s_partic = ShareGrid[opt_pos_idx]
+    v_partic = (
+        kappa_r * c_partic**gamma / gamma + EndOfPrd_v[arange_a, opt_pos_idx]
     )
 
-    # Combined functions with participation decision
-    def cFuncRent(m):
-        m = np.asarray(m, dtype=float)
-        scalar = m.ndim == 0
-        m = np.atleast_1d(m)
-        c_p = cFunc_partic(m)
-        a_p = np.maximum(m - c_p - ParticCost, 0.0)
-        v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
-        c_np = cFunc_nopartic(m)
-        a_np = np.maximum(m - c_np, 0.0)
-        v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
-        c_out = np.where(v_p > v_np, c_p, c_np)
-        return float(c_out[0]) if scalar else c_out
+    # Non-participation branch: share = 0
+    c_nopartic = cNrmGrid[:, 0]
+    m_nopartic = mNrmGrid[:, 0]
+    v_nopartic = kappa_r * c_nopartic**gamma / gamma + EndOfPrd_v[:, 0]
 
-    def ShareFuncRent(m):
-        m = np.asarray(m, dtype=float)
-        scalar = m.ndim == 0
-        m = np.atleast_1d(m)
-        c_p = cFunc_partic(m)
-        a_p = np.maximum(m - c_p - ParticCost, 0.0)
-        v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
-        c_np = cFunc_nopartic(m)
-        a_np = np.maximum(m - c_np, 0.0)
-        v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
-        s_out = np.where(v_p > v_np, shareFunc_partic(m), 0.0)
-        return float(s_out[0]) if scalar else s_out
+    # DC-EGM upper envelope across participation decision
+    m_env, c_env, s_env, v_env = _participation_envelope(
+        m_partic, c_partic, v_partic, s_partic,
+        m_nopartic, c_nopartic, v_nopartic,
+    )
+    vp_env = np.concatenate([[1e10], kappa_r * c_env[1:] ** (gamma - 1.0)])
 
-    # vFunc and vPfunc on fine grid (vectorized)
-    m_fine_max = max(m_p[-1] * 1.5, aNrmGrid[-1] * 2.0)
-    m_fine = np.linspace(1e-6, m_fine_max, 200)
-
-    c_p_fine = cFunc_partic(m_fine)
-    a_p_fine = np.maximum(m_fine - c_p_fine - ParticCost, 0.0)
-    v_p_fine = kappa_r * c_p_fine**gamma / gamma + cont_v_partic(a_p_fine)
-
-    c_np_fine = cFunc_nopartic(m_fine)
-    a_np_fine = np.maximum(m_fine - c_np_fine, 0.0)
-    v_np_fine = kappa_r * c_np_fine**gamma / gamma + cont_v_nopartic(a_np_fine)
-
-    partic_better = v_p_fine > v_np_fine
-    v_fine = np.where(partic_better, v_p_fine, v_np_fine)
-    c_best = np.where(partic_better, c_p_fine, c_np_fine)
-    vp_fine = kappa_r * c_best ** (gamma - 1.0)
-
-    vFuncRent = LinearInterp(m_fine, v_fine)
-    vPfuncRent = LinearInterp(m_fine, vp_fine)
+    cFuncRent = LinearInterp(m_env, c_env)
+    ShareFuncRent = LinearInterp(m_env, s_env)
+    vFuncRent = LinearInterp(m_env, v_env)
+    vPfuncRent = LinearInterp(m_env, vp_env)
 
     return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
 
@@ -1440,27 +1435,44 @@ def solve_owner_subproblem_markov(
             chi = ParticCost if i_s > 0 else 0.0
             mNrmGrid[:, i_d, i_s] = c + aXtraGrid + mandatory_cost + chi
 
-    # Optimal share for each (a, d)
-    opt_share_idx = np.argmax(EndOfPrd_v, axis=2)
-    opt_share = ShareGrid[opt_share_idx]
-
-    # Extract policy at optimal share (vectorized advanced indexing)
+    # --- DC-EGM participation envelope for each d slice ---
     arange_a = np.arange(aNrmCount)
-    arange_d = np.arange(dCount)
-    idx_a, idx_d = np.meshgrid(arange_a, arange_d, indexing="ij")
-    idx_s = opt_share_idx
+    if ShareCount > 1:
+        opt_pos_idx = np.argmax(EndOfPrd_v[:, :, 1:], axis=2) + 1
+    else:
+        opt_pos_idx = np.zeros((aNrmCount, dCount), dtype=int)
 
-    c_star = cNrmGrid[idx_a, idx_d, idx_s]
-    m_star = mNrmGrid[idx_a, idx_d, idx_s]
+    cFunc_list = []
+    shareFunc_list = []
+    vFunc_list = []
+    vpFunc_list = []
 
-    flow = h_mult * c_star ** (1.0 - rho) / (1.0 - rho)
-    cont = EndOfPrd_v[idx_a, idx_d, idx_s]
-    v_star = flow + cont
+    for i_d in range(dCount):
+        idx_p = opt_pos_idx[:, i_d]
+        c_p = cNrmGrid[arange_a, i_d, idx_p]
+        m_p = mNrmGrid[arange_a, i_d, idx_p]
+        s_p = ShareGrid[idx_p]
+        v_p = h_mult * c_p ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[arange_a, i_d, idx_p]
 
-    vp_star = h_mult * c_star ** (-rho)
+        c_np = cNrmGrid[:, i_d, 0]
+        m_np = mNrmGrid[:, i_d, 0]
+        v_np = h_mult * c_np ** (1.0 - rho) / (1.0 - rho) + EndOfPrd_v[:, i_d, 0]
 
-    return _build_owner_2d_interpolants(
-        m_star, c_star, opt_share, v_star, vp_star, dGrid,
+        m_env, c_env, s_env, v_env = _participation_envelope(
+            m_p, c_p, v_p, s_p, m_np, c_np, v_np,
+        )
+        vp_env = np.concatenate([[1e10], h_mult * c_env[1:] ** (-rho)])
+
+        cFunc_list.append(LinearInterp(m_env, c_env))
+        shareFunc_list.append(LinearInterp(m_env, s_env))
+        vFunc_list.append(LinearInterp(m_env, v_env))
+        vpFunc_list.append(LinearInterp(m_env, vp_env))
+
+    return (
+        LinearInterpOnInterp1D(cFunc_list, dGrid),
+        LinearInterpOnInterp1D(shareFunc_list, dGrid),
+        LinearInterpOnInterp1D(vFunc_list, dGrid),
+        LinearInterpOnInterp1D(vpFunc_list, dGrid),
     )
 
 
