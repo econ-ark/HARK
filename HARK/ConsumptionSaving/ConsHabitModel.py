@@ -113,13 +113,13 @@ class HabitFormationInverter:
     def __call__(self, H, chi):
         h = self.hFunc(H, chi)
         rate = self.rate
-        c = (H - (1 - rate) * h) / (rate)
+        c = (H - (1 - rate) * h) / rate
         return c, h
 
     def cFunc(self, H, chi):
         h = self.hFunc(H, chi)
         rate = self.rate
-        c = (H - (1 - rate) * h) / (rate)
+        c = (H - (1 - rate) * h) / rate
         return c
 
 
@@ -182,7 +182,7 @@ def calc_marg_values(S, k, hpre, rho, R, G, gamma, alpha, beta, C, Vp):
     dvdm = dudc + alpha * dvdH
     dvdh = dudh + (1 - alpha) * dvdH
     gro_adj = gro ** ((1 - rho) * (1 - gamma) - 1.0)
-    dvdk = gro_adj * dvdm
+    dvdk = R * gro_adj * dvdm
     dvdh = gro_adj * dvdh
     return dvdk, dvdh
 
@@ -319,7 +319,6 @@ def solve_one_period_ConsHabit(
             solution_next["dvdhFunc"],
         ),
     )
-    dvdk *= Rfree
 
     # Transform and package the marginal value functions
     dvdkNvrs = np.concatenate((np.zeros((1, HabitGrid.size)), U.derinv(dvdk)), axis=0)
