@@ -1233,8 +1233,8 @@ class TestTenureCoverage:
                     found.add(t)
         return found
 
-    def test_own_branch_reached(self):
-        """Stay-own (code 0) should appear with high LTV and house price risk."""
+    def _solve_high_risk_agent(self):
+        """Shared calibration for tests needing own/default/all-four branches."""
         agent = HousingPortfolioConsumerType(
             **_base_params_3period(
                 LTV=0.95, SellCost=0.50, DefaultPenalty=0.01,
@@ -1242,9 +1242,12 @@ class TestTenureCoverage:
             )
         )
         agent.solve()
-        tenures = self._collect_tenures(
-            agent, np.linspace(0.1, 20.0, 30), np.linspace(1.0, 5.0, 15)
-        )
+        return agent, np.linspace(0.1, 20.0, 30), np.linspace(1.0, 5.0, 15)
+
+    def test_own_branch_reached(self):
+        """Stay-own (code 0) should appear with high LTV and house price risk."""
+        agent, m_grid, h_grid = self._solve_high_risk_agent()
+        tenures = self._collect_tenures(agent, m_grid, h_grid)
         assert 0 in tenures, f"Own branch (0) not reached; found {tenures}"
 
     def test_sell_branch_reached(self):
@@ -1267,29 +1270,13 @@ class TestTenureCoverage:
 
     def test_default_branch_reached(self):
         """Default (code 3) should appear with deeply negative equity."""
-        agent = HousingPortfolioConsumerType(
-            **_base_params_3period(
-                LTV=0.95, SellCost=0.50, DefaultPenalty=0.01,
-                HousePriceShkStd=0.3, HousePriceShkCount=5,
-            )
-        )
-        agent.solve()
-        tenures = self._collect_tenures(
-            agent, np.linspace(0.1, 20.0, 30), np.linspace(1.0, 5.0, 15)
-        )
+        agent, m_grid, h_grid = self._solve_high_risk_agent()
+        tenures = self._collect_tenures(agent, m_grid, h_grid)
         assert 3 in tenures, f"Default branch (3) not reached; found {tenures}"
 
     def test_all_four_tenures_reached(self):
         """Under a calibration with house price risk, all four branches appear."""
-        agent = HousingPortfolioConsumerType(
-            **_base_params_3period(
-                LTV=0.95, SellCost=0.50, DefaultPenalty=0.01,
-                HousePriceShkStd=0.3, HousePriceShkCount=5,
-            )
-        )
-        agent.solve()
-        m_grid = np.linspace(0.1, 20.0, 30)
-        h_grid = np.linspace(1.0, 5.0, 15)
+        agent, m_grid, h_grid = self._solve_high_risk_agent()
         tenures = self._collect_tenures(agent, m_grid, h_grid)
         assert tenures == {0, 1, 2, 3}, (
             f"Expected all four tenures {{0,1,2,3}}, found {tenures}"

@@ -77,6 +77,44 @@ __all__ = [
 _N_ENVELOPE_POINTS = 100
 
 
+def _gm_hybrid_continuation(vP_P, v_P, vP_NP, v_NP):
+    """Build GM (2005) hybrid continuation: share 0 → NP, shares 1+ → P.
+
+    Parameters
+    ----------
+    vP_P, v_P : arrays with share index along axis 0 (participant continuation)
+    vP_NP, v_NP : arrays with share index along axis 0 (non-participant continuation)
+
+    Returns
+    -------
+    vP, v : arrays with hybrid continuation
+    """
+    vP = vP_P.copy()
+    vP[0] = vP_NP[0]
+    v = v_P.copy()
+    v[0] = v_NP[0]
+    return vP, v
+
+
+def _eop_weighted_sums(prob_j, G_gamma_j, R_port, G_j, vP_next, v_next):
+    """Compute end-of-period integration weighted sums over shocks.
+
+    Parameters
+    ----------
+    prob_j, G_gamma_j, G_j : (n_shocks,)
+    R_port : (ShareCount, n_shocks)
+    vP_next, v_next : (ShareCount, aNrmCount, n_shocks)
+
+    Returns
+    -------
+    dvda, v : (aNrmCount, ShareCount) — transposed for EGM convention
+    """
+    w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
+    w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
+    w_v = w_base * v_next
+    return w_dvda.sum(axis=2).T, w_v.sum(axis=2).T
+
+
 # ---------------------------------------------------------------------------
 # Housing grid and shock constructors
 # ---------------------------------------------------------------------------
@@ -615,40 +653,18 @@ class HousingPortfolioSolution(MetricObject):
 
     distance_criteria = ["vPfuncOwn"]
 
-    def __init__(
-        self,
-        cFuncOwn=None,
-        ShareFuncOwn=None,
-        vFuncOwn=None,
-        vPfuncOwn=None,
-        vFuncOwn_NP=None,
-        vPfuncOwn_NP=None,
-        tenureFunc=None,
-        cFuncRent=None,
-        ShareFuncRent=None,
-        vFuncRent=None,
-        vPfuncRent=None,
-        vFuncRent_NP=None,
-        vPfuncRent_NP=None,
-        mNrmMin=0.0,
-    ):
-        self.cFuncOwn = cFuncOwn if cFuncOwn is not None else NullFunc()
-        self.ShareFuncOwn = ShareFuncOwn if ShareFuncOwn is not None else NullFunc()
-        self.vFuncOwn = vFuncOwn if vFuncOwn is not None else NullFunc()
-        self.vPfuncOwn = vPfuncOwn if vPfuncOwn is not None else NullFunc()
-        self.vFuncOwn_NP = vFuncOwn_NP if vFuncOwn_NP is not None else NullFunc()
-        self.vPfuncOwn_NP = vPfuncOwn_NP if vPfuncOwn_NP is not None else NullFunc()
-        self.tenureFunc = tenureFunc if tenureFunc is not None else NullFunc()
-        self.cFuncRent = cFuncRent if cFuncRent is not None else NullFunc()
-        self.ShareFuncRent = (
-            ShareFuncRent if ShareFuncRent is not None else NullFunc()
-        )
-        self.vFuncRent = vFuncRent if vFuncRent is not None else NullFunc()
-        self.vPfuncRent = vPfuncRent if vPfuncRent is not None else NullFunc()
-        self.vFuncRent_NP = vFuncRent_NP if vFuncRent_NP is not None else NullFunc()
-        self.vPfuncRent_NP = vPfuncRent_NP if vPfuncRent_NP is not None else NullFunc()
+    _func_attrs = (
+        "cFuncOwn", "ShareFuncOwn", "vFuncOwn", "vPfuncOwn",
+        "vFuncOwn_NP", "vPfuncOwn_NP", "tenureFunc",
+        "cFuncRent", "ShareFuncRent", "vFuncRent", "vPfuncRent",
+        "vFuncRent_NP", "vPfuncRent_NP",
+    )
+
+    def __init__(self, mNrmMin=0.0, **kwargs):
+        _null = NullFunc()
+        for attr in self._func_attrs:
+            setattr(self, attr, kwargs.get(attr) or _null)
         self.mNrmMin = mNrmMin
-        # Store grids for diagnostics
         self.mGrid = None
         self.hGrid = None
 
@@ -956,27 +972,18 @@ def solve_renter_subproblem(
     m_flat = m_next_full.ravel()
 
     # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
-    # Evaluate V^P continuation for all shares (used by share > 0)
-    vP_next_P = solution_next.vPfuncRent(m_flat).reshape(m_next_full.shape)
-    v_next_P = solution_next.vFuncRent(m_flat).reshape(m_next_full.shape)
-    # Evaluate V^{NP} continuation (used by share = 0)
-    vP_next_NP = solution_next.vPfuncRent_NP(m_flat).reshape(m_next_full.shape)
-    v_next_NP = solution_next.vFuncRent_NP(m_flat).reshape(m_next_full.shape)
+    vP_next, v_next = _gm_hybrid_continuation(
+        solution_next.vPfuncRent(m_flat).reshape(m_next_full.shape),
+        solution_next.vFuncRent(m_flat).reshape(m_next_full.shape),
+        solution_next.vPfuncRent_NP(m_flat).reshape(m_next_full.shape),
+        solution_next.vFuncRent_NP(m_flat).reshape(m_next_full.shape),
+    )
 
-    # Build hybrid continuation: share 0 -> NP, shares 1+ -> P
-    vP_next = vP_next_P.copy()
-    vP_next[0] = vP_next_NP[0]  # share index 0
-    v_next = v_next_P.copy()
-    v_next[0] = v_next_NP[0]
-
-    # Integration weights: (ShareCount, 1, n_shocks)
-    w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
-    w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
-    w_v = w_base * v_next
-
-    # Sum over shocks -> (ShareCount, aNrmCount), then transpose -> (aNrmCount, ShareCount)
-    EndOfPrd_dvda = (DiscFacEff * w_dvda.sum(axis=2)).T
-    EndOfPrd_v = (DiscFacEff * w_v.sum(axis=2)).T
+    dvda_contrib, v_contrib = _eop_weighted_sums(
+        prob_j, G_gamma_j, R_port, G_j, vP_next, v_next,
+    )
+    EndOfPrd_dvda = DiscFacEff * dvda_contrib
+    EndOfPrd_v = DiscFacEff * v_contrib
 
     EndOfPrd_dvda[aNrmGrid < 1e-12, :] = 1e10
     EndOfPrd_v[aNrmGrid < 1e-12, :] = -1e10
@@ -1076,25 +1083,18 @@ def solve_owner_subproblem(
         h_flat = np.tile(h_next_j, ShareCount * aNrmCount)
 
         # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
-        vP_next_P = solution_next.vPfuncOwn(m_flat, h_flat).reshape(m_next.shape)
-        v_next_P = solution_next.vFuncOwn(m_flat, h_flat).reshape(m_next.shape)
-        vP_next_NP = solution_next.vPfuncOwn_NP(m_flat, h_flat).reshape(m_next.shape)
-        v_next_NP = solution_next.vFuncOwn_NP(m_flat, h_flat).reshape(m_next.shape)
+        vP_next, v_next = _gm_hybrid_continuation(
+            solution_next.vPfuncOwn(m_flat, h_flat).reshape(m_next.shape),
+            solution_next.vFuncOwn(m_flat, h_flat).reshape(m_next.shape),
+            solution_next.vPfuncOwn_NP(m_flat, h_flat).reshape(m_next.shape),
+            solution_next.vFuncOwn_NP(m_flat, h_flat).reshape(m_next.shape),
+        )
 
-        # Hybrid: share 0 -> NP, shares 1+ -> P
-        vP_next = vP_next_P.copy()
-        vP_next[0] = vP_next_NP[0]
-        v_next = v_next_P.copy()
-        v_next[0] = v_next_NP[0]
-
-        # Integration: (ShareCount, 1, n_shocks) broadcasting
-        w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
-        w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
-        w_v = w_base * v_next
-
-        # Sum over shocks -> (ShareCount, aNrmCount), transpose -> (aNrmCount, ShareCount)
-        EndOfPrd_dvda[:, i_h, :] = (DiscFacEff * w_dvda.sum(axis=2)).T
-        EndOfPrd_v[:, i_h, :] = (DiscFacEff * w_v.sum(axis=2)).T
+        dvda_h, v_h = _eop_weighted_sums(
+            prob_j, G_gamma_j, R_port, G_j, vP_next, v_next,
+        )
+        EndOfPrd_dvda[:, i_h, :] = DiscFacEff * dvda_h
+        EndOfPrd_v[:, i_h, :] = DiscFacEff * v_h
 
     EndOfPrd_dvda[aXtraGrid < 1e-12, :, :] = 1e10
     EndOfPrd_v[aXtraGrid < 1e-12, :, :] = -1e10
@@ -1402,6 +1402,62 @@ def _compute_repurchase_option(
 
 
 # ---------------------------------------------------------------------------
+# Helper: P/NP tenure + repurchase envelopes → HousingPortfolioSolution
+# ---------------------------------------------------------------------------
+
+
+def _solve_pnp_envelopes(
+    m_eval, h_eval, aXtraGrid, hGrid,
+    vFuncOwn_P, vPfuncOwn_P, cFuncOwn, ShareFuncOwn,
+    vFuncOwn_NP, vPfuncOwn_NP,
+    vFuncRent_P, vPfuncRent_P, cFuncRent, ShareFuncRent,
+    vFuncRent_NP, vPfuncRent_NP,
+    LTV, MortRate, MaintRate, AffordabilityLimit,
+    SellCost, DefaultPenalty, HousePriceShkDstn, MaxDTI,
+):
+    """Run tenure + repurchase envelopes for P and NP, return solution."""
+    # Tenure — participant
+    cOwn_f, sOwn_f, vOwn_f, vpOwn_f, tenureFunc = _compute_tenure_envelope(
+        m_eval, h_eval, vFuncOwn_P, vPfuncOwn_P, cFuncOwn, ShareFuncOwn,
+        vFuncRent_P, vPfuncRent_P, cFuncRent, ShareFuncRent,
+        LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
+        SellCost, DefaultPenalty, HousePriceShkDstn,
+    )
+    # Tenure — non-participant
+    _, _, vOwn_f_NP, vpOwn_f_NP, _ = _compute_tenure_envelope(
+        m_eval, h_eval, vFuncOwn_NP, vPfuncOwn_NP, cFuncOwn, ShareFuncOwn,
+        vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
+        LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
+        SellCost, DefaultPenalty, HousePriceShkDstn,
+    )
+    # Repurchase — participant
+    cRent_f, sRent_f, vRent_f, vpRent_f = _compute_repurchase_option(
+        aXtraGrid, vFuncRent_P, vPfuncRent_P, cFuncRent, ShareFuncRent,
+        vFuncOwn_P, vPfuncOwn_P, cFuncOwn, ShareFuncOwn,
+        LTV, MaxDTI, hGrid,
+    )
+    # Repurchase — non-participant
+    _, _, vRent_f_NP, vpRent_f_NP = _compute_repurchase_option(
+        aXtraGrid, vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
+        vFuncOwn_NP, vPfuncOwn_NP, cFuncOwn, ShareFuncOwn,
+        LTV, MaxDTI, hGrid,
+    )
+    sol = HousingPortfolioSolution(
+        cFuncOwn=cOwn_f, ShareFuncOwn=sOwn_f,
+        vFuncOwn=vOwn_f, vPfuncOwn=vpOwn_f,
+        vFuncOwn_NP=vOwn_f_NP, vPfuncOwn_NP=vpOwn_f_NP,
+        tenureFunc=tenureFunc,
+        cFuncRent=cRent_f, ShareFuncRent=sRent_f,
+        vFuncRent=vRent_f, vPfuncRent=vpRent_f,
+        vFuncRent_NP=vRent_f_NP, vPfuncRent_NP=vpRent_f_NP,
+        mNrmMin=0.0,
+    )
+    sol.mGrid = m_eval
+    sol.hGrid = h_eval
+    return sol
+
+
+# ---------------------------------------------------------------------------
 # One-period solver: base (non-Markov)
 # ---------------------------------------------------------------------------
 
@@ -1499,69 +1555,17 @@ def solve_one_period_HousingPortfolio(
         HousingStockCorr,
     )
 
-    # Step 3: Tenure envelope — participant (V^P)
+    # Steps 3-4: Tenure + repurchase envelopes for P and NP
     m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, _N_ENVELOPE_POINTS)
-    h_eval = hGrid
-
-    cFuncOwn_final, ShareFuncOwn_final, vFuncOwn_final, vPfuncOwn_final, tenureFunc = (
-        _compute_tenure_envelope(
-            m_eval, h_eval, vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
-            vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
-            LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
-            SellCost, DefaultPenalty, HousePriceShkDstn,
-        )
+    return _solve_pnp_envelopes(
+        m_eval, hGrid, aXtraGrid, hGrid,
+        vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
+        vFuncOwn_stay_NP, vPfuncOwn_stay_NP,
+        vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
+        vFuncRent_NP, vPfuncRent_NP,
+        LTV, MortRate, MaintRate, AffordabilityLimit,
+        SellCost, DefaultPenalty, HousePriceShkDstn, MaxDTI,
     )
-
-    # Tenure envelope — non-participant (V^{NP})
-    _, _, vFuncOwn_final_NP, vPfuncOwn_final_NP, _ = (
-        _compute_tenure_envelope(
-            m_eval, h_eval, vFuncOwn_stay_NP, vPfuncOwn_stay_NP, cFuncOwn, ShareFuncOwn,
-            vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
-            LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
-            SellCost, DefaultPenalty, HousePriceShkDstn,
-        )
-    )
-
-    # Step 4: Repurchase envelope — participant (V^P)
-    cFuncRent_final, ShareFuncRent_final, vFuncRent_final, vPfuncRent_final = (
-        _compute_repurchase_option(
-            aXtraGrid, vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
-            vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
-            LTV, MaxDTI, hGrid,
-        )
-    )
-
-    # Repurchase envelope — non-participant (V^{NP})
-    _, _, vFuncRent_final_NP, vPfuncRent_final_NP = (
-        _compute_repurchase_option(
-            aXtraGrid, vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
-            vFuncOwn_stay_NP, vPfuncOwn_stay_NP, cFuncOwn, ShareFuncOwn,
-            LTV, MaxDTI, hGrid,
-        )
-    )
-
-    mNrmMin = 0.0
-
-    solution_now = HousingPortfolioSolution(
-        cFuncOwn=cFuncOwn_final,
-        ShareFuncOwn=ShareFuncOwn_final,
-        vFuncOwn=vFuncOwn_final,
-        vPfuncOwn=vPfuncOwn_final,
-        vFuncOwn_NP=vFuncOwn_final_NP,
-        vPfuncOwn_NP=vPfuncOwn_final_NP,
-        tenureFunc=tenureFunc,
-        cFuncRent=cFuncRent_final,
-        ShareFuncRent=ShareFuncRent_final,
-        vFuncRent=vFuncRent_final,
-        vPfuncRent=vPfuncRent_final,
-        vFuncRent_NP=vFuncRent_final_NP,
-        vPfuncRent_NP=vPfuncRent_final_NP,
-        mNrmMin=mNrmMin,
-    )
-    solution_now.mGrid = m_eval
-    solution_now.hGrid = h_eval
-
-    return solution_now
 
 
 # ---------------------------------------------------------------------------
@@ -1648,22 +1652,18 @@ def solve_renter_subproblem_markov(
         m_flat = m_next_full.ravel()
 
         # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
-        vP_next_P = vPf_P(m_flat).reshape(m_next_full.shape)
-        v_next_P = vFn_P(m_flat).reshape(m_next_full.shape)
-        vP_next_NP = vPf_NP(m_flat).reshape(m_next_full.shape)
-        v_next_NP = vFn_NP(m_flat).reshape(m_next_full.shape)
+        vP_next, v_next = _gm_hybrid_continuation(
+            vPf_P(m_flat).reshape(m_next_full.shape),
+            vFn_P(m_flat).reshape(m_next_full.shape),
+            vPf_NP(m_flat).reshape(m_next_full.shape),
+            vFn_NP(m_flat).reshape(m_next_full.shape),
+        )
 
-        vP_next = vP_next_P.copy()
-        vP_next[0] = vP_next_NP[0]
-        v_next = v_next_P.copy()
-        v_next[0] = v_next_NP[0]
-
-        w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
-        w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
-        w_v = w_base * v_next
-
-        EndOfPrd_dvda += (w_dvda.sum(axis=2)).T
-        EndOfPrd_v += (w_v.sum(axis=2)).T
+        dvda_j, v_j = _eop_weighted_sums(
+            prob_j, G_gamma_j, R_port, G_j, vP_next, v_next,
+        )
+        EndOfPrd_dvda += dvda_j
+        EndOfPrd_v += v_j
 
     EndOfPrd_dvda *= DiscFacEff
     EndOfPrd_v *= DiscFacEff
@@ -1777,23 +1777,18 @@ def solve_owner_subproblem_markov(
             h_flat = np.tile(h_next_j, ShareCount * aNrmCount)
 
             # GM (2005): share > 0 uses V^P, share = 0 uses V^{NP}
-            vP_next_P = vPfOwn_P(m_flat, h_flat).reshape(m_next.shape)
-            v_next_P = vFOwn_P(m_flat, h_flat).reshape(m_next.shape)
-            vP_next_NP = vPfOwn_NP(m_flat, h_flat).reshape(m_next.shape)
-            v_next_NP = vFOwn_NP(m_flat, h_flat).reshape(m_next.shape)
+            vP_next, v_next = _gm_hybrid_continuation(
+                vPfOwn_P(m_flat, h_flat).reshape(m_next.shape),
+                vFOwn_P(m_flat, h_flat).reshape(m_next.shape),
+                vPfOwn_NP(m_flat, h_flat).reshape(m_next.shape),
+                vFOwn_NP(m_flat, h_flat).reshape(m_next.shape),
+            )
 
-            vP_next = vP_next_P.copy()
-            vP_next[0] = vP_next_NP[0]
-            v_next = v_next_P.copy()
-            v_next[0] = v_next_NP[0]
-
-            w_base = prob_j[np.newaxis, np.newaxis, :] * G_gamma_j[np.newaxis, np.newaxis, :]
-            w_dvda = w_base * R_port[:, np.newaxis, :] / G_j[np.newaxis, np.newaxis, :] * vP_next
-            w_v = w_base * v_next
-
-            # (ShareCount, aNrmCount) -> transpose -> (aNrmCount, ShareCount)
-            EndOfPrd_dvda[:, i_h, :] += (w_dvda.sum(axis=2)).T
-            EndOfPrd_v[:, i_h, :] += (w_v.sum(axis=2)).T
+            dvda_h, v_h = _eop_weighted_sums(
+                prob_j, G_gamma_j, R_port, G_j, vP_next, v_next,
+            )
+            EndOfPrd_dvda[:, i_h, :] += dvda_h
+            EndOfPrd_v[:, i_h, :] += v_h
 
     EndOfPrd_dvda *= DiscFacEff
     EndOfPrd_v *= DiscFacEff
@@ -1929,84 +1924,24 @@ def solve_one_period_HousingPortfolioMarkov(
             )
         )
 
-        # Step 3: Tenure envelope — participant (V^P)
+        # Steps 3-4: Tenure + repurchase envelopes for P and NP
         m_eval = np.linspace(1e-6, aXtraGrid[-1] * 2.0, _N_ENVELOPE_POINTS)
-        h_eval = hGrid
-
-        cFuncOwn_2d, ShareFuncOwn_2d, vFuncOwn_2d, vPfuncOwn_2d, tenureFunc_2d = (
-            _compute_tenure_envelope(
-                m_eval, h_eval, vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
-                vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
-                LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
-                SellCost, DefaultPenalty, HousePriceShkDstn,
-            )
+        sol_i = _solve_pnp_envelopes(
+            m_eval, hGrid, aXtraGrid, hGrid,
+            vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
+            vFuncOwn_stay_NP, vPfuncOwn_stay_NP,
+            vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
+            vFuncRent_NP, vPfuncRent_NP,
+            LTV, MortRate, MaintRate, AffordabilityLimit,
+            SellCost, DefaultPenalty, HousePriceShkDstn, MaxDTI,
         )
-
-        # Tenure envelope — non-participant (V^{NP})
-        _, _, vFuncOwn_2d_NP, vPfuncOwn_2d_NP, _ = (
-            _compute_tenure_envelope(
-                m_eval, h_eval, vFuncOwn_stay_NP, vPfuncOwn_stay_NP,
-                cFuncOwn, ShareFuncOwn,
-                vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
-                LTV, MortRate, MaintRate, hGrid, AffordabilityLimit,
-                SellCost, DefaultPenalty, HousePriceShkDstn,
-            )
-        )
-
-        # Step 4: Repurchase envelope — participant (V^P)
-        cFuncRent_final, ShareFuncRent_final, vFuncRent_final, vPfuncRent_final = (
-            _compute_repurchase_option(
-                aXtraGrid, vFuncRent, vPfuncRent, cFuncRent, ShareFuncRent,
-                vFuncOwn_stay, vPfuncOwn_stay, cFuncOwn, ShareFuncOwn,
-                LTV, MaxDTI, hGrid,
-            )
-        )
-
-        # Repurchase envelope — non-participant (V^{NP})
-        _, _, vFuncRent_final_NP, vPfuncRent_final_NP = (
-            _compute_repurchase_option(
-                aXtraGrid, vFuncRent_NP, vPfuncRent_NP, cFuncRent, ShareFuncRent,
-                vFuncOwn_stay_NP, vPfuncOwn_stay_NP, cFuncOwn, ShareFuncOwn,
-                LTV, MaxDTI, hGrid,
-            )
-        )
-
-        sol_i = HousingPortfolioSolution(
-            cFuncOwn=cFuncOwn_2d,
-            ShareFuncOwn=ShareFuncOwn_2d,
-            vFuncOwn=vFuncOwn_2d,
-            vPfuncOwn=vPfuncOwn_2d,
-            vFuncOwn_NP=vFuncOwn_2d_NP,
-            vPfuncOwn_NP=vPfuncOwn_2d_NP,
-            tenureFunc=tenureFunc_2d,
-            cFuncRent=cFuncRent_final,
-            ShareFuncRent=ShareFuncRent_final,
-            vFuncRent=vFuncRent_final,
-            vPfuncRent=vPfuncRent_final,
-            vFuncRent_NP=vFuncRent_final_NP,
-            vPfuncRent_NP=vPfuncRent_final_NP,
-        )
-        sol_i.mGrid = m_eval
-        sol_i.hGrid = h_eval
         state_solutions.append(sol_i)
 
-    combined = HousingPortfolioSolution(
-        cFuncOwn=[s.cFuncOwn for s in state_solutions],
-        ShareFuncOwn=[s.ShareFuncOwn for s in state_solutions],
-        vFuncOwn=[s.vFuncOwn for s in state_solutions],
-        vPfuncOwn=[s.vPfuncOwn for s in state_solutions],
-        vFuncOwn_NP=[s.vFuncOwn_NP for s in state_solutions],
-        vPfuncOwn_NP=[s.vPfuncOwn_NP for s in state_solutions],
-        tenureFunc=[s.tenureFunc for s in state_solutions],
-        cFuncRent=[s.cFuncRent for s in state_solutions],
-        ShareFuncRent=[s.ShareFuncRent for s in state_solutions],
-        vFuncRent=[s.vFuncRent for s in state_solutions],
-        vPfuncRent=[s.vPfuncRent for s in state_solutions],
-        vFuncRent_NP=[s.vFuncRent_NP for s in state_solutions],
-        vPfuncRent_NP=[s.vPfuncRent_NP for s in state_solutions],
-        mNrmMin=0.0,
-    )
-    return combined
+    combined_kw = {
+        attr: [getattr(s, attr) for s in state_solutions]
+        for attr in HousingPortfolioSolution._func_attrs
+    }
+    return HousingPortfolioSolution(mNrmMin=0.0, **combined_kw)
 
 
 # ---------------------------------------------------------------------------
