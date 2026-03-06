@@ -393,12 +393,12 @@ class TestEconomicLogic:
     def test_sell_dominates_default_with_equity(self, model_low_rate):
         """With positive equity, selling beats defaulting (recovers equity)."""
         sol = model_low_rate.solution[0]
-        if sol.tenureFunc is not None:
-            # At low d (positive equity) and moderate m, should own or sell, not default
-            tenure = float(sol.tenureFunc(3.0, 0.2))
-            assert round(tenure) < 2, (
-                f"Expected own or sell at m=3.0, d=0.2, got tenure={tenure:.2f}"
-            )
+        assert sol.tenureFunc is not None, "tenureFunc should exist after solving"
+        # At low d (positive equity) and moderate m, should own or sell, not default
+        tenure = float(sol.tenureFunc(3.0, 0.2))
+        assert round(tenure) < 2, (
+            f"Expected own or sell at m=3.0, d=0.2, got tenure={tenure:.2f}"
+        )
 
     def test_higher_rate_does_not_increase_value(self, model_low_rate, model_high_rate):
         """Higher mortgage rate cannot increase homeowner value."""
@@ -577,18 +577,17 @@ class TestMarkovEconomicLogic:
                 )
 
     def test_unemployed_more_likely_to_exit(self, markov_model):
-        """Unemployed households should be more likely to sell/default."""
+        """Unemployed households weakly prefer exit over employed at high debt."""
         sol = markov_model.solution[0]
-        if sol.tenureFunc[0] is not None:
-            # At high d, low m: unemployed should have higher tenure index
-            # (more likely sell=1 or default=2)
-            t_e = float(sol.tenureFunc[0](0.5, 0.9))
-            t_u = float(sol.tenureFunc[1](0.5, 0.9))
-            # At least one of them should want to exit
-            assert round(t_e) > 0 or round(t_u) > 0, (
-                f"At low m=0.5, high d=0.9: at least one state should exit. "
-                f"tenure_E={t_e:.2f}, tenure_U={t_u:.2f}"
-            )
+        assert sol.tenureFunc[0] is not None, "tenureFunc should exist"
+        # At high d, low m: unemployed tenure index >= employed
+        # (higher index means more likely to sell=1 or default=2)
+        t_e = float(sol.tenureFunc[0](0.5, 0.9))
+        t_u = float(sol.tenureFunc[1](0.5, 0.9))
+        assert t_u >= t_e - 1e-8, (
+            f"Unemployed should weakly prefer exit at m=0.5, d=0.9: "
+            f"tenure_E={t_e:.2f}, tenure_U={t_u:.2f}"
+        )
 
     def test_renter_value_employed_geq_unemployed(self, markov_model):
         """Employed renters have weakly higher value."""
@@ -652,7 +651,7 @@ class TestMarkovParameterValidation:
 
 
 # ===================================================================
-# 6. Origination constraints and repurchase option
+# 7. Origination constraints and repurchase option
 # ===================================================================
 
 
@@ -764,7 +763,7 @@ class TestOriginationConstraints:
 
 
 # ===================================================================
-# 7. Stock-income correlation
+# 8. Stock-income correlation
 # ===================================================================
 
 
@@ -838,8 +837,149 @@ class TestStockIncomeCorrelation:
         s_0 = sol_0.ShareFuncOwn(5.0, 0.3)
         s_p = sol_p.ShareFuncOwn(5.0, 0.3)
         # With positive correlation, stocks are a worse hedge for income risk,
-        # but the direction depends on parameters. Just check they differ.
-        assert s_0 != s_p or True  # Allow same if parameters happen to match
+        # so the optimal share should differ from zero correlation.
+        assert s_0 != pytest.approx(s_p, abs=1e-10), (
+            f"Shares should differ with vs without correlation: "
+            f"s(corr=0)={s_0:.4f}, s(corr=0.15)={s_p:.4f}"
+        )
+
+
+# ===================================================================
+# 9. Additional coverage tests
+# ===================================================================
+
+
+class TestAffordabilityConstraint:
+    """Test that the affordability limit forces tenure exit."""
+
+    @pytest.fixture(scope="class")
+    def model_tight_affordability(self):
+        """Model with a very tight affordability limit."""
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.0,
+            "AffordabilityLimit": 0.01,  # Very tight: almost no mortgage affordable
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_affordability_forces_exit(self, model_tight_affordability):
+        """With a very tight affordability limit, high-debt owners should exit."""
+        sol = model_tight_affordability.solution[0]
+        assert sol.tenureFunc is not None, "tenureFunc should exist"
+        # At high d, the mortgage payment exceeds AffordabilityLimit,
+        # so the household should sell or default (tenure > 0)
+        tenure = float(sol.tenureFunc(3.0, 0.8))
+        assert round(tenure) > 0, (
+            f"Expected sell or default at d=0.8 with tight affordability, "
+            f"got tenure={tenure:.2f}"
+        )
+
+
+class TestDefaultBranch:
+    """Test that the default branch is reachable in extreme conditions."""
+
+    @pytest.fixture(scope="class")
+    def model_costly_sell(self):
+        """Model where selling is very costly, making default attractive."""
+        params = {
+            "T_cycle": 3,
+            "LivPrb": [0.99, 0.99, 0.99],
+            "PermGroFac": [1.02, 1.02, 1.00],
+            "Rfree": [1.02, 1.02, 1.02],
+            "MortPeriods": [3, 2, 1],
+            "PermShkStd": [0.08, 0.08, 0.05],
+            "TranShkStd": [0.08, 0.08, 0.05],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 24,
+            "aXtraMax": 20,
+            "ShareCount": 7,
+            "dGridCount": 5,
+            "dMax": 1.2,  # Allow underwater mortgages
+            "SellCost": 0.5,  # 50% transaction cost makes selling very costly
+            "DefaultPenalty": 0.05,  # Low default penalty
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_default_reachable_when_underwater(self, model_costly_sell):
+        """When deeply underwater with high sell costs, default should be chosen."""
+        sol = model_costly_sell.solution[0]
+        assert sol.tenureFunc is not None, "tenureFunc should exist"
+        # At high d (deeply underwater) with costly selling,
+        # default (tenure=2) should be the optimal choice
+        tenure = float(sol.tenureFunc(1.0, 0.9))
+        assert round(tenure) == 2, (
+            f"Expected default (tenure=2) at m=1.0, d=0.9 with costly sell, "
+            f"got tenure={tenure:.2f}"
+        )
+
+
+class TestSellCostValidation:
+    """Test SellCost parameter validation."""
+
+    def test_sell_cost_negative_raises(self):
+        params = {
+            "T_cycle": 1,
+            "LivPrb": [0.99],
+            "PermGroFac": [1.02],
+            "Rfree": [1.02],
+            "MortPeriods": [1],
+            "PermShkStd": [0.1],
+            "TranShkStd": [0.1],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 10,
+            "aXtraMax": 10,
+            "ShareCount": 3,
+            "dGridCount": 3,
+            "dMax": 1.0,
+            "SellCost": -0.1,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        with pytest.raises(ValueError, match="SellCost"):
+            agent.check_restrictions()
+
+    def test_sell_cost_above_one_raises(self):
+        params = {
+            "T_cycle": 1,
+            "LivPrb": [0.99],
+            "PermGroFac": [1.02],
+            "Rfree": [1.02],
+            "MortPeriods": [1],
+            "PermShkStd": [0.1],
+            "TranShkStd": [0.1],
+            "PermShkCount": 3,
+            "TranShkCount": 3,
+            "RiskyCount": 3,
+            "aXtraCount": 10,
+            "aXtraMax": 10,
+            "ShareCount": 3,
+            "dGridCount": 3,
+            "dMax": 1.0,
+            "SellCost": 1.5,
+        }
+        agent = HousingPortfolioConsumerType(**params)
+        with pytest.raises(ValueError, match="SellCost"):
+            agent.check_restrictions()
 
 
 # ===================================================================
