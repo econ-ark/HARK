@@ -41,11 +41,13 @@ from HARK.interpolation import (
     LinearInterpOnInterp1D,
 )
 from HARK.metric import MetricObject
+from HARK.distributions.discrete import DiscreteDistribution
 from HARK.utilities import make_assets_grid
 
 __all__ = [
     "HousingPortfolioSolution",
     "HousingPortfolioConsumerType",
+    "MarkovHousingPortfolioConsumerType",
 ]
 
 
@@ -89,6 +91,33 @@ def ltv_next(d, r_m, periods_remaining, G):
     R_m = 1.0 + r_m
     pi = mortgage_payment_rate(d, r_m, periods_remaining)
     return (d * R_m - pi) / G
+
+
+def _adjust_risky_return(risky_ret, perm_shk, stock_inc_corr):
+    """Adjust risky return for stock-income correlation.
+
+    When stock_inc_corr > 0, equity returns co-move with permanent income
+    shocks, making stocks a poor hedge for income risk. The adjustment
+    multiplies the return by (perm_shk)^stock_inc_corr, so a positive
+    permanent shock also raises the equity return.
+
+    Parameters
+    ----------
+    risky_ret : float
+        Base risky return atom from the marginal distribution.
+    perm_shk : float
+        Permanent income shock realization.
+    stock_inc_corr : float
+        Loading of log equity return on log permanent shock.
+
+    Returns
+    -------
+    float
+        Correlation-adjusted risky return.
+    """
+    if stock_inc_corr == 0.0:
+        return risky_ret
+    return risky_ret * perm_shk**stock_inc_corr
 
 
 # ---------------------------------------------------------------------------
@@ -254,6 +283,119 @@ def make_ltv_grid(dGridCount, dMax, **kwargs):
 
 
 # ---------------------------------------------------------------------------
+# Markov employment: income distribution constructor
+# ---------------------------------------------------------------------------
+
+
+def construct_markov_income_process(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempIns,
+    UnempPrbRet,
+    IncUnempRet,
+    RNG,
+    neutral_measure=False,
+    **kwargs,
+):
+    """Build per-employment-state income distributions for Markov employment.
+
+    Returns a list of length T_cycle where each element is a list of two
+    ``DiscreteDistribution`` objects: ``[employed_dstn, unemployed_dstn]``.
+
+    Employed: standard lognormal permanent and transitory shocks (no iid
+    unemployment, since unemployment is now governed by the Markov chain).
+    Unemployed: same permanent shocks, deterministic transitory income equal
+    to the unemployment insurance replacement rate ``UnempIns``.
+
+    Parameters
+    ----------
+    UnempIns : float
+        Fraction of permanent income received as unemployment insurance (mu).
+    Other parameters: same as construct_lognormal_income_process_unemployment.
+
+    Returns
+    -------
+    IncShkDstn_Mrkv : list of lists
+        ``IncShkDstn_Mrkv[t]`` = ``[dstn_employed, dstn_unemployed]``.
+    """
+    # Employed distributions: standard lognormal, no iid unemployment event
+    employed_dstns = construct_lognormal_income_process_unemployment(
+        T_cycle=T_cycle,
+        PermShkStd=PermShkStd,
+        PermShkCount=PermShkCount,
+        TranShkStd=TranShkStd,
+        TranShkCount=TranShkCount,
+        T_retire=T_retire,
+        UnempPrb=0.0,
+        IncUnemp=0.0,
+        UnempPrbRet=UnempPrbRet,
+        IncUnempRet=IncUnempRet,
+        RNG=RNG,
+        neutral_measure=neutral_measure,
+    )
+
+    # Unemployed distributions: same permanent shocks, transitory = UnempIns
+    unemployed_dstns = []
+    for t in range(T_cycle):
+        emp_dstn = employed_dstns[t]
+        perm_shks = emp_dstn.atoms[0]
+        probs = emp_dstn.pmv
+
+        # Marginalize over transitory shocks to get permanent-only weights
+        unique_perms, inverse = np.unique(perm_shks, return_inverse=True)
+        perm_probs = np.zeros(len(unique_perms))
+        for i in range(len(probs)):
+            perm_probs[inverse[i]] += probs[i]
+
+        atoms = np.array(
+            [unique_perms, np.full(len(unique_perms), UnempIns)]
+        )
+        unemp_dstn = DiscreteDistribution(perm_probs, atoms)
+        unemployed_dstns.append(unemp_dstn)
+
+    return [[employed_dstns[t], unemployed_dstns[t]] for t in range(T_cycle)]
+
+
+# ---------------------------------------------------------------------------
+# Markov employment: terminal solution constructor
+# ---------------------------------------------------------------------------
+
+
+def make_markov_housing_solution_terminal(
+    CRRA, alpha, hbar, BeqWt, MrkvArray, **kwargs
+):
+    """Replicate the terminal solution across Markov employment states.
+
+    The terminal bequest function does not depend on employment status, so each
+    state gets an identical copy of the base terminal solution. The solution
+    attributes become lists of length N (number of employment states).
+    """
+    base = make_housing_portfolio_solution_terminal(
+        CRRA=CRRA, alpha=alpha, hbar=hbar, BeqWt=BeqWt
+    )
+    # MrkvArray may be a list of matrices (one per period) or a single matrix
+    if isinstance(MrkvArray, list):
+        N = np.asarray(MrkvArray[0]).shape[0]
+    else:
+        N = np.asarray(MrkvArray).shape[0]
+    return HousingPortfolioSolution(
+        cFuncOwn=[base.cFuncOwn] * N,
+        ShareFuncOwn=[base.ShareFuncOwn] * N,
+        vFuncOwn=[base.vFuncOwn] * N,
+        vPfuncOwn=[base.vPfuncOwn] * N,
+        tenureFunc=[base.tenureFunc] * N,
+        cFuncRent=[base.cFuncRent] * N,
+        ShareFuncRent=[base.ShareFuncRent] * N,
+        vFuncRent=[base.vFuncRent] * N,
+        vPfuncRent=[base.vPfuncRent] * N,
+    )
+
+
+# ---------------------------------------------------------------------------
 # One-period solver: renter subproblem
 # ---------------------------------------------------------------------------
 
@@ -274,6 +416,7 @@ def solve_renter_subproblem(
     RentRate,
     ParticCost,
     IndepDstnBool=True,
+    StockIncCorr=0.0,
 ):
     """Solve the renter's one-period problem.
 
@@ -353,7 +496,9 @@ def solve_renter_subproblem(
                 prob_inc = IncShkDstn.pmv[i_inc]
 
                 for i_ret in range(RiskyDstn.pmv.size):
-                    risky_ret = RiskyDstn.atoms[0, i_ret]
+                    risky_ret = _adjust_risky_return(
+                        RiskyDstn.atoms[0, i_ret], perm_shk, StockIncCorr
+                    )
                     prob_ret = RiskyDstn.pmv[i_ret]
 
                     R_port = share * risky_ret + (1.0 - share) * Rfree
@@ -361,8 +506,6 @@ def solve_renter_subproblem(
                     m_next = tran_shk + a_nrm * R_port / G_next
 
                     dvdm_next = vPfuncRent_next(m_next)
-                    # Chain rule: dv/da = R_port / G * G^gamma * dvdm_next
-                    # The G^gamma comes from the value function scaling
                     dvda_val = (
                         R_port / G_next * G_next**gamma * dvdm_next
                     )
@@ -402,7 +545,9 @@ def solve_renter_subproblem(
                 prob_inc = IncShkDstn.pmv[i_inc]
 
                 for i_ret in range(RiskyDstn.pmv.size):
-                    risky_ret = RiskyDstn.atoms[0, i_ret]
+                    risky_ret = _adjust_risky_return(
+                        RiskyDstn.atoms[0, i_ret], perm_shk, StockIncCorr
+                    )
                     prob_ret = RiskyDstn.pmv[i_ret]
 
                     R_port = share * risky_ret + (1.0 - share) * Rfree
@@ -548,6 +693,7 @@ def solve_owner_subproblem(
     MaintRate,
     ParticCost,
     IndepDstnBool=True,
+    StockIncCorr=0.0,
 ):
     """Solve the homeowner's one-period continuation problem (conditional on owning).
 
@@ -602,7 +748,9 @@ def solve_owner_subproblem(
                     prob_inc = IncShkDstn.pmv[i_inc]
 
                     for i_ret in range(RiskyDstn.pmv.size):
-                        risky_ret = RiskyDstn.atoms[0, i_ret]
+                        risky_ret = _adjust_risky_return(
+                            RiskyDstn.atoms[0, i_ret], perm_shk, StockIncCorr
+                        )
                         prob_ret = RiskyDstn.pmv[i_ret]
 
                         R_port = share * risky_ret + (1.0 - share) * Rfree
@@ -743,6 +891,10 @@ def solve_one_period_HousingPortfolio(
     BoroCnstArt,
     IndepDstnBool,
     ShareLimit,
+    AffordabilityLimit=np.inf,
+    DownPayment=0.20,
+    MaxDTI=4.0,
+    StockIncCorr=0.0,
     **kwargs,
 ):
     """Solve one period of the housing portfolio choice model.
@@ -752,6 +904,7 @@ def solve_one_period_HousingPortfolio(
     2. Solves the owner continuation subproblem (2D in (m, d)).
     3. Computes sell and default values at each (m, d).
     4. Takes the upper envelope across tenure choices.
+    5. Computes repurchase option for renters subject to origination constraints.
 
     Parameters
     ----------
@@ -767,6 +920,17 @@ def solve_one_period_HousingPortfolio(
     BoroCnstArt : float
     IndepDstnBool : bool
     ShareLimit : float
+    AffordabilityLimit : float
+        Maximum payment-to-income ratio. When pi_tilde(d)*hbar exceeds this
+        threshold, the household cannot stay as owner and must sell or default.
+        Default ``np.inf`` (no constraint).
+    DownPayment : float
+        Minimum down payment fraction phi. Maximum LTV at origination is
+        ``1 - DownPayment``. Default 0.20.
+    MaxDTI : float
+        Maximum debt-to-income ratio lambda at origination. The constraint
+        ``d_0 * hbar <= MaxDTI`` limits leverage relative to income.
+        Default 4.0.
 
     Returns
     -------
@@ -792,6 +956,7 @@ def solve_one_period_HousingPortfolio(
         RentRate,
         ParticCost,
         IndepDstnBool,
+        StockIncCorr,
     )
 
     # Step 2: Solve the owner continuation (conditional on staying)
@@ -814,6 +979,7 @@ def solve_one_period_HousingPortfolio(
         MaintRate,
         ParticCost,
         IndepDstnBool,
+        StockIncCorr,
     )
 
     # Step 3: Compute sell and default values at each (m, d) grid point
@@ -832,8 +998,13 @@ def solve_one_period_HousingPortfolio(
 
     for i_m, m in enumerate(m_eval):
         for i_d, d in enumerate(d_eval):
-            # Own value
-            v_own[i_m, i_d] = vFuncOwn_stay(m, d)
+            # Affordability constraint: if payment-to-income exceeds limit,
+            # the household cannot continue owning.
+            pi_d = mortgage_payment_rate(d, MortRate, MortPeriods)
+            if pi_d * hbar > AffordabilityLimit:
+                v_own[i_m, i_d] = -np.inf
+            else:
+                v_own[i_m, i_d] = vFuncOwn_stay(m, d)
 
             # Sell value: net equity added to liquid wealth, become renter
             net_equity = (1.0 - SellCost - d) * hbar
@@ -897,21 +1068,735 @@ def solve_one_period_HousingPortfolio(
     vPfuncOwn_final = LinearInterpOnInterp1D(vpFunc_own_list, d_eval)
     tenureFunc = LinearInterpOnInterp1D(tenure_list, d_eval)
 
+    # Step 4: Repurchase envelope for renters
+    # A renter may buy a house subject to origination constraints:
+    #   d_0 <= 1 - DownPayment  (LTV constraint)
+    #   d_0 * hbar <= MaxDTI     (debt-to-income constraint)
+    # Down payment cost in income units: (1 - d_0) * hbar
+    d_0 = min(1.0 - DownPayment, MaxDTI / hbar)
+    d_0 = max(d_0, 0.0)
+    down_cost = (1.0 - d_0) * hbar
+
+    # Check affordability of the new mortgage at origination
+    pi_orig = mortgage_payment_rate(d_0, MortRate, MortPeriods)
+    can_originate = pi_orig * hbar <= AffordabilityLimit
+
+    if d_0 > 0 and can_originate:
+        # Build renter value with buy option on the same fine grid
+        m_rent_fine = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 200)
+        v_rent_vals = np.array([vFuncRent(mi) for mi in m_rent_fine])
+        vp_rent_vals = np.array([vPfuncRent(mi) for mi in m_rent_fine])
+        c_rent_vals = np.array([cFuncRent(mi) for mi in m_rent_fine])
+        s_rent_vals = np.array([ShareFuncRent(mi) for mi in m_rent_fine])
+
+        for i_m, m in enumerate(m_rent_fine):
+            m_after_buy = m - down_cost
+            if m_after_buy >= 1e-6:
+                v_buy = vFuncOwn_stay(m_after_buy, d_0)
+                if v_buy > v_rent_vals[i_m]:
+                    v_rent_vals[i_m] = v_buy
+                    c_rent_vals[i_m] = cFuncOwn(m_after_buy, d_0)
+                    s_rent_vals[i_m] = ShareFuncOwn(m_after_buy, d_0)
+                    vp_rent_vals[i_m] = vPfuncOwn_stay(m_after_buy, d_0)
+
+        # Rebuild renter functions with buy option
+        cFuncRent_final = LinearInterp(m_rent_fine, c_rent_vals)
+        ShareFuncRent_final = LinearInterp(m_rent_fine, s_rent_vals)
+        vFuncRent_final = LinearInterp(m_rent_fine, v_rent_vals)
+        vPfuncRent_final = LinearInterp(m_rent_fine, vp_rent_vals)
+    else:
+        cFuncRent_final = cFuncRent
+        ShareFuncRent_final = ShareFuncRent
+        vFuncRent_final = vFuncRent
+        vPfuncRent_final = vPfuncRent
+
     solution_now = HousingPortfolioSolution(
         cFuncOwn=cFuncOwn_final,
         ShareFuncOwn=ShareFuncOwn_final,
         vFuncOwn=vFuncOwn_final,
         vPfuncOwn=vPfuncOwn_final,
         tenureFunc=tenureFunc,
-        cFuncRent=cFuncRent,
-        ShareFuncRent=ShareFuncRent,
-        vFuncRent=vFuncRent,
-        vPfuncRent=vPfuncRent,
+        cFuncRent=cFuncRent_final,
+        ShareFuncRent=ShareFuncRent_final,
+        vFuncRent=vFuncRent_final,
+        vPfuncRent=vPfuncRent_final,
     )
     solution_now.mGrid = m_eval
     solution_now.dGrid = d_eval
 
     return solution_now
+
+
+# ---------------------------------------------------------------------------
+# One-period solver: Markov employment renter subproblem
+# ---------------------------------------------------------------------------
+
+
+def solve_renter_subproblem_markov(
+    solution_next,
+    MrkvRow,
+    IncShkDstn_list,
+    RiskyDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    alpha,
+    Rfree,
+    PermGroFac,
+    aXtraGrid,
+    ShareGrid,
+    hbar,
+    RentRate,
+    ParticCost,
+    IndepDstnBool=True,
+    StockIncCorr=0.0,
+):
+    """Solve the renter's one-period problem with Markov employment transitions.
+
+    The continuation value integrates over employment transitions: for current
+    state *i*, next-period state *j* occurs with probability ``MrkvRow[j]``,
+    using income distribution ``IncShkDstn_list[j]`` and value function
+    ``solution_next.vFuncRent[j]``.
+
+    Parameters
+    ----------
+    solution_next : HousingPortfolioSolution
+        Next-period solution with list-valued attributes (one per employment state).
+    MrkvRow : array-like
+        Transition probabilities from the current employment state.
+    IncShkDstn_list : list of DiscreteDistribution
+        Income distributions per next-period employment state.
+    Other parameters : same as solve_renter_subproblem.
+
+    Returns
+    -------
+    cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent : callables
+    """
+    rho = CRRA
+    gamma = (1.0 + alpha) * (1.0 - rho)
+    kappa_r = (alpha / RentRate) ** (alpha * (1.0 - rho))
+    DiscFacEff = DiscFac * LivPrb
+
+    aNrmGrid = aXtraGrid
+    aNrmCount = aNrmGrid.size
+    ShareCount = ShareGrid.size
+    n_states = len(IncShkDstn_list)
+
+    # Compute end-of-period marginal value and value, integrating over
+    # employment transitions, income shocks, and return shocks.
+    EndOfPrd_dvda = np.zeros((aNrmCount, ShareCount))
+    EndOfPrd_v = np.zeros((aNrmCount, ShareCount))
+
+    for i_s, share in enumerate(ShareGrid):
+        for i_a, a_nrm in enumerate(aNrmGrid):
+            if a_nrm < 1e-12:
+                EndOfPrd_dvda[i_a, i_s] = 1e10
+                EndOfPrd_v[i_a, i_s] = -1e10
+                continue
+
+            dvda_accum = 0.0
+            v_accum = 0.0
+
+            for e_next in range(n_states):
+                trans_prob = MrkvRow[e_next]
+                if trans_prob < 1e-15:
+                    continue
+                dstn = IncShkDstn_list[e_next]
+                vPf = solution_next.vPfuncRent[e_next]
+                vFn = solution_next.vFuncRent[e_next]
+
+                for i_inc in range(dstn.pmv.size):
+                    perm_shk = dstn.atoms[0, i_inc]
+                    tran_shk = dstn.atoms[1, i_inc]
+                    prob_inc = dstn.pmv[i_inc]
+
+                    for i_ret in range(RiskyDstn.pmv.size):
+                        risky_ret = _adjust_risky_return(
+                            RiskyDstn.atoms[0, i_ret], perm_shk,
+                            StockIncCorr,
+                        )
+                        prob_ret = RiskyDstn.pmv[i_ret]
+
+                        R_port = share * risky_ret + (1.0 - share) * Rfree
+                        G_next = PermGroFac * perm_shk
+                        m_next = tran_shk + a_nrm * R_port / G_next
+
+                        prob = trans_prob * prob_inc * prob_ret
+                        G_factor = G_next**gamma
+
+                        dvda_accum += (
+                            prob * R_port / G_next * G_factor * vPf(m_next)
+                        )
+                        v_accum += prob * G_factor * vFn(m_next)
+
+            EndOfPrd_dvda[i_a, i_s] = DiscFacEff * dvda_accum
+            EndOfPrd_v[i_a, i_s] = DiscFacEff * v_accum
+
+    # EGM inversion for each Share
+    cNrmGrid = np.zeros((aNrmCount, ShareCount))
+    mNrmGrid = np.zeros((aNrmCount, ShareCount))
+
+    for i_s in range(ShareCount):
+        dvda = EndOfPrd_dvda[:, i_s]
+        c = (dvda / kappa_r) ** (1.0 / (gamma - 1.0))
+        c = np.maximum(c, 1e-12)
+        cNrmGrid[:, i_s] = c
+        mNrmGrid[:, i_s] = c + aNrmGrid
+
+    # Optimal share at each a
+    opt_share_idx = np.argmax(EndOfPrd_v, axis=1)
+    opt_share = ShareGrid[opt_share_idx]
+
+    c_opt = np.array(
+        [cNrmGrid[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
+    )
+    m_opt = np.array(
+        [mNrmGrid[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
+    )
+
+    # Participation branches
+    c_partic = c_opt.copy()
+    m_partic = m_opt + ParticCost
+    c_nopartic = cNrmGrid[:, 0].copy()
+    m_nopartic = mNrmGrid[:, 0].copy()
+
+    sort_p = np.argsort(m_partic)
+    sort_np = np.argsort(m_nopartic)
+
+    m_p = np.concatenate([[0.0], m_partic[sort_p]])
+    c_p = np.concatenate([[0.0], c_partic[sort_p]])
+    s_p = np.concatenate([[opt_share[sort_p[0]]], opt_share[sort_p]])
+    m_np = np.concatenate([[0.0], m_nopartic[sort_np]])
+    c_np = np.concatenate([[0.0], c_nopartic[sort_np]])
+
+    cFunc_partic = LinearInterp(m_p, c_p)
+    shareFunc_partic = LinearInterp(m_p, s_p)
+    cFunc_nopartic = LinearInterp(m_np, c_np)
+
+    # Continuation value interpolants for participation decision
+    EndOfPrd_v_opt = np.array(
+        [EndOfPrd_v[i_a, opt_share_idx[i_a]] for i_a in range(aNrmCount)]
+    )
+    cont_v_partic = LinearInterp(
+        np.concatenate([[0.0], aNrmGrid]),
+        np.concatenate([[EndOfPrd_v_opt[0]], EndOfPrd_v_opt]),
+    )
+    cont_v_nopartic = LinearInterp(
+        np.concatenate([[0.0], aNrmGrid]),
+        np.concatenate([[EndOfPrd_v[0, 0]], EndOfPrd_v[:, 0]]),
+    )
+
+    # Combined functions with participation decision
+    def cFuncRent(m):
+        m = np.asarray(m, dtype=float)
+        scalar = m.ndim == 0
+        m = np.atleast_1d(m)
+        c_p = cFunc_partic(m)
+        a_p = np.maximum(m - c_p - ParticCost, 0.0)
+        v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
+        c_np = cFunc_nopartic(m)
+        a_np = np.maximum(m - c_np, 0.0)
+        v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
+        c_out = np.where(v_p > v_np, c_p, c_np)
+        return float(c_out[0]) if scalar else c_out
+
+    def ShareFuncRent(m):
+        m = np.asarray(m, dtype=float)
+        scalar = m.ndim == 0
+        m = np.atleast_1d(m)
+        c_p = cFunc_partic(m)
+        a_p = np.maximum(m - c_p - ParticCost, 0.0)
+        v_p = kappa_r * c_p**gamma / gamma + cont_v_partic(a_p)
+        c_np = cFunc_nopartic(m)
+        a_np = np.maximum(m - c_np, 0.0)
+        v_np = kappa_r * c_np**gamma / gamma + cont_v_nopartic(a_np)
+        s_out = np.where(v_p > v_np, shareFunc_partic(m), 0.0)
+        return float(s_out[0]) if scalar else s_out
+
+    # vFunc and vPfunc on fine grid
+    m_fine_max = max(m_p[-1] * 1.5, aNrmGrid[-1] * 2.0)
+    m_fine = np.linspace(1e-6, m_fine_max, 200)
+    v_fine = np.zeros_like(m_fine)
+    vp_fine = np.zeros_like(m_fine)
+
+    for i_m, mi in enumerate(m_fine):
+        c_p_i = float(cFunc_partic(mi))
+        a_p_i = max(mi - c_p_i - ParticCost, 0.0)
+        v_p_i = kappa_r * c_p_i**gamma / gamma + float(cont_v_partic(a_p_i))
+        c_np_i = float(cFunc_nopartic(mi))
+        a_np_i = max(mi - c_np_i, 0.0)
+        v_np_i = kappa_r * c_np_i**gamma / gamma + float(
+            cont_v_nopartic(a_np_i)
+        )
+        if v_p_i > v_np_i:
+            v_fine[i_m] = v_p_i
+            vp_fine[i_m] = kappa_r * c_p_i ** (gamma - 1.0)
+        else:
+            v_fine[i_m] = v_np_i
+            vp_fine[i_m] = kappa_r * c_np_i ** (gamma - 1.0)
+
+    vFuncRent = LinearInterp(m_fine, v_fine)
+    vPfuncRent = LinearInterp(m_fine, vp_fine)
+
+    return cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent
+
+
+# ---------------------------------------------------------------------------
+# One-period solver: Markov employment owner subproblem
+# ---------------------------------------------------------------------------
+
+
+def solve_owner_subproblem_markov(
+    solution_next,
+    MrkvRow,
+    IncShkDstn_list,
+    RiskyDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    alpha,
+    Rfree,
+    PermGroFac,
+    aXtraGrid,
+    ShareGrid,
+    dGrid,
+    hbar,
+    MortRate,
+    MortPeriods,
+    MaintRate,
+    ParticCost,
+    IndepDstnBool=True,
+    StockIncCorr=0.0,
+):
+    """Solve the homeowner's continuation problem with Markov employment.
+
+    Continuation values integrate over employment transitions: the owner in
+    employment state *i* transitions to state *j* with probability
+    ``MrkvRow[j]``, using ``solution_next.vFuncOwn[j]`` as the owner value
+    function for state *j*.
+
+    Parameters
+    ----------
+    solution_next : HousingPortfolioSolution
+        Next-period solution with list-valued attributes.
+    MrkvRow : array-like
+        Transition probabilities from the current employment state.
+    IncShkDstn_list : list of DiscreteDistribution
+        Income distributions per next-period employment state.
+    Other parameters : same as solve_owner_subproblem.
+
+    Returns
+    -------
+    cFuncOwn, ShareFuncOwn, vFuncOwn, vPfuncOwn : 2D callables over (m, d)
+    """
+    rho = CRRA
+    gamma = (1.0 + alpha) * (1.0 - rho)
+    h_mult = hbar ** (alpha * (1.0 - rho))
+    DiscFacEff = DiscFac * LivPrb
+
+    aNrmCount = aXtraGrid.size
+    ShareCount = ShareGrid.size
+    dCount = dGrid.size
+    n_states = len(IncShkDstn_list)
+
+    EndOfPrd_dvda = np.zeros((aNrmCount, dCount, ShareCount))
+    EndOfPrd_v = np.zeros((aNrmCount, dCount, ShareCount))
+
+    r_m = MortRate
+    R_m = 1.0 + r_m
+
+    for i_d, d_now in enumerate(dGrid):
+        pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
+
+        for i_s, share in enumerate(ShareGrid):
+            for i_a, a_nrm in enumerate(aXtraGrid):
+                if a_nrm < 1e-12:
+                    EndOfPrd_dvda[i_a, i_d, i_s] = 1e10
+                    EndOfPrd_v[i_a, i_d, i_s] = -1e10
+                    continue
+
+                dvda_accum = 0.0
+                v_accum = 0.0
+
+                for e_next in range(n_states):
+                    trans_prob = MrkvRow[e_next]
+                    if trans_prob < 1e-15:
+                        continue
+                    dstn = IncShkDstn_list[e_next]
+                    vPfOwn = solution_next.vPfuncOwn[e_next]
+                    vFOwn = solution_next.vFuncOwn[e_next]
+
+                    for i_inc in range(dstn.pmv.size):
+                        perm_shk = dstn.atoms[0, i_inc]
+                        tran_shk = dstn.atoms[1, i_inc]
+                        prob_inc = dstn.pmv[i_inc]
+
+                        for i_ret in range(RiskyDstn.pmv.size):
+                            risky_ret = _adjust_risky_return(
+                                RiskyDstn.atoms[0, i_ret], perm_shk,
+                                StockIncCorr,
+                            )
+                            prob_ret = RiskyDstn.pmv[i_ret]
+
+                            R_port = (
+                                share * risky_ret + (1.0 - share) * Rfree
+                            )
+                            G_next = PermGroFac * perm_shk
+                            m_next = tran_shk + a_nrm * R_port / G_next
+                            d_next = (d_now * R_m - pi_now) / G_next
+                            d_next = np.clip(d_next, dGrid[0], dGrid[-1])
+
+                            prob = trans_prob * prob_inc * prob_ret
+                            G_factor = G_next**gamma
+
+                            dvdm_next = vPfOwn(m_next, d_next)
+                            v_next = vFOwn(m_next, d_next)
+
+                            dvda_accum += (
+                                prob
+                                * R_port
+                                / G_next
+                                * G_factor
+                                * dvdm_next
+                            )
+                            v_accum += prob * G_factor * v_next
+
+                EndOfPrd_dvda[i_a, i_d, i_s] = DiscFacEff * dvda_accum
+                EndOfPrd_v[i_a, i_d, i_s] = DiscFacEff * v_accum
+
+    # EGM inversion for each (d, Share)
+    cNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
+    mNrmGrid = np.zeros((aNrmCount, dCount, ShareCount))
+
+    for i_d, d_now in enumerate(dGrid):
+        pi_now = mortgage_payment_rate(d_now, r_m, MortPeriods)
+        mandatory_cost = pi_now * hbar + MaintRate * hbar
+
+        for i_s in range(ShareCount):
+            dvda = EndOfPrd_dvda[:, i_d, i_s]
+            c = (dvda / h_mult) ** (-1.0 / rho)
+            c = np.maximum(c, 1e-12)
+            cNrmGrid[:, i_d, i_s] = c
+            chi = ParticCost if ShareGrid[i_s] > 0 else 0.0
+            mNrmGrid[:, i_d, i_s] = c + aXtraGrid + mandatory_cost + chi
+
+    # Optimal share for each (a, d)
+    opt_share_idx = np.argmax(EndOfPrd_v, axis=2)
+    opt_share = ShareGrid[opt_share_idx]
+
+    c_star = np.zeros((aNrmCount, dCount))
+    m_star = np.zeros((aNrmCount, dCount))
+    v_star = np.zeros((aNrmCount, dCount))
+
+    for i_d in range(dCount):
+        for i_a in range(aNrmCount):
+            i_s = opt_share_idx[i_a, i_d]
+            c_star[i_a, i_d] = cNrmGrid[i_a, i_d, i_s]
+            m_star[i_a, i_d] = mNrmGrid[i_a, i_d, i_s]
+
+    for i_d in range(dCount):
+        for i_a in range(aNrmCount):
+            c = c_star[i_a, i_d]
+            i_s = opt_share_idx[i_a, i_d]
+            flow = h_mult * c ** (1.0 - rho) / (1.0 - rho)
+            cont = EndOfPrd_v[i_a, i_d, i_s]
+            v_star[i_a, i_d] = flow + cont
+
+    vp_star = h_mult * c_star ** (-rho)
+
+    # Build 2D interpolants over (m, d)
+    cFunc_list = []
+    shareFunc_list = []
+    vFunc_list = []
+    vpFunc_list = []
+
+    for i_d in range(dCount):
+        m_col = m_star[:, i_d]
+        c_col = c_star[:, i_d]
+        s_col = opt_share[:, i_d]
+        v_col = v_star[:, i_d]
+        vp_col = vp_star[:, i_d]
+
+        sort_idx = np.argsort(m_col)
+        m_sorted = np.concatenate([[0.0], m_col[sort_idx]])
+        c_sorted = np.concatenate([[0.0], c_col[sort_idx]])
+        s_sorted = np.concatenate([[0.0], s_col[sort_idx]])
+        v_sorted = np.concatenate([[-1e10], v_col[sort_idx]])
+        vp_sorted = np.concatenate([[1e10], vp_col[sort_idx]])
+
+        cFunc_list.append(LinearInterp(m_sorted, c_sorted))
+        shareFunc_list.append(LinearInterp(m_sorted, s_sorted))
+        vFunc_list.append(LinearInterp(m_sorted, v_sorted))
+        vpFunc_list.append(LinearInterp(m_sorted, vp_sorted))
+
+    cFuncOwn = LinearInterpOnInterp1D(cFunc_list, dGrid)
+    ShareFuncOwn = LinearInterpOnInterp1D(shareFunc_list, dGrid)
+    vFuncOwn_raw = LinearInterpOnInterp1D(vFunc_list, dGrid)
+    vPfuncOwn_raw = LinearInterpOnInterp1D(vpFunc_list, dGrid)
+
+    return cFuncOwn, ShareFuncOwn, vFuncOwn_raw, vPfuncOwn_raw
+
+
+# ---------------------------------------------------------------------------
+# One-period solver: Markov employment housing portfolio choice
+# ---------------------------------------------------------------------------
+
+
+def solve_one_period_HousingPortfolioMarkov(
+    solution_next,
+    IncShkDstn,
+    RiskyDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    alpha,
+    Rfree,
+    PermGroFac,
+    aXtraGrid,
+    ShareGrid,
+    dGrid,
+    hbar,
+    MortRate,
+    MortPeriods,
+    MaintRate,
+    ParticCost,
+    SellCost,
+    DefaultPenalty,
+    RentRate,
+    BoroCnstArt,
+    IndepDstnBool,
+    ShareLimit,
+    MrkvArray,
+    AffordabilityLimit=np.inf,
+    DownPayment=0.20,
+    MaxDTI=4.0,
+    StockIncCorr=0.0,
+    **kwargs,
+):
+    """Solve one period of the housing portfolio model with Markov employment.
+
+    Iterates over each current employment state *i*, solving the renter and
+    owner subproblems with continuation values that integrate over employment
+    transitions governed by ``MrkvArray[i]``. Returns a solution with
+    list-valued attributes (one entry per employment state).
+
+    Parameters
+    ----------
+    solution_next : HousingPortfolioSolution
+        Next-period solution with list-valued attributes.
+    IncShkDstn : list of DiscreteDistribution
+        Income distributions per employment state for this period.
+    MrkvArray : np.ndarray
+        (N, N) employment transition matrix. ``MrkvArray[i, j]`` =
+        Prob(next state = j | current state = i).
+    DownPayment : float
+        Minimum down payment fraction phi at origination. Default 0.20.
+    MaxDTI : float
+        Maximum debt-to-income ratio lambda at origination. Default 4.0.
+    Other parameters : same as solve_one_period_HousingPortfolio.
+
+    Returns
+    -------
+    solution_now : HousingPortfolioSolution
+        Solution with list-valued attributes (length N).
+    """
+    N = MrkvArray.shape[0]
+    rho = CRRA
+    gamma = (1.0 + alpha) * (1.0 - rho)
+
+    state_solutions = []
+    for i_state in range(N):
+        MrkvRow = MrkvArray[i_state]
+
+        # Step 1: Solve the renter subproblem for this employment state
+        cFuncRent, ShareFuncRent, vFuncRent, vPfuncRent = (
+            solve_renter_subproblem_markov(
+                solution_next,
+                MrkvRow,
+                IncShkDstn,
+                RiskyDstn,
+                LivPrb,
+                DiscFac,
+                CRRA,
+                alpha,
+                Rfree,
+                PermGroFac,
+                aXtraGrid,
+                ShareGrid,
+                hbar,
+                RentRate,
+                ParticCost,
+                IndepDstnBool,
+                StockIncCorr,
+            )
+        )
+
+        # Step 2: Solve the owner subproblem for this employment state
+        cFuncOwn, ShareFuncOwn, vFuncOwn_stay, vPfuncOwn_stay = (
+            solve_owner_subproblem_markov(
+                solution_next,
+                MrkvRow,
+                IncShkDstn,
+                RiskyDstn,
+                LivPrb,
+                DiscFac,
+                CRRA,
+                alpha,
+                Rfree,
+                PermGroFac,
+                aXtraGrid,
+                ShareGrid,
+                dGrid,
+                hbar,
+                MortRate,
+                MortPeriods,
+                MaintRate,
+                ParticCost,
+                IndepDstnBool,
+                StockIncCorr,
+            )
+        )
+
+        # Step 3: Tenure envelope (own vs sell vs default)
+        m_eval = np.linspace(1e-6, aXtraGrid[-1] * 1.5, 100)
+        d_eval = dGrid.copy()
+
+        v_own = np.zeros((m_eval.size, d_eval.size))
+        v_sell = np.zeros((m_eval.size, d_eval.size))
+        v_default = np.zeros((m_eval.size, d_eval.size))
+
+        for i_m, m in enumerate(m_eval):
+            for i_d, d in enumerate(d_eval):
+                # Affordability constraint
+                pi_d = mortgage_payment_rate(d, MortRate, MortPeriods)
+                if pi_d * hbar > AffordabilityLimit:
+                    v_own[i_m, i_d] = -np.inf
+                else:
+                    v_own[i_m, i_d] = vFuncOwn_stay(m, d)
+
+                net_equity = (1.0 - SellCost - d) * hbar
+                m_after_sell = m + net_equity
+                if m_after_sell >= 0:
+                    v_sell[i_m, i_d] = vFuncRent(max(m_after_sell, 1e-6))
+                else:
+                    v_sell[i_m, i_d] = -np.inf
+
+                v_default[i_m, i_d] = vFuncRent(m) - DefaultPenalty
+
+        v_stack = np.stack([v_own, v_sell, v_default], axis=2)
+        tenure_choice = np.argmax(v_stack, axis=2)
+        v_best = np.max(v_stack, axis=2)
+
+        # Build final policy functions with tenure envelope
+        c_final = np.zeros((m_eval.size, d_eval.size))
+        share_final = np.zeros((m_eval.size, d_eval.size))
+        vp_final = np.zeros((m_eval.size, d_eval.size))
+
+        for i_m, m in enumerate(m_eval):
+            for i_d, d in enumerate(d_eval):
+                choice = tenure_choice[i_m, i_d]
+                if choice == 0:
+                    c_final[i_m, i_d] = cFuncOwn(m, d)
+                    share_final[i_m, i_d] = ShareFuncOwn(m, d)
+                    vp_final[i_m, i_d] = vPfuncOwn_stay(m, d)
+                elif choice == 1:
+                    net_equity = (1.0 - SellCost - d) * hbar
+                    m_after = m + net_equity
+                    c_final[i_m, i_d] = cFuncRent(max(m_after, 1e-6))
+                    share_final[i_m, i_d] = ShareFuncRent(
+                        max(m_after, 1e-6)
+                    )
+                    vp_final[i_m, i_d] = vPfuncRent(max(m_after, 1e-6))
+                else:
+                    c_final[i_m, i_d] = cFuncRent(m)
+                    share_final[i_m, i_d] = ShareFuncRent(m)
+                    vp_final[i_m, i_d] = vPfuncRent(m)
+
+        # Build 2D interpolants
+        cFunc_own_list = []
+        shareFunc_own_list = []
+        vFunc_own_list = []
+        vpFunc_own_list = []
+        tenure_list = []
+
+        for i_d in range(d_eval.size):
+            cFunc_own_list.append(LinearInterp(m_eval, c_final[:, i_d]))
+            shareFunc_own_list.append(
+                LinearInterp(m_eval, share_final[:, i_d])
+            )
+            vFunc_own_list.append(LinearInterp(m_eval, v_best[:, i_d]))
+            vpFunc_own_list.append(LinearInterp(m_eval, vp_final[:, i_d]))
+            tenure_list.append(
+                LinearInterp(m_eval, tenure_choice[:, i_d].astype(float))
+            )
+
+        vFuncOwn_2d = LinearInterpOnInterp1D(vFunc_own_list, d_eval)
+        vPfuncOwn_2d = LinearInterpOnInterp1D(vpFunc_own_list, d_eval)
+        cFuncOwn_2d = LinearInterpOnInterp1D(cFunc_own_list, d_eval)
+        ShareFuncOwn_2d = LinearInterpOnInterp1D(shareFunc_own_list, d_eval)
+
+        # Repurchase envelope for renters
+        d_0 = min(1.0 - DownPayment, MaxDTI / hbar)
+        d_0 = max(d_0, 0.0)
+        down_cost = (1.0 - d_0) * hbar
+        pi_orig = mortgage_payment_rate(d_0, MortRate, MortPeriods)
+        can_originate = pi_orig * hbar <= AffordabilityLimit
+
+        if d_0 > 0 and can_originate:
+            m_rent_fine = np.linspace(1e-6, aXtraGrid[-1] * 2.0, 200)
+            v_rent_vals = np.array([vFuncRent(mi) for mi in m_rent_fine])
+            vp_rent_vals = np.array([vPfuncRent(mi) for mi in m_rent_fine])
+            c_rent_vals = np.array([cFuncRent(mi) for mi in m_rent_fine])
+            s_rent_vals = np.array([ShareFuncRent(mi) for mi in m_rent_fine])
+
+            for i_m, m in enumerate(m_rent_fine):
+                m_after_buy = m - down_cost
+                if m_after_buy >= 1e-6:
+                    v_buy = vFuncOwn_stay(m_after_buy, d_0)
+                    if v_buy > v_rent_vals[i_m]:
+                        v_rent_vals[i_m] = v_buy
+                        c_rent_vals[i_m] = cFuncOwn(m_after_buy, d_0)
+                        s_rent_vals[i_m] = ShareFuncOwn(m_after_buy, d_0)
+                        vp_rent_vals[i_m] = vPfuncOwn_stay(m_after_buy, d_0)
+
+            cFuncRent_final = LinearInterp(m_rent_fine, c_rent_vals)
+            ShareFuncRent_final = LinearInterp(m_rent_fine, s_rent_vals)
+            vFuncRent_final = LinearInterp(m_rent_fine, v_rent_vals)
+            vPfuncRent_final = LinearInterp(m_rent_fine, vp_rent_vals)
+        else:
+            cFuncRent_final = cFuncRent
+            ShareFuncRent_final = ShareFuncRent
+            vFuncRent_final = vFuncRent
+            vPfuncRent_final = vPfuncRent
+
+        sol_i = HousingPortfolioSolution(
+            cFuncOwn=cFuncOwn_2d,
+            ShareFuncOwn=ShareFuncOwn_2d,
+            vFuncOwn=vFuncOwn_2d,
+            vPfuncOwn=vPfuncOwn_2d,
+            tenureFunc=LinearInterpOnInterp1D(tenure_list, d_eval),
+            cFuncRent=cFuncRent_final,
+            ShareFuncRent=ShareFuncRent_final,
+            vFuncRent=vFuncRent_final,
+            vPfuncRent=vPfuncRent_final,
+        )
+        sol_i.mGrid = m_eval
+        sol_i.dGrid = d_eval
+        state_solutions.append(sol_i)
+
+    # Combine into a single solution with list-valued attributes
+    combined = HousingPortfolioSolution(
+        cFuncOwn=[s.cFuncOwn for s in state_solutions],
+        ShareFuncOwn=[s.ShareFuncOwn for s in state_solutions],
+        vFuncOwn=[s.vFuncOwn for s in state_solutions],
+        vPfuncOwn=[s.vPfuncOwn for s in state_solutions],
+        tenureFunc=[s.tenureFunc for s in state_solutions],
+        cFuncRent=[s.cFuncRent for s in state_solutions],
+        ShareFuncRent=[s.ShareFuncRent for s in state_solutions],
+        vFuncRent=[s.vFuncRent for s in state_solutions],
+        vPfuncRent=[s.vPfuncRent for s in state_solutions],
+    )
+    return combined
 
 
 # ---------------------------------------------------------------------------
@@ -1005,6 +1890,12 @@ HousingPortfolioType_solving_default = {
     "RentRate": 0.05,  # Annual rental rate per unit housing
     "ParticCost": 0.01,  # Participation cost (fraction of perm income)
     "BeqWt": 1.0,  # Bequest weight omega
+    "AffordabilityLimit": np.inf,  # Max payment-to-income ratio (no constraint)
+    # Origination constraints
+    "DownPayment": 0.20,  # Min down payment fraction phi (max LTV = 0.80)
+    "MaxDTI": 4.0,  # Max debt-to-income ratio lambda
+    # Stock-income correlation
+    "StockIncCorr": 0.0,  # Loading of log equity return on log permanent shock
     # Shock structure
     "IndepDstnBool": True,
     "DiscreteShareBool": True,
@@ -1045,6 +1936,95 @@ HousingPortfolioType_default.update(HousingPortfolioType_IncShkDstn_default)
 HousingPortfolioType_default.update(HousingPortfolioType_RiskyDstn_default)
 
 init_housing_portfolio = HousingPortfolioType_default
+
+# ---------------------------------------------------------------------------
+# Markov employment defaults
+# ---------------------------------------------------------------------------
+
+# Two-state Markov chain: E(mployed)=0, U(nemployed)=1
+# p_u = prob of losing job, p_e = prob of regaining employment
+_p_u = 0.05  # 5% chance of job loss per period
+_p_e = 0.50  # 50% chance of re-employment per period (avg spell: 2 periods)
+_mrkv_default = np.array([[1.0 - _p_u, _p_u], [_p_e, 1.0 - _p_e]])
+
+MarkovHousingPortfolioType_constructors_default = {
+    "IncShkDstn": construct_markov_income_process,
+    "aXtraGrid": make_assets_grid,
+    "RiskyDstn": make_lognormal_RiskyDstn,
+    "ShareLimit": calc_ShareLimit_for_CRRA,
+    "ShareGrid": make_simple_ShareGrid,
+    "dGrid": make_ltv_grid,
+    "solution_terminal": make_markov_housing_solution_terminal,
+    # ShockDstn, PermShkDstn, TranShkDstn are omitted: the Markov solver
+    # uses IncShkDstn (per-state) and RiskyDstn independently.
+}
+
+MarkovHousingPortfolioType_IncShkDstn_default = {
+    "PermShkStd": [0.1] * _life_span,
+    "PermShkCount": 5,
+    "TranShkStd": [0.1] * _life_span,
+    "TranShkCount": 5,
+    "UnempIns": 0.3,  # Unemployment insurance: 30% of permanent income
+    "T_retire": _retire_age,
+    "UnempPrbRet": 0.005,
+    "IncUnempRet": 0.0,
+}
+
+MarkovHousingPortfolioType_solving_default = {
+    "cycles": 1,
+    "T_cycle": _life_span,
+    "constructors": MarkovHousingPortfolioType_constructors_default,
+    "CRRA": 5.0,
+    "alpha": 0.2,
+    "DiscFac": 0.96,
+    "LivPrb": _surv_probs,
+    "PermGroFac": _perm_gro_fac,
+    "Rfree": [1.02] * _life_span,
+    "BoroCnstArt": 0.0,
+    "hbar": 3.0,
+    "MortRate": 0.04,
+    "MortPeriods": [max(30 - t, 0) for t in range(_life_span)],
+    "MaintRate": 0.02,
+    "SellCost": 0.06,
+    "DefaultPenalty": 0.5,
+    "RentRate": 0.05,
+    "ParticCost": 0.01,
+    "BeqWt": 1.0,
+    "AffordabilityLimit": np.inf,
+    "DownPayment": 0.20,
+    "MaxDTI": 4.0,
+    "StockIncCorr": 0.0,
+    "MrkvArray": [_mrkv_default] * _life_span,
+    "IndepDstnBool": True,
+    "DiscreteShareBool": True,
+    "vFuncBool": True,
+    "CubicBool": False,
+}
+
+MarkovHousingPortfolioType_default = {}
+MarkovHousingPortfolioType_default.update(
+    MarkovHousingPortfolioType_solving_default
+)
+MarkovHousingPortfolioType_default.update(
+    HousingPortfolioType_simulation_default
+)
+MarkovHousingPortfolioType_default.update(
+    HousingPortfolioType_kNrmInitDstn_default
+)
+MarkovHousingPortfolioType_default.update(
+    HousingPortfolioType_pLvlInitDstn_default
+)
+MarkovHousingPortfolioType_default.update(HousingPortfolioType_aXtraGrid_default)
+MarkovHousingPortfolioType_default.update(
+    HousingPortfolioType_ShareGrid_default
+)
+MarkovHousingPortfolioType_default.update(HousingPortfolioType_dGrid_default)
+MarkovHousingPortfolioType_default.update(
+    MarkovHousingPortfolioType_IncShkDstn_default
+)
+MarkovHousingPortfolioType_default.update(HousingPortfolioType_RiskyDstn_default)
+
+init_markov_housing_portfolio = MarkovHousingPortfolioType_default
 
 
 # ---------------------------------------------------------------------------
@@ -1102,6 +2082,10 @@ class HousingPortfolioConsumerType(IndShockConsumerType):
         "RentRate",
         "ParticCost",
         "BeqWt",
+        "AffordabilityLimit",
+        "DownPayment",
+        "MaxDTI",
+        "StockIncCorr",
         "ShareGrid",
         "dGrid",
         "ShareLimit",
@@ -1157,3 +2141,108 @@ class HousingPortfolioConsumerType(IndShockConsumerType):
             raise ValueError(f"RentRate must be positive: {self.RentRate}")
         if self.MortRate < 0:
             raise ValueError(f"MortRate must be non-negative: {self.MortRate}")
+
+
+class MarkovHousingPortfolioConsumerType(HousingPortfolioConsumerType):
+    """Housing portfolio model with persistent Markov employment states.
+
+    Extends the baseline model with a two-state employment chain
+    e_t in {Employed, Unemployed}. Employed households receive standard
+    lognormal income shocks; unemployed households receive a fraction mu
+    of permanent income as unemployment insurance. Persistent unemployment
+    spells create affordability stress that triggers selling or default.
+
+    The value function is solved separately for each employment state, with
+    continuation values integrating over employment transitions governed by
+    the Markov transition matrix ``MrkvArray``.
+
+    Additional parameters
+    ---------------------
+    MrkvArray : list of np.ndarray
+        Employment transition matrix per period. Each element is (N, N)
+        with ``MrkvArray[t][i, j]`` = Prob(next state = j | current = i).
+        Default: 2-state chain with p_u = 0.05, p_e = 0.50.
+    UnempIns : float
+        Fraction of permanent income received as unemployment insurance (mu).
+        Default: 0.3.
+    """
+
+    IncShkDstn_default = MarkovHousingPortfolioType_IncShkDstn_default
+    solving_default = MarkovHousingPortfolioType_solving_default
+
+    default_ = {
+        "params": MarkovHousingPortfolioType_default,
+        "solver": solve_one_period_HousingPortfolioMarkov,
+        "track_vars": ["mNrm", "cNrm", "Share", "dNrm", "tenure", "Mrkv"],
+    }
+
+    # Override time_inv_: same as parent but without ShockDstn
+    # (the Markov solver uses IncShkDstn per-state and RiskyDstn independently).
+    time_inv_ = [
+        "CRRA",
+        "DiscFac",
+        "BoroCnstArt",
+        "aXtraGrid",
+        "vFuncBool",
+        "CubicBool",
+        "alpha",
+        "hbar",
+        "MortRate",
+        "MaintRate",
+        "SellCost",
+        "DefaultPenalty",
+        "RentRate",
+        "ParticCost",
+        "BeqWt",
+        "ShareGrid",
+        "dGrid",
+        "ShareLimit",
+        "IndepDstnBool",
+        "RiskyDstn",
+        "AffordabilityLimit",
+        "DownPayment",
+        "MaxDTI",
+        "StockIncCorr",
+    ]
+
+    # Override time_vary_: drop PermShkDstn/TranShkDstn (not built for Markov),
+    # add MrkvArray, keep ShockDstn out.
+    time_vary_ = [
+        "LivPrb",
+        "PermGroFac",
+        "Rfree",
+        "IncShkDstn",
+        "MortPeriods",
+        "MrkvArray",
+    ]
+
+    def __init__(self, verbose=False, quiet=True, **kwds):
+        params = deepcopy(MarkovHousingPortfolioType_default)
+        params.update(kwds)
+        IndShockConsumerType.__init__(
+            self, verbose=verbose, quiet=quiet, **params
+        )
+
+    def pre_solve(self):
+        """Construct objects needed before solving."""
+        self.construct("IncShkDstn")
+        self.construct("aXtraGrid")
+        self.construct("RiskyDstn")
+        self.construct("ShareLimit")
+        self.construct("ShareGrid")
+        self.construct("dGrid")
+        self.construct("solution_terminal")
+
+    def check_restrictions(self):
+        """Check model parameter restrictions including Markov-specific ones."""
+        super().check_restrictions()
+        MrkvArray = self.MrkvArray
+        if isinstance(MrkvArray, list):
+            MrkvArray = MrkvArray[0]
+        if MrkvArray.shape[0] != MrkvArray.shape[1]:
+            raise ValueError("MrkvArray must be square.")
+        row_sums = MrkvArray.sum(axis=1)
+        if not np.allclose(row_sums, 1.0):
+            raise ValueError(
+                f"MrkvArray rows must sum to 1, got {row_sums}."
+            )
