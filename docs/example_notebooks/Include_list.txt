@@ -15,6 +15,7 @@ examples/ConsIndShockModel/KinkedRconsumerType.ipynb
 examples/ConsAggShockModel/AggShockConsumerType.ipynb
 examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
 examples/ConsMarkovModel/MarkovConsumerType.ipynb
+examples/ConsHabitModel/HabitConsumerType.ipynb
 examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
 examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
 examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb

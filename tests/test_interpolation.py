@@ -194,7 +194,7 @@ class TestInterp3D(TestInterp2D):
 
         derivs = self.interpolant.derivativeZ(*self.test_vals)
         base = type(self.interpolant).__bases__[-1]
-        checks = base.derivativeZ(self.interpolant, *self.test_vals)
+        checks = base._derZ(self.interpolant, *self.test_vals)
 
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
@@ -214,7 +214,7 @@ class TestInterp4D(TestInterp3D):
 
     def setUp(self):
         """
-        The test function for 3D interpolators is f(x,y) = sqrt(4w + 3x + 5y + 2z)
+        The test function for 4D interpolators is f(x,y) = sqrt(4w + 3x + 5y + 2z)
         """
         f = lambda w, x, y, z: np.sqrt(4 * w + 3 * x + 5 * y + 2 * z)
         RNG = np.random.RandomState(seed=2222222)
@@ -232,11 +232,14 @@ class TestInterp4D(TestInterp3D):
     def test_derW(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeW(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derW(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
 
 ###############################################################################
