@@ -11,6 +11,7 @@ symbols:
     - pLvl               \\ permanent income level
     - bNrm               \\ normalized bank balances
     - mNrm               \\ normalized market resources
+    - hNrm               \\ normalized habit stock
     - cNrm               \\ normalized consumption
     - aNrm               \\ normalized end-of-period assets
     - HNrm               \\ normalized end-of-period habit stock
