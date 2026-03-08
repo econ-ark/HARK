@@ -1343,6 +1343,7 @@ KS_constructor_dict = {
 
 init_KS_agents = {
     "T_cycle": 1,
+    "cycles": 0,
     "pseudo_terminal": False,
     "constructors": KS_constructor_dict,
     "DiscFac": 0.99,
@@ -1355,8 +1356,7 @@ init_KS_agents = {
     "MaggCount": 25,
     "MaggPerturb": 0.01,
     "MaggExpFac": 0.12,
-    "MgridBase": np.array([0.99, 1.0, 1.01]),  # dummy, this will be overwritten
-    "AgentCount": 5000,
+    "AgentCount": 10000,
 }
 
 
@@ -2679,7 +2679,7 @@ init_KS_economy = {
     "verbose": True,
     "act_T": 11000,
     "T_discard": 1000,
-    "DampingFac": 0.5,
+    "DampingFac": 0.1,
     "intercept_prev": [0.0, 0.0],
     "slope_prev": [1.0, 1.0],
     "DiscFac": 0.99,
@@ -2711,7 +2711,7 @@ class KrusellSmithEconomy(Market):
 
     Parameters
     ----------
-    agents : [ConsumerType]
+    agents : [KrusellSmithType]
         List of types of consumers that live in this economy.
     tolerance: float
         Minimum acceptable distance between "dynamic rules" to consider the
@@ -2950,16 +2950,14 @@ class KrusellSmithEconomy(Market):
 
         Returns
         -------
-        (unnamed) : CapDynamicRule
+        (unnamed) : AggShocksDynamicRule
             Object containing new saving rules for each Markov state.
         """
         verbose = self.verbose
-        discard_periods = (
-            self.T_discard
-        )  # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = (
-            1.0 - self.DampingFac
-        )  # Proportional weight to put on new function vs old function parameters
+        # Throw out the first T periods to allow the simulation to approach the SS
+        discard_periods = self.T_discard
+        # Proportional weight to put on new function vs old function parameters
+        update_weight = 1.0 - self.DampingFac
         total_periods = len(Mnow)
 
         # Trim the histories of M_t and A_t and convert them to logs
