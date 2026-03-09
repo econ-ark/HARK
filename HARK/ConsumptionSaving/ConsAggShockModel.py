@@ -1348,7 +1348,6 @@ init_KS_agents = {
     "constructors": KS_constructor_dict,
     "DiscFac": 0.99,
     "CRRA": 1.0,
-    "LbrInd": 1.0,
     "aMin": 0.001,
     "aMax": 50.0,
     "aCount": 32,
@@ -2676,7 +2675,7 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
 
 
 init_KS_economy = {
-    "verbose": True,
+    "verbose": False,
     "act_T": 11000,
     "T_discard": 1000,
     "DampingFac": 0.1,
