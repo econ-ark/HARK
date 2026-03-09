@@ -1325,6 +1325,131 @@ def make_KS_transition_arrays(
     return transition_arrays
 
 
+def make_emp_idx_arrays(UrateB, UrateG, MrkvIndArray, MrkvAggArray, AgentCount):
+    """
+    Construct the attributes emp_permute and unemp_permute, each of which is
+    a 2x2 nested list of boolean arrays.  The j,k-th element of emp_permute
+    represents the employment states this period for agents who were employed
+    last period when the macroeconomy is transitioning from state j to state k.
+    Likewise, j,k-th element of unemp_permute represents the employment states
+    this period for agents who were unemployed last period when the macro-
+    economy is transitioning from state j to state k.  These attributes are
+    referenced during simulation, when they are randomly permuted in order to
+    maintain exact unemployment rates in each period.
+
+    Parameters
+    ----------
+    UrateB : float
+        Unemployment rate in bad economic state.
+    UrateG : float
+        Unemployment rate in good economic state.
+    MrkvIndArray : np.array
+        4x4 array of transition probabilities among discrete states from the
+        perspective of an individual consumer.
+    MrkvAggArray : np.array
+        2x2 array of transition probabilities among aggregate discrete states.
+    AgentCount : int
+        Number of agents to simulate.
+
+    Returns
+    -------
+    emp_idx_arrays : dict
+        Dictionary with two entries: unemp_permute and emp_permute.
+    """
+    # Get counts of employed and unemployed agents in each macroeconomic state
+    B_unemp_N = int(np.round(UrateB * AgentCount))
+    B_emp_N = AgentCount - B_unemp_N
+    G_unemp_N = int(np.round(UrateG * AgentCount))
+    G_emp_N = AgentCount - G_unemp_N
+
+    # Bad-bad transition indices
+    BB_stay_unemp_N = int(np.round(B_unemp_N * MrkvIndArray[0, 0] / MrkvAggArray[0, 0]))
+    BB_become_unemp_N = B_unemp_N - BB_stay_unemp_N
+    BB_stay_emp_N = int(np.round(B_emp_N * MrkvIndArray[1, 1] / MrkvAggArray[0, 0]))
+    BB_become_emp_N = B_emp_N - BB_stay_emp_N
+    BB_unemp_permute = np.concatenate(
+        [
+            np.ones(BB_become_emp_N, dtype=bool),
+            np.zeros(BB_stay_unemp_N, dtype=bool),
+        ]
+    )
+    BB_emp_permute = np.concatenate(
+        [
+            np.ones(BB_stay_emp_N, dtype=bool),
+            np.zeros(BB_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Bad-good transition indices
+    BG_stay_unemp_N = int(np.round(B_unemp_N * MrkvIndArray[0, 2] / MrkvAggArray[0, 1]))
+    BG_become_unemp_N = G_unemp_N - BG_stay_unemp_N
+    BG_stay_emp_N = int(np.round(B_emp_N * MrkvIndArray[1, 3] / MrkvAggArray[0, 1]))
+    BG_become_emp_N = G_emp_N - BG_stay_emp_N
+    BG_unemp_permute = np.concatenate(
+        [
+            np.ones(BG_become_emp_N, dtype=bool),
+            np.zeros(BG_stay_unemp_N, dtype=bool),
+        ]
+    )
+    BG_emp_permute = np.concatenate(
+        [
+            np.ones(BG_stay_emp_N, dtype=bool),
+            np.zeros(BG_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Good-bad transition indices
+    GB_stay_unemp_N = int(np.round(G_unemp_N * MrkvIndArray[2, 0] / MrkvAggArray[1, 0]))
+    GB_become_unemp_N = B_unemp_N - GB_stay_unemp_N
+    GB_stay_emp_N = int(np.round(G_emp_N * MrkvIndArray[3, 1] / MrkvAggArray[1, 0]))
+    GB_become_emp_N = B_emp_N - GB_stay_emp_N
+    GB_unemp_permute = np.concatenate(
+        [
+            np.ones(GB_become_emp_N, dtype=bool),
+            np.zeros(GB_stay_unemp_N, dtype=bool),
+        ]
+    )
+    GB_emp_permute = np.concatenate(
+        [
+            np.ones(GB_stay_emp_N, dtype=bool),
+            np.zeros(GB_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Good-good transition indices
+    GG_stay_unemp_N = int(np.round(G_unemp_N * MrkvIndArray[2, 2] / MrkvAggArray[1, 1]))
+    GG_become_unemp_N = G_unemp_N - GG_stay_unemp_N
+    GG_stay_emp_N = int(np.round(G_emp_N * MrkvIndArray[3, 3] / MrkvAggArray[1, 1]))
+    GG_become_emp_N = G_emp_N - GG_stay_emp_N
+    GG_unemp_permute = np.concatenate(
+        [
+            np.ones(GG_become_emp_N, dtype=bool),
+            np.zeros(GG_stay_unemp_N, dtype=bool),
+        ]
+    )
+    GG_emp_permute = np.concatenate(
+        [
+            np.ones(GG_stay_emp_N, dtype=bool),
+            np.zeros(GG_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Package transition indices as a dictionary
+    unemp_permute = [
+        [BB_unemp_permute, BG_unemp_permute],
+        [GB_unemp_permute, GG_unemp_permute],
+    ]
+    emp_permute = [
+        [BB_emp_permute, BG_emp_permute],
+        [GB_emp_permute, GG_emp_permute],
+    ]
+    emp_idx_arrays = {
+        "unemp_permute": unemp_permute,
+        "emp_permute": emp_permute,
+    }
+    return emp_idx_arrays
+
+
 ###############################################################################
 
 # Make a dictionary for Krusell-Smith agents
@@ -1336,6 +1461,9 @@ KS_constructor_dict = {
     "mNextArray": get_it_from("transition_arrays"),
     "MnextArray": get_it_from("transition_arrays"),
     "RnextArray": get_it_from("transition_arrays"),
+    "emp_idx_arrays": make_emp_idx_arrays,
+    "unemp_permute": get_it_from("emp_idx_arrays"),
+    "emp_permute": get_it_from("emp_idx_arrays"),
     "MgridBase": make_exponential_MgridBase,
     "T_sim": get_it_from("act_T"),
     "Mgrid": make_Mgrid,
@@ -1432,122 +1560,6 @@ class KrusellSmithType(AgentType):
     def pre_solve(self):
         self.construct("solution_terminal")
 
-    def make_emp_idx_arrays(self):
-        """
-        Construct the attributes emp_permute and unemp_permute, each of which is
-        a 2x2 nested list of boolean arrays.  The j,k-th element of emp_permute
-        represents the employment states this period for agents who were employed
-        last period when the macroeconomy is transitioning from state j to state k.
-        Likewise, j,k-th element of unemp_permute represents the employment states
-        this period for agents who were unemployed last period when the macro-
-        economy is transitioning from state j to state k.  These attributes are
-        referenced during simulation, when they are randomly permuted in order to
-        maintain exact unemployment rates in each period.
-        """
-        # Get counts of employed and unemployed agents in each macroeconomic state
-        B_unemp_N = int(np.round(self.UrateB * self.AgentCount))
-        B_emp_N = self.AgentCount - B_unemp_N
-        G_unemp_N = int(np.round(self.UrateG * self.AgentCount))
-        G_emp_N = self.AgentCount - G_unemp_N
-
-        # Bad-bad transition indices
-        BB_stay_unemp_N = int(
-            np.round(B_unemp_N * self.MrkvIndArray[0, 0] / self.MrkvAggArray[0, 0])
-        )
-        BB_become_unemp_N = B_unemp_N - BB_stay_unemp_N
-        BB_stay_emp_N = int(
-            np.round(B_emp_N * self.MrkvIndArray[1, 1] / self.MrkvAggArray[0, 0])
-        )
-        BB_become_emp_N = B_emp_N - BB_stay_emp_N
-        BB_unemp_permute = np.concatenate(
-            [
-                np.ones(BB_become_emp_N, dtype=bool),
-                np.zeros(BB_stay_unemp_N, dtype=bool),
-            ]
-        )
-        BB_emp_permute = np.concatenate(
-            [
-                np.ones(BB_stay_emp_N, dtype=bool),
-                np.zeros(BB_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Bad-good transition indices
-        BG_stay_unemp_N = int(
-            np.round(B_unemp_N * self.MrkvIndArray[0, 2] / self.MrkvAggArray[0, 1])
-        )
-        BG_become_unemp_N = G_unemp_N - BG_stay_unemp_N
-        BG_stay_emp_N = int(
-            np.round(B_emp_N * self.MrkvIndArray[1, 3] / self.MrkvAggArray[0, 1])
-        )
-        BG_become_emp_N = G_emp_N - BG_stay_emp_N
-        BG_unemp_permute = np.concatenate(
-            [
-                np.ones(BG_become_emp_N, dtype=bool),
-                np.zeros(BG_stay_unemp_N, dtype=bool),
-            ]
-        )
-        BG_emp_permute = np.concatenate(
-            [
-                np.ones(BG_stay_emp_N, dtype=bool),
-                np.zeros(BG_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Good-bad transition indices
-        GB_stay_unemp_N = int(
-            np.round(G_unemp_N * self.MrkvIndArray[2, 0] / self.MrkvAggArray[1, 0])
-        )
-        GB_become_unemp_N = B_unemp_N - GB_stay_unemp_N
-        GB_stay_emp_N = int(
-            np.round(G_emp_N * self.MrkvIndArray[3, 1] / self.MrkvAggArray[1, 0])
-        )
-        GB_become_emp_N = B_emp_N - GB_stay_emp_N
-        GB_unemp_permute = np.concatenate(
-            [
-                np.ones(GB_become_emp_N, dtype=bool),
-                np.zeros(GB_stay_unemp_N, dtype=bool),
-            ]
-        )
-        GB_emp_permute = np.concatenate(
-            [
-                np.ones(GB_stay_emp_N, dtype=bool),
-                np.zeros(GB_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Good-good transition indices
-        GG_stay_unemp_N = int(
-            np.round(G_unemp_N * self.MrkvIndArray[2, 2] / self.MrkvAggArray[1, 1])
-        )
-        GG_become_unemp_N = G_unemp_N - GG_stay_unemp_N
-        GG_stay_emp_N = int(
-            np.round(G_emp_N * self.MrkvIndArray[3, 3] / self.MrkvAggArray[1, 1])
-        )
-        GG_become_emp_N = G_emp_N - GG_stay_emp_N
-        GG_unemp_permute = np.concatenate(
-            [
-                np.ones(GG_become_emp_N, dtype=bool),
-                np.zeros(GG_stay_unemp_N, dtype=bool),
-            ]
-        )
-        GG_emp_permute = np.concatenate(
-            [
-                np.ones(GG_stay_emp_N, dtype=bool),
-                np.zeros(GG_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Store transition matrices as attributes of self
-        self.unemp_permute = [
-            [BB_unemp_permute, BG_unemp_permute],
-            [GB_unemp_permute, GG_unemp_permute],
-        ]
-        self.emp_permute = [
-            [BB_emp_permute, BG_emp_permute],
-            [GB_emp_permute, GG_emp_permute],
-        ]
-
     def reset(self):
         self.initialize_sim()
 
@@ -1558,7 +1570,6 @@ class KrusellSmithType(AgentType):
         self.shocks["Mrkv"] = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
-        self.make_emp_idx_arrays()
 
     def sim_birth(self, which):
         """
@@ -2799,13 +2810,13 @@ class KrusellSmithEconomy(Market):
         MrkvIndArray = np.zeros((4, 4))
 
         # BAD-BAD QUADRANT
-        MrkvIndArray[0, 1] = ProbBB * 1.0 / self.SpellMeanB
+        MrkvIndArray[0, 1] = ProbBB / self.SpellMeanB
         MrkvIndArray[0, 0] = ProbBB * (1 - 1.0 / self.SpellMeanB)
         MrkvIndArray[1, 0] = self.UrateB / (1.0 - self.UrateB) * MrkvIndArray[0, 1]
         MrkvIndArray[1, 1] = ProbBB - MrkvIndArray[1, 0]
 
         # GOOD-GOOD QUADRANT
-        MrkvIndArray[2, 3] = ProbGG * 1.0 / self.SpellMeanG
+        MrkvIndArray[2, 3] = ProbGG / self.SpellMeanG
         MrkvIndArray[2, 2] = ProbGG * (1 - 1.0 / self.SpellMeanG)
         MrkvIndArray[3, 2] = self.UrateG / (1.0 - self.UrateG) * MrkvIndArray[2, 3]
         MrkvIndArray[3, 3] = ProbGG - MrkvIndArray[3, 2]
