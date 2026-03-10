@@ -200,24 +200,31 @@ def make_habit_solution_terminal():
     return solution_terminal
 
 
-def calc_marg_values(S, k, hpre, rho, R, G, gamma, alpha, beta, C, Vp):
+def calc_marg_values(S, k, hpre, rho, R, Gamma, alpha, lamda, beta, C, Vp):
+    """
+    Helper function for computing expected marginal value with respect to market
+    resources and habit stock. Used internally by solve_one_period_ConsHabit.
+
+    The code here uses "math notation" for quick programming. See the only place
+    in the code where this function is used for a translation of the symbols.
+    """
     psi = S["PermShk"]
     theta = S["TranShk"]
-    gro = psi * G
-    m = R * k / gro + theta
-    h = hpre / gro
+    G = psi * Gamma
+    m = R * k / G + theta
+    h = hpre / G
     c = C(m, h)
     a = m - c
-    H = alpha * c + (1 - alpha) * h
+    H = lamda * c + (1 - lamda) * h
     dvdH = beta * Vp(a, H)
-    temp = h ** (-gamma * (1 - rho))
+    temp = h ** (-alpha * (1 - rho))
     dudc = temp * c ** (-rho)
-    dudh = c ** (1 - rho) * (-gamma) * temp / h
-    dvdm = dudc + alpha * dvdH
-    dvdh = dudh + (1 - alpha) * dvdH
-    gro_adj = gro ** ((1 - rho) * (1 - gamma) - 1.0)
-    dvdk = R * gro_adj * dvdm
-    dvdh = gro_adj * dvdh
+    dudh = c ** (1 - rho) * (-alpha) * temp / h
+    dvdm = dudc + lamda * dvdH
+    dvdh = dudh + (1 - lamda) * dvdH
+    G_adj = G ** ((1 - rho) * (1 - alpha) - 1.0)
+    dvdk = R * G_adj * dvdm
+    dvdh = G_adj * dvdh
     return dvdk, dvdh
 
 
@@ -504,6 +511,7 @@ class HabitConsumerType(AgentType):
         \newcommand{\DiscFac}{\beta}
         \newcommand{\HabitWgt}{\alpha}
         \newcommand{\HabitRte}{\lambda}
+
         \begin{align*}
         v_t(m_t,h_t) &= \max_{c_t}u(c_t,h_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)} v_{t+1}(m_{t+1}, h_{t+1}) \right], \\
         & \text{s.t.}  \\

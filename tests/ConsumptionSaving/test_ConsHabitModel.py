@@ -18,3 +18,9 @@ class testHabitConsumerType(unittest.TestCase):
         self.agent.T_sim = 10
         self.agent.initialize_sym()
         self.agent.symulate()
+
+    def test_invalid(self):
+        self.assertRaises(ValueError, HabitConsumerType, HabitRte=1.2)
+        self.assertRaises(ValueError, HabitConsumerType, HabitRte=0.0)
+        self.assertRaises(ValueError, HabitConsumerType, HabitWgt=1.2)
+        self.assertRaises(ValueError, HabitConsumerType, HabitWgt=0.0)
