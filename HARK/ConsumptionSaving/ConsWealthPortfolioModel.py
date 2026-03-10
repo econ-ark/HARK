@@ -427,7 +427,7 @@ WealthPortfolioConsumerType_ShareGrid_default = {
 # Default parameters to make ChiFunc with make_ChiFromOmega_function
 WealthPortfolioConsumerType_ChiFunc_default = {
     "ChiFromOmega_N": 501,  # Number of gridpoints in chi-from-omega function
-    "ChiFromOmega_bound": 15,  # Highest gridpoint to use for it
+    "ChiFromOmega_bound": 15.0,  # Highest gridpoint to use for it
 }
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
@@ -464,8 +464,7 @@ WealthPortfolioConsumerType_solving_default = {
     "PortfolioBisect": False,  # This is a mystery parameter
     "IndepDstnBool": True,  # Whether income and return shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents

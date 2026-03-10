@@ -23,6 +23,7 @@ __all__ = [
     "TractableConsumerType",
     "BequestWarmGlowConsumerType",
     "BequestWarmGlowPortfolioType",
+    "WealthUtilityConsumerType",
     "WealthPortfolioConsumerType",
     "LaborIntMargConsumerType",
     "BasicHealthConsumerType",
@@ -69,6 +70,7 @@ from HARK.ConsumptionSaving.ConsBequestModel import (
     BequestWarmGlowConsumerType,
     BequestWarmGlowPortfolioType,
 )
+from HARK.ConsumptionSaving.ConsWealthUtilityModel import WealthUtilityConsumerType
 from HARK.ConsumptionSaving.ConsWealthPortfolioModel import WealthPortfolioConsumerType
 from HARK.ConsumptionSaving.ConsLaborModel import LaborIntMargConsumerType
 from HARK.ConsumptionSaving.ConsHealthModel import BasicHealthConsumerType
