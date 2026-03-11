@@ -191,9 +191,9 @@ IndShockRiskyAssetConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
     "RiskyShareFixed": 1.0,  # Fixed share of risky asset when PortfolioBool is False
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "IndepDstnBool": True,  # Whether return and income shocks are independent
     "PortfolioBool": False,  # Whether this instance can choose portfolio shares
@@ -398,6 +398,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         "PortfolioBool",
         "IndepDstnBool",
         "RiskyShareFixed",
+        "ShareAugFac",
     ]
     time_vary_ = IndShockConsumerType.time_vary_ + ["ShockDstn", "ShareLimit"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
@@ -619,6 +620,7 @@ def solve_one_period_ConsPortChoice(
     aXtraGrid,
     ShareGrid,
     ShareLimit,
+    ShareAugFac,
     vFuncBool,
     IndepDstnBool,
 ):
@@ -668,6 +670,11 @@ def solve_one_period_ConsPortChoice(
         risky share choice is specified as discrete rather than continuous.
     ShareLimit : float
         Limiting lower bound of risky portfolio share as mNrm approaches infinity.
+    ShareAugFac : int
+        Number of times to perform an "augmented" search for optimal risky asset
+        shares by "zooming in" on on FOC-crossing region. Setting this above zero
+        will make the solution slightly more accurate and can aid stability for
+        "unusual" or extreme parameter sets.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
         included in the reported solution.
@@ -983,16 +990,17 @@ def solve_one_period_ConsPortChoice(
     crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
     share_idx = np.argmax(crossing, axis=1)
 
-    for k in range(3):
-        # This represents the index of the segment of the share grid where dvds flips
-        # from positive to negative, indicating that there's a zero *on* the segment.
-        # The exception is for aNrm values that are flagged as constrained, for which
-        # there will be no crossing point and we can just use the boundary value.
+    # share_idx represents the index of the segment of the share grid where dvds flips
+    # from positive to negative, indicating that there's a zero *on* the segment.
+    # The exception is for aNrm values that are flagged as constrained, for which
+    # there will be no crossing point and we can just use the boundary value.
 
-        # Now that we have a *range* for the location of the optimal share, we can
-        # do a refined search for the optimal share at each aNrm value where there
-        # is an interior solution (not constrained). We now make a refined ShareGrid
-        # that has *different* values on it for each aNrm value.
+    # Now that we have a *range* for the location of the optimal share, we can
+    # do a refined search for the optimal share at each aNrm value where there
+    # is an interior solution (not constrained). We now make a refined ShareGrid
+    # that has *different* values on it for each aNrm value.
+
+    for k in range(ShareAugFac):
         bot_s = ShareNext[a_idx, share_idx]
         top_s = ShareNext[a_idx, share_idx + 1]
         for j in range(aNrmCount):
@@ -1129,7 +1137,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
 ):
     """
     Solves one period of a consumption-saving model with idiosyncratic shocks to
-    permanent and transitory income, with one risky asset and CRRA utility.
+    permanent and transitory income, with a risky and riskless asset and CRRA utility.
 
     Parameters
     ----------

@@ -466,6 +466,7 @@ WealthPortfolioConsumerType_solving_default = {
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
