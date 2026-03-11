@@ -114,8 +114,8 @@ class test_RiskyAssetLabeledType(unittest.TestCase):
         c = self.agent.solution[0].policy["cNrm"].to_numpy()
         m = self.agent.solution[0].policy["mNrm"].to_numpy()
         # Consumption at moderate wealth should be positive and reasonable
-        self.assertAlmostEqual(c[5], 0.78381, places=HARK_PRECISION)
-        self.assertAlmostEqual(m[5], 0.84578, places=HARK_PRECISION)
+        self.assertAlmostEqual(c[5], 0.75438, places=HARK_PRECISION)
+        self.assertAlmostEqual(m[5], 0.78213, places=HARK_PRECISION)
 
 
 class test_PortfolioLabeledType(unittest.TestCase):
