@@ -155,9 +155,9 @@ IndShockRiskyAssetConsumerType_IncShkDstn_default = {
 # Default parameters to make aXtraGrid using make_assets_grid
 IndShockRiskyAssetConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraMax": 100.0,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
@@ -170,7 +170,7 @@ IndShockRiskyAssetConsumerType_RiskyDstn_default = {
 # Risky return factor moments are based on SP500 real returns from Shiller's
 # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
 # Access it through the internet archive
-# We've (will) rounded them to the nearest .01
+# We have (or will) rounded them to the nearest .01
 
 # Default parameters to make RiskyDstn with make_simple_ShareGrid
 IndShockRiskyAssetConsumerType_ShareGrid_default = {
