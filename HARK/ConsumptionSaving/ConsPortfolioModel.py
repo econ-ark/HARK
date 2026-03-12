@@ -997,7 +997,6 @@ PortfolioConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # This *must* be set to True; only exists because of inheritance
     "PortfolioBisect": False,  # What does this do?
     "IndepDstnBool": True,  # Whether return and income shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution

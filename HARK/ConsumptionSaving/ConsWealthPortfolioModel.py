@@ -120,48 +120,59 @@ def solve_one_period_WealthPortfolio(
     ChiFunc,
 ):
     """
-    TODO: Fill in this missing docstring.
+    Solves one period of the wealth-in-utility model with portfolio choice.
 
     Parameters
     ----------
-    solution_next : TYPE
-        DESCRIPTION.
-    IncShkDstn : TYPE
-        DESCRIPTION.
-    RiskyDstn : TYPE
-        DESCRIPTION.
-    LivPrb : TYPE
-        DESCRIPTION.
-    DiscFac : TYPE
-        DESCRIPTION.
-    CRRA : TYPE
-        DESCRIPTION.
-    Rfree : TYPE
-        DESCRIPTION.
-    PermGroFac : TYPE
-        DESCRIPTION.
-    BoroCnstArt : TYPE
-        DESCRIPTION.
-    aXtraGrid : TYPE
-        DESCRIPTION.
-    ShareGrid : TYPE
-        DESCRIPTION.
-    ShareLimit : TYPE
-        DESCRIPTION.
-    vFuncBool : TYPE
-        DESCRIPTION.
-    WealthShare : TYPE
-        DESCRIPTION.
-    WealthShift : TYPE
-        DESCRIPTION.
-    ChiFunc : TYPE
-        DESCRIPTION.
+    solution_next : PortfolioSolution
+        Representation of the succeeding period's solution.
+    IncShkDstn : Distribution
+        Discrete distribution of permanent income shocks and transitory income
+        shocks. This is only used if the input IndepDstnBool is True, indicating
+        that income and return distributions are independent.
+    RiskyDstn : Distribution
+       Distribution of risky asset returns. This is only used if the input
+       IndepDstnBool is True, indicating that income and return distributions
+       are independent.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  In this model, it is *required* to be zero.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    ShareGrid : np.array
+        Array of risky portfolio shares on which to define the interpolation
+        of the consumption function when Share is fixed. Also used when the
+        risky share choice is specified as discrete rather than continuous.
+    ShareLimit : float
+        Limiting lower bound of risky portfolio share as mNrm approaches infinity.
+    vFuncBool: bool
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    WealthShare : float
+        Cobb-Douglas share for wealth (assets a_t) in the utility function.
+        Complementary share is for consumption.
+    WealthShift : float
+        Non-negative additive shifter for wealth in the utility function.
+    ChiFunc : function
+        Mapping from omega = EndOfPrdvPnvrs / aNrm to the optimal chi = cNrm / aNrm.
 
     Returns
     -------
-    solution_now : TYPE
-        DESCRIPTION.
-
+    solution_now : PortfolioSolution
+        Representation of the solution to this period's problem, including the
+        consumption function cFuncAdj and the risky share function ShareFuncAdj.
     """
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
@@ -514,8 +525,39 @@ init_wealth_portfolio = WealthPortfolioConsumerType_default
 
 
 class WealthPortfolioConsumerType(PortfolioConsumerType):
-    """
-    TODO: This docstring is missing and needs to be written.
+    r"""
+    A class for representing consumers who face idiosyncratic shocks to their labor
+    income (permanent and transitory) and can invest in a risky and a risk-free asset,
+    allocating their wealth as they choose. Unlike most HARK models, these consumers
+    have wealth as an argument directly in their utility function, as a Cobb-Douglas
+    aggregation with consumption.
+
+    The model is thus a combination of RiskyAssetConsumerType (or PortfolioConsumerType)
+    with WealthUtilityConsumerType.
+
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\LivPrb}{\mathsf{S}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \newcommand{\WealthShare}{\alpha}
+        \newcommand{\WealthShift}{\xi}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\Risky}{\mathfrak{R}}
+
+        \begin{align*}
+        \text{v}_t(m_t) &= \max_{c_t, s_t} \frac{c_t^{1-\CRRA}}{1-\CRRA} + \LivPrb_t \DiscFac \mathbb{E} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA}\text{v}_{t+1}(m_{t+1}) \right] \\
+        &\text{s.t.} \\
+        a_t &= m_t - c_t, \\
+        a_t &\geq 0, \\
+        s_t &\in [0,1], \\
+        m_{t+1} &= a_t R_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+        R_{t+1} &= s_t \Risky_{t+1} + (1-s_t) \Rfree_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+        \Risky_{t+1} &\sim G, \\
+        \mathbb{E}[\psi] &= 1. \\
+        \end{align*}
     """
 
     time_inv_ = deepcopy(PortfolioConsumerType.time_inv_)

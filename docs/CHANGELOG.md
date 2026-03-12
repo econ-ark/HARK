@@ -18,6 +18,7 @@ There are some breaking changes:
 
 - `AgentType` subclasses that had a `get_economy_data` method now use the general `AgentType.get_market_params` method, which exactly replicates their prior operation. See #1719
 - As a consequence of the above, random seeds on the distributions of some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
+- Parameter `PortfolioBool` has been deprecated. To allow portfolio choice for `RiskyAssetConsumerType`, just set `RiskyShareFixed=None`. #1740
 
 #### Major Changes
 
@@ -33,6 +34,7 @@ There are some breaking changes:
 - Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
 - Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
 - Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
+- Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740.
 
 ### 0.17.1
 

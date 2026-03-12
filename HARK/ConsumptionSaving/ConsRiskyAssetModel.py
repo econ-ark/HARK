@@ -63,11 +63,11 @@ def make_simple_ShareGrid(ShareCount):
     return ShareGrid
 
 
-def select_risky_solver(PortfolioBool):
+def select_risky_solver(RiskyShareFixed):
     """
     Trivial constructor function that chooses between two solvers.
     """
-    if PortfolioBool:
+    if RiskyShareFixed is None:
         solve_one_period = solve_one_period_ConsPortChoice
     else:
         solve_one_period = solve_one_period_ConsIndShockRiskyAsset
@@ -192,11 +192,10 @@ IndShockRiskyAssetConsumerType_solving_default = {
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation
-    "RiskyShareFixed": 1.0,  # Fixed share of risky asset when PortfolioBool is False
+    "RiskyShareFixed": 1.0,  # Fixed share of risky asset; set to None for portfolio choice
     "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "IndepDstnBool": True,  # Whether return and income shocks are independent
-    "PortfolioBool": False,  # Whether this instance can choose portfolio shares
     "PortfolioBisect": False,  # What does this do?
     "pseudo_terminal": False,
 }
@@ -243,12 +242,13 @@ init_risky_asset = IndShockRiskyAssetConsumerType_default
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     r"""
-    A consumer type based on IndShockConsumerType, that has access to a risky asset for their savings. The
-    risky asset has lognormal returns that are possibly correlated with his
-    income shocks.
+    A consumer type based on IndShockConsumerType, that has access to a risky asset
+    for their savings, as well as a risk-free asset. The risky asset has lognormal
+    returns that are possibly correlated with his income shocks.
 
-    If PortfolioBool is False, then the risky asset share is always one.
-    Otherwise the agent can optimize their risky asset share.
+    If RiskyShareFixed is set to a number (on the unit interval), then the agent's
+    portfolio share is fixed at that value. If it is instead set to None, then the
+    agent can flexibly choose their risky asset share.
 
     .. math::
         \newcommand{\CRRA}{\rho}
@@ -310,8 +310,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         Whether to calculate the value function during solution.
     CubicBool: bool
         Whether to use cubic spline interpoliation.
-    PortfolioBool: Boolean
-        Determines whether agent will use portfolio optimization or they only have access to risky assets. If false, the risky share is always one.
 
     Simulation Parameters
     ---------------------
@@ -367,10 +365,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     ----------
     solution: list[Consumer solution object]
         Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
-        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle. If PortfolioBool is True, the solution also contains ShareFunc.
-
-        If PortfolioBool is True, the solution also contains:
-        ShareFunc - The asset share function for this period, defined over normalized market resources :math:`S=ShareFunc(mNrm)`.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
 
         Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
     history: Dict[Array]
@@ -395,7 +390,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "PortfolioBisect",
         "ShareGrid",
-        "PortfolioBool",
         "IndepDstnBool",
         "RiskyShareFixed",
         "ShareAugFac",
@@ -453,17 +447,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         Rport : np.array
             Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by get_states() to calculate mNrmNow, where it
-            will be mislabeled as "Rfree".
+            return factor.  Will be used by get_states() to calculate mNrmNow.
         """
-
         RfreeNow = super().get_Rport()
         RiskyNow = self.shocks["Risky"]
-        if self.PortfolioBool:
-            ShareNow = self.controls["Share"]
-        else:
-            ShareNow = np.ones_like(RiskyNow)  # Only asset is risky asset
-
+        ShareNow = self.controls["Share"]
         Rport = ShareNow * RiskyNow + (1.0 - ShareNow) * RfreeNow
         self.Rport = Rport
         return Rport
@@ -564,7 +552,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions;
-        also calculates risky asset share when PortfolioBool=True
+        also calculates risky asset share when there is portfolio share.
 
         Parameters
         ----------
@@ -584,7 +572,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
                 cNrmNow[idx], MPCnow[idx] = self.solution[t].cFunc.eval_with_derivative(
                     mNrm
                 )
-                if self.PortfolioBool:
+                if self.RiskyShareFixed is None:
                     ShareNow[idx] = self.solution[t].ShareFunc(mNrm)
                 else:
                     ShareNow[idx] = self.RiskyShareFixed
