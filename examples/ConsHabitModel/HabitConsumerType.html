@@ -1,0 +1,1431 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Habit Formation &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsHabitModel/HabitConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsHabitModel/HabitConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Assets with Risky Returns: Portfolio Choice" href="../ConsPortfolioModel/RiskyAssetConsumerType.html" />
+    <link rel="prev" title="Wealth-in-Utility Additively with Consumption" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockMarkovConsumerType.html">Aggregate Productivity Shocks with a Discrete State</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/KrusellSmithType.html">Krusell-Smith Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Habit Formation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/WealthPortfolioConsumerType.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Habit Formation</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsHabitModel/HabitConsumerType.ipynb">examples/ConsHabitModel/HabitConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsHabitModel/HabitConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="HabitConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Habit-Formation">
+<h1>Habit Formation<a class="headerlink" href="#Habit-Formation" title="Link to this heading">#</a></h1>
+<p>The standard assumption in consumption-saving models is that agents derive flow utility from current consumption <span class="math notranslate nohighlight">\(c_t\)</span>, and want to maximize the expected present discounted sum of current and future utility flows. An alternative assumption is that agents have <em>consumption habits</em> and get utility from both current consumption and from the <em>ratio</em> of their consumption relative to some habit stock <span class="math notranslate nohighlight">\(h_t\)</span>.</p>
+<p>When making their consumption-saving decision, these consumers don’t just need to account for how their current habit stock affects their (marginal) utility of consumption today, but also how their chosen consumption will affect their habit stock in the future, and hence their <em>future</em> utility flows.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">HabitConsumerType</span><span class="p">,</span> <span class="n">IndShockConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_lifecycle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span><span class="p">,</span> <span class="n">plot_func_slices</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.Income.IncomeTools</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Cagetti_income</span><span class="p">,</span>
+    <span class="n">parse_income_spec</span><span class="p">,</span>
+    <span class="n">parse_time_params</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.Calibration.life_tables.us_ssa.SSATools</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_ssa_life_table</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{:.4f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Statement-of-Habit-Formation-Model">
+<h2>Statement of Habit-Formation Model<a class="headerlink" href="#Statement-of-Habit-Formation-Model" title="Link to this heading">#</a></h2>
+<p>HARK’s <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code> extends our workhorse <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> to include consumption habits that are updated as a linear combination of current consumption and the prior habit stock. The model is otherwise identical to <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>: agents can save in a single risk-free asset, they face permanent and transitory shocks to income, and have CRRA preferences over current utility flows and discount future utility flows geometrically. The agent’s problem can be expressed in
+Bellman form as:</p>
+<p><span class="math notranslate nohighlight">\(\newcommand{\CRRA}{\rho}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\LivPrb}{\mathsf{S}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PermGroFac}{\Gamma}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Rfree}{\mathsf{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\DiscFac}{\beta}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\HabitWgt}{\alpha}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\HabitRte}{\lambda}\)</span></p>
+<p><span class="math">\begin{eqnarray*}
+\text{v}_t(m_t,h_t) &=& \max_{c_t}u(c_t,h_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)} \text{v}_{t+1}(m_{t+1}, h_{t+1}) \right] \\
+&\text{s.t.}&  \\
+a_t &=& m_t - c_t, \\
+H_t &=& \HabitRte c_t + (1-\HabitRte) h_t, \\
+a_t &\geq& \underline{a}, \\
+m_{t+1} &=& a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+h_{t+1} &=& H_t / (\PermGroFac_{t+1} \psi_{t+1}), \\
+(\psi_{t+1},\theta_{t+1}) &\sim& F_{t+1}, \\
+\mathbb{E}[\psi] &=& 1, \\
+u(c,h) &=& \frac{(c/h^\HabitWgt)^{1-\CRRA}}{1-\CRRA}.
+\end{eqnarray*}</span></p>
+<p>Compared to <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> , there are two new parameters for a <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code> : the “habit weight” <span class="math notranslate nohighlight">\(\HabitWgt\)</span> and the “habit rate” <span class="math notranslate nohighlight">\(\HabitRte\)</span>. No, this is not confusing at all.</p>
+<p>Habit weight <span class="math notranslate nohighlight">\(\HabitWgt\)</span> is a preference parameter that represents how much weight the agent puts on the <em>ratio</em> of current consumption to prior habit stock; this parameter should always be on the unit interval. Note that the utility function can be rearranged to be a Cobb-Douglas combination of consumption <span class="math notranslate nohighlight">\(c_t\)</span> and the consumption-to-habit ratio <span class="math notranslate nohighlight">\(c_t / h_t\)</span>:</p>
+<p><span class="math">\begin{equation*}
+u(c,h) = \frac{(c/h^\HabitWgt)^{1-\CRRA}}{1-\CRRA} = \frac{\left( c^{1-\HabitWgt} \cdot (c/h)^\HabitWgt \right)^{1-\CRRA}}{1-\CRRA}.
+\end{equation*}</span></p>
+<p>As <span class="math notranslate nohighlight">\(\HabitWgt \rightarrow 0\)</span>, the model approaches the standard consumption-saving problem with no habits, as the agents put 100% weight on current consumption. As <span class="math notranslate nohighlight">\(\HabitWgt \rightarrow 1\)</span>, agents care <em>only</em> about the rate of change of their consumption.</p>
+<p>The habit rate parameter <span class="math notranslate nohighlight">\(\HabitRte\)</span> governs how fast the habit stock is updated each period. If <span class="math notranslate nohighlight">\(\HabitRte\)</span> is close to 1, end-of-period habit stock is updated (almost) completely with the newly chosen consumption, with little weight on consumption further in the past. When <span class="math notranslate nohighlight">\(\HabitRte\)</span> is close to 0, then the habit stock evolves slowly, and past consumption choices will continue to affect utility far into the future.</p>
+<p>As a special case, when <span class="math notranslate nohighlight">\(\HabitRte\)</span> is exactly zero, <em>habits don’t matter</em>. The level of the habit stock is permanently “stuck” and can never move, so the agents don’t need to take account of how current consumption affects their future habit stock– it won’t. Their optimal consumption will be different from the baseline <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> when <span class="math notranslate nohighlight">\(\HabitWgt &gt; 0\)</span> because their “effective risk aversion” is lower, but there are no <em>dynamic</em> effects on consumption through habits.</p>
+</section>
+<section id="Solving-the-Habit-Formation-Model">
+<h2>Solving the Habit-Formation Model<a class="headerlink" href="#Solving-the-Habit-Formation-Model" title="Link to this heading">#</a></h2>
+<p>Like essentially all other HARK models, we solve the habit-formation model using (an extension of) the endogenous grid method (EGM). Unlike most models in HARK, there are two endogenous state dimensions, <span class="math notranslate nohighlight">\(m_t\)</span> and <span class="math notranslate nohighlight">\(h_t\)</span>, but only one control variable, <span class="math notranslate nohighlight">\(c_t\)</span>. The first order condition for optimality is thus somewhat different than usual, and solving the first order condition to recover the optimal control is less straightforward.</p>
+<section id="End-of-period-(marginal)-value">
+<h3>End-of-period (marginal) value<a class="headerlink" href="#End-of-period-(marginal)-value" title="Link to this heading">#</a></h3>
+<p>As usual, we begin by defining the end-of-period value function. For this model, there are two end-of-period states: retained assets <span class="math notranslate nohighlight">\(a_t\)</span> and post-consumption habit stock <span class="math notranslate nohighlight">\(H_t\)</span>.</p>
+<p><span class="math">\begin{align*}
+\mathfrak{v}_t(a_t,H_t) &= \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)} \text{v}_{t+1}(m_{t+1}, h_{t+1}) \right] \\
+&\text{s.t.} \\
+m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+h_{t+1} &= H_t / (\PermGroFac_{t+1} \psi_{t+1}), \\
+(\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}.
+\end{align*}</span></p>
+<p>Marginal value with respect to each end-of-period state can be found as: <span class="math">\begin{align*}
+\mathfrak{v}_t^a(a_t,H_t) &= \Rfree_{t+1} \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{\HabitWgt\CRRA-\HabitWgt-\CRRA} \text{v}_{t+1}^m(m_{t+1}, h_{t+1}) \right], \\
+\mathfrak{v}_t^H(a_t,H_t) &= \DiscFac \LivPrb_t  \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{\HabitWgt\CRRA-\HabitWgt-\CRRA} \text{v}_{t+1}^h(m_{t+1}, h_{t+1}) \right].
+\end{align*}</span></p>
+<p>The Bellman form of the problem is then reduced to simply:</p>
+<p><span class="math">\begin{align*}
+\text{v}_t(m_t,h_t) &= \max_{c_t} u(c_t,h_t) + \mathfrak{v}_t(a_t,H_t) \\
+& \text{s.t.}  \\
+a_t &= m_t - c_t, \\
+H_t &= \HabitRte c_t + (1-\HabitRte) h_t, \\
+a_t &\geq \underline{a}.
+\end{align*}</span></p>
+</section>
+<section id="First-order-condition-for-optimal-consumption">
+<h3>First order condition for optimal consumption<a class="headerlink" href="#First-order-condition-for-optimal-consumption" title="Link to this heading">#</a></h3>
+<p>This problem has one first order condition for optimality (of an interior solution):</p>
+<p><span class="math">\begin{align*}
+u^c(c_t,h_t) - \mathfrak{v}_t^a(a_t,H_t) + \HabitRte \mathfrak{v}_t^H(a_t,H_t) = 0 \\
+\Longrightarrow h_t^{-\HabitRte(1-\CRRA)} c_t^{-\CRRA} = \mathfrak{v}_t^a(a_t,H_t) - \HabitRte \mathfrak{v}_t^H(a_t,H_t).
+\end{align*}</span></p>
+<p>Suppose we were at the end of the period, at some given <span class="math notranslate nohighlight">\((a_t,H_t)\)</span> and wanted to recover the control <span class="math notranslate nohighlight">\(c_t\)</span> that must have <em>just been chosen</em> if ending the period in this way was optimal. The RHS of the FOC has only information that is available at the end of period <span class="math notranslate nohighlight">\(t\)</span>, and the LHS has our unknown variables… but there are two unknowns (<span class="math notranslate nohighlight">\(c_t\)</span> and <span class="math notranslate nohighlight">\(h_t\)</span>) and only one equation!</p>
+<p>To solve the first order condition, we need to bring in additional information about the relationship among <span class="math notranslate nohighlight">\(c_t\)</span>, <span class="math notranslate nohighlight">\(h_t\)</span>, and <span class="math notranslate nohighlight">\(H_t\)</span>: the law of motion that governs how the habit stock evolves. Then we will have two equations with two unknowns and can make more progress.</p>
+<p><span class="math">\begin{align*}
+H_t &= \HabitRte c_t + (1-\HabitRte) h_t, \\
+h_t^{-\HabitRte(1-\CRRA)} c_t^{-\CRRA} &= \mathfrak{v}_t^a(a_t,H_t) - \HabitRte \mathfrak{v}_t^H(a_t,H_t).
+\end{align*}</span></p>
+<p>We can rearrange the first order condition to isolate <span class="math notranslate nohighlight">\(c_t\)</span> on the LHS, and then substitute that expression into the law of motion: <span class="math">\begin{align*}
+c_t^{-\CRRA} &= (\mathfrak{v}_t^a(a_t,H_t) - \HabitRte \mathfrak{v}_t^H(a_t,H_t)) h_t^{\HabitRte(1-\CRRA)} \\
+\Longrightarrow c_t &= \underbrace{(\mathfrak{v}_t^a(a_t,H_t) - \HabitRte \mathfrak{v}_t^H(a_t,H_t))^{-1/\CRRA}}_{\equiv \chi_t} h_t^{\HabitRte(1-1/\CRRA)} \\
+\Longrightarrow H_t &= \HabitRte \underbrace{\chi_t h_t^{\HabitRte(1-1/\CRRA)}}_{=c_t} + (1-\HabitRte) h_t.
+\end{align*}</span></p>
+<p>Note that the value <span class="math notranslate nohighlight">\(\chi_t\)</span> depends only on the end of period state <span class="math notranslate nohighlight">\((a_t, H_t)\)</span>. We now have one equation with one unknown variable. If we knew <span class="math notranslate nohighlight">\(\chi_t\)</span> and <span class="math notranslate nohighlight">\(h_t\)</span>, then calculating <span class="math notranslate nohighlight">\(H_t\)</span> would be easy… but when solving for optimal controls from the end of the period, we know <span class="math notranslate nohighlight">\(H_t\)</span> and <span class="math notranslate nohighlight">\(\chi_t\)</span> and want to recover <span class="math notranslate nohighlight">\(h_t\)</span>! Don’t worry, we still have a way forward.</p>
+</section>
+<section id="Solving-the-FOC-for-optimal-consumption-and-the-endogenous-gridpoints">
+<h3>Solving the FOC for optimal consumption and the endogenous gridpoints<a class="headerlink" href="#Solving-the-FOC-for-optimal-consumption-and-the-endogenous-gridpoints" title="Link to this heading">#</a></h3>
+<p>Like in a couple other HARK models, we can <em>interpolate the inverse</em> of a function that’s easy to construct, and then use that interpolant to solve the first order conditions. In a pre-solution step, HARK builds an interpolated function <span class="math notranslate nohighlight">\(Q(H, \chi)\)</span> with the following procedure:</p>
+<ol class="arabic simple">
+<li><p>Choose exogenous grids of <span class="math notranslate nohighlight">\(h\)</span> and <span class="math notranslate nohighlight">\(\chi\)</span>.</p></li>
+<li><p>Evaluate the expression above to get <span class="math notranslate nohighlight">\(H\)</span> from <span class="math notranslate nohighlight">\(h\)</span> and <span class="math notranslate nohighlight">\(\chi\)</span>.</p></li>
+<li><p>For each value of <span class="math notranslate nohighlight">\(\chi\)</span>, make a linear interpolation of <span class="math notranslate nohighlight">\(h\)</span> over <span class="math notranslate nohighlight">\(H\)</span>.</p></li>
+<li><p>Assemble a linear interpolant over <span class="math notranslate nohighlight">\(\chi\)</span> for those linear interpolations; this is <span class="math notranslate nohighlight">\(Q(\cdot)\)</span>.</p></li>
+</ol>
+<p>The <span class="math notranslate nohighlight">\(Q(\cdot)\)</span> function yields the <span class="math notranslate nohighlight">\(h_t\)</span> that the agent must have <em>begun</em> the period with if they are ending the period with <span class="math notranslate nohighlight">\(H_t\)</span> in post-habit stock and have a “transformed end-of-period marginal value” of <span class="math notranslate nohighlight">\(\chi_t\)</span>. With both <span class="math notranslate nohighlight">\(h_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> known, their chosen consumption level can then be recovered by solving the law of motion for the habit stock:</p>
+<p><span class="math">\begin{align*}
+H_t &= \HabitRte c_t + (1-\HabitRte) h_t \\
+\Longrightarrow c_t &= (H_t - (1-\HabitRte) h_t) / \HabitRte.
+\end{align*}</span></p>
+<p>As usual, the endogenous <span class="math notranslate nohighlight">\(m_t\)</span> gridpoint from which this consumption was chosen is found by inverting the intratemporal budget constraint:</p>
+<p><span class="math">\begin{align*}
+a_t &= m_t - c_t \\
+\Longrightarrow m_t &= a_t + c_t.
+\end{align*}</span></p>
+<p>Thus from any end-of-period state space point <span class="math notranslate nohighlight">\((a_t, H_t)\)</span>, we can recover the associated endogenous decision-time state space point <span class="math notranslate nohighlight">\((m_t,h_t)\)</span> and optimal consumption <span class="math notranslate nohighlight">\(c_t\)</span> by:</p>
+<ol class="arabic simple">
+<li><p>Evaluate marginal value of assets and post-consumption stock, <span class="math notranslate nohighlight">\(\mathfrak{v}_t^a(a_t,H_t)\)</span> and <span class="math notranslate nohighlight">\(\mathfrak{v}_t^H(a_t,H_t)\)</span>.</p></li>
+<li><p>Calculate “transformed marginal value” <span class="math notranslate nohighlight">\(\chi_t = (\mathfrak{v}_t^a(a_t,H_t) + \HabitRte \mathfrak{v}_t^H(a_t,H_t))^{-1/\CRRA}\)</span>.</p></li>
+<li><p>Find pre-consumption habit stock <span class="math notranslate nohighlight">\(h_t\)</span> using the pre-computed interpolant: <span class="math notranslate nohighlight">\(h_t = Q(H_t, \chi_t)\)</span>.</p></li>
+<li><p>Recover consumption <span class="math notranslate nohighlight">\(c_t\)</span> via the law of motion for habits: <span class="math notranslate nohighlight">\(c_t = (H_t - (1-\HabitRte) h_t) / \HabitRte\)</span>.</p></li>
+<li><p>Calculate market resources <span class="math notranslate nohighlight">\(m_t = a_t + c_t\)</span>.</p></li>
+</ol>
+</section>
+<section id="Representing-the-consumption-function">
+<h3>Representing the consumption function<a class="headerlink" href="#Representing-the-consumption-function" title="Link to this heading">#</a></h3>
+<p>If we start with an exogenous tensor grid (mesh) of <span class="math notranslate nohighlight">\(a_t\)</span> and <span class="math notranslate nohighlight">\(H_t\)</span> values, we can generate a set of <span class="math notranslate nohighlight">\((m_t, h_t)\)</span> gridpoints and associated optimal controls. However, it is not a regular mesh, because we solved a system of non-linear equations to generate it from the regular mesh. This raises the question of how we should construct an interpolant for the consumption function <em>between</em> these gridpoints.</p>
+<p>There are several possible methods for interpolating on an irregular array of 2D gridpoints, and HARK’s approach is the <code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp</span></code> class. See White (2015) for complete details, but the gist is that even though the <span class="math notranslate nohighlight">\((m_t, h_t)\)</span> gridpoints are <em>irregular</em>, they still have <em>structure</em>. In particular, <span class="math notranslate nohighlight">\((a_t, H_t)\)</span> gridpoints that are “adjacent” generate <span class="math notranslate nohighlight">\((m_t, h_t)\)</span> gridpoints that are also “adjacent”. Thus a rectangle of adjacent end-of-period state space points
+“translates back” to an irregular convex quadrilateral of decision-time state space points. The entire decision time state space <span class="math notranslate nohighlight">\((m_t, h_t)\)</span> is covered by a “sector map” of these irregular quadrilaterals whose vertices are the endogenous gridpoints recovered from the end-of-period regular mesh.</p>
+<p>Evaluating a <code class="docutils literal notranslate"><span class="pre">Curvilinear2DInterp</span></code> at some query point thus involves two steps. First, identifying the quadrilateral sector in which the query point uniquely resides; second, recovering the “horizontal” and “vertical” relative location of that point within the sector (interpolation weights for the four vertices). The sectoral search is conducted by a straightforward visibility walk, but this approach will be improved in the near future. White (2015) shows how the irregular quadrilateral sector
+can be continuously mapped to the unit square, and the relative coordinates of any interior point calculated in closed form.</p>
+<p>Note that the method described here constructs the <em>unconstrained</em> consumption function, as long as the end-of-period state mesh goes down to the lowest allowable <span class="math notranslate nohighlight">\(a_t\)</span> value. The <em>overall</em> consumption function is the lower envelope of the unconstrained consumption and the liquidity constrained consumption function <span class="math notranslate nohighlight">\(c_t = m_t - \underline{a}\)</span>. As usual, this is represented in HARK with the <code class="docutils literal notranslate"><span class="pre">LowerEnvelope2D</span></code> interpolator.</p>
+</section>
+<section id="Envelope-conditions-and-marginal-value">
+<h3>Envelope conditions and marginal value<a class="headerlink" href="#Envelope-conditions-and-marginal-value" title="Link to this heading">#</a></h3>
+<p>Above, we said that the first step in solving for optimal consumption from some end-of-period state space point is to evaluate the marginal value of retained assets <span class="math notranslate nohighlight">\(\mathfrak{v}_t^a(a_t,H_t)\)</span> and the marginal value of post-consumption habit stock <span class="math notranslate nohighlight">\(\mathfrak{v}_t^H(a_t,H_t)\)</span>. Those expressions are (discounted) expectations of realizations of <em>next</em> period’s marginal value. Thus to “complete the circle” we must derive expressions for marginal value of market resources <span class="math notranslate nohighlight">\(m_t\)</span> and
+pre-consumption habit stock <span class="math notranslate nohighlight">\(h_t\)</span>.</p>
+<p>To do that, let’s consider the so-called envelope conditions of this model. Recall from above that the problem can be written in “EGM Bellman” form as:</p>
+<p><span class="math">\begin{align*}
+\text{v}_t(m_t,h_t) &= \max_{c_t} u(c_t,h_t) + \mathfrak{v}_t(a_t,H_t) \\
+& \text{s.t.}  \\
+a_t &= m_t - c_t, \\
+H_t &= \HabitRte c_t + (1-\HabitRte) h_t, \\
+a_t &\geq \underline{a}.
+\end{align*}</span></p>
+<p>The principle of the envelope condition is that when our controls are chosen optimally (and no constraint is binding), then when considering the marginal value of a decision-time state variable, we can <em>ignore</em> how the control variable would change with a marginal change in the state variable. That is, computing the partial derivative of the value function with respect to a state variable “naively” actually results in the correct answer. It’s a graduate student’s dream.</p>
+<p>First, let’s consider a marginal change in market resources <span class="math notranslate nohighlight">\(m_t\)</span>. If we ignore any resulting change in consumption <span class="math notranslate nohighlight">\(c_t\)</span>, then a marginal increase in <span class="math notranslate nohighlight">\(m_t\)</span> translates directly to an equal marginal increase in retained assets <span class="math notranslate nohighlight">\(a_t\)</span>, and thus we find that <span class="math notranslate nohighlight">\(\text{v}_t^m(m_t,h_t) = \mathfrak{v}_t(a_t,H_t)\)</span> when unconstrained.</p>
+<p>That’s adequate, but we can actually do better. Recall that the first order condition for optimal consumption was:</p>
+<p><span class="math">\begin{equation*}
+u^c(c_t,h_t) - \mathfrak{v}_t^a(a_t,H_t) + \HabitRte \mathfrak{v}_t^H(a_t,H_t) = 0.
+\end{equation*}</span></p>
+<p>We can rearrange this equation to isolate the marginal value of end-of-period assets on the LHS, and then substitute it into the envelope condition:</p>
+<p><span class="math">\begin{align*}
+\mathfrak{v}_t^a(a_t,H_t) &= u^c(c_t,h_t) + \HabitRte \mathfrak{v}_t^H(a_t,H_t) \\
+\Longrightarrow \text{v}_t^m(m_t,h_t) &= u^c(c_t,h_t) + \HabitRte \mathfrak{v}_t^H(a_t,H_t).
+\end{align*}</span></p>
+<p>Thus we find that the marginal value of market resources <span class="math notranslate nohighlight">\(m_t\)</span> equals the marginal utility of <em>consuming</em> that extra bit of resources plus the marginal value of the end-of-period habit stock times the “habit rate” parameter (the rate at which the post-consumption habit stock changes with a change in <span class="math notranslate nohighlight">\(c_t\)</span>).</p>
+<p>Interestingly, this expression is what we would intuitively expect the marginal value of market resources to be when the consumer <em>is</em> liquidity constrained. That is, suppose <span class="math notranslate nohighlight">\((m_t,h_t)\)</span> is in a region of the decision-time state space in which the agent optimally consumes down to their borrowing constraint, <span class="math notranslate nohighlight">\(c_t = m_t - \underline{a}\)</span>. If this consumer got a tiny bit more market resources, they would consume <em>all</em> of that extra bit (because they are on the constrained portion of
+their consumption function), yielding the marginal utility of consumption at their current <span class="math notranslate nohighlight">\((c_t, h_t)\)</span>. But by consuming that bit more <span class="math notranslate nohighlight">\(c_t\)</span>, they would also marginally <em>increase</em> their post-consumption habit stock <span class="math notranslate nohighlight">\(H_t\)</span> at the rate <span class="math notranslate nohighlight">\(\HabitRte\)</span> (because of the law of motion for the habit stock). This yields the marginal value of the post-consumption habit stock, scaled by the habit rate. And of course their end-of-period assets are completely unchanged, because they’re
+pinned at the constraint <span class="math notranslate nohighlight">\(a_t = \underline{a}\)</span>.</p>
+<p>This expression for the marginal value of market resources thus applies <em>whether or not</em> the consumer is liquidity constrained at <span class="math notranslate nohighlight">\((m_t,h_t)\)</span>– it’s true everywhere!</p>
+<p>What about the marginal value of the decision-time habit stock <span class="math notranslate nohighlight">\(h_t\)</span>? We can do a similar thought exercise. Suppose the agent is at <span class="math notranslate nohighlight">\((m_t,h_t)\)</span> and (somehow) has their habit stock marginally increased; what happens? The envelope principle says we can ignore the indirect effect through changes in the control <span class="math notranslate nohighlight">\(c_t\)</span>. But recall that <span class="math notranslate nohighlight">\(h_t\)</span> itself enters the utility function this period:</p>
+<p><span class="math">\begin{equation*}
+\text{v}_t(m_t,h_t) = \max_{c_t} u(c_t,h_t) + \mathfrak{v}_t(a_t,H_t).
+\end{equation*}</span></p>
+<p>So when <span class="math notranslate nohighlight">\(h_t\)</span> marginally changes, we can treat <span class="math notranslate nohighlight">\(c_t\)</span> as if it’s unchanged, but we <em>do</em> have to account for the direct effect through the marginal utility of the habit stock. Moreover, if decision-time <span class="math notranslate nohighlight">\(h_t\)</span> is marginally increased, then this will affect the post-consumption habit stock <span class="math notranslate nohighlight">\(H_t\)</span> at rate <span class="math notranslate nohighlight">\((1-\HabitRte)\)</span>. Accounting for the marginal value of post-consumption habit stock, the marginal value of <span class="math notranslate nohighlight">\(h_t\)</span> is thus:</p>
+<p><span class="math">\begin{equation*}
+\text{v}_t^h(m_t,h_t) = u^h(c_t,h_t) + (1-\HabitRte) \mathfrak{v}_t^H(a_t,H_t).
+\end{equation*}</span></p>
+<p>Note the interesting symmetry between the marginal value of market resources versus the habit stock. They are each the sum of a marginal utility term (for different utility inputs) and a marginal value of end-of-period habit stock term (with complementary linear weights).</p>
+<p>This expression for the marginal value of the habit stock can be “chained together” or “unpacked” in period <span class="math notranslate nohighlight">\(t+1\)</span>, and then period <span class="math notranslate nohighlight">\(t+2\)</span>, etc. This procedure reveals the intuitive result that the agent’s marginal valuation of their habit stock is the expected present discount value of the marginal utility of their habit stock from now until the end of time.</p>
+</section>
+<section id="Representing-the-marginal-value-functions">
+<h3>Representing the marginal value functions<a class="headerlink" href="#Representing-the-marginal-value-functions" title="Link to this heading">#</a></h3>
+<p>Usually, the arguments of a utility function are “goods” that the agent wants more of. However, the habit stock is actually a “bad”: having a higher habit stock <em>reduces</em> the utility of consumption for any value of <span class="math notranslate nohighlight">\(c_t\)</span>. Thus the marginal utility of the habit stock is <em>negative</em> everywhere; you can verify this by taking the derivative of <span class="math notranslate nohighlight">\(u(c,h)\)</span> with respect to <span class="math notranslate nohighlight">\(h\)</span> and evaluating its sign. Because the marginal value of the habit stock is the present discounted sum of negative
+values, it is also strictly negative.</p>
+<p>HARK usually represents (marginal) value functions by “decurving” them, interpolating the transformed function, and then evaluating the composition of the inverse “recurving” function and the interpolant. What are the appropriate transformations here?</p>
+<p>The marginal value of market resources involves the marginal utility of consumption (plus another term), so let’s consider:</p>
+<p><span class="math">\begin{align*}
+u(c,h) &= \frac{(c/h^\HabitWgt)^{1-\CRRA}}{1-\CRRA} \\
+\Longrightarrow u^c(c,h) &= h^{-\HabitRte(1-\CRRA)} c^{-\CRRA}.
+\end{align*}</span></p>
+<p>The marginal utility of consumption for these preferences involves the standard <span class="math notranslate nohighlight">\(c^{-\CRRA}\)</span>, so let’s hypothesize that marginal value of market resources can be “decurved” through the inverse marginal utility function, like in other HARK models. You might be concerned that the second term of the marginal value expression (involving the marginal value of end-of-period habit stock), which is negative, could potentially overwhelm the (positive) marginal utility of consumption term, pulling
+the whole expression negative. This would be problematic if we plan to raise marginal value to a <em>negative fractional</em> power– we would end up with complex values!</p>
+<p>However, it is <em>not</em> possible for the marginal value of market resources to <em>ever</em> be negative, or even zero, and we don’t need to do any fancy math to prove this. The marginal value of market resources equals the expected present discounted sum of marginal utilities from the <em>best</em> allocation of those marginal resources. The <em>best</em> allocation of marginal resources across time must be (by definition of the maximum) at least as good as <em>any</em> feasible allocation of those marginal resources across
+time. One possible allocation of marginal market resources is to simply hold them <em>as long as possible</em> and then consume them in the terminal period <span class="math notranslate nohighlight">\(T\)</span>. If there is no future, the marginal value of post-consumption habit stock is <em>zero</em>, but the marginal utility of consumption is strictly positive. Thus the <em>optimal</em> usage of marginal resources must be strictly positive as long as there is a terminal period <span class="math notranslate nohighlight">\(T\)</span>.</p>
+<p>Even more simply, a consumer can never be made <em>worse off</em> by being given a bit more market resources because they <em>could</em> choose to not change <em>any</em> current or future consumption levels. This would yield zero marginal change in their total utility, so the marginal value of market resources must be <em>at least as great</em> as the “don’t change anything” response plan.</p>
+<p>Turning to representing the marginal value function for the habit stock, recall that we found it to be the present discounted sum of marginal utilities of the habit stock, which is always negative. Particularly:</p>
+<p><span class="math">\begin{equation*}
+u^h(c,h) = -\HabitWgt c^{1-\CRRA} h^{-\HabitWgt (1-\CRRA) - 1}.
+\end{equation*}</span></p>
+<p>This function scales with <span class="math notranslate nohighlight">\(c^{1-\CRRA}\)</span>, which is <em>like</em> the utility function. As long as <span class="math notranslate nohighlight">\(\CRRA &gt; 1\)</span>, the inverse utility function expects negative values to be passed to it. Hence we can use <span class="math notranslate nohighlight">\(u^{-1}(\cdot)\)</span> as the “decurving” transformation for the marginal utility of the habit stock, and “recurve” through <span class="math notranslate nohighlight">\(u(\cdot)\)</span>.</p>
+</section>
+</section>
+<section id="Example-parameters-for-a-HabitConsumerType">
+<h2>Example parameters for a <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code><a class="headerlink" href="#Example-parameters-for-a-HabitConsumerType" title="Link to this heading">#</a></h2>
+<p>The parameters for a <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code> are very similar to those for an <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> . The table below provides the defaults for this <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> :</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Example value</p></th>
+<th class="head"><p>Time-varying?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\DiscFac\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.96\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\CRRA\)</span></p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\HabitWgt\)</span></p></td>
+<td><p>Weight on habit stock in utility function</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HabitWgt</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.5\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\HabitRte\)</span></p></td>
+<td><p>Rate of habit stock updating with new consumption</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HabitRte</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.2\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Rfree_t\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.03]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\LivPrb_t\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.98]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\PermGroFac_{t+1}\)</span></p></td>
+<td><p>Permanent income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.01]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\psi\)</span></p></td>
+<td><p>Standard deviation of log permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.1]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(N_\psi\)</span></p></td>
+<td><p>Number of discrete permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(7\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\theta\)</span></p></td>
+<td><p>Standard deviation of log transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.1]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(N_\theta\)</span></p></td>
+<td><p>Number of discrete transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(7\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mho\)</span></p></td>
+<td><p>Probability of being unemployed and getting <span class="math notranslate nohighlight">\(\theta=\underline{\theta}\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.05\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{\theta}\)</span></p></td>
+<td><p>Transitory shock when unemployed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncUnemp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.3\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mho^{Ret}\)</span></p></td>
+<td><p>Probability of being “unemployed” when retired</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrbRet</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0005\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{\theta}^{Ret}\)</span></p></td>
+<td><p>Transitory shock when “unemployed” and retired</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncUnempRet</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Period of the lifecycle model when retirement begins</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_retire</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Minimum value in assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraMin</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.001\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Maximum value in assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraMax</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(20.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Number of points in base assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(48\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Exponential nesting factor for base assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraNestFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(3\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Additional values to add to assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraExtra</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(None\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Minimum value in habit stock grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HabitMin</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.2\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Maximum value in habit stock grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HabitMax</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(5.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Number of points in habit stock grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HabitCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(51\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Exponential order of habit stock grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">HabitOrder</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.5\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Maximum value in transformed marginal value grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ChiMax</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(50.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Number of points in transformed marginal value grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ChiCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(251\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Exponential order of transformed marginal value grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ChiOrder</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.5\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint (normalized)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BoroCnstArt</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The new parameters <code class="docutils literal notranslate"><span class="pre">HabitMin</span></code> , <code class="docutils literal notranslate"><span class="pre">HabitMax</span></code> , <code class="docutils literal notranslate"><span class="pre">HabitOrder</span></code> , and <code class="docutils literal notranslate"><span class="pre">HabitCount</span></code> are used both when constructing the FOC-interver function <span class="math notranslate nohighlight">\(Q(H,\chi)\)</span> and for the grid of end-of-period habit stock <span class="math notranslate nohighlight">\(H_t\)</span> when solving the model. Likewise, the parameters <code class="docutils literal notranslate"><span class="pre">ChiMax</span></code> , <code class="docutils literal notranslate"><span class="pre">ChiOrder</span></code> , and <code class="docutils literal notranslate"><span class="pre">ChiCount</span></code> are used when constructing <span class="math notranslate nohighlight">\(Q(H,\chi)\)</span>, which is represented by an instance of the class <code class="docutils literal notranslate"><span class="pre">HabitFormationInverter</span></code> .</p>
+<p>In addition, the distribution of the habit stock at “model birth” is specified as a (discretized) lognormal distribution by default. Its parameters can be set with <code class="docutils literal notranslate"><span class="pre">hLogInitMean</span></code> , <code class="docutils literal notranslate"><span class="pre">hLogInitStd</span></code> , and <code class="docutils literal notranslate"><span class="pre">HabitInitCount</span></code> .</p>
+<p><strong>NB:</strong> Unlike most models in HARK, a <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code> ‘s parameters are <em>not</em> “offset in time”. That is, the income shock distribution at <code class="docutils literal notranslate"><span class="pre">IncShkDstn[t]</span></code> represents the <span class="math notranslate nohighlight">\(F_t\)</span> that occurs at the <em>beginning</em> of period <span class="math notranslate nohighlight">\(t\)</span>, not the distribution of income shocks at <span class="math notranslate nohighlight">\(F_{t+1}\)</span> like in most HARK models. The marginal value functions stored in the model solution dictionaries represent the marginal value of <em>beginning-of-period</em> states; this is the same as end-of-period marginal
+value for the <em>prior</em> period, except that the discount factor and survival probability have <em>not</em> been applied to them.</p>
+</section>
+<section id="Habit-Formation-in-a-Life-Cycle-Model">
+<h2>Habit Formation in a Life-Cycle Model<a class="headerlink" href="#Habit-Formation-in-a-Life-Cycle-Model" title="Link to this heading">#</a></h2>
+<p>To get a sense of how habit formation affects consumption dynamics, let’s look at a fairly standard life-cycle model and compare outcomes under <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> to those of <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code> (with otherwise identical parameters). We’ll use HARK’s off-the-shelf life-cycle calibration.</p>
+<p>For habit formation parameters, we’ll use the defaults of <span class="math notranslate nohighlight">\(\HabitWgt = 0.5\)</span> and <span class="math notranslate nohighlight">\(\HabitRte = 0.2\)</span>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define a life-cycle calibration using HARK tools</span>
+<span class="n">birth_age</span> <span class="o">=</span> <span class="mi">22</span>
+<span class="n">death_age</span> <span class="o">=</span> <span class="mi">110</span>
+<span class="n">adjust_infl_to</span> <span class="o">=</span> <span class="mi">1992</span>
+<span class="n">income_calib</span> <span class="o">=</span> <span class="n">Cagetti_income</span><span class="p">[</span><span class="s2">&quot;College&quot;</span><span class="p">]</span>
+<span class="n">income_calib</span><span class="p">[</span><span class="s2">&quot;PermShkStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">income_calib</span><span class="p">[</span><span class="s2">&quot;TranShkStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+<span class="c1"># Income specification</span>
+<span class="n">income_params</span> <span class="o">=</span> <span class="n">parse_income_spec</span><span class="p">(</span>
+    <span class="n">age_min</span><span class="o">=</span><span class="n">birth_age</span><span class="p">,</span>
+    <span class="n">age_max</span><span class="o">=</span><span class="n">death_age</span><span class="p">,</span>
+    <span class="n">adjust_infl_to</span><span class="o">=</span><span class="n">adjust_infl_to</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">income_calib</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Survival and time specification</span>
+<span class="n">liv_prb</span> <span class="o">=</span> <span class="n">parse_ssa_life_table</span><span class="p">(</span>
+    <span class="n">female</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cross_sec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">year</span><span class="o">=</span><span class="mi">2004</span><span class="p">,</span> <span class="n">age_min</span><span class="o">=</span><span class="n">birth_age</span><span class="p">,</span> <span class="n">age_max</span><span class="o">=</span><span class="n">death_age</span>
+<span class="p">)</span>
+<span class="n">time_params</span> <span class="o">=</span> <span class="n">parse_time_params</span><span class="p">(</span><span class="n">age_birth</span><span class="o">=</span><span class="n">birth_age</span><span class="p">,</span> <span class="n">age_death</span><span class="o">=</span><span class="n">death_age</span><span class="p">)</span>
+
+<span class="c1"># Put it all together into a dictionary</span>
+<span class="n">lifecycle_dict</span> <span class="o">=</span> <span class="n">income_params</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;LivPrb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">liv_prb</span>
+<span class="n">lifecycle_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">time_params</span><span class="p">)</span>
+<span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;Rfree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;T_cycle&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">]</span>
+<span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;T_sim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">73</span>
+
+<span class="c1"># Make a very slightly different dictionary for the habit formation type because of a difference in model timing</span>
+<span class="n">habit_LC_dict</span> <span class="o">=</span> <span class="n">lifecycle_dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">habit_LC_dict</span><span class="p">[</span><span class="s2">&quot;LivPrb&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<span class="n">habit_LC_dict</span><span class="p">[</span><span class="s2">&quot;Rfree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.03</span><span class="p">]</span> <span class="o">+</span> <span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;Rfree&quot;</span><span class="p">]</span>
+<span class="n">habit_LC_dict</span><span class="p">[</span><span class="s2">&quot;PermGroFac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">+</span> <span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;PermGroFac&quot;</span><span class="p">]</span>
+<span class="n">habit_LC_dict</span><span class="p">[</span><span class="s2">&quot;PermShkStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">]</span> <span class="o">+</span> <span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;PermShkStd&quot;</span><span class="p">]</span>
+<span class="n">habit_LC_dict</span><span class="p">[</span><span class="s2">&quot;TranShkStd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">]</span> <span class="o">+</span> <span class="n">lifecycle_dict</span><span class="p">[</span><span class="s2">&quot;TranShkStd&quot;</span><span class="p">]</span>
+<span class="n">habit_LC_dict</span><span class="p">[</span><span class="s2">&quot;T_cycle&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a life-cycle IndShockConsumerType with a standard calibration</span>
+<span class="n">BaseType</span> <span class="o">=</span> <span class="n">IndShockConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">lifecycle_dict</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving the baseline idiosyncratic shocks consumer&#39;s life-cycle problem took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving the baseline idiosyncratic shocks consumer&#39;s life-cycle problem took 0.0540 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a default habit formation type with 2 periods and solve it; this is just to compile a numba function</span>
+<span class="n">temp</span> <span class="o">=</span> <span class="n">HabitConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">temp</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a life-cycle HabitConsumerType with a standard calibration</span>
+<span class="n">habit_dict</span> <span class="o">=</span> <span class="n">init_lifecycle</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">HabitType</span> <span class="o">=</span> <span class="n">HabitConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">habit_LC_dict</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving the habit-formation consumer&#39;s life-cycle problem took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving the habit-formation consumer&#39;s life-cycle problem took 8.6750 seconds.
+</pre></div></div>
+</div>
+<p>Solving the habit-formation model takes significantly longer than the baseline model for (at least) two reasons. First, the state space has an extra dimension, the habit stock <span class="math notranslate nohighlight">\(h_t\)</span>, which greatly expands the number of gridpoints at which the model must be solved. Second, the interpolation method used to represent the consumption function is significantly slower to evaluate (during the numeric integral step) because it involves an irregular array of 2D state space points.</p>
+<p>Let’s plot the consumption function in the first period of each model to get a sense of what the solution looks like.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function in the first period of the model for the baseline consumer</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="n">BaseType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Consumption $c_t$&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsHabitModel_HabitConsumerType_35_0.png" src="../../_images/examples_ConsHabitModel_HabitConsumerType_35_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function in the first period of the model for consumers with habits</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">plot_func_slices</span><span class="p">(</span>
+    <span class="n">HabitType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">Z</span><span class="o">=</span><span class="n">HabitType</span><span class="o">.</span><span class="n">HabitGrid</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Consumption $c_t$&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsHabitModel_HabitConsumerType_36_0.png" src="../../_images/examples_ConsHabitModel_HabitConsumerType_36_0.png" />
+</div>
+</div>
+<p>The consumption function for the baseline type is a 1D function that maps the market resources to permanent income ratio <span class="math notranslate nohighlight">\(m_t\)</span> to the consumption to permanent income ratio <span class="math notranslate nohighlight">\(c_t\)</span>. For the habit-formation consumers, however, the consumption function depends on both <span class="math notranslate nohighlight">\(m_t\)</span> and <span class="math notranslate nohighlight">\(h_t\)</span>, so we plot it at a variety of <span class="math notranslate nohighlight">\(h_t\)</span> “slices”. The lower curves represent the consumption function when the habit stock is low (compared to permanent income), so the consumer doesn’t want to
+raise their consumption too quickly. The upper curves represent the consumption function when the habit stock is high (compared to permanent income), so the agent feels compelled to consume more due to their prior habits.</p>
+<p>Let’s see how the two models play out over the life-cycle in terms of saving behavior. We’ll simulate each model from age 22 to age 95 and plot mean wealth holdings.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up and simulate the baseline agents</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">(</span><span class="n">stop_dead</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">symulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulating the baseline consumers took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the baseline consumers took 0.6053 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up and simulate the habit-formation agents</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">(</span><span class="n">stop_dead</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">symulate</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulating the habit-formation consumers took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the habit-formation consumers took 1.3213 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Extract the history of assets from both consumer types, rescale by permanent income, and average across agents</span>
+<span class="n">aLvl_base</span> <span class="o">=</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">aLvl_habit</span> <span class="o">=</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">A_base</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">aLvl_base</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">A_habit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">aLvl_habit</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Plot the two types&#39; average wealth profile</span>
+<span class="n">age_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">95</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">A_base</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">A_habit</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;Baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;Habits&quot;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average wealth, 1000&#39;s USD&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsHabitModel_HabitConsumerType_41_0.png" src="../../_images/examples_ConsHabitModel_HabitConsumerType_41_0.png" />
+</div>
+</div>
+<p>Hey, those are pretty similar wealth profiles! Yes, the <em>overall</em> life-cycle profile of wealth is very similar between the two models. The habit-formation consumer accumulates a bit more wealth than the baseline consumer for two reasons:</p>
+<ol class="arabic simple">
+<li><p>Consumers with habits anticipate that in old age, they will be unhappy if they have to decrease their consumption too quickly as they run out of assets. To plan ahead for this, they accumulate a bit more wealth throughout their working life in order to finance a slower decline in consumption later in life.</p></li>
+<li><p>Very early in life, consumers <em>enter</em> the model with a consumption habit less than their permanent income. With the default parameters, initial <span class="math notranslate nohighlight">\(h_t\)</span> averages about <span class="math notranslate nohighlight">\(0.6\)</span>– maybe the agents were used to being poor college students before the model began. Thus their initial consumption levels will be <em>lower</em> than the baseline model, and consequently they accumulate more wealth early in their lifecycle.</p></li>
+</ol>
+<p>We can see those effects more clearly if we plot life-cycle <em>consumption</em> profiles.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Extract the history of consumption from both consumer types, rescale by permanent income, and average across agents</span>
+<span class="n">cLvl_base</span> <span class="o">=</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">cLvl_habit</span> <span class="o">=</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">C_base</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cLvl_base</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C_habit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cLvl_habit</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Plot the two types&#39; average consumption profile</span>
+<span class="n">age_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">95</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">C_base</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">C_habit</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;Baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;Habits&quot;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average consumption, 1000&#39;s USD&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsHabitModel_HabitConsumerType_43_0.png" src="../../_images/examples_ConsHabitModel_HabitConsumerType_43_0.png" />
+</div>
+</div>
+<p>The two models’ predictions of behavior more starkly diverge when something <em>unexpected</em> happens. Let’s run the same exercise again, but this time with a tragic event at age 67: shortly after retirement, everyone’s savings are suddenly and unexpectedly <em>halved</em>.</p>
+<p>The baseline consumers will immediately adjust to this turn of events by sharply decreasing their consumption. Consumers with strong habits, however, do not want to adjust so quickly; the sudden drop will be smaller, and then they will <em>gradually</em> reduce their consumption toward the lower sustainable level. This will cause their wealth to be drawn down faster than the baseline types, and eventually result in <em>lower</em> consumption in old age.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up and simulate the baseline agents with a tragic loss of wealth</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">(</span><span class="n">stop_dead</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">symulate</span><span class="p">(</span><span class="mi">45</span><span class="p">)</span>  <span class="c1"># simulate up to age 67</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">0.5</span>  <span class="c1"># the horror, the horror!</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">symulate</span><span class="p">()</span>  <span class="c1"># simulate remaining periods</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Simulating the tragic baseline consumers took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the tragic baseline consumers took 0.6221 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set up and simulate the habit-formation agents with a tragic loss of wealth</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">initialize_sym</span><span class="p">(</span><span class="n">stop_dead</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">symulate</span><span class="p">(</span><span class="mi">45</span><span class="p">)</span>  <span class="c1"># simulate up to age 67</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">_simulator</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">0.5</span>  <span class="c1"># the horror, the horror!</span>
+<span class="n">HabitType</span><span class="o">.</span><span class="n">symulate</span><span class="p">()</span>  <span class="c1"># simulate remaining periods</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Simulating the tragic habit-formation consumers took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Simulating the tragic habit-formation consumers took 1.3675 seconds.
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Extract the history of assets from both consumer types, rescale by permanent income, and average across agents</span>
+<span class="n">aLvl_base_alt</span> <span class="o">=</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">aLvl_habit_alt</span> <span class="o">=</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;aNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">A_base_alt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">aLvl_base_alt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">A_habit_alt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">aLvl_habit_alt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Extract the history of consumption from both consumer types, rescale by permanent income, and average across agents</span>
+<span class="n">cLvl_base_alt</span> <span class="o">=</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">BaseType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">cLvl_habit_alt</span> <span class="o">=</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;cNrm&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">HabitType</span><span class="o">.</span><span class="n">hystory</span><span class="p">[</span><span class="s2">&quot;pLvl&quot;</span><span class="p">]</span>
+<span class="n">C_base_alt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cLvl_base_alt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">C_habit_alt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cLvl_habit_alt</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the two types&#39; average wealth profile under the tragic scenario</span>
+<span class="n">age_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">95</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">A_base_alt</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">A_habit_alt</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;Baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;Habits&quot;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average wealth (tragic), 1000&#39;s USD&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsHabitModel_HabitConsumerType_48_0.png" src="../../_images/examples_ConsHabitModel_HabitConsumerType_48_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the two types&#39; average consumption profile under the tragic scenario</span>
+<span class="n">age_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">22</span><span class="p">,</span> <span class="mi">95</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">C_base_alt</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">age_vec</span><span class="p">,</span> <span class="n">C_habit_alt</span><span class="p">,</span> <span class="s2">&quot;-r&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="s2">&quot;Baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;Habits&quot;</span><span class="p">],</span> <span class="n">loc</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Age&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average consumption (tragic), 1000&#39;s USD&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsHabitModel_HabitConsumerType_49_0.png" src="../../_images/examples_ConsHabitModel_HabitConsumerType_49_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Wealth-in-Utility Additively with Consumption</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsPortfolioModel/RiskyAssetConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Assets with Risky Returns: Portfolio Choice</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Statement-of-Habit-Formation-Model">Statement of Habit-Formation Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Habit-Formation-Model">Solving the Habit-Formation Model</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#End-of-period-(marginal)-value">End-of-period (marginal) value</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#First-order-condition-for-optimal-consumption">First order condition for optimal consumption</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-FOC-for-optimal-consumption-and-the-endogenous-gridpoints">Solving the FOC for optimal consumption and the endogenous gridpoints</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Representing-the-consumption-function">Representing the consumption function</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Envelope-conditions-and-marginal-value">Envelope conditions and marginal value</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Representing-the-marginal-value-functions">Representing the marginal value functions</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-parameters-for-a-HabitConsumerType">Example parameters for a <code class="docutils literal notranslate"><span class="pre">HabitConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Habit-Formation-in-a-Life-Cycle-Model">Habit Formation in a Life-Cycle Model</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

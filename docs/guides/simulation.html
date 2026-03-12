@@ -1,0 +1,766 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>New Simulation System and Model Specification Files for HARK &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/guides/simulation';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/guides/simulation.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Krusell-Smith Model in HARK" href="krusell_smith.html" />
+    <link rel="prev" title="HARK installation guide" href="installation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Usage</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">HARK installation guide</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">New Simulation System and Model Specification Files for HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="krusell_smith.html">Krusell-Smith Model in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_case_study.html">Case Study: HAFiscal Migration from HARK 0.14.1 to 0.17.0</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to Econ-ARK</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Guides</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">New Simulation System and Model Specification Files for HARK</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="new-simulation-system-and-model-specification-files-for-hark">
+<h1>New Simulation System and Model Specification Files for HARK<a class="headerlink" href="#new-simulation-system-and-model-specification-files-for-hark" title="Link to this heading">#</a></h1>
+<p>This document explains the formatting and usage of model files in <code class="docutils literal notranslate"><span class="pre">HARK</span></code>, which can be used to greatly simplify simulation code and to quickly and easily convey the mathematical content of a model. It begins with instructions for how to <strong>use</strong> the new simulation system, then proceeds to a specification of the model file format (for adding new models). I then explain how to attach the model file to an existing <code class="docutils literal notranslate"><span class="pre">HARK</span></code> model.</p>
+<section id="basic-simulator-usage">
+<h2>Basic Simulator Usage<a class="headerlink" href="#basic-simulator-usage" title="Link to this heading">#</a></h2>
+<p>If you want to simulate an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance that already has its model attached, the new system’s syntax and usage is nearly identical to the current/legacy <code class="docutils literal notranslate"><span class="pre">simulate</span></code> system.</p>
+<section id="simulation-attributes">
+<h3>Simulation Attributes<a class="headerlink" href="#simulation-attributes" title="Link to this heading">#</a></h3>
+<p>First, your <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> should have the following attributes defined:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AgentCount</span></code>: the number of agents to be simulated, as an integer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_sim</span></code>: the total number of periods you want to simulate, as an integer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">track_vars</span></code>: a list of strings naming the idiosyncratic variables that should be tracked/stored in the simulated history</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_age</span></code>: (optional) the maximum number of periods an agent is allowed to survive, overriding the model’s mortality process</p></li>
+</ul>
+<p>In most contexts, you can ignore <code class="docutils literal notranslate"><span class="pre">T_age</span></code> completely. It is only relevant for infinite horizon models where you are concerned that a single simulated agent that (randomly) survives for a very long time could end up with arbitrarily high permanent income and hold a disproportionate share of total wealth (compared to the atomistic size they’re supposed to represent).</p>
+</section>
+<section id="initializing-and-running-a-simulation">
+<h3>Initializing and Running a Simulation<a class="headerlink" href="#initializing-and-running-a-simulation" title="Link to this heading">#</a></h3>
+<p>In the current/legacy simulation system, you would do <code class="docutils literal notranslate"><span class="pre">MyType.initialize_sim()</span></code> to get the simulator ready, by clearing any prior history and allocating empty arrays. In the new system, the method call is <code class="docutils literal notranslate"><span class="pre">MyType.initialize_sym()</span></code> (note the vowel change); this is to allow the two simulation systems to co-exist redundantly for testing. After <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code> is run, you can do <code class="docutils literal notranslate"><span class="pre">MyType._simulator.describe()</span></code> to get a printed overview of the model.</p>
+<p>In most contexts, you want to simply run all <code class="docutils literal notranslate"><span class="pre">T_sim</span></code> simulation periods. In the current/legacy system, this is done by running <code class="docutils literal notranslate"><span class="pre">MyType.simulate()</span></code>; analogously, the command in the new system is <code class="docutils literal notranslate"><span class="pre">MyType.symulate()</span></code>. These commands will populate the <code class="docutils literal notranslate"><span class="pre">history</span></code> and <code class="docutils literal notranslate"><span class="pre">hystory</span></code> attributes of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance respectively. These are dictionaries whose keys are the variables named in <code class="docutils literal notranslate"><span class="pre">track_vars</span></code> and whose entries are shape <code class="docutils literal notranslate"><span class="pre">(T_sim,</span> <span class="pre">AgentCount)</span></code> arrays of simulated values. E.g. <code class="docutils literal notranslate"><span class="pre">MyType.hystory[&quot;cNrm&quot;][5,</span> <span class="pre">263]</span></code> represents the normalized consumption of agent <code class="docutils literal notranslate"><span class="pre">i=263</span></code> in period <code class="docutils literal notranslate"><span class="pre">t=5</span></code> of the simulation.</p>
+<p>If you instead only want to run <em>some</em> simulation periods right now (say, because you are going to exogenously change the simulation state, then run the remaining periods), this can be done by passing an integer argument to the <code class="docutils literal notranslate"><span class="pre">simulate</span></code> or <code class="docutils literal notranslate"><span class="pre">symulate</span></code> methods, e.g. <code class="docutils literal notranslate"><span class="pre">MyType.symulate(50)</span></code>. Omitting the number of periods to simulate will default to running <em>all remaining</em> periods (all <code class="docutils literal notranslate"><span class="pre">T_sim</span></code> periods if none have been run yet).</p>
+<p>To restart a simulation, the user can call <code class="docutils literal notranslate"><span class="pre">MyType._simulator.reset()</span></code>. This will return the simulator to its initial state, with no history nor simulated periods. All random variables will be automatically reset as well, so that they will generate the same sequence of draws on subsequent runs. If data on the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance changes (e.g., there is a new consumption function, or parameter values have changed), then <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code> should be called instead, ensuring that the correct objects are used.</p>
+</section>
+<section id="examining-simulation-output">
+<h3>Examining Simulation Output<a class="headerlink" href="#examining-simulation-output" title="Link to this heading">#</a></h3>
+<p>In both the current/legacy system and the new system, the <code class="docutils literal notranslate"><span class="pre">history</span></code> and <code class="docutils literal notranslate"><span class="pre">hystory</span></code> attributes are dictionaries with keys named in <code class="docutils literal notranslate"><span class="pre">track_vars</span></code>. The entries are <code class="docutils literal notranslate"><span class="pre">numpy.array</span></code>s of shape <code class="docutils literal notranslate"><span class="pre">(T_sim,</span> <span class="pre">AgentCount)</span></code>; in the new simulation system (but not the current/legacy one), the datatype of each array will be appropriate to that variable– tracked variables default to <code class="docutils literal notranslate"><span class="pre">float</span></code> but could be <code class="docutils literal notranslate"><span class="pre">bool</span></code> or <code class="docutils literal notranslate"><span class="pre">int</span></code>.</p>
+<p>Ignoring any weighting scheme you might want to apply, the history arrays can be manipulated like any other arrays. E.g., the time series of the mean of normalized assets is <code class="docutils literal notranslate"><span class="pre">np.mean(MyType.hystory[&quot;aNrm&quot;],</span> <span class="pre">axis=1)</span></code>. Note that with <code class="docutils literal notranslate"><span class="pre">replace_dead=False</span></code> (see below), some elements of the history arrays will be empty and might have <code class="docutils literal notranslate"><span class="pre">NaN</span></code> or point to uninitialized memory; be careful when aggregating or otherwise processing such data.</p>
+</section>
+<section id="special-variables">
+<h3>Special Variables<a class="headerlink" href="#special-variables" title="Link to this heading">#</a></h3>
+<p>A few variable names have special meaning internal to <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s simulation system and thus should not be used in model files (except <code class="docutils literal notranslate"><span class="pre">dead</span></code>). These variables can be tracked/recorded as normal, which is sometimes useful for processing other simulated histories.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">t_age</span></code> (int): The number of periods this agent has lived at the <em>start</em> of the period; “newborns” have <code class="docutils literal notranslate"><span class="pre">t_age=0</span></code>. In the default simulation style, new newborns replace agents who die. This is a change from the timing of the current/legacy system, which records <code class="docutils literal notranslate"><span class="pre">t_age</span></code> <em>after</em> it increments at the very end of the period.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dead</span></code> (bool): Whether this agent died at the <em>end</em> of the period. This variable is read by the simulator to determine who to cease and/or replace. It is appropriate (and expected) to determine <code class="docutils literal notranslate"><span class="pre">dead</span></code> in a model file as part of the model dynamics.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">t_seq</span></code> (int): Which period of the agent’s sequence of <em>solutions</em> that were on for this period. This will only differ from <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s internal <code class="docutils literal notranslate"><span class="pre">t_cycle</span></code> when <code class="docutils literal notranslate"><span class="pre">cycles</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>, so that knowing which <em>parameters</em> in the cycle to look at is not strictly informative of which <em>solution</em> (policy function) to use. As <code class="docutils literal notranslate"><span class="pre">cycles</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> is rarely used outside of debugging, this is rarely useful to examine.</p></li>
+</ul>
+</section>
+<section id="simulation-options">
+<h3>Simulation Options<a class="headerlink" href="#simulation-options" title="Link to this heading">#</a></h3>
+<p>In the current/legacy system, and by default in the new system, the simulation uses a “death and replacement” or “current population” style. At the start of the simulation, all agents are initialized as “newborns”, and might age and die according to the model’s dynamics. Decedents are replaced with newly initialized newborns at the start of the next period, and these newborns have no relationship to the prior agent other than sharing an index number. This simulation style is appropriate for infinite horizon models (where aggregate outcomes are often of interest) and for finite horizon / lifecycle models in which there are aggregate feedback effects and/or the age distribution of the population is endogenous.</p>
+<p>In some contexts, you may want to simulate using a “cohort” style, in which agents are <em>not</em> removed or replaced when they die. This is appropriate for lifecycle models with neither dynamic aggregate effects nor endogenous age distribution (that varies within the exercise of interest). To prevent newborns from replacing decedents, simply pass the <code class="docutils literal notranslate"><span class="pre">replace_dead=False</span></code> argument to <code class="docutils literal notranslate"><span class="pre">initialize_sym</span></code>; agents that die during the simulation will leave empty entries in the <code class="docutils literal notranslate"><span class="pre">hystory</span></code> arrays for later periods.</p>
+<p>For specific reasons (e.g. you are interested in the model’s predictions of outcomes after age 100), you might want a larger population of survivors at later ages than would ordinarily occur. To turn off mortality, pass the <code class="docutils literal notranslate"><span class="pre">stop_dead=False</span></code> argument to <code class="docutils literal notranslate"><span class="pre">initialize_sym</span></code>. Agents that <em>would</em> die are simply kept alive and allowed to continue in the model, generating a much larger population of (e.g.) 100 year olds. Note that for some models, this population of survivors is <em>not</em> representative of the population that would have arisen naturally with a (much) higher <code class="docutils literal notranslate"><span class="pre">AgentCount</span></code>. If survival or longevity is endogenous to behavior in the model, you must apply an appropriate weighting scheme to make sensible use of the population.</p>
+<p>The main advantage of using <code class="docutils literal notranslate"><span class="pre">stop_dead=False</span></code> or <code class="docutils literal notranslate"><span class="pre">replace_dead=False</span></code> arises in lifecycle models with many periods. Preventing death or replacement means that <em>all</em> agents are the same age in each simulated period, short-circuiting the need to evaluate the policy function for each age in each simulated period for <em>some</em> agents. It also means that processing and interpreting the arrays in <code class="docutils literal notranslate"><span class="pre">hystory</span></code> (see above) is easier, as row <code class="docutils literal notranslate"><span class="pre">t</span></code> represents agent outcomes at model age <code class="docutils literal notranslate"><span class="pre">t</span></code> for all agents.</p>
+<p>In most cases, the user wants idiosyncratic shocks to occur across agents, but <em>sometimes</em> they want some shock to share a common value across everyone (representing some macroeconomic outcome). As discussed below, the new simulator has functionality for some random variables to work like this by default, but this behavior can be overridden by passing a list of strings in the <code class="docutils literal notranslate"><span class="pre">common</span></code> argument of <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code>. The variables named should be those <em>directly</em> assigned from a distribution, not variables “downstream” from the random realization. To maximize compatibility, the simulator will assign a value for <code class="docutils literal notranslate"><span class="pre">common</span></code> variables to each agent, but they will all be identical across agents.</p>
+<blockquote>
+<div><p><strong>NB:</strong> This feature currently does not work as intended with lifecycle models. Because each period of the model is a “world unto itself,” the random realizations are not shared across them in any way. For truly general “common” shocks, it might be necessary to have a larger structure that feeds in some values from an “aggregate block”.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="model-file-specification">
+<h2>Model File Specification<a class="headerlink" href="#model-file-specification" title="Link to this heading">#</a></h2>
+<p>Model files for the new simulation system use the YAML format, and they currently live in <code class="docutils literal notranslate"><span class="pre">/HARK/models/</span></code>. Each model file contains information for how <em>one</em> <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass works, and provides instructions to the <code class="docutils literal notranslate"><span class="pre">simulator.py</span></code> module on how to simulate the model. To best read this section, it might be helpful to open one or more model files; consider the simplest one, <code class="docutils literal notranslate"><span class="pre">ConsPerfForesight.yaml</span></code>, as well as a more complicated one like <code class="docutils literal notranslate"><span class="pre">ConsMarkov.yaml</span></code>.</p>
+<section id="model-file-basics">
+<h3>Model File Basics<a class="headerlink" href="#model-file-basics" title="Link to this heading">#</a></h3>
+<p>A model file has up to <strong>six</strong> top-level entries, which will be described in more detail below:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code>: A short string that provides a reference label for the model; optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code>: An optional string that provides an English description or summary of the model. It can be as long or short as you’d like.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">symbols</span></code>: A nested list of the names of objects that appear in the model, and what <em>kind</em> of thing each one is.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">initialize</span></code>: A (probably short) set of model statements that specify how a “newborn” agent is created.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamics</span></code>: A set of sequential model statements that specify <em>what happens</em> during a period, one statement per line.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">twist</span></code>: A simple list of “intertemporal remappings” that relabel some end-of-period $t$ variables to give them new names for period $t+1$</p></li>
+</ul>
+<p>On any line of a model file, the escape sequence <code class="docutils literal notranslate"><span class="pre">\\</span></code> is used to indicate that everything that follows is a <em>comment</em>. These comments are different from YAML comments (using <code class="docutils literal notranslate"><span class="pre">#</span></code>) because the YAML parser <em>ignores and discards</em> everything after <code class="docutils literal notranslate"><span class="pre">#</span></code> on each line– it’s not part of the data. In contrast, text after <code class="docutils literal notranslate"><span class="pre">\\</span></code> in a model file is read by <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s interpreter and <em>stored</em> as a comment within <code class="docutils literal notranslate"><span class="pre">HARK</span></code>, for later examination. This is useful for applying descriptive labels to model objects or dynamic statements.</p>
+</section>
+<section id="the-symbols-section">
+<h3>The <code class="docutils literal notranslate"><span class="pre">symbols</span></code> Section<a class="headerlink" href="#the-symbols-section" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">symbols</span></code> entry of the model file lists out the variables and objects that appear in the model <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> below, to help <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s simulator interpret and execute them. Each symbol might appear in more than one sub-entry of <code class="docutils literal notranslate"><span class="pre">symbols</span></code>– some sections are declarations, while others are “metadata”. The sub-entries that delcare objects in <code class="docutils literal notranslate"><span class="pre">symbols</span></code> are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">functions</span></code>: Names of callable objects used in the model dynamics. Anything that is treated like a function should be named here.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">distributions</span></code>: Names of distributions used in the model dynamics, e.g. <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">parameters</span></code>: Names of all other objects that are common or shared among all agents <em>within</em> a period. E.g. in <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s consumption-saving models, the expected permanent income growth factor <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> is a parameter shared by all agents who are in the same period of the model. These can be single numbers or arrays, but cannot be callable functions nor distributions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variables</span></code>: Names of <em>idiosyncratic</em> variables that are used in the model <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> statement. In most cases, it is not required to declare any <code class="docutils literal notranslate"><span class="pre">variables</span></code> at all; see below.</p></li>
+</ul>
+<p>The sub-entries that provide metadata about objects are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">arrival</span></code>: Names of model <code class="docutils literal notranslate"><span class="pre">variables</span></code> that must exist at the <em>start</em> of a period– “inbound” information. These variables are <code class="docutils literal notranslate"><span class="pre">initialize</span></code>d for newborns, and drawn through the intertemporal <code class="docutils literal notranslate"><span class="pre">twist</span></code> otherwise.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">solution</span></code>: Names of model objects (of any type) that are part of the solution of the model, rather than part of the problem itself. This tells <code class="docutils literal notranslate"><span class="pre">HARK</span></code> to look for them in the <code class="docutils literal notranslate"><span class="pre">solution</span></code> attribute rather than on the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance itself. For example, <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> should be declared as a <code class="docutils literal notranslate"><span class="pre">function</span></code>, but also listed in the <code class="docutils literal notranslate"><span class="pre">solution</span></code> entry.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">offset</span></code>: Names of model objects that are “off by one” in time due to the funky timing of <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s solvers; see below.</p></li>
+</ul>
+<p>Objects named as <code class="docutils literal notranslate"><span class="pre">functions</span></code>, <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, or <code class="docutils literal notranslate"><span class="pre">distributions</span></code> literally refer to attributes of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance (or its <code class="docutils literal notranslate"><span class="pre">solution</span></code> attribute, if also named in the <code class="docutils literal notranslate"><span class="pre">solution</span></code> entry). Objects named in <code class="docutils literal notranslate"><span class="pre">variables</span></code> are outcomes of the simulation and don’t exist on the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance prior to simulation.</p>
+<section id="declaring-variables">
+<h4>Declaring <code class="docutils literal notranslate"><span class="pre">variables</span></code><a class="headerlink" href="#declaring-variables" title="Link to this heading">#</a></h4>
+<p>Most idiosyncratic variables that appear in the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> block do not <em>need</em> to be declared in the <code class="docutils literal notranslate"><span class="pre">variables</span></code> sub-entry, but <em>can</em> be. Any undeclared idiosyncratic variables will be automatically added, with no comment or explanation and a default datatype of <code class="docutils literal notranslate"><span class="pre">float</span></code>. To demonstrate this, the <code class="docutils literal notranslate"><span class="pre">ConsPerfForesight_simple.yaml</span></code> file has <em>no</em> declared <code class="docutils literal notranslate"><span class="pre">variables</span></code> at all.</p>
+<p>There are two use cases for making declarations in the <code class="docutils literal notranslate"><span class="pre">variables</span></code> sub-entry. First, some idiosyncratic variables are <em>not</em> real-valued, and should not be stored that way. The name of such a variable should be declared, with its datatype (probably <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">bool</span></code>) following in parentheses. For example, in the <code class="docutils literal notranslate"><span class="pre">KinkedR</span></code> model, there is a dummy variable called <code class="docutils literal notranslate"><span class="pre">boro</span></code> that is <code class="docutils literal notranslate"><span class="pre">True</span></code> if and only if wealth is negative (the agent is borrowing); the <code class="docutils literal notranslate"><span class="pre">variables</span></code> entry for this model includes the line <code class="docutils literal notranslate"><span class="pre">boro</span> <span class="pre">(bool)</span></code> so that this data is appropriately recorded in a Boolean array, rather than cast to <code class="docutils literal notranslate"><span class="pre">float</span></code>.</p>
+<p>Second, even for real-valued idiosyncratic variables that should be recorded in <code class="docutils literal notranslate"><span class="pre">float</span></code> format, the model file can include a comment or explanation of the variable after the <code class="docutils literal notranslate"><span class="pre">\\</span></code> escape sequence. These comments can be examined within <code class="docutils literal notranslate"><span class="pre">HARK</span></code> by calling <code class="docutils literal notranslate"><span class="pre">describe()</span></code> on the <code class="docutils literal notranslate"><span class="pre">_simulator</span></code> attribute after <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code> has been called.</p>
+</section>
+<section id="declaring-parameters-functions-and-distributions">
+<h4>Declaring <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, and <code class="docutils literal notranslate"><span class="pre">distributions</span></code><a class="headerlink" href="#declaring-parameters-functions-and-distributions" title="Link to this heading">#</a></h4>
+<p>Just like with <code class="docutils literal notranslate"><span class="pre">variables</span></code>, lines in the <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, and <code class="docutils literal notranslate"><span class="pre">distributions</span></code> sub-entries can have a comment or description after a <code class="docutils literal notranslate"><span class="pre">\\</span></code>, which will be recorded and displayed with <code class="docutils literal notranslate"><span class="pre">describe()</span></code>. When <code class="docutils literal notranslate"><span class="pre">MyType.initialize_sym()</span></code> is called, the <code class="docutils literal notranslate"><span class="pre">_simulator</span></code> attribute is constructed using the information in the model file. The objects named in <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, and <code class="docutils literal notranslate"><span class="pre">distributions</span></code> are pulled from the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance (or its <code class="docutils literal notranslate"><span class="pre">solution</span></code> attribute) and populated into a simulation structure. A <code class="docutils literal notranslate"><span class="pre">distribution</span></code> should be an instance of <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s <code class="docutils literal notranslate"><span class="pre">Distribution</span></code> class, which has standard methods that will be used by the simulator. A <code class="docutils literal notranslate"><span class="pre">function</span></code> can be any Python object that is callable.</p>
+<p>Importantly, the model file <em>does not care</em> about whether any of these objects are time-varying or time-invariant. That information is <em>read from</em> the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> when the <code class="docutils literal notranslate"><span class="pre">_simulator</span></code> attribute is built. The current/legacy simulation system has a lot of tedious code for getting the correct parameter values for each period, and sometimes for checking whether that parameter is time-varying or time-invariant <em>for that agent</em>. This makes it unnecessarily difficult to <em>write</em> simulation code for a new model, when that’s supposed to be the <em>easy</em> part of structural work! The new simulation system makes it much simpler and easier.</p>
+</section>
+<section id="inbound-information-declaring-arrival-variables">
+<h4>Inbound Information: Declaring <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables<a class="headerlink" href="#inbound-information-declaring-arrival-variables" title="Link to this heading">#</a></h4>
+<p>The new simulation structure assumes that the same <em>kind</em> of period will happen over and over again to the agents, but with (potentially) different parameter values and/or policy functions (or other solution objects). The events within a period are described in <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> (see below), but some information almost surely exists at the <em>start</em> of the period, probably carried over from the prior one– otherwise, there would be no intertemporal relationships in the model.</p>
+<p>Any idiosyncratic variables that exist at the <em>start</em> of a period, before anything has happened, should be named in <code class="docutils literal notranslate"><span class="pre">arrival</span></code>. When <code class="docutils literal notranslate"><span class="pre">HARK</span></code> parses the statement of model <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>, it checks that information isn’t used before it exists. Objects named in <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, and <code class="docutils literal notranslate"><span class="pre">distributions</span></code> are assumed to be static within the period and always exist, but idiosyncratic <code class="docutils literal notranslate"><span class="pre">variables</span></code> must be assigned before they can be used by subsequent events. Naming variables in <code class="docutils literal notranslate"><span class="pre">arrival</span></code> informs <code class="docutils literal notranslate"><span class="pre">HARK</span></code> that these idiosyncratic variables won’t be declared within the model <code class="docutils literal notranslate"><span class="pre">dynamics</span></code>, but instead carried over from the past (or were just <code class="docutils literal notranslate"><span class="pre">initialize</span></code>d for newborns).</p>
+<p>Alternatively, a <code class="docutils literal notranslate"><span class="pre">variable</span></code> can be designated to be in <code class="docutils literal notranslate"><span class="pre">arrival</span></code> by simply putting an exclamation point <code class="docutils literal notranslate"><span class="pre">!</span></code> after its name (but before its datatype) in the <code class="docutils literal notranslate"><span class="pre">variables</span></code> declaration; as usual, extra spaces are fine. For example, you can specify <code class="docutils literal notranslate"><span class="pre">kNrm</span></code> to be in <code class="docutils literal notranslate"><span class="pre">arrival</span></code> by naming it in <code class="docutils literal notranslate"><span class="pre">arrival</span></code> <strong>or</strong> by including the line <code class="docutils literal notranslate"><span class="pre">kNrm</span> <span class="pre">!</span></code> in the <code class="docutils literal notranslate"><span class="pre">variables</span></code> entry (along with whatever comment you’d like). Both notations can be used in the same model file.</p>
+<p>As will be discussed more below, each variable named in <code class="docutils literal notranslate"><span class="pre">arrival</span></code> must <em>both</em> be assigned in the <code class="docutils literal notranslate"><span class="pre">initialize</span></code> entry (i.e. there is some way to determine its starting value for newborns) <em>and</em> be included in the <code class="docutils literal notranslate"><span class="pre">twist</span></code> entry (so that <code class="docutils literal notranslate"><span class="pre">HARK</span></code> knows which variables in $t-1$ correspond to arrival variables for $t$).</p>
+</section>
+<section id="special-cases-declaring-the-solution-and-offset-parameters">
+<h4>Special Cases: Declaring the <code class="docutils literal notranslate"><span class="pre">solution</span></code> and <code class="docutils literal notranslate"><span class="pre">offset</span></code> Parameters<a class="headerlink" href="#special-cases-declaring-the-solution-and-offset-parameters" title="Link to this heading">#</a></h4>
+<p>Most of the data for the simulator is part of the agents’ <em>problem</em> for the model, but some parts are the <em>solution</em> to that problem; most typically, one or more policy functions that provide instructions for how to choose a control variable conditional on observed information. Such objects should be named in the <code class="docutils literal notranslate"><span class="pre">solution</span></code> sub-entry, which simply tells <code class="docutils literal notranslate"><span class="pre">HARK</span></code> to look for them in the <code class="docutils literal notranslate"><span class="pre">solution</span></code> attribute rather than as attributes of the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance itself. Objects named in <code class="docutils literal notranslate"><span class="pre">solution</span></code> are most likely to be <code class="docutils literal notranslate"><span class="pre">functions</span></code>, but could also be <code class="docutils literal notranslate"><span class="pre">parameters</span></code> or <code class="docutils literal notranslate"><span class="pre">distributions</span></code>.</p>
+<p>Rather than explicitly name <code class="docutils literal notranslate"><span class="pre">solution</span></code> objects in the entry, someone who prefers more parsimonious model files can simply add an asterisk <code class="docutils literal notranslate"><span class="pre">*</span></code> after the object name in its original declaration. For example, including <code class="docutils literal notranslate"><span class="pre">cFunc</span> <span class="pre">*</span></code> in the <code class="docutils literal notranslate"><span class="pre">functions</span></code> entry designates the consumption function as part of the <code class="docutils literal notranslate"><span class="pre">solution</span></code>.</p>
+<blockquote>
+<div><p><strong>NB:</strong> This sub-entry could be eliminated entirely if we had each <code class="docutils literal notranslate"><span class="pre">HARK</span></code> model copy/reference its policy functions (etc) as part of <code class="docutils literal notranslate"><span class="pre">post_solve()</span></code> using <code class="docutils literal notranslate"><span class="pre">unpack()</span></code>. Then the simulator would look for everything on the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> itself. This would also enable users to do unconventional things like exogenously specify a non-optimal <code class="docutils literal notranslate"><span class="pre">cFunc</span></code> and simulate the model without ever solving it.</p>
+</div></blockquote>
+<p>The parameter structure in <code class="docutils literal notranslate"><span class="pre">HARK</span></code> was designed with a “solver first” mentality: the value in <code class="docutils literal notranslate"><span class="pre">MyType.this_param[t]</span></code> is what’s needed to solve for the period $t$ policy function, which might <em>actually</em> correspond to something that would have the time subscript $t+1$ when written in math. For example, because <code class="docutils literal notranslate"><span class="pre">HARK</span></code> currently computes expectations about $t+1$ when solving the period $t$ problem, the distribution of income shocks <code class="docutils literal notranslate"><span class="pre">IncShkDstn[t]</span></code> actually represents the shocks that could arrive at the start of $t+1$. Many model parameters work this way in <code class="docutils literal notranslate"><span class="pre">HARK</span></code>, in fact. The current/legacy simulation code consequently has a lot of <code class="docutils literal notranslate"><span class="pre">t-1</span></code>’s running around when grabbing parameter values. In the new system, simply name such “time-offset” objects in <code class="docutils literal notranslate"><span class="pre">offset</span></code> and <code class="docutils literal notranslate"><span class="pre">HARK</span></code> will do the rest.</p>
+<p>As alternative notation, a plus sign <code class="docutils literal notranslate"><span class="pre">+</span></code> can be included in the declaration of a <code class="docutils literal notranslate"><span class="pre">parameter</span></code>, <code class="docutils literal notranslate"><span class="pre">function</span></code>, or <code class="docutils literal notranslate"><span class="pre">distribution</span></code> to indicate that it should be <code class="docutils literal notranslate"><span class="pre">offset</span></code> when populating periods. Like other notation like this, a model file can include both <code class="docutils literal notranslate"><span class="pre">+</span></code>’s and explicitly named <code class="docutils literal notranslate"><span class="pre">offset</span></code> objects.</p>
+<blockquote>
+<div><p><strong>NB:</strong> If we overhaul <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s solver timing to put period $t$ expectations in the period $t$ solver, then <code class="docutils literal notranslate"><span class="pre">offset</span></code> can go away.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="the-initialize-section">
+<h3>The <code class="docutils literal notranslate"><span class="pre">initialize</span></code> Section<a class="headerlink" href="#the-initialize-section" title="Link to this heading">#</a></h3>
+<p>Put simply, agents have to start from somewhere. The <code class="docutils literal notranslate"><span class="pre">initialize</span></code> entry contains a statement of model dynamics that are run <em>only</em> when a new agent is created, whether at the start of a simulation run or because an agent died and is being replaced. Everything that can be done in the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> entry (see below) can also be done in the <code class="docutils literal notranslate"><span class="pre">initialize</span></code> entry, except that there is <em>no</em> pre-existing idiosyncratic information. The simplest possible <code class="docutils literal notranslate"><span class="pre">initialize</span></code> block will deterministically set each of the <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables to some specific value, e.g. <code class="docutils literal notranslate"><span class="pre">pLvlPrev</span> <span class="pre">=</span> <span class="pre">1</span></code>, but more complex behavior is permitted.</p>
+<p>The only hard and fast rule is that <em>all</em> <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables must be assigned within the <code class="docutils literal notranslate"><span class="pre">initialize</span></code> block– they have to get <em>some</em> value. When a newborn agent begins their first simulated period, their <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables are assumed to exist, and thus they cannot be “blank” or uninitialized. <code class="docutils literal notranslate"><span class="pre">HARK</span></code> will raise an error if you attempt to <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code> with a model file that does not assign all <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables.</p>
+<p>The other thing to keep in mind is that any <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, or <code class="docutils literal notranslate"><span class="pre">distributions</span></code> referenced in the <code class="docutils literal notranslate"><span class="pre">initialize</span></code> block should <em>not</em> be time-varying. There is no sense of time or age <em>within</em> the <code class="docutils literal notranslate"><span class="pre">initialize</span></code> block– it’s just “The Before”. You can have a special distribution called <code class="docutils literal notranslate"><span class="pre">kNrmInitDstn</span></code> that provides the distribution of initial capital holdings, but you shouldn’t refer to <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> within <code class="docutils literal notranslate"><span class="pre">initialize</span></code> because it is (very likely) time-varying and lives in a list.</p>
+</section>
+<section id="the-block-where-it-happens-model-dynamics">
+<h3>The Block Where It Happens: Model <code class="docutils literal notranslate"><span class="pre">dynamics</span></code><a class="headerlink" href="#the-block-where-it-happens-model-dynamics" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> entry has a sequential list of model <em>events</em> that happen each period, one per line. These events are noted in mostly ordinary math, with some special notation for particular situations. There are four main kinds of model events:</p>
+<ul class="simple">
+<li><p><strong>Dynamic</strong> events are evaluations of ordinary algebraic statements (over <code class="docutils literal notranslate"><span class="pre">variables</span></code> and <code class="docutils literal notranslate"><span class="pre">parameters</span></code>) that are assigned to <em>exactly</em> one new <code class="docutils literal notranslate"><span class="pre">variable</span></code>.</p></li>
+<li><p><strong>Random</strong> events draw from a <code class="docutils literal notranslate"><span class="pre">distribution</span></code> and assign the random result to <em>one or more</em> new <code class="docutils literal notranslate"><span class="pre">variables</span></code>.</p></li>
+<li><p><strong>Markov</strong> events draw an integer or Boolean random variable based on probabilities in some <code class="docutils literal notranslate"><span class="pre">parameter</span></code>, assigning it to <em>one</em> random variable</p></li>
+<li><p><strong>Evaluation</strong> events pass <code class="docutils literal notranslate"><span class="pre">variables</span></code> and/or <code class="docutils literal notranslate"><span class="pre">parameters</span></code> to a <code class="docutils literal notranslate"><span class="pre">function</span></code> and assign the idiosyncratic output to <em>one or more</em> new <code class="docutils literal notranslate"><span class="pre">variables</span></code>.</p></li>
+</ul>
+<p>As a general rule, spacing does not matter in the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> block (nor anywhere else). You can put as many or as few spaces as you want in your math.</p>
+<section id="ordinary-dynamic-events">
+<h4>Ordinary Dynamic Events<a class="headerlink" href="#ordinary-dynamic-events" title="Link to this heading">#</a></h4>
+<p>A dynamic event is characterized by exactly one <em>assigned variable</em> on the left-hand side, an <code class="docutils literal notranslate"><span class="pre">=</span></code>, and an ordinary algebraic statement on the right-hand side. All of the standard math symbols can be used, and <code class="docutils literal notranslate"><span class="pre">sympy</span></code> will automatically cast the carat <code class="docutils literal notranslate"><span class="pre">^</span></code> to Python exponentiation <code class="docutils literal notranslate"><span class="pre">**</span></code>; I have not experimented with non-typical things like pipes <code class="docutils literal notranslate"><span class="pre">|</span></code> for absolute value. For <code class="docutils literal notranslate"><span class="pre">parameters</span></code> that are vector-valued, you can use Python-style indexing with brackets, e.g. <code class="docutils literal notranslate"><span class="pre">PermGroFac[z]</span></code> to get the permanent income growth factor at index <code class="docutils literal notranslate"><span class="pre">z</span></code>. Note that the indexing variable must be an <code class="docutils literal notranslate"><span class="pre">int</span></code> or an error will be raised on execution.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">symbols</span></code> eligible to be referenced on the right-hand side include any <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, any <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables, and any other <code class="docutils literal notranslate"><span class="pre">variables</span></code> that have already been assigned in this period in <em>prior</em> events. Notably, you cannot use any <code class="docutils literal notranslate"><span class="pre">distributions</span></code> nor <code class="docutils literal notranslate"><span class="pre">functions</span></code> in a dynamic event; those are for separate event types. As a simple example, the line <code class="docutils literal notranslate"><span class="pre">mNrm</span> <span class="pre">=</span> <span class="pre">bNrm</span> <span class="pre">+</span> <span class="pre">yNrm</span></code> assigns (normalized) market resources as the sum of bank balances and labor income, where the right-hand-side <code class="docutils literal notranslate"><span class="pre">variables</span></code> were assigned in prior model events.</p>
+<p>The restriction that only a single outcome variable be assigned is not onerous. Each <code class="docutils literal notranslate"><span class="pre">variable</span></code> should be idiosyncratically single-valued (e.g. one real value per person), so situations where it is “natural” to assign two outcomes from a single line of math are hard to conceive. In any situation where you might want to do so, it should be possible to instead have two consecutive lines, one for each outcome.</p>
+</section>
+<section id="random-realization-events">
+<h4>Random Realization Events<a class="headerlink" href="#random-realization-events" title="Link to this heading">#</a></h4>
+<p>A random event is characterized by one or more assigned variables on the left-hand side, a <code class="docutils literal notranslate"><span class="pre">~</span></code> (“drawn from”), and a <code class="docutils literal notranslate"><span class="pre">distribution</span></code> on the right-hand side. If more than one variable is assigned, their names should be comma-separated and contained within parentheses, e.g. <code class="docutils literal notranslate"><span class="pre">(PermShk,</span> <span class="pre">TranShk)</span> <span class="pre">~</span> <span class="pre">IncShkDstn</span></code> means that permanent and transitory shocks are jointly drawn from the income shock distribution. Parentheses are <em>optional</em> on the LHS if only one variable is assigned. Differentiating between <em>distributions</em> versus the <em>random variables</em> that are assigned is both convenient for interacting with existing <code class="docutils literal notranslate"><span class="pre">HARK</span></code> infrastructure and permits natural notation for multivariate distributions.</p>
+<p>Just like with <code class="docutils literal notranslate"><span class="pre">parameters</span></code> in dynamic events, the <code class="docutils literal notranslate"><span class="pre">distribution</span></code> in a random realization event can be indexed by an integer. E.g. in the “Markov consumption model”, many parameters depend on a discrete state (here denoted $z$) that evolves according to some Markov transition matrix, and the state-dependent income distribution can be represented with <code class="docutils literal notranslate"><span class="pre">(PermShk,</span> <span class="pre">TranShk)</span> <span class="pre">~</span> <span class="pre">IncShkDstn[z]</span></code> (as long as <code class="docutils literal notranslate"><span class="pre">z</span></code> has already been assigned).</p>
+<p>As noted above, a <code class="docutils literal notranslate"><span class="pre">variable</span></code> called <code class="docutils literal notranslate"><span class="pre">dead</span></code> holds special meaning in <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s new simulation system. Such a variable should be Boolean valued (e.g. drawn from a <code class="docutils literal notranslate"><span class="pre">Bernoulli</span></code> distribution object), as it will be used by the simulator to determine which agents should be ceased and/or replaced between periods. For example, <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s consumption-saving models could include the line <code class="docutils literal notranslate"><span class="pre">dead</span> <span class="pre">~</span> <span class="pre">MortDstn</span></code>, where <code class="docutils literal notranslate"><span class="pre">MortDstn</span></code> is an instance of the class <code class="docutils literal notranslate"><span class="pre">Bernoulli</span></code>. A model does not <em>need</em> to assign <code class="docutils literal notranslate"><span class="pre">dead</span></code>, but mortality will not occur in the simulator, and unexpected behavior might arise if <code class="docutils literal notranslate"><span class="pre">T_sim</span></code> exceeds the length of the lifecycle.</p>
+</section>
+<section id="markov-draw-events">
+<h4>Markov Draw Events<a class="headerlink" href="#markov-draw-events" title="Link to this heading">#</a></h4>
+<p>A special kind of random event is handled with special notation: discrete Markov realizations based on numeric probabilities. Such events <em>could</em> be handled with ordinary math notation over multiple events, but it would be tedious to write out for such a basic concept. There are three sub-cases of this event.</p>
+<p>If there is a <code class="docutils literal notranslate"><span class="pre">parameter</span></code> called <code class="docutils literal notranslate"><span class="pre">MyProbs</span></code> that has a Markov transition matrix as a <code class="docutils literal notranslate"><span class="pre">numpy.array</span></code> (i.e. all values are non-negative and each row sums to 1), then the random transition from state <code class="docutils literal notranslate"><span class="pre">i</span></code> to state <code class="docutils literal notranslate"><span class="pre">j</span></code> is written as the model event <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">~</span> <span class="pre">{MyProbs}(i)</span></code>. For example, in the “Markov consumption model”, the transition probabilities are stored in a <code class="docutils literal notranslate"><span class="pre">parameter</span></code> called <code class="docutils literal notranslate"><span class="pre">MrkvArray</span></code>, and the discrete state is notated as <code class="docutils literal notranslate"><span class="pre">z</span></code>, so the Markov transition is <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">~</span> <span class="pre">{MrkvArray}(zPrev)</span></code>. In this case, <code class="docutils literal notranslate"><span class="pre">zPrev</span></code> is an <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variable– it’s last period’s <code class="docutils literal notranslate"><span class="pre">z</span></code>!</p>
+<p>In some cases, you don’t have a Markov transition <em>per se</em>, just a discrete realization of outcomes A, B, or C. If there is a <code class="docutils literal notranslate"><span class="pre">parameter</span></code> called <code class="docutils literal notranslate"><span class="pre">MyProbs</span></code> that has a stochastic vector as a 1D <code class="docutils literal notranslate"><span class="pre">numpy.array</span></code> (all values are non-negative and it sums to 1), then drawing an integer index based on these probabilities is written as the model event <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">~</span> <span class="pre">{MyProbs}</span></code>. Note that this is the same as the Markov matrix case, but with no indexing variable.</p>
+<p>The simplest possible case is that you have a single probability and just want a weighted coin flip. If the <code class="docutils literal notranslate"><span class="pre">parameter</span></code> called <code class="docutils literal notranslate"><span class="pre">MyProb</span></code> is a single real number, then <code class="docutils literal notranslate"><span class="pre">j</span> <span class="pre">~</span> <span class="pre">{MyProb}</span></code> is treated as a Bernoulli random realization. This is useful for quickly expressing a simple mortality process, e.g. <code class="docutils literal notranslate"><span class="pre">live</span> <span class="pre">~</span> <span class="pre">{LivPrb}</span></code> and then <code class="docutils literal notranslate"><span class="pre">dead</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">live</span></code>. The output of the Bernoulli event is a <code class="docutils literal notranslate"><span class="pre">bool</span></code>, and doing one minus a Boolean is effectively the “logical not” operation. <code class="docutils literal notranslate"><span class="pre">Sympy</span></code> does allow the <code class="docutils literal notranslate"><span class="pre">~</span></code> logical not operator, but using it in the new simulator system will confuse the parser because we use it as the “draw from” symbol.</p>
+<p>An alternative usage of Bernoulli events is to use an idiosyncratic data <code class="docutils literal notranslate"><span class="pre">variable</span></code> in braces, e.g. <code class="docutils literal notranslate"><span class="pre">live</span> <span class="pre">~</span> <span class="pre">{LivPrb_i}</span></code>, where <code class="docutils literal notranslate"><span class="pre">LivPrb_i</span></code> was assigned as a <code class="docutils literal notranslate"><span class="pre">variable</span></code> in a prior event. This used in <code class="docutils literal notranslate"><span class="pre">ConsMarkovModel</span></code>, where <code class="docutils literal notranslate"><span class="pre">LivPrb_i</span> <span class="pre">=</span> <span class="pre">LivPrb[z]</span></code> based on discrete state <code class="docutils literal notranslate"><span class="pre">z</span></code> for each agent. It could also be used in models in which survival probability depends on some continuous health state. Note that the object in brackets must be a single name; no expressions of any other kind are allowed. E.g. the parser does not support doing <code class="docutils literal notranslate"><span class="pre">live</span> <span class="pre">~</span> <span class="pre">{LivPrb[z]}</span></code>, nor <code class="docutils literal notranslate"><span class="pre">dead</span> <span class="pre">~</span> <span class="pre">{1-LivPrb}</span></code>.</p>
+</section>
+<section id="function-evaluation-events">
+<h4>Function Evaluation Events<a class="headerlink" href="#function-evaluation-events" title="Link to this heading">#</a></h4>
+<p>Sometimes model dynamics include non-standard functions that cannot be expressed algebraically, but have some arbitrary underlying code. Most commonly, the policy function from the model’s <code class="docutils literal notranslate"><span class="pre">solution</span></code> is non-parametric and is usually represented by some interpolant. In the new simulation system, evaluating such functions is a special model event.</p>
+<p>An evaluation event is characterized by one or more assigned variables on the left-hand side followed by an <code class="docutils literal notranslate"><span class="pre">=</span></code>, and then a <code class="docutils literal notranslate"><span class="pre">function</span></code> and its arguments on the right-hand side, written as <code class="docutils literal notranslate"><span class="pre">func&#64;(arg1,</span> <span class="pre">arg2,</span> <span class="pre">...,</span> <span class="pre">argN)</span></code>. If more than one variable is assigned, their names should be comma-separated and contained within parentheses, as with random realization events. The inclusion of the <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> symbol for calling an arbitrary <code class="docutils literal notranslate"><span class="pre">function</span></code> object makes the model parser much easier to write– it can look for an &#64; and know that the preceeding object should be a <code class="docutils literal notranslate"><span class="pre">function</span></code> and that this is an evaluation event.</p>
+<p>The arguments to the function (contained within parentheses and comma-separated) can be any <code class="docutils literal notranslate"><span class="pre">parameters</span></code> or <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables, as well as any <code class="docutils literal notranslate"><span class="pre">variables</span></code> that have already been assigned in prior events. The system allows for multiple outputs from a single function because sometimes two model outcomes are jointly determined, or the computation to evaluate them separately would be so duplicative as to be wasteful.</p>
+<p>Unlike with <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and <code class="docutils literal notranslate"><span class="pre">distributions</span></code>, a <code class="docutils literal notranslate"><span class="pre">function</span></code> cannot be indexed. Instead, a function that you <em>would</em> like to index should instead be refactored or wrapped so that the index is an <em>argument</em> to the function. For example, in <code class="docutils literal notranslate"><span class="pre">ConsMarkovModel</span></code>, the discrete-state-dependent consumption functions are stored in Python as a list of functions, and the user accesses them as <code class="docutils literal notranslate"><span class="pre">cFunc[z](m)</span></code>. For compatibility with the new simulation system, these functions have been repackaged in a (fairly simple) new object class that has the syntax <code class="docutils literal notranslate"><span class="pre">cFuncX(z,m)</span></code>; the <code class="docutils literal notranslate"><span class="pre">X</span></code> is just to arbitrarily change the name.</p>
+</section>
+</section>
+<section id="intertemporal-transitions-do-the-twist">
+<h3>Intertemporal Transitions: Do the <code class="docutils literal notranslate"><span class="pre">twist</span></code><a class="headerlink" href="#intertemporal-transitions-do-the-twist" title="Link to this heading">#</a></h3>
+<p>The final entry in a model file is called <code class="docutils literal notranslate"><span class="pre">twist</span></code>, and it does nothing more than provide a mapping from end-of-period-$t$ variables to beginning-of-period-$t+1$ <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables. For example, in <code class="docutils literal notranslate"><span class="pre">HARK</span></code>’s consumption-saving models, end-of-period normalized assets (after all actions are accomplished) are denoted $a_t$ and represented in code as <code class="docutils literal notranslate"><span class="pre">aNrm</span></code>, and we want to use this same <em>value</em> (but not name) to represent normalized capital holdings at the start of period $t+1$, denoted $k_{t+1}$ and represented in code as <code class="docutils literal notranslate"><span class="pre">kNrm</span></code>. The fact that $a_t = k_{t+1}$ is captured in the <code class="docutils literal notranslate"><span class="pre">twist</span></code> entry <code class="docutils literal notranslate"><span class="pre">aNrm:</span> <span class="pre">kNrm</span></code>, an intertemporal remapping. Likewise, permanent income level <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> evolves near the start of each period, but we need to know the <em>prior</em> permanent income level to calculate it. This is made accessible with the <code class="docutils literal notranslate"><span class="pre">twist</span></code> entry <code class="docutils literal notranslate"><span class="pre">pLvl:</span> <span class="pre">pLvlPrev</span></code>, so that <code class="docutils literal notranslate"><span class="pre">pLvlPrev</span></code> can be used to compute <code class="docutils literal notranslate"><span class="pre">pLvl</span></code>.</p>
+</section>
+</section>
+<section id="connecting-a-model-file-to-a-hark-model">
+<h2>Connecting a Model File to a <code class="docutils literal notranslate"><span class="pre">HARK</span></code> Model<a class="headerlink" href="#connecting-a-model-file-to-a-hark-model" title="Link to this heading">#</a></h2>
+<p>Suppose you have written a YAML file representing your model, and you want to actually use it with your <code class="docutils literal notranslate"><span class="pre">HARK</span></code> model; this section provides instruction for how to do so. All it takes is for the name of the model file to be assigned to the <code class="docutils literal notranslate"><span class="pre">&quot;model&quot;</span></code> entry in the <code class="docutils literal notranslate"><span class="pre">default_</span></code> attribute of your <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass; that’s it. As long as the named <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, and <code class="docutils literal notranslate"><span class="pre">distributions</span></code> actually exist on your <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instances (and your model file is validly formatted), it should just work. These files live in <code class="docutils literal notranslate"><span class="pre">/HARK/models/</span></code>.</p>
+<p>In unusual cases, you might want to change an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> instance’s simulation model <em>after</em> it has been instantiated. This can be done in two ways. First, you can change the instance’s <code class="docutils literal notranslate"><span class="pre">model_file</span></code> attribute to name a <em>different</em> file in <code class="docutils literal notranslate"><span class="pre">/HARK/models/</span></code>. This attribute is filled in at instantiation by copying from <code class="docutils literal notranslate"><span class="pre">default_[&quot;model&quot;]</span></code>, but can be changed afterward. Just be sure to do this before calling <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code> to create the simulator object.</p>
+<p>Alternatively, you can set the instance’s <code class="docutils literal notranslate"><span class="pre">model_statement</span></code> attribute as a string with the <em>entire contents</em> of your model, in YAML format. This attribute does not exist by default, but the <code class="docutils literal notranslate"><span class="pre">initialize_sym()</span></code> method looks for a model statement there before defaulting to read the one from the file named in <code class="docutils literal notranslate"><span class="pre">model_file</span></code>. Putting anything in <code class="docutils literal notranslate"><span class="pre">model_statement</span></code> thus overrides the class’s default simulation model.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="installation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">HARK installation guide</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="krusell_smith.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Krusell-Smith Model in HARK</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#basic-simulator-usage">Basic Simulator Usage</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simulation-attributes">Simulation Attributes</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#initializing-and-running-a-simulation">Initializing and Running a Simulation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#examining-simulation-output">Examining Simulation Output</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#special-variables">Special Variables</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simulation-options">Simulation Options</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#model-file-specification">Model File Specification</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#model-file-basics">Model File Basics</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#the-symbols-section">The <code class="docutils literal notranslate"><span class="pre">symbols</span></code> Section</a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#declaring-variables">Declaring <code class="docutils literal notranslate"><span class="pre">variables</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#declaring-parameters-functions-and-distributions">Declaring <code class="docutils literal notranslate"><span class="pre">parameters</span></code>, <code class="docutils literal notranslate"><span class="pre">functions</span></code>, and <code class="docutils literal notranslate"><span class="pre">distributions</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#inbound-information-declaring-arrival-variables">Inbound Information: Declaring <code class="docutils literal notranslate"><span class="pre">arrival</span></code> variables</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#special-cases-declaring-the-solution-and-offset-parameters">Special Cases: Declaring the <code class="docutils literal notranslate"><span class="pre">solution</span></code> and <code class="docutils literal notranslate"><span class="pre">offset</span></code> Parameters</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#the-initialize-section">The <code class="docutils literal notranslate"><span class="pre">initialize</span></code> Section</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#the-block-where-it-happens-model-dynamics">The Block Where It Happens: Model <code class="docutils literal notranslate"><span class="pre">dynamics</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#ordinary-dynamic-events">Ordinary Dynamic Events</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#random-realization-events">Random Realization Events</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#markov-draw-events">Markov Draw Events</a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#function-evaluation-events">Function Evaluation Events</a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#intertemporal-transitions-do-the-twist">Intertemporal Transitions: Do the <code class="docutils literal notranslate"><span class="pre">twist</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#connecting-a-model-file-to-a-hark-model">Connecting a Model File to a <code class="docutils literal notranslate"><span class="pre">HARK</span></code> Model</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

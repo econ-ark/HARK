@@ -1,0 +1,1235 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Aggregate Productivity Shocks &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsAggShockModel/AggShockConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsAggShockModel/AggShockConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Aggregate Productivity Shocks with a Discrete State" href="AggShockMarkovConsumerType.html" />
+    <link rel="prev" title="Generalized Income Process" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="AggShockMarkovConsumerType.html">Aggregate Productivity Shocks with a Discrete State</a></li>
+<li class="toctree-l1"><a class="reference internal" href="KrusellSmithType.html">Krusell-Smith Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHabitModel/HabitConsumerType.html">Habit Formation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/WealthPortfolioConsumerType.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Aggregate Productivity Shocks</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsAggShockModel/AggShockConsumerType.ipynb">examples/ConsAggShockModel/AggShockConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsAggShockModel/AggShockConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="AggShockConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Aggregate-Productivity-Shocks">
+<h1>Aggregate Productivity Shocks<a class="headerlink" href="#Aggregate-Productivity-Shocks" title="Link to this heading">#</a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsAggShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AggShockConsumerType</span><span class="p">,</span>
+    <span class="n">CobbDouglasEconomy</span><span class="p">,</span>
+    <span class="n">SmallOpenEconomy</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span><span class="p">,</span> <span class="n">plot_func_slices</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mystr</span><span class="p">(</span><span class="n">number</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Most <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses in HARK are fully “microeconomic” models in the sense that they concern the decisions of agents under uncertainty, but with no economy-wide interaction among the agents. In particular, objects like the return factor on retained assets are treated as <em>exogenous</em>, and we often omit the wage rate entirely (implicitly normalizing it to 1).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses in <code class="docutils literal notranslate"><span class="pre">ConsAggShockModel</span></code>, in contrast, are designed to be used with subclasses of <code class="docutils literal notranslate"><span class="pre">Market</span></code> and solved in <em>dynamic stochastic general equilibrium</em> (DSGE), or more accurately HA-DSGE. For a primer on the <code class="docutils literal notranslate"><span class="pre">Market</span></code> class generally, see the <a class="reference internal" href="../Gentle-Intro/Market-Intro.html"><span class="doc">notebook here</span></a>.</p>
+<p>This notebook concerns <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code>, representing agents in the canonical consumption-saving framework with labor income risk. Unlike other <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses that face only idiosyncratic income shocks, <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code>s are <em>also</em> subject to aggregate productivity shocks, both permanent and transitory. Moreover, these agents can be embedded in a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> in which the interest and wage factors are determined endogenously based on the ratio of aggregate
+labor and capital.</p>
+<section id="Microeconomic-Model-Statement-for-AggShockConsumerType">
+<h2>Microeconomic Model Statement for <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code><a class="headerlink" href="#Microeconomic-Model-Statement-for-AggShockConsumerType" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> extends <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> by incorporating a second continuous state variable (aggregate market resources <span class="math notranslate nohighlight">\(M_t\)</span>) as well as two additional shocks: permanent <span class="math notranslate nohighlight">\(\Psi\)</span> and transitory <span class="math notranslate nohighlight">\(\Theta\)</span> shocks to aggregate productivity. Because some objects are idiosyncratic (varying across individuals) and others are aggregate, we explicitly include the <span class="math notranslate nohighlight">\(i\)</span> subscript to indicate idiosyncratic values.</p>
+<p><span class="math">\begin{eqnarray*}
+\text{v}(m_{it}, M_t) &=& \max_{c_{it}} \frac{c_{it}^{1-\rho}}{1-\rho} + \beta \mathsf{S} \mathbb{E} \left[ (\psi_{it+1} \Psi_{t+1})^{1-\rho} \text{v}(m_{it+1}, M_{t+1}) \right] \\
+&\text{s.t.}& \\
+a_{it} &=& m_{it} - c_{it} \geq \underline{a}, \\
+A_{t} &=& \mathbf{A}(M_{it}), \\
+K_{t+1} &=& A_t, \\
+k_{t+1} &=& K_t / \Psi_{t+1}, \\
+\mathsf{R}_{t+1} &=& \mathbf{R}(k_{t+1} / \Theta_{t+1}), \\
+\mathsf{w}_{t+1} &=& \mathbf{W}(k_{t+1} / \Theta_{t+1}), \\
+m_{it+1} &=& \mathsf{R}_{t+1} a_{t} / (\psi_{it+1} \Psi_{t+1}) + \mathsf{w}_{t+1} \theta_{it+1} \Theta_{t+1}, \\
+M_{t+1} &=& \mathsf{R}_{t+1} k_{t+1} + \mathsf{w}_{t+1} \Theta_{t+1}, \\
+(\psi_{it+1}, \theta_{it+1}) &\sim& F, \\
+(\Psi_{t+1}, \theta_{t+1}) &\sim& \Phi.
+\end{eqnarray*}</span></p>
+<p>Much of this model is identical to the workhorse <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code> model, but with substantial additions and changes. Capitalized and serifed variables represent aggregate normalized variables; e.g. <span class="math notranslate nohighlight">\(M_t\)</span> is aggregate market resources normalized by aggregate permanent productivity.</p>
+<p>Aggregate capital next period <span class="math notranslate nohighlight">\(K_{t+1}\)</span> is simply aggregate retained assets <span class="math notranslate nohighlight">\(A_t\)</span>. The aggregate productivity shocks <span class="math notranslate nohighlight">\((\Psi, \Theta)\)</span> are assumed to affect effective labor, which is inelastically supplied. The ratio of aggregate capital to aggregate <em>permanent</em> labor productivity is thus denoted as <span class="math notranslate nohighlight">\(k_t\)</span>.</p>
+<p>The interest <span class="math notranslate nohighlight">\(\mathsf{R}\)</span> and wage <span class="math notranslate nohighlight">\(\mathsf{w}\)</span> factors are determined as functions of the aggregate capital-to-labor ratio (incorporating the transitory aggregate shock as well). At both the individual and aggregate level, next period’s market resources are the sum of capital and labor income.</p>
+<p>We denote the aggregate productivity shock distribution as <span class="math notranslate nohighlight">\(\Phi\)</span>, which does <em>not</em> stand for the standard normal distribution.</p>
+</section>
+<section id="Model-Statement-for-a-CobbDouglasEconomy">
+<h2>Model Statement for a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code><a class="headerlink" href="#Model-Statement-for-a-CobbDouglasEconomy" title="Link to this heading">#</a></h2>
+<p>A careful reader will notice that we have not specified <em>how</em> the aggregate capital-to-labor ratio determines the interest factor and wage rate. Moreover, we also did not mention the aggregate savings function <span class="math notranslate nohighlight">\(\mathbf{A}(M_t)\)</span> at all. This was intentional, because there are (at least) two possibilities. An <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> instance can’t be meaningfully solved outside of some <code class="docutils literal notranslate"><span class="pre">Market</span></code> that it lives in, and how aggregate capital and labor determine factor prices is an activity at
+the <code class="docutils literal notranslate"><span class="pre">Market</span></code>-level.</p>
+<p>An instance of <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code>, a subclass of <code class="docutils literal notranslate"><span class="pre">Market</span></code> represents an economy in which capital and labor are used to produce output with a Cobb-Douglas technology, and factor prices are determined competitively via the marginal product of each factor. We denote capital’s share of production <code class="docutils literal notranslate"><span class="pre">CapShare</span></code> as <span class="math notranslate nohighlight">\(\alpha\)</span> and the depreciation rate of capital <code class="docutils literal notranslate"><span class="pre">DeprRte</span></code> as <span class="math notranslate nohighlight">\(\delta\)</span>.</p>
+<p>The interest factor and wage rate can thus be determined from aggregate capital and labor as follows:</p>
+<p><span class="math">\begin{eqnarray*}
+Y &=& K^\alpha L^{1-\alpha}, \\
+\mathsf{w} &=& \frac{\partial Y}{\partial L} = (1-\alpha) K^\alpha L^{-\alpha} = (1-\alpha) k^{\alpha}, \\
+\mathsf{r} &=& \frac{\partial Y}{\partial K} = \alpha K_{t}^{\alpha-1} L_t^{1-\alpha} = \alpha k^{1-\alpha}, \\
+\mathsf{R} &=& 1 - \delta + \mathsf{r}.
+\end{eqnarray*}</span></p>
+<p>In the last line, the return factor on capital represents the individual retaining their capital, less depreciation, and being paid the gross interest rate <span class="math notranslate nohighlight">\(\mathsf{r}\)</span> for it. These expressions are used as the functional forms for <span class="math notranslate nohighlight">\(\mathbf{R}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{W}\)</span> above.</p>
+<p>Following Krusell &amp; Smith (1998), we parameterize the aggregate saving function <span class="math notranslate nohighlight">\(\mathbf{A}(M_{it})\)</span> as linear in logs:</p>
+<p><span class="math">\begin{equation*}
+A_{it} = \mathbf{A}(M_{it}) = \exp(\kappa_1 \log(M_{it}) + \kappa_0).
+\end{equation*}</span></p>
+<p>This function represents the agents’ <em>parameterized beliefs</em> about aggregate behavior, rather than true dynamics. It is used by agents when <em>solving</em> their microeconomic model to form expectations about future resources (through factor prices), representing a form of bounded rationality: future factor prices depend on <em>all consumers’</em> financial position, but the agents only account for the aggregate quantity when making their projection, and then only with a parametric relationship.</p>
+<p>The microeconomic model can be solved for <em>any</em> such subjective beliefs, but the goal of solving the model in general equilibrium is to find beliefs that are <em>consistent</em>: if agents’ act optimally given those beliefs about aggregate saving, then the relationship between <span class="math notranslate nohighlight">\(M_{t}\)</span> and <span class="math notranslate nohighlight">\(A_{t}\)</span> that emerges in the long run is <em>well approximated by</em> those same beliefs.</p>
+<p>In the terminology of HARK’s <code class="docutils literal notranslate"><span class="pre">Market</span></code> class, the only element of <code class="docutils literal notranslate"><span class="pre">dyn_vars</span></code> is <code class="docutils literal notranslate"><span class="pre">AFunc</span></code>, the aggregate saving function, which is characterized by the two coefficients <span class="math notranslate nohighlight">\(\kappa_0\)</span> and <span class="math notranslate nohighlight">\(\kappa_1\)</span>. When a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> instance has its <code class="docutils literal notranslate"><span class="pre">solve</span></code> method invoked, it executes the following in a loop:</p>
+<ol class="arabic simple" start="0">
+<li><p>Begin with arbitrary initial <span class="math notranslate nohighlight">\(\kappa_0\)</span> and <span class="math notranslate nohighlight">\(\kappa_1\)</span></p></li>
+<li><p>Agents solve their microeconomic model given beliefs</p></li>
+<li><p>Simulate market for many periods, generating history of <span class="math notranslate nohighlight">\((M_t, A_t)\)</span></p></li>
+<li><p>Linearly regress <span class="math notranslate nohighlight">\(\log A_t\)</span> on <span class="math notranslate nohighlight">\(\log M_t\)</span> to generate new <span class="math notranslate nohighlight">\(\kappa_0\)</span> and <span class="math notranslate nohighlight">\(\kappa_1\)</span></p></li>
+<li><p>If new coefficients are not sufficiently close to old ones, go to step 1</p></li>
+</ol>
+<p>During the simulation, the agents observe the true <span class="math notranslate nohighlight">\(M_t\)</span> in each period. Their subjective beliefs are used only when <em>solving</em> the model, not when simulating it.</p>
+</section>
+<section id="Keeping-it-Simple:-SmallOpenEconomy">
+<h2>Keeping it Simple: <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code><a class="headerlink" href="#Keeping-it-Simple:-SmallOpenEconomy" title="Link to this heading">#</a></h2>
+<p>As an alternative to <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code>, you might instead be interested in an environment in which factor prices do <em>not</em> fluctuate with aggregate capital and labor (say, because capital is mobile and thus prices are determined by global factors), but there are still aggregate productivity shocks. HARK handles this with the <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code> subclass of <code class="docutils literal notranslate"><span class="pre">Market</span></code>.</p>
+<p>The mechanics of a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code> are simple: the user provides a <em>fixed</em> <code class="docutils literal notranslate"><span class="pre">Rfree</span></code> and <code class="docutils literal notranslate"><span class="pre">wRte</span></code> (as well as the <code class="docutils literal notranslate"><span class="pre">AggShkDstn</span></code>) and the functions <span class="math notranslate nohighlight">\(\mathbf{R}(\cdot)\)</span> and <span class="math notranslate nohighlight">\(\mathbf{W}(\cdot)\)</span> are specified as <code class="docutils literal notranslate"><span class="pre">ConstantFunctions</span></code> with those values. The aggregate saving function <span class="math notranslate nohighlight">\(\mathbf{A}(M_t)\)</span> is <em>irrelevant</em> because the agents know that their future state does not depend on the aggregate state at all; it’s arbitrarily specified as the identity function. With a
+<code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>, the agents’ microeconomic problem thus only needs to be solved <em>once</em>, rather than iterated on to find equilibrium beliefs about aggregate saving.</p>
+<p>Put differently, the <em>structure</em> of the microeconomic problem is identical whether <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> or <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code> is used, but some details are simplified and trivialized under the latter.</p>
+</section>
+<section id="Example-parameter-values-for-AggShockConsumerType">
+<h2>Example parameter values for <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code><a class="headerlink" href="#Example-parameter-values-for-AggShockConsumerType" title="Link to this heading">#</a></h2>
+<p>Like other <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses, <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> includes a complete set of default parameters and constructors, so it can be instantiated without any additional arguments. The table below lists the default parameter values.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Time-varying?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.96\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathsf{S}_t\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.98]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\Gamma_{t}\)</span></p></td>
+<td><p>Permanent income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.0]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{a}\)</span></p></td>
+<td><p>Artificial borrowing constraint (normalized)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BoroCnstArt</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\psi\)</span></p></td>
+<td><p>Standard deviation of log permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.1]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(N_\psi\)</span></p></td>
+<td><p>Number of discrete permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(7\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\theta\)</span></p></td>
+<td><p>Standard deviation of log transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.1]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(N_\theta\)</span></p></td>
+<td><p>Number of discrete transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(7\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mho\)</span></p></td>
+<td><p>Probability of being unemployed and getting <span class="math notranslate nohighlight">\(\theta=\underline{\theta}\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.05\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{\theta}\)</span></p></td>
+<td><p>Transitory shock when unemployed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncUnemp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.3\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mho^{Ret}\)</span></p></td>
+<td><p>Probability of being “unemployed” when retired</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrbRet</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0005\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\underline{\theta}^{Ret}\)</span></p></td>
+<td><p>Transitory shock when “unemployed” and retired</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncUnempRet</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Period of the lifecycle model when retirement begins</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_retire</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Minimum value in assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraMin</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.001\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Maximum value in assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraMax</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(20.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Number of points in base assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(36\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Exponential nesting factor for base assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraNestFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(2\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Additional values to add to assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraExtra</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(None\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Number of aggregate <span class="math notranslate nohighlight">\(M_t\)</span> gridpoints to use</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MaggCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(17\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Base perturbation factor around perfect foresight steady state for grid of
+<span class="math notranslate nohighlight">\(M_t\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MaggPerturb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.01\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Log scaling factor for additional <span class="math notranslate nohighlight">\(M_t\)</span> gridpoints</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MaggExpFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.15\)</span></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>This model is <em>usually</em> used with a standard infinite horizon setup, but the time-varying capabilities are maintained for compatibility across <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses.</p>
+<p>The last three parameters are used to specify the base scaling for the aggregate market resources grid. An <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> can build the base for the grid (centered around 1), but needs to be paired with a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> (or <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>) to properly rescale the grid around the perfect foresight steady state level– around where the market will actually be operating.</p>
+</section>
+<section id="Example-parameter-values-for-a-CobbDouglasEconomy">
+<h2>Example parameter values for a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code><a class="headerlink" href="#Example-parameter-values-for-a-CobbDouglasEconomy" title="Link to this heading">#</a></h2>
+<p>Some parameters in this model are specified in the <code class="docutils literal notranslate"><span class="pre">Market</span></code> subclass, rather than at the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> level. The <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> has the following default parameters:</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\delta\)</span></p></td>
+<td><p>Capital depreciation rate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DeprRte</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.025\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\alpha\)</span></p></td>
+<td><p>Capital’s share of production</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CapShare</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.36\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p>Intertemporal discount factor (perfect foresight calibration)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.96\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\rho\)</span></p></td>
+<td><p>Coefficient of relative risk aversion (perfect foresight calibration)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\gimel\)</span></p></td>
+<td><p>Aggregate permanent growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFacAgg</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\Psi_N\)</span></p></td>
+<td><p>Number of discrete aggregate permanent productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkAggCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(3\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Theta_N\)</span></p></td>
+<td><p>Number of discrete aggregate transitory productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkAggCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(3\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\Psi\)</span></p></td>
+<td><p>Standard deviation of log aggregate permanent productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkAggStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0063\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\sigma_\Theta\)</span></p></td>
+<td><p>Standard deviation of log aggregate permanent productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkAggStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0031\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Number of “burn in” periods to discard at start of simulation run when updating <span class="math notranslate nohighlight">\(mathbf{A}(\cdot)\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_discard</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(200\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Damping factor when updating <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span> (weight on prior value)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DampingFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.2\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Maximum number of times to update <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span> before terminating</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">max_loops</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(20\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\kappa_0\)</span></p></td>
+<td><p>Initial guess for intercept <span class="math notranslate nohighlight">\(\kappa_0\)</span>, intercept term in <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">intercept_prev</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\kappa_1\)</span></p></td>
+<td><p>Initial guess for intercept <span class="math notranslate nohighlight">\(\kappa_1\)</span>, slope coefficient for <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">slope_prev</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>(none)</p></td>
+<td><p>Whether to print progress to screen when solving for equilibrium <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(False\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The values of <span class="math notranslate nohighlight">\(\beta\)</span> and <span class="math notranslate nohighlight">\(\rho\)</span> provided to the <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code> do not need to be the same values as the agents who populate the market. The market-level parameters are used <em>only</em> to calculate what the perfect foresight steady state level of aggregate market resources would be; this is used to scale the grid of <span class="math notranslate nohighlight">\(M_t\)</span> values to an appropriate range around it.</p>
+</section>
+<section id="Example-parameters-for-a-SmallOpenEconomy">
+<h2>Example parameters for a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code><a class="headerlink" href="#Example-parameters-for-a-SmallOpenEconomy" title="Link to this heading">#</a></h2>
+<p>The parameters for a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code> are similar to the <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code>, but not quite the same. Most obviously, “technology” parameters like <span class="math notranslate nohighlight">\(\delta\)</span> and <span class="math notranslate nohighlight">\(\alpha\)</span> are irrelevant, as are parameters governing how <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span> is updated. Moreover, the perfect foresight <span class="math notranslate nohighlight">\(\beta\)</span> and <span class="math notranslate nohighlight">\(\rho\)</span> likewise do not appear, because market resources <span class="math notranslate nohighlight">\(M_t\)</span> are a “dummy” state with no affect on the agent, so the scaling for the state grid doesn’t matter. The
+initial guesses for <span class="math notranslate nohighlight">\(\kappa_0\)</span> and <span class="math notranslate nohighlight">\(\kappa_1\)</span> are also arbitrary and has no effect; they just need to exist.</p>
+<p>On the other hand, the exogenous factor prices <span class="math notranslate nohighlight">\(\mathsf{R}\)</span> and <span class="math notranslate nohighlight">\(\mathsf{w}\)</span> are specified as parameters of a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mathsf{R}\)</span></p></td>
+<td><p>Exogenous risk-free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.02\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\mathsf{w}\)</span></p></td>
+<td><p>Exogenous wage rate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">wRte</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\gimel\)</span></p></td>
+<td><p>Aggregate permanent growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFacAgg</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\Psi_N\)</span></p></td>
+<td><p>Number of discrete aggregate permanent productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkAggCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(3\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Theta_N\)</span></p></td>
+<td><p>Number of discrete aggregate transitory productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkAggCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(3\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\sigma_\Psi\)</span></p></td>
+<td><p>Standard deviation of log aggregate permanent productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkAggStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0063\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\sigma_\Theta\)</span></p></td>
+<td><p>Standard deviation of log aggregate permanent productivity shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkAggStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0031\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>(none)</p></td>
+<td><p>Maximum number of times to solve the micro model (always 1)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">max_loops</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\kappa_0\)</span></p></td>
+<td><p>Initial guess for intercept <span class="math notranslate nohighlight">\(\kappa_0\)</span>, intercept term in <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">intercept_prev</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\kappa_1\)</span></p></td>
+<td><p>Initial guess for intercept <span class="math notranslate nohighlight">\(\kappa_1\)</span>, slope coefficient for <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">slope_prev</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="Example-implementations-of-AggShockConsumerType">
+<h2>Example implementations of <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code><a class="headerlink" href="#Example-implementations-of-AggShockConsumerType" title="Link to this heading">#</a></h2>
+<p>We present two examples below, each using (more or less) the default parameters. Note that in each case, a <code class="docutils literal notranslate"><span class="pre">Market</span></code> is created alongside the <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>, and the model is only only fully specified when the two things are paired together.</p>
+<section id="Small-open-economy-example">
+<h3>Small open economy example<a class="headerlink" href="#Small-open-economy-example" title="Link to this heading">#</a></h3>
+<p>First, let’s make an <code class="docutils literal notranslate"><span class="pre">AggShockShockConsumerType</span></code> that lives in a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code>, so that the interest factor and wage rate are exogenously determined, but the agents are aware of aggregate productivity shocks. Because the <span class="math notranslate nohighlight">\(M_t\)</span> state is irrelevant, we can set its grid to be (nearly) trivial, with only three nodes. The consumption function will be identical at all three <span class="math notranslate nohighlight">\(M_t\)</span> values on the grid, and is completely flat with respect to <span class="math notranslate nohighlight">\(M_t\)</span>.</p>
+<p>This model solves in only a few seconds because it just needs to solve the microeconomic model once, rather than iterate on solving, simulating, and updating the aggregate saving rule until convergence.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make agents and a small open economy for the them</span>
+<span class="n">SOEaggShockType</span> <span class="o">=</span> <span class="n">AggShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">MaggCount</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">SOEmarket</span> <span class="o">=</span> <span class="n">SmallOpenEconomy</span><span class="p">(</span><span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">SOEaggShockType</span><span class="p">])</span>
+<span class="n">SOEmarket</span><span class="o">.</span><span class="n">make_AggShkHist</span><span class="p">()</span>  <span class="c1"># Simulate a history of aggregate shocks</span>
+<span class="n">SOEmarket</span><span class="o">.</span><span class="n">give_agent_params</span><span class="p">()</span>  <span class="c1"># Have agents collect market-level parameters and construct themselves</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve the small open economy with the default parameters</span>
+<span class="n">t_start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">SOEmarket</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t_end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving a small open economy took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving a small open economy took 10.9705 seconds.
+</pre></div></div>
+</div>
+<p>With the model solved, we can plot the consumption function. Because the <span class="math notranslate nohighlight">\(M_t\)</span> state is irrelevant, we need only plot it at one value of <span class="math notranslate nohighlight">\(M_t\)</span> (specified as <code class="docutils literal notranslate"><span class="pre">Z=[1.0]</span></code> in the cell below).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">SOEaggShockType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_func_slices</span><span class="p">(</span><span class="n">SOEaggShockType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">Z</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsAggShockModel_AggShockConsumerType_19_0.png" src="../../_images/examples_ConsAggShockModel_AggShockConsumerType_19_0.png" />
+</div>
+</div>
+</section>
+<section id="Example-Cobb-Douglas-production-economy">
+<h3>Example Cobb-Douglas production economy<a class="headerlink" href="#Example-Cobb-Douglas-production-economy" title="Link to this heading">#</a></h3>
+<p>Now we’ll make another <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code> instance, but this one will live in a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code>. To solve the model, the microeconomic model will be solved and simulated several times, updating the approximate aggregate saving rule <span class="math notranslate nohighlight">\(\mathbf{A}(\cdot)\)</span> after each pass based on the simulated history of <span class="math notranslate nohighlight">\((M_t, A_t)\)</span>. The solution process terminates when successive iterations of <span class="math notranslate nohighlight">\((\kappa_0, \kappa_1)\)</span> are sufficiently close.</p>
+<p>Because the <code class="docutils literal notranslate"><span class="pre">verbose</span></code> parameter on our <code class="docutils literal notranslate"><span class="pre">Market</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, solution progress will be printed to screen; you can watch the aggregate saving rule converge.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make an aggregate shocks consumer type and a Cobb-Douglas production economy for them</span>
+<span class="n">AggShockExample</span> <span class="o">=</span> <span class="n">AggShockConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">CobbDouglasExample</span> <span class="o">=</span> <span class="n">CobbDouglasEconomy</span><span class="p">(</span><span class="n">agents</span><span class="o">=</span><span class="p">[</span><span class="n">AggShockExample</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">make_AggShkHist</span><span class="p">()</span>  <span class="c1"># Simulate a history of aggregate shocks</span>
+<span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">give_agent_params</span><span class="p">()</span>  <span class="c1"># Have agents collect market-level parameters and construct themselves</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve the &quot;macroeconomic&quot; model by searching for a &quot;fixed point dynamic rule&quot;</span>
+<span class="n">t_start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Now solving for the equilibrium of a Cobb-Douglas economy. This might take a few minutes...&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t_end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s1">&#39;Solving the &quot;macroeconomic&quot; aggregate shocks model took &#39;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving for the equilibrium of a Cobb-Douglas economy. This might take a few minutes...
+intercept=-0.6141494844683355, slope=1.1854774298042328, r-sq=0.9966588059329554
+intercept=-0.27024173618969843, slope=1.0260663446051426, r-sq=0.9731061580758266
+intercept=-0.30693861919404236, slope=1.0556777836169178, r-sq=0.9924442589957739
+intercept=-0.337368853632431, slope=1.0662485062919753, r-sq=0.9921969452409733
+intercept=-0.3339454677400454, slope=1.0650655738930923, r-sq=0.9919036112130921
+intercept=-0.3343527084308289, slope=1.0652055085301424, r-sq=0.9919368983193704
+intercept=-0.33430222097686635, slope=1.0651882067038065, r-sq=0.9919329767253827
+Solving the &#34;macroeconomic&#34; aggregate shocks model took 285.0359 seconds.
+</pre></div></div>
+</div>
+<p>The aggregate saving rule isn’t much to look at, but we can plot it anyway.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Aggregate market resources $M_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Aggregate assets retained $A_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">AFunc</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">kSS</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsAggShockModel_AggShockConsumerType_24_0.png" src="../../_images/examples_ConsAggShockModel_AggShockConsumerType_24_0.png" />
+</div>
+</div>
+<p>That equilibrium <span class="math notranslate nohighlight">\(\mathbf{A}(M_t)\)</span> function was generated by regressing the history of <span class="math notranslate nohighlight">\(log(A_t)\)</span> on the history of <span class="math notranslate nohighlight">\(log(M_t)\)</span>, ignoring the first <code class="docutils literal notranslate"><span class="pre">T_discard=200</span></code> periods. The market retains its last recorded <code class="docutils literal notranslate"><span class="pre">history</span></code>, so we can plot that relationship:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Extract the history of $M_t$ and $A_t$</span>
+<span class="n">Magg</span> <span class="o">=</span> <span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;MaggNow&quot;</span><span class="p">]</span>
+<span class="n">Aagg</span> <span class="o">=</span> <span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">history</span><span class="p">[</span><span class="s2">&quot;AaggNow&quot;</span><span class="p">]</span>
+<span class="n">logM</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Magg</span><span class="p">)</span>
+<span class="n">logA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Aagg</span><span class="p">)</span>
+<span class="n">T0</span> <span class="o">=</span> <span class="n">CobbDouglasExample</span><span class="o">.</span><span class="n">T_discard</span>
+
+<span class="c1"># Plot log(M_t) vs log(A_t), taking account of lag</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logM</span><span class="p">[</span><span class="n">T0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">logA</span><span class="p">[</span><span class="n">T0</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:],</span> <span class="s2">&quot;.k&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Log aggregate market resources&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Log aggregate retained assets&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsAggShockModel_AggShockConsumerType_26_0.png" src="../../_images/examples_ConsAggShockModel_AggShockConsumerType_26_0.png" />
+</div>
+</div>
+<p>Now that aggregate <span class="math notranslate nohighlight">\(M_t\)</span> actually matters, we can plot the consumption function by <span class="math notranslate nohighlight">\(m_t\)</span> for different levels of <span class="math notranslate nohighlight">\(M_t\)</span>. In the plot below, we use the grid of <span class="math notranslate nohighlight">\(M_t\)</span> values itself, but the consumption function is also defined in between these levels.</p>
+<p>The lower curves are the consumption function when aggregate market resources are low, and thus aggregate capital is expected to be low; wages (labor income) are thus low and returns to retained assets are high, so the agents want to consume less and save more. The upper curves represent consumption when aggregate market resources are high, and thus capital will be high; the return to capital is lower, and labor income is high, so the agents want to consume more and save less.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">AggShockExample</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_func_slices</span><span class="p">(</span><span class="n">AggShockExample</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">Z</span><span class="o">=</span><span class="n">AggShockExample</span><span class="o">.</span><span class="n">Mgrid</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsAggShockModel_AggShockConsumerType_28_0.png" src="../../_images/examples_ConsAggShockModel_AggShockConsumerType_28_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Generalized Income Process</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="AggShockMarkovConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Aggregate Productivity Shocks with a Discrete State</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Microeconomic-Model-Statement-for-AggShockConsumerType">Microeconomic Model Statement for <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Model-Statement-for-a-CobbDouglasEconomy">Model Statement for a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Keeping-it-Simple:-SmallOpenEconomy">Keeping it Simple: <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-parameter-values-for-AggShockConsumerType">Example parameter values for <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-parameter-values-for-a-CobbDouglasEconomy">Example parameter values for a <code class="docutils literal notranslate"><span class="pre">CobbDouglasEconomy</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-parameters-for-a-SmallOpenEconomy">Example parameters for a <code class="docutils literal notranslate"><span class="pre">SmallOpenEconomy</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-implementations-of-AggShockConsumerType">Example implementations of <code class="docutils literal notranslate"><span class="pre">AggShockConsumerType</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Small-open-economy-example">Small open economy example</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Cobb-Douglas-production-economy">Example Cobb-Douglas production economy</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

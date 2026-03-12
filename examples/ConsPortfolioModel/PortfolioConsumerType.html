@@ -1,0 +1,1046 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Advanced Options for Portfolio Allocation Models &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsPortfolioModel/PortfolioConsumerType';</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsPortfolioModel/PortfolioConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Portfolio Allocation with “Sequential Solvers”" href="SequentialPortfolioConsumerType.html" />
+    <link rel="prev" title="Assets with Risky Returns: Portfolio Choice" href="RiskyAssetConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockMarkovConsumerType.html">Aggregate Productivity Shocks with a Discrete State</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/KrusellSmithType.html">Krusell-Smith Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequest.html">Warm-Glow Bequest Motive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/example_WarmGlowBequestPort.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHabitModel/HabitConsumerType.html">Habit Formation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Advanced Options for Portfolio Allocation Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/WealthPortfolioConsumerType.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Using Transition Matrix Methods under IndShockConsumerType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Advanced Options for Portfolio Allocation Models</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsPortfolioModel/PortfolioConsumerType.ipynb">examples/ConsPortfolioModel/PortfolioConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsPortfolioModel/PortfolioConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="PortfolioConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Advanced-Options-for-Portfolio-Allocation-Models">
+<h1>Advanced Options for Portfolio Allocation Models<a class="headerlink" href="#Advanced-Options-for-Portfolio-Allocation-Models" title="Link to this heading">#</a></h1>
+<p>HARK’s <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code> introduced consumers who can save in a risky asset as well as the risk-free asset. The <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> models the same problem, but with additional “advanced” options. Using these options significantly increases the computational complexity of solving the model, so we recommend against using <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> unless you are specifically interested in these features:</p>
+<ol class="arabic simple">
+<li><p>Sticky portfolio choice: agents can only change their portfolio allocation with some probability.</p></li>
+<li><p>Discrete portfolio shares: agents have a finite menu of risky asset shares <span class="math notranslate nohighlight">\(s_t\)</span>, rather than a continuous choice.</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RiskyAssetConsumerType</span><span class="p">,</span> <span class="n">PortfolioConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsPortfolioModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_portfolio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span><span class="p">,</span> <span class="n">plot_func_slices</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</div>
+<section id="Standard-Portfolio-Choice-Model:-RiskyAssetConsumerType">
+<h2>Standard Portfolio Choice Model: <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code><a class="headerlink" href="#Standard-Portfolio-Choice-Model:-RiskyAssetConsumerType" title="Link to this heading">#</a></h2>
+<p>To begin, let’s solve the standard <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code> as a comparitor for the advanced options below. The model is described in <a class="reference internal" href="RiskyAssetConsumerType.html"><span class="doc">this notebook</span></a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Adjust the default parameters for PortfolioConsumerType slightly</span>
+<span class="n">temp_params</span> <span class="o">=</span> <span class="n">init_portfolio</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="n">temp_params</span><span class="p">[</span><span class="s2">&quot;cycles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># infinite horizon</span>
+<span class="k">del</span> <span class="n">temp_params</span><span class="p">[</span><span class="s2">&quot;constructors&quot;</span><span class="p">]</span>  <span class="c1"># don&#39;t overwrite these</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a baseline risky asset consumer type</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving the baseline risky asset consumer&#39;s problem...&quot;</span><span class="p">)</span>
+<span class="n">BaseType</span> <span class="o">=</span> <span class="n">RiskyAssetConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">temp_params</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">BaseType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;ShareFunc&quot;</span><span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Solving the baseline risky asset problem took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving the baseline risky asset consumer&#39;s problem...
+Solving the baseline risky asset problem took 1.1113 seconds.
+</pre></div></div>
+</div>
+</section>
+<section id="Advanced-Portfolio-Choice-Model:-PortfolioConsumerType">
+<h2>Advanced Portfolio Choice Model: <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code><a class="headerlink" href="#Advanced-Portfolio-Choice-Model:-PortfolioConsumerType" title="Link to this heading">#</a></h2>
+<p>The most obvious comparison to make is to solve the <em>exact same</em> model again, but with <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> rather than <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code>. Note that for the baseline type, we used the default parameter dictionary for <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code>, so this is an apples-to-apples comparison. When we plot the policy functions below, they <em>should</em> be identical.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve the portfolio choice consumer type with default parameters</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving the advanced portfolio choice consumer&#39;s problem...&quot;</span><span class="p">)</span>
+<span class="n">PortfolioType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">PortfolioType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">PortfolioType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFuncAdj&quot;</span><span class="p">)</span>
+<span class="n">PortfolioType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;ShareFuncAdj&quot;</span><span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving the advanced portfolio choice problem took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving the advanced portfolio choice consumer&#39;s problem...
+Solving the advanced portfolio choice problem took 10.5826 seconds.
+</pre></div></div>
+</div>
+<p>Note that the policy functions have slightly different names for a <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code>: the suffix <code class="docutils literal notranslate"><span class="pre">Adj</span></code> has been appended, for “adjust”. With the default parameters, the agents are free to adjust their portfolio allocation in every period, so these are the only functions that matter.</p>
+<p>Let’s compare the policy functions between the two models to verify that they’re the same.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare consumption functions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">BaseType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">PortfolioType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Consumption $c_t$&quot;</span><span class="p">,</span>
+    <span class="n">legend_kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;advanced&quot;</span><span class="p">],</span> <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_8_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_8_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare risky asset share functions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">BaseType</span><span class="o">.</span><span class="n">ShareFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">PortfolioType</span><span class="o">.</span><span class="n">ShareFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Risky asset share $s_t$&quot;</span><span class="p">,</span>
+    <span class="n">legend_kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;baseline&quot;</span><span class="p">,</span> <span class="s2">&quot;advanced&quot;</span><span class="p">],</span> <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_9_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_9_0.png" />
+</div>
+</div>
+<p>I can’t even see the baseline (blue) policy functions because they’re fully covered up by the advanced (orange) functions. Great!</p>
+</section>
+<section id="Discrete-Portfolio-Share-Choice">
+<h2>Discrete Portfolio Share Choice<a class="headerlink" href="#Discrete-Portfolio-Share-Choice" title="Link to this heading">#</a></h2>
+<p>The first “advanced” option for <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> is discrete risky asset shares. Recall that the agents are usually allowed to choose any risky asset share on the unit interval: <span class="math notranslate nohighlight">\(s_t \in [0,1]\)</span>. An alternative assumption is that there is a finite set <span class="math notranslate nohighlight">\(\mathbb{S}\)</span> from which they can make their choice: <span class="math notranslate nohighlight">\(s_t \in \mathbb{S}\)</span>. If this is the case, then the first order condition for optimal risky asset share obviously does not apply. Instead, the optimal share is chosen by
+explicitly maximizing over the discrete options.</p>
+<p>To model this feature, the parameter <code class="docutils literal notranslate"><span class="pre">DiscreteShareBool</span></code> should be set to <code class="docutils literal notranslate"><span class="pre">True</span></code>. The set <span class="math notranslate nohighlight">\(\mathbb{S}\)</span> is determined by the constructed attribute <code class="docutils literal notranslate"><span class="pre">ShareGrid</span></code>. By default, <code class="docutils literal notranslate"><span class="pre">ShareGrid</span></code> is linearly spaced on <span class="math notranslate nohighlight">\([0,1]\)</span> with <code class="docutils literal notranslate"><span class="pre">ShareCount</span></code> nodes. The default <code class="docutils literal notranslate"><span class="pre">ShareCount</span></code> is <span class="math notranslate nohighlight">\(26\)</span>, so <span class="math notranslate nohighlight">\(\mathbb{S} = \left\{0, 0.04, 0.08, \cdots, 0.96, 1\right\}\)</span>. Because explicit value maximization is used, the parameter <code class="docutils literal notranslate"><span class="pre">vFuncBool</span></code> must be set to <span class="math notranslate nohighlight">\(True\)</span> to use discrete portfolio
+shares.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create and solve the discrete choice type</span>
+<span class="n">DiscreteType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">DiscreteShareBool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">vFuncBool</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving a discrete choice portfolio problem...&quot;</span><span class="p">)</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFuncAdj&quot;</span><span class="p">)</span>
+<span class="n">DiscreteType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;ShareFuncAdj&quot;</span><span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon discrete portfolio choice problem took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving a discrete choice portfolio problem...
+Solving an infinite horizon discrete portfolio choice problem took 22.1888 seconds.
+</pre></div></div>
+</div>
+<p>Now let’s plot and compare the policy functions for the discrete choice problem to the continuous choice problem. We should expect that the risky asset share follows fairly closely to the continuous version, but as a discontinuous step function. Because the risky asset shares aren’t <em>too</em> different, the consumption functions should be quite similar, but not the <em>same</em>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the consumption functions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">PortfolioType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">DiscreteType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Consumption $c_t$&quot;</span><span class="p">,</span>
+    <span class="n">legend_kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;continuous choice&quot;</span><span class="p">,</span> <span class="s2">&quot;discrete choice&quot;</span><span class="p">],</span> <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_14_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_14_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the risky asset share functions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">PortfolioType</span><span class="o">.</span><span class="n">ShareFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">DiscreteType</span><span class="o">.</span><span class="n">ShareFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Risky asset share $s_t$&quot;</span><span class="p">,</span>
+    <span class="n">legend_kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;continuous choice&quot;</span><span class="p">,</span> <span class="s2">&quot;discrete choice&quot;</span><span class="p">],</span> <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_15_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_15_0.png" />
+</div>
+</div>
+<p>Those consumption functions are so similar that you might not believe they’re actually different, so let’s zoom in on just the difference between the two.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the difference between the discrete and continuous choice consumption functions</span>
+<span class="n">cDiff</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="p">(</span><span class="n">DiscreteType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="n">PortfolioType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">m</span><span class="p">))</span> <span class="o">*</span> <span class="mf">10e4</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="n">cDiff</span><span class="p">,</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Difference in consumption functions ($10^{-4}$)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_17_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_17_0.png" />
+</div>
+</div>
+<p>Now we can see that the consumption function for the discrete choice portfolio problem is <em>also</em> discontinuous– barely. Each of the sharp drops in the difference between consumption functions corresponds to a discontinuity in the discrete share function because of its “step” form. Naturally, when one control changes discontinuously, the other must as well.</p>
+</section>
+<section id="Sticky-Portfolio-Share-Choice">
+<h2>Sticky Portfolio Share Choice<a class="headerlink" href="#Sticky-Portfolio-Share-Choice" title="Link to this heading">#</a></h2>
+<p>The second “advanced” extension for <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> is “sticky” portfolio shares. Rather than being able to adjust their portfolio allocation each period, the agents have only a probability <span class="math notranslate nohighlight">\(\pi\)</span> (called <code class="docutils literal notranslate"><span class="pre">AdjustPrb</span></code> in the code) of being able to reallocate their wealth between the risky and risk-free asset. Otherwise, their risky asset share <span class="math notranslate nohighlight">\(s_t\)</span> remains at its value from the prior period.</p>
+<p>The prior risky asset share <span class="math notranslate nohighlight">\(s_{t-1}\)</span> thus becomes a decision-time state variable, at least for agents who cannot adjust their portfolio share. This is the major factor for why the <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code> takes so much longer to solve than an equivalent <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code>. That is, the “advanced” model treats the problem as having <em>two</em> state variables no matter what, and represents the consumption function for “suboptimal” outcomes in which the portfolio share is fixed <em>even if</em>
+it can always be adjusted.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a sticky portfolio choice consumer type</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Now solving a portfolio choice problem with sticky portfolio shares...&quot;</span><span class="p">)</span>
+<span class="n">StickyType</span> <span class="o">=</span> <span class="n">PortfolioConsumerType</span><span class="p">(</span>
+    <span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">AdjustPrb</span><span class="o">=</span><span class="mf">0.15</span>
+<span class="p">)</span>  <span class="c1"># only get to adjust 15% of the time!</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFuncAdj&quot;</span><span class="p">)</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;ShareFuncAdj&quot;</span><span class="p">)</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFuncFxd&quot;</span><span class="p">)</span>
+<span class="n">StickyType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;ShareFuncFxd&quot;</span><span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon sticky portfolio choice problem took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now solving a portfolio choice problem with sticky portfolio shares...
+Solving an infinite horizon sticky portfolio choice problem took 26.7473 seconds.
+</pre></div></div>
+</div>
+<p>Let’s compare the consumption functions and risky asset share functions for the sticky problem to the original one. We should expect them to be similar, but not quite the same.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the sticky and flexible consumption functions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">PortfolioType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">StickyType</span><span class="o">.</span><span class="n">cFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Consumption $c_t$&quot;</span><span class="p">,</span>
+    <span class="n">legend_kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;flexible share&quot;</span><span class="p">,</span> <span class="s2">&quot;sticky share&quot;</span><span class="p">],</span> <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_22_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_22_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the sticky and flexible risky share functions</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">PortfolioType</span><span class="o">.</span><span class="n">ShareFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">StickyType</span><span class="o">.</span><span class="n">ShareFuncAdj</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Risky asset share $s_t$&quot;</span><span class="p">,</span>
+    <span class="n">legend_kwds</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;flexible share&quot;</span><span class="p">,</span> <span class="s2">&quot;sticky share&quot;</span><span class="p">],</span> <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_23_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_23_0.png" />
+</div>
+</div>
+<p>Where they differ, the optimal risky asset share in the sticky choice model is slightly higher than the flexible choice model. Why is that? With these parameters, consumers with high <span class="math notranslate nohighlight">\(m_t\)</span> (i.e. above the point where they no longer put all of their wealth into the risky asset) plan to run their wealth down over time and be at lower <span class="math notranslate nohighlight">\(m_t\)</span> in the future– their “target” market resources are significantly lower. The optimal risky asset share is non-increasing in <span class="math notranslate nohighlight">\(m_t\)</span>, and the
+consumers know that they will be “stuck” with their chosen <span class="math notranslate nohighlight">\(s_t\)</span> for 6-7 periods on average. They thus <em>overshoot</em> their risky asset share relative to the choice they would make if it could be updated <em>every</em> period, as they are making the choice for this period <em>and</em> (likely) the next several periods.</p>
+<p>The consumption function in the sticky portfolio choice model isn’t much different from the consumption function with flexible portfolio choice. Indeed, the consumption function when the agent <em>can’t</em> update their share doesn’t actually vary much by the portfolio share they’re currently “stuck” at. Let’s plot “slices” of that consumption function at different <span class="math notranslate nohighlight">\(s_t\)</span> values:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the &quot;fixed share&quot; consumption function at different levels of risky portfolio share</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+<span class="n">plot_func_slices</span><span class="p">(</span>
+    <span class="n">StickyType</span><span class="o">.</span><span class="n">cFuncFxd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">Z</span><span class="o">=</span><span class="n">StickyType</span><span class="o">.</span><span class="n">ShareGrid</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Consumption $c_t$&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_25_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_25_0.png" />
+</div>
+</div>
+<p>The policy functions when the consumer can’t adjust their share have the suffix <code class="docutils literal notranslate"><span class="pre">Fxd</span></code> (for “fixed”) appended. We can also plot the risky asset share function when the agent can’t adjust <span class="math notranslate nohighlight">\(s_t\)</span>, but it’s not much to look at.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the &quot;fixed share&quot; risky share function at different levels of risky portfolio share</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.01</span><span class="p">)</span>
+<span class="n">plot_func_slices</span><span class="p">(</span>
+    <span class="n">StickyType</span><span class="o">.</span><span class="n">ShareFuncFxd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="mf">0.0</span><span class="p">,</span>
+    <span class="mf">20.0</span><span class="p">,</span>
+    <span class="n">Z</span><span class="o">=</span><span class="n">StickyType</span><span class="o">.</span><span class="n">ShareGrid</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Market resources $m_t$&quot;</span><span class="p">,</span>
+    <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;Risky asset share $s_t$&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_27_0.png" src="../../_images/examples_ConsPortfolioModel_PortfolioConsumerType_27_0.png" />
+</div>
+</div>
+<p>Unsurprisingly, the risky asset share when risky asset share is fixed is… fixed.</p>
+<p>As a final note, the two extensions can be <em>combined</em>: HARK can handle a specification in which the agent can only select among a discrete set of risky asset shares <em>and</em> only gets to update their portfolio allocation occasionally.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="RiskyAssetConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Assets with Risky Returns: Portfolio Choice</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="SequentialPortfolioConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Portfolio Allocation with “Sequential Solvers”</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Standard-Portfolio-Choice-Model:-RiskyAssetConsumerType">Standard Portfolio Choice Model: <code class="docutils literal notranslate"><span class="pre">RiskyAssetConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Advanced-Portfolio-Choice-Model:-PortfolioConsumerType">Advanced Portfolio Choice Model: <code class="docutils literal notranslate"><span class="pre">PortfolioConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Discrete-Portfolio-Share-Choice">Discrete Portfolio Share Choice</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Sticky-Portfolio-Share-Choice">Sticky Portfolio Share Choice</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
