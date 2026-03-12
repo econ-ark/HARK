@@ -63,11 +63,11 @@ def make_simple_ShareGrid(ShareCount):
     return ShareGrid
 
 
-def select_risky_solver(PortfolioBool):
+def select_risky_solver(RiskyShareFixed):
     """
     Trivial constructor function that chooses between two solvers.
     """
-    if PortfolioBool:
+    if RiskyShareFixed is None:
         solve_one_period = solve_one_period_ConsPortChoice
     else:
         solve_one_period = solve_one_period_ConsIndShockRiskyAsset
@@ -155,9 +155,9 @@ IndShockRiskyAssetConsumerType_IncShkDstn_default = {
 # Default parameters to make aXtraGrid using make_assets_grid
 IndShockRiskyAssetConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraMax": 100.0,  # Maximum end-of-period "assets above minimum" value
+    "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
@@ -170,7 +170,7 @@ IndShockRiskyAssetConsumerType_RiskyDstn_default = {
 # Risky return factor moments are based on SP500 real returns from Shiller's
 # "chapter 26" data, which can be found at https://www.econ.yale.edu/~shiller/data.htm
 # Access it through the internet archive
-# We've (will) rounded them to the nearest .01
+# We have (or will) rounded them to the nearest .01
 
 # Default parameters to make RiskyDstn with make_simple_ShareGrid
 IndShockRiskyAssetConsumerType_ShareGrid_default = {
@@ -191,12 +191,11 @@ IndShockRiskyAssetConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
-    "RiskyShareFixed": 1.0,  # Fixed share of risky asset when PortfolioBool is False
+    "CubicBool": False,  # Whether to use cubic spline interpolation
+    "RiskyShareFixed": 1.0,  # Fixed share of risky asset; set to None for portfolio choice
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "IndepDstnBool": True,  # Whether return and income shocks are independent
-    "PortfolioBool": False,  # Whether this instance can choose portfolio shares
     "PortfolioBisect": False,  # What does this do?
     "pseudo_terminal": False,
 }
@@ -243,12 +242,13 @@ init_risky_asset = IndShockRiskyAssetConsumerType_default
 
 class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     r"""
-    A consumer type based on IndShockConsumerType, that has access to a risky asset for their savings. The
-    risky asset has lognormal returns that are possibly correlated with his
-    income shocks.
+    A consumer type based on IndShockConsumerType, that has access to a risky asset
+    for their savings, as well as a risk-free asset. The risky asset has lognormal
+    returns that are possibly correlated with his income shocks.
 
-    If PortfolioBool is False, then the risky asset share is always one.
-    Otherwise the agent can optimize their risky asset share.
+    If RiskyShareFixed is set to a number (on the unit interval), then the agent's
+    portfolio share is fixed at that value. If it is instead set to None, then the
+    agent can flexibly choose their risky asset share.
 
     .. math::
         \newcommand{\CRRA}{\rho}
@@ -310,8 +310,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         Whether to calculate the value function during solution.
     CubicBool: bool
         Whether to use cubic spline interpoliation.
-    PortfolioBool: Boolean
-        Determines whether agent will use portfolio optimization or they only have access to risky assets. If false, the risky share is always one.
 
     Simulation Parameters
     ---------------------
@@ -367,10 +365,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     ----------
     solution: list[Consumer solution object]
         Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
-        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle. If PortfolioBool is True, the solution also contains ShareFunc.
-
-        If PortfolioBool is True, the solution also contains:
-        ShareFunc - The asset share function for this period, defined over normalized market resources :math:`S=ShareFunc(mNrm)`.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
 
         Visit :class:`HARK.ConsumptionSaving.ConsIndShockModel.ConsumerSolution` for more information about the solution.
     history: Dict[Array]
@@ -395,9 +390,9 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     time_inv_ = IndShockConsumerType.time_inv_ + [
         "PortfolioBisect",
         "ShareGrid",
-        "PortfolioBool",
         "IndepDstnBool",
         "RiskyShareFixed",
+        "ShareAugFac",
     ]
     time_vary_ = IndShockConsumerType.time_vary_ + ["ShockDstn", "ShareLimit"]
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Adjust", "Risky"]
@@ -452,17 +447,11 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         -------
         Rport : np.array
             Array of size AgentCount with each simulated agent's realized portfolio
-            return factor.  Will be used by get_states() to calculate mNrmNow, where it
-            will be mislabeled as "Rfree".
+            return factor.  Will be used by get_states() to calculate mNrmNow.
         """
-
         RfreeNow = super().get_Rport()
         RiskyNow = self.shocks["Risky"]
-        if self.PortfolioBool:
-            ShareNow = self.controls["Share"]
-        else:
-            ShareNow = np.ones_like(RiskyNow)  # Only asset is risky asset
-
+        ShareNow = self.controls["Share"]
         Rport = ShareNow * RiskyNow + (1.0 - ShareNow) * RfreeNow
         self.Rport = Rport
         return Rport
@@ -563,7 +552,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
     def get_controls(self):
         """
         Calculates consumption for each consumer of this type using the consumption functions;
-        also calculates risky asset share when PortfolioBool=True
+        also calculates risky asset share when there is portfolio share.
 
         Parameters
         ----------
@@ -583,7 +572,7 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
                 cNrmNow[idx], MPCnow[idx] = self.solution[t].cFunc.eval_with_derivative(
                     mNrm
                 )
-                if self.PortfolioBool:
+                if self.RiskyShareFixed is None:
                     ShareNow[idx] = self.solution[t].ShareFunc(mNrm)
                 else:
                     ShareNow[idx] = self.RiskyShareFixed
@@ -619,6 +608,7 @@ def solve_one_period_ConsPortChoice(
     aXtraGrid,
     ShareGrid,
     ShareLimit,
+    ShareAugFac,
     vFuncBool,
     IndepDstnBool,
 ):
@@ -668,6 +658,11 @@ def solve_one_period_ConsPortChoice(
         risky share choice is specified as discrete rather than continuous.
     ShareLimit : float
         Limiting lower bound of risky portfolio share as mNrm approaches infinity.
+    ShareAugFac : int
+        Number of times to perform an "augmented" search for optimal risky asset
+        shares by "zooming in" on on FOC-crossing region. Setting this above zero
+        will make the solution slightly more accurate and can aid stability for
+        "unusual" or extreme parameter sets.
     vFuncBool: boolean
         An indicator for whether the value function should be computed and
         included in the reported solution.
@@ -983,16 +978,17 @@ def solve_one_period_ConsPortChoice(
     crossing = np.logical_and(FOC_s[:, 1:] <= 0.0, FOC_s[:, :-1] >= 0.0)
     share_idx = np.argmax(crossing, axis=1)
 
-    for k in range(3):
-        # This represents the index of the segment of the share grid where dvds flips
-        # from positive to negative, indicating that there's a zero *on* the segment.
-        # The exception is for aNrm values that are flagged as constrained, for which
-        # there will be no crossing point and we can just use the boundary value.
+    # share_idx represents the index of the segment of the share grid where dvds flips
+    # from positive to negative, indicating that there's a zero *on* the segment.
+    # The exception is for aNrm values that are flagged as constrained, for which
+    # there will be no crossing point and we can just use the boundary value.
 
-        # Now that we have a *range* for the location of the optimal share, we can
-        # do a refined search for the optimal share at each aNrm value where there
-        # is an interior solution (not constrained). We now make a refined ShareGrid
-        # that has *different* values on it for each aNrm value.
+    # Now that we have a *range* for the location of the optimal share, we can
+    # do a refined search for the optimal share at each aNrm value where there
+    # is an interior solution (not constrained). We now make a refined ShareGrid
+    # that has *different* values on it for each aNrm value.
+
+    for k in range(ShareAugFac):
         bot_s = ShareNext[a_idx, share_idx]
         top_s = ShareNext[a_idx, share_idx + 1]
         for j in range(aNrmCount):
@@ -1129,7 +1125,7 @@ def solve_one_period_ConsIndShockRiskyAsset(
 ):
     """
     Solves one period of a consumption-saving model with idiosyncratic shocks to
-    permanent and transitory income, with one risky asset and CRRA utility.
+    permanent and transitory income, with a risky and riskless asset and CRRA utility.
 
     Parameters
     ----------

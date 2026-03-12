@@ -967,7 +967,7 @@ PortfolioConsumerType_IncShkDstn_default = {
 # Default parameters to make aXtraGrid using make_assets_grid
 PortfolioConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 100,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 100.0,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 1,  # Exponential nesting factor for aXtraGrid
     "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
@@ -980,7 +980,7 @@ PortfolioConsumerType_RiskyDstn_default = {
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
 }
 PortfolioConsumerType_ShareGrid_default = {
-    "ShareCount": 25  # Number of discrete points in the risky share approximation
+    "ShareCount": 26  # Number of discrete points in the risky share approximation
 }
 
 # Make a dictionary to specify a risky asset consumer type
@@ -997,12 +997,11 @@ PortfolioConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # This *must* be set to True; only exists because of inheritance
     "PortfolioBisect": False,  # What does this do?
     "IndepDstnBool": True,  # Whether return and income shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "RiskyShareFixed": None,  # This does nothing in this model; only exists because of inheritance
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents

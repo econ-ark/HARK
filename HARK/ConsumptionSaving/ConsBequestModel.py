@@ -1278,6 +1278,7 @@ init_portfolio_bequest = {
     "PortfolioBool": True,  # Whether this agent has portfolio choice
     "PortfolioBisect": False,  # What does this do?
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL

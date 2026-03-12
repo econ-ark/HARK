@@ -258,7 +258,7 @@ class testFindTarget(unittest.TestCase):
 
     def test_risky_asset_type(self):
         RiskyType = RiskyAssetConsumerType(
-            cycles=0, PortfolioBool=True, CRRA=5.0, Rfree=[1.02], RiskyAvg=1.04
+            cycles=0, RiskyShareFixed=False, CRRA=5.0, Rfree=[1.02], RiskyAvg=1.04
         )
         RiskyType.solve()
         m_targ = RiskyType.find_target("mNrm")
