@@ -2324,7 +2324,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                     "Finished cycle #"
                     + str(completed_cycles)
                     + " in "
-                    + str(t_now - t_last)
+                    + "{:.6f}".format(t_now - t_last)
                     + " seconds, solution distance = "
                     + str(solution_distance)
                 )

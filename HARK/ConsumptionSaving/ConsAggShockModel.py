@@ -31,7 +31,7 @@ from HARK.distributions import (
     MarkovProcess,
     MeanOneLogNormal,
     Uniform,
-    calc_expectation,
+    expected,
     combine_indep_dstns,
 )
 from HARK.interpolation import (
@@ -188,7 +188,6 @@ def solveConsAggShock(
     AFunc,
     Rfunc,
     wFunc,
-    DeprRte,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -231,8 +230,6 @@ def solveConsAggShock(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprRte : float
-        Capital Depreciation Rate
 
     Returns
     -------
@@ -296,9 +293,7 @@ def solveConsAggShock(
 
     # Compute end-of-period marginal value of assets
     MaggNow = np.tile(np.reshape(Mgrid, (1, Mcount)), (aCount, 1))  # Tiled Mgrid
-    EndOfPrdvP = (
-        DiscFac * LivPrb * calc_expectation(IncShkDstn, vPnextFunc, *(aNrmNow, MaggNow))
-    )
+    EndOfPrdvP = DiscFac * LivPrb * expected(vPnextFunc, IncShkDstn, (aNrmNow, MaggNow))
 
     # Calculate optimal consumption from each asset gridpoint and endogenous m_t gridpoint
     cNrmNow = EndOfPrdvP ** (-1.0 / CRRA)
@@ -406,8 +401,6 @@ def solve_ConsAggMarkov(
         The net interest factor on assets as a function of capital ratio k.
     wFunc : function
         The wage rate for labor as a function of capital-to-labor ratio k.
-    DeprRte : float
-        Capital Depreciation Rate
 
     Returns
     -------
@@ -765,8 +758,8 @@ default_IncShkDstn_params = {
 default_aXtraGrid_params = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
-    "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 24,  # Number of points in the grid of "assets above minimum"
+    "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
+    "aXtraCount": 36,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
@@ -836,7 +829,7 @@ class AggShockConsumerType(IndShockConsumerType):
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
     time_inv_ = IndShockConsumerType.time_inv_.copy()
-    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "DeprRte", "PermGroFacAgg"]
+    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "PermGroFacAgg"]
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
@@ -849,7 +842,6 @@ class AggShockConsumerType(IndShockConsumerType):
         "AFunc",
         "Rfunc",
         "wFunc",
-        "DeprRte",
         "PermGroFacAgg",
         "AggShkDstn",
     ]
@@ -1220,7 +1212,17 @@ def make_assets_grid_KS(aMin, aMax, aCount, aNestFac):
 
 
 def make_KS_transition_arrays(
-    aGrid, Mgrid, AFunc, LbrInd, UrateB, UrateG, ProdB, ProdG, MrkvIndArray
+    aGrid,
+    Mgrid,
+    AFunc,
+    LbrInd,
+    UrateB,
+    UrateG,
+    ProdB,
+    ProdG,
+    MrkvIndArray,
+    CapShare,
+    DeprRte,
 ):
     """
     Construct the attributes ProbArray, mNextArray, MnextArray, and RnextArray,
@@ -1248,6 +1250,10 @@ def make_KS_transition_arrays(
         TFP in the "good" aggregate state.
     MrkvIndArray : np.array
         Markov transition probabilities from the perspective of the individual.
+    CapShare : float
+        Capital's share of production.
+    DeprRte : float
+        Capital depreciation rate.
 
     Returns
     -------
@@ -1319,6 +1325,131 @@ def make_KS_transition_arrays(
     return transition_arrays
 
 
+def make_emp_idx_arrays(UrateB, UrateG, MrkvIndArray, MrkvAggArray, AgentCount):
+    """
+    Construct the attributes emp_permute and unemp_permute, each of which is
+    a 2x2 nested list of boolean arrays.  The j,k-th element of emp_permute
+    represents the employment states this period for agents who were employed
+    last period when the macroeconomy is transitioning from state j to state k.
+    Likewise, j,k-th element of unemp_permute represents the employment states
+    this period for agents who were unemployed last period when the macro-
+    economy is transitioning from state j to state k.  These attributes are
+    referenced during simulation, when they are randomly permuted in order to
+    maintain exact unemployment rates in each period.
+
+    Parameters
+    ----------
+    UrateB : float
+        Unemployment rate in bad economic state.
+    UrateG : float
+        Unemployment rate in good economic state.
+    MrkvIndArray : np.array
+        4x4 array of transition probabilities among discrete states from the
+        perspective of an individual consumer.
+    MrkvAggArray : np.array
+        2x2 array of transition probabilities among aggregate discrete states.
+    AgentCount : int
+        Number of agents to simulate.
+
+    Returns
+    -------
+    emp_idx_arrays : dict
+        Dictionary with two entries: unemp_permute and emp_permute.
+    """
+    # Get counts of employed and unemployed agents in each macroeconomic state
+    B_unemp_N = int(np.round(UrateB * AgentCount))
+    B_emp_N = AgentCount - B_unemp_N
+    G_unemp_N = int(np.round(UrateG * AgentCount))
+    G_emp_N = AgentCount - G_unemp_N
+
+    # Bad-bad transition indices
+    BB_stay_unemp_N = int(np.round(B_unemp_N * MrkvIndArray[0, 0] / MrkvAggArray[0, 0]))
+    BB_become_unemp_N = B_unemp_N - BB_stay_unemp_N
+    BB_stay_emp_N = int(np.round(B_emp_N * MrkvIndArray[1, 1] / MrkvAggArray[0, 0]))
+    BB_become_emp_N = B_emp_N - BB_stay_emp_N
+    BB_unemp_permute = np.concatenate(
+        [
+            np.ones(BB_become_emp_N, dtype=bool),
+            np.zeros(BB_stay_unemp_N, dtype=bool),
+        ]
+    )
+    BB_emp_permute = np.concatenate(
+        [
+            np.ones(BB_stay_emp_N, dtype=bool),
+            np.zeros(BB_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Bad-good transition indices
+    BG_stay_unemp_N = int(np.round(B_unemp_N * MrkvIndArray[0, 2] / MrkvAggArray[0, 1]))
+    BG_become_unemp_N = G_unemp_N - BG_stay_unemp_N
+    BG_stay_emp_N = int(np.round(B_emp_N * MrkvIndArray[1, 3] / MrkvAggArray[0, 1]))
+    BG_become_emp_N = G_emp_N - BG_stay_emp_N
+    BG_unemp_permute = np.concatenate(
+        [
+            np.ones(BG_become_emp_N, dtype=bool),
+            np.zeros(BG_stay_unemp_N, dtype=bool),
+        ]
+    )
+    BG_emp_permute = np.concatenate(
+        [
+            np.ones(BG_stay_emp_N, dtype=bool),
+            np.zeros(BG_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Good-bad transition indices
+    GB_stay_unemp_N = int(np.round(G_unemp_N * MrkvIndArray[2, 0] / MrkvAggArray[1, 0]))
+    GB_become_unemp_N = B_unemp_N - GB_stay_unemp_N
+    GB_stay_emp_N = int(np.round(G_emp_N * MrkvIndArray[3, 1] / MrkvAggArray[1, 0]))
+    GB_become_emp_N = B_emp_N - GB_stay_emp_N
+    GB_unemp_permute = np.concatenate(
+        [
+            np.ones(GB_become_emp_N, dtype=bool),
+            np.zeros(GB_stay_unemp_N, dtype=bool),
+        ]
+    )
+    GB_emp_permute = np.concatenate(
+        [
+            np.ones(GB_stay_emp_N, dtype=bool),
+            np.zeros(GB_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Good-good transition indices
+    GG_stay_unemp_N = int(np.round(G_unemp_N * MrkvIndArray[2, 2] / MrkvAggArray[1, 1]))
+    GG_become_unemp_N = G_unemp_N - GG_stay_unemp_N
+    GG_stay_emp_N = int(np.round(G_emp_N * MrkvIndArray[3, 3] / MrkvAggArray[1, 1]))
+    GG_become_emp_N = G_emp_N - GG_stay_emp_N
+    GG_unemp_permute = np.concatenate(
+        [
+            np.ones(GG_become_emp_N, dtype=bool),
+            np.zeros(GG_stay_unemp_N, dtype=bool),
+        ]
+    )
+    GG_emp_permute = np.concatenate(
+        [
+            np.ones(GG_stay_emp_N, dtype=bool),
+            np.zeros(GG_become_unemp_N, dtype=bool),
+        ]
+    )
+
+    # Package transition indices as a dictionary
+    unemp_permute = [
+        [BB_unemp_permute, BG_unemp_permute],
+        [GB_unemp_permute, GG_unemp_permute],
+    ]
+    emp_permute = [
+        [BB_emp_permute, BG_emp_permute],
+        [GB_emp_permute, GG_emp_permute],
+    ]
+    emp_idx_arrays = {
+        "unemp_permute": unemp_permute,
+        "emp_permute": emp_permute,
+    }
+    return emp_idx_arrays
+
+
 ###############################################################################
 
 # Make a dictionary for Krusell-Smith agents
@@ -1330,6 +1461,9 @@ KS_constructor_dict = {
     "mNextArray": get_it_from("transition_arrays"),
     "MnextArray": get_it_from("transition_arrays"),
     "RnextArray": get_it_from("transition_arrays"),
+    "emp_idx_arrays": make_emp_idx_arrays,
+    "unemp_permute": get_it_from("emp_idx_arrays"),
+    "emp_permute": get_it_from("emp_idx_arrays"),
     "MgridBase": make_exponential_MgridBase,
     "T_sim": get_it_from("act_T"),
     "Mgrid": make_Mgrid,
@@ -1337,11 +1471,11 @@ KS_constructor_dict = {
 
 init_KS_agents = {
     "T_cycle": 1,
+    "cycles": 0,
     "pseudo_terminal": False,
     "constructors": KS_constructor_dict,
     "DiscFac": 0.99,
     "CRRA": 1.0,
-    "LbrInd": 1.0,
     "aMin": 0.001,
     "aMax": 50.0,
     "aCount": 32,
@@ -1349,8 +1483,7 @@ init_KS_agents = {
     "MaggCount": 25,
     "MaggPerturb": 0.01,
     "MaggExpFac": 0.12,
-    "MgridBase": np.array([0.99, 1.0, 1.01]),  # dummy, this will be overwritten
-    "AgentCount": 5000,
+    "AgentCount": 10000,
 }
 
 
@@ -1427,122 +1560,6 @@ class KrusellSmithType(AgentType):
     def pre_solve(self):
         self.construct("solution_terminal")
 
-    def make_emp_idx_arrays(self):
-        """
-        Construct the attributes emp_permute and unemp_permute, each of which is
-        a 2x2 nested list of boolean arrays.  The j,k-th element of emp_permute
-        represents the employment states this period for agents who were employed
-        last period when the macroeconomy is transitioning from state j to state k.
-        Likewise, j,k-th element of unemp_permute represents the employment states
-        this period for agents who were unemployed last period when the macro-
-        economy is transitioning from state j to state k.  These attributes are
-        referenced during simulation, when they are randomly permuted in order to
-        maintain exact unemployment rates in each period.
-        """
-        # Get counts of employed and unemployed agents in each macroeconomic state
-        B_unemp_N = int(np.round(self.UrateB * self.AgentCount))
-        B_emp_N = self.AgentCount - B_unemp_N
-        G_unemp_N = int(np.round(self.UrateG * self.AgentCount))
-        G_emp_N = self.AgentCount - G_unemp_N
-
-        # Bad-bad transition indices
-        BB_stay_unemp_N = int(
-            np.round(B_unemp_N * self.MrkvIndArray[0, 0] / self.MrkvAggArray[0, 0])
-        )
-        BB_become_unemp_N = B_unemp_N - BB_stay_unemp_N
-        BB_stay_emp_N = int(
-            np.round(B_emp_N * self.MrkvIndArray[1, 1] / self.MrkvAggArray[0, 0])
-        )
-        BB_become_emp_N = B_emp_N - BB_stay_emp_N
-        BB_unemp_permute = np.concatenate(
-            [
-                np.ones(BB_become_emp_N, dtype=bool),
-                np.zeros(BB_stay_unemp_N, dtype=bool),
-            ]
-        )
-        BB_emp_permute = np.concatenate(
-            [
-                np.ones(BB_stay_emp_N, dtype=bool),
-                np.zeros(BB_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Bad-good transition indices
-        BG_stay_unemp_N = int(
-            np.round(B_unemp_N * self.MrkvIndArray[0, 2] / self.MrkvAggArray[0, 1])
-        )
-        BG_become_unemp_N = G_unemp_N - BG_stay_unemp_N
-        BG_stay_emp_N = int(
-            np.round(B_emp_N * self.MrkvIndArray[1, 3] / self.MrkvAggArray[0, 1])
-        )
-        BG_become_emp_N = G_emp_N - BG_stay_emp_N
-        BG_unemp_permute = np.concatenate(
-            [
-                np.ones(BG_become_emp_N, dtype=bool),
-                np.zeros(BG_stay_unemp_N, dtype=bool),
-            ]
-        )
-        BG_emp_permute = np.concatenate(
-            [
-                np.ones(BG_stay_emp_N, dtype=bool),
-                np.zeros(BG_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Good-bad transition indices
-        GB_stay_unemp_N = int(
-            np.round(G_unemp_N * self.MrkvIndArray[2, 0] / self.MrkvAggArray[1, 0])
-        )
-        GB_become_unemp_N = B_unemp_N - GB_stay_unemp_N
-        GB_stay_emp_N = int(
-            np.round(G_emp_N * self.MrkvIndArray[3, 1] / self.MrkvAggArray[1, 0])
-        )
-        GB_become_emp_N = B_emp_N - GB_stay_emp_N
-        GB_unemp_permute = np.concatenate(
-            [
-                np.ones(GB_become_emp_N, dtype=bool),
-                np.zeros(GB_stay_unemp_N, dtype=bool),
-            ]
-        )
-        GB_emp_permute = np.concatenate(
-            [
-                np.ones(GB_stay_emp_N, dtype=bool),
-                np.zeros(GB_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Good-good transition indices
-        GG_stay_unemp_N = int(
-            np.round(G_unemp_N * self.MrkvIndArray[2, 2] / self.MrkvAggArray[1, 1])
-        )
-        GG_become_unemp_N = G_unemp_N - GG_stay_unemp_N
-        GG_stay_emp_N = int(
-            np.round(G_emp_N * self.MrkvIndArray[3, 3] / self.MrkvAggArray[1, 1])
-        )
-        GG_become_emp_N = G_emp_N - GG_stay_emp_N
-        GG_unemp_permute = np.concatenate(
-            [
-                np.ones(GG_become_emp_N, dtype=bool),
-                np.zeros(GG_stay_unemp_N, dtype=bool),
-            ]
-        )
-        GG_emp_permute = np.concatenate(
-            [
-                np.ones(GG_stay_emp_N, dtype=bool),
-                np.zeros(GG_become_unemp_N, dtype=bool),
-            ]
-        )
-
-        # Store transition matrices as attributes of self
-        self.unemp_permute = [
-            [BB_unemp_permute, BG_unemp_permute],
-            [GB_unemp_permute, GG_unemp_permute],
-        ]
-        self.emp_permute = [
-            [BB_emp_permute, BG_emp_permute],
-            [GB_emp_permute, GG_emp_permute],
-        ]
-
     def reset(self):
         self.initialize_sim()
 
@@ -1553,7 +1570,6 @@ class KrusellSmithType(AgentType):
         self.shocks["Mrkv"] = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
-        self.make_emp_idx_arrays()
 
     def sim_birth(self, which):
         """
@@ -1651,52 +1667,23 @@ class KrusellSmithType(AgentType):
 ###############################################################################
 
 
-CRRA = 2.0
-DiscFac = 0.96
-
-# Parameters for a Cobb-Douglas economy
-PermGroFacAgg = 1.00  # Aggregate permanent income growth factor
-PermShkAggCount = (
-    3  # Number of points in discrete approximation to aggregate permanent shock dist
-)
-TranShkAggCount = (
-    3  # Number of points in discrete approximation to aggregate transitory shock dist
-)
-PermShkAggStd = 0.0063  # Standard deviation of log aggregate permanent shocks
-TranShkAggStd = 0.0031  # Standard deviation of log aggregate transitory shocks
-DeprRte = 0.025  # Capital depreciation rate
-CapShare = 0.36  # Capital's share of income
-DiscFacPF = DiscFac  # Discount factor of perfect foresight calibration
-CRRAPF = CRRA  # Coefficient of relative risk aversion of perfect foresight calibration
-intercept_prev = 0.0  # Intercept of aggregate savings function
-slope_prev = 1.0  # Slope of aggregate savings function
-verbose_cobb_douglas = (
-    True  # Whether to print solution progress to screen while solving
-)
-T_discard = 200  # Number of simulated "burn in" periods to discard when updating AFunc
-# Damping factor when updating AFunc; puts DampingFac weight on old params, rest on new
-DampingFac = 0.5
-max_loops = 20  # Maximum number of AFunc updating loops to allow
-
-
 # Make a dictionary to specify a Cobb-Douglas economy
 init_cobb_douglas = {
-    "PermShkAggCount": PermShkAggCount,
-    "TranShkAggCount": TranShkAggCount,
-    "PermShkAggStd": PermShkAggStd,
-    "TranShkAggStd": TranShkAggStd,
-    "DeprRte": DeprRte,
-    "CapShare": CapShare,
-    "DiscFac": DiscFacPF,
-    "CRRA": CRRAPF,
-    "PermGroFacAgg": PermGroFacAgg,
-    "AggregateL": 1.0,
-    "intercept_prev": intercept_prev,
-    "slope_prev": slope_prev,
-    "verbose": verbose_cobb_douglas,
-    "T_discard": T_discard,
-    "DampingFac": DampingFac,
-    "max_loops": max_loops,
+    "PermShkAggCount": 3,  # Number of points in discrete approximation to aggregate permanent shock dist
+    "TranShkAggCount": 3,  # Number of points in discrete approximation to aggregate transitory shock dist
+    "PermShkAggStd": 0.0063,  # Standard deviation of log aggregate permanent shocks
+    "TranShkAggStd": 0.0031,  # Standard deviation of log aggregate transitory shocks
+    "DeprRte": 0.025,  # Capital depreciation rate
+    "CapShare": 0.36,  # Capital's share of income
+    "DiscFac": 0.96,  # Discount factor of perfect foresight calibration
+    "CRRA": 2.0,  # Coefficient of relative risk aversion of perfect foresight calibration
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "intercept_prev": 0.0,  # Intercept of aggregate savings function
+    "slope_prev": 1.0,  # Slope of aggregate savings function,
+    "verbose": False,  # Whether to print solution progress to screen while solving
+    "T_discard": 200,  # Number of simulated "burn in" periods to discard when updating AFunc
+    "DampingFac": 0.1,  # Damping factor when updating AFunc
+    "max_loops": 20,  # Maximum number of AFunc updating loops to allow
 }
 
 
@@ -2014,6 +2001,22 @@ class CobbDouglasEconomy(Market):
         return AggShocksDynamicRule(AFunc)
 
 
+# Make a dictionary to specify a small open economy
+init_small_open_economy = {
+    "PermShkAggCount": 3,  # Number of points in discrete approximation to aggregate permanent shock dist
+    "TranShkAggCount": 3,  # Number of points in discrete approximation to aggregate transitory shock dist
+    "PermShkAggStd": 0.0063,  # Standard deviation of log aggregate permanent shocks
+    "TranShkAggStd": 0.0031,  # Standard deviation of log aggregate transitory shocks
+    "Rfree": 1.02,  # exogenous and fixed return factor on assets
+    "wRte": 1.0,  # exogenous and fixed wage rate
+    "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
+    "intercept_prev": 0.0,  # Intercept of aggregate savings function
+    "slope_prev": 1.0,  # Slope of aggregate savings function,
+    "verbose": False,  # Whether to print solution progress to screen while solving
+    "max_loops": 1,  # Maximum number of AFunc updating loops to allow, should always be 1
+}
+
+
 class SmallOpenEconomy(Market):
     """
     A class for representing a small open economy, where the wage rate and interest rate are
@@ -2034,6 +2037,8 @@ class SmallOpenEconomy(Market):
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         agents = agents if agents is not None else list()
+        params = init_small_open_economy.copy()
+        params.update(**kwds)
         Market.__init__(
             self,
             agents=agents,
@@ -2052,6 +2057,7 @@ class SmallOpenEconomy(Market):
             distributions=["PermShkAggDstn", "TranShkAggDstn", "AggShkDstn"],
             tolerance=tolerance,
             act_T=act_T,
+            **params,
         )
         self.assign_parameters(**kwds)
         self.update()
@@ -2230,8 +2236,8 @@ init_mrkv_cobb_douglas["TranShkAggStd"] = [0.006, 0.003]
 init_mrkv_cobb_douglas["PermGroFacAgg"] = [0.98, 1.02]
 init_mrkv_cobb_douglas["MrkvArray"] = MrkvArray
 init_mrkv_cobb_douglas["MrkvInit"] = 0
-init_mrkv_cobb_douglas["slope_prev"] = 2 * [slope_prev]
-init_mrkv_cobb_douglas["intercept_prev"] = 2 * [intercept_prev]
+init_mrkv_cobb_douglas["slope_prev"] = 2 * [1.0]
+init_mrkv_cobb_douglas["intercept_prev"] = 2 * [0.0]
 
 
 class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
@@ -2623,6 +2629,19 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         return AggShocksDynamicRule(AFunc_list)
 
 
+# Make a dictionary to specify a small open Markov economy
+init_mrkv_small_open_economy = init_small_open_economy.copy()
+init_mrkv_small_open_economy["PermShkAggStd"] = [0.012, 0.006]
+init_mrkv_small_open_economy["TranShkAggStd"] = [0.006, 0.003]
+init_mrkv_small_open_economy["PermGroFacAgg"] = [0.98, 1.02]
+init_mrkv_small_open_economy["MrkvArray"] = MrkvArray
+init_mrkv_small_open_economy["MrkvInit"] = 0
+init_mrkv_small_open_economy["slope_prev"] = 2 * [1.0]
+init_mrkv_small_open_economy["intercept_prev"] = 2 * [0.0]
+init_mrkv_small_open_economy["Rfree"] = 1.02
+init_mrkv_small_open_economy["wRte"] = 1.0
+
+
 class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
     """
     A class for representing a small open economy, where the wage rate and interest rate are
@@ -2633,7 +2652,7 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
 
     def __init__(self, agents=None, tolerance=0.0001, act_T=1000, **kwds):
         agents = agents if agents is not None else list()
-        temp_dict = init_mrkv_cobb_douglas.copy()
+        temp_dict = init_mrkv_small_open_economy.copy()
         temp_dict.update(kwds)
         CobbDouglasMarkovEconomy.__init__(
             self,
@@ -2667,10 +2686,10 @@ class SmallOpenMarkovEconomy(CobbDouglasMarkovEconomy, SmallOpenEconomy):
 
 
 init_KS_economy = {
-    "verbose": True,
+    "verbose": False,
     "act_T": 11000,
     "T_discard": 1000,
-    "DampingFac": 0.5,
+    "DampingFac": 0.1,
     "intercept_prev": [0.0, 0.0],
     "slope_prev": [1.0, 1.0],
     "DiscFac": 0.99,
@@ -2702,7 +2721,7 @@ class KrusellSmithEconomy(Market):
 
     Parameters
     ----------
-    agents : [ConsumerType]
+    agents : [KrusellSmithType]
         List of types of consumers that live in this economy.
     tolerance: float
         Minimum acceptable distance between "dynamic rules" to consider the
@@ -2791,13 +2810,13 @@ class KrusellSmithEconomy(Market):
         MrkvIndArray = np.zeros((4, 4))
 
         # BAD-BAD QUADRANT
-        MrkvIndArray[0, 1] = ProbBB * 1.0 / self.SpellMeanB
+        MrkvIndArray[0, 1] = ProbBB / self.SpellMeanB
         MrkvIndArray[0, 0] = ProbBB * (1 - 1.0 / self.SpellMeanB)
         MrkvIndArray[1, 0] = self.UrateB / (1.0 - self.UrateB) * MrkvIndArray[0, 1]
         MrkvIndArray[1, 1] = ProbBB - MrkvIndArray[1, 0]
 
         # GOOD-GOOD QUADRANT
-        MrkvIndArray[2, 3] = ProbGG * 1.0 / self.SpellMeanG
+        MrkvIndArray[2, 3] = ProbGG / self.SpellMeanG
         MrkvIndArray[2, 2] = ProbGG * (1 - 1.0 / self.SpellMeanG)
         MrkvIndArray[3, 2] = self.UrateG / (1.0 - self.UrateG) * MrkvIndArray[2, 3]
         MrkvIndArray[3, 3] = ProbGG - MrkvIndArray[3, 2]
@@ -2941,16 +2960,14 @@ class KrusellSmithEconomy(Market):
 
         Returns
         -------
-        (unnamed) : CapDynamicRule
+        (unnamed) : AggShocksDynamicRule
             Object containing new saving rules for each Markov state.
         """
         verbose = self.verbose
-        discard_periods = (
-            self.T_discard
-        )  # Throw out the first T periods to allow the simulation to approach the SS
-        update_weight = (
-            1.0 - self.DampingFac
-        )  # Proportional weight to put on new function vs old function parameters
+        # Throw out the first T periods to allow the simulation to approach the SS
+        discard_periods = self.T_discard
+        # Proportional weight to put on new function vs old function parameters
+        update_weight = 1.0 - self.DampingFac
         total_periods = len(Mnow)
 
         # Trim the histories of M_t and A_t and convert them to logs
