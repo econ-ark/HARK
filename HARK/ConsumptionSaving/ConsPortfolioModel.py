@@ -967,7 +967,7 @@ PortfolioConsumerType_IncShkDstn_default = {
 # Default parameters to make aXtraGrid using make_assets_grid
 PortfolioConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 100,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 100.0,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 1,  # Exponential nesting factor for aXtraGrid
     "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
@@ -980,7 +980,7 @@ PortfolioConsumerType_RiskyDstn_default = {
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
 }
 PortfolioConsumerType_ShareGrid_default = {
-    "ShareCount": 25  # Number of discrete points in the risky share approximation
+    "ShareCount": 26  # Number of discrete points in the risky share approximation
 }
 
 # Make a dictionary to specify a risky asset consumer type
