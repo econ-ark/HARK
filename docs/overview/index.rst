@@ -41,6 +41,8 @@ Overview
    ../../examples/ConsMarkovModel/MarkovConsumerType.ipynb
    ../../examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
    ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
+   ../../examples/ConsAggShockModel/AggShockMarkovConsumerType.ipynb
+   ../../examples/ConsAggShockModel/KrusellSmithType.ipynb
    ../../examples/ConsBequestModel/example_WarmGlowBequest.ipynb
    ../../examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
    ../../examples/ConsWealthUtilityModel/WealthUtilityConsumerType.ipynb

@@ -35,6 +35,7 @@ There are some breaking changes:
 - Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
 - Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
 - Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740.
+- Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
 
 ### 0.17.1
 
