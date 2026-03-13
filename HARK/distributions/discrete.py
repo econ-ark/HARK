@@ -484,8 +484,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # a DataArray with dimension "atom"
         self.probability = xr.DataArray(self.pmv, dims=("atom"))
 
-        # cache variable names for fast dict construction in expected()
+        # cache for fast labeled access in expected()
         self._var_names = var_names
+        self._wrapped_atoms = dict(zip(var_names, self.atoms))
 
     @classmethod
     def from_unlabeled(
@@ -541,6 +542,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         }
         ldd.seed = 0
         ldd._rng = np.random.default_rng(0)
+        ldd._wrapped_atoms = dict(zip(ldd._var_names, ldd.atoms))
 
         return ldd
 
@@ -654,20 +656,20 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             Scalar if only one value.
         """
 
-        kwargs.pop("labels", None)
+        if kwargs:
+            kwargs.pop("labels", None)
+            if kwargs:
+                f_query = func(self.dataset, *args, **kwargs)
+                return _weighted_mean(f_query, self.pmv)
 
         if func is None:
             return np.dot(self.atoms, self.pmv)
 
-        if kwargs:
-            f_query = func(self.dataset, *args, **kwargs)
-            return _weighted_mean(f_query, self.pmv)
-
-        # Fast labeled path: dict wrapper + np.dot, no super() indirection
-        args = [
-            np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
-            for arg in args
-        ]
-        wrapped = dict(zip(self._var_names, self.atoms))
-        f_query = func(wrapped, *args)
-        return np.dot(f_query, self.pmv)
+        # Fast labeled path: cached dict + np.dot
+        if args:
+            args = [
+                np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+                for arg in args
+            ]
+            return np.dot(func(self._wrapped_atoms, *args), self.pmv)
+        return np.dot(func(self._wrapped_atoms), self.pmv)
