@@ -672,6 +672,46 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
 
+    def test_labels_parameter(self):
+        """Test that labels=True uses dict indexing and labels=False uses integer indexing."""
+        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
+        IncShkDstn = DiscreteDistributionLabeled.from_unlabeled(
+            IncShkDstn,
+            name="Income shocks",
+            var_names=["perm_shk", "tran_shk"],
+        )
+
+        # labels=True (default): func receives dict with named keys
+        ce_labeled = IncShkDstn.expected(lambda d: d["perm_shk"] + d["tran_shk"])
+
+        # labels=True explicit: same result
+        ce_labeled_explicit = IncShkDstn.expected(
+            lambda d: d["perm_shk"] + d["tran_shk"], labels=True
+        )
+
+        # labels=False: func receives raw numpy atoms (integer indexing)
+        ce_unlabeled = IncShkDstn.expected(lambda x: x[0] + x[1], labels=False)
+
+        self.assertAlmostEqual(ce_labeled, ce_labeled_explicit, places=10)
+        self.assertAlmostEqual(ce_labeled, ce_unlabeled, places=10)
+
+        # labels=False with args
+        ce_with_args = IncShkDstn.expected(
+            lambda x, k: x[0] * k + x[1], 2.0, labels=False
+        )
+        ce_with_args_labeled = IncShkDstn.expected(
+            lambda d, k: d["perm_shk"] * k + d["tran_shk"], 2.0, labels=True
+        )
+        self.assertAlmostEqual(ce_with_args, ce_with_args_labeled, places=10)
+
+        # labels parameter should not leak to func (issue #1487)
+        ce_no_leak = IncShkDstn.expected(
+            lambda d: d["perm_shk"] + d["tran_shk"], labels=True
+        )
+        self.assertAlmostEqual(ce_no_leak, ce_labeled, places=10)
+
     def test_getters_setters(self):
         # Create some dummy dsnt
         dist = DiscreteDistributionLabeled(

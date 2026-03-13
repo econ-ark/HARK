@@ -11,7 +11,13 @@ from HARK.distributions.base import Distribution
 
 
 def _weighted_mean_var(var, pmv):
-    """Compute weighted mean of a single DataArray along its atom dimension."""
+    """Compute weighted mean of a single DataArray over its ``atom`` dimension.
+
+    If *var* is not an :class:`xr.DataArray` or lacks an ``atom`` dimension it
+    is returned unchanged.  This pass-through is intentional: variables without
+    an atom dimension (e.g. scalar metadata or grid coordinates) are preserved
+    as-is when called from :func:`_weighted_mean`.
+    """
     if not isinstance(var, xr.DataArray) or "atom" not in var.dims:
         return var
     atom_axis = var.dims.index("atom")
@@ -24,11 +30,17 @@ def _weighted_mean_var(var, pmv):
 
 
 def _weighted_mean(data, pmv):
-    """Compute weighted mean over the atom dimension using numpy.
+    """Compute weighted mean over the ``atom`` dimension using numpy.
 
-    Replaces the slow ``Dataset.weighted(prob).mean("atom")`` path
-    with ``np.tensordot`` for each variable, giving ~15x speedup
-    while returning an identical ``xr.Dataset``.
+    Used in the kwargs path of ``DDL.expected()`` when the caller passes
+    xarray-compatible keyword arguments.  Replaces the slow
+    ``Dataset.weighted(prob).mean("atom")`` with ``np.tensordot`` per
+    variable.  The common no-kwargs path uses a separate ``np.dot`` on
+    the cached ``_wrapped_atoms`` dict and does not call this function.
+
+    Returns an :class:`xr.Dataset` when *data* is a Dataset or dict,
+    an :class:`xr.DataArray` or scalar when *data* is a DataArray.
+    Raises :class:`TypeError` for other types.
     """
     if isinstance(data, xr.Dataset):
         return xr.Dataset(
@@ -45,7 +57,12 @@ def _weighted_mean(data, pmv):
         )
     elif isinstance(data, xr.DataArray):
         return _weighted_mean_var(data, pmv)
-    return data
+    raise TypeError(
+        f"_weighted_mean: unsupported data type '{type(data).__name__}'. "
+        "Expected xr.Dataset, xr.DataArray, or dict. "
+        "Ensure the function passed to expected() returns one of these types "
+        "when keyword arguments are used."
+    )
 
 
 class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
@@ -517,6 +534,11 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             ldd.dataset = xr.Dataset({x_obj.name: x_obj})
         elif isinstance(x_obj, dict):
             ldd.dataset = xr.Dataset(x_obj)
+        else:
+            raise TypeError(
+                f"from_dataset: 'x_obj' must be an xr.Dataset, xr.DataArray, "
+                f"or dict, got {type(x_obj).__name__}."
+            )
 
         ldd.probability = pmf
         ldd.pmv = np.asarray(pmf)
@@ -525,7 +547,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # Derive atoms from dataset variables that have the "atom" dimension.
         atom_vars = [
             v
-            for v in ldd.dataset.data_vars
+            for v in ldd._var_names
             if "atom" in ldd.dataset[v].dims and ldd.dataset[v].ndim == 1
         ]
         if atom_vars:
@@ -537,18 +559,13 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             "infimum": np.min(ldd.atoms, axis=-1),
             "supremum": np.max(ldd.atoms, axis=-1),
         }
+        # No seed argument available; default to 0 for consistency.
         ldd.seed = 0
         ldd._rng = np.random.default_rng(0)
-        ldd._wrapped_atoms = dict(zip(ldd._var_names, ldd.atoms))
+        # cache for fast labeled access in expected()
+        ldd._wrapped_atoms = dict(zip(atom_vars, ldd.atoms))
 
         return ldd
-
-    @property
-    def _weighted(self):
-        """
-        Returns a DatasetWeighted object for the distribution.
-        """
-        return self.dataset.weighted(self.probability)
 
     @property
     def variables(self):
@@ -629,8 +646,12 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         ----------
         func : function
             The function to be evaluated.
-            This function should take the full array of distribution values
-            and return either arrays of arbitrary shape or scalars.
+            By default, func receives a dict mapping variable names to numpy
+            arrays, e.g. ``{"perm_shk": array(...), "tran_shk": array(...)}``.
+            When ``labels=False``, func receives the raw numpy atoms array
+            instead (integer indexing, like ``DiscreteDistribution``).
+            When extra keyword arguments are passed, func receives the full
+            ``xr.Dataset``.
             It may also take other arguments \\*args.
             This function differs from the standalone `calc_expectation`
             method in that it uses numpy's vectorization and broadcasting
@@ -640,11 +661,10 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
-        labels : bool
-            If True, the function should use labeled indexing instead of integer
-            indexing using the distribution's underlying rv coordinates. For example,
-            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
-            the function can be `lambda x: x["a"] + x["b"]`.
+        labels : bool, optional
+            If True (default), func receives a dict of labeled arrays.
+            If False, func receives the raw numpy atoms array, making DDL
+            compatible with functions written for ``DiscreteDistribution``.
 
         Returns
         -------
@@ -652,17 +672,30 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             The expectation of the function at the queried values.
             Scalar if only one value.
         """
+        labels = kwargs.pop("labels", True)
 
         if kwargs:
-            kwargs.pop("labels", None)
-            if kwargs:
-                f_query = func(self.dataset, *args, **kwargs)
-                return _weighted_mean(f_query, self.pmv)
+            if func is None:
+                return _weighted_mean(self.dataset, self.pmv)
+            f_query = func(self.dataset, *args, **kwargs)
+            return _weighted_mean(f_query, self.pmv)
 
         if func is None:
             return np.dot(self.atoms, self.pmv)
 
-        # Fast labeled path: cached dict + np.dot
+        # labels=False: pass raw numpy atoms, like DiscreteDistribution
+        if not labels:
+            if args:
+                args = [
+                    np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+                    for arg in args
+                ]
+                return np.dot(func(self.atoms, *args), self.pmv)
+            return np.dot(func(self.atoms), self.pmv)
+
+        # Fast labeled path: use cached dict {var_name: np.ndarray} instead of
+        # the xarray dataset.  _wrapped_atoms maps variable names to the raw
+        # atom arrays, enabling np.dot without xarray overhead.
         if args:
             args = [
                 np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
