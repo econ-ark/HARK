@@ -610,7 +610,11 @@ def expected(func=None, dist=None, args=(), **kwargs):
     if not isinstance(args, tuple):
         args = (args,)
 
-    if isinstance(dist, DiscreteDistributionLabeled):
-        return dist.expected(func, *args, **kwargs)
-    elif isinstance(dist, DiscreteDistribution):
+    if args:
+        if kwargs:
+            return dist.expected(func, *args, **kwargs)
         return dist.expected(func, *args)
+
+    if kwargs:
+        return dist.expected(func, **kwargs)
+    return dist.expected(func)

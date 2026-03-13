@@ -300,18 +300,15 @@ class DiscreteDistribution(Distribution):
         """
 
         if func is None:
-            f_query = self.atoms
-        else:
+            return np.dot(self.atoms, self.pmv)
+
+        if args:
             args = [
                 np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
                 for arg in args
             ]
-
-            f_query = func(self.atoms, *args)
-
-        f_exp = np.dot(f_query, self.pmv)
-
-        return f_exp
+            return np.dot(func(self.atoms, *args), self.pmv)
+        return np.dot(func(self.atoms), self.pmv)
 
     def dist_of_func(
         self, func: Callable[..., float] = lambda x: x, *args: Any
