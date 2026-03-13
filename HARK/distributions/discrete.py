@@ -593,6 +593,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             Scalar if only one value.
         """
 
+        kwargs.pop("labels", None)
+
         def func_wrapper(x, *args):
             """
             Wrapper function for `func` that handles labeled indexing.
