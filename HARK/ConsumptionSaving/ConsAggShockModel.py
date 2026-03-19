@@ -11,6 +11,9 @@ import numpy as np
 import scipy.stats as stats
 
 from HARK import AgentType, Market
+from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
+    AggIndMarkovConsumerType,
+)
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
     construct_markov_lognormal_income_process_unemployment,
@@ -1487,7 +1490,7 @@ init_KS_agents = {
 }
 
 
-class KrusellSmithType(AgentType):
+class KrusellSmithType(AggIndMarkovConsumerType):
     """
     A class for representing agents in the seminal Krusell-Smith (1998) model from
     the paper "Income and Wealth Heterogeneity in the Macroeconomy".  All default
@@ -1496,6 +1499,16 @@ class KrusellSmithType(AgentType):
     in each macroeconomic state (bad=0, good=1), rather than aggregate capital as
     a function of previous aggregate capital.  This choice was made so that some
     of the code from HARK's other HA-macro models can be used.
+
+    This class inherits from AggIndMarkovConsumerType, which provides the
+    generic two-level hierarchical Markov state machinery:
+        - 2 macro states: bad (0), good (1)
+        - 2 micro states: unemployed (0), employed (1)
+        - Combined index: 0=BU, 1=BE, 2=GU, 3=GE
+
+    The micro-state transitions use exact-match permutation arrays to maintain
+    precise unemployment rates each period (overrides the default stochastic
+    draw in the base class).
 
     NB: Unlike most AgentType subclasses, KrusellSmithType does not automatically
     call its construct method as part of instantiation. In most cases, an instance of
@@ -1547,7 +1560,9 @@ class KrusellSmithType(AgentType):
     def __init__(self, **kwds):
         temp = kwds.copy()
         temp["construct"] = False
-        AgentType.__init__(self, **temp)
+        AggIndMarkovConsumerType.__init__(
+            self, num_macro_states=2, num_micro_states=2, **temp
+        )
         self.construct("MgridBase")
 
         # Special case: this type *must* be initialized with construct=False
@@ -1568,8 +1583,10 @@ class KrusellSmithType(AgentType):
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = self.MrkvInit
+        self.MacroMrkvNow = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
+        self.MicroMrkvNow = self.state_now["EmpNow"].astype(int)
 
     def sim_birth(self, which):
         """
@@ -1597,28 +1614,43 @@ class KrusellSmithType(AgentType):
 
         self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
         self.state_now["aNow"][which] = self.KSS
+        self.MicroMrkvNow = self.state_now["EmpNow"].astype(int)
 
     def get_shocks(self):
         """
-        Get new idiosyncratic employment states based on the macroeconomic state.
+        Two-step hierarchical Markov draw, then sync employment states.
+
+        Uses the AggIndMarkovConsumerType machinery:
+        1. Read macro state from economy (via self.shocks["Mrkv"])
+        2. Draw micro states via exact-match permutations
+        3. Compute combined state index
         """
-        # Get boolean arrays for current employment states
+        self.get_markov_states()
+        self.state_now["EmpNow"] = self.MicroMrkvNow.astype(bool)
+
+    def get_micro_markov_states(self):
+        """
+        Exact-match permutation logic for idiosyncratic employment transitions.
+
+        Instead of drawing stochastically from conditional probabilities, this
+        method shuffles boolean arrays to maintain the exact unemployment rate
+        implied by the macro state transition, matching Krusell & Smith (1998).
+        """
         employed = self.state_prev["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
-        # derive from past employment rate rather than store previous value
         mrkv_prev = int((unemployed.sum() / float(self.AgentCount)) != self.UrateB)
+        MacroNow = self.MacroMrkvNow
 
-        # Transition some agents between unemployment and employment
-        emp_permute = self.emp_permute[mrkv_prev][self.shocks["Mrkv"]]
-        unemp_permute = self.unemp_permute[mrkv_prev][self.shocks["Mrkv"]]
-        # TODO: replace poststate_vars functionality with shocks here
-        EmpNow = self.state_now["EmpNow"]
+        emp_permute = self.emp_permute[mrkv_prev][MacroNow]
+        unemp_permute = self.unemp_permute[mrkv_prev][MacroNow]
 
-        # It's really this permutation that is the shock...
-        # This apparatus is trying to 'exact match' the 'internal' Markov process.
+        EmpNow = self.state_now["EmpNow"].copy()
         EmpNow[employed] = self.RNG.permutation(emp_permute)
         EmpNow[unemployed] = self.RNG.permutation(unemp_permute)
+
+        self.state_now["EmpNow"] = EmpNow
+        self.MicroMrkvNow = EmpNow.astype(int)
 
     def get_states(self):
         """
@@ -1631,22 +1663,16 @@ class KrusellSmithType(AgentType):
 
     def get_controls(self):
         """
-        Get each agent's consumption given their current state.'
+        Get each agent's consumption using the combined Markov state index
+        to look up the appropriate 2D consumption function.
         """
         employed = self.state_now["EmpNow"].copy().astype(bool)
         unemployed = np.logical_not(employed)
 
-        # Get the discrete index for (un)employed agents
-        if self.shocks["Mrkv"] == 0:  # Bad macroeconomic conditions
-            unemp_idx = 0
-            emp_idx = 1
-        elif self.shocks["Mrkv"] == 1:  # Good macroeconomic conditions
-            unemp_idx = 2
-            emp_idx = 3
-        else:
-            assert False, "Illegal macroeconomic state: MrkvNow must be 0 or 1"
+        N = self.num_micro_states
+        unemp_idx = N * self.MacroMrkvNow + 0
+        emp_idx = N * self.MacroMrkvNow + 1
 
-        # Get consumption for each agent using the appropriate consumption function
         cNow = np.zeros(self.AgentCount)
         Mnow = self.Mnow * np.ones(self.AgentCount)
         cNow[unemployed] = self.solution[0].cFunc[unemp_idx](
