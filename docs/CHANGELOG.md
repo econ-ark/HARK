@@ -26,6 +26,7 @@ There are some breaking changes:
 - The above method calls each `agent`'s `get_market_params()` method, which references the `market_vars` class attribute for the names of objects to take from the associated `Market`.
 - All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
 - New consumption-saving model with habit formation has been added; extends IndShockConsumerType model. #1739
+- New module `ConsAggIndMarkovModel` with `AggIndMrkvConsumerType`, a `MarkovConsumerType` subclass for models with both aggregate (macro) and idiosyncratic (micro) discrete Markov states. `KrusellSmithType` now inherits from this class. The internal shock variable for the aggregate Markov state has been renamed from `"Mrkv"` to `"MrkvAgg"` in `KrusellSmithType` and `KrusellSmithEconomy`.
 
 #### Minor Changes
 
