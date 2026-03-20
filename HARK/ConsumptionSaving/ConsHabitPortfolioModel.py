@@ -28,6 +28,7 @@ from HARK.interpolation import (
     BilinearInterp,
     MargValueFuncCRRA,
     ValueFuncCRRA,
+    MetricObject,
 )
 from HARK.distributions import expected
 from HARK.core import AgentType
@@ -50,6 +51,33 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
+
+
+class ClippedBilinearInterp(MetricObject):
+    """BilinearInterp wrapper that clips output to [lo, hi].
+
+    BilinearInterp extrapolates linearly beyond the grid boundary, which can
+    produce values outside the valid range for a share function.  This wrapper
+    ensures the output always lies in [lo, hi].
+    """
+
+    distance_criteria = ["interp"]
+
+    def __init__(self, interp, lo=0.0, hi=1.0):
+        self.interp = interp
+        self.lo = lo
+        self.hi = hi
+
+    def __call__(self, x, y):
+        return np.clip(self.interp(x, y), self.lo, self.hi)
+
+    def derivativeX(self, x, y):
+        return self.interp.derivativeX(x, y)
+
+    def derivativeY(self, x, y):
+        return self.interp.derivativeY(x, y)
+
+
 from HARK.rewards import UtilityFuncCRRA
 
 
@@ -298,6 +326,14 @@ def solve_one_period_HabitPortfolio(
         Share_opt[constrained_top] = 1.0
         Share_opt[constrained_bot] = 0.0
 
+        # Share_opt must be monotonically decreasing in w for the
+        # Curvilinear2DInterp to produce a smooth function.  At low w,
+        # the portfolio FOC is nearly flat, producing unreliable interior
+        # solutions that create non-monotonic spikes (e.g. 0.42 → 1.0 → 0.63).
+        # Fix: sweep from high-w to low-w, enforcing that Share_opt[wi] >= Share_opt[wi+1].
+        for wi in range(wCount - 2, -1, -1):
+            Share_opt[wi, :] = np.maximum(Share_opt[wi, :], Share_opt[wi + 1, :])
+
         # Extract optimized end-of-period marginal values at optimal share
         bot_dvdw = end_dvdw_3d[w_idx, h_idx, share_idx]
         top_dvdw = end_dvdw_3d[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
@@ -350,11 +386,23 @@ def solve_one_period_HabitPortfolio(
         else:
             cFunc = cFuncUnc
 
-        # Build share function on the same endogenous grid
-        Share_aug = np.concatenate(
-            (ShareLimit * np.ones((1, HabitCount)), Share_opt), axis=0
-        )
-        ShareFunc = Curvilinear2DInterp(Share_aug, mNrm_aug, hNrm_aug)
+        # Build share function on a regular (m, h) grid via BilinearInterp.
+        # Curvilinear2DInterp produces oscillations at the kink where the
+        # share transitions from the top constraint (s=1) to the interior.
+        # We map Share_opt from the exogenous (w, H) grid to a regular
+        # (m, h) grid by inverting w = m - cFunc(m, h).
+        Share_opt_interp = BilinearInterp(Share_opt, wGrid, HabitGrid)
+        mMax = float(np.max(mNrm_aug)) * 1.1
+        nReg = max(2 * wCount, 80)
+        mRegGrid = np.linspace(wNrmMin, mMax, nReg)
+        hRegGrid = HabitGrid
+        mm, hh = np.meshgrid(mRegGrid, hRegGrid, indexing="ij")
+        cc = cFunc(mm, hh)
+        ww = np.clip(mm - cc, wGrid[0], wGrid[-1])
+        HH = HabitRte * cc + (1.0 - HabitRte) * hh
+        HH = np.clip(HH, HabitGrid[0], HabitGrid[-1])
+        Share_reg = np.clip(Share_opt_interp(ww, HH), 0.0, 1.0)
+        ShareFunc = ClippedBilinearInterp(BilinearInterp(Share_reg, mRegGrid, hRegGrid))
 
     # ============================================================
     # Stage 3: Marginal value functions
