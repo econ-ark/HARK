@@ -260,3 +260,165 @@ class testRatchet(unittest.TestCase):
 
         weird_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.3])]
         self.assertRaises(ValueError, make_ratchet_markov, 2, weird_probs)
+
+
+class testMarkovTransitionMatrix(unittest.TestCase):
+    """Tests for the transition-matrix methods on MarkovConsumerType."""
+
+    def _make_2state_agent(self):
+        """Create a simple symmetric 2-state Markov agent for testing."""
+        params = deepcopy(init_indshk_markov)
+        params["Mrkv_p11"] = [0.9]
+        params["Mrkv_p22"] = [0.9]
+        params["Rfree"] = [np.array([1.03, 1.03])]
+        params["LivPrb"] = [np.array([0.98, 0.98])]
+        params["PermGroFac"] = [np.array([1.0, 1.0])]
+        params["cycles"] = 0
+        agent = MarkovConsumerType(**params)
+        return agent
+
+    def test_column_sums_2state(self):
+        """TM column sums must equal 1.0 for a 2-state model."""
+        agent = self._make_2state_agent()
+        agent.solve()
+        agent.neutral_measure = True
+        agent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        agent.define_distribution_grid()
+        agent.calc_transition_matrix()
+        col_sums = agent.tran_matrix.sum(axis=0)
+        np.testing.assert_allclose(col_sums, 1.0, atol=1e-10)
+
+    def test_column_sums_4state(self):
+        """TM column sums must equal 1.0 for a 4-state model."""
+        unemp_length = 5
+        urate_good = 0.05
+        urate_bad = 0.12
+        bust_prob = 0.01
+        recession_length = 20
+        p_reemploy = 1.0 / unemp_length
+        p_unemploy_good = p_reemploy * urate_good / (1 - urate_good)
+        p_unemploy_bad = p_reemploy * urate_bad / (1 - urate_bad)
+        boom_prob = 1.0 / recession_length
+        MrkvArray = np.array(
+            [
+                [
+                    (1 - p_unemploy_good) * (1 - bust_prob),
+                    p_unemploy_good * (1 - bust_prob),
+                    (1 - p_unemploy_good) * bust_prob,
+                    p_unemploy_good * bust_prob,
+                ],
+                [
+                    p_reemploy * (1 - bust_prob),
+                    (1 - p_reemploy) * (1 - bust_prob),
+                    p_reemploy * bust_prob,
+                    (1 - p_reemploy) * bust_prob,
+                ],
+                [
+                    (1 - p_unemploy_bad) * boom_prob,
+                    p_unemploy_bad * boom_prob,
+                    (1 - p_unemploy_bad) * (1 - boom_prob),
+                    p_unemploy_bad * (1 - boom_prob),
+                ],
+                [
+                    p_reemploy * boom_prob,
+                    (1 - p_reemploy) * boom_prob,
+                    p_reemploy * (1 - boom_prob),
+                    (1 - p_reemploy) * (1 - boom_prob),
+                ],
+            ]
+        )
+
+        params = deepcopy(init_indshk_markov)
+        params["MrkvArray"] = [MrkvArray]
+        params["constructors"] = deepcopy(params["constructors"])
+        params["constructors"]["MrkvArray"] = None
+        params["Rfree"] = [np.array([1.03] * 4)]
+        params["LivPrb"] = [np.array([0.98] * 4)]
+        params["PermGroFac"] = [np.array([1.0] * 4)]
+        params["PermShkStd"] = np.array([[0.1] * 4])
+        params["TranShkStd"] = np.array([[0.1] * 4])
+        params["UnempPrb"] = np.array([0.05] * 4)
+        params["IncUnemp"] = np.array([0.3] * 4)
+        params["MrkvPrbsInit"] = np.array([0.25, 0.25, 0.25, 0.25])
+        params["cycles"] = 0
+
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        agent.neutral_measure = True
+        agent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        agent.define_distribution_grid()
+        agent.calc_transition_matrix()
+        col_sums = agent.tran_matrix.sum(axis=0)
+        np.testing.assert_allclose(col_sums, 1.0, atol=1e-10)
+
+    def test_ergodic_markov_fractions(self):
+        """Ergodic Markov state fractions from TM should match analytical stationary dist."""
+        agent = self._make_2state_agent()
+        agent.solve()
+        agent.neutral_measure = True
+        agent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        agent.define_distribution_grid()
+        agent.calc_transition_matrix()
+        agent.calc_ergodic_dist()
+
+        M = len(agent.dist_mGrid)
+        pi_0 = np.sum(agent.vec_erg_dstn[:M])
+        pi_1 = np.sum(agent.vec_erg_dstn[M:])
+
+        # Symmetric p11=p22=0.9 => stationary distribution is (0.5, 0.5)
+        np.testing.assert_allclose(pi_0, 0.5, atol=0.01)
+        np.testing.assert_allclose(pi_1, 0.5, atol=0.01)
+
+    def test_j1_matches_nk(self):
+        """J=1 Markov TM builder with NK's own policy should match NK TM exactly.
+
+        The Markov and IndShock solvers produce slightly different cFuncs, so we
+        feed the NK's policy into gen_tran_matrix_1D_markov and verify that the
+        *TM construction* logic is identical.
+        """
+        from HARK.ConsumptionSaving.ConsNewKeynesianModel import (
+            NewKeynesianConsumerType,
+        )
+        from HARK.utilities import gen_tran_matrix_1D_markov, jump_to_grid_1D
+
+        nk = NewKeynesianConsumerType(cycles=0)
+        nk.solve()
+        nk.neutral_measure = True
+        nk.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        nk.define_distribution_grid()
+        nk.calc_transition_matrix()
+
+        dist_mGrid = nk.dist_mGrid
+        M = len(dist_mGrid)
+        aPol = dist_mGrid - nk.solution[0].cFunc(dist_mGrid)
+        aPol_2d = aPol.reshape(1, M)
+
+        shk_prbs = nk.IncShkDstn[0].pmv
+        perm_shks = nk.IncShkDstn[0].atoms[0]
+        tran_shks = nk.IncShkDstn[0].atoms[1]
+
+        newborn_1d = jump_to_grid_1D(np.ones_like(tran_shks), shk_prbs, dist_mGrid)
+
+        markov_tm = gen_tran_matrix_1D_markov(
+            dist_mGrid,
+            aPol_2d,
+            np.array([[1.0]]),
+            np.array([nk.Rfree[0]]),
+            np.array([nk.PermGroFac[0]]),
+            np.array([nk.LivPrb[0]]),
+            shk_prbs,
+            perm_shks,
+            tran_shks,
+            newborn_1d,
+        )
+
+        np.testing.assert_allclose(markov_tm, nk.tran_matrix, atol=1e-12)
+
+    def test_compute_pe_steady_state(self):
+        """compute_pe_steady_state should return finite positive A_ss and C_ss."""
+        agent = self._make_2state_agent()
+        A_ss, C_ss = agent.compute_pe_steady_state()
+        self.assertTrue(np.isfinite(A_ss))
+        self.assertTrue(np.isfinite(C_ss))
+        self.assertGreater(A_ss, 0.0)
+        self.assertGreater(C_ss, 0.0)

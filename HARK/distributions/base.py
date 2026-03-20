@@ -176,8 +176,9 @@ class MarkovProcess(Distribution):
     Parameters
     ----------
     transition_matrix : np.array
-        An array of floats representing a probability mass for
-        each state transition.
+        Row-stochastic transition matrix: ``transition_matrix[i, j]`` is the
+        probability of moving to state *j* given the current state is *i*.
+        Each row must sum to 1.
     seed : int
         Seed for random number generator.
 

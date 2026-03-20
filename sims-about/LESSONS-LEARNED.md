@@ -313,3 +313,152 @@ they are not lost when the working documents are archived.
    mathematical operations would help users connect code to theory.  A draft
    was created during this project (see
    `_archive/REFERENCE-du-notebook-framework-mapping.md` Section 3).
+
+---
+
+## Part VI — Systematic Audit Fixes (applied across NB01–NB09 + mathematical-framework)
+
+The following issues were identified during a systematic audit of all
+`sims-about/` notebooks, modeled on the 17 categories of fixes applied to
+`Transition_Matrix_Example.ipynb`.  This section documents which fixes were
+applied to which notebooks.
+
+### Fix A: `t_age` newborn transitory shock suppression
+
+**Applied to:** NB01, NB02, NB03, NB04, NB05
+
+**Problem:** HARK's `get_shocks()` forces `TranShk = 1.0` for agents with
+`t_age = 0` when `NewbornTransShk = False`.  This biases the first period
+of MC simulation for all newborn agents.
+
+**Fix:** After `agent.initialize_sim()`, add:
+```python
+agent.t_age = np.ones(agent.AgentCount, dtype=int)
+```
+
+**Not applicable to:** NB06 (MC runs internally via `econ.solve()`), NB07
+(no MC simulation), NB08 (MC runs internally), NB09 (no MC simulation).
+
+### Fix B: Probability density vs probability mass in distribution plots
+
+**Applied to:** NB01, NB02, NB03, NB04
+
+**Problem:** Distribution comparison plots computed MC histograms as
+`h / h.sum()` (probability mass per bin), then overlaid TM probability mass
+at grid points.  On non-uniform grids (exponentially spaced), this produces
+misleading distribution shapes — bins with larger widths appear to have
+more probability.
+
+**Fix:** Convert both TM and MC distributions to density:
+- TM: divide probability mass by midpoint bin widths
+- MC: use `plt.hist(..., density=True)` with uniform bins
+
+### Fix C: MC vs TM timing instrumentation
+
+**Applied to:** NB01, NB02, NB03, NB04, NB05, NB06
+
+**Problem:** No timing comparisons between MC and TM methods, so users
+could not assess the practical speedup of TM over MC.
+
+**Fix:** Wrap MC simulation and TM build/ergodic computation in `time.time()`
+calls.  Print a summary:
+```
+--- Timing Summary ---
+MC simulation:    X.XXs (N agents)
+TM build + ergo:  X.XXs (M m-pts × J states)
+Speedup:          X.X×
+```
+
+### Fix D: Figure naming and `source_hidden` metadata
+
+**Applied to:** NB01, NB02, NB03, NB04, NB05, NB06, NB08
+
+**Problem:** Plotting cells had no canonical names and were not configured
+to hide source code in JupyterLab.
+
+**Fix:** Added `# [descriptive_snake_case_name]` as the first line of each
+plotting cell.  Set `"jupyter": {"source_hidden": true}` in cell metadata.
+
+### Fix E: Standardized MC/TM plot colors and legends
+
+**Applied to:** NB01, NB02, NB03, NB04, NB05, NB06, NB08
+
+**Problem:** MC and TM lines used inconsistent colors across notebooks.
+Legends did not indicate grid resolution or agent count.
+
+**Fix:** Defined module-level constants `COLOR_MC = "tab:blue"` and
+`COLOR_TM = "tab:orange"`.  All MC vs TM comparison plots use these colors.
+Legend labels include `(N agents)` for MC and `(M m-pts)` for TM.
+
+### Fix F: Calibration documentation
+
+**Applied to:** All notebooks (NB01–NB09) and `mathematical-framework.ipynb`
+
+**Problem:** Notebooks used various parameter sets without documenting their
+origin.
+
+**Fix:** Added a paragraph to each notebook's model setup section identifying
+the calibration source (e.g., "`init_indshk_markov` defaults," "Krusell &
+Smith 1998," "pedagogical illustration") and noting any custom overrides.
+
+### Fix G: `burn_in` replaced with named `BURNIN` constant
+
+**Applied to:** NB01, NB02, NB03, NB04
+
+**Problem:** Hard-coded `burn_in = 400` variable defined late in the notebook.
+
+**Fix:** Defined `BURNIN = 400` in the imports cell alongside other constants.
+Removed separate `burn_in` assignment.
+
+### Fix H: Code vectorization
+
+**Applied to:** NB03 (triple-nested loop for aggregates replaced with
+vectorized `block @ dist_pGrid` computation)
+
+### Fix I: R/Gamma indexing verification
+
+**Verified in:** NB01, NB02, NB03, NB04 (all use target state `jp` for
+`Rfree` and `PermGroFac`—correct per HARK convention)
+
+**Also fixed in:** `mathematical-framework.ipynb` Section 10, where the
+formula was corrected from `R_j / Γ_j` to `R_{j'} / Γ_{j'}`.
+
+---
+
+### Open Issues (documented but not resolved)
+
+**NB08 — MC/TM level mismatch (~22%):**  The Krusell-Smith notebook shows
+mean(M) = 13.0 for MC vs mean(M) = 10.1 for TM.  Hypothesized causes:
+(1) Different distribution initialization, (2) Neutral-measure aggregation
+needing MeanPLvl correction, (3) Insufficient MC convergence.  Documented
+as a known limitation in the notebook.
+
+**NB09 — Jacobian vs finite-difference disagreement (~28%):**  The SSJ
+notebook's `calc_jacobian()` differs substantially from finite-difference
+TM propagation.  Hypothesized causes: (1) Off-by-one in FD loop
+(transition-then-compute vs compute-then-transition), (2) Perturbed agent
+using steady-state policy grids, (3) Incorrect order of operations.
+Documented as a known issue in the notebook.
+
+---
+
+### Mathematical Framework Corrections
+
+**Applied to:** `mathematical-framework.ipynb`
+
+1. **Neutral-measure pitfall warning** (Section 11): Added blockquote warning
+   that neutral-measure income must only be used for TM construction, never
+   for solving the Bellman equation.
+
+2. **t_age newborn note** (Section 6): Added description of HARK's transitory
+   shock suppression for `t_age=0` agents and the workaround.
+
+3. **MIT shock terminology** (Section 8): Replaced "MIT shocks" with
+   "anticipated deviations (perfect-foresight transition paths)" and added
+   terminology note.
+
+4. **R_{j'}/Γ_{j'} correction** (Sections 4, 10): Fixed indexing from source
+   state to target state, matching HARK's simulation timing.
+
+5. **Newborn distribution discussion** (Section 14): Added full discussion of
+   `d_newborn` choices and `correct_newborn_dist`.

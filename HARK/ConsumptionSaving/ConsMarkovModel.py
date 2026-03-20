@@ -6,6 +6,7 @@ distribution can vary with the discrete state.
 """
 
 import numpy as np
+from scipy import sparse as sp
 
 from HARK import AgentType, NullFunc
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -40,7 +41,12 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
 )
-from HARK.utilities import make_assets_grid
+from HARK.utilities import (
+    gen_tran_matrix_1D_markov,
+    jump_to_grid_1D,
+    make_assets_grid,
+    make_grid_exp_mult,
+)
 
 __all__ = ["MarkovConsumerType"]
 
@@ -63,6 +69,10 @@ def make_simple_binary_markov(T_cycle, Mrkv_p11, Mrkv_p22):
     Make a list of very simple Markov arrays between two binary states by specifying
     diagonal elements in each period (probability of remaining in that state).
 
+    Each returned array is **row-stochastic**: ``MrkvArray[i, j]`` is the probability
+    of transitioning *to* state ``j`` given the agent is currently *in* state ``i``.
+    Concretely, row 0 is ``[p11, 1-p11]`` and row 1 is ``[1-p22, p22]``.
+
     Parameters
     ----------
     T_cycle : int
@@ -75,7 +85,8 @@ def make_simple_binary_markov(T_cycle, Mrkv_p11, Mrkv_p22):
     Returns
     -------
     MrkvArray : [np.array]
-        List of 2x2 Markov transition arrays, one for each non-terminal period.
+        List of 2x2 row-stochastic Markov transition arrays, one for each
+        non-terminal period.
     """
     p11 = np.array(Mrkv_p11)
     p22 = np.array(Mrkv_p22)
@@ -683,13 +694,17 @@ def solve_one_period_ConsMarkov(
 ####################################################################################################
 ####################################################################################################
 
-# Make a dictionary of constructors for the markov consumption-saving model
+# Make a dictionary of constructors for the markov consumption-saving model.
+# Each key names an *attribute* that will be built by the corresponding function
+# during __init__.  Passing an attribute name directly in the params dict will NOT
+# override the constructor — pass the constructor's *input* params instead
+# (e.g., Mrkv_p11 / Mrkv_p22 rather than MrkvArray).
 markov_constructor_dict = {
     "IncShkDstn": construct_markov_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn_markov,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn_markov,
     "aXtraGrid": make_assets_grid,
-    "MrkvArray": make_simple_binary_markov,
+    "MrkvArray": make_simple_binary_markov,  # inputs: Mrkv_p11, Mrkv_p22
     "solution_terminal": make_markov_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
@@ -773,6 +788,11 @@ init_indshk_markov = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    # PARAMETERS FOR GRID-BASED TRANSITION MATRIX SIMULATION
+    "mMin": 0.001,  # Minimum market resources for TM distribution grid
+    "mMax": 50,  # Maximum market resources for TM distribution grid
+    "mCount": 200,  # Number of grid points for TM distribution grid
+    "mFac": 3,  # Exponential nesting factor for TM distribution grid
 }
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
@@ -1018,9 +1038,12 @@ class MarkovConsumerType(IndShockConsumerType):
 
                     # Get random draws of income shocks from the discrete distribution
                     EventDraws = IncShkDstnNow.draw_events(N)
+                    # PermShk = raw_psi * PermGroFac (composite used in transition).
+                    # When building a TM externally, replicate as:
+                    #   mNext = R[j]*a / (raw_psi * PermGroFac[j]) + theta
                     PermShkNow[these] = (
                         IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                    )  # permanent "shock" includes expected growth
+                    )
                     TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
         newborn = self.t_age == 0
         PermShkNow[newborn] = 1.0
@@ -1152,3 +1175,453 @@ class MarkovConsumerType(IndShockConsumerType):
 
     def calc_limiting_values(self):  # pragma: nocover
         raise NotImplementedError()
+
+    # ------------------------------------------------------------------
+    # Transition-matrix methods (mirror NewKeynesianConsumerType API)
+    # ------------------------------------------------------------------
+
+    def define_distribution_grid(
+        self, dist_mGrid=None, num_pointsM=None, timestonest=None, m_density=0
+    ):
+        """
+        Define the 1D grid over normalized market resources used by TM methods.
+        Under the neutral measure the permanent-income dimension collapses to a
+        single point, so the full state space is (m, j) with M*J grid points.
+
+        Parameters
+        ----------
+        dist_mGrid : np.array or None
+            Pre-specified m-grid.  If None, built from mMin/mMax/mCount/mFac.
+        num_pointsM : int or None
+            Number of m-grid points (defaults to self.mCount).
+        timestonest : int or None
+            Exponential nesting depth for the m-grid (defaults to self.mFac).
+        m_density : int
+            Number of midpoint-insertion passes to increase grid density.
+        """
+        if not hasattr(self, "neutral_measure"):
+            self.neutral_measure = False
+
+        if num_pointsM is None:
+            num_pointsM = self.mCount
+        if timestonest is None:
+            timestonest = self.mFac
+
+        if dist_mGrid is not None:
+            self.dist_mGrid = dist_mGrid
+        else:
+            mGrid = make_grid_exp_mult(
+                ming=self.mMin,
+                maxg=self.mMax,
+                ng=num_pointsM,
+                timestonest=timestonest,
+            )
+            for _ in range(m_density):
+                m_shifted = np.delete(mGrid, -1)
+                m_shifted = np.insert(m_shifted, 0, 1e-4)
+                mGrid = np.sort(
+                    np.concatenate((mGrid, m_shifted + (mGrid - m_shifted) / 2))
+                )
+            self.dist_mGrid = mGrid
+
+        if self.neutral_measure:
+            self.dist_pGrid = np.array([1])
+        else:
+            self.dist_pGrid = np.array([1])
+
+    def calc_transition_matrix(self, shk_dstn=None):
+        """
+        Build the (M*J) x (M*J) block-structured transition matrix for a
+        MarkovConsumerType under the neutral measure (1D m-grid).
+
+        For infinite-horizon (cycles=0): builds a single TM from solution[0].
+        For finite-horizon (cycles=1, T_cycle>0): builds a list of TMs, one
+        per period, plus per-period policy grids.
+
+        Requires that ``define_distribution_grid`` has already been called and
+        that the model has been solved.
+
+        Parameters
+        ----------
+        shk_dstn : list or None
+            Income shock distributions (one per Markov state).  If None, uses
+            self.IncShkDstn.
+        """
+        if shk_dstn is None:
+            shk_dstn = self.IncShkDstn
+
+        dist_mGrid = self.dist_mGrid
+        M = len(dist_mGrid)
+        MrkvArray = self.MrkvArray[0]
+        J = MrkvArray.shape[0]
+
+        markov_ergodic = self._calc_markov_stationary(MrkvArray)
+
+        def _build_one_tm(sol_k, shk_k, Rfree_k, PermGroFac_k, LivPrb_k):
+            Rfree_arr = np.asarray(Rfree_k, dtype=np.float64)
+            PermGroFac_arr = np.asarray(PermGroFac_k, dtype=np.float64)
+            LivPrb_arr = np.asarray(LivPrb_k, dtype=np.float64)
+
+            cPol_k = []
+            aPol_k = []
+            aPol_2d = np.empty((J, M), dtype=np.float64)
+            for j in range(J):
+                cPol_j = sol_k.cFunc[j](dist_mGrid)
+                aPol_j = dist_mGrid - cPol_j
+                cPol_k.append(cPol_j)
+                aPol_k.append(aPol_j)
+                aPol_2d[j, :] = aPol_j
+
+            shk_prbs = shk_k[0].pmv
+            perm_shks = shk_k[0].atoms[0]
+            tran_shks = shk_k[0].atoms[1]
+
+            newborn_1d = jump_to_grid_1D(np.ones_like(tran_shks), shk_prbs, dist_mGrid)
+            NewBornDist = np.zeros(M * J)
+            for jp in range(J):
+                NewBornDist[jp * M : (jp + 1) * M] = markov_ergodic[jp] * newborn_1d
+
+            tm = gen_tran_matrix_1D_markov(
+                dist_mGrid,
+                aPol_2d,
+                MrkvArray,
+                Rfree_arr,
+                PermGroFac_arr,
+                LivPrb_arr,
+                shk_prbs,
+                perm_shks,
+                tran_shks,
+                NewBornDist,
+            )
+            return tm, cPol_k, aPol_k
+
+        if self.cycles == 0:
+            tm, cPol, aPol = _build_one_tm(
+                self.solution[0],
+                shk_dstn[0],
+                self.Rfree[0],
+                self.PermGroFac[0],
+                self.LivPrb[0],
+            )
+            self.tran_matrix = tm
+            self.cPol_Grid = cPol
+            self.aPol_Grid = aPol
+        else:
+            self.tran_matrix = []
+            self.cPol_Grid = []
+            self.aPol_Grid = []
+            for k in range(self.T_cycle):
+                Rfree_k = self.Rfree[k] if k < len(self.Rfree) else self.Rfree[-1]
+                PermGroFac_k = (
+                    self.PermGroFac[k]
+                    if k < len(self.PermGroFac)
+                    else self.PermGroFac[-1]
+                )
+                LivPrb_k = self.LivPrb[k] if k < len(self.LivPrb) else self.LivPrb[-1]
+                shk_k = shk_dstn[k] if k < len(shk_dstn) else shk_dstn[-1]
+
+                tm, cPol, aPol = _build_one_tm(
+                    self.solution[k],
+                    shk_k,
+                    Rfree_k,
+                    PermGroFac_k,
+                    LivPrb_k,
+                )
+                self.tran_matrix.append(tm)
+                self.cPol_Grid.append(cPol)
+                self.aPol_Grid.append(aPol)
+
+    def calc_ergodic_dist(self, transition_matrix=None):
+        """
+        Find the ergodic distribution of the (m, j) state space as the
+        eigenvector of the transition matrix with eigenvalue 1.
+
+        Parameters
+        ----------
+        transition_matrix : np.array or None
+            If None, uses self.tran_matrix.
+        """
+        if transition_matrix is None:
+            transition_matrix = self.tran_matrix
+
+        eigenvalues, eigenvectors = sp.linalg.eigs(
+            transition_matrix, v0=np.ones(len(transition_matrix)), k=1, which="LM"
+        )
+        ergodic_distr = eigenvectors[:, 0].real
+        ergodic_distr = ergodic_distr / np.sum(ergodic_distr)
+
+        self.vec_erg_dstn = ergodic_distr
+
+        M = len(self.dist_mGrid)
+        J = self.MrkvArray[0].shape[0]
+        self.erg_dstn_by_state = [ergodic_distr[j * M : (j + 1) * M] for j in range(J)]
+
+    def compute_pe_steady_state(self):
+        """
+        Compute partial-equilibrium steady-state aggregates for the Markov model
+        using the transition-matrix method with Harmenberg's neutral measure.
+
+        Steps: solve -> enable neutral measure -> rebuild IncShkDstn ->
+        define grid -> build TM -> find ergodic dist -> compute aggregates.
+
+        Returns
+        -------
+        A_ss : float
+            Steady-state aggregate (end-of-period) normalized assets.
+        C_ss : float
+            Steady-state aggregate normalized consumption.
+        """
+        self.cycles = 0
+        self.solve()
+
+        self.neutral_measure = True
+        self.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+
+        self.define_distribution_grid()
+        self.calc_transition_matrix()
+        self.calc_ergodic_dist()
+
+        ss_dstn = self.vec_erg_dstn
+        M = len(self.dist_mGrid)
+        J = self.MrkvArray[0].shape[0]
+
+        A_ss = 0.0
+        C_ss = 0.0
+        for j in range(J):
+            dstn_j = ss_dstn[j * M : (j + 1) * M]
+            A_ss += np.dot(self.aPol_Grid[j], dstn_j)
+            C_ss += np.dot(self.cPol_Grid[j], dstn_j)
+
+        self.A_ss = A_ss
+        self.C_ss = C_ss
+        return A_ss, C_ss
+
+    def calc_jacobian(self, shk_param, T):
+        """
+        Compute T x T Jacobian matrices of aggregate consumption and assets
+        with respect to a one-period perturbation of ``shk_param``, using the
+        Fake News Algorithm (Auclert et al. 2021).
+
+        Prerequisites: ``compute_pe_steady_state()`` must have been called so
+        that ``self.tran_matrix``, ``self.vec_erg_dstn``, ``self.cPol_Grid``,
+        ``self.aPol_Grid``, ``self.A_ss``, and ``self.C_ss`` are available.
+
+        Parameters
+        ----------
+        shk_param : str
+            Name of the parameter to perturb (e.g. 'Rfree', 'DiscFac').
+        T : int
+            Dimension of the Jacobian matrix (number of periods).
+
+        Returns
+        -------
+        CJAC : np.ndarray, shape (T, T)
+            Jacobian of aggregate consumption.
+        AJAC : np.ndarray, shape (T, T)
+            Jacobian of aggregate assets.
+        """
+        from copy import deepcopy
+
+        M = len(self.dist_mGrid)
+        MrkvArr = self.MrkvArray[0]
+        J = MrkvArr.shape[0]
+        N = M * J
+
+        # Flatten steady-state policies into (M*J,) vectors
+        c_ss_flat = np.concatenate(self.cPol_Grid)
+        a_ss_flat = np.concatenate(self.aPol_Grid)
+        tranmat_ss = self.tran_matrix
+        D_ss = self.vec_erg_dstn.flatten()
+
+        # --- Build finite-horizon perturbed agent ---
+        params = deepcopy(self.__dict__["parameters"])
+        params["T_cycle"] = T
+        params["cycles"] = 1
+        params["LivPrb"] = T * [self.LivPrb[0]]
+        params["PermGroFac"] = T * [self.PermGroFac[0]]
+        params["Rfree"] = T * [self.Rfree[0]]
+
+        # Markov income params: PermShkStd/TranShkStd are 2D (T_orig, K),
+        # UnempPrb/IncUnemp are 1D (K,).  Replicate to T periods.
+        for key in ("PermShkStd", "TranShkStd"):
+            val = getattr(self, key, None)
+            if val is not None:
+                row = (
+                    val[0]
+                    if hasattr(val, "__getitem__") and hasattr(val, "shape")
+                    else val
+                )
+                params[key] = np.tile(row, (T, 1))
+        for key in ("UnempPrb", "IncUnemp"):
+            val = getattr(self, key, None)
+            if val is not None:
+                params[key] = np.asarray(val)
+
+        # Use the solved MrkvArray directly instead of the constructor
+        params["constructors"] = deepcopy(params.get("constructors", {}))
+        params["constructors"]["MrkvArray"] = None
+        params["MrkvArray"] = T * [MrkvArr]
+        params["MrkvPrbsInit"] = self._calc_markov_stationary(MrkvArr)
+
+        FinAgent = MarkovConsumerType(**params)
+
+        dx = 0.0001
+        shock_period = T - 1
+
+        FinAgent.IncShkDstn = T * [self.IncShkDstn[0]]
+
+        # Make the shock parameter time-varying and perturb at shock_period
+        FinAgent.del_from_time_inv(shk_param)
+        FinAgent.add_to_time_vary(shk_param)
+
+        base_val = getattr(self, shk_param)
+        if isinstance(base_val, list):
+            base_scalar = base_val[0]
+        else:
+            base_scalar = base_val
+
+        perturbed_list = (
+            shock_period * [base_scalar]
+            + [base_scalar + dx]
+            + (T - shock_period - 1) * [base_scalar]
+        )
+        setattr(FinAgent, shk_param, perturbed_list)
+
+        FinAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        FinAgent.solve(presolve=False, from_solution=self.solution[0])
+
+        FinAgent.neutral_measure = True
+        FinAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        FinAgent.define_distribution_grid(dist_mGrid=self.dist_mGrid)
+        FinAgent.calc_transition_matrix()
+
+        # Flatten finite-horizon policies
+        c_t_list = []
+        a_t_list = []
+        for k in range(T):
+            c_t_list.append(np.concatenate(FinAgent.cPol_Grid[k]))
+            a_t_list.append(np.concatenate(FinAgent.aPol_Grid[k]))
+        c_t_list.append(c_ss_flat)
+        a_t_list.append(a_ss_flat)
+
+        # STEP 1: Curly Y (direct policy effect) and Curly D (TM perturbation)
+        da0_s = np.array([a_t_list[T - i] - a_ss_flat for i in range(T)])
+        dc0_s = np.array([c_t_list[T - i] - c_ss_flat for i in range(T)])
+
+        A_curl_s = np.array([np.dot(da0_s[i], D_ss) for i in range(T)]) / dx
+        C_curl_s = np.array([np.dot(dc0_s[i], D_ss) for i in range(T)]) / dx
+
+        tranmat_t_list = []
+        if isinstance(FinAgent.tran_matrix, list):
+            for tm in FinAgent.tran_matrix:
+                tranmat_t_list.append(tm)
+        else:
+            tranmat_t_list.append(FinAgent.tran_matrix)
+        tranmat_t_list.append(tranmat_ss)
+
+        dlambda0_s = np.array([tranmat_t_list[T - i] - tranmat_ss for i in range(T)])
+        D_curl_s = np.array([np.dot(dlambda0_s[i], D_ss) for i in range(T)]) / dx
+
+        # STEP 2: Expectation vectors
+        exp_vecs_a = []
+        exp_vecs_c = []
+        exp_a = a_ss_flat.copy()
+        exp_c = c_ss_flat.copy()
+        for _ in range(T):
+            exp_vecs_a.append(exp_a.copy())
+            exp_vecs_c.append(exp_c.copy())
+            exp_a = tranmat_ss.T @ exp_a
+            exp_c = tranmat_ss.T @ exp_c
+
+        exp_vecs_a = np.array(exp_vecs_a)
+        exp_vecs_c = np.array(exp_vecs_c)
+
+        # STEP 3: Fake News Matrix
+        Curl_F_A = np.zeros((T, T))
+        Curl_F_C = np.zeros((T, T))
+        Curl_F_A[0] = A_curl_s
+        Curl_F_C[0] = C_curl_s
+        for i in range(T - 1):
+            for j_col in range(T):
+                Curl_F_A[i + 1][j_col] = np.dot(exp_vecs_a[i], D_curl_s[j_col])
+                Curl_F_C[i + 1][j_col] = np.dot(exp_vecs_c[i], D_curl_s[j_col])
+
+        # STEP 4: Jacobian from Fake News Matrix
+        def J_from_F(F):
+            J = F.copy()
+            for t in range(1, F.shape[0]):
+                J[1:, t] += J[:-1, t - 1]
+            return J
+
+        J_A = J_from_F(Curl_F_A)
+        J_C = J_from_F(Curl_F_C)
+
+        # Zeroth column: perturb at t=0, propagate distribution forward
+        params0 = deepcopy(self.__dict__["parameters"])
+        params0["T_cycle"] = 2
+        params0["cycles"] = 1
+        params0["LivPrb"] = 2 * [self.LivPrb[0]]
+        params0["PermGroFac"] = 2 * [self.PermGroFac[0]]
+        params0["Rfree"] = 2 * [self.Rfree[0]]
+        for key in ("PermShkStd", "TranShkStd"):
+            val = getattr(self, key, None)
+            if val is not None:
+                row = (
+                    val[0]
+                    if hasattr(val, "__getitem__") and hasattr(val, "shape")
+                    else val
+                )
+                params0[key] = np.tile(row, (2, 1))
+        for key in ("UnempPrb", "IncUnemp"):
+            val = getattr(self, key, None)
+            if val is not None:
+                params0[key] = np.asarray(val)
+
+        params0["constructors"] = deepcopy(params0.get("constructors", {}))
+        params0["constructors"]["MrkvArray"] = None
+        params0["MrkvArray"] = 2 * [MrkvArr]
+        params0["MrkvPrbsInit"] = self._calc_markov_stationary(MrkvArr)
+        params0["IncShkDstn"] = 2 * [self.IncShkDstn[0]]
+        ZAgent = MarkovConsumerType(**params0)
+        ZAgent.del_from_time_inv(shk_param)
+        ZAgent.add_to_time_vary(shk_param)
+
+        if isinstance(base_scalar, np.ndarray):
+            perturbed_list0 = [base_scalar + dx, base_scalar]
+        else:
+            perturbed_list0 = [base_scalar + dx] + [base_scalar]
+        setattr(ZAgent, shk_param, perturbed_list0)
+
+        ZAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        ZAgent.solve(presolve=False, from_solution=self.solution[0])
+        ZAgent.neutral_measure = True
+        ZAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
+        ZAgent.define_distribution_grid(dist_mGrid=self.dist_mGrid)
+        ZAgent.calc_transition_matrix()
+
+        z_tm = ZAgent.tran_matrix
+        if isinstance(z_tm, list):
+            z_tm = z_tm[0]
+
+        dstn_z = D_ss.copy()
+        C_t_z = np.zeros(T)
+        A_t_z = np.zeros(T)
+        for i in range(T):
+            dstn_z = (z_tm if i == 0 else tranmat_ss) @ dstn_z
+            C_t_z[i] = np.dot(c_ss_flat, dstn_z)
+            A_t_z[i] = np.dot(a_ss_flat, dstn_z)
+
+        J_A[:, 0] = (A_t_z - self.A_ss) / dx
+        J_C[:, 0] = (C_t_z - self.C_ss) / dx
+
+        return J_C, J_A
+
+    @staticmethod
+    def _calc_markov_stationary(MrkvArray):
+        """Compute the stationary distribution of a row-stochastic Markov matrix."""
+        J = MrkvArray.shape[0]
+        A = np.vstack([MrkvArray.T - np.eye(J), np.ones(J)])
+        b = np.zeros(J + 1)
+        b[-1] = 1.0
+        pi = np.linalg.lstsq(A, b, rcond=None)[0]
+        return pi

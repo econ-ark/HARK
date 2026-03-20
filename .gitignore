@@ -299,6 +299,9 @@ uv.lock
 .cursorignore
 .cursorindexingignore
 
+# Local simulation notes and scratch work
+sims-about/**
+
 # Generated test artifacts
 test.jpg
 test.pdf
