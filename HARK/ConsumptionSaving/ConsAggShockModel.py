@@ -2600,6 +2600,88 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         return temp + (MrkvNow,)
 
+    def make_history_tm(self, num_pointsM=200, mMax=50.0):
+        """
+        Forward-propagate a distribution through the same aggregate Markov shock
+        sequence used by Monte Carlo, recording aggregate M and A at each period.
+        This overwrites ``self.history`` with deterministic TM-based trajectories
+        so they can be compared directly to the MC histories.
+
+        Parameters
+        ----------
+        num_pointsM : int
+            Number of grid points for the normalized market-resources grid.
+        mMax : float
+            Upper bound of the m grid.
+        """
+        from HARK.utilities import make_grid_exp_mult, jump_to_grid_1D
+
+        StateCount = self.MrkvArray.shape[0]
+        consumer = self.agents[0]
+        LivPrb = consumer.LivPrb[0]
+        if not np.isscalar(LivPrb):
+            LivPrb = LivPrb[0]
+
+        dist_mGrid = make_grid_exp_mult(0.0001, mMax, num_pointsM, 3)
+        M = len(dist_mGrid)
+        MrkvHist = self.MrkvNow_hist
+        T = len(MrkvHist)
+
+        mc_M = np.array(self.history["MaggNow"])
+        mc_A = np.array(self.history["AaggNow"])
+
+        TranMatrices = []
+        aPols = []
+        cPols = []
+        for j in range(StateCount):
+            mask = MrkvHist == j
+            M_j = mc_M[mask].mean() if mask.any() else self.kSS
+            A_j = mc_A[mask].mean() if mask.any() else self.kSS
+            K_j = A_j
+            R_j = self.Rfunc(K_j)
+            W_j = self.wFunc(K_j)
+
+            c_j = consumer.solution[0].cFunc[j](dist_mGrid, M_j * np.ones(M))
+            a_j = np.maximum(dist_mGrid - c_j, 0.0)
+            cPols.append(c_j)
+            aPols.append(a_j)
+
+            dstn_j = consumer.IncShkDstn[0][j]
+            perm_shks = dstn_j.atoms[0]
+            tran_shks = dstn_j.atoms[1]
+            shk_prbs = dstn_j.pmv
+
+            newborn_m = W_j * tran_shks
+            newborn_1d = jump_to_grid_1D(newborn_m, shk_prbs, dist_mGrid)
+
+            TM_j = np.zeros((M, M))
+            for i in range(M):
+                bNext = R_j * a_j[i]
+                mNext = bNext / perm_shks + W_j * tran_shks
+                lottery = jump_to_grid_1D(mNext, shk_prbs, dist_mGrid)
+                TM_j[:, i] = LivPrb * lottery + (1.0 - LivPrb) * newborn_1d
+            TranMatrices.append(TM_j)
+
+        import scipy.sparse.linalg as sp_linalg
+
+        j_init = int(MrkvHist[0])
+        eigenvalues, eigenvectors = sp_linalg.eigs(
+            TranMatrices[j_init], k=1, which="LM", v0=np.ones(M)
+        )
+        dstn = eigenvectors[:, 0].real
+        dstn = dstn / dstn.sum()
+
+        tm_M_hist = np.zeros(T)
+        tm_A_hist = np.zeros(T)
+        for t in range(T):
+            j_t = int(MrkvHist[t])
+            tm_A_hist[t] = np.dot(aPols[j_t], dstn)
+            tm_M_hist[t] = np.dot(dist_mGrid, dstn)
+            dstn = TranMatrices[j_t] @ dstn
+
+        self.history["MaggNow"] = tm_M_hist
+        self.history["AaggNow"] = tm_A_hist
+
     def calc_AFunc(self, MaggNow, AaggNow):
         """
         Calculate a new aggregate savings rule based on the history of the

@@ -42,3 +42,6 @@ examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
 examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
 examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb
 examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
+examples/MonteCarlovsTransitionMatrix/PE_MarkovConsumerType.ipynb
+examples/MonteCarlovsTransitionMatrix/GE_KrusellSmith.ipynb
+examples/MonteCarlovsTransitionMatrix/Validation_and_SSJ.ipynb
