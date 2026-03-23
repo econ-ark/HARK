@@ -471,7 +471,6 @@ WealthPortfolioConsumerType_solving_default = {
     "WealthShare": 0.5,  # Share of wealth in Cobb-Douglas aggregator in utility function
     "WealthShift": 0.1,  # Shifter for wealth in utility function
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # Whether there is portfolio choice
     "PortfolioBisect": False,  # This is a mystery parameter
     "IndepDstnBool": True,  # Whether income and return shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
