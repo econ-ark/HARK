@@ -19,7 +19,7 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.distributions import expected, Lognormal
-from HARK.core import AgentType
+from HARK.core import AgentType, get_it_from
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
     get_PermShkDstn_from_IncShkDstn,
@@ -90,7 +90,7 @@ class HabitFormationInverter:
         Rate of habit stock updating with new consumption, lambda. Must be greater
         than zero but less than one.
     HabitWgt : float
-        Weight of habit stock in preferences; exponent on habits as a divisior
+        Weight of habit stock in preferences, alpha; exponent on habits as a divisor
         in utility function. Must be greater than zero but less than one.
     ChiMax : float
         Largest value of "transformed marginal value" to consider in the grid.
@@ -151,13 +151,10 @@ class HabitFormationInverter:
         return c, h
 
     def cFunc(self, H, chi):
-        h = self.hFunc(H, chi)
-        rate = self.rate
-        c = (H - (1 - rate) * h) / rate
-        return c
+        return self(H, chi)[0]  # just return consumption
 
 
-def make_inverter(
+def make_habit_inverter(
     CRRA,
     HabitRte,
     HabitWgt,
@@ -185,6 +182,28 @@ def make_habit_grid(HabitMin, HabitMax, HabitCount, HabitOrder):
     return make_exponential_grid(HabitMin, HabitMax, HabitCount, HabitOrder)
 
 
+def make_dense_grids(
+    HabitMin,
+    HabitMax,
+    HabitCount,
+    HabitOrder,
+    aXtraMin,
+    aXtraMax,
+    aXtraCount,
+    aXtraNestFac,
+    aXtraExtra,
+    DenseFactor,
+):
+    HabitGridDense = make_exponential_grid(
+        HabitMin, HabitMax, HabitCount * DenseFactor, HabitOrder
+    )
+    mXtraGridDense = make_assets_grid(
+        aXtraMin, aXtraMax, aXtraCount * DenseFactor, aXtraExtra, aXtraNestFac
+    )
+    out = {"hGridDense": HabitGridDense, "mXtraGrid": mXtraGridDense}
+    return out
+
+
 def make_habit_solution_terminal():
     """
     Make a pseudo-terminal solution for the habit formation model, which has zero
@@ -203,7 +222,7 @@ def make_habit_solution_terminal():
 def calc_marg_values(S, k, hpre, rho, R, Gamma, alpha, lamda, beta, C, Vp):
     """
     Helper function for computing expected marginal value with respect to market
-    resources and habit stock. Used internally by solve_one_period_ConsHabit.
+    resources and habit stock. Used internally by solve_ConsHabit.
 
     The code here uses "math notation" for quick programming. See the only place
     in the code where this function is used for a translation of the symbols.
@@ -245,6 +264,8 @@ def solve_one_period_ConsHabit(
     FOCinverter,
     HabitWgt,
     HabitRte,
+    mXtraGrid,
+    hGridDense,
 ):
     """
     Solve one period of the consumption-saving model with habit formation.
@@ -281,6 +302,12 @@ def solve_one_period_ConsHabit(
     HabitRte : float
         Rate at which habit stock is updated by new consumption: H = lambda*c + (1-lambda)*h.
         Should be on the unit interval.
+    mXtraGrid : np.array
+        Dense grid of market resources, used to "re-interpolate" the curvilinear
+        consumption function onto a rectilinear grid.
+    hGridDense : np.array
+        Dense grid of habit stocks, used to "re-interpolate" the curvilinear
+        consumption function onto a rectilinear grid.
 
     Returns
     -------
@@ -292,23 +319,18 @@ def solve_one_period_ConsHabit(
         kNrmMin : Minimum allowable beginning-of-period capital.
     """
     U = UtilityFuncCRRA(CRRA)
+    DiscFacEff = DiscFac * LivPrb
 
     # Make end-of-period state grids
     aNrmMin = solution_next["kNrmMin"]
     aGrid = aXtraGrid + aNrmMin
     aNrm, HNrm = np.meshgrid(aGrid, HabitGrid, indexing="ij")
 
-    # Calculate the natural borrowing constraint
-    DiscFacEff = DiscFac * LivPrb
-    PermShkVals = IncShkDstn.atoms[0, :]
-    TranShkVals = IncShkDstn.atoms[1, :]
-    BoroCnstNat_cand = (aNrmMin - TranShkVals) / Rfree * PermShkVals
-    BoroCnstNat = np.max(BoroCnstNat_cand)
-
+    # Construct the consumption function
     if type(solution_next["dvdkFunc"]) is ConstantFunction:
         # This is the terminal period, and the consumption function is to consume all
         cFunc = IdentityFunction(i_dim=0, n_dims=2)
-        kNrmMin = BoroCnstNat
+        mNrmMin = 0.0
 
     else:
         # Evaluate end-of-period marginal value on those grids, then calculate chi
@@ -329,7 +351,17 @@ def solve_one_period_ConsHabit(
             else np.reshape(HabitGrid / (1.0 - HabitRte), (1, HabitGrid.size))
         )
         hNrm = np.concatenate((hBot, hNrm), axis=0)
-        cFuncUnc = Curvilinear2DInterp(cNrm, mNrm, hNrm)
+        cFuncUnc_base = Curvilinear2DInterp(cNrm, mNrm, hNrm)
+
+        # Re-interpolate the curvilinear consumption function onto an ordinary grid
+        mGridDense = mXtraGrid + aNrmMin
+        mMesh, hMesh = np.meshgrid(mGridDense, hGridDense, indexing="ij")
+        cMesh = cFuncUnc_base(mMesh, hMesh)
+        cMesh = np.concatenate((np.zeros((mGridDense.size, 1)), cMesh), axis=1)
+        cMesh = np.concatenate((np.zeros((1, hGridDense.size + 1)), cMesh), axis=0)
+        cFuncUnc = BilinearInterp(
+            cMesh, np.insert(mGridDense, 0, aNrmMin), np.insert(hGridDense, 0, 0.0)
+        )
 
         # Add the constrained consumption function to that
         if (BoroCnstArt is not None) and (BoroCnstArt > -np.inf):
@@ -338,10 +370,16 @@ def solve_one_period_ConsHabit(
                 [cFuncCnst_temp, cFuncCnst_temp], np.array([0.0, 1.0])
             )
             cFunc = LowerEnvelope2D(cFuncUnc, cFuncCnst)
-            kNrmMin = np.maximum(BoroCnstArt, BoroCnstNat)
+            mNrmMin = np.maximum(aNrmMin, BoroCnstArt)
         else:
             cFunc = cFuncUnc
-            kNrmMin = BoroCnstNat
+            mNrmMin = aNrmMin
+
+    # Calculate the natural borrowing constraint
+    PermShkVals = IncShkDstn.atoms[0, :]
+    TranShkVals = IncShkDstn.atoms[1, :]
+    kNrmMin_cand = (mNrmMin - TranShkVals) / Rfree * PermShkVals
+    kNrmMin = np.max(kNrmMin_cand)
 
     # Make beginning-of-period state grids
     kGrid = kNrmMin + aXtraGrid
@@ -369,8 +407,8 @@ def solve_one_period_ConsHabit(
     dvdkNvrs = np.concatenate((np.zeros((1, HabitGrid.size)), U.derinv(dvdk)), axis=0)
     dvdkNvrsFunc = BilinearInterp(dvdkNvrs, np.insert(kGrid, 0, kNrmMin), HabitGrid)
     dvdkFunc = MargValueFuncCRRA(dvdkNvrsFunc, CRRA)
-    dvdhNvrs = np.concatenate((np.zeros((1, HabitGrid.size)), U.inv(dvdh)), axis=0)
-    dvdhNvrsFunc = BilinearInterp(dvdhNvrs, np.insert(kGrid, 0, kNrmMin), HabitGrid)
+    dvdhNvrs = U.inv(dvdh)
+    dvdhNvrsFunc = BilinearInterp(dvdhNvrs, kGrid, HabitGrid)
     dvdhFunc = ValueFuncCRRA(dvdhNvrsFunc, CRRA)
 
     # Package the solution as a dictionary and return it
@@ -396,8 +434,11 @@ HabitConsumerType_constructors_default = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
-    "FOCinverter": make_inverter,
+    "FOCinverter": make_habit_inverter,
     "HabitGrid": make_habit_grid,
+    "DenseGrids": make_dense_grids,
+    "mXtraGrid": get_it_from("DenseGrids"),
+    "hGridDense": get_it_from("DenseGrids"),
     "solution_terminal": make_habit_solution_terminal,
 }
 
@@ -475,6 +516,7 @@ HabitConsumerType_solving_default = {
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "HabitWgt": 0.5,  # Weight on consumption habit; exponent on habit divisor in utility
     "HabitRte": 0.2,  # Speed of consumption habit updating
+    "DenseFactor": 3,  # Density factor for re-interpolation
 }
 HabitConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -542,6 +584,8 @@ class HabitConsumerType(AgentType):
         "FOCinverter",
         "HabitWgt",
         "HabitRte",
+        "mXtraGrid",
+        "hGridDense",
     ]
     time_vary_ = ["IncShkDstn", "Rfree", "PermGroFac", "LivPrb"]
 
