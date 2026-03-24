@@ -1,8 +1,7 @@
 """
 Consumption-saving model with habit formation and portfolio choice between a
 risk-free and a risky asset. Combines the habit formation model from
-ConsHabitModel.py with the portfolio choice structure from
-ConsWealthPortfolioModel.py / ConsPortfolioModel.py.
+ConsHabitModel.py with the portfolio choice structure from ConsRiskyAssetModel.py.
 
 The agent's problem has a two-dimensional decision-time state (m_t, h_t) and
 two controls (c_t, s_t). The solution method uses:
@@ -53,10 +52,10 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
 )
 
 
-class ClippedBilinearInterp(MetricObject):
-    """BilinearInterp wrapper that clips output to [lo, hi].
+class Clipped2DInterp(MetricObject):
+    """2DInterp wrapper that clips output to [lo, hi].
 
-    BilinearInterp extrapolates linearly beyond the grid boundary, which can
+    2D interpolators extrapolate linearly beyond the grid boundary, which can
     produce values outside the valid range for a share function.  This wrapper
     ensures the output always lies in [lo, hi].
     """
@@ -171,7 +170,7 @@ def calc_marg_values_port(S, k, hpre, rho, Gamma, alpha, lamda, cFunc, dvdH_cont
 def make_habit_portfolio_solution_terminal():
     """
     Make a pseudo-terminal solution for the habit-portfolio model.
-    All value functions are zero (constant). ShareFunc is a constant at 0.
+    All value functions are zero (constant).
     """
     dvdkFunc_terminal = ConstantFunction(0.0)
     dvdhFunc_terminal = ConstantFunction(0.0)
@@ -316,7 +315,7 @@ def solve_one_period_HabitPortfolio(
             1.0 - top_f / (top_f - bot_f),
             0.5,
         )
-        alpha_interp = np.clip(alpha_interp, 0.0, 1.0)
+        # alpha_interp = np.clip(alpha_interp, 0.0, 1.0)
 
         Share_opt = (1.0 - alpha_interp) * bot_s + alpha_interp * top_s
 
@@ -386,23 +385,34 @@ def solve_one_period_HabitPortfolio(
         else:
             cFunc = cFuncUnc
 
-        # Build share function on a regular (m, h) grid via BilinearInterp.
-        # Curvilinear2DInterp produces oscillations at the kink where the
-        # share transitions from the top constraint (s=1) to the interior.
+        # Build share function on a regular (m, h) grid via LinearInterpOnInterp1D.
+        # Curvilinear2DInterp produces oscillations at the kink where the share
+        # transitions from the top constraint (s=1) to the interior.
         # We map Share_opt from the exogenous (w, H) grid to a regular
         # (m, h) grid by inverting w = m - cFunc(m, h).
-        Share_opt_interp = BilinearInterp(Share_opt, wGrid, HabitGrid)
+        ShareFunc_by_HNrm = [
+            LinearInterp(wGrid, Share_opt[:, j], ShareLimit, 0.0)
+            for j in range(HabitCount)
+        ]
+        Share_opt_interp = Clipped2DInterp(
+            LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
+        )
         mMax = float(np.max(mNrm_aug)) * 1.1
-        nReg = max(2 * wCount, 80)
+        nReg = 2 * wCount
         mRegGrid = np.linspace(wNrmMin, mMax, nReg)
         hRegGrid = HabitGrid
         mm, hh = np.meshgrid(mRegGrid, hRegGrid, indexing="ij")
         cc = cFunc(mm, hh)
-        ww = np.clip(mm - cc, wGrid[0], wGrid[-1])
+        ww = mm - cc
         HH = HabitRte * cc + (1.0 - HabitRte) * hh
-        HH = np.clip(HH, HabitGrid[0], HabitGrid[-1])
-        Share_reg = np.clip(Share_opt_interp(ww, HH), 0.0, 1.0)
-        ShareFunc = ClippedBilinearInterp(BilinearInterp(Share_reg, mRegGrid, hRegGrid))
+        Share_reg = Share_opt_interp(ww, HH)
+        ShareFunc_by_hNrm = [
+            LinearInterp(mRegGrid, Share_reg[:, j], ShareLimit, 0.0)
+            for j in range(HabitCount)
+        ]
+        ShareFunc = Clipped2DInterp(
+            LinearInterpOnInterp1D(ShareFunc_by_hNrm, HabitGrid)
+        )
 
     # ============================================================
     # Stage 3: Marginal value functions
@@ -500,7 +510,7 @@ HabitPortfolio_aXtraGrid_default = {
     "aXtraMin": 0.001,
     "aXtraMax": 50.0,
     "aXtraNestFac": 2,
-    "aXtraCount": 48,
+    "aXtraCount": 150,
     "aXtraExtra": None,
 }
 
