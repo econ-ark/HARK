@@ -42,7 +42,7 @@ from HARK.Calibration.Assets.AssetProcesses import (
 )
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
 from HARK.ConsumptionSaving.ConsHabitModel import (
-    make_inverter,
+    make_habit_inverter,
     make_habit_grid,
     make_lognormal_habit_init_dstn,
 )
@@ -471,7 +471,7 @@ HabitPortfolio_constructors_default = {
     "RiskyDstn": make_lognormal_RiskyDstn,
     "ShareGrid": make_simple_ShareGrid,
     "ShareLimit": calc_ShareLimit_for_CRRA,
-    "FOCinverter": make_inverter,
+    "FOCinverter": make_habit_inverter,
     "HabitGrid": make_habit_grid,
     "solution_terminal": make_habit_portfolio_solution_terminal,
 }
