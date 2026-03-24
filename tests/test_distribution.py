@@ -694,8 +694,8 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         # labels=False: func receives raw numpy atoms (integer indexing)
         ce_unlabeled = IncShkDstn.expected(lambda x: x[0] + x[1], labels=False)
 
-        self.assertAlmostEqual(ce_labeled, ce_labeled_explicit, places=10)
-        self.assertAlmostEqual(ce_labeled, ce_unlabeled, places=10)
+        self.assertAlmostEqual(ce_labeled, ce_labeled_explicit, places=HARK_PRECISION)
+        self.assertAlmostEqual(ce_labeled, ce_unlabeled, places=HARK_PRECISION)
 
         # labels=False with args
         ce_with_args = IncShkDstn.expected(
@@ -704,13 +704,15 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         ce_with_args_labeled = IncShkDstn.expected(
             lambda d, k: d["perm_shk"] * k + d["tran_shk"], 2.0, labels=True
         )
-        self.assertAlmostEqual(ce_with_args, ce_with_args_labeled, places=10)
+        self.assertAlmostEqual(
+            ce_with_args, ce_with_args_labeled, places=HARK_PRECISION
+        )
 
         # labels parameter should not leak to func (issue #1487)
         ce_no_leak = IncShkDstn.expected(
             lambda d: d["perm_shk"] + d["tran_shk"], labels=True
         )
-        self.assertAlmostEqual(ce_no_leak, ce_labeled, places=10)
+        self.assertAlmostEqual(ce_no_leak, ce_labeled, places=HARK_PRECISION)
 
     def test_getters_setters(self):
         # Create some dummy dsnt
