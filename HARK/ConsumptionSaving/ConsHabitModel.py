@@ -222,7 +222,7 @@ def make_habit_solution_terminal():
 def calc_marg_values(S, k, hpre, rho, R, Gamma, alpha, lamda, beta, C, Vp):
     """
     Helper function for computing expected marginal value with respect to market
-    resources and habit stock. Used internally by solve_ConsHabit.
+    resources and habit stock. Used internally by solve_one_period_ConsHabit.
 
     The code here uses "math notation" for quick programming. See the only place
     in the code where this function is used for a translation of the symbols.
@@ -378,7 +378,7 @@ def solve_one_period_ConsHabit(
     # Calculate the natural borrowing constraint
     PermShkVals = IncShkDstn.atoms[0, :]
     TranShkVals = IncShkDstn.atoms[1, :]
-    kNrmMin_cand = (mNrmMin - TranShkVals) / Rfree * PermShkVals
+    kNrmMin_cand = (mNrmMin - TranShkVals) / Rfree * (PermShkVals * PermGroFac)
     kNrmMin = np.max(kNrmMin_cand)
 
     # Make beginning-of-period state grids
