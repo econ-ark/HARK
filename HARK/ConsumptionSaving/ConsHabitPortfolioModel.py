@@ -276,6 +276,7 @@ def solve_one_period_HabitPortfolio(
         cFunc = IdentityFunction(i_dim=0, n_dims=2)
         ShareFunc = ConstantFunction(ShareLimit)
         dvdH_cont_func = ConstantFunction(0.0)
+        ShareFunc_by_wNrm = ConstantFunction(ShareLimit)
 
     else:
         # ============================================================
@@ -330,13 +331,12 @@ def solve_one_period_HabitPortfolio(
         Share_opt[constrained_top] = 1.0
         Share_opt[constrained_bot] = 0.0
 
-        # Share_opt must be monotonically decreasing in w for the
-        # Curvilinear2DInterp to produce a smooth function.  At low w,
-        # the portfolio FOC is nearly flat, producing unreliable interior
-        # solutions that create non-monotonic spikes (e.g. 0.42 → 1.0 → 0.63).
-        # Fix: sweep from high-w to low-w, enforcing that Share_opt[wi] >= Share_opt[wi+1].
-        # for wi in range(wCount - 2, -1, -1):
-        #    Share_opt[wi, :] = np.maximum(Share_opt[wi, :], Share_opt[wi + 1, :])
+        # Construct the share function over (w,H)
+        ShareFunc_by_HNrm = [
+            LinearInterp(wGrid, Share_opt[:, j], ShareLimit, 0.0, lower_extrap=True)
+            for j in range(HabitCount)
+        ]
+        ShareFunc_by_wNrm = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
 
         # Extract optimized end-of-period marginal values at optimal share
         bot_dvdw = end_dvdw_3d[w_idx, h_idx, share_idx]
@@ -407,21 +407,16 @@ def solve_one_period_HabitPortfolio(
         # transitions from the top constraint (s=1) to the interior.
         # We map Share_opt from the exogenous (w, H) grid to a regular
         # (m, h) grid by inverting w = m - cFunc(m, h).
-        wGridExt = np.insert(wGrid, 0, 0.0)
-        ShareFunc_by_HNrm = [
-            LinearInterp(wGridExt, np.insert(Share_opt[:, j], 0, 1.0))
-            for j in range(HabitCount)
-        ]
-        Share_opt_interp = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
-        mRegGrid = mXtraGrid
+        mRegGrid = np.insert(mGridDense, 0, 0.0)
         hRegGrid = hGridDense
         mm, hh = np.meshgrid(mRegGrid, hRegGrid, indexing="ij")
         cc = cFunc(mm, hh)
         ww = mm - cc
         HH = HabitRte * cc + (1.0 - HabitRte) * hh
-        Share_reg = Share_opt_interp(ww, HH)
+        Share_reg = ShareFunc_by_wNrm(ww, HH)
         ShareFunc_by_hNrm = [
-            LinearInterp(mRegGrid, Share_reg[:, j]) for j in range(hGridDense.size)
+            LinearInterp(mRegGrid, Share_reg[:, j], ShareLimit, 0.0)
+            for j in range(hGridDense.size)
         ]
         ShareFunc = Clipped2DInterp(
             LinearInterpOnInterp1D(ShareFunc_by_hNrm, hGridDense)
@@ -468,10 +463,11 @@ def solve_one_period_HabitPortfolio(
     solution_now = {
         "cFunc": cFunc,
         "ShareFunc": ShareFunc,
+        "ShareFuncAlt": ShareFunc_by_wNrm,
         "dvdkFunc": dvdkFunc,
         "dvdhFunc": dvdhFunc,
         "kNrmMin": kNrmMin,
-        "distance_criteria": ["cFunc"],
+        "distance_criteria": ["cFunc", "ShareFunc"],
     }
     return solution_now
 
@@ -531,9 +527,9 @@ HabitPortfolio_IncShkDstn_default = {
 
 HabitPortfolio_aXtraGrid_default = {
     "aXtraMin": 0.001,
-    "aXtraMax": 24.0,
+    "aXtraMax": 30.0,
     "aXtraNestFac": 2,
-    "aXtraCount": 100,
+    "aXtraCount": 150,
     "aXtraExtra": None,
 }
 
@@ -541,7 +537,7 @@ HabitPortfolio_HabitGrid_default = {
     "HabitMin": 0.2,
     "HabitMax": 5.0,
     "HabitCount": 41,
-    "HabitOrder": 1.5,
+    "HabitOrder": 2.0,
 }
 
 HabitPortfolio_inverter_default = {
@@ -669,11 +665,3 @@ class HabitPortfolioConsumerType(AgentType):
         "pLvlInitDstn",
         "HabitInitDstn",
     ]
-
-    def pre_solve(self):
-        if isinstance(self.ShareLimit, list):
-            self.add_to_time_vary("ShareLimit")
-            self.del_from_time_inv("ShareLimit")
-        else:
-            self.add_to_time_inv("ShareLimit")
-            self.del_from_time_vary("ShareLimit")

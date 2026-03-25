@@ -10,7 +10,7 @@ class testHabitPortfolioConsumerType(unittest.TestCase):
 
     def test_cFunc(self):
         cFunc = self.agent.solution[0]["cFunc"]
-        self.assertAlmostEqual(cFunc(10.0, 1.0), 1.7612, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(10.0, 1.0), 1.76346, places=HARK_PRECISION)
 
     def test_ShareFunc(self):
         ShareFunc = self.agent.solution[0]["ShareFunc"]
