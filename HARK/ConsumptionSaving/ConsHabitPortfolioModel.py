@@ -16,6 +16,7 @@ two controls (c_t, s_t). The solution method uses:
 """
 
 import numpy as np
+from HARK.core import get_it_from
 from HARK.utilities import make_assets_grid
 from HARK.interpolation import (
     LinearInterp,
@@ -44,6 +45,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
 from HARK.ConsumptionSaving.ConsHabitModel import (
     make_habit_inverter,
     make_habit_grid,
+    make_dense_grids,
     make_lognormal_habit_init_dstn,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -204,6 +206,8 @@ def solve_one_period_HabitPortfolio(
     FOCinverter,
     HabitWgt,
     HabitRte,
+    mXtraGrid,
+    hGridDense,
 ):
     """
     Solve one period of the consumption-saving model with habit formation and
@@ -243,6 +247,12 @@ def solve_one_period_HabitPortfolio(
         Exponent on habit stock in utility function.
     HabitRte : float
         Rate of habit stock updating.
+    mXtraGrid : np.array
+        Dense grid of market resources, used to "re-interpolate" the curvilinear
+        consumption function onto a rectilinear grid.
+    hGridDense : np.array
+        Dense grid of habit stocks, used to "re-interpolate" the curvilinear
+        consumption function onto a rectilinear grid.
 
     Returns
     -------
@@ -258,10 +268,6 @@ def solve_one_period_HabitPortfolio(
 
     # Minimum savings is zero (can't borrow)
     wNrmMin = 0.0
-    if (BoroCnstArt is not None) and (BoroCnstArt > -np.inf):
-        kNrmMin = BoroCnstArt
-    else:
-        kNrmMin = 0.0
 
     if isinstance(dvdkFunc_next, ConstantFunction):
         # ============================================================
@@ -316,7 +322,6 @@ def solve_one_period_HabitPortfolio(
             0.5,
         )
         # alpha_interp = np.clip(alpha_interp, 0.0, 1.0)
-
         Share_opt = (1.0 - alpha_interp) * bot_s + alpha_interp * top_s
 
         # Handle corner solutions
@@ -330,8 +335,8 @@ def solve_one_period_HabitPortfolio(
         # the portfolio FOC is nearly flat, producing unreliable interior
         # solutions that create non-monotonic spikes (e.g. 0.42 → 1.0 → 0.63).
         # Fix: sweep from high-w to low-w, enforcing that Share_opt[wi] >= Share_opt[wi+1].
-        for wi in range(wCount - 2, -1, -1):
-            Share_opt[wi, :] = np.maximum(Share_opt[wi, :], Share_opt[wi + 1, :])
+        # for wi in range(wCount - 2, -1, -1):
+        #    Share_opt[wi, :] = np.maximum(Share_opt[wi, :], Share_opt[wi + 1, :])
 
         # Extract optimized end-of-period marginal values at optimal share
         bot_dvdw = end_dvdw_3d[w_idx, h_idx, share_idx]
@@ -348,7 +353,9 @@ def solve_one_period_HabitPortfolio(
 
         # Build interpolant for continuation habit value on (w, H) grid.
         # dvdH_opt already includes DiscFacEff. We store it for Stage 3 (below).
-        dvdH_cont_func = BilinearInterp(dvdH_opt, wGrid, HabitGrid)
+        dvdH_nvrs = U.inv(dvdH_opt)
+        dvdHNvrsFunc = BilinearInterp(dvdH_nvrs, wGrid, HabitGrid)
+        dvdH_cont_func = ValueFuncCRRA(dvdHNvrsFunc, CRRA)
 
         # ============================================================
         # Stage 2: Optimal consumption via habit EGM
@@ -374,7 +381,17 @@ def solve_one_period_HabitPortfolio(
         hNrm_aug = np.concatenate((hBot, hNrm), axis=0)
 
         # Build consumption function
-        cFuncUnc = Curvilinear2DInterp(cNrm_aug, mNrm_aug, hNrm_aug)
+        cFuncUnc_base = Curvilinear2DInterp(cNrm_aug, mNrm_aug, hNrm_aug)
+
+        # Re-interpolate the curvilinear consumption function onto an ordinary grid
+        mGridDense = mXtraGrid + wNrmMin
+        mMesh, hMesh = np.meshgrid(mGridDense, hGridDense, indexing="ij")
+        cMesh = cFuncUnc_base(mMesh, hMesh)
+        cMesh = np.concatenate((np.zeros((mGridDense.size, 1)), cMesh), axis=1)
+        cMesh = np.concatenate((np.zeros((1, hGridDense.size + 1)), cMesh), axis=0)
+        cFuncUnc = BilinearInterp(
+            cMesh, np.insert(mGridDense, 0, wNrmMin), np.insert(hGridDense, 0, 0.0)
+        )
 
         if (BoroCnstArt is not None) and (BoroCnstArt > -np.inf):
             cFuncCnst_temp = LinearInterp([BoroCnstArt, BoroCnstArt + 1.0], [0.0, 1.0])
@@ -390,33 +407,36 @@ def solve_one_period_HabitPortfolio(
         # transitions from the top constraint (s=1) to the interior.
         # We map Share_opt from the exogenous (w, H) grid to a regular
         # (m, h) grid by inverting w = m - cFunc(m, h).
+        wGridExt = np.insert(wGrid, 0, 0.0)
         ShareFunc_by_HNrm = [
-            LinearInterp(wGrid, Share_opt[:, j], ShareLimit, 0.0)
+            LinearInterp(wGridExt, np.insert(Share_opt[:, j], 0, 1.0))
             for j in range(HabitCount)
         ]
-        Share_opt_interp = Clipped2DInterp(
-            LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
-        )
-        mMax = float(np.max(mNrm_aug)) * 1.1
-        nReg = 2 * wCount
-        mRegGrid = np.linspace(wNrmMin, mMax, nReg)
-        hRegGrid = HabitGrid
+        Share_opt_interp = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
+        mRegGrid = mXtraGrid
+        hRegGrid = hGridDense
         mm, hh = np.meshgrid(mRegGrid, hRegGrid, indexing="ij")
         cc = cFunc(mm, hh)
         ww = mm - cc
         HH = HabitRte * cc + (1.0 - HabitRte) * hh
         Share_reg = Share_opt_interp(ww, HH)
         ShareFunc_by_hNrm = [
-            LinearInterp(mRegGrid, Share_reg[:, j], ShareLimit, 0.0)
-            for j in range(HabitCount)
+            LinearInterp(mRegGrid, Share_reg[:, j]) for j in range(hGridDense.size)
         ]
         ShareFunc = Clipped2DInterp(
-            LinearInterpOnInterp1D(ShareFunc_by_hNrm, HabitGrid)
+            LinearInterpOnInterp1D(ShareFunc_by_hNrm, hGridDense)
         )
 
     # ============================================================
     # Stage 3: Marginal value functions
     # ============================================================
+
+    # Calculate the natural borrowing constraint (lowest allowable beginning-of-period capital)
+    mNrmMin = wNrmMin
+    PermShkVals = IncShkDstn.atoms[0, :]
+    TranShkVals = IncShkDstn.atoms[1, :]
+    kNrmMin_cand = (mNrmMin - TranShkVals) / Rfree * (PermShkVals * PermGroFac)
+    kNrmMin = np.max(kNrmMin_cand)
 
     kGrid = kNrmMin + aXtraGrid
     kNrm, hPre = np.meshgrid(kGrid, HabitGrid, indexing="ij")
@@ -440,8 +460,8 @@ def solve_one_period_HabitPortfolio(
     dvdkNvrsFunc = BilinearInterp(dvdkNvrs, np.insert(kGrid, 0, kNrmMin), HabitGrid)
     dvdkFunc = MargValueFuncCRRA(dvdkNvrsFunc, CRRA)
 
-    dvdhNvrs = np.concatenate((np.zeros((1, HabitGrid.size)), U.inv(dvdh)), axis=0)
-    dvdhNvrsFunc = BilinearInterp(dvdhNvrs, np.insert(kGrid, 0, kNrmMin), HabitGrid)
+    dvdhNvrs = U.inv(dvdh)
+    dvdhNvrsFunc = BilinearInterp(dvdhNvrs, kGrid, HabitGrid)
     dvdhFunc = ValueFuncCRRA(dvdhNvrsFunc, CRRA)
 
     # Package solution
@@ -473,6 +493,9 @@ HabitPortfolio_constructors_default = {
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "FOCinverter": make_habit_inverter,
     "HabitGrid": make_habit_grid,
+    "DenseGrids": make_dense_grids,
+    "mXtraGrid": get_it_from("DenseGrids"),
+    "hGridDense": get_it_from("DenseGrids"),
     "solution_terminal": make_habit_portfolio_solution_terminal,
 }
 
@@ -508,23 +531,23 @@ HabitPortfolio_IncShkDstn_default = {
 
 HabitPortfolio_aXtraGrid_default = {
     "aXtraMin": 0.001,
-    "aXtraMax": 50.0,
+    "aXtraMax": 24.0,
     "aXtraNestFac": 2,
-    "aXtraCount": 150,
+    "aXtraCount": 100,
     "aXtraExtra": None,
 }
 
 HabitPortfolio_HabitGrid_default = {
     "HabitMin": 0.2,
     "HabitMax": 5.0,
-    "HabitCount": 31,
+    "HabitCount": 41,
     "HabitOrder": 1.5,
 }
 
 HabitPortfolio_inverter_default = {
-    "ChiMax": 50.0,
-    "ChiCount": 251,
-    "ChiOrder": 1.5,
+    "ChiMax": 100.0,
+    "ChiCount": 501,
+    "ChiOrder": 1.2,
 }
 
 HabitPortfolio_RiskyDstn_default = {
@@ -534,7 +557,7 @@ HabitPortfolio_RiskyDstn_default = {
 }
 
 HabitPortfolio_ShareGrid_default = {
-    "ShareCount": 25,
+    "ShareCount": 26,
 }
 
 HabitPortfolio_solving_default = {
@@ -550,6 +573,7 @@ HabitPortfolio_solving_default = {
     "BoroCnstArt": 0.0,
     "HabitWgt": 0.5,
     "HabitRte": 0.2,
+    "DenseFactor": 3,  # Density factor for re-interpolation
 }
 
 HabitPortfolio_simulation_default = {
@@ -630,6 +654,8 @@ class HabitPortfolioConsumerType(AgentType):
         "HabitWgt",
         "HabitRte",
         "RiskyDstn",
+        "mXtraGrid",
+        "hGridDense",
     ]
     time_vary_ = ["IncShkDstn", "Rfree", "PermGroFac", "LivPrb", "ShareLimit"]
 

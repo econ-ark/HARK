@@ -375,7 +375,7 @@ def solve_one_period_ConsHabit(
             cFunc = cFuncUnc
             mNrmMin = aNrmMin
 
-    # Calculate the natural borrowing constraint
+    # Calculate the natural borrowing constraint (lowest allowable beginning-of-period capital)
     PermShkVals = IncShkDstn.atoms[0, :]
     TranShkVals = IncShkDstn.atoms[1, :]
     kNrmMin_cand = (mNrmMin - TranShkVals) / Rfree * (PermShkVals * PermGroFac)
