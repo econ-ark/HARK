@@ -741,10 +741,10 @@ def solve_one_period_HabitPortfolio_modular(
     solution_now = solve_one_period_ConsHabit(
         solution_mid,
         IncShkDstn,
-        LivPrb,
-        DiscFac,
+        1.0,  # LivPrb accounted for above, turn off
+        1.0,  # DiscFac accounted for above, turn off
         CRRA,
-        Rfree,
+        1.0,  # Rfree accounted for above, turn off
         PermGroFac,
         BoroCnstArt,
         aXtraGrid,
