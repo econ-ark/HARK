@@ -624,7 +624,7 @@ def solve_optimal_share_habit(
     dvdwNvrs = np.concatenate(
         (np.zeros((1, HabitGrid.size)), U.derinv(dvdw_opt)), axis=0
     )
-    dvdwNvrsFunc = BilinearInterp(dvdwNvrs, np.insert(wGrid, 0, wGrid), HabitGrid)
+    dvdwNvrsFunc = BilinearInterp(dvdwNvrs, np.insert(wGrid, 0, wNrmMin), HabitGrid)
     dvdwFunc = MargValueFuncCRRA(dvdwNvrsFunc, CRRA)
 
     # Package and return the mid-period solution as a dictionary
@@ -827,8 +827,8 @@ HabitConsumerType_aXtraGrid_default = {
 HabitConsumerType_HabitGrid_default = {
     "HabitMin": 0.2,
     "HabitMax": 5.0,
-    "HabitCount": 51,
-    "HabitOrder": 1.5,
+    "HabitCount": 41,
+    "HabitOrder": 2.0,
 }
 
 # Default parameters to make the FOC inverter
@@ -963,8 +963,8 @@ HabitPortfolioConsumerType_defaults = HabitConsumerType_defaults.copy()
 HabitPortfolioConsumerType_defaults["constructors"] = (
     HabitPortfolio_constructors_default
 )
-HabitPortfolio_constructors_default.update(HabitPortfolio_RiskyDstn_default)
-HabitPortfolio_constructors_default.update(HabitPortfolio_ShareGrid_default)
+HabitPortfolioConsumerType_defaults.update(HabitPortfolio_RiskyDstn_default)
+HabitPortfolioConsumerType_defaults.update(HabitPortfolio_ShareGrid_default)
 
 
 class HabitPortfolioConsumerType(HabitConsumerType):
