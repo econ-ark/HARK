@@ -533,7 +533,7 @@ HabitPortfolio_aXtraGrid_default = {
     "aXtraMin": 0.001,
     "aXtraMax": 30.0,
     "aXtraNestFac": 2,
-    "aXtraCount": 150,
+    "aXtraCount": 100,
     "aXtraExtra": None,
 }
 

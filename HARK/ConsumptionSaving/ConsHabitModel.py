@@ -252,11 +252,46 @@ def calc_marg_values(S, k, hpre, rho, R, Gamma, alpha, lamda, beta, C, Vp):
     return dvdk, dvdh
 
 
+def calc_mid_dvds(shocks, w_nrm, H_nrm, share, rfree, dvdkFunc_next):
+    """
+    Compute middle-of-period marginal value of risky asset share by taking expec-
+    tations over risky return shocks. Uses the next period's marginal value func-
+    tions directly (they already integrate over income shocks).
+
+    Parameters
+    ----------
+    shocks : float or np.array
+        Risky return realizations.
+    w_nrm : np.array
+        Pre-return savings (w = m - c).
+    H_nrm : np.array
+        End-of-period habit stock.
+    share : np.array
+        Risky share.
+    rfree : float
+        Risk-free return factor.
+    dvdkFunc_next : callable
+        Next period's marginal value of capital, dvdk(k, hPre).
+
+    Returns
+    -------
+    dvds : np.array
+        Marginal value of risky share (zero at optimum).
+    """
+    ex_ret = shocks - rfree
+    rport = rfree + share * ex_ret
+    a_nrm = rport * w_nrm  # post-return assets = next period's kNrm
+
+    dvdk = dvdkFunc_next(a_nrm, H_nrm)
+    dvds = ex_ret * w_nrm * dvdk
+    return dvds
+
+
 def calc_mid_dvdx(shocks, w_nrm, H_nrm, share, rfree, dvdkFunc_next, dvdhFunc_next):
     """
-    Compute middle-of-period marginal values by taking expectations over risky
-    return shocks. Uses the next period's marginal value functions directly
-    (they already integrate over income shocks).
+    Compute middle-of-period marginal value of wealth and habit stock by taking
+    expectations over  risky return shocks. Uses the next period's marginal value
+    function directly (they already integrate over income shocks).
 
     Parameters
     ----------
@@ -281,8 +316,6 @@ def calc_mid_dvdx(shocks, w_nrm, H_nrm, share, rfree, dvdkFunc_next, dvdhFunc_ne
         Marginal value of pre-return savings.
     dvdH : np.array
         Marginal value of end-of-period habit stock.
-    dvds : np.array
-        Marginal value of risky share (zero at optimum).
     """
     ex_ret = shocks - rfree
     rport = rfree + share * ex_ret
@@ -290,9 +323,8 @@ def calc_mid_dvdx(shocks, w_nrm, H_nrm, share, rfree, dvdkFunc_next, dvdhFunc_ne
 
     dvdk = dvdkFunc_next(a_nrm, H_nrm)
     dvdw = rport * dvdk
-    dvds = ex_ret * w_nrm * dvdk
     dvdH = dvdhFunc_next(a_nrm, H_nrm)
-    return dvdw, dvdH, dvds
+    return dvdw, dvdH
 
 
 ###############################################################################
@@ -560,10 +592,10 @@ def solve_optimal_share_habit(
     wMesh, Hmesh, sMesh = np.meshgrid(wGrid, HabitGrid, ShareGrid, indexing="ij")
 
     # Compute expected marginal value of wealth, habit stock, and risky share for each (w,H,S)
-    dvdw_mid, dvdH_mid, dvds_mid = DiscFacEff * expected(
-        calc_mid_dvdx,
+    dvds_mid = DiscFacEff * expected(
+        calc_mid_dvds,
         RiskyDstn,
-        args=(wMesh, Hmesh, sMesh, Rfree, dvdkFunc_next, dvdhFunc_next),
+        args=(wMesh, Hmesh, sMesh, Rfree, dvdkFunc_next),
     )
 
     # For each (w, H), find optimal share where dvds == 0 by looking for a
@@ -600,18 +632,12 @@ def solve_optimal_share_habit(
     ShareFunc_mid = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
 
     # Extract optimized end-of-period marginal values at optimal share
-    bot_dvdw = dvdw_mid[w_idx, h_idx, share_idx]
-    top_dvdw = dvdw_mid[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
-    dvdw_opt = (1.0 - alpha_interp) * bot_dvdw + alpha_interp * top_dvdw
-    dvdw_opt[constrained_top] = dvdw_mid[:, :, -1][constrained_top]
-    dvdw_opt[constrained_bot] = dvdw_mid[:, :, 0][constrained_bot]
-
-    # Do the same thing for marginal value of post-consumption habit stock
-    bot_dvdH = dvdH_mid[w_idx, h_idx, share_idx]
-    top_dvdH = dvdH_mid[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
-    dvdH_opt = (1.0 - alpha_interp) * bot_dvdH + alpha_interp * top_dvdH
-    dvdH_opt[constrained_top] = dvdH_mid[:, :, -1][constrained_top]
-    dvdH_opt[constrained_bot] = dvdH_mid[:, :, 0][constrained_bot]
+    wNrm, HNrm = np.meshgrid(wGrid, HabitGrid, indexing="ij")
+    dvdw_opt, dvdH_opt = DiscFacEff * expected(
+        calc_mid_dvdx,
+        RiskyDstn,
+        args=(wNrm, HNrm, Share_opt, Rfree, dvdkFunc_next, dvdhFunc_next),
+    )
 
     # Build interpolant for mid-period marginal value of habit stock on (w, H) grid;
     # dvdH_opt already includes DiscFacEff.
