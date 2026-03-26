@@ -273,7 +273,7 @@ def solve_one_period_HabitPortfolio(
         # ============================================================
         cFunc = IdentityFunction(i_dim=0, n_dims=2)
         ShareFunc = ConstantFunction(ShareLimit)
-        dvdH_cont_func = ConstantFunction(0.0)
+        dvdHmidFunc = ConstantFunction(0.0)
         ShareFunc_mid = ConstantFunction(ShareLimit)
 
     else:
@@ -281,8 +281,8 @@ def solve_one_period_HabitPortfolio(
         # Stage 1: Optimal risky share
         # ============================================================
         # For each (w, H, s), compute E_R[Rport * dvdkFunc_next(Rport*w, H)]
-        # and E_R[(Risky-Rfree)*w * dvdkFunc_next(Rport*w, H)] and
-        # E_R[dvdhFunc_next(Rport*w, H)].
+        # and E_R[dvdhFunc_next(Rport*w, H)] and
+        # E_R[(Risky-Rfree)*w * dvdkFunc_next(Rport*w, H)].
 
         # Build 3D meshes (w, H, s). These are for mid-period state space points
         # combined with candidate risky share values
@@ -348,11 +348,11 @@ def solve_one_period_HabitPortfolio(
         dvdH_opt[constrained_top] = dvdH_mid[:, :, -1][constrained_top]
         dvdH_opt[constrained_bot] = dvdH_mid[:, :, 0][constrained_bot]
 
-        # Build interpolant for continuation habit value on (w, H) grid.
+        # Build interpolant for mid-period habit stock on (w, H) grid.
         # dvdH_opt already includes DiscFacEff. We store it for Stage 3 (below).
         dvdH_nvrs = U.inv(dvdH_opt)
         dvdHNvrsFunc = BilinearInterp(dvdH_nvrs, wGrid, HabitGrid)
-        dvdH_cont_func = ValueFuncCRRA(dvdHNvrsFunc, CRRA)
+        dvdHmidFunc = ValueFuncCRRA(dvdHNvrsFunc, CRRA)
 
         # ============================================================
         # Stage 2: Optimal consumption via habit EGM
@@ -446,7 +446,7 @@ def solve_one_period_HabitPortfolio(
             HabitWgt,
             HabitRte,
             cFunc,
-            dvdH_cont_func,
+            dvdHmidFunc,
         ),
     )
 
@@ -552,7 +552,7 @@ HabitPortfolio_inverter_default = {
 
 HabitPortfolio_RiskyDstn_default = {
     "RiskyAvg": 1.08,
-    "RiskyStd": 0.18362634887,
+    "RiskyStd": 0.18,
     "RiskyCount": 5,
 }
 
