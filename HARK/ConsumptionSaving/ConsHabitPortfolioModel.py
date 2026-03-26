@@ -87,11 +87,9 @@ from HARK.rewards import UtilityFuncCRRA
 ###############################################################################
 
 
-def calc_end_dvdx_habit(
-    shocks, w_nrm, H_nrm, share, rfree, dvdkFunc_next, dvdhFunc_next
-):
+def calc_mid_dvdx(shocks, w_nrm, H_nrm, share, rfree, dvdkFunc_next, dvdhFunc_next):
     """
-    Compute end-of-period marginal values by taking expectations over risky
+    Compute middle-of-period marginal values by taking expectations over risky
     return shocks. Uses the next period's marginal value functions directly
     (they already integrate over income shocks).
 
@@ -116,10 +114,10 @@ def calc_end_dvdx_habit(
     -------
     dvdw : np.array
         Marginal value of pre-return savings.
-    dvds : np.array
-        Marginal value of risky share (zero at optimum).
     dvdH : np.array
         Marginal value of end-of-period habit stock.
+    dvds : np.array
+        Marginal value of risky share (zero at optimum).
     """
     ex_ret = shocks - rfree
     rport = rfree + share * ex_ret
@@ -129,7 +127,7 @@ def calc_end_dvdx_habit(
     dvdw = rport * dvdk
     dvds = ex_ret * w_nrm * dvdk
     dvdH = dvdhFunc_next(a_nrm, H_nrm)
-    return dvdw, dvds, dvdH
+    return dvdw, dvdH, dvds
 
 
 def calc_marg_values_port(S, k, hpre, rho, Gamma, alpha, lamda, cFunc, dvdH_cont_func):
@@ -172,7 +170,7 @@ def calc_marg_values_port(S, k, hpre, rho, Gamma, alpha, lamda, cFunc, dvdH_cont
 def make_habit_portfolio_solution_terminal():
     """
     Make a pseudo-terminal solution for the habit-portfolio model.
-    All value functions are zero (constant).
+    Both marginal value functions are zero (constant).
     """
     dvdkFunc_terminal = ConstantFunction(0.0)
     dvdhFunc_terminal = ConstantFunction(0.0)
@@ -276,7 +274,7 @@ def solve_one_period_HabitPortfolio(
         cFunc = IdentityFunction(i_dim=0, n_dims=2)
         ShareFunc = ConstantFunction(ShareLimit)
         dvdH_cont_func = ConstantFunction(0.0)
-        ShareFunc_by_wNrm = ConstantFunction(ShareLimit)
+        ShareFunc_mid = ConstantFunction(ShareLimit)
 
     else:
         # ============================================================
@@ -286,33 +284,32 @@ def solve_one_period_HabitPortfolio(
         # and E_R[(Risky-Rfree)*w * dvdkFunc_next(Rport*w, H)] and
         # E_R[dvdhFunc_next(Rport*w, H)].
 
+        # Build 3D meshes (w, H, s). These are for mid-period state space points
+        # combined with candidate risky share values
         wGrid = aXtraGrid + wNrmMin
         wCount = wGrid.size
         HabitCount = HabitGrid.size
         ShareCount = ShareGrid.size
+        wMesh, Hmesh, sMesh = np.meshgrid(wGrid, HabitGrid, ShareGrid, indexing="ij")
 
-        # Build 3D meshes: (w, H, s)
-        w_3d = np.tile(wGrid[:, np.newaxis, np.newaxis], (1, HabitCount, ShareCount))
-        H_3d = np.tile(HabitGrid[np.newaxis, :, np.newaxis], (wCount, 1, ShareCount))
-        s_3d = np.tile(ShareGrid[np.newaxis, np.newaxis, :], (wCount, HabitCount, 1))
-
-        end_dvdw_3d, end_dvds_3d, end_dvdH_3d = DiscFacEff * expected(
-            calc_end_dvdx_habit,
+        # Compute expected marginal value of wealth, habit stock, and risky share for each (w,H,S)
+        dvdw_mid, dvdH_mid, dvds_mid = DiscFacEff * expected(
+            calc_mid_dvdx,
             RiskyDstn,
-            args=(w_3d, H_3d, s_3d, Rfree, dvdkFunc_next, dvdhFunc_next),
+            args=(wMesh, Hmesh, sMesh, Rfree, dvdkFunc_next, dvdhFunc_next),
         )
 
-        # For each (w, H), find optimal share where dvds == 0
-        focs = end_dvds_3d
-
-        # Find sign change: dvds goes from positive to negative
+        # For each (w, H), find optimal share where dvds == 0 by looking for a
+        # sign change: dvds goes from positive to negative
+        focs = dvds_mid
         crossing = np.logical_and(focs[:, :, 1:] <= 0.0, focs[:, :, :-1] >= 0.0)
         share_idx = np.argmax(crossing, axis=2)
 
+        # Find the optimal risky share by solving a linear equation for the FOC
+        # crossing point, given that we know upper and lower bounding points for it
         w_idx, h_idx = np.meshgrid(
             np.arange(wCount), np.arange(HabitCount), indexing="ij"
         )
-
         bot_s = ShareGrid[share_idx]
         top_s = ShareGrid[np.minimum(share_idx + 1, ShareCount - 1)]
         bot_f = focs[w_idx, h_idx, share_idx]
@@ -322,7 +319,6 @@ def solve_one_period_HabitPortfolio(
             1.0 - top_f / (top_f - bot_f),
             0.5,
         )
-        # alpha_interp = np.clip(alpha_interp, 0.0, 1.0)
         Share_opt = (1.0 - alpha_interp) * bot_s + alpha_interp * top_s
 
         # Handle corner solutions
@@ -336,20 +332,21 @@ def solve_one_period_HabitPortfolio(
             LinearInterp(wGrid, Share_opt[:, j], ShareLimit, 0.0, lower_extrap=True)
             for j in range(HabitCount)
         ]
-        ShareFunc_by_wNrm = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
+        ShareFunc_mid = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
 
         # Extract optimized end-of-period marginal values at optimal share
-        bot_dvdw = end_dvdw_3d[w_idx, h_idx, share_idx]
-        top_dvdw = end_dvdw_3d[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
+        bot_dvdw = dvdw_mid[w_idx, h_idx, share_idx]
+        top_dvdw = dvdw_mid[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
         dvdw_opt = (1.0 - alpha_interp) * bot_dvdw + alpha_interp * top_dvdw
-        dvdw_opt[constrained_top] = end_dvdw_3d[:, :, -1][constrained_top]
-        dvdw_opt[constrained_bot] = end_dvdw_3d[:, :, 0][constrained_bot]
+        dvdw_opt[constrained_top] = dvdw_mid[:, :, -1][constrained_top]
+        dvdw_opt[constrained_bot] = dvdw_mid[:, :, 0][constrained_bot]
 
-        bot_dvdH = end_dvdH_3d[w_idx, h_idx, share_idx]
-        top_dvdH = end_dvdH_3d[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
+        # Do the same thing for marginal value of post-consumption habit stock
+        bot_dvdH = dvdH_mid[w_idx, h_idx, share_idx]
+        top_dvdH = dvdH_mid[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
         dvdH_opt = (1.0 - alpha_interp) * bot_dvdH + alpha_interp * top_dvdH
-        dvdH_opt[constrained_top] = end_dvdH_3d[:, :, -1][constrained_top]
-        dvdH_opt[constrained_bot] = end_dvdH_3d[:, :, 0][constrained_bot]
+        dvdH_opt[constrained_top] = dvdH_mid[:, :, -1][constrained_top]
+        dvdH_opt[constrained_bot] = dvdH_mid[:, :, 0][constrained_bot]
 
         # Build interpolant for continuation habit value on (w, H) grid.
         # dvdH_opt already includes DiscFacEff. We store it for Stage 3 (below).
@@ -365,11 +362,10 @@ def solve_one_period_HabitPortfolio(
         chi = U.derinv(dvdw_opt - HabitRte * dvdH_opt)
 
         # Recover (c, h) from (H, chi)
-        cNrm, hNrm = FOCinverter(
-            np.tile(HabitGrid[np.newaxis, :], (wCount, 1)),
-            chi,
-        )
-        mNrm = np.tile(wGrid[:, np.newaxis], (1, HabitCount)) + cNrm
+        wNrm = np.tile(wGrid[:, np.newaxis], (1, HabitCount))
+        HNrm = np.tile(HabitGrid[np.newaxis, :], (wCount, 1))
+        cNrm, hNrm = FOCinverter(HNrm, chi)
+        mNrm = wNrm + cNrm
 
         # Add constrained boundary point (c=0, h at boundary)
         cNrm_aug = np.concatenate((np.zeros((1, HabitCount)), cNrm), axis=0)
@@ -380,10 +376,10 @@ def solve_one_period_HabitPortfolio(
             hBot = np.reshape(HabitGrid / (1.0 - HabitRte), (1, HabitCount))
         hNrm_aug = np.concatenate((hBot, hNrm), axis=0)
 
-        # Build consumption function
+        # Build consumption function on the irregular grid of state space points
         cFuncUnc_base = Curvilinear2DInterp(cNrm_aug, mNrm_aug, hNrm_aug)
 
-        # Re-interpolate the curvilinear consumption function onto an ordinary grid
+        # Re-interpolate the curvilinear consumption function onto a rectilinear grid
         mGridDense = mXtraGrid + wNrmMin
         mMesh, hMesh = np.meshgrid(mGridDense, hGridDense, indexing="ij")
         cMesh = cFuncUnc_base(mMesh, hMesh)
@@ -393,6 +389,7 @@ def solve_one_period_HabitPortfolio(
             cMesh, np.insert(mGridDense, 0, wNrmMin), np.insert(hGridDense, 0, 0.0)
         )
 
+        # Apply the artificial borrowing constraint (which should always be zero)
         if (BoroCnstArt is not None) and (BoroCnstArt > -np.inf):
             cFuncCnst_temp = LinearInterp([BoroCnstArt, BoroCnstArt + 1.0], [0.0, 1.0])
             cFuncCnst = LinearInterpOnInterp1D(
@@ -413,7 +410,7 @@ def solve_one_period_HabitPortfolio(
         cc = cFunc(mm, hh)
         ww = mm - cc
         HH = HabitRte * cc + (1.0 - HabitRte) * hh
-        Share_reg = ShareFunc_by_wNrm(ww, HH)
+        Share_reg = ShareFunc_mid(ww, HH)
         ShareFunc_by_hNrm = [
             LinearInterp(mRegGrid, Share_reg[:, j], ShareLimit, 0.0)
             for j in range(hGridDense.size)
@@ -433,9 +430,11 @@ def solve_one_period_HabitPortfolio(
     kNrmMin_cand = (mNrmMin - TranShkVals) / Rfree * (PermShkVals * PermGroFac)
     kNrmMin = np.max(kNrmMin_cand)
 
+    # Set up exogenous grids of beginning-of-period capital and prior habit stock
     kGrid = kNrmMin + aXtraGrid
     kNrm, hPre = np.meshgrid(kGrid, HabitGrid, indexing="ij")
 
+    # Calculate expectation of marginal value w.r.t beginning of period capital and prior habit stock
     dvdk, dvdh = expected(
         calc_marg_values_port,
         IncShkDstn,
@@ -451,19 +450,24 @@ def solve_one_period_HabitPortfolio(
         ),
     )
 
+    # Construct the marginal value of capital function by taking the "pseudo-inverse"
+    # and inserting a zero at the bottom (infinite marginal value at lower bound)
     dvdkNvrs = np.concatenate((np.zeros((1, HabitGrid.size)), U.derinv(dvdk)), axis=0)
     dvdkNvrsFunc = BilinearInterp(dvdkNvrs, np.insert(kGrid, 0, kNrmMin), HabitGrid)
     dvdkFunc = MargValueFuncCRRA(dvdkNvrsFunc, CRRA)
 
+    # Construct the marginal value function over prior habit stock by taking the
+    # "pseudo-inverse" while treating it *like* a value function (because it's negative).
+    # We don't know about the behavior near the lower boundary, so no points are added.
     dvdhNvrs = U.inv(dvdh)
     dvdhNvrsFunc = BilinearInterp(dvdhNvrs, kGrid, HabitGrid)
     dvdhFunc = ValueFuncCRRA(dvdhNvrsFunc, CRRA)
 
-    # Package solution
+    # Package solution as a dictionary and return it
     solution_now = {
         "cFunc": cFunc,
         "ShareFunc": ShareFunc,
-        "ShareFuncAlt": ShareFunc_by_wNrm,
+        "ShareFuncAlt": ShareFunc_mid,
         "dvdkFunc": dvdkFunc,
         "dvdhFunc": dvdhFunc,
         "kNrmMin": kNrmMin,
