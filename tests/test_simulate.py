@@ -254,7 +254,7 @@ class testSimulatorClass(unittest.TestCase):
 
         MyType._simulator.make_transition_matrices(my_grids, norm="PermShk")
         MyType._simulator.simulate_shock_by_grids(
-            ["aNrm"], T, "aNrm * 1.1", calc_dstn=True
+            "aNrm", T, "aNrm * 1.1", calc_dstn=True
         )
         A_avg = MyType._simulator.history_avg["aNrm"]
         A_dstn = MyType._simulator.history_dstn["aNrm"]
