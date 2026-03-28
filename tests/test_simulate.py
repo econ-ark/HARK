@@ -242,6 +242,82 @@ class testSimulatorClass(unittest.TestCase):
             self.grid_specs,
         )
 
+    def test_simulate_shock_by_grids(self):
+        MyType = IndShockConsumerType(cycles=0)
+        MyType.solve()
+        MyType.initialize_sym()
+        T = 200
+        my_grids = {
+            "kNrm": {"min": 0.0, "max": 30.0, "N": 501, "order": 2.5},
+            "cNrm": {"min": 0.0, "max": 3.0, "N": 301},
+        }
+
+        MyType._simulator.make_transition_matrices(my_grids, norm="PermShk")
+        MyType._simulator.simulate_shock_by_grids(
+            ["aNrm"], T, "aNrm * 1.1", calc_dstn=True
+        )
+        A_avg = MyType._simulator.history_avg["aNrm"]
+        A_dstn = MyType._simulator.history_dstn["aNrm"]
+        A_LR = MyType._simulator.get_long_run_average("aNrm")
+        self.assertEqual(A_avg.size, T)
+        self.assertEqual(A_dstn.shape[0], 501)
+        self.assertEqual(A_dstn.shape[1], T)
+        self.assertTrue(np.all(np.isreal(A_avg)))
+        self.assertTrue(np.all(np.isreal(A_dstn)))
+        self.assertTrue(np.all(np.isclose(np.sum(A_dstn, axis=0), 1.0)))
+        self.assertAlmostEqual(A_avg[-1], A_LR)
+
+    def test_SSbyG_errors(self):
+        MyType = IndShockConsumerType(cycles=0)
+        MyType.solve()
+        MyType.initialize_sym()
+        T = 200
+        my_grids = {
+            "kNrm": {"min": 0.0, "max": 30.0, "N": 501, "order": 2.5},
+            "cNrm": {"min": 0.0, "max": 3.0, "N": 301},
+        }
+
+        self.assertRaises(
+            KeyError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            "aNrm * 1.1",
+        )
+        MyType._simulator.make_transition_matrices(my_grids, norm="PermShk")
+        self.assertRaises(
+            ValueError, MyType._simulator.simulate_shock_by_grids, ["aNrm"], T
+        )
+        self.assertRaises(
+            ValueError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            "aNrm * 1.1",
+            calc_avg=False,
+        )
+        self.assertRaises(
+            ValueError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            "aNrm / 1.1",
+        )
+        self.assertRaises(
+            KeyError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            "mNrm * 1.1",
+        )
+        self.assertRaises(
+            ValueError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            "aNrm * 1.ae1",
+        )
+
 
 class testFindTarget(unittest.TestCase):
     def setUp(self):
