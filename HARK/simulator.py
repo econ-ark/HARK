@@ -1846,14 +1846,16 @@ class AgentSimulator:
             Names of one or more outcome variables
         T : int
             Number of periods to simulate after the shock.
-        shock : [(str, float)], optional
-            List of pairs of continuation variable name (and operator) and shock value.
-            The first element of each pair should be the name of an arrival variable
-            followed immediately by either + or *. The second element in each pair
-            is the value to apply to the variable via the operator. For example, the
-            pair ("aNrm+", 0.1) means that 0.1 should be added to (the distribution
-            of) end-of-period assets, while ("pLvl*", 0.8) means that permanent
-            income should be reduced by 20% for the entire population. Not all arrival
+        shock : str or [str], optional
+            One or more of "shock operations" to be applied to the steady state
+            (or custom distribution, if specified). Each shock operation should
+            name a continuation variable (something named on the left side of
+            the twist), and be followed by an operator and a value. At this time,
+            the only valid operators are "+", "*", and "=". For example, the shock
+            "aNrm + 0.1" means that 0.1 should be added to (the distribution of
+            end-of-period assets, while "pLvl * 0.8" means that permanent income
+            should be reduced by 20% for the entire population. The "=" operator
+            shifts the entire population to the specified value. Not all arrival
             variables must be named in this argument. Indeed, none need be named.
         from_dstn : np.array, optional
             If provided, a user-specified distribution of arrival states. If none is
@@ -1884,7 +1886,8 @@ class AgentSimulator:
             )
         if shock is None:
             shock = []
-        shock_vars = [S[0][:-1] for S in shock]
+        if type(shock) is str:
+            shock = [shock]
         if isinstance(outcomes, str):
             outcomes = [outcomes]
 
@@ -1896,25 +1899,54 @@ class AgentSimulator:
         else:
             init_dstn = from_dstn
 
-        # Make dynamic event strings for each arrival/continuation variable
+        # Make dynamic event strings for each shock statement
         event_strings = []
-        for k in range(len(self.twist)):
-            var = list(self.twist.keys())[k]
+        shock_vars = []
+        op_list = ["+", "*", "="]
+        for k in range(len(shock)):
+            # Parse the shock statement for its parts
+            S = shock[k]
+            op = None
+            for j in range(len(op_list)):
+                if op_list[j] in S:
+                    op = op_list[j]
+                    break
+            if op is None:
+                raise ValueError(
+                    "The shock statement (" + S + ") did not contain a valid operator!"
+                )
+            loc = S.index(op)
+            var = S[:loc].strip()
+            val = S[(loc + 1) :].strip()
+            if var not in self.twist:
+                raise KeyError(
+                    "All shocked variables must be continuation states, but "
+                    + var
+                    + " is not!"
+                )
+            try:
+                float(val)
+            except:
+                raise ValueError("Couldn't interpret " + val + " as a number!")
+
+            # Make a string for this shock event
+            var_alt = var_alt = self.twist[var]
+            if op == "+":
+                this_event = var + " = " + var_alt + " + " + val
+            elif op == "*":
+                this_event = var + " = " + var_alt + " * " + val
+            elif op == "=":
+                this_event = var + " = " + val
+            event_strings.append(this_event)
+            shock_vars.append(var)
+
+        # For any continuation states that weren't shocked, make a trivial event
+        cont_vars = list(self.twist.keys())
+        for k in range(len(cont_vars)):
+            var = cont_vars[k]
             if var in shock_vars:
-                i = shock_vars.index(var)
-                op = shock[i][0][-1]
-                val = shock[i][1]
-                var_alt = self.twist[var]
-                if op not in ["+", "*"]:
-                    raise ValueError(
-                        "Only addition and multiplication can be specified as shock operations!"
-                    )
-                if op == "+":
-                    this_event = var + " = " + var_alt + " + " + str(val)
-                if op == "*":
-                    this_event = var + " = " + var_alt + " * " + str(val)
-            else:
-                this_event = var + " = " + var_alt
+                continue
+            this_event = var + " = " + var_alt
             event_strings.append(this_event)
 
         # Extract grid specifications only for arrival and continuation variables
