@@ -1936,7 +1936,7 @@ class AgentSimulator:
             elif op == "*":
                 this_event = var + " = " + var_alt + " * " + val
             elif op == "=":
-                this_event = var + " = " + val
+                this_event = var + " = " + var_alt + " * 0.0 + " + val
             event_strings.append(this_event)
             shock_vars.append(var)
 
