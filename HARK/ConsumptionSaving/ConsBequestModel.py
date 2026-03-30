@@ -1275,7 +1275,6 @@ init_portfolio_bequest = {
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
     "IndepDstnBool": True,  # Indicator for whether return & income shocks are independent
-    "PortfolioBool": True,  # Whether this agent has portfolio choice
     "PortfolioBisect": False,  # What does this do?
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share

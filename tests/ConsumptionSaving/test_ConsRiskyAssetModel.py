@@ -70,7 +70,9 @@ class testNonIndeptRiskyAssetConsumerType(unittest.TestCase):
 
 class testPortChoiceConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = IndShockRiskyAssetConsumerType(vFuncBool=True, PortfolioBool=True)
+        self.agent = IndShockRiskyAssetConsumerType(
+            vFuncBool=True, RiskyShareFixed=None
+        )
         self.agent.solve()
 
     def test_solution(self):
@@ -95,7 +97,7 @@ class testNonIndepPortChoiceConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockRiskyAssetConsumerType(
             IndepDstnBool=False,
-            PortfolioBool=True,
+            RiskyShareFixed=None,
             vFuncBool=True,
         )
         self.agent.solve()

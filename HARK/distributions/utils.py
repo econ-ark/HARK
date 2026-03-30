@@ -594,11 +594,15 @@ def expected(func=None, dist=None, args=(), **kwargs):
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
         The expectation is computed at ``f(dstn, *args)``.
-    labels : bool
-        If True, the function should use labeled indexing instead of integer
-        indexing using the distribution's underlying rv coordinates. For example,
-        if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
-        the function can be `lambda x: x["a"] + x["b"]`.
+    labels : bool, optional
+        For ``DiscreteDistributionLabeled`` only.  If True (default), func
+        receives a dict of labeled arrays.  If False, func receives the raw
+        numpy atoms array, making DDL compatible with functions written for
+        ``DiscreteDistribution``.
+    **kwargs :
+        Additional keyword arguments forwarded to ``dist.expected()``.
+        For ``DiscreteDistributionLabeled``, these are passed through to
+        the user-supplied *func* along with the xarray Dataset.
 
     Returns
     -------
@@ -606,11 +610,20 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
+    if not isinstance(dist, DiscreteDistribution):
+        raise TypeError(
+            f"expected(): 'dist' must be a DiscreteDistribution or "
+            f"DiscreteDistributionLabeled, got {type(dist).__name__}."
+        )
 
     if not isinstance(args, tuple):
         args = (args,)
 
-    if isinstance(dist, DiscreteDistributionLabeled):
-        return dist.expected(func, *args, **kwargs)
-    elif isinstance(dist, DiscreteDistribution):
+    if args:
+        if kwargs:
+            return dist.expected(func, *args, **kwargs)
         return dist.expected(func, *args)
+
+    if kwargs:
+        return dist.expected(func, **kwargs)
+    return dist.expected(func)
