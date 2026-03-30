@@ -1636,7 +1636,7 @@ class AgentSimulator:
         Parameters
         ----------
         var : str
-            Name of the variable for which to calculate the long run average.
+            Name of the variable for which to calculate the long run distribution.
 
         Returns
         -------
@@ -1852,7 +1852,7 @@ class AgentSimulator:
             name a continuation variable (something named on the left side of
             the twist), and be followed by an operator and a value. At this time,
             the only valid operators are "+", "*", and "=". For example, the shock
-            "aNrm + 0.1" means that 0.1 should be added to (the distribution of
+            "aNrm + 0.1" means that 0.1 should be added to (the distribution of)
             end-of-period assets, while "pLvl * 0.8" means that permanent income
             should be reduced by 20% for the entire population. The "=" operator
             shifts the entire population to the specified value. Not all arrival
@@ -1950,6 +1950,7 @@ class AgentSimulator:
             var = cont_vars[k]
             if var in shock_vars:
                 continue
+            var_alt = self.twist[var]
             this_event = var + " = " + var_alt
             event_strings.append(this_event)
 
