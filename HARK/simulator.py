@@ -1857,6 +1857,8 @@ class AgentSimulator:
             should be reduced by 20% for the entire population. The "=" operator
             shifts the entire population to the specified value. Not all arrival
             variables must be named in this argument. Indeed, none need be named.
+            The numeric value should *not* use scientific notation nor other math
+            operations; e.g. use "0.0001" and not "1e-4".
         from_dstn : np.array, optional
             If provided, a user-specified distribution of arrival states. If none is
             given (typical), then the steady state distribution is used. Any shocks
