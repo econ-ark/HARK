@@ -267,6 +267,30 @@ class testSimulatorClass(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(np.sum(A_dstn, axis=0), 1.0)))
         self.assertAlmostEqual(A_avg[-1], A_LR)
 
+    def test_simulate_shock_custom_dstn(self):
+        MyType = IndShockConsumerType(cycles=0)
+        MyType.solve()
+        MyType.initialize_sym()
+        T = 200
+        my_grids = {
+            "kNrm": {"min": 0.0, "max": 30.0, "N": 501, "order": 2.5},
+            "cNrm": {"min": 0.0, "max": 3.0, "N": 301},
+        }
+
+        # Make a rather extreme custom distribution
+        my_dstn = np.zeros(501)
+        my_dstn[0] = 0.5
+        my_dstn[-1] = 0.5
+
+        MyType._simulator.make_transition_matrices(my_grids, norm="PermShk")
+        MyType._simulator.find_steady_state()
+        MyType._simulator.simulate_shock_by_grids("aNrm", T, from_dstn=my_dstn)
+        A_avg = MyType._simulator.history_avg["aNrm"]
+        A_LR = MyType._simulator.get_long_run_average("aNrm")
+        self.assertEqual(A_avg.size, T)
+        self.assertTrue(np.all(np.isreal(A_avg)))
+        self.assertAlmostEqual(A_avg[-1], A_LR)
+
     def test_SSbyG_errors(self):
         MyType = IndShockConsumerType(cycles=0)
         MyType.solve()
@@ -277,7 +301,7 @@ class testSimulatorClass(unittest.TestCase):
             "cNrm": {"min": 0.0, "max": 3.0, "N": 301},
         }
 
-        self.assertRaises(
+        self.assertRaises(  # run before transition matrices exist
             KeyError,
             MyType._simulator.simulate_shock_by_grids,
             ["aNrm"],
@@ -285,10 +309,10 @@ class testSimulatorClass(unittest.TestCase):
             "aNrm * 1.1",
         )
         MyType._simulator.make_transition_matrices(my_grids, norm="PermShk")
-        self.assertRaises(
+        self.assertRaises(  # run without any shock
             ValueError, MyType._simulator.simulate_shock_by_grids, ["aNrm"], T
         )
-        self.assertRaises(
+        self.assertRaises(  # run with no output
             ValueError,
             MyType._simulator.simulate_shock_by_grids,
             ["aNrm"],
@@ -296,26 +320,45 @@ class testSimulatorClass(unittest.TestCase):
             "aNrm * 1.1",
             calc_avg=False,
         )
-        self.assertRaises(
+        self.assertRaises(  # run with invalid operator
             ValueError,
             MyType._simulator.simulate_shock_by_grids,
             ["aNrm"],
             T,
             "aNrm / 1.1",
         )
-        self.assertRaises(
+        self.assertRaises(  # try to use non-continuation state
             KeyError,
             MyType._simulator.simulate_shock_by_grids,
             ["aNrm"],
             T,
             "mNrm * 1.1",
         )
-        self.assertRaises(
+        self.assertRaises(  # try to use invalid number
             ValueError,
             MyType._simulator.simulate_shock_by_grids,
             ["aNrm"],
             T,
             "aNrm * 1.ae1",
+        )
+        bad_grid = np.zeros(501)
+        bad_grid[0] = 0.5
+        self.assertRaises(  # grid doesn't sum to 1
+            ValueError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            from_dstn=bad_grid,
+        )
+        bad_grid = np.zeros(502)
+        bad_grid[0] = 0.5
+        bad_grid[-1] = 0.5
+        self.assertRaises(  # grid has wrong size
+            ValueError,
+            MyType._simulator.simulate_shock_by_grids,
+            ["aNrm"],
+            T,
+            from_dstn=bad_grid,
         )
 
 

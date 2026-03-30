@@ -1864,11 +1864,11 @@ class AgentSimulator:
             given (typical), then the steady state distribution is used. Any shocks
             described in shock are applied to this initial distribution.
         calc_dstn : bool, optional
-            Whether to store the distribution of the outcomes over time in history_dstn.
+            Whether to store the distribution of outcomes over time in history_dstn.
             The default is False.
         calc_avg : bool, optional
             Whether to store the population average of the outcomes over time in
-            history_avg. The default is True
+            history_avg. The default is True.
 
         Returns
         -------
@@ -1903,6 +1903,22 @@ class AgentSimulator:
                 self.find_steady_state()
             init_dstn = self.steady_state_dstn
         else:
+            dstn_sum = np.sum(from_dstn)
+            dstn_N = from_dstn.size
+            if not np.isclose(dstn_sum, 1.0):
+                raise ValueError(
+                    "Specified from_dstn should be a stochastic vector, but its values sum to "
+                    + str(dstn_sum)
+                )
+            arrival_N = len(self.state_grids[0])
+            if not arrival_N == dstn_N:
+                raise ValueError(
+                    "Specified from_dstn should be a vector of size "
+                    + str(arrival_N)
+                    + ", but has size "
+                    + str(dstn_N)
+                    + "!"
+                )
             init_dstn = from_dstn
 
         # Make dynamic event strings for each shock statement
