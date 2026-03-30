@@ -979,7 +979,7 @@ class SimBlock:
         - grids : A dictionary of discretized grids for outcome variables. Doing
                   np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
                   of that outcome in the population.
-        - trans_array : The full-period Markov transitition matrix that goes from
+        - trans_array : The full-period Markov transition matrix that goes from
                         arrival variables in t to arrival variables in t+1, including
                         mortality.
 
@@ -1880,9 +1880,13 @@ class AgentSimulator:
             raise ValueError(
                 "The shock or from_dstn must be specified, or there's nothing to simulate!"
             )
+        if self.T_total != 1:
+            raise ValueError(
+                "simulate_shock_by_grids is only implemented for infinite-horizon models with T_total == 1."
+            )
         if not hasattr(self, "trans_arrays"):
             raise KeyError(
-                "This method can't be run before running make_transition_arrays!"
+                "This method can't be run before running make_transition_matrices!"
             )
         if shock is None:
             shock = []
@@ -1926,11 +1930,11 @@ class AgentSimulator:
                 )
             try:
                 float(val)
-            except:
+            except (ValueError, TypeError):
                 raise ValueError("Couldn't interpret " + val + " as a number!")
 
             # Make a string for this shock event
-            var_alt = var_alt = self.twist[var]
+            var_alt = self.twist[var]
             if op == "+":
                 this_event = var + " = " + var_alt + " + " + val
             elif op == "*":
@@ -1972,24 +1976,54 @@ class AgentSimulator:
 
         # Initialize the state distribution
         current_dstn = init_dstn.copy()
-        state_dstn_by_t = np.empty((current_dstn.size, T))
+
+        # If we need the full distribution history, allocate state_dstn_by_t;
+        # otherwise, avoid this potentially large O(num_states * T) array.
+        if calc_dstn:
+            state_dstn_by_t = np.empty((current_dstn.size, T))
+        else:
+            state_dstn_by_t = None
+
         trans_array = self.trans_arrays[0]
+
+        # If we only need averages (no full distributions), we can stream
+        # the averages over time without storing the full state history.
+        if calc_avg and not calc_dstn:
+            outcome_arrays_0 = self.outcome_arrays[0]
+            outcome_grids_0 = self.outcome_grids[0]
+            for name in outcomes:
+                history_avg[name] = np.empty(T)
 
         # Loop over requested periods of this agent type's model
         for t in range(T):
-            state_dstn_by_t[:, t] = current_dstn
+            # Store full state distribution history only if requested
+            if calc_dstn:
+                state_dstn_by_t[:, t] = current_dstn
+
+            # Stream averages when only averages are needed
+            if calc_avg and not calc_dstn:
+                for name in outcomes:
+                    this_outcome = outcome_arrays_0[name]
+                    this_grid = outcome_grids_0[name]
+                    this_dstn_t = np.dot(this_outcome.T, current_dstn)
+                    history_avg[name][t] = np.dot(this_grid, this_dstn_t)
+
             current_dstn = np.dot(current_dstn, trans_array)
 
         # Calculate history of outcomes as requested
         for name in outcomes:
             this_outcome = self.outcome_arrays[0][name]
-            this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
-            if calc_dstn:
-                history_dstn[name] = this_dstn
-            if calc_avg:
-                this_grid = self.outcome_grids[0][name]
-                history_avg[name] = np.dot(this_grid, this_dstn)
+            this_grid = self.outcome_grids[0][name]
 
+            if calc_dstn:
+                this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
+                history_dstn[name] = this_dstn
+
+                if calc_avg:
+                    history_avg[name] = np.dot(this_grid, this_dstn)
+            elif calc_avg:
+                # Averages have already been filled in the time loop
+                continue
         # Store results as attributes of self
         self.history_dstn = history_dstn
         self.history_avg = history_avg
