@@ -81,5 +81,8 @@ from HARK.ConsumptionSaving.ConsIndShockModelFast import (
     IndShockConsumerTypeFast,
     PerfForesightConsumerTypeFast,
 )
-from HARK.ConsumptionSaving.ConsHabitModel import HabitConsumerType
-from HARK.ConsumptionSaving.ConsHabitPortfolioModel import HabitPortfolioConsumerType
+from HARK.ConsumptionSaving.ConsHabitModel import (
+    HabitConsumerType,
+    HabitPortfolioConsumerType,
+)
+# from HARK.ConsumptionSaving.ConsHabitPortfolioModel import HabitPortfolioConsumerType

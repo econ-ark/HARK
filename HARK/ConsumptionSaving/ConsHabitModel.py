@@ -919,7 +919,7 @@ class HabitConsumerType(AgentType):
         \newcommand{\HabitRte}{\lambda}
 
         \begin{align*}
-        v_t(m_t,h_t) &= \max_{c_t}u(c_t,h_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)} v_{t+1}(m_{t+1}, h_{t+1}) \right], \\
+        v_t(m_t,h_t) &= \max_{c_t}u(c_t,h_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)} v_{t+1}(m_{t+1}, h_{t+1}) \right] \\
         & \text{s.t.}  \\
         a_t &= m_t - c_t, \\
         H_t &= \HabitRte c_t + (1-\HabitRte) h_t, \\
@@ -1019,7 +1019,7 @@ class HabitPortfolioConsumerType(HabitConsumerType):
         \begin{align*}
         v_t(m_t,h_t) &= \max_{c_t, s_t} u(c_t,h_t) + \DiscFac \LivPrb_t
             \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{(1-\HabitWgt)(1-\CRRA)}
-            v_{t+1}(m_{t+1}, h_{t+1}) \right], \\
+            v_{t+1}(m_{t+1}, h_{t+1}) \right] \\
         & \text{s.t.}  \\
         w_t &= m_t - c_t, \\
         H_t &= \HabitRte c_t + (1-\HabitRte) h_t, \\
@@ -1027,8 +1027,10 @@ class HabitPortfolioConsumerType(HabitConsumerType):
         s_t &\in [0,1], \\
         a_t &= R_t w_t, \\
         R_{t} &= s_t \Risky_{t} + (1-s_t) \Rfree_{t}, \\
-        m_{t+1} &= a_t R_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+        m_{t+1} &= a_t / (\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         h_{t+1} &= H_t / (\PermGroFac_{t+1} \psi_{t+1}), \\
+        (\psi_{t+1}, \theta_{t+1}) &\sim F_{t+1}, \\
+        \Risky_{t} &\ sim G, \\
         u(c,h) &= \frac{(c/h^\HabitWgt)^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
     """

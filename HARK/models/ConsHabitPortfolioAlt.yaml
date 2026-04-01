@@ -58,6 +58,7 @@ dynamics: |
   Risky ~ RiskyDstn                \\ draw risky return shock
   Rport = Rfree + (Risky-Rfree)*Share \\ calculate realized portfolio return
   aNrm = Rport * wNrm              \\ calculate end-of-period assets
+  qNrm = wNrm * Share              \\ calculate risky asset holdings
   live ~ {LivPrb}                  \\ draw survival
   dead = 1 - live                  \\ dead are non-survivors
 

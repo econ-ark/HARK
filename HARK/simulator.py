@@ -12,7 +12,7 @@ from sympy import symbols, IndexedBase
 from typing import Callable
 from HARK.utilities import NullFunc, make_exponential_grid
 from HARK.distributions import Distribution
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.linalg import eigs
 from scipy.optimize import brentq
 from itertools import product
@@ -2003,7 +2003,7 @@ class AgentSimulator:
         else:
             state_dstn_by_t = None
 
-        trans_array = self.trans_arrays[0]
+        trans_array = csc_matrix(self.trans_arrays[0])
 
         # If we only need averages (no full distributions), we can stream
         # the averages over time without storing the full state history.
@@ -2024,10 +2024,10 @@ class AgentSimulator:
                 for name in outcomes:
                     this_outcome = outcome_arrays_0[name]
                     this_grid = outcome_grids_0[name]
-                    this_dstn_t = np.dot(this_outcome.T, current_dstn)
+                    this_dstn_t = np.dot(current_dstn, this_outcome)
                     history_avg[name][t] = np.dot(this_grid, this_dstn_t)
 
-            current_dstn = np.dot(current_dstn, trans_array)
+            current_dstn = current_dstn @ trans_array
 
         # Calculate history of outcomes as requested
         for name in outcomes:
