@@ -1181,7 +1181,7 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     }
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
-    time_inv_ = time_inv_ + ["DiscreteShareBool"]
+    time_inv_ = time_inv_ + ["DiscreteShareBool", "AdjustPrb"]
 
     def initialize_sim(self):
         """

@@ -380,6 +380,8 @@ def solve_one_period_WealthPortfolio(
         vPfuncAdj=vPfuncNow,
         vFuncAdj=vFuncNow,
     )
+    solution_now.cFunc = cFuncNow
+    solution_now.ShareFunc = ShareFuncNow
     return solution_now
 
 
