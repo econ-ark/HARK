@@ -843,9 +843,9 @@ HabitConsumerType_IncShkDstn_default = {
 # Default parameters to make aXtraGrid using make_assets_grid
 HabitConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 20,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 30,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 2,  # Exponential nesting factor for aXtraGrid
-    "aXtraCount": 48,  # Number of points in the grid of "assets above minimum"
+    "aXtraCount": 72,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
 }
 
