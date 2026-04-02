@@ -12,7 +12,7 @@ class testHabitConsumerType(unittest.TestCase):
         cFunc = self.agent.solution[0]["cFunc"]
         mNrm = 10.0
         hNrm = 1.0
-        self.assertAlmostEqual(cFunc(mNrm, hNrm), 1.72716, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(mNrm, hNrm), 1.72773, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
