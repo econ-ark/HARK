@@ -27,6 +27,7 @@ There are some breaking changes:
 - All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
 - New consumption-saving model with habit formation has been added; extends IndShockConsumerType model. #1739
 - New module `ConsAggIndMarkovModel` with `AggIndMrkvConsumerType`, a `MarkovConsumerType` subclass for models with both aggregate (macro) and idiosyncratic (micro) discrete Markov states. `KrusellSmithType` now inherits from this class. The internal shock variable for the aggregate Markov state has been renamed from `"Mrkv"` to `"MrkvAgg"` in `KrusellSmithType` and `KrusellSmithEconomy`.
+- Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
 
 #### Minor Changes
 
