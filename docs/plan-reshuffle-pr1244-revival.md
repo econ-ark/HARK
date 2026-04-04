@@ -1,7 +1,8 @@
 # Plan: Revive and extend PR #1244-style reshuffling on current HARK
 
 **Canonical file (clone this path):** `docs/plan-reshuffle-pr1244-revival.md`  
-**Git branch:** `docs/plan-reshuffle-pr1244-revival` (same name; the plan is not only under `docs/guides/`).
+**Git branch (plan + changelog only):** `docs/plan-reshuffle-pr1244-revival`  
+**Integration work (code):** should live on a **single long-lived integration branch** (see [Integration branch strategy](#integration-branch-strategy-harmenberg--hafiscal-tooling-first)) — not scattered across many local names.
 
 **Status:** Planning document (not yet implemented).  
 **Audience:** HARK maintainers and HAFiscal / downstream users.  
@@ -9,11 +10,88 @@
 
 ---
 
+## Integration branch strategy (Harmenberg / HAFiscal tooling first)
+
+HAFiscal-related work in this ecosystem has **not** been only on `main`. In particular:
+
+- **`AggIndMrkvConsumerType`** and hierarchical macro+micro Markov live on the upstream branch **`ConsAggIndMarkovModel`** (and merges thereof).
+- Local development has used a branch named **`harmenberg-dual-measure`**, which in at least one clone **tracks `origin/ConsAggIndMarkovModel`** and carries **additional** work (e.g. dual-measure / Harmenberg tooling) that is **not** necessarily on `main` yet.
+
+**Implication for this plan:** reshuffle implementation and notebooks should be **developed and tested on top of the same line of commits you use for HAFiscal**, not on bare `main` alone, unless you enjoy repeated merge pain.
+
+### Recommended: one integration branch on `origin`
+
+To avoid a **proliferation of local-only branches** that nobody can find “two nanoseconds from now”:
+
+1. **Publish** a single upstream integration branch with a **stable, memorable name**, for example:
+   - **`harmenberg-dual-measure`**, or  
+   - **`integration/hafiscal-harmenberg-reshuffle`** (if you prefer a namespace).
+
+2. **Base** that branch on whichever of these is already your “source of truth” for HAFiscal:
+   - `origin/ConsAggIndMarkovModel`, **plus** your dual-measure commits (if they are only local, **push** them to this integration branch first).
+
+3. **Merge `origin/main` into it regularly** (or rebase if your team prefers), so you keep **#1691 `shuffle`** and other upstream fixes.
+
+4. **Merge `origin/docs/plan-reshuffle-pr1244-revival`** into the same integration branch (or `git merge origin/docs/plan-reshuffle-pr1244-revival`). That branch is **documentation-only** today and should merge **cleanly**.
+
+5. **Do not merge** the stale **`pull/1244/head`** tree as a merge commit into that line. Use **`git fetch origin pull/1244/head:pr-1244`** only to **read** the old notebook and intent; re-implement simulation changes using **`draw(..., shuffle=True)`** on top of the integration branch.
+
+6. **Upstream PRs to econ-ark/HARK `main`**: when code is ready, open PRs **from a fork/branch** that is either based on current `main` or clearly rebased onto `main` per maintainer preference. The integration branch remains your **daily driver** until those PRs land.
+
+---
+
+## What to do on another local HARK clone
+
+Use this **once** to get a tree that matches “Harmenberg line + plan doc + optional #1244 notebook ref”:
+
+```bash
+cd /path/to/HARK
+git fetch origin
+git fetch origin pull/1244/head:pr-1244   # optional: keeps old example notebook as ref pr-1244
+
+# Choose ONE of the following as your starting tip:
+
+# A) If you have published integration branch harmenberg-dual-measure:
+git switch -c harmenberg-dual-measure origin/harmenberg-dual-measure
+
+# B) If integration work is not pushed yet — use upstream Markov branch (HAFiscal-relevant):
+git switch -c harmenberg-dual-measure origin/ConsAggIndMarkovModel
+
+# Bring plan document into this branch (if not already included in your integration tip):
+git merge origin/docs/plan-reshuffle-pr1244-revival -m "Merge plan branch: reshuffle PR1244 revival doc"
+
+# Stay current with upstream main (resolve conflicts as needed):
+git merge origin/main -m "Merge main into harmenberg-dual-measure"
+```
+
+**Verify the plan file exists:**
+
+```bash
+test -f docs/plan-reshuffle-pr1244-revival.md && echo OK
+```
+
+**Optional — extract old reshuffling example notebook** (for reference only):
+
+```bash
+git show pr-1244:examples/ConsIndShockModel/IndShockConsumerType_Reshuffling_Example.ipynb > /tmp/IndShockConsumerType_Reshuffling_Example.ipynb
+```
+
+**Housekeeping:** After you are happy with the integration tip, **push** it so the other machine can `git fetch` the same name:
+
+```bash
+git push -u origin harmenberg-dual-measure
+```
+
+(Adjust remote name if you use a fork.)
+
+---
+
 ## Goals
 
-1. **Compatibility:** Make reshuffling / exact-match income draws work with **current `main`** (post-#1691), not the pre-refactor `HARK/distribution.py` layout.
+1. **Compatibility:** Make reshuffling / exact-match income draws work with **current HARK** (post-#1691 `shuffle` API), implemented and tested on the **same branch line as Harmenberg / dual-measure / ConsAggIndMarkovModel work**, not only on isolated `main` checkouts.
 2. **Markov:** Extend beyond `IndShockConsumerType` to **`MarkovConsumerType`** (and thus **`AggIndMrkvConsumerType`** / HAFiscal-style models).
 3. **Usability:** Provide a **notebook** and **tests** that compare standard MC vs shuffled draws for the metrics downstream users care about (aggregates, histograms, TM–MC context).
+4. **Branch hygiene:** **One** published integration branch + **`main`** + optional **`docs/plan-reshuffle-pr1244-revival`** for the written plan; avoid many undocumented local-only branches.
 
 ---
 
@@ -38,13 +116,15 @@ That branch was **never merged**. Maintainers noted the **example notebook** sho
 2. **API:** `exact_match` → **`shuffle`** on **`DiscreteDistribution.draw(..., shuffle=True)`** only; algorithm is the generalized floor + leftover slots + permutation ([#1691](https://github.com/econ-ark/HARK/pull/1691)).
 3. **`draw_events`:** Still **no** `shuffle` / `exact_match` on `main`. Prefer **`draw(N, shuffle=True)`** for any discrete multivariate income draw instead of duplicating logic on `draw_events`.
 4. **Fragile bits in #1244:** e.g. `(float).is_integer()`, and **hard LCM `AgentCount` exceptions** that are **weaker** after #1691 (nice `N` no longer required for a good match).
-5. **`MarkovConsumerType.get_shocks` on current `main`:** Uses **uniform + `searchsorted(cumsum(pmv))`** per `(t_cycle, Mrkv)` slice (verify against your checkout when implementing). Replacement should use **`IncShkDstnNow.draw(N, shuffle=True)`** with the same indexing as `IndShockConsumerType` uses for `draw(N)`.
+5. **`MarkovConsumerType.get_shocks` on current `main`:** Uses **uniform + `searchsorted(cumsum(pmv))`** per `(t_cycle, Mrkv)` slice (verify against **your** integration branch at implementation time). Replacement should use **`IncShkDstnNow.draw(N, shuffle=True)`** with the same indexing as `IndShockConsumerType` uses for `draw(N)`.
 
 **Do not** merge #1244 as-is; **rebuild** the intent on **`draw(..., shuffle=True)`** and a small, explicit agent-level API.
 
 ---
 
-## Recommended three-PR strategy
+## Recommended three-PR strategy (upstream `main` targets)
+
+These are **logical** PRs toward **econ-ark/HARK `main`**. Implementation and QA should still be done on your **integration branch** first, then cherry-pick or rebase into PR branches as needed.
 
 ### PR 1 — Education only (no simulation core changes)
 
@@ -116,10 +196,10 @@ That branch was **never merged**. Maintainers noted the **example notebook** sho
 
 ## Implementation checklist (for PR 2)
 
-- [ ] Re-read **`MarkovConsumerType.get_shocks`** on latest `main` before editing.
+- [ ] Re-read **`MarkovConsumerType.get_shocks`** on **your integration branch** (and compare to `origin/main` if they diverge).
 - [ ] Use **`IncShkDstnNow.draw(N, shuffle=True)`** return shape consistent with existing **`draw(N)`** path.
-- [ ] Newborns: match **current** `PermShk` / `TranShk` policy on `main`.
-- [ ] Run **`pytest`** for `tests/test_distribution.py` and ConsumptionSaving tests.
+- [ ] Newborns: match **current** `PermShk` / `TranShk` policy on the branch you target for merge.
+- [ ] Run **`pytest`** for `tests/test_distribution.py` and ConsumptionSaving tests on the **integration** branch.
 
 ---
 
@@ -140,3 +220,4 @@ Use it as **narrative inspiration** only; rewrite against **`shuffle=True`** and
 |------|------|
 | 2026-04-04 | Initial plan added to HARK repo for multi-machine work. |
 | 2026-04-04 | Duplicated at `docs/plan-reshuffle-pr1244-revival.md` (expected path); `docs/guides/` holds a pointer only. |
+| 2026-04-04 | Revised: **Harmenberg / ConsAggIndMarkovModel-first** integration branch, branch-combination recipe, other-machine steps, de-emphasize `main`-only workflow. |
