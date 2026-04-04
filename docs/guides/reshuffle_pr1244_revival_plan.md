@@ -1,0 +1,138 @@
+# Plan: Revive and extend PR #1244-style reshuffling on current HARK
+
+**Status:** Planning document (not yet implemented).  
+**Audience:** HARK maintainers and HAFiscal / downstream users.  
+**Related:** [PR #1244](https://github.com/econ-ark/HARK/pull/1244) (unmerged), [PR #1691](https://github.com/econ-ark/HARK/pull/1691) (merged: `exact_match` → `shuffle` on `DiscreteDistribution.draw`), [Issue #1690](https://github.com/econ-ark/HARK/issues/1690).
+
+---
+
+## Goals
+
+1. **Compatibility:** Make reshuffling / exact-match income draws work with **current `main`** (post-#1691), not the pre-refactor `HARK/distribution.py` layout.
+2. **Markov:** Extend beyond `IndShockConsumerType` to **`MarkovConsumerType`** (and thus **`AggIndMrkvConsumerType`** / HAFiscal-style models).
+3. **Usability:** Provide a **notebook** and **tests** that compare standard MC vs shuffled draws for the metrics downstream users care about (aggregates, histograms, TM–MC context).
+
+---
+
+## What PR #1244 actually changed (historical)
+
+On an older `main`, #1244 touched:
+
+| File | Change |
+|------|--------|
+| `HARK/distribution.py` | `DiscreteDistribution.draw_events(..., exact_match=)` with round-cumsum-permute. |
+| `HARK/ConsumptionSaving/ConsIndShockModel.py` | `reshuffle` / `perf_reshuffle`; `get_shocks` used `draw(..., exact_match=...)`; strict `AgentCount` LCM checks; death draws via `Uniform._approx_equiprobable` + exact match. |
+| `examples/.../IndShockConsumerType_Reshuffling_Example.ipynb` | Side-by-side baseline vs reshuffle. |
+| Tests + `Documentation/CHANGELOG.md` | IndShock tests. |
+
+That branch was **never merged**. Maintainers noted the **example notebook** should be preserved or reproduced.
+
+---
+
+## Conflicts with current HARK (`main` after #1691)
+
+1. **Module layout:** `HARK/distribution.py` → **`HARK/distributions/discrete.py`** (and related packages).
+2. **API:** `exact_match` → **`shuffle`** on **`DiscreteDistribution.draw(..., shuffle=True)`** only; algorithm is the generalized floor + leftover slots + permutation ([#1691](https://github.com/econ-ark/HARK/pull/1691)).
+3. **`draw_events`:** Still **no** `shuffle` / `exact_match` on `main`. Prefer **`draw(N, shuffle=True)`** for any discrete multivariate income draw instead of duplicating logic on `draw_events`.
+4. **Fragile bits in #1244:** e.g. `(float).is_integer()`, and **hard LCM `AgentCount` exceptions** that are **weaker** after #1691 (nice `N` no longer required for a good match).
+5. **`MarkovConsumerType.get_shocks` on current `main`:** Uses **uniform + `searchsorted(cumsum(pmv))`** per `(t_cycle, Mrkv)` slice (verify against your checkout when implementing). Replacement should use **`IncShkDstnNow.draw(N, shuffle=True)`** with the same indexing as `IndShockConsumerType` uses for `draw(N)`.
+
+**Do not** merge #1244 as-is; **rebuild** the intent on **`draw(..., shuffle=True)`** and a small, explicit agent-level API.
+
+---
+
+## Recommended three-PR strategy
+
+### PR 1 — Education only (no simulation core changes)
+
+**Branch name suggestion:** `docs/reshuffle-example-notebook` (or `examples/discrete-shuffle-vs-iid`).
+
+**Content:**
+
+- New or revived notebook under `examples/` (e.g. `examples/Distributions/` or `examples/ConsIndShockModel/`) that:
+  - Builds a small **`DiscreteDistribution`** and compares **histogram / TV** of outcomes for `draw(N, shuffle=False)` vs `draw(N, shuffle=True)` vs `draw_events(N)`.
+  - States clearly: shuffle **per draw batch** ≈ exact **marginal** match to `pmv`; it does **not** fix joint state issues (e.g. TM-init `(p,m,j)` in HAFiscal).
+  - Pins **HARK version / commit** in a markdown cell.
+- Optional one-line pointer in `docs/CHANGELOG.md` under Documentation.
+
+**Acceptance:** `nbconvert --execute` on the notebook in CI or documented manual run; no API change.
+
+---
+
+### PR 2 — Opt-in income shuffling: `IndShockConsumerType` + `MarkovConsumerType`
+
+**Branch name suggestion:** `feature/income-shuffle-simulation`.
+
+**Content:**
+
+1. **`IndShockConsumerType`**
+   - Add a boolean parameter (name TBD: `income_shuffle`, `shuffle_income_draws`, or align with old `reshuffle`) default **`False`**.
+   - In **`get_shocks`**, when `True`, use `IncShkDstnNow.draw(N, shuffle=True)` instead of `draw(N)` / `draw_events(N)` for the relevant blocks; preserve **newborn** semantics from **current** `main` (PermShk / TranShk rules, `NewbornTransShk`, etc.).
+   - **Avoid** #1244’s `perf_reshuffle` and **hard LCM exceptions** in v1; optional **warning** if `N` is tiny.
+2. **`MarkovConsumerType.get_shocks`**
+   - For each mask `these` with count `N`, use `IncShkDstnNow.draw(N, shuffle=self.income_shuffle)` (or inherited flag) instead of manual CDF inversion, assigning `PermShkNow[these]` and `TranShkNow[these]` like today.
+3. **Tests**
+   - Extend patterns in `tests/test_distribution.py` (`test_shuffle`) to **multivariate** `IncShkDstn` draws where needed.
+   - Small integration test: `MarkovConsumerType`, fixed seed, `shuffle=True` → empirical frequencies close to `pmv` per state slice.
+
+**Acceptance:** Full `pytest` green; backward compatible default `False`.
+
+---
+
+### PR 3 — Micro Markov exact-mass transitions + downstream (HAFiscal) notes
+
+**Branch name suggestion:** `feature/micro-markov-exact-mass-optional` (may be split further).
+
+**Content:**
+
+1. **Optional** exact-count / permutation for **micro** employment (or general micro) transitions in **`AggIndMrkvConsumerType.get_micro_markov_states`**, analogous to Krusell–Smith **`RNG.permutation` on precomputed boolean decks** — **not** the same API as `DiscreteDistribution.draw(..., shuffle=True)`.
+2. **Design constraint:** If used with **Harmenberg / dual** simulation, any permutation must be **shared** across P and Q tracks so physical shocks stay aligned.
+3. **Documentation:** Short section in this plan’s successor or in `docs/guides/simulation.md` on when shuffle helps TM–MC comparisons vs when it does not.
+4. **HAFiscal (downstream):** Parameter wiring, `verify_four_methods` / Gatekeeper notes — may live in **HAFiscal-Latest** repo, not necessarily in HARK PR #3.
+
+**Acceptance:** Feature behind a clear default-off flag; tests on employment fractions conditional on `(macro_prev → macro_now)` for a minimal economy.
+
+---
+
+## What not to port from #1244 (unless re-justified)
+
+- **`draw_events(..., exact_match)`** duplicate algorithm — use **`draw(..., shuffle=True)`** only.
+- **`perf_reshuffle`** and global **LCM `AgentCount` raises** — defer; #1691 reduces need for “nice” `N`.
+- **Death-shock reshuffling** — only if a concrete use case appears; skip in v1.
+
+---
+
+## Notebook / product notes for downstream (e.g. HAFiscal)
+
+- **TM vs MC:** Shuffled MC **income** draws do not by themselves align **TM** (which does not use finite-`N` shuffle) with MC; document when comparing means.
+- **Uncertainty:** `shuffle=True` breaks naive **i.i.d.** interpretation of within-period cross-sectional noise; use **across-seed** or **time** variation for bands.
+- **RNG:** Clarify interaction of **`DiscreteDistribution` seed** vs **`AgentType.RNG`** for reproducibility.
+- **Cross-links:** HAFiscal notebooks such as `pLvl_TM_init_ergodic_gap.ipynb` / Gatekeeper — optional callout that shuffle does **not** replace **joint** `(p,m,j)` burn-in.
+
+---
+
+## Implementation checklist (for PR 2)
+
+- [ ] Re-read **`MarkovConsumerType.get_shocks`** on latest `main` before editing.
+- [ ] Use **`IncShkDstnNow.draw(N, shuffle=True)`** return shape consistent with existing **`draw(N)`** path.
+- [ ] Newborns: match **current** `PermShk` / `TranShk` policy on `main`.
+- [ ] Run **`pytest`** for `tests/test_distribution.py` and ConsumptionSaving tests.
+
+---
+
+## Retrieving the old example notebook (PR #1244)
+
+```bash
+git fetch origin pull/1244/head:pr-1244
+git show pr-1244:examples/ConsIndShockModel/IndShockConsumerType_Reshuffling_Example.ipynb > IndShockConsumerType_Reshuffling_Example.ipynb
+```
+
+Use it as **narrative inspiration** only; rewrite against **`shuffle=True`** and current class APIs.
+
+---
+
+## Document history
+
+| Date | Note |
+|------|------|
+| 2026-04-04 | Initial plan added to HARK repo for multi-machine work. |
