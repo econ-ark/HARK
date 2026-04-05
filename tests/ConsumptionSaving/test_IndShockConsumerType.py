@@ -619,11 +619,18 @@ class testMarkovTransitionShuffle(unittest.TestCase):
 
 
 class testNormalizePLvl(unittest.TestCase):
-    """Tests for the normalize_pLvl parameter on IndShockConsumerType."""
+    """Tests for PermanentIncomeNormalizationMixin composed with IndShockConsumerType."""
 
     def test_normalize_matches_analytical_moments(self):
         """With normalize_pLvl=True, per-cohort log(pLvl) moments match theory."""
-        agent = IndShockConsumerType(
+        from HARK.simulation.normalization import PermanentIncomeNormalizationMixin
+
+        class NormalizedIndShock(
+            PermanentIncomeNormalizationMixin, IndShockConsumerType
+        ):
+            pass
+
+        agent = NormalizedIndShock(
             AgentCount=5000,
             T_sim=100,
             normalize_pLvl=True,
@@ -656,7 +663,15 @@ class testNormalizePLvl(unittest.TestCase):
 
     def test_normalize_off_has_noise(self):
         """Without normalization, per-cohort moments have sampling noise."""
-        agent = IndShockConsumerType(
+        from HARK.simulation.normalization import PermanentIncomeNormalizationMixin
+
+        class NormalizedIndShock(
+            PermanentIncomeNormalizationMixin, IndShockConsumerType
+        ):
+            pass
+
+        # Use the mixin class but with normalize_pLvl=False (default)
+        agent = NormalizedIndShock(
             AgentCount=500,
             T_sim=50,
             normalize_pLvl=False,

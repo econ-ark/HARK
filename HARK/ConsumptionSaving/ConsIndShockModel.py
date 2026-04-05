@@ -1967,7 +1967,6 @@ IndShockConsumerType_simulation_default = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "income_shuffle": False,  # Whether to use shuffled draws for income shocks (variance reduction)
-    "normalize_pLvl": False,  # Whether to normalize pLvl to analytical moments per age cohort
 }
 
 IndShockConsumerType_defaults = {}
@@ -2132,89 +2131,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
     def update_income_process(self):
         self.update("IncShkDstn", "PermShkDstn", "TranShkDstn")
-
-    def _analytical_log_pLvl_moments(self, age_k):
-        """Compute analytical (mu, sigma) of log(pLvl) for agents at age k.
-
-        Default implementation for IndShockConsumerType (no Markov states):
-            mu_k = pLogInitMean + k * log(PermGroFac) - eff_periods * sigma_psi^2 / 2
-            sigma_k = sqrt(pLogInitStd^2 + eff_periods * sigma_psi^2)
-
-        where eff_periods = max(k - 1, 0) because the first growth step after
-        birth is deterministic (pLvl *= PermGroFac with PermShk=1 for newborns).
-
-        Subclasses (e.g., MarkovConsumerType with state-dependent growth) can
-        override this method with model-specific formulas.
-
-        Parameters
-        ----------
-        age_k : int
-            Age of the cohort (periods since birth).
-
-        Returns
-        -------
-        mu_k : float
-            Analytical mean of log(pLvl) for this cohort.
-        sigma_k : float
-            Analytical std dev of log(pLvl) for this cohort.
-        """
-        # Permanent shock variance from the PermShkDstn
-        perm_dstn = self.PermShkDstn[0]
-        log_perm = np.log(perm_dstn.atoms.flatten())
-        sigma_psi_sq = (
-            np.dot(perm_dstn.pmv, log_perm**2) - np.dot(perm_dstn.pmv, log_perm) ** 2
-        )
-
-        log_G = np.log(self.PermGroFac[0])
-
-        # First growth step after birth is deterministic (newborns get PermShk=1)
-        eff_periods = max(age_k - 1, 0)
-
-        mu_k = self.pLogInitMean + age_k * log_G - eff_periods * sigma_psi_sq / 2
-        sigma_k = np.sqrt(self.pLogInitStd**2 + eff_periods * sigma_psi_sq)
-
-        return mu_k, sigma_k
-
-    def post_sim_normalize_pLvl(self):
-        """Normalize pLvl to match analytical per-cohort log-moments.
-
-        After sim_one_period, adjusts log(pLvl) within each age cohort so
-        that the cross-sectional mean and std of log(pLvl) match the
-        analytical values. The affine rescaling in log-space preserves
-        rank ordering of agents' permanent incomes.
-
-        Only active when self.normalize_pLvl is True.
-        """
-        if not getattr(self, "normalize_pLvl", False):
-            return
-
-        log_p = np.log(np.maximum(self.state_now["pLvl"], 1e-16))
-        unique_ages = np.unique(self.t_age)
-
-        for k in unique_ages:
-            mask = self.t_age == k
-            n_k = mask.sum()
-            if n_k < 5:
-                continue
-
-            mu_k, sigma_k = self._analytical_log_pLvl_moments(k)
-            mu_hat = np.mean(log_p[mask])
-            sigma_hat = np.std(log_p[mask])
-
-            if sigma_hat > 1e-10:
-                log_p[mask] = mu_k + (sigma_k / sigma_hat) * (log_p[mask] - mu_hat)
-            else:
-                log_p[mask] = mu_k
-
-        self.state_now["pLvl"][:] = np.exp(log_p)
-
-    def sim_one_period(self):
-        """Simulate one period, with optional pLvl normalization."""
-        super().sim_one_period()
-        # Note: super().sim_one_period() has already advanced t_age.
-        # post_sim_normalize_pLvl uses t_age to identify cohorts, which
-        # is fine since each cohort's pLvl was just updated.
-        self.post_sim_normalize_pLvl()
 
     def get_shocks(self):
         """
