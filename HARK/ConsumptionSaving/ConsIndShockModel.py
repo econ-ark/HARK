@@ -1966,6 +1966,7 @@ IndShockConsumerType_simulation_default = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "income_shuffle": False,  # Whether to use shuffled draws for income shocks
 }
 
 IndShockConsumerType_defaults = {}
@@ -2165,7 +2166,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # and permanent growth factor
                 PermGroFacNow = self.PermGroFac[t]
                 # Get random draws of income shocks from the discrete distribution
-                IncShks = IncShkDstnNow.draw(N)
+                IncShks = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
 
                 PermShkNow[idx] = (
                     IncShks[0, :] * PermGroFacNow
@@ -2182,11 +2183,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
+            IncShks = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
             PermShkNow[idx] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                IncShks[0] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            TranShkNow[idx] = IncShks[1]
 
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
