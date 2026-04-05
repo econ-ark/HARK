@@ -1017,11 +1017,11 @@ class MarkovConsumerType(IndShockConsumerType):
                     ]  # and permanent growth factor
 
                     # Get random draws of income shocks from the discrete distribution
-                    EventDraws = IncShkDstnNow.draw_events(N)
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
                     PermShkNow[these] = (
-                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        ShockDraws[0] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    TranShkNow[these] = ShockDraws[1]
 
         # Newborns should not receive an idiosyncratic permanent shock ψ in
         # their birth period (their pLvl was just drawn from pLvlInitDstn,
