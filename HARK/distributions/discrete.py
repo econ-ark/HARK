@@ -1,6 +1,10 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from copy import deepcopy
+from math import gcd
+from functools import reduce
+import warnings
+
 import numpy as np
 import xarray as xr
 from scipy import stats
@@ -202,19 +206,105 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
+    def _resolve_replicates(
+        self, replicates: int, tol: float = 1e-9, max_J_min: int = 10_000
+    ):
+        """Compute N from replicates and the minimal full-coverage sample size.
+
+        The minimal sample size J_min is the smallest positive integer such
+        that ``J_min * p_j`` is a positive integer for every atom j.  This
+        equals the LCM of the denominators when each probability is expressed
+        as a fraction in lowest terms.
+
+        For a joint distribution built from independent shocks, J_min equals
+        the product of the inverse conditional probabilities at each level.
+        For example, with unemployment probability 0.05 and 3 × 3 equiprobable
+        employment shocks: J_min = LCM(20, 180) = 180 = 20 × 3 × 3.
+
+        Parameters
+        ----------
+        replicates : int
+            Number of copies of the minimal full-coverage sample.
+        tol : float
+            Tolerance for checking whether 1/p_j is close to an integer.
+        max_J_min : int
+            Maximum allowed J_min.  If the computed J_min exceeds this,
+            a ValueError is raised — this indicates that at least one
+            conditional shock probability is finer than 1/max_J_min
+            (e.g. < 0.01%), making shuffled draws impractical.
+
+        Returns
+        -------
+        N : int
+            Total number of draws (replicates * J_min).
+        shuffle : bool
+            Always True (replicates implies shuffle).
+        """
+        from fractions import Fraction
+
+        P = self.pmv
+
+        # Convert each probability to an exact fraction and compute
+        # J_min = LCM of all denominators (= product of inverse conditional
+        # probabilities for hierarchically independent shocks).
+        # Use a large limit_denominator for precision; the max_J_min bound
+        # is enforced separately on the resulting J_min.
+        fracs = [Fraction(p).limit_denominator(1_000_000) for p in P]
+        denoms = [f.denominator for f in fracs]
+        J_min = reduce(lambda a, b: a * b // gcd(a, b), denoms)
+
+        # Verify that J_min * p_j is a positive integer for every atom.
+        counts = [J_min * f for f in fracs]
+        if not all(c.denominator == 1 and c > 0 for c in counts):
+            raise ValueError(
+                f"Could not find exact integer atom counts with J_min={J_min}. "
+                f"The distribution's probabilities may not be cleanly "
+                f"representable as rational numbers. Consider using "
+                f"equiprobable shock approximations."
+            )
+
+        # Guard against impractically large minimum sample sizes.
+        # A large J_min means at least one conditional shock probability
+        # is very small (< 1/max_J_min), requiring huge populations.
+        if J_min > max_J_min:
+            raise ValueError(
+                f"Minimum full-coverage sample size J_min={J_min} exceeds "
+                f"max_J_min={max_J_min}. This means at least one conditional "
+                f"shock dimension has a probability finer than "
+                f"1/{max_J_min} = {1 / max_J_min:.2%}. "
+                f"Consider using equiprobable shock approximations, or pass "
+                f"a larger max_J_min to _resolve_replicates if this is "
+                f"intentional."
+            )
+
+        # Info-level note when the distribution is a joint (non-integer 1/p_j).
+        inv_p = 1.0 / P
+        rounded_inv = np.round(inv_p).astype(int)
+        not_clean = np.abs(inv_p - rounded_inv) > tol
+        if np.any(not_clean):
+            warnings.warn(
+                f"Joint distribution detected (not all 1/p_j are integers). "
+                f"Computed J_min={J_min} via rational decomposition "
+                f"(product of conditional inverses).",
+                stacklevel=3,
+            )
+
+        return int(replicates * J_min), True
+
     def draw(
         self,
-        N: int,
+        N: Optional[int] = None,
         atoms: Union[None, int, np.ndarray] = None,
         shuffle: bool = False,
+        replicates: Optional[int] = None,
     ) -> np.ndarray:
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
 
         Parameters
         ----------
-        N : int
-            Number of draws to simulate.
+        N : int, optional
+            Number of draws to simulate.  Either N or replicates must be given.
         atoms : None, int, or np.array
             If None, then use this distribution's atoms for point values.
             If an int, then the index of atoms for the point values.
@@ -226,12 +316,31 @@ class DiscreteDistribution(Distribution):
             N-length list that best fits the discrete distribution. When False
             (default), each draw is independent from the others and the result could
             deviate from the probabilities.
+        replicates : int, optional
+            Number of replicates of the minimal sample that achieves full coverage
+            of the distribution.  For an equiprobable distribution with J outcomes,
+            the minimal sample is J, so replicates=k gives N = k*J draws.  More
+            generally, the minimal sample size is the smallest N such that N*p_j is
+            an integer for all j.  When replicates is given, shuffle is forced True.
+
+            A warning is issued if any 1/p_j is not close to an integer, since the
+            minimal sample may then be unexpectedly large.
 
         Returns
         -------
         draws : np.array
             An array of draws from the discrete distribution; each element is a value in atoms.
         """
+        if replicates is not None:
+            if N is not None:
+                raise ValueError(
+                    "Cannot specify both N and replicates; use one or the other."
+                )
+            N, shuffle = self._resolve_replicates(replicates)
+
+        if N is None:
+            raise ValueError("Must specify either N or replicates.")
+
         if atoms is None:
             atoms = self.atoms
         elif isinstance(atoms, int):
