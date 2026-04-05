@@ -1966,7 +1966,6 @@ IndShockConsumerType_simulation_default = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
-    "income_shuffle": False,  # Whether to use shuffled draws for income shocks
 }
 
 IndShockConsumerType_defaults = {}
@@ -2137,6 +2136,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
+        Base uniform draws are stored in ``self._base_shock_draws`` (a dict
+        keyed by ``t_cycle`` value, plus ``"newborn"`` for newborn redraws)
+        so that dual-measure mixins can reuse them for Q-CDF inversion.
+
         Parameters
         ----------
         NewbornTransShk : boolean, optional
@@ -2152,8 +2155,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
+        base_draws_dict = {}
         for t in np.unique(self.t_cycle):
             idx = self.t_cycle == t
+            t_orig = t
 
             # temporary, see #1022
             if self.cycles == 1:
@@ -2165,13 +2170,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow = self.IncShkDstn[t]
                 # and permanent growth factor
                 PermGroFacNow = self.PermGroFac[t]
-                # Get random draws of income shocks from the discrete distribution
-                IncShks = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
+                # Draw base uniforms and invert through CDF
+                base_draws = IncShkDstnNow._rng.uniform(size=N)
+                base_draws_dict[t_orig] = base_draws
+                EventDraws = np.searchsorted(
+                    np.cumsum(IncShkDstnNow.pmv), base_draws
+                )
 
                 PermShkNow[idx] = (
-                    IncShks[0, :] * PermGroFacNow
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                 )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShks[1, :]
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2182,12 +2191,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
-            # Get random draws of income shocks from the discrete distribution
-            IncShks = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
+            # Draw base uniforms and invert through CDF
+            base_draws = IncShkDstnNow._rng.uniform(size=N)
+            base_draws_dict["newborn"] = base_draws
+            EventDraws = np.searchsorted(
+                np.cumsum(IncShkDstnNow.pmv), base_draws
+            )
             PermShkNow[idx] = (
-                IncShks[0] * PermGroFacNow
+                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShks[1]
+            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
@@ -2196,6 +2209,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Store the shocks in self
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
+        self._base_shock_draws = base_draws_dict
+        self._newborn_mask = newborn
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
         """
