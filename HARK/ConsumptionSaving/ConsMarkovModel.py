@@ -773,6 +773,7 @@ init_indshk_markov = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "markov_shuffle": False,  # Whether to use shuffled draws for Markov state transitions
 }
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
@@ -979,7 +980,9 @@ class MarkovConsumerType(IndShockConsumerType):
                 self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
-            MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
+            MrkvNow[right_age] = markov_process.draw(
+                MrkvPrev[right_age], shuffle=self.markov_shuffle
+            )
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
 

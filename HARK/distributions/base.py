@@ -195,20 +195,31 @@ class MarkovProcess(Distribution):
         # Set up the RNG
         super().__init__(seed)
 
-    def draw(self, state):
+    def draw(self, state, shuffle=False):
         """
-        Draw new states fromt the transition matrix.
+        Draw new states from the transition matrix.
 
         Parameters
         ----------
         state : int or nd.array
             The state or states (1-D array) from which to draw new states.
+        shuffle : bool
+            When True, use deterministic target counts per source state
+            (floor-plus-leftover algorithm) with random agent assignment.
+            This eliminates sampling noise in state transition counts.
+            Falls back to iid when N_j * min(probs) < 1 for a source state.
 
         Returns
         -------
         new_state : int or nd.array
             New states.
         """
+        if not shuffle:
+            return self._draw_iid(state)
+        return self._draw_shuffled(state)
+
+    def _draw_iid(self, state):
+        """Draw new states independently for each agent (original behavior)."""
 
         def sample(s):
             return self._rng.choice(
@@ -218,6 +229,58 @@ class MarkovProcess(Distribution):
         array_sample = np.frompyfunc(sample, 1, 1)
 
         return array_sample(state)
+
+    def _draw_shuffled(self, state):
+        """Deterministic state counts with random agent assignment.
+
+        For each source state j with N_j agents, compute target counts
+        using the floor-plus-leftover algorithm (same as
+        DiscreteDistribution.draw(shuffle=True)), then randomly assign
+        agents to target states. Falls back to iid when a source state
+        has too few agents for meaningful deterministic counts.
+        """
+        state = np.asarray(state)
+        new_state = np.empty_like(state, dtype=int)
+        J = self.transition_matrix.shape[1]
+
+        for j in range(self.transition_matrix.shape[0]):
+            agents_in_j = np.where(state == j)[0]
+            N_j = len(agents_in_j)
+            if N_j == 0:
+                continue
+
+            probs = self.transition_matrix[j]
+
+            # Fall back to iid when population is too small for deterministic counts
+            if N_j * np.min(probs[probs > 0]) < 1:
+                for idx in agents_in_j:
+                    new_state[idx] = self._rng.choice(J, p=probs)
+                continue
+
+            # Floor-plus-leftover algorithm (matches DiscreteDistribution.draw)
+            K_exact = N_j * probs
+            K = np.floor(K_exact).astype(int)
+            M = N_j - np.sum(K)  # unallocated slots
+
+            if M > 0:
+                eps = 1.0 / N_j
+                Q = K_exact - eps * K  # residual probability mass
+                draws = self._rng.random(M)
+                for m in range(M):
+                    Q_adj = Q / np.sum(Q)
+                    Q_sum = np.cumsum(Q_adj)
+                    idx = np.searchsorted(Q_sum, draws[m])
+                    K[idx] += 1
+                    Q[idx] = 0.0
+
+            # Randomly assign agents to target states
+            perm = self._rng.permutation(agents_in_j)
+            offset = 0
+            for jp in range(J):
+                new_state[perm[offset : offset + K[jp]]] = jp
+                offset += K[jp]
+
+        return new_state
 
 
 class IndexDistribution(Distribution):
