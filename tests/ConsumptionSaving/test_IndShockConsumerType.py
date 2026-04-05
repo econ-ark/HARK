@@ -481,6 +481,79 @@ bst_params["T_cycle"] = 1  # No 'seasonal' cycles
 bst_params["BoroCnstArt"] = None  # No artificial borrowing constraint
 
 
+class testIncomeShuffleIndShock(unittest.TestCase):
+    """Tests for the income_shuffle parameter on IndShockConsumerType."""
+
+    def test_default_shuffle_false(self):
+        """Backward compat: default income_shuffle=False works unchanged."""
+        agent = IndShockConsumerType(AgentCount=100, T_sim=10)
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        # Just verify it runs and produces valid shocks
+        self.assertEqual(agent.shocks["PermShk"].shape, (100,))
+        self.assertTrue(np.all(agent.shocks["PermShk"] > 0))
+        self.assertTrue(np.all(agent.shocks["TranShk"] >= 0))
+
+    def test_shuffle_true_runs(self):
+        """income_shuffle=True solve+simulate completes without error."""
+        agent = IndShockConsumerType(AgentCount=1000, T_sim=20, income_shuffle=True)
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(agent.shocks["PermShk"].shape, (1000,))
+        self.assertTrue(np.all(agent.shocks["PermShk"] > 0))
+
+    def test_shuffle_empirical_frequencies(self):
+        """With shuffle=True, empirical PermShk frequencies should match pmv closely."""
+        agent = IndShockConsumerType(AgentCount=5000, T_sim=5, income_shuffle=True)
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        # Check that the empirical distribution of PermShk values matches
+        # the theoretical pmv of the joint income shock distribution.
+        # Multiple joint atoms can share the same PermShk value, so we
+        # aggregate probabilities by unique PermShk atom.
+        dstn = agent.IncShkDstn[0]
+        perm_atoms = dstn.atoms[0]
+        pmv = dstn.pmv
+
+        unique_perm = np.unique(perm_atoms)
+        perm_shks = agent.shocks["PermShk"] / agent.PermGroFac[0]
+        for atom in unique_perm:
+            expected_freq = np.sum(pmv[np.isclose(perm_atoms, atom, rtol=1e-10)])
+            empirical_freq = np.mean(np.isclose(perm_shks, atom, rtol=1e-10))
+            np.testing.assert_allclose(
+                empirical_freq,
+                expected_freq,
+                atol=0.02,
+                err_msg=f"Frequency mismatch for PermShk atom {atom}",
+            )
+
+
+class testIncomeShuffleMarkov(unittest.TestCase):
+    """Tests for the income_shuffle parameter on MarkovConsumerType."""
+
+    def test_markov_shuffle_runs(self):
+        """MarkovConsumerType with income_shuffle=True completes simulation."""
+        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+
+        init_markov = {
+            "MrkvArray": [np.array([[0.9, 0.1], [0.1, 0.9]])],
+            "AgentCount": 500,
+            "T_sim": 10,
+            "income_shuffle": True,
+        }
+        agent = MarkovConsumerType(**init_markov)
+        agent.cycles = 0
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(agent.shocks["PermShk"].shape, (500,))
+        self.assertTrue(np.all(agent.shocks["PermShk"] > 0))
+
+
 class testStablePoints(unittest.TestCase):
     def test_IndShock_stable_points(self):
         # Test for the target and individual steady state of the infinite
