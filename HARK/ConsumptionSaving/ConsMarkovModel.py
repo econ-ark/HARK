@@ -990,6 +990,10 @@ class MarkovConsumerType(IndShockConsumerType):
         Gets new Markov states and permanent and transitory income shocks for this period.  Samples
         from IncShkDstn for each period-state in the cycle.
 
+        Base uniform draws are stored in ``self._base_shock_draws`` (a dict
+        keyed by ``(t_cycle, mrkv_state)`` tuples) so that dual-measure mixins
+        can reuse them for Q-CDF inversion.
+
         Parameters
         ----------
         None
@@ -1004,6 +1008,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
+        base_draws_dict = {}
         for t in range(self.T_cycle):
             for j in range(self.MrkvArray[t].shape[0]):
                 these = np.logical_and(t == self.t_cycle, j == MrkvNow)
@@ -1016,12 +1021,16 @@ class MarkovConsumerType(IndShockConsumerType):
                         j
                     ]  # and permanent growth factor
 
-                    # Get random draws of income shocks from the discrete distribution
-                    ShockDraws = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
+                    # Draw base uniforms and invert through CDF
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[(t, j)] = base_draws
+                    EventDraws = np.searchsorted(
+                        np.cumsum(IncShkDstnNow.pmv), base_draws
+                    )
                     PermShkNow[these] = (
-                        ShockDraws[0] * PermGroFacNow
+                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = ShockDraws[1]
+                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
 
         # Newborns should not receive an idiosyncratic permanent shock ψ in
         # their birth period (their pLvl was just drawn from pLvlInitDstn,
@@ -1038,6 +1047,7 @@ class MarkovConsumerType(IndShockConsumerType):
         TranShkNow[newborn] = 1.0
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
+        self._base_shock_draws = base_draws_dict
 
     def read_shocks_from_history(self):
         """
