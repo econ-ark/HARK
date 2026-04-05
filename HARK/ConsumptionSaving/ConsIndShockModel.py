@@ -1966,6 +1966,7 @@ IndShockConsumerType_simulation_default = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "income_shuffle": False,  # Whether to use shuffled draws for income shocks (variance reduction)
 }
 
 IndShockConsumerType_defaults = {}
@@ -2170,17 +2171,24 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow = self.IncShkDstn[t]
                 # and permanent growth factor
                 PermGroFacNow = self.PermGroFac[t]
-                # Draw base uniforms and invert through CDF
-                base_draws = IncShkDstnNow._rng.uniform(size=N)
-                base_draws_dict[t_orig] = base_draws
-                EventDraws = np.searchsorted(
-                    np.cumsum(IncShkDstnNow.pmv), base_draws
-                )
-
-                PermShkNow[idx] = (
-                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                # Draw income shocks (see MarkovConsumerType.get_shocks
+                # for the equivalent Markov version).
+                _shuffle = getattr(self, "income_shuffle", False)
+                if _shuffle:
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                    base_draws_dict[t_orig] = None
+                else:
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[t_orig] = base_draws
+                    EventDraws = np.searchsorted(
+                        np.cumsum(IncShkDstnNow.pmv), base_draws
+                    )
+                    PermShkNow[idx] = (
+                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2191,16 +2199,22 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
-            # Draw base uniforms and invert through CDF
-            base_draws = IncShkDstnNow._rng.uniform(size=N)
-            base_draws_dict["newborn"] = base_draws
-            EventDraws = np.searchsorted(
-                np.cumsum(IncShkDstnNow.pmv), base_draws
-            )
-            PermShkNow[idx] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-            )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            _shuffle = getattr(self, "income_shuffle", False)
+            if _shuffle:
+                ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                TranShkNow[idx] = ShockDraws[1]
+                base_draws_dict["newborn"] = None
+            else:
+                base_draws = IncShkDstnNow._rng.uniform(size=N)
+                base_draws_dict["newborn"] = base_draws
+                EventDraws = np.searchsorted(
+                    np.cumsum(IncShkDstnNow.pmv), base_draws
+                )
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:

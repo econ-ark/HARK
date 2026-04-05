@@ -1021,16 +1021,27 @@ class MarkovConsumerType(IndShockConsumerType):
                         j
                     ]  # and permanent growth factor
 
-                    # Draw base uniforms and invert through CDF
-                    base_draws = IncShkDstnNow._rng.uniform(size=N)
-                    base_draws_dict[(t, j)] = base_draws
-                    EventDraws = np.searchsorted(
-                        np.cumsum(IncShkDstnNow.pmv), base_draws
-                    )
-                    PermShkNow[these] = (
-                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                    )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    # Draw income shocks.  When income_shuffle is True,
+                    # use draw(N, shuffle=True) for exact marginal matching
+                    # (variance reduction).  Otherwise use base uniform draws
+                    # + CDF inversion, storing draws for dual-measure Q-track
+                    # replay.
+                    _shuffle = getattr(self, "income_shuffle", False)
+                    if _shuffle:
+                        ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                        PermShkNow[these] = ShockDraws[0] * PermGroFacNow
+                        TranShkNow[these] = ShockDraws[1]
+                        base_draws_dict[(t, j)] = None
+                    else:
+                        base_draws = IncShkDstnNow._rng.uniform(size=N)
+                        base_draws_dict[(t, j)] = base_draws
+                        EventDraws = np.searchsorted(
+                            np.cumsum(IncShkDstnNow.pmv), base_draws
+                        )
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )  # permanent "shock" includes expected growth
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
 
         # Newborns should not receive an idiosyncratic permanent shock ψ in
         # their birth period (their pLvl was just drawn from pLvlInitDstn,
