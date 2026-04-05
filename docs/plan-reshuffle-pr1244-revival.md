@@ -1,205 +1,158 @@
 # Plan: Revive and extend PR #1244-style reshuffling on current HARK
 
-**Canonical file (clone this path):** `docs/plan-reshuffle-pr1244-revival.md`  
-**Git branch (plan + changelog only):** `docs/plan-reshuffle-pr1244-revival`  
-**Integration work (code):** should live on a **single long-lived integration branch** (see [Integration branch strategy](#integration-branch-strategy-harmenberg--hafiscal-tooling-first)) — not scattered across many local names.
-
-**Status:** Planning document (not yet implemented).  
-**Audience:** HARK maintainers and HAFiscal / downstream users.  
+**Canonical file:** `docs/plan-reshuffle-pr1244-revival.md`
+**Integration branch:** `harmenberg-dual-measure`
+**Status:** Partially implemented (v3 — updated after code review of integration branch).
+**Audience:** HARK maintainers and HAFiscal / downstream users.
 **Related:** [PR #1244](https://github.com/econ-ark/HARK/pull/1244) (unmerged), [PR #1691](https://github.com/econ-ark/HARK/pull/1691) (merged: `exact_match` → `shuffle` on `DiscreteDistribution.draw`), [Issue #1690](https://github.com/econ-ark/HARK/issues/1690).
 
 ---
 
-## Integration branch strategy (Harmenberg / HAFiscal tooling first)
+## What's already done (on `harmenberg-dual-measure`)
 
-HAFiscal-related work in this ecosystem has **not** been only on `main`. In particular:
+Before planning remaining work, here is what the integration branch already contains beyond `main`:
 
-- **`AggIndMrkvConsumerType`** and hierarchical macro+micro Markov live on the upstream branch **`ConsAggIndMarkovModel`** (and merges thereof).
-- Local development has used a branch named **`harmenberg-dual-measure`**, which in at least one clone **tracks `origin/ConsAggIndMarkovModel`** and carries **additional** work (e.g. dual-measure / Harmenberg tooling) that is **not** necessarily on `main` yet.
+### 1. `AggIndMrkvConsumerType` — hierarchical Markov base class (DONE)
 
-**Implication for this plan:** reshuffle implementation and notebooks should be **developed and tested on top of the same line of commits you use for HAFiscal**, not on bare `main` alone, unless you enjoy repeated merge pain.
+**File:** `HARK/ConsumptionSaving/ConsAggIndMarkovModel.py` (new, 301 lines)
 
-### Recommended: one integration branch on `origin`
+- `MarkovConsumerType` subclass with two-step Markov draw:
+  1. `get_macro_markov_states()` — reads aggregate state
+  2. `get_micro_markov_states()` — draws idiosyncratic states (default: stochastic via `RNG.choice`)
+  3. Combines: `shocks["Mrkv"] = N * MacroMrkv + MicroMrkv`
+- Utility functions: `make_hierarchical_mrkv_array()`, `extract_cond_mrkv_arrays()`, `construct_MrkvIndArray()`
+- Supports both "simple" (HAFiscal-style: micro depends on destination macro only) and "general" (KS-style: micro depends on both source and destination macro) conditional transition formats.
 
-To avoid a **proliferation of local-only branches** that nobody can find “two nanoseconds from now”:
+### 2. `KrusellSmithType` refactored onto `AggIndMrkvConsumerType` (DONE)
 
-1. **Publish** a single upstream integration branch with a **stable, memorable name**, for example:
-   - **`harmenberg-dual-measure`**, or  
-   - **`integration/hafiscal-harmenberg-reshuffle`** (if you prefer a namespace).
+**File:** `HARK/ConsumptionSaving/ConsAggShockModel.py` (modified)
 
-2. **Base** that branch on whichever of these is already your “source of truth” for HAFiscal:
-   - `origin/ConsAggIndMarkovModel`, **plus** your dual-measure commits (if they are only local, **push** them to this integration branch first).
+- `KrusellSmithType` now inherits from `AggIndMrkvConsumerType` instead of `AgentType`.
+- Uses `shocks["MrkvAgg"]` instead of `shocks["Mrkv"]` for the macro state.
+- Overrides `get_micro_markov_states()` with **exact-match permutation** for employment transitions (the KS boolean-deck pattern from PR #1244's intent).
+- `KrusellSmithTypeHM` + `KrusellSmithEconomyHM` — reference implementations for verification against the original.
+- `KrusellSmithEconomy` now stores `MacroMrkvArray` and `CondMrkvArrays` alongside `MrkvAggArray`/`MrkvIndArray`.
 
-3. **Merge `origin/main` into it regularly** (or rebase if your team prefers), so you keep **#1691 `shuffle`** and other upstream fixes.
+### 3. Newborn PermShk bug fix in `MarkovConsumerType` (DONE)
 
-4. **Merge `origin/docs/plan-reshuffle-pr1244-revival`** into the same integration branch (or `git merge origin/docs/plan-reshuffle-pr1244-revival`). That branch is **documentation-only** today and should merge **cleanly**.
+**File:** `HARK/ConsumptionSaving/ConsMarkovModel.py:1025-1034` (modified)
 
-5. **Do not merge** the stale **`pull/1244/head`** tree as a merge commit into that line. Use **`git fetch origin pull/1244/head:pr-1244`** only to **read** the old notebook and intent; re-implement simulation changes using **`draw(..., shuffle=True)`** on top of the integration branch.
+Previously `PermShkNow[newborn] = 1.0` suppressed **both** the idiosyncratic ψ shock **and** deterministic `PermGroFac` growth. Now applies per-state `PermGroFac[0][j]` to newborns, preserving calibrated cross-sectional dispersion while still allowing permanent income growth.
 
-6. **Upstream PRs to econ-ark/HARK `main`**: when code is ready, open PRs **from a fork/branch** that is either based on current `main` or clearly rebased onto `main` per maintainer preference. The integration branch remains your **daily driver** until those PRs land.
+### 4. Tests (DONE)
 
----
-
-## What to do on another local HARK clone
-
-Use this **once** to get a tree that matches “Harmenberg line + plan doc + optional #1244 notebook ref”:
-
-```bash
-cd /path/to/HARK
-git fetch origin
-git fetch origin pull/1244/head:pr-1244   # optional: keeps old example notebook as ref pr-1244
-
-# Choose ONE of the following as your starting tip:
-
-# A) If you have published integration branch harmenberg-dual-measure:
-git switch -c harmenberg-dual-measure origin/harmenberg-dual-measure
-
-# B) If integration work is not pushed yet — use upstream Markov branch (HAFiscal-relevant):
-git switch -c harmenberg-dual-measure origin/ConsAggIndMarkovModel
-
-# Bring plan document into this branch (if not already included in your integration tip):
-git merge origin/docs/plan-reshuffle-pr1244-revival -m "Merge plan branch: reshuffle PR1244 revival doc"
-
-# Stay current with upstream main (resolve conflicts as needed):
-git merge origin/main -m "Merge main into harmenberg-dual-measure"
-```
-
-**Verify the plan file exists:**
-
-```bash
-test -f docs/plan-reshuffle-pr1244-revival.md && echo OK
-```
-
-**Optional — extract old reshuffling example notebook** (for reference only):
-
-```bash
-git show pr-1244:examples/ConsIndShockModel/IndShockConsumerType_Reshuffling_Example.ipynb > /tmp/IndShockConsumerType_Reshuffling_Example.ipynb
-```
-
-**Housekeeping:** After you are happy with the integration tip, **push** it so the other machine can `git fetch` the same name:
-
-```bash
-git push -u origin harmenberg-dual-measure
-```
-
-(Adjust remote name if you use a fork.)
+- `tests/ConsumptionSaving/test_ConsMarkovModel.py`: new `test_NewbornPermShkIncludesGrowth` class (two tests).
+- `examples/ConsAggShockModel/test_ks_hierarchical_markov.py`: comparison script verifying original KS matches refactored KS.
 
 ---
 
-## Goals
+## What remains
 
-1. **Compatibility:** Make reshuffling / exact-match income draws work with **current HARK** (post-#1691 `shuffle` API), implemented and tested on the **same branch line as Harmenberg / dual-measure / ConsAggIndMarkovModel work**, not only on isolated `main` checkouts.
-2. **Markov:** Extend beyond `IndShockConsumerType` to **`MarkovConsumerType`** (and thus **`AggIndMrkvConsumerType`** / HAFiscal-style models).
-3. **Usability:** Provide a **notebook** and **tests** that compare standard MC vs shuffled draws for the metrics downstream users care about (aggregates, histograms, TM–MC context).
-4. **Branch hygiene:** **One** published integration branch + **`main`** + optional **`docs/plan-reshuffle-pr1244-revival`** for the written plan; avoid many undocumented local-only branches.
+### Current state of shuffle/draw in HARK
 
----
+| Feature | Status | Location |
+|---------|--------|----------|
+| `DiscreteDistribution.draw(N, shuffle=True)` | Merged to `main` via #1691 | `distributions/discrete.py:205-277` |
+| `draw_events()` shuffle support | None — CDF inversion only | `distributions/discrete.py:191-203` |
+| `AggShockConsumerType.get_shocks()` | Uses `shuffle=True` unconditionally | `ConsAggShockModel.py:1124,1140` |
+| `IndShockConsumerType.get_shocks()` | No shuffle. Non-newborns: `draw(N)`; newborns: `draw_events(N)` + atom indexing | `ConsIndShockModel.py:2134-2197` |
+| `MarkovConsumerType.get_shocks()` | No shuffle. Uses `draw_events(N)` + atom indexing per `(t,j)` slice | `ConsMarkovModel.py:988-1029` |
+| Agent-level `income_shuffle` parameter | Not implemented | — |
 
-## What PR #1244 actually changed (historical)
-
-On an older `main`, #1244 touched:
-
-| File | Change |
-|------|--------|
-| `HARK/distribution.py` | `DiscreteDistribution.draw_events(..., exact_match=)` with round-cumsum-permute. |
-| `HARK/ConsumptionSaving/ConsIndShockModel.py` | `reshuffle` / `perf_reshuffle`; `get_shocks` used `draw(..., exact_match=...)`; strict `AgentCount` LCM checks; death draws via `Uniform._approx_equiprobable` + exact match. |
-| `examples/.../IndShockConsumerType_Reshuffling_Example.ipynb` | Side-by-side baseline vs reshuffle. |
-| Tests + `Documentation/CHANGELOG.md` | IndShock tests. |
-
-That branch was **never merged**. Maintainers noted the **example notebook** should be preserved or reproduced.
+**Key asymmetry to watch:** `IndShock` non-newborns use `draw(N)` (returns values `[PermShk, TranShk]`), but IndShock newborns and all of `MarkovConsumerType` use `draw_events(N)` (returns **indices**, then manually indexes `atoms[0]`, `atoms[1]`). Switching to `draw(N, shuffle=...)` changes return semantics — the atom-indexing lines must be **replaced**, not just the draw call.
 
 ---
 
-## Conflicts with current HARK (`main` after #1691)
+## Remaining work: two tasks
 
-1. **Module layout:** `HARK/distribution.py` → **`HARK/distributions/discrete.py`** (and related packages).
-2. **API:** `exact_match` → **`shuffle`** on **`DiscreteDistribution.draw(..., shuffle=True)`** only; algorithm is the generalized floor + leftover slots + permutation ([#1691](https://github.com/econ-ark/HARK/pull/1691)).
-3. **`draw_events`:** Still **no** `shuffle` / `exact_match` on `main`. Prefer **`draw(N, shuffle=True)`** for any discrete multivariate income draw instead of duplicating logic on `draw_events`.
-4. **Fragile bits in #1244:** e.g. `(float).is_integer()`, and **hard LCM `AgentCount` exceptions** that are **weaker** after #1691 (nice `N` no longer required for a good match).
-5. **`MarkovConsumerType.get_shocks` on current `main`:** Uses **uniform + `searchsorted(cumsum(pmv))`** per `(t_cycle, Mrkv)` slice (verify against **your** integration branch at implementation time). Replacement should use **`IncShkDstnNow.draw(N, shuffle=True)`** with the same indexing as `IndShockConsumerType` uses for `draw(N)`.
+### Task A — Educational notebook (no simulation core changes)
 
-**Do not** merge #1244 as-is; **rebuild** the intent on **`draw(..., shuffle=True)`** and a small, explicit agent-level API.
-
----
-
-## Recommended three-PR strategy (upstream `main` targets)
-
-These are **logical** PRs toward **econ-ark/HARK `main`**. Implementation and QA should still be done on your **integration branch** first, then cherry-pick or rebase into PR branches as needed.
-
-### PR 1 — Education only (no simulation core changes)
-
-**Branch name suggestion:** `docs/reshuffle-example-notebook` (or `examples/discrete-shuffle-vs-iid`).
+**Location:** `examples/Distributions/Shuffle_vs_IID_Draws.ipynb`
 
 **Content:**
 
-- New or revived notebook under `examples/` (e.g. `examples/Distributions/` or `examples/ConsIndShockModel/`) that:
-  - Builds a small **`DiscreteDistribution`** and compares **histogram / TV** of outcomes for `draw(N, shuffle=False)` vs `draw(N, shuffle=True)` vs `draw_events(N)`.
-  - States clearly: shuffle **per draw batch** ≈ exact **marginal** match to `pmv`; it does **not** fix joint state issues (e.g. TM-init `(p,m,j)` in HAFiscal).
-  - Pins **HARK version / commit** in a markdown cell.
-- Optional one-line pointer in `docs/CHANGELOG.md` under Documentation.
+- Builds small `DiscreteDistribution` instances (univariate and bivariate) and compares **histogram / total variation distance** for:
+  - `draw(N, shuffle=False)` — standard i.i.d. MC
+  - `draw(N, shuffle=True)` — exact-marginal shuffled
+  - `draw_events(N)` — CDF inversion (reference)
+- Shows convergence: shuffle achieves near-zero TV at any N; i.i.d. MC converges as O(1/sqrt(N)).
+- States clearly: shuffle per draw batch ≈ exact marginal match to `pmv`; it does **not** fix joint state issues (e.g. TM-init `(p,m,j)` in HAFiscal).
+- Pins HARK version / commit in a markdown cell.
 
-**Acceptance:** `nbconvert --execute` on the notebook in CI or documented manual run; no API change.
+**Acceptance:** `nbconvert --execute` succeeds; no API change; no new parameters.
 
 ---
 
-### PR 2 — Opt-in income shuffling: `IndShockConsumerType` + `MarkovConsumerType`
+### Task B — Opt-in income shuffling for `IndShockConsumerType` + `MarkovConsumerType`
 
-**Branch name suggestion:** `feature/income-shuffle-simulation`.
+**Design decision — opt-in vs unconditional:**
+`AggShockConsumerType` already uses `shuffle=True` unconditionally. For `IndShock` and `Markov`, we add `income_shuffle` (default `False`) to preserve backward compatibility. If experience shows shuffle is always beneficial, a future change can flip the default.
 
 **Content:**
 
-1. **`IndShockConsumerType`**
-   - Add a boolean parameter (name TBD: `income_shuffle`, `shuffle_income_draws`, or align with old `reshuffle`) default **`False`**.
-   - In **`get_shocks`**, when `True`, use `IncShkDstnNow.draw(N, shuffle=True)` instead of `draw(N)` / `draw_events(N)` for the relevant blocks; preserve **newborn** semantics from **current** `main` (PermShk / TranShk rules, `NewbornTransShk`, etc.).
-   - **Avoid** #1244’s `perf_reshuffle` and **hard LCM exceptions** in v1; optional **warning** if `N` is tiny.
-2. **`MarkovConsumerType.get_shocks`**
-   - For each mask `these` with count `N`, use `IncShkDstnNow.draw(N, shuffle=self.income_shuffle)` (or inherited flag) instead of manual CDF inversion, assigning `PermShkNow[these]` and `TranShkNow[these]` like today.
+1. **`IndShockConsumerType`** (`ConsIndShockModel.py:2134-2197`)
+   - Add boolean parameter `income_shuffle` (default `False`).
+   - **Non-newborn path** (line 2168): trivial — `draw(N)` → `draw(N, shuffle=self.income_shuffle)`. Return shape is already `[PermShk, TranShk]`; no other changes needed.
+   - **Newborn path** (lines 2178-2189): currently uses `draw_events(N)` returning indices, then manually indexes `atoms[0]` and `atoms[1]`. Two options:
+     - **(a) Recommended:** Switch to `draw(N, shuffle=self.income_shuffle)` returning values directly (matches the `AggShockConsumerType` pattern). Delete the manual atom-indexing. Preserve `NewbornTransShk` override afterward.
+     - **(b) Conservative:** Leave newborn path as-is (i.i.d. for small-N newborn cohorts where shuffle has minimal benefit).
+
+2. **`MarkovConsumerType`** (`ConsMarkovModel.py:1004-1024`)
+   - Inherits `income_shuffle` from `IndShockConsumerType`.
+   - **Per-slice draw** (line 1020): Replace:
+     ```python
+     EventDraws = IncShkDstnNow.draw_events(N)
+     PermShkNow[these] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+     TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+     ```
+     with:
+     ```python
+     ShockDraws = IncShkDstnNow.draw(N, shuffle=self.income_shuffle)
+     PermShkNow[these] = ShockDraws[0] * PermGroFacNow
+     TranShkNow[these] = ShockDraws[1]
+     ```
+     This mirrors the `AggShockConsumerType` pattern exactly.
+   - **Newborn handling** (lines 1025-1034 on this branch): Now applies per-state `PermGroFac[0][j]`; no draw to change. Leave as-is.
+   - **Caution:** Per-slice N can be small (few agents in a rare Markov state). Shuffle quality degrades for small N but is still at least as good as i.i.d.
+
 3. **Tests**
-   - Extend patterns in `tests/test_distribution.py` (`test_shuffle`) to **multivariate** `IncShkDstn` draws where needed.
-   - Small integration test: `MarkovConsumerType`, fixed seed, `shuffle=True` → empirical frequencies close to `pmv` per state slice.
+   - Integration test: `IndShockConsumerType` with `income_shuffle=True`, fixed seed → `solve()` + `simulate()`, verify PermShk empirical frequencies match `pmv` within tolerance.
+   - Integration test: `MarkovConsumerType` with `income_shuffle=True`, fixed seed → same, per Markov state slice.
+   - Verify backward compat: existing tests pass unchanged with default `income_shuffle=False`.
+   - Check interaction with `from_dstn` option (recently added, commit `4266659b`).
 
 **Acceptance:** Full `pytest` green; backward compatible default `False`.
 
 ---
 
-### PR 3 — Micro Markov exact-mass transitions + downstream (HAFiscal) notes
+## Future directions (not scoped for current work)
 
-**Branch name suggestion:** `feature/micro-markov-exact-mass-optional` (may be split further).
+These are **not** concrete tasks yet — included for planning context only.
 
-**Content:**
+1. **Harmenberg dual-measure alignment:** If shuffle or exact-match permutation is used with dual (P and Q) simulation, any permutation must be shared across both tracks so physical shocks stay aligned. This is a design constraint for any future HAFiscal integration, not a HARK-core change.
 
-1. **Optional** exact-count / permutation for **micro** employment (or general micro) transitions in **`AggIndMrkvConsumerType.get_micro_markov_states`**, analogous to Krusell–Smith **`RNG.permutation` on precomputed boolean decks** — **not** the same API as `DiscreteDistribution.draw(..., shuffle=True)`.
-2. **Design constraint:** If used with **Harmenberg / dual** simulation, any permutation must be **shared** across P and Q tracks so physical shocks stay aligned.
-3. **Documentation:** Short section in this plan’s successor or in `docs/guides/simulation.md` on when shuffle helps TM–MC comparisons vs when it does not.
-4. **HAFiscal (downstream):** Parameter wiring, `verify_four_methods` / Gatekeeper notes — may live in **HAFiscal-Latest** repo, not necessarily in HARK PR #3.
+2. **Documentation:** Section in `docs/guides/simulation.md` on when shuffle helps TM-MC comparisons vs when it does not; interaction with Harmenberg permanent-income-neutral measure.
 
-**Acceptance:** Feature behind a clear default-off flag; tests on employment fractions conditional on `(macro_prev → macro_now)` for a minimal economy.
+3. **HAFiscal downstream:** Parameter wiring for `verify_four_methods` / Gatekeeper — likely lives in HAFiscal-Latest repo, not in HARK.
 
 ---
 
 ## What not to port from #1244 (unless re-justified)
 
 - **`draw_events(..., exact_match)`** duplicate algorithm — use **`draw(..., shuffle=True)`** only.
-- **`perf_reshuffle`** and global **LCM `AgentCount` raises** — defer; #1691 reduces need for “nice” `N`.
+- **`perf_reshuffle`** and global **LCM `AgentCount` raises** — defer; #1691 reduces need for "nice" N.
 - **Death-shock reshuffling** — only if a concrete use case appears; skip in v1.
 
 ---
 
-## Notebook / product notes for downstream (e.g. HAFiscal)
+## Integration branch strategy
 
-- **TM vs MC:** Shuffled MC **income** draws do not by themselves align **TM** (which does not use finite-`N` shuffle) with MC; document when comparing means.
-- **Uncertainty:** `shuffle=True` breaks naive **i.i.d.** interpretation of within-period cross-sectional noise; use **across-seed** or **time** variation for bands.
-- **RNG:** Clarify interaction of **`DiscreteDistribution` seed** vs **`AgentType.RNG`** for reproducibility.
-- **Cross-links:** HAFiscal notebooks such as `pLvl_TM_init_ergodic_gap.ipynb` / Gatekeeper — optional callout that shuffle does **not** replace **joint** `(p,m,j)` burn-in.
+All work (Tasks A and B, plus the already-completed infrastructure) lives on the **`harmenberg-dual-measure`** branch, which includes `AggIndMrkvConsumerType` from the `ConsAggIndMarkovModel` line plus dual-measure / Harmenberg tooling not yet on `main`.
 
----
-
-## Implementation checklist (for PR 2)
-
-- [ ] Re-read **`MarkovConsumerType.get_shocks`** on **your integration branch** (and compare to `origin/main` if they diverge).
-- [ ] Use **`IncShkDstnNow.draw(N, shuffle=True)`** return shape consistent with existing **`draw(N)`** path.
-- [ ] Newborns: match **current** `PermShk` / `TranShk` policy on the branch you target for merge.
-- [ ] Run **`pytest`** for `tests/test_distribution.py` and ConsumptionSaving tests on the **integration** branch.
+When ready for upstream:
+- Open PRs from branches rebased onto current `main` per maintainer preference.
+- The integration branch remains the daily driver until those PRs land.
+- Merge `origin/main` into the integration branch regularly to stay current.
 
 ---
 
@@ -207,10 +160,10 @@ These are **logical** PRs toward **econ-ark/HARK `main`**. Implementation and QA
 
 ```bash
 git fetch origin pull/1244/head:pr-1244
-git show pr-1244:examples/ConsIndShockModel/IndShockConsumerType_Reshuffling_Example.ipynb > IndShockConsumerType_Reshuffling_Example.ipynb
+git show pr-1244:examples/ConsIndShockModel/IndShockConsumerType_Reshuffling_Example.ipynb > /tmp/IndShockConsumerType_Reshuffling_Example.ipynb
 ```
 
-Use it as **narrative inspiration** only; rewrite against **`shuffle=True`** and current class APIs.
+Use as **narrative inspiration** only; rewrite against `shuffle=True` and current class APIs.
 
 ---
 
@@ -219,5 +172,6 @@ Use it as **narrative inspiration** only; rewrite against **`shuffle=True`** and
 | Date | Note |
 |------|------|
 | 2026-04-04 | Initial plan added to HARK repo for multi-machine work. |
-| 2026-04-04 | Duplicated at `docs/plan-reshuffle-pr1244-revival.md` (expected path); `docs/guides/` holds a pointer only. |
-| 2026-04-04 | Revised: **Harmenberg / ConsAggIndMarkovModel-first** integration branch, branch-combination recipe, other-machine steps, de-emphasize `main`-only workflow. |
+| 2026-04-04 | Duplicated at canonical path; `docs/guides/` holds pointer only. |
+| 2026-04-04 | Revised for Harmenberg/ConsAggIndMarkovModel-first integration branch workflow. |
+| 2026-04-04 | **v3:** Revised after code review of `harmenberg-dual-measure` branch. Documented completed work (AggIndMrkvConsumerType, KS refactor, newborn fix). Reduced scope to two remaining tasks. Added concrete code snippets, draw-return-type asymmetry notes, `from_dstn` checklist item. Demoted PR 3 to future directions (already implemented as `get_micro_markov_states` override in KS). |
