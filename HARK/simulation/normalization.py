@@ -1,25 +1,94 @@
-"""Mixin for per-cohort permanent income normalization.
+"""Mixins for simulation variance reduction via moment normalization.
 
-When mixed into an AgentType subclass that has PermShkDstn, PermGroFac,
-pLogInitMean, and pLogInitStd attributes, this mixin adjusts the
-cross-sectional distribution of pLvl within each age cohort to match
-analytical log-moments after each simulation period.
+These mixins adjust cross-sectional distributions during simulation so that
+empirical moments match their analytical values, eliminating sampling noise
+without requiring N to be a multiple of J_min.
 
 Usage::
 
     from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
-    from HARK.simulation.normalization import PermanentIncomeNormalizationMixin
+    from HARK.simulation.normalization import (
+        PermanentIncomeNormalizationMixin,
+        ShockNormalizationMixin,
+    )
 
-    class NormalizedIndShock(PermanentIncomeNormalizationMixin, IndShockConsumerType):
+    class NormalizedIndShock(
+        ShockNormalizationMixin,
+        PermanentIncomeNormalizationMixin,
+        IndShockConsumerType,
+    ):
         pass
 
-    agent = NormalizedIndShock(normalize_pLvl=True, ...)
-    agent.solve()
-    agent.initialize_sim()
-    agent.simulate()
+    agent = NormalizedIndShock(
+        normalize_pLvl=True,
+        normalize_shocks=True,
+        ...
+    )
 """
 
 import numpy as np
+
+
+class ShockNormalizationMixin:
+    """Opt-in normalization of income shocks to pin cross-sectional means.
+
+    After get_shocks() draws PermShk and TranShk for the population,
+    rescales each so that the cross-sectional mean equals the theoretical
+    value (1.0 for mean-one distributions).  This ensures that the aggregate
+    effect of shocks is exact in every period, regardless of population size.
+
+    For agents in different groups (e.g., Markov states with different shock
+    distributions), normalization is applied per group.
+
+    Attributes
+    ----------
+    normalize_shocks : bool
+        When True, shock normalization is applied.  Default False.
+    """
+
+    normalize_shocks = False
+
+    def get_shocks(self):
+        """Draw shocks, then normalize means if enabled."""
+        super().get_shocks()
+        if not getattr(self, "normalize_shocks", False):
+            return
+        self._normalize_shock_means()
+
+    def _normalize_shock_means(self):
+        """Rescale PermShk and TranShk so cross-sectional means are exact.
+
+        For each group of agents sharing the same shock distribution,
+        divides each shock by the group's empirical mean (so the new
+        mean is exactly 1.0).  Skips groups with fewer than 2 agents
+        or where the empirical mean is too close to zero.
+        """
+        # Determine grouping: if Markov states exist, normalize per state;
+        # otherwise normalize the whole population at once.
+        if "Mrkv" in getattr(self, "shocks", {}):
+            groups = self.shocks["Mrkv"].astype(int)
+            unique_groups = np.unique(groups)
+        else:
+            groups = np.zeros(self.AgentCount, dtype=int)
+            unique_groups = [0]
+
+        for shock_name in ["PermShk", "TranShk"]:
+            if shock_name not in self.shocks:
+                continue
+            shock_arr = self.shocks[shock_name]
+
+            for g in unique_groups:
+                mask = groups == g
+                n_g = mask.sum()
+                if n_g < 2:
+                    continue
+
+                empirical_mean = np.mean(shock_arr[mask])
+                if abs(empirical_mean) < 1e-16:
+                    continue
+
+                # Rescale so cross-sectional mean is exactly 1.0
+                shock_arr[mask] *= 1.0 / empirical_mean
 
 
 class PermanentIncomeNormalizationMixin:
