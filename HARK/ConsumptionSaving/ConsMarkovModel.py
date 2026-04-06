@@ -774,6 +774,7 @@ init_indshk_markov = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "markov_shuffle": False,  # Whether to use shuffled draws for Markov state transitions
+    "balanced_transitions": False,  # Whether to use systematic sampling on pLvl for representative transitions
 }
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
@@ -984,8 +985,20 @@ class MarkovConsumerType(IndShockConsumerType):
                 self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
+            # When balanced_transitions is enabled, pass pLvl as sort key
+            # so that agents selected for each transition are systematically
+            # sampled across the permanent income distribution.
+            # NOTE: Do NOT use aNrm or wealth as sort key — it creates a
+            # feedback loop where low-wealth agents are repeatedly selected
+            # for adverse transitions, trapping them in poverty.
+            if getattr(self, "balanced_transitions", False):
+                sort_key = self.state_now["pLvl"][right_age]
+            else:
+                sort_key = None
             MrkvNow[right_age] = markov_process.draw(
-                MrkvPrev[right_age], shuffle=self.markov_shuffle
+                MrkvPrev[right_age],
+                shuffle=self.markov_shuffle,
+                sort_key=sort_key,
             )
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
