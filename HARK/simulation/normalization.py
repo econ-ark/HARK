@@ -112,9 +112,22 @@ class PermanentIncomeNormalizationMixin:
             else:
                 log_p[mask] = mu_k
 
+        # Adjust normalized variables to keep level values unchanged.
+        # pLvl is about to change; any var defined as varLvl / pLvl must
+        # scale by the inverse ratio so that varLvl = varNrm * pLvl is preserved.
+        pLvl_old = self.state_now["pLvl"].copy()
         self.state_now["pLvl"][:] = np.exp(log_p)
+        ratio = pLvl_old / np.maximum(self.state_now["pLvl"], 1e-16)
+        for var in ("mNrm", "bNrm"):
+            if var in self.state_now and isinstance(self.state_now[var], np.ndarray):
+                self.state_now[var] *= ratio
 
-    def sim_one_period(self):
-        """Simulate one period, then apply pLvl normalization if enabled."""
-        super().sim_one_period()
+    def post_state_hook(self):
+        """Normalize pLvl before controls are computed.
+
+        Uses the ``post_state_hook`` introduced in ``AgentType.sim_one_period``
+        so that ``cLvl = cNrm * pLvl`` and ``cLvl_splurge`` see the normalized
+        ``pLvl``, not just the next period's dynamics.
+        """
+        super().post_state_hook()
         self.post_sim_normalize_pLvl()
