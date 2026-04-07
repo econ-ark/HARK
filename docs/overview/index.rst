@@ -43,7 +43,7 @@ Overview
    ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
    ../../examples/ConsAggShockModel/AggShockMarkovConsumerType.ipynb
    ../../examples/ConsAggShockModel/KrusellSmithType.ipynb
-   ../../examples/ConsBequestModel/example_WarmGlowBequest.ipynb
+   ../../examples/ConsBequestModel/BequestWarmGlowConsumerType.ipynb
    ../../examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
    ../../examples/ConsWealthUtilityModel/WealthUtilityConsumerType.ipynb
    ../../examples/ConsWealthUtilityModel/CapitalistSpiritConsumerType.ipynb
