@@ -51,7 +51,17 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
-from HARK.utilities import make_assets_grid
+from HARK.utilities import make_assets_grid, get_it_from
+
+
+def translate_bequest_params(CRRA, BeqMPC, BeqInt):
+    """
+    Translate bequest MPC and intercept into scaling factor and shifter.
+    """
+    BeqFac = BeqMPC ** (-CRRA)
+    BeqShift = BeqInt / BeqMPC
+    out = {"BeqFac": BeqFac, "BeqShift": BeqShift}
+    return out
 
 
 def make_bequest_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid):
@@ -935,6 +945,9 @@ warmglow_constructor_dict = {
     "solution_terminal": make_bequest_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "BeqParams": translate_bequest_params,
+    "BeqFac": get_it_from("BeqParams"),
+    "BeqShift": get_it_from("BeqParams"),
 }
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
@@ -978,6 +991,7 @@ init_warm_glow = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": warmglow_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
@@ -986,8 +1000,8 @@ init_warm_glow = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "BeqFac": 40.0,  # Scaling factor for bequest motive
-    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
+    "BeqMPC": 0.2,  # Marginal propensity to consume in terminal period
+    "BeqInt": 0.1,  # Intercept term in terminal period consumption function
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
@@ -1168,6 +1182,9 @@ portfolio_bequest_constructor_dict = {
     "AdjustDstn": make_AdjustDstn,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "BeqParams": translate_bequest_params,
+    "BeqFac": get_it_from("BeqParams"),
+    "BeqShift": get_it_from("BeqParams"),
     "solution_terminal": make_warmglow_portfolio_solution_terminal,
 }
 
@@ -1229,8 +1246,8 @@ init_portfolio_bequest = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "BeqFac": 40.0,  # Scaling factor for bequest motive
-    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
+    "BeqMPC": 0.2,  # Marginal propensity to consume in terminal period
+    "BeqInt": 0.1,  # Intercept term in terminal period consumption function
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
