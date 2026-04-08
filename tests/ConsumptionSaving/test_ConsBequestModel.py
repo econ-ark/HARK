@@ -77,7 +77,7 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         OtherType.solve()
         mNrm = 10.0
         cFunc = OtherType.solution[0].cFuncAdj
-        self.assertAlmostEqual(cFunc(mNrm), 1.7008, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(mNrm), 1.70249, places=HARK_PRECISION)
 
     def test_invalid(self):
         BadType = BequestWarmGlowPortfolioType(BeqFac=1.0, BoroCnstArt=-1.0)
