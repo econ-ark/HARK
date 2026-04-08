@@ -1407,10 +1407,11 @@ class PerfForesightConsumerType(AgentType):
     def _sim_death_shuffled(self, DiePrb):
         """Deterministic death counts with random agent assignment.
 
-        For each unique death probability in DiePrb, compute the exact
-        number of deaths as round(N_group * DiePrb) and randomly select
-        which agents in that group die.  This eliminates binomial noise
-        in death counts while preserving the expected number of deaths.
+        For each unique death probability in DiePrb, compute the number
+        of deaths using floor-plus-remainder (so the expected count is
+        unbiased) and randomly select which agents in that group die.
+        This reduces binomial noise in death counts while preserving
+        the expected number of deaths exactly.
 
         Parameters
         ----------
@@ -1428,7 +1429,12 @@ class PerfForesightConsumerType(AgentType):
         for p in np.unique(DiePrb):
             group = np.where(DiePrb == p)[0]
             N_group = len(group)
-            how_many_die = int(round(N_group * p))
+            # Floor-plus-remainder: unbiased expected death count
+            K_exact = N_group * p
+            how_many_die = int(np.floor(K_exact))
+            remainder = K_exact - how_many_die
+            if remainder > 0 and self.RNG.random() < remainder:
+                how_many_die += 1
             if how_many_die > 0:
                 die_indices = self.RNG.choice(group, size=how_many_die, replace=False)
                 which_agents[die_indices] = True
@@ -2171,9 +2177,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
-        Base uniform draws are stored in ``self._base_shock_draws`` (a dict
-        keyed by ``t_cycle`` value, plus ``"newborn"`` for newborn redraws)
-        so that dual-measure mixins can reuse them for Q-CDF inversion.
+        When ``self._cache_base_shock_draws`` is True (set by dual-measure
+        mixins), base uniform draws are stored in ``self._base_shock_draws``
+        (a dict keyed by ``t_cycle`` value, plus ``"newborn"`` for newborn
+        redraws) so that dual-measure mixins can reuse them for Q-CDF
+        inversion.  When the flag is False (the default), the original
+        ``draw_events``-based RNG path is used so that seeded reproductions
+        of pre-shuffle simulations are bit-for-bit preserved.
 
         Parameters
         ----------
@@ -2208,12 +2218,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 # Draw income shocks (see MarkovConsumerType.get_shocks
                 # for the equivalent Markov version).
                 _shuffle = getattr(self, "income_shuffle", False)
+                _cache = getattr(self, "_cache_base_shock_draws", False)
                 if _shuffle:
                     ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
                     base_draws_dict[t_orig] = None
-                else:
+                elif _cache:
                     base_draws = IncShkDstnNow._rng.uniform(size=N)
                     base_draws_dict[t_orig] = base_draws
                     EventDraws = np.searchsorted(
@@ -2223,6 +2234,14 @@ class IndShockConsumerType(PerfForesightConsumerType):
                         IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
                     TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                else:
+                    # Original RNG path — preserved bit-for-bit so that
+                    # seeded reproductions of pre-shuffle simulations match.
+                    IncShks = IncShkDstnNow.draw(N)
+                    PermShkNow[idx] = (
+                        IncShks[0, :] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShks[1, :]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2234,15 +2253,23 @@ class IndShockConsumerType(PerfForesightConsumerType):
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
             _shuffle = getattr(self, "income_shuffle", False)
+            _cache = getattr(self, "_cache_base_shock_draws", False)
             if _shuffle:
                 ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
                 PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                 TranShkNow[idx] = ShockDraws[1]
                 base_draws_dict["newborn"] = None
-            else:
+            elif _cache:
                 base_draws = IncShkDstnNow._rng.uniform(size=N)
                 base_draws_dict["newborn"] = base_draws
                 EventDraws = np.searchsorted(np.cumsum(IncShkDstnNow.pmv), base_draws)
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            else:
+                # Original RNG path — preserved bit-for-bit.
+                EventDraws = IncShkDstnNow.draw_events(N)
                 PermShkNow[idx] = (
                     IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                 )  # permanent "shock" includes expected growth

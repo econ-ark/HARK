@@ -1010,9 +1010,13 @@ class MarkovConsumerType(IndShockConsumerType):
         Gets new Markov states and permanent and transitory income shocks for this period.  Samples
         from IncShkDstn for each period-state in the cycle.
 
-        Base uniform draws are stored in ``self._base_shock_draws`` (a dict
-        keyed by ``(t_cycle, mrkv_state)`` tuples) so that dual-measure mixins
-        can reuse them for Q-CDF inversion.
+        When ``self._cache_base_shock_draws`` is True (set by dual-measure
+        mixins), base uniform draws are stored in ``self._base_shock_draws``
+        (a dict keyed by ``(t_cycle, mrkv_state)`` tuples) so that dual-measure
+        mixins can reuse them for Q-CDF inversion.  When the flag is False
+        (the default), the original ``draw_events``-based RNG path is used so
+        that seeded reproductions of pre-shuffle simulations are bit-for-bit
+        preserved.
 
         Parameters
         ----------
@@ -1047,17 +1051,26 @@ class MarkovConsumerType(IndShockConsumerType):
                     # + CDF inversion, storing draws for dual-measure Q-track
                     # replay.
                     _shuffle = getattr(self, "income_shuffle", False)
+                    _cache = getattr(self, "_cache_base_shock_draws", False)
                     if _shuffle:
                         ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
                         PermShkNow[these] = ShockDraws[0] * PermGroFacNow
                         TranShkNow[these] = ShockDraws[1]
                         base_draws_dict[(t, j)] = None
-                    else:
+                    elif _cache:
                         base_draws = IncShkDstnNow._rng.uniform(size=N)
                         base_draws_dict[(t, j)] = base_draws
                         EventDraws = np.searchsorted(
                             np.cumsum(IncShkDstnNow.pmv), base_draws
                         )
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )  # permanent "shock" includes expected growth
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    else:
+                        # Original RNG path — preserved bit-for-bit so that
+                        # seeded reproductions of pre-shuffle simulations match.
+                        EventDraws = IncShkDstnNow.draw_events(N)
                         PermShkNow[these] = (
                             IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                         )  # permanent "shock" includes expected growth
