@@ -1170,7 +1170,7 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
 
     time_inv_ = IndShockConsumerType.time_inv_ + ["BeqShift", "BeqFac"]
     default_ = {
-        "params": init_accidental_bequest,
+        "params": init_warm_glow,
         "solver": solve_one_period_ConsWarmBequest,
         "model": "ConsIndShock.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
