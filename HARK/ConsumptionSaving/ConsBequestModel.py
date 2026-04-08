@@ -1228,9 +1228,9 @@ default_aXtraGrid_params = {
 # Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
 default_RiskyDstn_and_ShareGrid_params = {
     "RiskyAvg": 1.08,  # Mean return factor of risky asset
-    "RiskyStd": 0.18362634887,  # Stdev of log returns on risky asset
+    "RiskyStd": 0.18,  # Stdev of log returns on risky asset
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
-    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+    "ShareCount": 26,  # Number of discrete points in the risky share approximation
 }
 
 # Make a dictionary to specify a risky asset consumer type
@@ -1240,9 +1240,9 @@ init_portfolio_bequest = {
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": portfolio_bequest_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "CRRA": 5.0,  # Coefficient of relative risk aversion
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": [1.03],  # Return factor on risk free asset
-    "DiscFac": 0.90,  # Intertemporal discount factor
+    "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
@@ -1423,6 +1423,6 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
     default_ = {
         "params": init_portfolio_bequest,
         "solver": solve_one_period_ConsPortfolioWarmGlow,
-        "model": "ConsRiskyAsset.yaml",
+        "model": "ConsPortfolio.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }

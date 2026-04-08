@@ -45,17 +45,17 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
     def test_consumption(self):
         cFunc = self.agent.solution[0].cFuncAdj
         mNrm = 10.0
-        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.70916, places=HARK_PRECISION)
+        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.70232, places=HARK_PRECISION)
 
     def test_share(self):
         ShareFunc = self.agent.solution[0].ShareFuncAdj
         mNrm = 10.0
-        self.assertAlmostEqual(ShareFunc(mNrm).tolist(), 0.36435, places=HARK_PRECISION)
+        self.assertAlmostEqual(ShareFunc(mNrm).tolist(), 0.96250, places=HARK_PRECISION)
 
     def test_value(self):
         vFunc = self.agent.solution[0].vFuncAdj
         mNrm = 10.0
-        self.assertAlmostEqual(vFunc(mNrm), -0.19582, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mNrm), -3.94804, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
