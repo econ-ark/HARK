@@ -57,7 +57,27 @@ from HARK.utilities import make_assets_grid, get_it_from
 def translate_bequest_params(CRRA, BeqMPC, BeqInt):
     """
     Translate bequest MPC and intercept into scaling factor and shifter.
+
+    Passing ``BeqMPC=None`` and ``BeqInt=None`` is treated as a sentinel for
+    "no bequest motive", returning ``BeqFac=0.0`` and ``BeqShift=0.0``.
+    Otherwise, ``CRRA``, ``BeqMPC``, and ``BeqInt`` must be finite and
+    ``BeqMPC`` must be strictly positive.
     """
+    if BeqMPC is None or BeqInt is None:
+        if BeqMPC is None and BeqInt is None:
+            return {"BeqFac": 0.0, "BeqShift": 0.0}
+        raise ValueError(
+            "BeqMPC and BeqInt must either both be provided or both be None."
+        )
+
+    if not np.isfinite(CRRA):
+        raise ValueError("CRRA must be finite.")
+    if not np.isfinite(BeqMPC):
+        raise ValueError("BeqMPC must be finite.")
+    if not np.isfinite(BeqInt):
+        raise ValueError("BeqInt must be finite.")
+    if BeqMPC <= 0:
+        raise ValueError("BeqMPC must be strictly positive.")
     BeqFac = BeqMPC ** (-CRRA)
     BeqShift = BeqInt / BeqMPC
     out = {"BeqFac": BeqFac, "BeqShift": BeqShift}
