@@ -44,7 +44,7 @@ Overview
    ../../examples/ConsAggShockModel/AggShockMarkovConsumerType.ipynb
    ../../examples/ConsAggShockModel/KrusellSmithType.ipynb
    ../../examples/ConsBequestModel/BequestWarmGlowConsumerType.ipynb
-   ../../examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
+   ../../examples/ConsBequestModel/BequestWarmGlowPortfolioType.ipynb
    ../../examples/ConsWealthUtilityModel/WealthUtilityConsumerType.ipynb
    ../../examples/ConsWealthUtilityModel/CapitalistSpiritConsumerType.ipynb
    ../../examples/ConsHabitModel/HabitConsumerType.ipynb
