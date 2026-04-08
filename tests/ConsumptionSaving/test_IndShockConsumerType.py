@@ -618,6 +618,130 @@ class testMarkovTransitionShuffle(unittest.TestCase):
         self.assertEqual(agent.shocks["Mrkv"].shape, (1000,))
 
 
+class testDeathShuffle(unittest.TestCase):
+    """Tests for death_shuffle parameter on IndShockConsumerType."""
+
+    def test_death_shuffle_runs(self):
+        """death_shuffle=True should solve and simulate without error."""
+        agent = IndShockConsumerType(
+            AgentCount=1000,
+            T_sim=50,
+            death_shuffle=True,
+        )
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+    def test_death_shuffle_deterministic_count(self):
+        """With death_shuffle, number of deaths per period should be deterministic."""
+        agent = IndShockConsumerType(
+            AgentCount=5000,
+            T_sim=100,
+            death_shuffle=True,
+            T_age=None,
+        )
+        agent.solve()
+        agent.initialize_sim()
+
+        # Run several periods and check that death counts are constant
+        DiePrb = 1.0 - np.asarray(agent.LivPrb[0])
+        expected_deaths = int(round(5000 * DiePrb))
+        death_counts = []
+        for _ in range(20):
+            agent.sim_one_period()
+            # Count deaths by checking who was just born (t_age == 0 after birth)
+        # Instead, call sim_death directly and count
+        agent.initialize_sim()
+        counts = set()
+        for _ in range(50):
+            DiePrb_arr = np.full(agent.AgentCount, DiePrb)
+            who_dies = agent._sim_death_shuffled(DiePrb_arr)
+            counts.add(who_dies.sum())
+        # All death counts should be identical (deterministic)
+        self.assertEqual(len(counts), 1)
+        self.assertEqual(counts.pop(), expected_deaths)
+
+    def test_death_shuffle_default_false(self):
+        """Default death_shuffle should be False."""
+        agent = IndShockConsumerType()
+        self.assertFalse(getattr(agent, "death_shuffle", False))
+
+
+class testShockNormalization(unittest.TestCase):
+    """Tests for ShockNormalizationMixin composed with IndShockConsumerType."""
+
+    def test_shock_means_are_exact(self):
+        """With normalize_shocks=True, cross-sectional mean of PermShk and TranShk should be 1."""
+        from HARK.simulation.normalization import ShockNormalizationMixin
+
+        class NormShockIndShock(ShockNormalizationMixin, IndShockConsumerType):
+            pass
+
+        agent = NormShockIndShock(
+            AgentCount=500,
+            T_sim=50,
+            normalize_shocks=True,
+        )
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        # After simulation, check that shock means are very close to 1.0
+        # (exact for non-newborn agents; newborns may dilute slightly)
+        np.testing.assert_allclose(
+            np.mean(agent.shocks["PermShk"]),
+            1.0,
+            atol=1e-10,
+            err_msg="PermShk mean should be exactly 1.0",
+        )
+        np.testing.assert_allclose(
+            np.mean(agent.shocks["TranShk"]),
+            1.0,
+            atol=0.05,  # newborn TranShk may differ
+            err_msg="TranShk mean should be close to 1.0",
+        )
+
+    def test_normalize_shocks_default_false(self):
+        """Default normalize_shocks should be False."""
+        from HARK.simulation.normalization import ShockNormalizationMixin
+
+        class NormShockIndShock(ShockNormalizationMixin, IndShockConsumerType):
+            pass
+
+        agent = NormShockIndShock(AgentCount=100, T_sim=10)
+        self.assertFalse(getattr(agent, "normalize_shocks", False))
+
+    def test_normalize_shocks_reduces_variance(self):
+        """Shock normalization should reduce time-series variance of mean(cNrm)."""
+        from HARK.simulation.normalization import ShockNormalizationMixin
+
+        class NormShockIndShock(ShockNormalizationMixin, IndShockConsumerType):
+            pass
+
+        N, T = 500, 200
+        burn = 50
+
+        # Without normalization
+        a_plain = IndShockConsumerType(AgentCount=N, T_sim=T, seed=42)
+        a_plain.solve()
+        a_plain.initialize_sim()
+        a_plain.simulate()
+        ts_plain = [np.mean(a_plain.history["cNrm"][t]) for t in range(T)]
+        var_plain = np.var(ts_plain[burn:])
+
+        # With shock normalization
+        a_norm = NormShockIndShock(
+            AgentCount=N, T_sim=T, seed=42, normalize_shocks=True
+        )
+        a_norm.solve()
+        a_norm.initialize_sim()
+        a_norm.simulate()
+        ts_norm = [np.mean(a_norm.history["cNrm"][t]) for t in range(T)]
+        var_norm = np.var(ts_norm[burn:])
+
+        self.assertLess(var_norm, var_plain)
+
+
 class testNormalizePLvl(unittest.TestCase):
     """Tests for PermanentIncomeNormalizationMixin composed with IndShockConsumerType."""
 

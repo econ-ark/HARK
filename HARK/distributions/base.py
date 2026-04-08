@@ -195,7 +195,7 @@ class MarkovProcess(Distribution):
         # Set up the RNG
         super().__init__(seed)
 
-    def draw(self, state, shuffle=False):
+    def draw(self, state, shuffle=False, sort_key=None):
         """
         Draw new states from the transition matrix.
 
@@ -208,6 +208,13 @@ class MarkovProcess(Distribution):
             (floor-plus-leftover algorithm) with random agent assignment.
             This eliminates sampling noise in state transition counts.
             Falls back to iid when N_j * min(probs) < 1 for a source state.
+        sort_key : np.array or None
+            When provided (same length as state), agents within each source
+            state are sorted by this key and assigned to target states via
+            systematic sampling rather than random permutation.  This makes
+            the transitioning subgroup representative of the source population
+            with respect to the sort variable (e.g. pLvl).  Only used when
+            shuffle=True.
 
         Returns
         -------
@@ -216,7 +223,7 @@ class MarkovProcess(Distribution):
         """
         if not shuffle:
             return self._draw_iid(state)
-        return self._draw_shuffled(state)
+        return self._draw_shuffled(state, sort_key=sort_key)
 
     def _draw_iid(self, state):
         """Draw new states independently for each agent (original behavior)."""
@@ -230,14 +237,19 @@ class MarkovProcess(Distribution):
 
         return array_sample(state)
 
-    def _draw_shuffled(self, state):
-        """Deterministic state counts with random agent assignment.
+    def _draw_shuffled(self, state, sort_key=None):
+        """Deterministic state counts with random or systematic agent assignment.
 
         For each source state j with N_j agents, compute target counts
         using the floor-plus-leftover algorithm (same as
-        DiscreteDistribution.draw(shuffle=True)), then randomly assign
-        agents to target states. Falls back to iid when a source state
-        has too few agents for meaningful deterministic counts.
+        DiscreteDistribution.draw(shuffle=True)), then assign agents to
+        target states.  If sort_key is None, assignment is by random
+        permutation.  If sort_key is provided, assignment uses systematic
+        sampling on the sorted order so that each target group is
+        representative of the source population.
+
+        Falls back to iid when a source state has too few agents for
+        meaningful deterministic counts.
         """
         state = np.asarray(state)
         new_state = np.empty_like(state, dtype=int)
@@ -273,12 +285,43 @@ class MarkovProcess(Distribution):
                     K[idx] += 1
                     Q[idx] = 0.0
 
-            # Randomly assign agents to target states
-            perm = self._rng.permutation(agents_in_j)
-            offset = 0
-            for jp in range(J):
-                new_state[perm[offset : offset + K[jp]]] = jp
-                offset += K[jp]
+            if sort_key is not None:
+                # Systematic sampling: sort agents by key, then assign
+                # minority transitions evenly across the sorted order.
+                sorted_agents = agents_in_j[np.argsort(sort_key[agents_in_j])]
+                assigned = np.empty(N_j, dtype=int)
+                remaining_mask = np.ones(N_j, dtype=bool)
+
+                # Process target states smallest-first so minority
+                # transitions get systematically spread across the
+                # full range of the sort variable.
+                for jp in np.argsort(K):
+                    if K[jp] == 0:
+                        continue
+                    remaining_pos = np.where(remaining_mask)[0]
+                    N_rem = len(remaining_pos)
+                    if N_rem == K[jp]:
+                        # Last group: assign all remaining
+                        assigned[remaining_pos] = jp
+                        remaining_mask[remaining_pos] = False
+                    else:
+                        # Systematic sample with random offset
+                        spacing = N_rem / K[jp]
+                        u = self._rng.uniform(0, spacing)
+                        sel = np.floor(u + np.arange(K[jp]) * spacing).astype(int)
+                        sel = np.clip(sel, 0, N_rem - 1)
+                        chosen = remaining_pos[sel]
+                        assigned[chosen] = jp
+                        remaining_mask[chosen] = False
+
+                new_state[sorted_agents] = assigned
+            else:
+                # Randomly assign agents to target states
+                perm = self._rng.permutation(agents_in_j)
+                offset = 0
+                for jp in range(J):
+                    new_state[perm[offset : offset + K[jp]]] = jp
+                    offset += K[jp]
 
         return new_state
 
