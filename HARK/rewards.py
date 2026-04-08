@@ -1022,6 +1022,8 @@ class UtilityFuncCARA(UtilityFunction):
 
 
 class UtilityFuncStoneGeary(UtilityFunction):
+    distance_criteria = ["CRRA", "factor", "shifter"]
+
     def __init__(self, CRRA, factor=1.0, shifter=0.0):
         self.CRRA = CRRA
         self.factor = factor

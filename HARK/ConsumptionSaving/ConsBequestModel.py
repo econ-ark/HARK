@@ -1043,8 +1043,8 @@ init_warm_glow.update(default_pLvlInitDstn_params)
 
 # Make a dictionary with bequest motives turned off
 init_accidental_bequest = init_warm_glow.copy()
-init_accidental_bequest["BeqFac"] = 0.0
-init_accidental_bequest["BeqShift"] = 0.0
+init_accidental_bequest["BeqMPC"] = None
+init_accidental_bequest["BeqInt"] = None
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
