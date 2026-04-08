@@ -1815,6 +1815,7 @@ class AgentType(Model):
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
             self.get_shocks()
         self.get_states()  # Determine each agent's state at decision time
+        self.post_state_hook()  # Hook for state adjustments (e.g., pLvl normalization) before controls
         self.get_controls()  # Determine each agent's choice or control variables based on states
         self.get_poststates()  # Calculate variables that come *after* decision-time
 
@@ -2060,6 +2061,19 @@ class AgentType(Model):
             # a hack for now to deal with 'post-states'
             if i < len(new_states):
                 self.state_now[var] = new_states[i]
+
+    def post_state_hook(self):
+        """Called after get_states() but before get_controls() in sim_one_period.
+
+        Override this method to adjust state variables (e.g., normalize pLvl
+        per cohort) after the transition but before consumption decisions are
+        computed.  The default implementation does nothing.
+
+        This hook exists so that variance-reduction techniques that modify
+        state variables (like per-cohort pLvl normalization) take effect
+        before cNrm = cFunc(mNrm) and cLvl = cNrm * pLvl are evaluated.
+        """
+        pass
 
     def transition(self):  # pragma: nocover
         """
