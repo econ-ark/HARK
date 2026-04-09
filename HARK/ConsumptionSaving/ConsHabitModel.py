@@ -666,7 +666,7 @@ def solve_optimal_share_habit(
 ###############################################################################
 
 
-def solve_one_period_HabitPortfolio_modular(
+def solve_one_period_HabitPortfolio(
     solution_next,
     IncShkDstn,
     RiskyDstn,
@@ -1030,14 +1030,14 @@ class HabitPortfolioConsumerType(HabitConsumerType):
         m_{t+1} &= a_t / (\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         h_{t+1} &= H_t / (\PermGroFac_{t+1} \psi_{t+1}), \\
         (\psi_{t+1}, \theta_{t+1}) &\sim F_{t+1}, \\
-        \Risky_{t} &\ sim G, \\
+        \Risky_{t} & \sim G, \\
         u(c,h) &= \frac{(c/h^\HabitWgt)^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
     """
 
     default_ = {
         "params": HabitPortfolioConsumerType_defaults,
-        "solver": solve_one_period_HabitPortfolio_modular,
+        "solver": solve_one_period_HabitPortfolio,
         "model": "ConsHabitPortfolio.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "hNrm", "Share", "pLvl"],
     }
