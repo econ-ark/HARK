@@ -1038,7 +1038,7 @@ class HabitPortfolioConsumerType(HabitConsumerType):
     default_ = {
         "params": HabitPortfolioConsumerType_defaults,
         "solver": solve_one_period_HabitPortfolio_modular,
-        "model": "ConsHabitPortfolioAlt.yaml",
+        "model": "ConsHabitPortfolio.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "hNrm", "Share", "pLvl"],
     }
 
