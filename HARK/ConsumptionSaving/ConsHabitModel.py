@@ -563,7 +563,17 @@ def solve_optimal_share_habit(
     dvdkFunc_next = solution_next["dvdkFunc"]
     dvdhFunc_next = solution_next["dvdhFunc"]
 
-    # Minimum savings is zero (can't borrow)
+    # This solver assumes the post-consumption wealth state satisfies wNrm >= 0.
+    # Reject unsupported borrowing configurations rather than silently producing
+    # share policies on an inconsistent state space.
+    if not np.isclose(BoroCnstArt, 0.0):
+        raise NotImplementedError(
+            "solve_optimal_share_habit only supports BoroCnstArt == 0.0; "
+            "negative borrowing constraints are not incorporated into the "
+            "post-consumption wealth/share state space."
+        )
+
+    # Minimum post-consumption wealth in the supported no-borrowing case
     wNrmMin = 0.0
 
     # Handle the terminal period: share doesn't matter, marginal value still zero
