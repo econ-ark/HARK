@@ -85,4 +85,3 @@ from HARK.ConsumptionSaving.ConsHabitModel import (
     HabitConsumerType,
     HabitPortfolioConsumerType,
 )
-# from HARK.ConsumptionSaving.ConsHabitPortfolioModel import HabitPortfolioConsumerType
