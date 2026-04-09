@@ -1,0 +1,62 @@
+name: ConsHabitPortfolio
+description: >-
+  Consumption-saving model with permanent and transitory income shocks,
+  habit formation, and portfolio allocation between a risk-free and a risky asset.
+symbols:
+  variables:
+    - kNrm!              \\ beginning of period wealth, normalized by p_{t-1}
+    - pLvlPrev!          \\ inbound permanent income level, before growth
+    - hPre!              \\ inbound habit stock, normalized by p_{t-1}
+    - yNrm               \\ normalized labor income
+    - pLvl               \\ permanent income level
+    - hNrm               \\ normalized habit stock
+    - bNrm               \\ normalized bank balances
+    - mNrm               \\ normalized market resources
+    - cNrm               \\ normalized consumption
+    - Share              \\ share of wealth allocated to risky assets
+    - wNrm               \\ normalized wealth after consumption
+    - Risky              \\ realized return factor on risky assets
+    - Rport              \\ realized return factor on portfolio
+    - aNrm               \\ normalized end-of-period assets
+    - HNrm               \\ normalized end-of-period habit stock
+    - live (bool)        \\ whether the agent survives
+  parameters:
+    - Rfree              \\ risk free return factor on assets
+    - PermGroFac         \\ expected permanent income growth factor
+    - LivPrb             \\ survival probability at end of period
+    - HabitRte           \\ rate of habit stock updating
+  functions:
+    - cFunc*             \\ consumption function over market resources and habit stock
+    - ShareFunc*         \\ risky share function over post-consumption wealth and habit stock
+  distributions:
+    - IncShkDstn         \\ joint distribution of permanent and transitory shocks
+    - RiskyDstn          \\ distribution of risky asset returns
+    - pLvlInitDstn       \\ distribution of permanent income at model birth
+    - kNrmInitDstn       \\ distribution of normalized capital holdings at birth
+    - HabitInitDstn      \\ distribution of normalized habit stock at birth
+initialize: |
+  pLvlPrev ~ pLvlInitDstn          \\ draw initial permanent income from distribution
+  kNrm ~ kNrmInitDstn              \\ draw initial capital from distribution
+  hPre ~ HabitInitDstn             \\ draw initial habit stock from distribution
+dynamics: |
+  (PermShk, TranShk) ~ IncShkDstn  \\ draw permanent and transitory income shocks
+  yNrm = TranShk                   \\ normalized income is the transitory shock
+  G    = PermGroFac * PermShk      \\ calculate permanent income growth
+  pLvl = pLvlPrev * G              \\ update permanent income level
+  hNrm = hPre / G                  \\ update habit stock to new normalization
+  bNrm = kNrm / G                  \\ calculate normalized bank balances
+  mNrm = bNrm + yNrm               \\ calculate normalized market resources
+  cNrm = cFunc@(mNrm, hNrm)        \\ evaluate consumption from market resources and habit
+  wNrm = mNrm - cNrm               \\ calculate wealth after consumption
+  HNrm = HabitRte*cNrm + (1-HabitRte)*hNrm \\ habit stock evolves
+  Share = ShareFunc@(wNrm, HNrm)   \\ evaluate risky share from market resources and habit
+  Risky ~ RiskyDstn                \\ draw risky return shock
+  Rport = Rfree + (Risky-Rfree)*Share \\ calculate realized portfolio return
+  aNrm = Rport * wNrm              \\ calculate end-of-period assets
+  qNrm = wNrm * Share              \\ calculate risky asset holdings
+  live ~ {LivPrb}                  \\ draw survival
+  dead = 1 - live                  \\ dead are non-survivors
+twist:
+  aNrm: kNrm
+  pLvl: pLvlPrev
+  HNrm: hPre
