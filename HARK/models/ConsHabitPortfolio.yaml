@@ -15,6 +15,7 @@ symbols:
     - cNrm               \\ normalized consumption
     - Share              \\ share of wealth allocated to risky assets
     - wNrm               \\ normalized wealth after consumption
+    - qNrm               \\ normalized wealth held in risky asset
     - Risky              \\ realized return factor on risky assets
     - Rport              \\ realized return factor on portfolio
     - aNrm               \\ normalized end-of-period assets
