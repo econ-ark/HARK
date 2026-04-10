@@ -12,7 +12,7 @@ from sympy import symbols, IndexedBase
 from typing import Callable
 from HARK.utilities import NullFunc, make_exponential_grid
 from HARK.distributions import Distribution
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.linalg import eigs
 from scipy.optimize import brentq
 from itertools import product
@@ -979,6 +979,9 @@ class SimBlock:
         - grids : A dictionary of discretized grids for outcome variables. Doing
                   np.dot(np.dot(dstn, matrices[var]), grids[var]) yields the *average*
                   of that outcome in the population.
+        - trans_array : The full-period Markov transition matrix that goes from
+                        arrival variables in t to arrival variables in t+1, including
+                        mortality.
 
         Parameters
         ----------
@@ -1018,7 +1021,7 @@ class SimBlock:
         # Make meshes of all the arrival grids, which will be the initial simulation data
         if arrival_N > 0:
             state_meshes = np.meshgrid(
-                *[grids_in[k] for k in self.arrival], indexing="ij"
+                *[grids_in[var] for var in self.arrival], indexing="ij"
             )
         else:  # this only happens in the initializer block
             state_meshes = [dummy_grid.copy()]
@@ -1565,6 +1568,8 @@ class AgentSimulator:
                 grid_specs_other, twist=self.twist, norm=norm
             )
             block.reset()
+        self.grid_specs = grid_specs_other
+        self.norm = norm
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [block.trans_array for block in self.periods]
@@ -1623,6 +1628,30 @@ class AgentSimulator:
         SS_dstn = (D / np.sum(D)).real
         self.steady_state_dstn = SS_dstn
 
+    def get_long_run_dstn(self, var):
+        """
+        Calculate and return the long run / steady state population distribution
+        of one named variable. Should only be run after find_steady_state().
+
+        Parameters
+        ----------
+        var : str
+            Name of the variable for which to calculate the long run distribution.
+
+        Returns
+        -------
+        var_dstn : np.array
+            Long run / steady state population distribution of the variable,
+            as a stochastic vector defined on the variable's discretized grid.
+        """
+        if not hasattr(self, "steady_state_dstn"):
+            raise ValueError("This method can only be run after find_steady_state()!")
+
+        dstn = self.steady_state_dstn
+        array = self.outcome_arrays[0][var]
+        var_dstn = np.dot(dstn, array)
+        return var_dstn
+
     def get_long_run_average(self, var):
         """
         Calculate and return the long run / steady state population average of
@@ -1638,14 +1667,8 @@ class AgentSimulator:
         var_mean : float
             Long run / steady state population average of the variable.
         """
-        if not hasattr(self, "steady_state_dstn"):
-            raise ValueError("This method can only be run after find_steady_state()!")
-
-        dstn = self.steady_state_dstn
-        array = self.outcome_arrays[0][var]
+        var_dstn = self.get_long_run_dstn(var)
         grid = self.outcome_grids[0][var]
-
-        var_dstn = np.dot(dstn, array)
         var_mean = np.dot(var_dstn, grid)
         return var_mean
 
@@ -1797,6 +1820,232 @@ class AgentSimulator:
 
         # Return the output
         return state_targ
+
+    def simulate_shock_by_grids(
+        self,
+        outcomes,
+        T,
+        shock=None,
+        from_dstn=None,
+        calc_dstn=False,
+        calc_avg=True,
+    ):
+        """
+        Generate the time series of population outcomes in response to an unexpected
+        shock. The shock can be specified as additive or multiplicative events that
+        are applied to the steady state distribution of arrival states, or as a user-
+        specified distribution of arrival states. This method is intended only for
+        infinite horizon, single period models. Stores results in the dictionary
+        attributes history_avg and history_dstn respectively.
+
+        This method can only be run after running make_transition_matrices.
+
+        Parameters
+        ----------
+        outcomes : str or [str]
+            Names of one or more outcome variables
+        T : int
+            Number of periods to simulate after the shock.
+        shock : str or [str], optional
+            One or more of "shock operations" to be applied to the steady state
+            (or custom distribution, if specified). Each shock operation should
+            name a continuation variable (something named on the left side of
+            the twist), and be followed by an operator and a value. At this time,
+            the only valid operators are "+", "*", and "=". For example, the shock
+            "aNrm + 0.1" means that 0.1 should be added to (the distribution of)
+            end-of-period assets, while "pLvl * 0.8" means that permanent income
+            should be reduced by 20% for the entire population. The "=" operator
+            shifts the entire population to the specified value. Not all arrival
+            variables must be named in this argument. Indeed, none need be named.
+            The numeric value should *not* use scientific notation nor other math
+            operations; e.g. use "0.0001" and not "1e-4".
+        from_dstn : np.array, optional
+            If provided, a user-specified distribution of arrival states. If none is
+            given (typical), then the steady state distribution is used. Any shocks
+            described in shock are applied to this initial distribution.
+        calc_dstn : bool, optional
+            Whether to store the distribution of outcomes over time in history_dstn.
+            The default is False.
+        calc_avg : bool, optional
+            Whether to store the population average of the outcomes over time in
+            history_avg. The default is True.
+
+        Returns
+        -------
+        None.
+        """
+        if not (calc_dstn or calc_avg):
+            raise ValueError(
+                "At least one of calc_dstn or calc_avg must be true, or there's no work!"
+            )
+        if (shock is None) and (from_dstn is None):
+            raise ValueError(
+                "The shock or from_dstn must be specified, or there's nothing to simulate!"
+            )
+        if self.T_total != 1:
+            raise ValueError(
+                "simulate_shock_by_grids is only implemented for infinite-horizon models with T_total == 1."
+            )
+        if not hasattr(self, "trans_arrays"):
+            raise KeyError(
+                "This method can't be run before running make_transition_matrices!"
+            )
+        if shock is None:
+            shock = []
+        if type(shock) is str:
+            shock = [shock]
+        if isinstance(outcomes, str):
+            outcomes = [outcomes]
+
+        # Get the starting unperturbed distribution
+        if from_dstn is None:
+            if not hasattr(self, "steady_state_dstn"):
+                self.find_steady_state()
+            init_dstn = self.steady_state_dstn
+        else:
+            dstn_sum = np.sum(from_dstn)
+            dstn_N = from_dstn.size
+            if not np.isclose(dstn_sum, 1.0):
+                raise ValueError(
+                    "Specified from_dstn should be a stochastic vector, but its values sum to "
+                    + str(dstn_sum)
+                )
+            arrival_N = len(self.state_grids[0])
+            if not arrival_N == dstn_N:
+                raise ValueError(
+                    "Specified from_dstn should be a vector of size "
+                    + str(arrival_N)
+                    + ", but has size "
+                    + str(dstn_N)
+                    + "!"
+                )
+            init_dstn = from_dstn
+
+        # Make dynamic event strings for each shock statement
+        event_strings = []
+        shock_vars = []
+        op_list = ["+", "*", "="]
+        for k in range(len(shock)):
+            # Parse the shock statement for its parts
+            S = shock[k]
+            op = None
+            for j in range(len(op_list)):
+                if op_list[j] in S:
+                    op = op_list[j]
+                    break
+            if op is None:
+                raise ValueError(
+                    "The shock statement (" + S + ") did not contain a valid operator!"
+                )
+            loc = S.index(op)
+            var = S[:loc].strip()
+            val = S[(loc + 1) :].strip()
+            if var not in self.twist:
+                raise KeyError(
+                    "All shocked variables must be continuation states, but "
+                    + var
+                    + " is not!"
+                )
+            try:
+                float(val)
+            except (ValueError, TypeError):
+                raise ValueError("Couldn't interpret " + val + " as a number!")
+
+            # Make a string for this shock event
+            var_alt = self.twist[var]
+            if op == "+":
+                this_event = var + " = " + var_alt + " + " + val
+            elif op == "*":
+                this_event = var + " = " + var_alt + " * " + val
+            elif op == "=":
+                this_event = var + " = " + var_alt + " * 0.0 + " + val
+            event_strings.append(this_event)
+            shock_vars.append(var)
+
+        # For any continuation states that weren't shocked, make a trivial event
+        cont_vars = list(self.twist.keys())
+        for k in range(len(cont_vars)):
+            var = cont_vars[k]
+            if var in shock_vars:
+                continue
+            var_alt = self.twist[var]
+            this_event = var + " = " + var_alt
+            event_strings.append(this_event)
+
+        # Extract grid specifications only for arrival and continuation variables
+        grid_specs_temp = {}
+        for var in self.grid_specs:
+            if (var in self.twist) or (var in self.periods[0].arrival):
+                grid_specs_temp[var] = self.grid_specs[var]
+
+        # Make a fake model block that applies the shock
+        shock_model = {"name": "exogenous shock", "dynamics": event_strings}
+        shock_block, info, offset, solution, comments = make_template_block(
+            shock_model, arrival=self.periods[0].arrival
+        )
+        shock_block.make_transition_matrices(grid_specs_temp, twist=self.twist)
+        shock_block.reset()
+
+        # Apply the shock transition to the starting distribution
+        init_dstn = np.dot(init_dstn, shock_block.trans_array)
+
+        # Initialize generated output
+        history_dstn = {}
+        history_avg = {}
+
+        # Initialize the state distribution
+        current_dstn = init_dstn.copy()
+
+        # If we need the full distribution history, allocate state_dstn_by_t;
+        # otherwise, avoid this potentially large O(num_states * T) array.
+        if calc_dstn:
+            state_dstn_by_t = np.empty((current_dstn.size, T))
+        else:
+            state_dstn_by_t = None
+
+        trans_array = csc_matrix(self.trans_arrays[0])
+
+        # If we only need averages (no full distributions), we can stream
+        # the averages over time without storing the full state history.
+        if calc_avg and not calc_dstn:
+            outcome_arrays_0 = self.outcome_arrays[0]
+            outcome_grids_0 = self.outcome_grids[0]
+            for name in outcomes:
+                history_avg[name] = np.empty(T)
+
+        # Loop over requested periods of this agent type's model
+        for t in range(T):
+            # Store full state distribution history only if requested
+            if calc_dstn:
+                state_dstn_by_t[:, t] = current_dstn
+
+            # Stream averages when only averages are needed
+            if calc_avg and not calc_dstn:
+                for name in outcomes:
+                    this_outcome = outcome_arrays_0[name]
+                    this_grid = outcome_grids_0[name]
+                    this_dstn_t = np.dot(current_dstn, this_outcome)
+                    history_avg[name][t] = np.dot(this_grid, this_dstn_t)
+
+            current_dstn = current_dstn @ trans_array
+
+        # Calculate history of outcomes as requested
+        for name in outcomes:
+            this_outcome = self.outcome_arrays[0][name]
+            this_grid = self.outcome_grids[0][name]
+
+            if calc_dstn:
+                this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
+                history_dstn[name] = this_dstn
+
+                if calc_avg:
+                    history_avg[name] = np.dot(this_grid, this_dstn)
+            elif calc_avg:
+                # Averages have already been filled in the time loop
+                continue
+        # Store results as attributes of self
+        self.history_dstn = history_dstn
+        self.history_avg = history_avg
 
     def simulate_cohort_by_grids(
         self,
@@ -3368,7 +3617,7 @@ def parse_random_indexed(expression):
 
 def format_block_statement(statement):
     """
-    Ensure that a string stagement of a model block (maybe a period, maybe an
+    Ensure that a string statement of a model block (maybe a period, maybe an
     initializer) is formatted as a list of strings, one statement per entry.
 
     Parameters
@@ -3446,7 +3695,7 @@ def aggregate_blobs_onto_polynomial_grid_alt(
     """
     Numba-compatible helper function for casting "probability blobs" onto a discretized
     grid of outcome values, based on their origin in the arrival state space. This
-    version is for ncontinuation variables, returning the probability array mapping
+    version is for continuation variables, returning the probability array mapping
     from arrival states to the outcome variable, the index in the outcome variable grid
     for each blob, and the alpha weighting between gridpoints.
     """
@@ -3491,14 +3740,14 @@ def aggregate_blobs_onto_discrete_grid(vals, pmv, origins, M, J):  # pragma: no 
     Numba-compatible helper function for allocating "probability blobs" to a grid
     over a discrete state-- the state itself is truly discrete.
     """
-    out = np.zeros((J, M))
+    probs = np.zeros((J, M))
     N = pmv.size
     for n in range(N):
         ii = vals[n]
         jj = origins[n]
         p = pmv[n]
-        out[jj, ii] += p
-    return out
+        probs[jj, ii] += p
+    return probs
 
 
 @njit
