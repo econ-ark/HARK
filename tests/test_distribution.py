@@ -538,6 +538,57 @@ class MarkovProcessTests(unittest.TestCase):
 
         self.assertEqual(new_state.sum(), 45)
 
+    def test_shuffle_crn_across_matrices(self):
+        """Source states with identical transition rows should produce
+        identical draws across two calls with the same seed, even when
+        other source states have different rows that consume different
+        amounts of RNG state.
+
+        This is the common-random-numbers guarantee needed for scenario
+        comparison experiments (e.g., counterfactual policy evaluation):
+        agents whose transition probabilities are unchanged between two
+        matrices must see identical state assignments so that the
+        treatment-effect variance is driven only by the rows that
+        actually differ.
+
+        The test uses row 0 probabilities that produce different
+        leftover-slot counts and different permutation consumption
+        between the two matrices, then checks that row 1's output (with
+        identical probabilities) is identical across multiple seeds.
+        Without per-source-state sub-RNG isolation, row 0's RNG drift
+        contaminates row 1's permutation and this assertion fails for
+        most seeds.
+        """
+        # 7 agents in each source state — small enough to exercise
+        # leftover-slot assignment, large enough that the permutation
+        # drift is clearly visible across seeds.
+        state = np.array([0] * 7 + [1] * 7, dtype=int)
+
+        # Row 0 differs between matrices (TM_a: K=[3,3] M=1;
+        # TM_b: K=[5,2] M=0).  Row 1 is identical in both.
+        TM_a = np.array([[0.50, 0.50], [0.30, 0.70]])
+        TM_b = np.array([[5.0 / 7.0, 2.0 / 7.0], [0.30, 0.70]])
+
+        # Check across multiple seeds — the naive implementation fails
+        # for the majority of seeds, while the sub-RNG-isolated
+        # implementation passes for all of them.
+        for seed in range(20):
+            mp_a = MarkovProcess(TM_a, seed=seed)
+            mp_b = MarkovProcess(TM_b, seed=seed)
+            new_a = mp_a.draw(state, shuffle=True)
+            new_b = mp_b.draw(state, shuffle=True)
+            source_1 = state == 1
+            np.testing.assert_array_equal(
+                new_a[source_1],
+                new_b[source_1],
+                err_msg=(
+                    f"seed={seed}: source-1 draws differ between two "
+                    f"calls with identical row-1 probabilities. This "
+                    f"indicates that RNG state from row 0's processing "
+                    f"contaminated row 1's permutation (CRN violation)."
+                ),
+            )
+
 
 class LogNormalToNormalTests(unittest.TestCase):
     """

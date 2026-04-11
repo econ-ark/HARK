@@ -248,25 +248,46 @@ class MarkovProcess(Distribution):
         sampling on the sorted order so that each target group is
         representative of the source population.
 
+        Each source state uses an independent sub-RNG derived deterministically
+        from the parent RNG's base seed via ``np.random.SeedSequence.spawn``.
+        This guarantees that two calls with the same starting RNG state but
+        different transition matrices produce identical random permutations
+        for any source state whose transition row and agent set are the same
+        — a correctness requirement for common random numbers in scenario
+        comparisons (e.g., counterfactual experiments where the policy-period
+        transition matrix differs from the baseline).  Without this isolation,
+        the RNG state drift from earlier source states' leftover-slot
+        consumption would contaminate later source states' permutations even
+        when those rows are untouched by the policy change.
+
         Falls back to iid when a source state has too few agents for
         meaningful deterministic counts.
         """
         state = np.asarray(state)
         new_state = np.empty_like(state, dtype=int)
         J = self.transition_matrix.shape[1]
+        J_src = self.transition_matrix.shape[0]
 
-        for j in range(self.transition_matrix.shape[0]):
+        # Derive one independent sub-RNG per source state.  Advancing the
+        # parent RNG by a single integers() call fixes the entropy for this
+        # _draw_shuffled call; SeedSequence.spawn(J_src) then produces
+        # J_src statistically-independent child seeds deterministically.
+        base_entropy = int(self._rng.integers(0, 2**63 - 1))
+        sub_seeds = np.random.SeedSequence(base_entropy).spawn(J_src)
+
+        for j in range(J_src):
             agents_in_j = np.where(state == j)[0]
             N_j = len(agents_in_j)
             if N_j == 0:
                 continue
 
             probs = self.transition_matrix[j]
+            sub_rng = np.random.default_rng(sub_seeds[j])
 
             # Fall back to iid when population is too small for deterministic counts
             if N_j * np.min(probs[probs > 0]) < 1:
                 for idx in agents_in_j:
-                    new_state[idx] = self._rng.choice(J, p=probs)
+                    new_state[idx] = sub_rng.choice(J, p=probs)
                 continue
 
             # Floor-plus-leftover algorithm (matches DiscreteDistribution.draw)
@@ -277,7 +298,7 @@ class MarkovProcess(Distribution):
             if M > 0:
                 eps = 1.0 / N_j
                 Q = K_exact - eps * K  # residual probability mass
-                draws = self._rng.random(M)
+                draws = sub_rng.random(M)
                 for m in range(M):
                     Q_adj = Q / np.sum(Q)
                     Q_sum = np.cumsum(Q_adj)
@@ -307,7 +328,7 @@ class MarkovProcess(Distribution):
                     else:
                         # Systematic sample with random offset
                         spacing = N_rem / K[jp]
-                        u = self._rng.uniform(0, spacing)
+                        u = sub_rng.uniform(0, spacing)
                         sel = np.floor(u + np.arange(K[jp]) * spacing).astype(int)
                         sel = np.clip(sel, 0, N_rem - 1)
                         chosen = remaining_pos[sel]
@@ -317,7 +338,7 @@ class MarkovProcess(Distribution):
                 new_state[sorted_agents] = assigned
             else:
                 # Randomly assign agents to target states
-                perm = self._rng.permutation(agents_in_j)
+                perm = sub_rng.permutation(agents_in_j)
                 offset = 0
                 for jp in range(J):
                     new_state[perm[offset : offset + K[jp]]] = jp
