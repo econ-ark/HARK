@@ -56,6 +56,7 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
     UtilityFuncCRRA,
+    vNvrsSlope,
 )
 from HARK.utilities import make_assets_grid
 from scipy.optimize import newton
@@ -376,7 +377,7 @@ def solve_one_period_ConsPF(
     # Calculate (pseudo-inverse) value at each consumption kink point
     vNow = uFunc(cNrmNow) + EndOfPrdv
     vNvrsNow = uFunc.inverse(vNow)
-    vNvrsSlopeMin = MPCminNow ** (-CRRA / (1.0 - CRRA))
+    vNvrsSlopeMin = vNvrsSlope(MPCminNow, CRRA)
 
     # Add an additional point to the list of gridpoints for the extrapolation,
     # using the new value of the lower bound of the MPC.
@@ -789,8 +790,8 @@ def solve_one_period_ConsIndShock(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, vNvrsSlope(MPCmaxNow, CRRA))
+        MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
         vNvrsFuncNow = CubicInterp(
             mNrm_temp,
             vNvrs_temp,
@@ -1055,8 +1056,8 @@ def solve_one_period_ConsKinkedR(
         vNvrsP_temp = vP_temp * uFunc.derinv(v_temp, order=(0, 1))
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)
-        vNvrsP_temp = np.insert(vNvrsP_temp, 0, MPCmaxNow ** (-CRRA / (1.0 - CRRA)))
-        MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+        vNvrsP_temp = np.insert(vNvrsP_temp, 0, vNvrsSlope(MPCmaxNow, CRRA))
+        MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
         vNvrsFuncNow = CubicInterp(
             mNrm_temp,
             vNvrs_temp,

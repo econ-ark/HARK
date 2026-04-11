@@ -30,6 +30,8 @@ blocks:
             a: m - c
 
         reward:
+            # Note: This formula does not support CRRA=1 (log utility).
+            # For CRRA=1, use the Python solvers which handle this case.
             u: c ** (1 - CRRA) / (1 - CRRA)
     - &portfolio_choice
         name: portfolio choice

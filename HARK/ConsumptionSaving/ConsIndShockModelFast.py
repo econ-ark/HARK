@@ -48,6 +48,7 @@ from HARK.numba_tools import (
     CRRAutility_invP,
     CRRAutilityP,
     CRRAutilityP_inv,
+    vNvrsSlope,
     CRRAutilityP_invP,
     CRRAutilityPP,
     cubic_interp_fast,
@@ -405,7 +406,7 @@ def _solveConsPerfForesightNumba(
     mNrmMinNow = mNrmNow[0]
 
     # See the PerfForesightConsumerType.ipynb documentation notebook for the derivations
-    vFuncNvrsSlope = MPCmin ** (-CRRA / (1.0 - CRRA))
+    vFuncNvrsSlope = vNvrsSlope(MPCmin, CRRA)
 
     return (
         mNrmNow,
@@ -936,8 +937,8 @@ def _add_vFuncNumba(
     vNvrsP = vPnow * utility_invP(vNrmNow, CRRA)
     mNrmGrid = _np_insert(mNrmGrid, 0, mNrmMinNow)
     vNvrs = _np_insert(vNvrs, 0, 0.0)
-    vNvrsP = _np_insert(vNvrsP, 0, MPCmaxEff ** (-CRRA / (1.0 - CRRA)))
-    MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
+    vNvrsP = _np_insert(vNvrsP, 0, vNvrsSlope(MPCmaxEff, CRRA))
+    MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
 
     return (
         mNrmGrid,

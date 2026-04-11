@@ -3,6 +3,7 @@ import unittest
 from HARK.distributions import Bernoulli, DiscreteDistribution
 import HARK.model as model
 from HARK.model import Control
+from HARK.rewards import CRRAutility
 import HARK.models.consumer as cons
 
 # TODO: let the shock constructor reference this parameter.
@@ -20,7 +21,7 @@ test_block_A_data = {
         "p": lambda PermGroFac, p: PermGroFac * p,
         "a": lambda m, c: m - c,
     },
-    "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
+    "reward": {"u": lambda c, CRRA: CRRAutility(c, CRRA)},
 }
 
 test_block_B_data = {"name": "test block B", "shocks": {"SB": Bernoulli(p=0.1)}}

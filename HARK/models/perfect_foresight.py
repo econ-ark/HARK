@@ -1,5 +1,6 @@
 from HARK.distributions import Bernoulli
 from HARK.model import Control, DBlock
+from HARK.rewards import CRRAutility
 
 # This way of distributing parameters across the scope is clunky
 # Can be handled better if parsed from a YAML file, probably
@@ -28,6 +29,6 @@ block = DBlock(
             "p": lambda PermGroFac, p: PermGroFac * p,
             "a": lambda m, c: m - c,
         },
-        "reward": {"u": lambda c, CRRA: c ** (1 - CRRA) / (1 - CRRA)},
+        "reward": {"u": lambda c, CRRA: CRRAutility(c, CRRA)},
     }
 )
