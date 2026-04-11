@@ -1337,6 +1337,14 @@ class PerfForesightConsumerType(AgentType):
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
         are drawn from lognormal distributions given by kLogInitMean and kLogInitStd (etc).
 
+        When ``init_shuffle=True``, draws from ``kNrmInitDstn`` and ``pLvlInitDstn``
+        use exact-marginal matching (floor-plus-leftover) via
+        ``DiscreteDistribution.draw(N, shuffle=True)`` instead of iid sampling.
+        This eliminates cross-sectional sampling noise in the initial
+        wealth/permanent-income distribution — a residual noise source that
+        shuffle on the per-period shocks cannot address, because initial
+        draws happen once at ``initialize_sim`` before any period loop.
+
         Parameters
         ----------
         which_agents : np.array(Bool)
@@ -1348,8 +1356,13 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(N)
-        self.state_now["pLvl"][which_agents] = self.pLvlInitDstn.draw(N)
+        _init_shuffle = getattr(self, "init_shuffle", False)
+        self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(
+            N, shuffle=_init_shuffle
+        )
+        self.state_now["pLvl"][which_agents] = self.pLvlInitDstn.draw(
+            N, shuffle=_init_shuffle
+        )
         self.state_now["pLvl"][which_agents] *= self.state_now["PlvlAgg"]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
 
@@ -2007,6 +2020,7 @@ IndShockConsumerType_simulation_default = {
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "income_shuffle": False,  # Whether to use shuffled draws for income shocks (variance reduction)
     "death_shuffle": False,  # Whether to use deterministic death counts (variance reduction)
+    "init_shuffle": False,  # Whether to use shuffled draws for initial kNrm/pLvl at sim_birth (variance reduction)
 }
 
 IndShockConsumerType_defaults = {}

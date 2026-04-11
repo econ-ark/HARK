@@ -940,6 +940,10 @@ class MarkovConsumerType(IndShockConsumerType):
         Makes new Markov consumer by drawing initial normalized assets, permanent income levels, and
         discrete states. Calls IndShockConsumerType.sim_birth, then draws from initial Markov distribution.
 
+        When ``init_shuffle=True``, the initial Markov-state draw from
+        ``MrkvInitDstn`` also uses exact-marginal matching via
+        ``draw(N, shuffle=True)``, giving deterministic initial state counts.
+
         Parameters
         ----------
         which_agents : np.array(Bool)
@@ -955,7 +959,10 @@ class MarkovConsumerType(IndShockConsumerType):
         # Markov state is not changed if it is set at the global level
         if not self.global_markov:
             N = np.sum(which_agents)
-            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N)
+            _init_shuffle = getattr(self, "init_shuffle", False)
+            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(
+                N, shuffle=_init_shuffle
+            )
 
     def get_markov_states(self):
         """
