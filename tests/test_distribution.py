@@ -43,6 +43,18 @@ class DiscreteDistributionTests(unittest.TestCase):
             0,
         )
 
+    def test_draw_events_shuffle_matches_shuffle_draw_indices(self):
+        """draw_events(..., shuffle=True) returns the same multiset of indices as draw(..., shuffle=True)."""
+        pmv = np.array([0.95, 0.05])
+        atoms = np.array([0.0, 1.0])
+        d = DiscreteDistribution(pmv, atoms, seed=12345)
+        N = 10_000
+        idx_shuffle = d.draw_events(N, shuffle=True)
+        draws = d.draw(N, shuffle=True, atoms=np.arange(2, dtype=int))
+        self.assertTrue(np.array_equal(np.sort(idx_shuffle), np.sort(draws)))
+        self.assertEqual(np.bincount(idx_shuffle, minlength=2)[0], 9500)
+        self.assertEqual(np.bincount(idx_shuffle, minlength=2)[1], 500)
+
     def test_distr_of_function(self):
         # Function 1 -> 1
         # Approximate the lognormal expectation

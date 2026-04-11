@@ -14,6 +14,7 @@ live in ConsAggShockModel.py alongside the originals they mirror.
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.distributions.base import MarkovProcess
 
 
 # =============================================================================
@@ -242,26 +243,102 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
             self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
 
     def get_micro_markov_states(self):
-        """Stochastic draw of micro states from ``CondMrkvArrays``.
+        """Draw micro states from ``CondMrkvArrays``.
 
-        Override for deterministic / searchsorted / permutation draws
-        (e.g. Krusell-Smith exact-match employment transitions).
+        When ``markov_shuffle`` is True (inherited from ``MarkovConsumerType``),
+        uses :class:`~HARK.distributions.base.MarkovProcess` with ``shuffle=True``
+        per (macro, source-micro) cell — analogous to ``get_markov_states`` on a
+        flat Markov chain.  Default remains iid ``RNG.choice`` per cell.
+
+        Override entirely for custom logic (e.g. Krusell-Smith exact-match
+        employment permutations).
         """
         N = self.num_micro_states
         micro_prev = self.micro_from_combined(self.shocks["Mrkv"])
         new_micro = np.empty(self.AgentCount, dtype=int)
 
-        for macro in np.unique(self.MacroMrkvNow):
-            macro_mask = self.MacroMrkvNow == macro
-            cond = self.CondMrkvArrays[int(macro)]
-            for mi in range(N):
-                mask = np.logical_and(macro_mask, micro_prev == mi)
-                n = mask.sum()
-                if n == 0:
-                    continue
-                probs = cond[mi, :]
-                probs = probs / probs.sum()
-                new_micro[mask] = self.RNG.choice(N, size=n, p=probs)
+        first = self.CondMrkvArrays[0]
+        general = isinstance(first, (list, tuple)) or (
+            isinstance(first, np.ndarray) and first.ndim != 2
+        )
+
+        if getattr(self, "markov_shuffle", False):
+            macro_next = np.asarray(self.MacroMrkvNow, dtype=int)
+            macro_prev = self.macro_from_combined(self.shocks["Mrkv"])
+
+            if general:
+                pairs = np.unique(
+                    np.column_stack([macro_prev, macro_next]), axis=0
+                )
+                for mp, mn in pairs:
+                    mp_i, mn_i = int(mp), int(mn)
+                    cond = self.CondMrkvArrays[mp_i][mn_i]
+                    pair_mask = (macro_prev == mp_i) & (macro_next == mn_i)
+                    for mi in range(N):
+                        mask = np.logical_and(pair_mask, micro_prev == mi)
+                        n = int(mask.sum())
+                        if n == 0:
+                            continue
+                        if cond[mi, :].sum() <= 0.0:
+                            continue
+                        mp_proc = MarkovProcess(
+                            cond, seed=int(self.RNG.integers(0, 2**31 - 1))
+                        )
+                        idx = np.flatnonzero(mask)
+                        sort_key = None
+                        if getattr(self, "balanced_transitions", False) and (
+                            "pLvl" in self.state_now
+                        ):
+                            sort_key = np.asarray(self.state_now["pLvl"])[idx]
+                        new_micro[idx] = mp_proc.draw(
+                            np.full(n, mi, dtype=int),
+                            shuffle=True,
+                            sort_key=sort_key,
+                        )
+            else:
+                for mn in np.unique(macro_next):
+                    mn_i = int(mn)
+                    cond = self.CondMrkvArrays[mn_i]
+                    macro_mask = macro_next == mn_i
+                    for mi in range(N):
+                        mask = np.logical_and(macro_mask, micro_prev == mi)
+                        n = int(mask.sum())
+                        if n == 0:
+                            continue
+                        if cond[mi, :].sum() <= 0.0:
+                            continue
+                        mp_proc = MarkovProcess(
+                            cond, seed=int(self.RNG.integers(0, 2**31 - 1))
+                        )
+                        idx = np.flatnonzero(mask)
+                        sort_key = None
+                        if getattr(self, "balanced_transitions", False) and (
+                            "pLvl" in self.state_now
+                        ):
+                            sort_key = np.asarray(self.state_now["pLvl"])[idx]
+                        new_micro[idx] = mp_proc.draw(
+                            np.full(n, mi, dtype=int),
+                            shuffle=True,
+                            sort_key=sort_key,
+                        )
+        else:
+            for macro in np.unique(self.MacroMrkvNow):
+                macro_mask = self.MacroMrkvNow == macro
+                cond = self.CondMrkvArrays[int(macro)]
+                if general and not isinstance(cond, np.ndarray):
+                    raise NotImplementedError(
+                        "AggIndMrkvConsumerType default get_micro_markov_states with "
+                        "general CondMrkvArrays[i][j] requires markov_shuffle=True "
+                        "or a subclass override."
+                    )
+                for mi in range(N):
+                    mask = np.logical_and(macro_mask, micro_prev == mi)
+                    n = mask.sum()
+                    if n == 0:
+                        continue
+                    probs = cond[mi, :]
+                    probs = probs / probs.sum()
+                    new_micro[mask] = self.RNG.choice(N, size=n, p=probs)
         self.MicroMrkvNow = new_micro
 
     # ----- Convenience helpers -----------------------------------------------

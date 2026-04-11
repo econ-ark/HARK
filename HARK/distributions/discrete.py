@@ -192,11 +192,27 @@ class DiscreteDistribution(Distribution):
         """
         return self.atoms.shape[:-1]
 
-    def draw_events(self, N: int) -> np.ndarray:
+    def draw_events(self, N: int, shuffle: bool = False) -> np.ndarray:
         """
         Draws N 'events' from the distribution PMF.
         These events are indices into atoms.
+
+        Parameters
+        ----------
+        N : int
+            Number of draws.
+        shuffle : bool
+            When True, use the same floor-plus-leftover construction as
+            :meth:`draw` with ``shuffle=True``, returning a permutation of
+            index values whose histogram matches the PMF as closely as
+            possible (for rational probabilities).  When False (default),
+            independent inverse-CDF draws (original behavior).
         """
+        if shuffle:
+            J = self.pmv.size
+            atom_indices = np.arange(J, dtype=int)
+            return self.draw(N, shuffle=True, atoms=atom_indices)
+
         # Generate a cumulative distribution
         base_draws = self._rng.uniform(size=N)
         cum_dist = np.cumsum(self.pmv)

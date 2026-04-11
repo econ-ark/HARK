@@ -135,6 +135,22 @@ These are **not** concrete tasks yet — included for planning context only.
 
 3. **HAFiscal downstream:** Parameter wiring for `verify_four_methods` / Gatekeeper — likely lives in HAFiscal-Latest repo, not in HARK.
 
+4. **Scenario-comparison simulator utility.** The current shuffle machinery provides the *primitive* for common random numbers across counterfactual experiments: `MarkovProcess._draw_shuffled` gives bit-identical output on unchanged source-state rows, `DiscreteDistribution.draw(shuffle=True)` gives exact-marginal matching, and `make_shock_history(shuffle=True)` wires these into HARK's standard simulation loop.
+
+   What is *not* yet provided is a convenient top-level API for the typical counterfactual workflow:
+
+   > *"Run this agent through parameter set `A`, then through parameter set `B`, with guaranteed CRN; report the difference in aggregate `f`."*
+
+   Downstream projects (HAFiscal being the motivating example) currently roll their own pattern — pre-compute a shared shock history via `make_idiosyncratic_shock_histories`, manually override Markov states at the experiment onset, apply policy-specific income manipulation as a post-processing step, and replay via `read_shocks=True`. This pattern exists because HARK's standard `simulate()` loop doesn't natively support:
+
+   - **Injecting a "jump" in Markov state at a specific simulation time** (for recession-onset shocks or policy start dates).
+   - **Parameter swaps on a live agent** without re-initialising its random state (needed to keep base and policy runs seed-aligned after the swap).
+   - **Policy-specific post-processing hooks** on shock histories (needed to apply unemployment-benefit schedules, tax-cut multipliers, stimulus checks on top of a shared shock history).
+
+   A HARK-core "scenario runner" utility — perhaps a context manager or a thin wrapper class — could formalise this pattern: given an agent, a baseline parameter dict, a policy parameter dict, and a seed, run both simulations with guaranteed CRN and return aligned shock and state histories. This would let HAFiscal delete its custom `_hit_with_recession_shock*` machinery and use the standard HARK path with two flag flips, and would give any other counterfactual researcher a principled way to do the same.
+
+   **Scope estimate:** medium-to-large PR. Involves introducing a new simulation-time API (probably in `HARK/simulation/`), factoring out the "pre-draw-then-replay" pattern so it doesn't require agent-level hooks, and documenting the CRN guarantees users can rely on. The primitives are all in place (items 1–5 of the main reshuffle plan are done) — this is an ergonomics / composability layer on top.
+
 ---
 
 ## What not to port from #1244 (unless re-justified)

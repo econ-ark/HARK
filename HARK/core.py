@@ -1826,7 +1826,7 @@ class AgentType(Model):
             0  # Resetting to zero for those who have reached the end
         )
 
-    def make_shock_history(self):
+    def make_shock_history(self, shuffle=False):
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
@@ -1837,85 +1837,107 @@ class AgentType(Model):
 
         Parameters
         ----------
-        None
+        shuffle : bool, optional
+            When True, temporarily enables ``income_shuffle`` and ``markov_shuffle``
+            (if those attributes exist) for the duration of this call so that
+            each period's shock draws use shuffled / exact-marginal matching
+            rather than plain iid sampling.  Previous flag values are restored
+            before return.  Subclasses whose ``get_shocks`` ignores these flags
+            are unaffected beyond the attribute toggles.
 
         Returns
         -------
         None
         """
-        # Re-initialize the simulation
-        self.initialize_sim()
+        _shuffle_saved = {}
+        if shuffle:
+            if hasattr(self, "income_shuffle"):
+                _shuffle_saved["income_shuffle"] = self.income_shuffle
+                self.income_shuffle = True
+            if hasattr(self, "markov_shuffle"):
+                _shuffle_saved["markov_shuffle"] = self.markov_shuffle
+                self.markov_shuffle = True
 
-        # Make blank history arrays for each shock variable (and mortality)
-        for var_name in self.shock_vars:
-            self.shock_history[var_name] = (
-                np.zeros((self.T_sim, self.AgentCount)) + np.nan
-            )
-        self.shock_history["who_dies"] = np.zeros(
-            (self.T_sim, self.AgentCount), dtype=bool
-        )
+        try:
+            # Re-initialize the simulation
+            self.initialize_sim()
 
-        # Also make blank arrays for the draws of newborns' initial conditions
-        for var_name in self.state_vars:
-            self.newborn_init_history[var_name] = (
-                np.zeros((self.T_sim, self.AgentCount)) + np.nan
-            )
-
-        # Record the initial condition of the newborns created by
-        # initialize_sim -> sim_births
-        for var_name in self.state_vars:
-            # Check whether the state is idiosyncratic or an aggregate
-            idio = (
-                isinstance(self.state_now[var_name], np.ndarray)
-                and len(self.state_now[var_name]) == self.AgentCount
-            )
-            if idio:
-                self.newborn_init_history[var_name][self.t_sim] = self.state_now[
-                    var_name
-                ]
-            else:
-                # Aggregate state is a scalar. Assign it to every agent.
-                self.newborn_init_history[var_name][self.t_sim, :] = self.state_now[
-                    var_name
-                ]
-
-        # Make and store the history of shocks for each period
-        for t in range(self.T_sim):
-            # Deaths
-            self.get_mortality()
-            self.shock_history["who_dies"][t, :] = self.who_dies
-
-            # Initial conditions of newborns
-            if self.who_dies.any():
-                for var_name in self.state_vars:
-                    # Check whether the state is idiosyncratic or an aggregate
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
-                        self.newborn_init_history[var_name][t, self.who_dies] = (
-                            self.state_now[var_name][self.who_dies]
-                        )
-                    else:
-                        self.newborn_init_history[var_name][t, self.who_dies] = (
-                            self.state_now[var_name]
-                        )
-
-            # Other Shocks
-            self.get_shocks()
+            # Make blank history arrays for each shock variable (and mortality)
             for var_name in self.shock_vars:
-                self.shock_history[var_name][t, :] = self.shocks[var_name]
-
-            self.t_sim += 1
-            self.t_age = self.t_age + 1  # Age all consumers by one period
-            self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-            self.t_cycle[self.t_cycle == self.T_cycle] = (
-                0  # Resetting to zero for those who have reached the end
+                self.shock_history[var_name] = (
+                    np.zeros((self.T_sim, self.AgentCount)) + np.nan
+                )
+            self.shock_history["who_dies"] = np.zeros(
+                (self.T_sim, self.AgentCount), dtype=bool
             )
 
-        # Flag that shocks can be read rather than simulated
-        self.read_shocks = True
+            # Also make blank arrays for the draws of newborns' initial conditions
+            for var_name in self.state_vars:
+                self.newborn_init_history[var_name] = (
+                    np.zeros((self.T_sim, self.AgentCount)) + np.nan
+                )
+
+            # Record the initial condition of the newborns created by
+            # initialize_sim -> sim_births
+            for var_name in self.state_vars:
+                # Check whether the state is idiosyncratic or an aggregate
+                idio = (
+                    isinstance(self.state_now[var_name], np.ndarray)
+                    and len(self.state_now[var_name]) == self.AgentCount
+                )
+                if idio:
+                    self.newborn_init_history[var_name][self.t_sim] = self.state_now[
+                        var_name
+                    ]
+                else:
+                    # Aggregate state is a scalar. Assign it to every agent.
+                    self.newborn_init_history[var_name][self.t_sim, :] = self.state_now[
+                        var_name
+                    ]
+
+            # Make and store the history of shocks for each period
+            for t in range(self.T_sim):
+                # Deaths
+                self.get_mortality()
+                self.shock_history["who_dies"][t, :] = self.who_dies
+
+                # Initial conditions of newborns
+                if self.who_dies.any():
+                    for var_name in self.state_vars:
+                        # Check whether the state is idiosyncratic or an aggregate
+                        idio = (
+                            isinstance(self.state_now[var_name], np.ndarray)
+                            and len(self.state_now[var_name]) == self.AgentCount
+                        )
+                        if idio:
+                            self.newborn_init_history[var_name][t, self.who_dies] = (
+                                self.state_now[var_name][self.who_dies]
+                            )
+                        else:
+                            self.newborn_init_history[var_name][t, self.who_dies] = (
+                                self.state_now[var_name]
+                            )
+
+                # Other Shocks
+                self.get_shocks()
+                for var_name in self.shock_vars:
+                    self.shock_history[var_name][t, :] = self.shocks[var_name]
+
+                self.t_sim += 1
+                self.t_age = self.t_age + 1  # Age all consumers by one period
+                self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
+                self.t_cycle[self.t_cycle == self.T_cycle] = (
+                    0  # Resetting to zero for those who have reached the end
+                )
+
+            # Flag that shocks can be read rather than simulated
+            self.read_shocks = True
+        finally:
+            if shuffle:
+                if "income_shuffle" in _shuffle_saved:
+                    self.income_shuffle = _shuffle_saved["income_shuffle"]
+                if "markov_shuffle" in _shuffle_saved:
+                    self.markov_shuffle = _shuffle_saved["markov_shuffle"]
 
     def get_mortality(self):
         """
