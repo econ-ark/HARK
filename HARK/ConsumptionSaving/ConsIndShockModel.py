@@ -2154,10 +2154,6 @@ class IndShockConsumerType(PerfForesightConsumerType):
         for t in np.unique(self.t_cycle):
             idx = self.t_cycle == t
 
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
-
             N = np.sum(idx)
             if N > 0:
                 # set current income distribution

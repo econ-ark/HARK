@@ -1023,19 +1023,25 @@ class MarkovConsumerType(IndShockConsumerType):
                     )  # permanent "shock" includes expected growth
                     TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
 
-        # Newborns should not receive an idiosyncratic permanent shock ψ in
-        # their birth period (their pLvl was just drawn from pLvlInitDstn,
-        # which already reflects the calibrated cross-sectional dispersion).
-        # However, they DO need deterministic growth: PermShk = PermGroFac.
-        # Previously this block set PermShkNow[newborn]=1.0, which suppressed
-        # both ψ AND PermGroFac, causing newborns to lose one period of
-        # permanent income growth every lifetime.
+        # Fix shocks for newborns
         newborn = self.t_age == 0
-        for j in range(self.MrkvArray[0].shape[0]):
-            these_nb = np.logical_and(newborn, j == MrkvNow)
-            if np.any(these_nb):
-                PermShkNow[these_nb] = self.PermGroFac[0][j]
-        TranShkNow[newborn] = 1.0
+        if np.any(newborn):
+            for j in range(self.MrkvArray[0].shape[0]):
+                idx = np.logical_and(j == MrkvNow, newborn)
+
+                # set current income distribution
+                IncShkDstnNow = self.IncShkDstn[0]
+                PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
+
+                # Get random draws of income shocks from the discrete distribution
+                EventDraws = IncShkDstnNow.draw_events(N)
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+        if not self.NewbornTransShk:
+            TranShkNow[newborn] = 1.0
+
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
