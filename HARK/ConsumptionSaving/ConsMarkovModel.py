@@ -1028,10 +1028,13 @@ class MarkovConsumerType(IndShockConsumerType):
         if np.any(newborn):
             for j in range(self.MrkvArray[0].shape[0]):
                 idx = np.logical_and(j == MrkvNow, newborn)
+                if not np.any(idx):
+                    continue
+                N = np.sum(idx)
 
                 # set current income distribution
-                IncShkDstnNow = self.IncShkDstn[0]
-                PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
+                IncShkDstnNow = self.IncShkDstn[0][j]
+                PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
 
                 # Get random draws of income shocks from the discrete distribution
                 EventDraws = IncShkDstnNow.draw_events(N)
