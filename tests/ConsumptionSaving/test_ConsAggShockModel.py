@@ -198,35 +198,6 @@ class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
 
         emp_totals = np.sum(self.agent.history["EmpNow"], axis=0)
 
-        # simulation test -- seed/generator specific
-        # self.assertEqual(emp_totals[0], 1011)
-        # self.assertEqual(emp_totals[2], 1009)
-        # self.assertEqual(emp_totals[9], 1042)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    self.economy.history['Aprev'][0],
-        #    11.83133
-        # )
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    self.economy.history['Aprev'][1],
-        #    11.26076
-        # )
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    self.economy.history['Aprev'][2],
-        #    10.72309
-        # )
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(
-        #    self.economy.history['Mnow'][10],
-        #    self.economy.history['Mnow'][10]
-        # )
-
         new_dynamics = self.economy.update_dynamics()
 
         self.assertAlmostEqual(
@@ -252,11 +223,39 @@ class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
             self.economy.AFunc[0].slope, 1.04417, places=HARK_PRECISION
         )
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.economy.history["Aprev"][4], 11.00911, place = HARK_PRECISION)
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.economy.history['Mrkv'][40], 1)
+class StateJumperTest(unittest.TestCase):
+    def test_partitioned_jumper(self):
+        # Test a "partitioned" state space, which needs to be doubled to work
+        agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
+        economy = CobbDouglasMarkovEconomy(agents=[agent], seed=0)
+        new_mrkv_array = np.array(
+            [
+                [0.95, 0.05, 0.0, 0.0],
+                [0.05, 0.95, 0.0, 0.0],
+                [0.0, 0.0, 0.95, 0.05],
+                [0.0, 0.0, 0.05, 0.95],
+            ]
+        )
+        economy.MrkvArray = new_mrkv_array
 
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.economy.history["Urate"][12], 0.04000, place = HARK_PRECISION)
+        economy.make_Mrkv_history()
+        self.assertEqual(economy.act_T, economy.act_T_orig * 2)
+        self.assertEqual(economy.act_T, len(economy.MrkvNow_hist))
+
+    def test_rare_jumper(self):
+        # Test a state space with a "rare" state that is hard to visit
+        agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
+        economy = CobbDouglasMarkovEconomy(agents=[agent], seed=0)
+        new_mrkv_array = np.array(
+            [
+                [0.95, 0.04, 0.01],
+                [0.04, 0.95, 0.01],
+                [0.5, 0.5, 0.0],
+            ]
+        )
+        economy.MrkvArray = new_mrkv_array
+
+        economy.make_Mrkv_history()
+        self.assertTrue(economy.act_T > economy.act_T_orig * 2)
+        # Should take more than one additional pass
