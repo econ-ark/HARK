@@ -2151,8 +2151,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
-        for t in np.unique(self.t_cycle):
-            idx = self.t_cycle == t
+        for s in np.unique(self.t_cycle):
+            idx = self.t_cycle == s
+            t = s - 1
 
             N = np.sum(idx)
             if N > 0:
