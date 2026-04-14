@@ -57,6 +57,15 @@ class testBequestWarmGlowPortfolioType(unittest.TestCase):
         mNrm = 10.0
         self.assertAlmostEqual(vFunc(mNrm), -3.94804, places=HARK_PRECISION)
 
+    def test_zero_inc_shk(self):
+        ZeroShkType = BequestWarmGlowPortfolioType(BeqInt=0.0, IncUnemp=0.0)
+        ZeroShkType.solve()
+        ZeroShkType.unpack("cFuncAdj")
+        mNrm = 2.0
+        self.assertAlmostEqual(
+            ZeroShkType.cFuncAdj[0](mNrm), 0.42861, places=HARK_PRECISION
+        )
+
     def test_simulation(self):
         self.agent.T_sim = 10
         self.agent.track_vars = ["mNrm", "cNrm", "aNrm", "Share"]
