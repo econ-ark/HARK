@@ -29,8 +29,8 @@ examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
 examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
 examples/ConsMedModel/MedShockConsumerType.ipynb
 examples/ConsMedModel/MedExtMargConsumerType.ipynb
-examples/ConsBequestModel/example_WarmGlowBequest.ipynb
-examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
+examples/ConsBequestModel/BequestWarmGlowConsumerType.ipynb
+examples/ConsBequestModel/BequestWarmGlowPortfolioType.ipynb
 examples/ConsHealthModel/BasicHealthConsumerType.ipynb
 examples/ConsRepAgentModel/RepAgentConsumerType.ipynb
 examples/ConsRiskyContribModel/RiskyContribConsumerType.ipynb

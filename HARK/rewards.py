@@ -20,6 +20,18 @@ def utility_fix(func):
     return wrapper
 
 
+def utility_fix_SG(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if np.ndim(args[0]) == 0:
+            return func(*[np.array([args[0]])] + list(args[1:]), **kwargs)[0]
+        else:
+            out = func(*args, **kwargs)
+            return out
+
+    return wrapper
+
+
 # ==============================================================================
 # ============== Define utility functions        ===============================
 # ==============================================================================
@@ -262,7 +274,7 @@ def CRRAutilityPP_X(c, rho):
 ###############################################################################
 
 
-@utility_fix
+@utility_fix_SG
 def StoneGearyCRRAutility(c, rho, shifter, factor=1.0):
     """
     Evaluates Stone-Geary version of a constant relative risk aversion (CRRA)
@@ -296,7 +308,7 @@ def StoneGearyCRRAutility(c, rho, shifter, factor=1.0):
     return factor * (shifter + c) ** (1.0 - rho) / (1.0 - rho)
 
 
-@utility_fix
+@utility_fix_SG
 def StoneGearyCRRAutilityP(c, rho, shifter, factor=1.0):
     """
     Marginal utility of Stone-Geary version of a constant relative risk aversion (CRRA)
@@ -317,11 +329,10 @@ def StoneGearyCRRAutilityP(c, rho, shifter, factor=1.0):
         marginal utility
 
     """
-
     return factor * (shifter + c) ** (-rho)
 
 
-@utility_fix
+@utility_fix_SG
 def StoneGearyCRRAutilityPP(c, rho, shifter, factor=1.0):
     """
     Marginal marginal utility of Stone-Geary version of a CRRA utilty function
@@ -1010,7 +1021,9 @@ class UtilityFuncCARA(UtilityFunction):
         return self.inverse(u, order)
 
 
-class UtilityFuncStoneGeary(UtilityFuncCRRA):
+class UtilityFuncStoneGeary(UtilityFunction):
+    distance_criteria = ["CRRA", "factor", "shifter"]
+
     def __init__(self, CRRA, factor=1.0, shifter=0.0):
         self.CRRA = CRRA
         self.factor = factor

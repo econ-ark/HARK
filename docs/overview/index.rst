@@ -43,13 +43,13 @@ Overview
    ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
    ../../examples/ConsAggShockModel/AggShockMarkovConsumerType.ipynb
    ../../examples/ConsAggShockModel/KrusellSmithType.ipynb
-   ../../examples/ConsBequestModel/example_WarmGlowBequest.ipynb
+   ../../examples/ConsBequestModel/BequestWarmGlowConsumerType.ipynb
+   ../../examples/ConsBequestModel/BequestWarmGlowPortfolioType.ipynb
    ../../examples/ConsWealthUtilityModel/WealthUtilityConsumerType.ipynb
    ../../examples/ConsWealthUtilityModel/CapitalistSpiritConsumerType.ipynb
    ../../examples/ConsHabitModel/HabitConsumerType.ipynb
    ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
-   ../../examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
    ../../examples/ConsWealthPortfolioModel/WealthPortfolioConsumerType.ipynb
    ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
    ../../examples/ConsHabitModel/HabitPortfolioConsumerType.ipynb
