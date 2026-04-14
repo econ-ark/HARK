@@ -39,6 +39,7 @@ There are some breaking changes:
 - Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
 - Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740.
 - Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
+- Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
 
 ### 0.17.1
 
