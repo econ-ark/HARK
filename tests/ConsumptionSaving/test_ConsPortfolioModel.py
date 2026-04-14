@@ -10,7 +10,6 @@ class PortfolioConsumerTypeTestCase(unittest.TestCase):
     def setUp(self):
         # Create portfolio choice consumer type
         self.pcct = cpm.PortfolioConsumerType(cycles=0)
-        self.pcct.cycles = 0
 
         # Solve the model under the given parameters
 

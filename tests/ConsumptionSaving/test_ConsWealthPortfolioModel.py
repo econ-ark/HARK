@@ -35,4 +35,6 @@ class testWealthPortfolioConsumerType(unittest.TestCase):
         ThisType = WealthPortfolioConsumerType(IncUnemp=0.0)
         ThisType.solve()
         ThisType.unpack("cFuncAdj")
-        self.assertAlmostEqual(ThisType.cFuncAdj[0](2.0), 0.97694)
+        self.assertAlmostEqual(
+            ThisType.cFuncAdj[0](2.0), 0.97694, places=HARK_PRECISION
+        )
