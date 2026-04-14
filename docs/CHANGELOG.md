@@ -28,6 +28,7 @@ There are some breaking changes:
 - The above method calls each `agent`'s `get_market_params()` method, which references the `market_vars` class attribute for the names of objects to take from the associated `Market`.
 - All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
 - New consumption-saving model with habit formation has been added; extends IndShockConsumerType model. #1739
+- Added habit-formation model with portfolio allocation, along with example notebooks. #1748
 - Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
 - Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
 
@@ -42,6 +43,7 @@ There are some breaking changes:
 - Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740
 - Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
 - Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
+- Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
 
 ### 0.17.1
 

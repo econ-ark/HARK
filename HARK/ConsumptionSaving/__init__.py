@@ -31,6 +31,7 @@ __all__ = [
     "IndShockConsumerTypeFast",
     "PerfForesightConsumerTypeFast",
     "HabitConsumerType",
+    "HabitPortfolioConsumerType",
 ]
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
@@ -80,4 +81,7 @@ from HARK.ConsumptionSaving.ConsIndShockModelFast import (
     IndShockConsumerTypeFast,
     PerfForesightConsumerTypeFast,
 )
-from HARK.ConsumptionSaving.ConsHabitModel import HabitConsumerType
+from HARK.ConsumptionSaving.ConsHabitModel import (
+    HabitConsumerType,
+    HabitPortfolioConsumerType,
+)

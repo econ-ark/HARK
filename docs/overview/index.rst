@@ -50,8 +50,10 @@ Overview
    ../../examples/ConsHabitModel/HabitConsumerType.ipynb
    ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
-   ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
+   ../../examples/ConsBequestModel/example_WarmGlowBequestPort.ipynb
    ../../examples/ConsWealthPortfolioModel/WealthPortfolioConsumerType.ipynb
+   ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
+   ../../examples/ConsHabitModel/HabitPortfolioConsumerType.ipynb
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
    ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
