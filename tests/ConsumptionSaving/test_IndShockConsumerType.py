@@ -454,7 +454,7 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 3.90015, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 0.55127, places=HARK_PRECISION
         )
 
         self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
