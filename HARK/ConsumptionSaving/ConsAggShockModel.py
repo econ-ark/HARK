@@ -1600,14 +1600,11 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         if N == 0:
             return
 
-        if self.shocks["Mrkv"] == 0:
-            unemp_N = int(np.round(self.UrateB * N))
-            emp_N = self.AgentCount - unemp_N
-        elif self.shocks["Mrkv"] == 1:
-            unemp_N = int(np.round(self.UrateG * N))
-            emp_N = self.AgentCount - unemp_N
-        else:
-            assert False, "Illegal macroeconomic state: MrkvNow must be 0 or 1"
+        S = self.shocks["Mrkv"]
+        Urate = [self.UrateB, self.UrateG]
+        unemp_N = int(np.round(Urate[S] * N))
+        emp_N = self.AgentCount - unemp_N
+
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
@@ -2501,8 +2498,8 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
         StateCount = self.MrkvArray.shape[0]
 
         # Add histories until each state has been visited at least state_T_min times
+        rare_dstn = Uniform(seed=0)
         while go:
-            draws = Uniform(seed=loops).draw(N=self.act_T_orig)
             markov_process = MarkovProcess(self.MrkvArray, seed=loops)
             for s in range(self.act_T_orig):  # Add act_T_orig more periods
                 MrkvNow_hist[t] = MrkvNow
@@ -2533,14 +2530,16 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
                 ratios_sum = np.sum(ratios_exp)
                 jump_probs = ratios_exp / ratios_sum
                 cum_probs = np.cumsum(jump_probs)
-                MrkvNow = np.searchsorted(cum_probs, draws[-1])
+                MrkvNow = np.searchsorted(cum_probs, rare_dstn.draw(1)[0])
 
             loops += 1
             # Make the Markov state history longer by act_T_orig periods
             if loops >= loops_max:
                 go = False
-                print(
-                    "make_Mrkv_history reached maximum number of loops without generating a valid sequence!"
+                raise (
+                    ValueError(
+                        "make_Mrkv_history reached maximum number of loops without generating a valid sequence!"
+                    )
                 )
             else:
                 MrkvNow_new = np.zeros(self.act_T_orig, dtype=int)

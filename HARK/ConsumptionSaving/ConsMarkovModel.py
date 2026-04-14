@@ -861,7 +861,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # at a particular point in time.
         for IncShkDstn_t in self.IncShkDstn:
             if not isinstance(IncShkDstn_t, list):
-                raise ValueError(
+                raise TypeError(
                     "self.IncShkDstn is time varying and so must be a list"
                     + "of lists of Distributions, one per Markov State. Found "
                     + f"{self.IncShkDstn} instead"
@@ -1111,51 +1111,9 @@ class MarkovConsumerType(IndShockConsumerType):
         self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
 
     def calc_bounding_values(self):  # pragma: nocover
-        """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.  Results are all
-        np.array with elements corresponding to each Markov state.
-
-        NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
         raise NotImplementedError()
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
-        """
-        Creates a "normalized Euler error" function for this instance, mapping
-        from market resources to "consumption error per dollar of consumption."
-        Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncShkDstn
-        or to use a (temporary) very dense approximation.
-
-        NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        mMax : float
-            Maximum normalized market resources for the Euler error function.
-        approx_inc_dstn : Boolean
-            Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncShkDstn[0], or to use a very accurate
-            discrete approximation instead.  When True, uses approximation in
-            IncShkDstn; when False, makes and uses a very dense approximation.
-
-        Returns
-        -------
-        None
-        """
         raise NotImplementedError()
 
     def check_conditions(self, verbose=None):  # pragma: nocover

@@ -36,6 +36,10 @@ class testWarmGlowConsumerType(unittest.TestCase):
         mNrm = 10.0
         self.assertAlmostEqual(cFunc(mNrm).tolist(), 5.56409, places=HARK_PRECISION)
 
+    def test_borrowing(self):
+        ThisType = BequestWarmGlowConsumerType(BeqFac=1.0, BoroCnstArt=None)
+        ThisType.solve()
+
 
 class testBequestWarmGlowPortfolioType(unittest.TestCase):
     def setUp(self):

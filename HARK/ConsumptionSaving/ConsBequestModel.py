@@ -297,10 +297,9 @@ def solve_one_period_ConsWarmBequest(
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
-    if BoroCnstArt is None:
-        mNrmMinNow = BoroCnstNat
-    else:
-        mNrmMinNow = np.max([BoroCnstNat, BoroCnstArt])
+    mNrmMinNow = (
+        BoroCnstNat if BoroCnstArt is None else np.max([BoroCnstNat, BoroCnstArt])
+    )
 
     # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
     # or artificial borrowing constraint actually binds
