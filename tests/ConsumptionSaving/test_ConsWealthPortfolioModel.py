@@ -26,3 +26,13 @@ class testWealthPortfolioConsumerType(unittest.TestCase):
         self.agent.track_vars = ["cNrm", "aNrm", "Share"]
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_invalid(self):
+        ThisType = WealthPortfolioConsumerType(BoroCnstArt=-1.0)
+        self.assertRaises(ValueError, ThisType.solve)
+
+    def test_ZeroIncShk(self):
+        ThisType = WealthPortfolioConsumerType(IncUnemp=0.0)
+        ThisType.solve()
+        ThisType.unpack("cFuncAdj")
+        self.assertAlmostEqual(ThisType.cFuncAdj[0](2.0), 0.97694)

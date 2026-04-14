@@ -28,6 +28,10 @@ class testHabitConsumerType(unittest.TestCase):
         self.assertRaises(ValueError, HabitConsumerType, HabitWgt=1.2)
         self.assertRaises(ValueError, HabitConsumerType, HabitWgt=0.0)
 
+    def test_borrowing(self):
+        alt_type = HabitConsumerType(cycles=3, BoroCnstArt=None)
+        alt_type.solve()
+
 
 class testHabitPortfolioConsumerType(unittest.TestCase):
     def setUp(self):
@@ -50,3 +54,7 @@ class testHabitPortfolioConsumerType(unittest.TestCase):
         self.agent.T_sim = 10
         self.agent.initialize_sym()
         self.agent.symulate()
+
+    def test_invalid(self):
+        alt_type = HabitPortfolioConsumerType(BoroCnstArt=-1.0)
+        self.assertRaises(NotImplementedError, alt_type.solve)

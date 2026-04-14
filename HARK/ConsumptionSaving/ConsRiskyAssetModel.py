@@ -1248,10 +1248,9 @@ def solve_one_period_ConsIndShockRiskyAsset(
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
-    if BoroCnstArt is None:
-        mNrmMinNow = BoroCnstNat
-    else:
-        mNrmMinNow = np.max([BoroCnstNat, BoroCnstArt])
+    mNrmMinNow = (
+        np.max([BoroCnstNat, BoroCnstArt]) if BoroCnstArt is not None else BoroCnstNat
+    )
 
     # The MPCmax code is a bit unusual here, and possibly "harmlessly wrong".
     # The "worst event" should depend on the risky return factor as well as

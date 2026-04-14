@@ -1261,8 +1261,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
 
-    def check_conditions(self, verbose=None):
+    def check_conditions(self, verbose=None):  # pragma: no cover
         raise NotImplementedError()
 
-    def calc_limiting_values(self):
+    def calc_limiting_values(self):  # pragma: no cover
         raise NotImplementedError()

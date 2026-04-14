@@ -6,6 +6,7 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
+    make_simple_binary_markov,
     make_ratchet_markov,
 )
 from HARK.distributions import (
@@ -333,3 +334,30 @@ class testRatchet(unittest.TestCase):
 
         weird_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.3])]
         self.assertRaises(ValueError, make_ratchet_markov, 2, weird_probs)
+
+        some_probs = [np.array([1.1, 0.2, 0.3, 0.4]), np.array([0.4, 0.3, 0.2, 0.1])]
+        self.assertRaises(ValueError, make_ratchet_markov, 2, some_probs)
+
+        some_probs = [np.array([0.1, 0.2, 0.3, 0.4]), np.array([0.4, -0.3, 0.2, 0.1])]
+        self.assertRaises(ValueError, make_ratchet_markov, 2, some_probs)
+
+
+class testInvalid(unittest.TestCase):
+    def test_binary_markov(self):
+        self.assertRaises(ValueError, make_simple_binary_markov, 2, [0.95], [0.9])
+        self.assertRaises(ValueError, make_simple_binary_markov, 1, [0.95], [1.1])
+        self.assertRaises(ValueError, make_simple_binary_markov, 1, [-0.5], [0.9])
+
+    def test_custom_mrkv(self):
+        ThisType = MarkovConsumerType()
+        ThisType.MrkvArray = np.ones((2, 3)) / 3
+        self.assertRaises(ValueError, ThisType.check_markov_inputs)
+
+    def test_inc_shk_dstn(self):
+        ThisType = MarkovConsumerType()
+        ThisType.IncShkDstn = ThisType.IncShkDstn[0]
+        self.assertRaises(TypeError, ThisType.check_markov_inputs)
+
+        ThisType = MarkovConsumerType()
+        ThisType.IncShkDstn[0] = 2 * ThisType.IncShkDstn[0]
+        self.assertRaises(ValueError, ThisType.check_markov_inputs)
