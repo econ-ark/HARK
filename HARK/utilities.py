@@ -196,7 +196,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 
     NOTE: The bounds of the grid must be non-negative, else this function will
     return an invalid grid with NaNs in it. If you want a non-linearly spaced
-    grid that spans negative numbers, use make_exponential_grid; see below.
+    grid that spans negative numbers, use make_polynomial_grid; see below.
 
     Parameters
     ----------
@@ -242,9 +242,9 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     return grid
 
 
-def make_exponential_grid(ming, maxg, ng, order=1.0):
+def make_polynomial_grid(ming, maxg, ng, order=1.0):
     """
-    Construct an exponentially spaced grid with chosen exponential order.
+    Construct a polynomially spaced grid with chosen exponential order.
     A uniformly spaced grid on [0,1] is raised to the chosen order, then linearly
     remapped to the specified interval. Supports any real valued grid bounds.
 
@@ -257,12 +257,12 @@ def make_exponential_grid(ming, maxg, ng, order=1.0):
     ng : int
         Number of points in the grid.
     order : float, optional
-        Exponential spacing order for the grid. The default is 1.0, or linear.
+        Polynomial spacing order for the grid. The default is 1.0, or linear.
 
     Returns
     -------
     grid : np.array
-        Exponentially spaced grid on [ming, maxg] with ng points.
+        Polynomial spaced grid on [ming, maxg] with ng points.
     """
     grid = np.linspace(0.0, 1.0, ng) ** order * (maxg - ming) + ming
     return grid
@@ -1028,7 +1028,7 @@ def plot_func_slices(
     if (zmin is not None) and (zmax is not None):
         if Z is None:
             if zmax > zmin:
-                Z = make_exponential_grid(zmin, zmax, zn, order=zorder)
+                Z = make_polynomial_grid(zmin, zmax, zn, order=zorder)
             else:
                 raise ValueError("zmax must be greater than zmin!")
         else:

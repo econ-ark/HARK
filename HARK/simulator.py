@@ -10,7 +10,7 @@ from numba import njit
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
 from typing import Callable
-from HARK.utilities import NullFunc, make_exponential_grid
+from HARK.utilities import NullFunc, make_polynomial_grid
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.linalg import eigs
@@ -654,7 +654,7 @@ class SimBlock:
                 bot = spec["min"]
                 top = spec["max"]
                 N = spec["N"]
-                new_grid = make_exponential_grid(bot, top, N, Q)
+                new_grid = make_polynomial_grid(bot, top, N, Q)
                 is_cont = True
                 grid_orders[var] = Q
             elif "N" in spec:
