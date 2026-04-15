@@ -12,8 +12,7 @@ import scipy.stats as stats
 
 from HARK import AgentType, Market
 from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
-    AggIndMrkvConsumerType,
-    extract_cond_mrkv_arrays,
+    AggIndMarkovConsumerType,
 )
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
@@ -69,16 +68,10 @@ __all__ = [
     "SmallOpenMarkovEconomy",
     "AggregateSavingRule",
     "AggShocksDynamicRule",
-    "KrusellSmithType",
-    "KrusellSmithEconomy",
-    "KrusellSmithTypeHM",
-    "KrusellSmithEconomyHM",
     "init_agg_shocks",
     "init_agg_mrkv_shocks",
     "init_cobb_douglas",
     "init_mrkv_cobb_douglas",
-    "init_KS_agents",
-    "init_KS_economy",
 ]
 
 utility = CRRAutility
@@ -1497,7 +1490,7 @@ init_KS_agents = {
 }
 
 
-class KrusellSmithType(AggIndMrkvConsumerType):
+class KrusellSmithType(AggIndMarkovConsumerType):
     """
     A class for representing agents in the seminal Krusell-Smith (1998) model from
     the paper "Income and Wealth Heterogeneity in the Macroeconomy".  All default
@@ -1507,7 +1500,7 @@ class KrusellSmithType(AggIndMrkvConsumerType):
     a function of previous aggregate capital.  This choice was made so that some
     of the code from HARK's other HA-macro models can be used.
 
-    This class inherits from AggIndMrkvConsumerType, which provides the
+    This class inherits from AggIndMarkovConsumerType, which provides the
     generic two-level hierarchical Markov state machinery:
         - 2 macro states: bad (0), good (1)
         - 2 micro states: unemployed (0), employed (1)
@@ -1540,7 +1533,7 @@ class KrusellSmithType(AggIndMrkvConsumerType):
         "Mgrid",
     ]
     time_vary_ = []
-    shock_vars_ = ["MrkvAgg"]
+    shock_vars_ = ["Mrkv"]
     state_vars = ["aNow", "mNow", "EmpNow"]
     market_vars = [
         "act_T",
@@ -1556,8 +1549,6 @@ class KrusellSmithType(AggIndMrkvConsumerType):
         "ProdG",
         "MrkvIndArray",
         "MrkvAggArray",
-        "MacroMrkvArray",
-        "CondMrkvArrays",
         "MrkvInit",
     ]
     default_ = {
@@ -1569,10 +1560,9 @@ class KrusellSmithType(AggIndMrkvConsumerType):
     def __init__(self, **kwds):
         temp = kwds.copy()
         temp["construct"] = False
-        AggIndMrkvConsumerType.__init__(
+        AggIndMarkovConsumerType.__init__(
             self, num_macro_states=2, num_micro_states=2, **temp
         )
-        self.global_markov = True
         self.construct("MgridBase")
 
         # Special case: this type *must* be initialized with construct=False
@@ -1591,12 +1581,8 @@ class KrusellSmithType(AggIndMrkvConsumerType):
     def market_action(self):
         self.simulate(1)
 
-    def sim_death(self):
-        """KS has no death — bypass MarkovConsumerType.sim_death."""
-        return np.zeros(self.AgentCount, dtype=bool)
-
     def initialize_sim(self):
-        self.shocks["MrkvAgg"] = self.MrkvInit
+        self.shocks["Mrkv"] = self.MrkvInit
         self.MacroMrkvNow = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
@@ -1607,19 +1593,21 @@ class KrusellSmithType(AggIndMrkvConsumerType):
         Create newborn agents with randomly drawn employment states.  This will
         only ever be called by initialize_sim() at the start of a new simulation
         history, as the Krusell-Smith model does not have death and replacement.
+        The sim_death() method does not exist, as AgentType's default of "no death"
+        is the correct behavior for the model.
         """
         N = np.sum(which)
         if N == 0:
             return
 
-        MacroNow = int(self.shocks["MrkvAgg"])
-        if MacroNow == 0:
+        if self.shocks["Mrkv"] == 0:
             unemp_N = int(np.round(self.UrateB * N))
-        elif MacroNow == 1:
+            emp_N = self.AgentCount - unemp_N
+        elif self.shocks["Mrkv"] == 1:
             unemp_N = int(np.round(self.UrateG * N))
+            emp_N = self.AgentCount - unemp_N
         else:
-            raise ValueError("Illegal macroeconomic state")
-        emp_N = self.AgentCount - unemp_N
+            assert False, "Illegal macroeconomic state: MrkvNow must be 0 or 1"
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
@@ -1632,17 +1620,13 @@ class KrusellSmithType(AggIndMrkvConsumerType):
         """
         Two-step hierarchical Markov draw, then sync employment states.
 
-        Uses AggIndMrkvConsumerType machinery:
-        1. Read macro state from economy (via self.shocks["MrkvAgg"])
+        Uses the AggIndMarkovConsumerType machinery:
+        1. Read macro state from economy (via self.shocks["Mrkv"])
         2. Draw micro states via exact-match permutations
         3. Compute combined state index
         """
         self.get_markov_states()
         self.state_now["EmpNow"] = self.MicroMrkvNow.astype(bool)
-
-    def get_macro_markov_states(self):
-        """KS macro state is a single scalar shared by all agents."""
-        self.MacroMrkvNow = int(self.shocks["MrkvAgg"])
 
     def get_micro_markov_states(self):
         """
@@ -2600,88 +2584,6 @@ class CobbDouglasMarkovEconomy(CobbDouglasEconomy):
 
         return temp + (MrkvNow,)
 
-    def make_history_tm(self, num_pointsM=200, mMax=50.0):
-        """
-        Forward-propagate a distribution through the same aggregate Markov shock
-        sequence used by Monte Carlo, recording aggregate M and A at each period.
-        This overwrites ``self.history`` with deterministic TM-based trajectories
-        so they can be compared directly to the MC histories.
-
-        Parameters
-        ----------
-        num_pointsM : int
-            Number of grid points for the normalized market-resources grid.
-        mMax : float
-            Upper bound of the m grid.
-        """
-        from HARK.utilities import make_grid_exp_mult, jump_to_grid_1D
-
-        StateCount = self.MrkvArray.shape[0]
-        consumer = self.agents[0]
-        LivPrb = consumer.LivPrb[0]
-        if not np.isscalar(LivPrb):
-            LivPrb = LivPrb[0]
-
-        dist_mGrid = make_grid_exp_mult(0.0001, mMax, num_pointsM, 3)
-        M = len(dist_mGrid)
-        MrkvHist = self.MrkvNow_hist
-        T = len(MrkvHist)
-
-        mc_M = np.array(self.history["MaggNow"])
-        mc_A = np.array(self.history["AaggNow"])
-
-        TranMatrices = []
-        aPols = []
-        cPols = []
-        for j in range(StateCount):
-            mask = MrkvHist == j
-            M_j = mc_M[mask].mean() if mask.any() else self.kSS
-            A_j = mc_A[mask].mean() if mask.any() else self.kSS
-            K_j = A_j
-            R_j = self.Rfunc(K_j)
-            W_j = self.wFunc(K_j)
-
-            c_j = consumer.solution[0].cFunc[j](dist_mGrid, M_j * np.ones(M))
-            a_j = np.maximum(dist_mGrid - c_j, 0.0)
-            cPols.append(c_j)
-            aPols.append(a_j)
-
-            dstn_j = consumer.IncShkDstn[0][j]
-            perm_shks = dstn_j.atoms[0]
-            tran_shks = dstn_j.atoms[1]
-            shk_prbs = dstn_j.pmv
-
-            newborn_m = W_j * tran_shks
-            newborn_1d = jump_to_grid_1D(newborn_m, shk_prbs, dist_mGrid)
-
-            TM_j = np.zeros((M, M))
-            for i in range(M):
-                bNext = R_j * a_j[i]
-                mNext = bNext / perm_shks + W_j * tran_shks
-                lottery = jump_to_grid_1D(mNext, shk_prbs, dist_mGrid)
-                TM_j[:, i] = LivPrb * lottery + (1.0 - LivPrb) * newborn_1d
-            TranMatrices.append(TM_j)
-
-        import scipy.sparse.linalg as sp_linalg
-
-        j_init = int(MrkvHist[0])
-        eigenvalues, eigenvectors = sp_linalg.eigs(
-            TranMatrices[j_init], k=1, which="LM", v0=np.ones(M)
-        )
-        dstn = eigenvectors[:, 0].real
-        dstn = dstn / dstn.sum()
-
-        tm_M_hist = np.zeros(T)
-        tm_A_hist = np.zeros(T)
-        for t in range(T):
-            j_t = int(MrkvHist[t])
-            tm_A_hist[t] = np.dot(aPols[j_t], dstn)
-            tm_M_hist[t] = np.dot(dist_mGrid, dstn)
-            dstn = TranMatrices[j_t] @ dstn
-
-        self.history["MaggNow"] = tm_M_hist
-        self.history["AaggNow"] = tm_A_hist
-
     def calc_AFunc(self, MaggNow, AaggNow):
         """
         Calculate a new aggregate savings rule based on the history of the
@@ -2864,9 +2766,9 @@ class KrusellSmithEconomy(Market):
             self,
             agents=agents,
             tolerance=tolerance,
-            sow_vars=["Mnow", "Aprev", "MrkvAgg", "Rnow", "Wnow"],
+            sow_vars=["Mnow", "Aprev", "Mrkv", "Rnow", "Wnow"],
             reap_vars=["aNow", "EmpNow"],
-            track_vars=["MrkvAgg", "Aprev", "Mnow", "Urate"],
+            track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
             **params,
         )
@@ -2905,7 +2807,7 @@ class KrusellSmithEconomy(Market):
         self.sow_init["Wnow"] = self.WSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
-        self.sow_init["MrkvAgg"] = 0
+        self.sow_init["Mrkv"] = 0
         self.make_MrkvArray()
 
     def reset(self):
@@ -2966,9 +2868,7 @@ class KrusellSmithEconomy(Market):
             "Invalid idiosyncratic transition probabilities!"
         )
         self.MrkvAggArray = MrkvAggArray
-        self.MacroMrkvArray = MrkvAggArray
         self.MrkvIndArray = MrkvIndArray
-        self.CondMrkvArrays = extract_cond_mrkv_arrays(MrkvIndArray, MrkvAggArray, 2)
 
     def make_Mrkv_history(self):
         """
@@ -3128,372 +3028,6 @@ class KrusellSmithEconomy(Market):
 
         # Print the new parameters
         if verbose:  # pragma: nocover
-            print(
-                "intercept="
-                + str(self.intercept_prev)
-                + ", slope="
-                + str(self.slope_prev)
-                + ", r-sq="
-                + str(rSq_list)
-            )
-
-        return AggShocksDynamicRule(AFunc_list)
-
-
-# =============================================================================
-# Krusell-Smith HM reference implementations — keep until verified equivalent
-# =============================================================================
-
-KS_HM_constructor_dict = {
-    "solution_terminal": make_solution_terminal_KS,
-    "aGrid": make_assets_grid_KS,
-    "transition_arrays": make_KS_transition_arrays,
-    "ProbArray": get_it_from("transition_arrays"),
-    "mNextArray": get_it_from("transition_arrays"),
-    "MnextArray": get_it_from("transition_arrays"),
-    "RnextArray": get_it_from("transition_arrays"),
-    "emp_idx_arrays": make_emp_idx_arrays,
-    "unemp_permute": get_it_from("emp_idx_arrays"),
-    "emp_permute": get_it_from("emp_idx_arrays"),
-    "MgridBase": make_exponential_MgridBase,
-    "T_sim": get_it_from("act_T"),
-    "Mgrid": make_Mgrid,
-}
-
-init_KS_HM_agents = {
-    "T_cycle": 1,
-    "cycles": 0,
-    "pseudo_terminal": False,
-    "constructors": KS_HM_constructor_dict,
-    "DiscFac": 0.99,
-    "CRRA": 1.0,
-    "aMin": 0.001,
-    "aMax": 50.0,
-    "aCount": 32,
-    "aNestFac": 2,
-    "MaggCount": 25,
-    "MaggPerturb": 0.01,
-    "MaggExpFac": 0.12,
-    "AgentCount": 10000,
-}
-
-
-class KrusellSmithTypeHM(AggIndMrkvConsumerType):
-    """
-    Krusell-Smith (1998) agent built on AggIndMrkvConsumerType.
-    Temporary reference implementation kept for verification against
-    the original KrusellSmithType.
-
-    Macro states: 0=bad, 1=good  (M=2)
-    Micro states: 0=unemployed, 1=employed  (N=2)
-    Combined: 0=BU, 1=BE, 2=GU, 3=GE
-    """
-
-    time_inv_ = [
-        "DiscFac",
-        "CRRA",
-        "aGrid",
-        "ProbArray",
-        "mNextArray",
-        "MnextArray",
-        "RnextArray",
-        "Mgrid",
-    ]
-    time_vary_ = []
-    shock_vars_ = ["MrkvAgg"]
-    state_vars = ["aNow", "mNow", "EmpNow"]
-    market_vars = [
-        "act_T",
-        "KSS",
-        "MSS",
-        "AFunc",
-        "CapShare",
-        "DeprRte",
-        "LbrInd",
-        "UrateB",
-        "UrateG",
-        "ProdB",
-        "ProdG",
-        "MrkvIndArray",
-        "MrkvAggArray",
-        "MacroMrkvArray",
-        "CondMrkvArrays",
-        "MrkvInit",
-    ]
-    default_ = {
-        "params": init_KS_HM_agents,
-        "solver": solve_KrusellSmith,
-        "track_vars": ["aNow", "cNow", "mNow", "EmpNow"],
-    }
-
-    def __init__(self, **kwds):
-        temp = kwds.copy()
-        temp["construct"] = False
-        AggIndMrkvConsumerType.__init__(
-            self,
-            num_macro_states=2,
-            num_micro_states=2,
-            **temp,
-        )
-        self.global_markov = True
-        self.construct("MgridBase")
-
-    def pre_solve(self):
-        self.construct("solution_terminal")
-
-    def reset(self):
-        self.initialize_sim()
-
-    def market_action(self):
-        self.simulate(1)
-
-    def sim_death(self):
-        return np.zeros(self.AgentCount, dtype=bool)
-
-    def initialize_sim(self):
-        self.shocks["MrkvAgg"] = self.MrkvInit
-        self.MacroMrkvNow = self.MrkvInit
-        AgentType.initialize_sim(self)
-        self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
-        self.MicroMrkvNow = self.state_now["EmpNow"].astype(int)
-
-    def sim_birth(self, which):
-        N = np.sum(which)
-        if N == 0:
-            return
-
-        MacroNow = int(self.shocks["MrkvAgg"])
-        if MacroNow == 0:
-            unemp_N = int(np.round(self.UrateB * N))
-        elif MacroNow == 1:
-            unemp_N = int(np.round(self.UrateG * N))
-        else:
-            raise ValueError("Illegal macroeconomic state")
-        emp_N = self.AgentCount - unemp_N
-
-        EmpNew = np.concatenate(
-            [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
-        )
-        self.state_now["EmpNow"][which] = self.RNG.permutation(EmpNew)
-        self.state_now["aNow"][which] = self.KSS
-        self.MicroMrkvNow = self.state_now["EmpNow"].astype(int)
-
-    def get_shocks(self):
-        self.get_markov_states()
-        self.state_now["EmpNow"] = self.MicroMrkvNow.astype(bool)
-
-    def get_macro_markov_states(self):
-        self.MacroMrkvNow = int(self.shocks["MrkvAgg"])
-
-    def get_micro_markov_states(self):
-        employed = self.state_prev["EmpNow"].copy().astype(bool)
-        unemployed = np.logical_not(employed)
-
-        mrkv_prev = int((unemployed.sum() / float(self.AgentCount)) != self.UrateB)
-        MacroNow = self.MacroMrkvNow
-
-        emp_permute = self.emp_permute[mrkv_prev][MacroNow]
-        unemp_permute = self.unemp_permute[mrkv_prev][MacroNow]
-
-        EmpNow = self.state_now["EmpNow"].copy()
-        EmpNow[employed] = self.RNG.permutation(emp_permute)
-        EmpNow[unemployed] = self.RNG.permutation(unemp_permute)
-
-        self.state_now["EmpNow"] = EmpNow
-        self.MicroMrkvNow = EmpNow.astype(int)
-
-    def get_states(self):
-        self.state_now["mNow"] = (
-            self.Rnow * self.state_prev["aNow"]
-            + self.Wnow * self.LbrInd * self.state_now["EmpNow"]
-        )
-
-    def get_controls(self):
-        employed = self.state_now["EmpNow"].copy().astype(bool)
-        unemployed = np.logical_not(employed)
-
-        N = self.num_micro_states
-        MacroNow = self.MacroMrkvNow
-        unemp_idx = N * MacroNow + 0
-        emp_idx = N * MacroNow + 1
-
-        cNow = np.zeros(self.AgentCount)
-        Mnow = self.Mnow * np.ones(self.AgentCount)
-        cNow[unemployed] = self.solution[0].cFunc[unemp_idx](
-            self.state_now["mNow"][unemployed], Mnow[unemployed]
-        )
-        cNow[employed] = self.solution[0].cFunc[emp_idx](
-            self.state_now["mNow"][employed], Mnow[employed]
-        )
-        self.controls["cNow"] = cNow
-
-    def get_poststates(self):
-        self.state_now["aNow"] = self.state_now["mNow"] - self.controls["cNow"]
-
-
-class KrusellSmithEconomyHM(Market):
-    """
-    Krusell-Smith (1998) economy that works with KrusellSmithTypeHM agents.
-    Temporary reference implementation kept for verification.
-    Sows ``MrkvAgg`` instead of ``Mrkv``.
-    """
-
-    def __init__(self, agents=None, tolerance=0.0001, **kwds):
-        agents = agents if agents is not None else list()
-        params = deepcopy(init_KS_economy)
-        params.update(kwds)
-
-        Market.__init__(
-            self,
-            agents=agents,
-            tolerance=tolerance,
-            sow_vars=["Mnow", "Aprev", "MrkvAgg", "Rnow", "Wnow"],
-            reap_vars=["aNow", "EmpNow"],
-            track_vars=["MrkvAgg", "Aprev", "Mnow", "Urate"],
-            dyn_vars=["AFunc"],
-            **params,
-        )
-        self.update()
-
-    def update(self):
-        StateCount = 2
-        AFunc_all = [
-            AggregateSavingRule(self.intercept_prev[j], self.slope_prev[j])
-            for j in range(StateCount)
-        ]
-        self.AFunc = AFunc_all
-        self.KtoLSS = (
-            (1.0**self.CRRA / self.DiscFac - (1.0 - self.DeprRte)) / self.CapShare
-        ) ** (1.0 / (self.CapShare - 1.0))
-        self.KSS = self.KtoLSS * self.LbrInd
-        self.KtoYSS = self.KtoLSS ** (1.0 - self.CapShare)
-        self.WSS = (1.0 - self.CapShare) * self.KtoLSS ** (self.CapShare)
-        self.RSS = (
-            1.0 + self.CapShare * self.KtoLSS ** (self.CapShare - 1.0) - self.DeprRte
-        )
-        self.MSS = self.KSS * self.RSS + self.WSS * self.LbrInd
-        self.convertKtoY = lambda KtoY: KtoY ** (1.0 / (1.0 - self.CapShare))
-        self.rFunc = lambda k: self.CapShare * k ** (self.CapShare - 1.0)
-        self.Wfunc = lambda k: (1.0 - self.CapShare) * k ** (self.CapShare)
-        self.sow_init["KtoLnow"] = self.KtoLSS
-        self.sow_init["Mnow"] = self.MSS
-        self.sow_init["Aprev"] = self.KSS
-        self.sow_init["Rnow"] = self.RSS
-        self.sow_init["Wnow"] = self.WSS
-        self.PermShkAggNow_init = 1.0
-        self.TranShkAggNow_init = 1.0
-        self.sow_init["MrkvAgg"] = 0
-        self.make_MrkvArray()
-
-    def reset(self):
-        self.Shk_idx = 0
-        Market.reset(self)
-
-    def make_MrkvArray(self):
-        ProbBG = 1.0 / self.DurMeanB
-        ProbGB = 1.0 / self.DurMeanG
-        ProbBB = 1.0 - ProbBG
-        ProbGG = 1.0 - ProbGB
-        MrkvAggArray = np.array([[ProbBB, ProbBG], [ProbGB, ProbGG]])
-
-        MrkvIndArray = np.zeros((4, 4))
-        MrkvIndArray[0, 1] = ProbBB / self.SpellMeanB
-        MrkvIndArray[0, 0] = ProbBB * (1 - 1.0 / self.SpellMeanB)
-        MrkvIndArray[1, 0] = self.UrateB / (1.0 - self.UrateB) * MrkvIndArray[0, 1]
-        MrkvIndArray[1, 1] = ProbBB - MrkvIndArray[1, 0]
-
-        MrkvIndArray[2, 3] = ProbGG / self.SpellMeanG
-        MrkvIndArray[2, 2] = ProbGG * (1 - 1.0 / self.SpellMeanG)
-        MrkvIndArray[3, 2] = self.UrateG / (1.0 - self.UrateG) * MrkvIndArray[2, 3]
-        MrkvIndArray[3, 3] = ProbGG - MrkvIndArray[3, 2]
-
-        MrkvIndArray[0, 2] = self.RelProbBG * MrkvIndArray[2, 2] / ProbGG * ProbBG
-        MrkvIndArray[0, 3] = ProbBG - MrkvIndArray[0, 2]
-        MrkvIndArray[1, 2] = (
-            ProbBG * self.UrateG - self.UrateB * MrkvIndArray[0, 2]
-        ) / (1.0 - self.UrateB)
-        MrkvIndArray[1, 3] = ProbBG - MrkvIndArray[1, 2]
-
-        MrkvIndArray[2, 0] = self.RelProbGB * MrkvIndArray[0, 0] / ProbBB * ProbGB
-        MrkvIndArray[2, 1] = ProbGB - MrkvIndArray[2, 0]
-        MrkvIndArray[3, 0] = (
-            ProbGB * self.UrateB - self.UrateG * MrkvIndArray[2, 0]
-        ) / (1.0 - self.UrateG)
-        MrkvIndArray[3, 1] = ProbGB - MrkvIndArray[3, 0]
-
-        assert np.all(MrkvIndArray >= 0.0), (
-            "Invalid idiosyncratic transition probabilities!"
-        )
-        self.MrkvAggArray = MrkvAggArray
-        self.MacroMrkvArray = MrkvAggArray
-        self.MrkvIndArray = MrkvIndArray
-        self.CondMrkvArrays = extract_cond_mrkv_arrays(MrkvIndArray, MrkvAggArray, 2)
-
-    def make_Mrkv_history(self):
-        self.MrkvNow_hist = np.zeros(self.act_T, dtype=int)
-        MrkvNow = self.MrkvInit
-        markov_process = MarkovProcess(self.MrkvAggArray, seed=0)
-        for s in range(self.act_T):
-            self.MrkvNow_hist[s] = MrkvNow
-            MrkvNow = markov_process.draw(MrkvNow)
-
-    def mill_rule(self, aNow, EmpNow):
-        return self.calc_R_and_W(aNow, EmpNow)
-
-    def calc_dynamics(self, Mnow, Aprev):
-        return self.calc_AFunc(Mnow, Aprev)
-
-    def calc_R_and_W(self, aNow, EmpNow):
-        Aprev = np.mean(np.array(aNow))
-        AggK = Aprev
-        Urate = 1.0 - np.mean(np.array(EmpNow))
-        self.Urate = Urate
-
-        MrkvNow = self.MrkvNow_hist[self.Shk_idx]
-        if MrkvNow == 0:
-            Prod = self.ProdB
-            AggL = (1.0 - self.UrateB) * self.LbrInd
-        elif MrkvNow == 1:
-            Prod = self.ProdG
-            AggL = (1.0 - self.UrateG) * self.LbrInd
-        self.Shk_idx += 1
-
-        KtoLnow = AggK / AggL
-        Rnow = 1.0 + Prod * self.rFunc(KtoLnow) - self.DeprRte
-        Wnow = Prod * self.Wfunc(KtoLnow)
-        Mnow = Rnow * AggK + Wnow * AggL
-        self.KtoLnow = KtoLnow
-
-        return Mnow, Aprev, MrkvNow, Rnow, Wnow
-
-    def calc_AFunc(self, Mnow, Aprev):
-        verbose = self.verbose
-        discard_periods = self.T_discard
-        update_weight = 1.0 - self.DampingFac
-        total_periods = len(Mnow)
-
-        logAagg = np.log(Aprev[discard_periods:total_periods])
-        logMagg = np.log(Mnow[discard_periods - 1 : total_periods - 1])
-        MrkvHist = self.MrkvNow_hist[discard_periods - 1 : total_periods - 1]
-
-        AFunc_list = []
-        rSq_list = []
-        for i in range(self.MrkvAggArray.shape[0]):
-            these = i == MrkvHist
-            slope, intercept, r_value, p_value, std_err = stats.linregress(
-                logMagg[these], logAagg[these]
-            )
-            intercept = (
-                update_weight * intercept
-                + (1.0 - update_weight) * self.intercept_prev[i]
-            )
-            slope = update_weight * slope + (1.0 - update_weight) * self.slope_prev[i]
-            AFunc_list.append(AggregateSavingRule(intercept, slope))
-            rSq_list.append(r_value**2)
-            self.intercept_prev[i] = intercept
-            self.slope_prev[i] = slope
-
-        if verbose:
             print(
                 "intercept="
                 + str(self.intercept_prev)

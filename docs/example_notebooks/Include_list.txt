@@ -18,6 +18,7 @@ examples/ConsAggShockModel/KrusellSmithType.ipynb
 examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
 examples/ConsMarkovModel/MarkovConsumerType.ipynb
 examples/ConsHabitModel/HabitConsumerType.ipynb
+examples/ConsHabitModel/HabitPortfolioConsumerType.ipynb
 examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
 examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
 examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb

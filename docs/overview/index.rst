@@ -52,6 +52,7 @@ Overview
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
    ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
    ../../examples/ConsWealthPortfolioModel/WealthPortfolioConsumerType.ipynb
+   ../../examples/ConsHabitModel/HabitPortfolioConsumerType.ipynb
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
    ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
