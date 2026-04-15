@@ -689,6 +689,7 @@ class SimBlock:
                 new_grid = np.arange(spec["N"], dtype=int)
                 is_cont = False
                 grid_orders[var] = -1
+                grid_nests[var] = None
             else:
                 new_grid = None  # could not make grid, construct later
                 is_cont = False
@@ -860,7 +861,7 @@ class SimBlock:
                             if is_cont
                             else aggregate_blobs_onto_polynomial_grid
                         )
-                        temp_out = aggregate_blobs_onto_polynomial_grid(
+                        temp_out = temp_func(
                             vals,
                             pmv,
                             origin_array,
