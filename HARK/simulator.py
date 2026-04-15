@@ -676,7 +676,7 @@ class SimBlock:
                 elif "nest" in spec:  # it's exponentially spaced
                     K = spec["nest"]
                     new_grid = make_grid_exp_mult(
-                        0.0, top - bot, timestonest=K, offset=bot
+                        0.0, top - bot, N, timestonest=K, offset=bot
                     )
                     grid_orders[var] = None
                     grid_nests[var] = K
@@ -875,7 +875,7 @@ class SimBlock:
                             if is_cont
                             else aggregate_blobs_onto_exponential_grid
                         )
-                        trans_matrix = temp_func(
+                        temp_out = temp_func(
                             vals,
                             pmv,
                             origin_array,
@@ -889,7 +889,7 @@ class SimBlock:
                             if is_cont
                             else aggregate_blobs_onto_exponential_grid
                         )
-                        trans_matrix = temp_func(
+                        temp_out = temp_func(
                             vals,
                             pmv,
                             origin_array,
