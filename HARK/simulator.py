@@ -887,7 +887,7 @@ class SimBlock:
                         temp_func = (
                             aggregate_blobs_onto_custom_grid_alt
                             if is_cont
-                            else aggregate_blobs_onto_exponential_grid
+                            else aggregate_blobs_onto_custom_grid
                         )
                         temp_out = temp_func(
                             vals,
@@ -1816,7 +1816,7 @@ class AgentSimulator:
         Returns
         -------
         state_targ : [float]
-            List of target_var x values such that E[\Delta x] = 0, which can be empty.
+            List of target_var x values such that E[Delta x] = 0, which can be empty.
         """
         if self.T_total != 1:
             raise ValueError(
@@ -1892,7 +1892,7 @@ class AgentSimulator:
             E_state_next[n] = np.dot(pmv_final[these], data_final[these])
         E_delta_state = E_state_next - state_grid  # expected change in state
 
-        # Find indices in the grid where E[\Delta x] flips from positive to negative
+        # Find indices in the grid where E[Delta x] flips from positive to negative
         sign = E_delta_state > 0.0
         flip = np.logical_and(sign[:-1], np.logical_not(sign[1:]))
         flip_idx = np.argwhere(flip).flatten()
@@ -1906,7 +1906,7 @@ class AgentSimulator:
         for key in fixed.keys():
             data_init[key] = np.array([fixed[key]])
 
-        # Define a function that can be used to search for states where E[\Delta x] = 0
+        # Define a function that can be used to search for states where E[Delta x] = 0
         def delta_zero_func(x):
             data_init[target_var] = np.array([x])
             period.run_quasi_sim(data_init, j0=idx0, twist=self.twist)
@@ -1915,7 +1915,7 @@ class AgentSimulator:
             E_delta = np.dot(pmv_final, data_final) - x
             return E_delta
 
-        # For each segment index with a sign flip for E[\Delta x], find x_targ
+        # For each segment index with a sign flip for E[Delta x], find x_targ
         state_targ = []
         for i in flip_idx:
             bot = state_grid[i]
@@ -3856,7 +3856,7 @@ def aggregate_blobs_onto_custom_grid(
     diffs = grid[1:] - grid[:-1]
 
     probs = np.zeros((J, M))
-    idx = np.searchsorted(grid, vals)
+    idx = np.searchsorted(grid, vals) - 1
 
     for n in range(N):
         x = vals[n]
@@ -3973,7 +3973,11 @@ def aggregate_blobs_onto_exponential_grid_alt(
 
 @njit
 def aggregate_blobs_onto_custom_grid_alt(
-    vals, pmv, origins, grid, J, K
+    vals,
+    pmv,
+    origins,
+    grid,
+    J,
 ):  # pragma: no cover
     """
     Numba-compatible helper function for casting "probability blobs" onto a custom
@@ -3989,7 +3993,7 @@ def aggregate_blobs_onto_custom_grid_alt(
     diffs = grid[1:] - grid[:-1]
 
     probs = np.zeros((J, M))
-    idx = np.searchsorted(grid, vals)
+    idx = np.searchsorted(grid, vals) - 1
     alpha = np.empty(N)
 
     for n in range(N):
