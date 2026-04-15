@@ -604,6 +604,26 @@ for MC vs TM head-to-head comparisons with MSE decomposition and
 Harmenberg demonstrations.
 
 
+## Minor prerequisite changes
+
+### `NewKeynesianConsumerType`: model YAML pointer
+
+`NewKeynesianConsumerType` was the only `IndShockConsumerType` subclass
+missing a `"model"` key in its `default_` dict.  This PR adds
+`"model": "ConsIndShock.yaml"` (one line) so that `initialize_sym()` can
+build an `AgentSimulator` — the same YAML-driven simulation backend that
+every other HARK consumer type already supports.  Without this,
+`Transition_Matrix_Example.ipynb` (which uses `NewKeynesianConsumerType`
+for its MC-vs-TM comparisons) would fail when calling the new
+AgentSimulator API.
+
+The notebook uses `NewKeynesianConsumerType` rather than plain
+`IndShockConsumerType` for consistency with the existing SSJ example
+notebooks in the same directory, which frame the agent problem in
+HANK/New Keynesian terms.  The two classes share identical dynamics;
+`NewKeynesianConsumerType` simply passes additional aggregate labor
+income variables into the income process.
+
 ## References
 
 - Harmenberg, K. (2021). "Aggregation with a permanent income neutral
