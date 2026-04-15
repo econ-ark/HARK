@@ -850,6 +850,84 @@ def gen_tran_matrix_2D(
     return TranMatrix
 
 
+@numba.njit(parallel=True)
+def gen_tran_matrix_1D_markov(
+    dist_mGrid,
+    aPol_Grid,
+    MrkvArray,
+    Rfree_arr,
+    PermGroFac_arr,
+    LivPrb_arr,
+    shk_prbs,
+    perm_shks,
+    tran_shks,
+    NewBornDist,
+):  # pragma: nocover
+    """
+    Computes the block-structured transition matrix for a MarkovConsumerType
+    using the permanent-income-neutral measure (1D m-grid per Markov state).
+
+    The state space is (m, j) flattened into a vector of length M*J, where
+    indices [j*M : (j+1)*M] correspond to Markov state j.  The matrix is
+    column-stochastic: column src represents "starting in state src" and
+    rows represent "arriving in state dst".
+
+    Parameters
+    ----------
+    dist_mGrid : np.array, shape (M,)
+        Grid over normalized market resources (same for all Markov states).
+    aPol_Grid : np.array, shape (J, M)
+        End-of-period asset policy for each Markov state j evaluated on dist_mGrid.
+    MrkvArray : np.array, shape (J, J)
+        Row-stochastic Markov transition matrix.  MrkvArray[j, jp] = P(jp | j).
+    Rfree_arr : np.array, shape (J,)
+        Risk-free interest factor for each Markov state.
+    PermGroFac_arr : np.array, shape (J,)
+        Permanent income growth factor for each Markov state.
+    LivPrb_arr : np.array, shape (J,)
+        Survival probability for each Markov state.
+    shk_prbs : np.array
+        Shock probabilities (neutral-measure weights).
+    perm_shks : np.array
+        Permanent shock values (neutral-measure adjusted).
+    tran_shks : np.array
+        Transitory shock values.
+    NewBornDist : np.array, shape (M*J,)
+        Distribution of newborns across the full (m, j) state space.
+
+    Returns
+    -------
+    TranMatrix : np.array, shape (M*J, M*J)
+        Column-stochastic transition matrix.
+    """
+    J = MrkvArray.shape[0]
+    M = len(dist_mGrid)
+    N = M * J
+    TranMatrix = np.zeros((N, N))
+
+    for src in numba.prange(N):
+        j = src // M
+        i = src % M
+        LivPrb_j = LivPrb_arr[j]
+
+        for jp in range(J):
+            markov_prob = MrkvArray[j, jp]
+            if markov_prob < 1e-15:
+                continue
+
+            bNext_i = Rfree_arr[jp] * aPol_Grid[j, i]
+            mNext_shks = bNext_i / (perm_shks * PermGroFac_arr[jp]) + tran_shks
+            lottery_1d = jump_to_grid_1D(mNext_shks, shk_prbs, dist_mGrid)
+
+            TranMatrix[jp * M : (jp + 1) * M, src] += (
+                markov_prob * LivPrb_j * lottery_1d
+            )
+
+        TranMatrix[:, src] += (1.0 - LivPrb_j) * NewBornDist
+
+    return TranMatrix
+
+
 # ==============================================================================
 # ============== Some basic plotting tools  ====================================
 # ==============================================================================

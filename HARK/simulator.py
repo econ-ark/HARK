@@ -10,7 +10,7 @@ from numba import njit
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
 from typing import Callable
-from HARK.utilities import NullFunc, make_exponential_grid
+from HARK.utilities import NullFunc, make_exponential_grid, make_grid_exp_mult
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.linalg import eigs
@@ -649,7 +649,18 @@ class SimBlock:
                 is_arrival = True
             except:
                 is_arrival = False
-            if ("min" in spec) and ("max" in spec):
+            if "grid" in spec:
+                new_grid = np.asarray(spec["grid"], dtype=float)
+                is_cont = True
+                grid_orders[var] = 0.0
+            elif "timestonest" in spec:
+                bot = spec["min"]
+                top = spec["max"]
+                N = spec["N"]
+                new_grid = make_grid_exp_mult(bot, top, N, spec["timestonest"])
+                is_cont = True
+                grid_orders[var] = 0.0
+            elif ("min" in spec) and ("max" in spec):
                 Q = spec["order"] if "order" in spec else 1.0
                 bot = spec["min"]
                 top = spec["max"]
@@ -986,11 +997,14 @@ class SimBlock:
         Parameters
         ----------
         grid_specs : dict
-            Dictionary of dictionaries of grid specifications. For now, these have
-            at most a minimum value, a maximum value, a number of nodes, and a poly-
-            nomial order. They are equispaced if a min and max are specified, and
-            polynomially spaced with the specified order > 0 if provided. Otherwise,
-            they are set at 0,..,N if only N is provided.
+            Dictionary of dictionaries of grid specifications. Each entry can be:
+            - {"min", "max", "N"}: linearly spaced grid.
+            - {"min", "max", "N", "order"}: polynomially spaced (x^order).
+            - {"min", "max", "N", "timestonest"}: multi-exponential grid via
+              make_grid_exp_mult, matching HARK's legacy double-exponential
+              grids (e.g. timestonest=2). Requires non-negative bounds.
+            - {"grid": array}: explicit user-supplied grid array.
+            - {"N"}: discrete grid 0,..,N-1.
         twist : dict or None
             Mapping from end-of-period (continuation) variables to successor's
             arrival variables. When this is specified, additional output is created
@@ -1504,10 +1518,14 @@ class AgentSimulator:
             of all variables of interest. If any arrival variables are omitted,
             they will be given a default trivial grid with one node at 0. This
             should only be done if that arrival variable is closely tied to the
-            Harmenberg normalizing variable; see below. A grid specification must
-            include a number of gridpoints N, and should also include a min and
-            max if the variable is continuous. If the variable is discrete, the
-            grid values are assumed to be 0,..,N.
+            Harmenberg normalizing variable; see below. Each entry can be:
+            - {"min", "max", "N"}: linearly spaced grid.
+            - {"min", "max", "N", "order"}: polynomially spaced (x^order).
+            - {"min", "max", "N", "timestonest"}: multi-exponential grid via
+              make_grid_exp_mult, matching HARK's legacy double-exponential
+              grids (e.g. timestonest=2). Requires non-negative bounds.
+            - {"grid": array}: explicit user-supplied grid array.
+            - {"N"}: discrete grid 0,..,N-1.
         norm : str or None
             Name of the variable for which Harmenberg normalization should be
             applied, if any. This should be a variable that is directly drawn
@@ -3660,15 +3678,20 @@ def aggregate_blobs_onto_polynomial_grid(
     grid of outcome values, based on their origin in the arrival state space. This
     version is for non-continuation variables, returning only the probability array
     mapping from arrival states to the outcome variable.
+
+    When Q > 0, uses the polynomial inverse formula for O(1) index lookup.
+    When Q <= 0, uses binary search (searchsorted) for arbitrary grids.
     """
     bot = grid[0]
     top = grid[-1]
     M = grid.size
     Mm1 = M - 1
     N = pmv.size
-    scale = 1.0 / (top - bot)
-    order = 1.0 / Q
     diffs = grid[1:] - grid[:-1]
+    use_poly = Q > 0.0
+    if use_poly:
+        scale = 1.0 / (top - bot)
+        order = 1.0 / Q
 
     probs = np.zeros((J, M))
 
@@ -3677,7 +3700,14 @@ def aggregate_blobs_onto_polynomial_grid(
         jj = origins[n]
         p = pmv[n]
         if (x > bot) and (x < top):
-            ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            if use_poly:
+                ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            else:
+                ii = np.searchsorted(grid, x) - 1
+                if ii < 0:
+                    ii = 0
+                if ii >= Mm1:
+                    ii = Mm1 - 1
             temp = (x - grid[ii]) / diffs[ii]
             probs[jj, ii] += (1.0 - temp) * p
             probs[jj, ii + 1] += temp * p
@@ -3698,15 +3728,20 @@ def aggregate_blobs_onto_polynomial_grid_alt(
     version is for continuation variables, returning the probability array mapping
     from arrival states to the outcome variable, the index in the outcome variable grid
     for each blob, and the alpha weighting between gridpoints.
+
+    When Q > 0, uses the polynomial inverse formula for O(1) index lookup.
+    When Q <= 0, uses binary search (searchsorted) for arbitrary grids.
     """
     bot = grid[0]
     top = grid[-1]
     M = grid.size
     Mm1 = M - 1
     N = pmv.size
-    scale = 1.0 / (top - bot)
-    order = 1.0 / Q
     diffs = grid[1:] - grid[:-1]
+    use_poly = Q > 0.0
+    if use_poly:
+        scale = 1.0 / (top - bot)
+        order = 1.0 / Q
 
     probs = np.zeros((J, M))
     idx = np.empty(N, dtype=np.dtype(np.int32))
@@ -3717,7 +3752,14 @@ def aggregate_blobs_onto_polynomial_grid_alt(
         jj = origins[n]
         p = pmv[n]
         if (x > bot) and (x < top):
-            ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            if use_poly:
+                ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            else:
+                ii = np.searchsorted(grid, x) - 1
+                if ii < 0:
+                    ii = 0
+                if ii >= Mm1:
+                    ii = Mm1 - 1
             temp = (x - grid[ii]) / diffs[ii]
             probs[jj, ii] += (1.0 - temp) * p
             probs[jj, ii + 1] += temp * p

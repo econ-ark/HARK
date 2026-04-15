@@ -1330,6 +1330,56 @@ class PerfForesightConsumerType(AgentType):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now["PlvlAgg"] = 1.0
         super().initialize_sim()
+        self._initialize_ergodic_ages()
+
+    def _initialize_ergodic_ages(self):
+        """
+        For infinite-horizon models with finite T_age, re-draw agent ages
+        from the ergodic (truncated geometric) distribution and scale pLvl
+        accordingly.
+
+        Without this, all agents start at age 0 and die together every T_age
+        periods, creating a "cohort echo" that biases aggregates (e.g. ~1.25%
+        in E[pLvl] for HAFiscal's T_age=200, LivPrb=0.99375).
+
+        In state_now (after sim_one_period), t_age ranges from 1 to T_age
+        because t_age is incremented at the end of each period.  The ergodic
+        distribution is P(t_age=k) = C * L^(k-1) for k=1,...,T_age, with
+        C = (1-L)/(1-L^T_age).  Agents at t_age=T_age will die immediately
+        in the first sim_one_period call, matching steady-state turnover.
+
+        Skipped for lifecycle models (cycles != 0) where age-0 start is correct.
+        Controlled by attribute `init_ages_ergodic` (default True).
+        """
+        if not getattr(self, "init_ages_ergodic", True):
+            return
+        if self.cycles != 0 or self.T_age is None:
+            return
+
+        L = np.asarray(self.LivPrb[0])
+        if L.ndim > 0:
+            L = float(L[0])
+        else:
+            L = float(L)
+
+        T = self.T_age
+        ages = np.arange(1, T + 1)  # 1 to T_age (state_now convention)
+        if abs(L - 1.0) < 1e-14:
+            probs = np.ones(T) / T
+        else:
+            C = (1.0 - L) / (1.0 - L**T)
+            probs = C * L ** (ages - 1)
+            probs /= probs.sum()
+
+        self.t_age = self.RNG.choice(ages, size=self.AgentCount, p=probs)
+        self.t_cycle = self.t_age % self.T_cycle
+
+        G = np.asarray(self.PermGroFac[0])
+        if G.ndim > 0:
+            G = float(G[0])
+        else:
+            G = float(G)
+        self.state_now["pLvl"] *= G**self.t_age
 
     def sim_birth(self, which_agents):
         """

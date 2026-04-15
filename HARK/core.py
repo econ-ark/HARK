@@ -1548,13 +1548,21 @@ class AgentType(Model):
                         ]
 
                 else:
-                    warn(
-                        "The option for reading shocks was activated but "
-                        + "the model requires state "
-                        + var_name
-                        + ", not contained in "
-                        + "newborn_init_history."
+                    # Only warn for idiosyncratic states (per-agent arrays).
+                    # Aggregate scalars (e.g. PlvlAgg) are not expected in
+                    # newborn_init_history and are set elsewhere.
+                    is_idio = (
+                        isinstance(self.state_now[var_name], np.ndarray)
+                        and len(self.state_now[var_name]) == self.AgentCount
                     )
+                    if is_idio:
+                        warn(
+                            "The option for reading shocks was activated but "
+                            + "the model requires state "
+                            + var_name
+                            + ", not contained in "
+                            + "newborn_init_history."
+                        )
 
         self.clear_history()
 

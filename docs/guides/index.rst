@@ -8,6 +8,7 @@ Guides
    quick_start
    installation
    simulation
+   transition_matrix_methods
    krusell_smith
    migration_case_study
 

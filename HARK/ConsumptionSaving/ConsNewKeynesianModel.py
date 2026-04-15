@@ -131,6 +131,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
     default_ = {
         "params": init_newkeynesian,
         "solver": solve_one_period_ConsIndShock,
+        "model": "ConsIndShock.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
