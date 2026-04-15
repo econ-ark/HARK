@@ -10,7 +10,7 @@ from numba import njit
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
 from typing import Callable
-from HARK.utilities import NullFunc, make_polynomial_grid
+from HARK.utilities import NullFunc, make_polynomial_grid, make_grid_exp_mult
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix, csc_matrix
 from scipy.sparse.linalg import eigs
@@ -627,7 +627,9 @@ class SimBlock:
         continuous_grid_out_bool : list
             List of booleans indicating whether each output grid is continuous.
         grid_orders : dict
-            Polynomial order for each variable grid (-1 for discrete, None if unknown).
+            Polynomial order for each variable grid (-1 for discrete, None if not polynomial).
+        grid_nests : dict
+            Number of times each variable grid is exponentially nested (None if not exponential).
         dummy_grid : np.ndarray or None
             Dummy grid used only when arrival_N == 0.
         """
@@ -641,6 +643,7 @@ class SimBlock:
 
         continuous_grid_out_bool = []
         grid_orders = {}
+        grid_nests = {}
         for var in grid_specs.keys():
             spec = grid_specs[var]
             try:
@@ -649,14 +652,39 @@ class SimBlock:
                 is_arrival = True
             except:
                 is_arrival = False
-            if ("min" in spec) and ("max" in spec):
-                Q = spec["order"] if "order" in spec else 1.0
+
+            # Determine whether it's polynomial, exponential, or custom
+            if "custom" in spec:  # it's custom-specified
+                new_grid = spec["custom"]
+                is_cont = True
+                grid_orders[var] = None
+                grid_nests[var] = None
+            elif ("min" in spec) and ("max" in spec):
                 bot = spec["min"]
                 top = spec["max"]
-                N = spec["N"]
-                new_grid = make_polynomial_grid(bot, top, N, Q)
+                try:
+                    N = spec["N"]
+                except:
+                    raise KeyError(
+                        "Need to specify number of gridpoints N in " + var + " grid!"
+                    )
+                if "order" in spec:  # it's polynomially spaced
+                    Q = spec["order"]
+                    new_grid = make_polynomial_grid(bot, top, N, Q)
+                    grid_orders[var] = Q
+                    grid_nests[var] = None
+                elif "nest" in spec:  # it's exponentially spaced
+                    K = spec["nest"]
+                    new_grid = make_grid_exp_mult(
+                        0.0, top - bot, timestonest=K, offset=bot
+                    )
+                    grid_orders[var] = None
+                    grid_nests[var] = K
+                else:  # default to linearly spaced grid
+                    new_grid = np.linspace(bot, top, N)
+                    grid_orders[var] = 1.0
+                    grid_nests[var] = None
                 is_cont = True
-                grid_orders[var] = Q
             elif "N" in spec:
                 new_grid = np.arange(spec["N"], dtype=int)
                 is_cont = False
@@ -665,6 +693,7 @@ class SimBlock:
                 new_grid = None  # could not make grid, construct later
                 is_cont = False
                 grid_orders[var] = None
+                grid_nests[var] = None
 
             if is_arrival:
                 grids_in[var] = new_grid
@@ -679,10 +708,23 @@ class SimBlock:
                     "No grid specification was provided for " + self.arrival[j] + "!"
                 )
 
-        return grids_in, grids_out, continuous_grid_out_bool, grid_orders, dummy_grid
+        return (
+            grids_in,
+            grids_out,
+            continuous_grid_out_bool,
+            grid_orders,
+            grid_nests,
+            dummy_grid,
+        )
 
     def _build_twist_grids(
-        self, twist, grids_in, grid_orders, grids_out, continuous_grid_out_bool
+        self,
+        twist,
+        grids_in,
+        grid_orders,
+        grid_nests,
+        grids_out,
+        continuous_grid_out_bool,
     ):
         """
         Override output grids with arrival-matching grids for continuation variables.
@@ -698,6 +740,8 @@ class SimBlock:
             Grids for arrival variables.
         grid_orders : dict
             Polynomial orders for each variable grid (modified in place).
+        grid_nests : dict
+            Exponential nesting for each variable grid (modified in place).
         grids_out : dict
             Grids for output variables (modified in place).
         continuous_grid_out_bool : list
@@ -709,6 +753,8 @@ class SimBlock:
             Updated output grids.
         grid_orders : dict
             Updated grid orders.
+        grid_nests : dict
+            Updated exponential nesting.
         grid_out_is_continuous : np.ndarray
             Boolean array indicating continuity of each output grid.
         """
@@ -719,14 +765,16 @@ class SimBlock:
                 continuous_grid_out_bool.append(is_cont)
             grids_out[cont_var] = copy(grids_in[arr_var])
             grid_orders[cont_var] = grid_orders[arr_var]
+            grid_nests[cont_var] = grid_nests[arr_var]
         grid_out_is_continuous = np.array(continuous_grid_out_bool)
-        return grids_out, grid_orders, grid_out_is_continuous
+        return grids_out, grid_orders, grid_nests, grid_out_is_continuous
 
     def _project_onto_output_grids(
         self,
         grids_out,
         grid_out_is_continuous,
         grid_orders,
+        grid_nests,
         cont_vars,
         twist,
         N_orig,
@@ -747,6 +795,8 @@ class SimBlock:
             Boolean continuity flags for each output variable.
         grid_orders : dict
             Polynomial orders for each variable grid.
+        grid_nests : dict
+            Exponential nesting count for each variable grid.
         cont_vars : list
             Names of continuation variables.
         twist : dict or None
@@ -802,18 +852,58 @@ class SimBlock:
                 # Split the final values among discrete gridpoints on the interior.
                 if M > 1:
                     Q = grid_orders[var]
-                    if var in cont_vars:
-                        trans_matrix, cont_idx[var], cont_alpha[var] = (
-                            aggregate_blobs_onto_polynomial_grid_alt(
-                                vals, pmv, origin_array, grid, J, Q
-                            )
+                    K = grid_nests[var]
+                    is_cont = var in cont_vars
+                    if Q is not None:  # it's a polynomial grid
+                        temp_func = (
+                            aggregate_blobs_onto_polynomial_grid_alt
+                            if is_cont
+                            else aggregate_blobs_onto_polynomial_grid
                         )
+                        temp_out = aggregate_blobs_onto_polynomial_grid(
+                            vals,
+                            pmv,
+                            origin_array,
+                            grid,
+                            J,
+                            Q,
+                        )
+                    elif K is not None:  # it's a multi-exponential grid
+                        temp_func = (
+                            aggregate_blobs_onto_exponential_grid_alt
+                            if is_cont
+                            else aggregate_blobs_onto_exponential_grid
+                        )
+                        trans_matrix = temp_func(
+                            vals,
+                            pmv,
+                            origin_array,
+                            grid,
+                            J,
+                            K,
+                        )
+                    else:  # it's a custom grid
+                        temp_func = (
+                            aggregate_blobs_onto_custom_grid_alt
+                            if is_cont
+                            else aggregate_blobs_onto_exponential_grid
+                        )
+                        trans_matrix = temp_func(
+                            vals,
+                            pmv,
+                            origin_array,
+                            grid,
+                            J,
+                        )
+
+                    # Unpack the output from that function call
+                    if is_cont:
                         cont_M[var] = M
                         cont_discrete[var] = False
+                        trans_matrix, cont_idx[var], cont_alpha[var] = temp_out
                     else:
-                        trans_matrix = aggregate_blobs_onto_polynomial_grid(
-                            vals, pmv, origin_array, grid, J, Q
-                        )
+                        trans_matrix = temp_out
+
                 else:  # Skip if the grid is a dummy with only one value.
                     trans_matrix = np.ones((J, M))
                     if var in cont_vars:
@@ -986,11 +1076,12 @@ class SimBlock:
         Parameters
         ----------
         grid_specs : dict
-            Dictionary of dictionaries of grid specifications. For now, these have
-            at most a minimum value, a maximum value, a number of nodes, and a poly-
-            nomial order. They are equispaced if a min and max are specified, and
-            polynomially spaced with the specified order > 0 if provided. Otherwise,
-            they are set at 0,..,N if only N is provided.
+            Dictionary of dictionaries of grid specifications. The specification
+            for a continuous state variable's grid should include an entry for the
+            `min` and `max`, as well as a number of gridpoints `N`. The spacing of
+            the points is determined by setting `order` (polynomial) or `nest`
+            (multi-exponential). If neither is provided, then spacing is linear.
+            If only `N` is given, then the gridpoints are the integers 0,...,N.
         twist : dict or None
             Mapping from end-of-period (continuation) variables to successor's
             arrival variables. When this is specified, additional output is created
@@ -1006,14 +1097,26 @@ class SimBlock:
         arrival_N = len(self.arrival)
 
         # Build input and output grids from grid specifications
-        grids_in, grids_out, continuous_grid_out_bool, grid_orders, dummy_grid = (
-            self._build_input_grids(grid_specs, arrival_N)
-        )
+        (
+            grids_in,
+            grids_out,
+            continuous_grid_out_bool,
+            grid_orders,
+            grid_nests,
+            dummy_grid,
+        ) = self._build_input_grids(grid_specs, arrival_N)
 
         # If a twist was specified, override output grids for continuation variables
         if twist is not None:
-            grids_out, grid_orders, grid_out_is_continuous = self._build_twist_grids(
-                twist, grids_in, grid_orders, grids_out, continuous_grid_out_bool
+            grids_out, grid_orders, grid_nests, grid_out_is_continuous = (
+                self._build_twist_grids(
+                    twist,
+                    grids_in,
+                    grid_orders,
+                    grid_nests,
+                    grids_out,
+                    continuous_grid_out_bool,
+                )
             )
         else:
             grid_out_is_continuous = np.array(continuous_grid_out_bool)
@@ -1074,6 +1177,7 @@ class SimBlock:
             grids_out,
             grid_out_is_continuous,
             grid_orders,
+            grid_nests,
             cont_vars,
             twist,
             N_orig,
@@ -3656,7 +3760,7 @@ def aggregate_blobs_onto_polynomial_grid(
     vals, pmv, origins, grid, J, Q
 ):  # pragma: no cover
     """
-    Numba-compatible helper function for casting "probability blobs" onto a discretized
+    Numba-compatible helper function for casting "probability blobs" onto a polynomial
     grid of outcome values, based on their origin in the arrival state space. This
     version is for non-continuation variables, returning only the probability array
     mapping from arrival states to the outcome variable.
@@ -3689,11 +3793,92 @@ def aggregate_blobs_onto_polynomial_grid(
 
 
 @njit
+def aggregate_blobs_onto_exponential_grid(
+    vals, pmv, origins, grid, J, K
+):  # pragma: no cover
+    """
+    Numba-compatible helper function for casting "probability blobs" onto an exponential
+    grid of outcome values, based on their origin in the arrival state space. This
+    version is for non-continuation variables, returning only the probability array
+    mapping from arrival states to the outcome variable.
+    """
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    Mm1 = M - 1
+    N = pmv.size
+    diffs = grid[1:] - grid[:-1]
+    ltop = top - bot
+    for k in range(K):
+        ltop = np.log(ltop + 1)
+    scale = 1.0 / ltop
+
+    probs = np.zeros((J, M))
+
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            y = x
+            for k in range(K):
+                y = np.log(y + 1)
+            ii = int(np.floor(y * scale * Mm1))
+            temp = (x - grid[ii]) / diffs[ii]
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
+        elif x <= bot:
+            probs[jj, 0] += p
+        else:
+            probs[jj, -1] += p
+    return probs
+
+
+@njit
+def aggregate_blobs_onto_custom_grid(
+    vals,
+    pmv,
+    origins,
+    grid,
+    J,
+):  # pragma: no cover
+    """
+    Numba-compatible helper function for casting "probability blobs" onto a custom
+    grid of outcome values, based on their origin in the arrival state space. This
+    version is for non-continuation variables, returning only the probability array
+    mapping from arrival states to the outcome variable.
+    """
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    N = pmv.size
+    diffs = grid[1:] - grid[:-1]
+
+    probs = np.zeros((J, M))
+    idx = np.searchsorted(grid, vals)
+
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            ii = idx[n]
+            temp = (x - grid[ii]) / diffs[ii]
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
+        elif x <= bot:
+            probs[jj, 0] += p
+        else:
+            probs[jj, -1] += p
+    return probs
+
+
+@njit
 def aggregate_blobs_onto_polynomial_grid_alt(
     vals, pmv, origins, grid, J, Q
 ):  # pragma: no cover
     """
-    Numba-compatible helper function for casting "probability blobs" onto a discretized
+    Numba-compatible helper function for casting "probability blobs" onto a polynomial
     grid of outcome values, based on their origin in the arrival state space. This
     version is for continuation variables, returning the probability array mapping
     from arrival states to the outcome variable, the index in the outcome variable grid
@@ -3718,6 +3903,100 @@ def aggregate_blobs_onto_polynomial_grid_alt(
         p = pmv[n]
         if (x > bot) and (x < top):
             ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            temp = (x - grid[ii]) / diffs[ii]
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
+            alpha[n] = temp
+            idx[n] = ii
+        elif x <= bot:
+            probs[jj, 0] += p
+            alpha[n] = 0.0
+            idx[n] = 0
+        else:
+            probs[jj, -1] += p
+            alpha[n] = 1.0
+            idx[n] = M - 2
+    return probs, idx, alpha
+
+
+@njit
+def aggregate_blobs_onto_exponential_grid_alt(
+    vals, pmv, origins, grid, J, K
+):  # pragma: no cover
+    """
+    Numba-compatible helper function for casting "probability blobs" onto an exponential
+    grid of outcome values, based on their origin in the arrival state space. This
+    version is for continuation variables, returning the probability array mapping
+    from arrival states to the outcome variable, the index in the outcome variable grid
+    for each blob, and the alpha weighting between gridpoints.
+    """
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    Mm1 = M - 1
+    N = pmv.size
+    diffs = grid[1:] - grid[:-1]
+    ltop = top - bot
+    for k in range(K):
+        ltop = np.log(ltop + 1)
+    scale = 1.0 / ltop
+
+    probs = np.zeros((J, M))
+    idx = np.empty(N, dtype=np.dtype(np.int32))
+    alpha = np.empty(N)
+
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            y = x
+            for k in range(K):
+                y = np.log(y + 1)
+            ii = int(np.floor(y * scale * Mm1))
+            temp = (x - grid[ii]) / diffs[ii]
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
+            alpha[n] = temp
+            idx[n] = ii
+        elif x <= bot:
+            probs[jj, 0] += p
+            alpha[n] = 0.0
+            idx[n] = 0
+        else:
+            probs[jj, -1] += p
+            alpha[n] = 1.0
+            idx[n] = M - 2
+    return probs, idx, alpha
+
+
+@njit
+def aggregate_blobs_onto_custom_grid_alt(
+    vals, pmv, origins, grid, J, K
+):  # pragma: no cover
+    """
+    Numba-compatible helper function for casting "probability blobs" onto a custom
+    grid of outcome values, based on their origin in the arrival state space. This
+    version is for continuation variables, returning the probability array mapping
+    from arrival states to the outcome variable, the index in the outcome variable grid
+    for each blob, and the alpha weighting between gridpoints.
+    """
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    N = pmv.size
+    diffs = grid[1:] - grid[:-1]
+
+    probs = np.zeros((J, M))
+    idx = np.searchsorted(grid, vals)
+    alpha = np.empty(N)
+
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            ii = idx[n]
             temp = (x - grid[ii]) / diffs[ii]
             probs[jj, ii] += (1.0 - temp) * p
             probs[jj, ii + 1] += temp * p
