@@ -302,6 +302,15 @@ uv.lock
 # Local simulation notes and scratch work
 sims-about/**
 
+# AI tool config
+.ragignore
+
+# Debug/scratch notebooks (keep locally, don't ship)
+*_debug*.ipynb
+
+# Test scripts in example directories (real tests go in tests/)
+examples/**/test_*.py
+
 # Generated test artifacts
 test.jpg
 test.pdf
