@@ -64,3 +64,11 @@ class FuncTest(unittest.TestCase):
         agent.track_vars = ["cNrm", "aNrm"]
         agent.initialize_sim()
         agent.simulate()
+
+    def test_invalid(self):
+        # Fail impatience conditions
+        ThisType = Model.TractableConsumerType(PermGroFac=0.6)
+        self.assertRaises(ValueError, ThisType.solve)
+
+        ThisType = Model.TractableConsumerType(DiscFac=1.2)
+        self.assertRaises(ValueError, ThisType.solve)

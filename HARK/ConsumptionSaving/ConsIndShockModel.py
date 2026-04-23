@@ -1249,13 +1249,13 @@ class PerfForesightConsumerType(AgentType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -1335,7 +1335,7 @@ class PerfForesightConsumerType(AgentType):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
-        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        are drawn from lognormal distributions given by kLogInitMean and kLogInitStd (etc).
 
         Parameters
         ----------
@@ -1953,8 +1953,7 @@ IndShockConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
 }
 IndShockConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -2069,13 +2068,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -2152,12 +2151,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
-        for t in np.unique(self.t_cycle):
-            idx = self.t_cycle == t
-
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
+        for s in np.unique(self.t_cycle):
+            idx = self.t_cycle == s
+            t = s - 1
 
             N = np.sum(idx)
             if N > 0:
@@ -2807,13 +2803,13 @@ class KinkedRconsumerType(IndShockConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).

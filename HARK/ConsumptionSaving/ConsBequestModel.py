@@ -51,12 +51,40 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.rewards import UtilityFuncCRRA, UtilityFuncStoneGeary
-from HARK.utilities import make_assets_grid
+from HARK.utilities import make_assets_grid, get_it_from
 
 
-def make_bequest_solution_terminal(
-    CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
-):
+def translate_bequest_params(CRRA, BeqMPC, BeqInt):
+    """
+    Translate bequest MPC and intercept into scaling factor and shifter.
+
+    Passing ``BeqMPC=None`` and ``BeqInt=None`` is treated as a sentinel for
+    "no bequest motive", returning ``BeqFac=0.0`` and ``BeqShift=0.0``.
+    Otherwise, ``CRRA``, ``BeqMPC``, and ``BeqInt`` must be finite and
+    ``BeqMPC`` must be strictly positive.
+    """
+    if BeqMPC is None or BeqInt is None:
+        if BeqMPC is None and BeqInt is None:
+            return {"BeqFac": 0.0, "BeqShift": 0.0}
+        raise ValueError(
+            "BeqMPC and BeqInt must either both be provided or both be None."
+        )
+
+    if not np.isfinite(CRRA):
+        raise ValueError("CRRA must be finite.")
+    if not np.isfinite(BeqMPC):
+        raise ValueError("BeqMPC must be finite.")
+    if not np.isfinite(BeqInt):
+        raise ValueError("BeqInt must be finite.")
+    if BeqMPC <= 0:
+        raise ValueError("BeqMPC must be strictly positive.")
+    BeqFac = BeqMPC ** (-CRRA)
+    BeqShift = BeqInt / BeqMPC
+    out = {"BeqFac": BeqFac, "BeqShift": BeqShift}
+    return out
+
+
+def make_bequest_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid):
     """
     Make the terminal period solution when there is a warm glow bequest motive with
     Stone-Geary form utility. If there is no warm glow bequest motive (BeqFacTerm = 0),
@@ -66,11 +94,9 @@ def make_bequest_solution_terminal(
     ----------
     CRRA : float
         Coefficient on relative risk aversion over consumption.
-    BeqCRRATerm : float
-        Coefficient on relative risk aversion in the terminal warm glow bequest motive.
-    BeqFacTerm : float
+    BeqFac : float
         Scaling factor for the terminal warm glow bequest motive.
-    BeqShiftTerm : float
+    BeqShift : float
         Stone-Geary shifter term for the terminal warm glow bequest motive.
     aXtraGrid : np.array
         Set of assets-above-minimum to be used in the solution.
@@ -80,18 +106,18 @@ def make_bequest_solution_terminal(
     solution_terminal : ConsumerSolution
         Terminal period solution when there is a warm glow bequest.
     """
-    if BeqFacTerm == 0.0:  # No terminal bequest
+    if BeqFac == 0.0:  # No bequest motive
         solution_terminal = make_basic_CRRA_solution_terminal(CRRA)
         return solution_terminal
 
     utility = UtilityFuncCRRA(CRRA)
     warm_glow = UtilityFuncStoneGeary(
-        BeqCRRATerm,
-        factor=BeqFacTerm,
-        shifter=BeqShiftTerm,
+        CRRA,
+        factor=BeqFac,
+        shifter=BeqShift,
     )
 
-    aNrmGrid = np.append(0.0, aXtraGrid) if BeqShiftTerm != 0.0 else aXtraGrid
+    aNrmGrid = np.append(0.0, aXtraGrid) if BeqShift != 0.0 else aXtraGrid
     cNrmGrid = utility.derinv(warm_glow.der(aNrmGrid))
     vGrid = utility(cNrmGrid) + warm_glow(aNrmGrid)
     cNrmGridW0 = np.append(0.0, cNrmGrid)
@@ -117,9 +143,7 @@ def make_bequest_solution_terminal(
     return solution_terminal
 
 
-def make_warmglow_portfolio_solution_terminal(
-    CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
-):
+def make_warmglow_portfolio_solution_terminal(CRRA, BeqFac, BeqShift, aXtraGrid):
     """
     Make the terminal period solution when there is a warm glow bequest motive with
     Stone-Geary form utility and portfolio choice. If there is no warm glow bequest
@@ -129,11 +153,9 @@ def make_warmglow_portfolio_solution_terminal(
     ----------
     CRRA : float
         Coefficient on relative risk aversion over consumption.
-    BeqCRRATerm : float
-        Coefficient on relative risk aversion in the terminal warm glow bequest motive.
-    BeqFacTerm : float
+    BeqFac : float
         Scaling factor for the terminal warm glow bequest motive.
-    BeqShiftTerm : float
+    BeqShift : float
         Stone-Geary shifter term for the terminal warm glow bequest motive.
     aXtraGrid : np.array
         Set of assets-above-minimum to be used in the solution.
@@ -143,13 +165,13 @@ def make_warmglow_portfolio_solution_terminal(
     solution_terminal : ConsumerSolution
         Terminal period solution when there is a warm glow bequest and portfolio choice.
     """
-    if BeqFacTerm == 0.0:  # No terminal bequest
+    if BeqFac == 0.0:  # No bequest motive
         solution_terminal = make_portfolio_solution_terminal(CRRA)
         return solution_terminal
 
     # Solve the terminal period problem when there is no portfolio choice
     solution_terminal_no_port = make_bequest_solution_terminal(
-        CRRA, BeqCRRATerm, BeqFacTerm, BeqShiftTerm, aXtraGrid
+        CRRA, BeqFac, BeqShift, aXtraGrid
     )
 
     # Take consumption function from the no portfolio choice solution
@@ -198,7 +220,6 @@ def solve_one_period_ConsWarmBequest(
     PermGroFac,
     BoroCnstArt,
     aXtraGrid,
-    BeqCRRA,
     BeqFac,
     BeqShift,
     CubicBool,
@@ -236,8 +257,6 @@ def solve_one_period_ConsWarmBequest(
     aXtraGrid : np.array
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.
-    BeqCRRA : float
-        Coefficient of relative risk aversion for warm glow bequest motive.
     BeqFac : float
         Multiplicative intensity factor for the warm glow bequest motive.
     BeqShift : float
@@ -257,7 +276,7 @@ def solve_one_period_ConsWarmBequest(
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
     BeqFacEff = (1.0 - LivPrb) * BeqFac  # "effective" bequest factor
-    warm_glow = UtilityFuncStoneGeary(BeqCRRA, BeqFacEff, BeqShift)
+    warm_glow = UtilityFuncStoneGeary(CRRA, BeqFacEff, BeqShift)
 
     # Unpack next period's income shock distribution
     ShkPrbsNext = IncShkDstn.pmv
@@ -297,10 +316,9 @@ def solve_one_period_ConsWarmBequest(
 
     # Set the minimum allowable (normalized) market resources based on the natural
     # and artificial borrowing constraints
-    if BoroCnstArt is None:
-        mNrmMinNow = BoroCnstNat
-    else:
-        mNrmMinNow = np.max([BoroCnstNat, BoroCnstArt])
+    mNrmMinNow = (
+        BoroCnstNat if BoroCnstArt is None else np.max([BoroCnstNat, BoroCnstArt])
+    )
 
     # Set the upper limit of the MPC (at mNrmMinNow) based on whether the natural
     # or artificial borrowing constraint actually binds
@@ -458,7 +476,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
     ShareLimit,
     vFuncBool,
     DiscreteShareBool,
-    BeqCRRA,
     BeqFac,
     BeqShift,
 ):
@@ -522,8 +539,6 @@ def solve_one_period_ConsPortfolioWarmGlow(
     IndepDstnBool : bool
         Indicator for whether the income and risky return distributions are in-
         dependent of each other, which can speed up the expectations step.
-    BeqCRRA : float
-        Coefficient of relative risk aversion for warm glow bequest motive.
     BeqFac : float
         Multiplicative intensity factor for the warm glow bequest motive.
     BeqShift : float
@@ -550,7 +565,7 @@ def solve_one_period_ConsPortfolioWarmGlow(
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
     BeqFacEff = (1.0 - LivPrb) * BeqFac  # "effective" bequest factor
-    warm_glow = UtilityFuncStoneGeary(BeqCRRA, BeqFacEff, BeqShift)
+    warm_glow = UtilityFuncStoneGeary(CRRA, BeqFacEff, BeqShift)
 
     # Unpack next period's solution for easier access
     vPfuncAdj_next = solution_next.vPfuncAdj
@@ -949,6 +964,9 @@ warmglow_constructor_dict = {
     "solution_terminal": make_bequest_solution_terminal,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "BeqParams": translate_bequest_params,
+    "BeqFac": get_it_from("BeqParams"),
+    "BeqShift": get_it_from("BeqParams"),
 }
 
 # Make a dictionary with parameters for the default constructor for kNrmInitDstn
@@ -992,6 +1010,7 @@ init_warm_glow = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
+    "pseudo_terminal": False,  # Terminal period really does exist
     "constructors": warmglow_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion on consumption
@@ -1000,12 +1019,8 @@ init_warm_glow = {
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "BeqCRRA": 2.0,  # Coefficient of relative risk aversion for bequest motive
-    "BeqFac": 40.0,  # Scaling factor for bequest motive
-    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
-    "BeqCRRATerm": 2.0,  # Coefficient of relative risk aversion for bequest motive, terminal period only
-    "BeqFacTerm": 40.0,  # Scaling factor for bequest motive, terminal period only
-    "BeqShiftTerm": 0.0,  # Stone-Geary shifter term for bequest motive, terminal period only
+    "BeqMPC": 0.2,  # Marginal propensity to consume in terminal period
+    "BeqInt": 0.1,  # Intercept term in terminal period consumption function
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
@@ -1027,15 +1042,8 @@ init_warm_glow.update(default_pLvlInitDstn_params)
 
 # Make a dictionary with bequest motives turned off
 init_accidental_bequest = init_warm_glow.copy()
-init_accidental_bequest["BeqFac"] = 0.0
-init_accidental_bequest["BeqShift"] = 0.0
-init_accidental_bequest["BeqFacTerm"] = 0.0
-init_accidental_bequest["BeqShiftTerm"] = 0.0
-
-# Make a dictionary that has *only* a terminal period bequest
-init_warm_glow_terminal_only = init_warm_glow.copy()
-init_warm_glow_terminal_only["BeqFac"] = 0.0
-init_warm_glow_terminal_only["BeqShift"] = 0.0
+init_accidental_bequest["BeqMPC"] = None
+init_accidental_bequest["BeqInt"] = None
 
 
 class BequestWarmGlowConsumerType(IndShockConsumerType):
@@ -1081,20 +1089,10 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
-    BeqCRRA: float, :math:`\rho_{Beq}`
-        Coefficient of Relative Risk Aversion for the bequest motive.
-        If this value isn't the same as CRRA, then the model can only be represented as a Bellman equation.
-        This may cause unintented behavior.
-    BeqCRRATerm: float, :math:`\rho_{Beq}`
-        The Coefficient of Relative Risk Aversion for the bequest motive, but only in the terminal period.
-        In most cases this should be the same as beqCRRA.
     BeqShift: float, :math:`\textbf{BeqShift}`
         The Shift term from the bequest motive's utility function.
         If this value isn't 0, then the model can only be represented as a Bellman equation.
         This may cause unintented behavior.
-    BeqShiftTerm: float, :math:`\textbf{BeqShift}`
-        The shift term from the bequest motive's utility function, in the terminal period.
-        In most cases this should be the same as beqShift
     BeqFac: float, :math:`\textbf{BeqFac}`
         The weight for the bequest's utility function.
     Rfree: float or list[float], time varying, :math:`\mathsf{R}`
@@ -1169,9 +1167,9 @@ class BequestWarmGlowConsumerType(IndShockConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
+    time_inv_ = IndShockConsumerType.time_inv_ + ["BeqShift", "BeqFac"]
     default_ = {
-        "params": init_accidental_bequest,
+        "params": init_warm_glow,
         "solver": solve_one_period_ConsWarmBequest,
         "model": "ConsIndShock.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
@@ -1203,6 +1201,9 @@ portfolio_bequest_constructor_dict = {
     "AdjustDstn": make_AdjustDstn,
     "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
     "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "BeqParams": translate_bequest_params,
+    "BeqFac": get_it_from("BeqParams"),
+    "BeqShift": get_it_from("BeqParams"),
     "solution_terminal": make_warmglow_portfolio_solution_terminal,
 }
 
@@ -1246,9 +1247,9 @@ default_aXtraGrid_params = {
 # Default parameters to make RiskyDstn with make_lognormal_RiskyDstn (and uniform ShareGrid)
 default_RiskyDstn_and_ShareGrid_params = {
     "RiskyAvg": 1.08,  # Mean return factor of risky asset
-    "RiskyStd": 0.18362634887,  # Stdev of log returns on risky asset
+    "RiskyStd": 0.18,  # Stdev of log returns on risky asset
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
-    "ShareCount": 25,  # Number of discrete points in the risky share approximation
+    "ShareCount": 26,  # Number of discrete points in the risky share approximation
 }
 
 # Make a dictionary to specify a risky asset consumer type
@@ -1258,26 +1259,22 @@ init_portfolio_bequest = {
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": portfolio_bequest_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
-    "CRRA": 5.0,  # Coefficient of relative risk aversion
+    "CRRA": 2.0,  # Coefficient of relative risk aversion
     "Rfree": [1.03],  # Return factor on risk free asset
-    "DiscFac": 0.90,  # Intertemporal discount factor
+    "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "BeqCRRA": 2.0,  # Coefficient of relative risk aversion for bequest motive
-    "BeqFac": 40.0,  # Scaling factor for bequest motive
-    "BeqShift": 0.0,  # Stone-Geary shifter term for bequest motive
-    "BeqCRRATerm": 2.0,  # Coefficient of relative risk aversion for bequest motive, terminal period only
-    "BeqFacTerm": 40.0,  # Scaling factor for bequest motive, terminal period only
-    "BeqShiftTerm": 0.0,  # Stone-Geary shifter term for bequest motive, terminal period only
+    "BeqMPC": 0.2,  # Marginal propensity to consume in terminal period
+    "BeqInt": 0.1,  # Intercept term in terminal period consumption function
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
     "IndepDstnBool": True,  # Indicator for whether return & income shocks are independent
-    "PortfolioBool": True,  # Whether this agent has portfolio choice
     "PortfolioBisect": False,  # What does this do?
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -1354,20 +1351,10 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
         Number of periods in the cycle for this agent type.
     CRRA: float, :math:`\rho`
         Coefficient of Relative Risk Aversion.
-    BeqCRRA: float, :math:`\rho_{Beq}`
-        Coefficient of Relative Risk Aversion for the bequest motive.
-        If this value isn't the same as CRRA, then the model can only be represented as a Bellman equation.
-        This may cause unintented behavior.
-    BeqCRRATerm: float, :math:`\rho_{Beq}`
-        The Coefficient of Relative Risk Aversion for the bequest motive, but only in the terminal period.
-        In most cases this should be the same as beqCRRA.
     BeqShift: float, :math:`\textbf{BeqShift}`
         The Shift term from the bequest motive's utility function.
         If this value isn't 0, then the model can only be represented as a Bellman equation.
         This may cause unintented behavior.
-    BeqShiftTerm: float, :math:`\textbf{BeqShift}`
-        The shift term from the bequest motive's utility function, in the terminal period.
-        In most cases this should be the same as beqShift
     BeqFac: float, :math:`\textbf{BeqFac}`
         The weight for the bequest's utility function.
     Rfree: float or list[float], time varying, :math:`\mathsf{R}`
@@ -1451,10 +1438,10 @@ class BequestWarmGlowPortfolioType(PortfolioConsumerType):
         Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
-    time_inv_ = PortfolioConsumerType.time_inv_ + ["BeqCRRA", "BeqShift", "BeqFac"]
+    time_inv_ = PortfolioConsumerType.time_inv_ + ["BeqShift", "BeqFac"]
     default_ = {
         "params": init_portfolio_bequest,
         "solver": solve_one_period_ConsPortfolioWarmGlow,
-        "model": "ConsRiskyAsset.yaml",
+        "model": "ConsPortfolio.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }

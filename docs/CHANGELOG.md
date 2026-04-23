@@ -8,6 +8,43 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.17.2 (dev)
+
+Release Date: TBD
+
+#### Release Notes
+
+There are some breaking changes:
+
+- `AgentType` subclasses that had a `get_economy_data` method now use the general `AgentType.get_market_params` method, which exactly replicates their prior operation. See #1719
+- As a consequence of the above, random seeds on the distributions of some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
+- Parameter `PortfolioBool` has been deprecated. To allow portfolio choice for `RiskyAssetConsumerType`, just set `RiskyShareFixed=None`. #1740
+- The parameter `BeqCRRA` has been deprecated; agents with a warm glow bequest motive must use the same CRRA as their ordinary utility function. #1758
+- "Terminal bequest parameters" have been deprecated; agents have the same bequest motive in period T as they do in all other periods. #1758
+
+#### Major Changes
+
+- The new way to set up `AgentType` instances with an associated `Market` is to create them (with the agents in the `Market`'s `agents` attribute), then invoke the `Market`'s new `give_agent_params()` method. #1719
+- The above method calls each `agent`'s `get_market_params()` method, which references the `market_vars` class attribute for the names of objects to take from the associated `Market`.
+- All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
+- New consumption-saving model with habit formation has been added; extends IndShockConsumerType model. #1739
+- Added habit-formation model with portfolio allocation, along with example notebooks. #1748
+- Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
+- Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
+
+#### Minor Changes
+
+- The special constructor `get_it_from` can now interpret the referenced attribute being a single value (any numeric or string) and will simply copy it to the new name. #1719
+- A `Market`'s `calc_dynamics` function/method can now use arguments other than those named in `track_vars`; HARK will look for those names as attributes of the `Market`. #1719
+- The _derY method for `LowerEnvelope2D` and `LowerEnvelope3D` were previously bugged and returned nonsense, now fixed. #1723
+- Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
+- Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
+- Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
+- Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740
+- Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
+- Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
+- Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
+
 ### 0.17.1
 
 Release Date: February 2, 2026

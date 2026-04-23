@@ -29,7 +29,7 @@ from HARK.ConsumptionSaving.ConsGenIncProcessModel import (
 from HARK.distributions import (
     Lognormal,
     MultivariateLogNormal,
-    add_discrete_outcome_constant_mean,
+    add_discrete_outcome,
     expected,
 )
 from HARK.interpolation import (
@@ -275,6 +275,7 @@ def make_lognormal_MedShkDstn(
     MedShkCountTail,
     RNG,
     MedShkTailBound=[0.0, 0.9],
+    MedShkZeroPrb=[0.0],
 ):
     r"""
     Constructs discretized lognormal distributions of medical preference shocks
@@ -290,9 +291,9 @@ def make_lognormal_MedShkDstn(
     T_cycle : int
         Number of non-terminal periods in the agent's cycle.
     MedShkAvg : [float]
-        Mean of medical needs shock in each period of the problem.
+        Mean of non-zero medical needs shock in each period of the problem.
     MedShkStd : [float]
-        Standard deviation of log medical needs shock in each period of the problem.
+        Standard deviation of log (non-zero) medical needs shock in each period of the problem.
     MedShkCount : int
         Number of equiprobable nodes in the "body" of the discretization.
     MedShkCountTail : int
@@ -301,6 +302,8 @@ def make_lognormal_MedShkDstn(
         The AgentType's internal random number generator.
     MedShkTailBound : [float,float]
         CDF bounds for the tail of the discretization.
+    MedShkZeroPrb : [float]
+        Probability of getting a zero medical need shock in each period (default zero).
 
     Returns
     -------
@@ -321,9 +324,9 @@ def make_lognormal_MedShkDstn(
             tail_N=MedShkCountTail,
             tail_bound=MedShkTailBound,
         )
-        MedShkDstn_t = add_discrete_outcome_constant_mean(
-            MedShkDstn_t, 0.0, 0.0, sort=True
-        )  # add point at zero with no probability
+        MedShkDstn_t = add_discrete_outcome(
+            MedShkDstn_t, 0.0, MedShkZeroPrb[t], sort=True
+        )  # add point at zero
         MedShkDstn.append(MedShkDstn_t)
     return MedShkDstn
 
@@ -950,10 +953,8 @@ default_pLvlPctiles_params = {
 default_pLvlGrid_params = {
     "pLvlInitMean": 0.0,  # Mean of log initial permanent income
     "pLvlInitStd": 0.4,  # Standard deviation of log initial permanent income *MUST BE POSITIVE*
-    # "pLvlPctiles": pLvlPctiles,  # Percentiles of permanent income to use for the grid
-    "pLvlExtra": [
-        0.0001
-    ],  # Additional permanent income points to automatically add to the grid, optional
+    "pLvlExtra": [0.0001],
+    # Additional permanent income points to automatically add to the grid, optional
 }
 
 # Default parameters to make pLvlNextFunc using make_AR1_style_pLvlNextFunc
@@ -1008,6 +1009,42 @@ init_medical_shocks.update(default_MedShkDstn_params)
 init_medical_shocks.update(default_pLvlNextFunc_params)
 init_medical_shocks.update(default_pLvlInitDstn_params)
 init_medical_shocks.update(default_kNrmInitDstn_params)
+
+
+# This dictionary is based on the main specification results in Fulford and Low's
+# "Expense Shocks Matter". These expenses represent *all* unexpected spending, not
+# just medical expenses. It is calibrated at an annual frequency. The specification
+# in their paper has serially correlated expense shocks (with a low correlation
+# coefficient of about 0.086) and serially correlated unemployment ("crisis income"),
+# which are not present for MedShockConsumerType. The unemployment probability here
+# is thus the (approximate) fraction of the time a consumer will spend in the crisis
+# state. Moreover, the medical shock parameters here differ from those in Fulford &
+# Low's January 2026 paper version. In private correspondence with them, MNW found
+# that their results hinged critically on the specific method they used to discretize
+# the lognormal shock distribution. The parameters below match the following three
+# key statistics from their exercise: mean of (non-zero) expense ratio is about 16.2%,
+# standard deviation of log non-zero expense ratio is about 1.1, and mean wealth is
+# about 0.6 times income.
+Fulford_and_Low_params = {
+    "cycles": 0,
+    "DiscFac": 0.85,
+    "LivPrb": [1.0],
+    "CRRA": 2.0,
+    "CRRAmed": 4.0,
+    "Rfree": [1.01],
+    "TranShkStd": [0.2],
+    "PermShkStd": [0.117],
+    "PrstIncCorr": 0.97,
+    "BoroCnstArt": -0.185,
+    "MedShkAvg": [0.121],
+    "MedShkStd": [1.55],
+    "MedShkCountTail": 5,
+    "MedShkTailBound": [0.0, 0.9],
+    "MedShkZeroPrb": [0.31],
+    "MedPrice": [1.0],
+    "IncUnemp": 0.195,
+    "UnempPrb": 0.018,
+}
 
 
 class MedShockConsumerType(PersistentShockConsumerType):
@@ -1097,7 +1134,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
 
         cLvl is the nominal consumption level
 
-        Med is the nominal medical spending level
+        MedLvl is the nominal medical spending level
 
         mLvl is the nominal market resources
 
@@ -1147,7 +1184,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         "params": init_medical_shocks,
         "solver": solve_one_period_ConsMedShock,
         "model": "ConsMedShock.yaml",
-        "track_vars": ["aLvl", "cLvl", "Med", "mLvl", "pLvl"],
+        "track_vars": ["aLvl", "cLvl", "MedLvl", "mLvl", "pLvl"],
     }
 
     time_vary_ = PersistentShockConsumerType.time_vary_ + [
@@ -1223,7 +1260,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
                 self.shocks["MedShk"][these],
             )
         self.controls["cLvl"] = cLvlNow
-        self.controls["Med"] = MedNow
+        self.controls["MedLvl"] = MedNow
 
     def get_poststates(self):
         """
@@ -1240,7 +1277,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
         self.state_now["aLvl"] = (
             self.state_now["mLvl"]
             - self.controls["cLvl"]
-            - self.shocks["MedPrice"] * self.controls["Med"]
+            - self.shocks["MedPrice"] * self.controls["MedLvl"]
         )
 
 

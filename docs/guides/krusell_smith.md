@@ -20,19 +20,15 @@ from HARK.ConsumptionSaving.ConsAggShockModel import (
 
 # Create agent
 agent = KrusellSmithType()
-agent.cycles = 0
-agent.AgentCount = 5000
 
-# Create economy
-economy = KrusellSmithEconomy(agents=[agent])
-economy.max_loops = 10
-economy.verbose = True
+# Create economy with those agents
+economy = KrusellSmithEconomy(agents=[agent], verbose=True)
 
 # Link agent to economy
-agent.get_economy_data(economy)
+economy.give_agent_params()
 
 # Solve for equilibrium
-economy.make_AggShkHist()
+economy.make_Mrkv_history()
 economy.solve()
 
 # Access results
@@ -67,11 +63,9 @@ shock_vars_ = ["Mrkv"]  # Markov state shock
 from HARK.ConsumptionSaving.ConsAggShockModel import KrusellSmithType
 
 agent = KrusellSmithType()
-agent.cycles = 0  # Infinite horizon
-agent.AgentCount = 5000  # Number of agents to simulate
 ```
 
-Note: The `KrusellSmithType` must be used in conjunction with a `KrusellSmithEconomy` instance. Use the `get_economy_data()` method to import economy-determined objects into the agent.
+Note: The `KrusellSmithType` must be used in conjunction with a `KrusellSmithEconomy` instance.
 
 ### `KrusellSmithEconomy` Class
 
@@ -99,10 +93,11 @@ dyn_vars = ["AFunc"]  # Dynamic rules that evolve during solution
 from HARK.ConsumptionSaving.ConsAggShockModel import KrusellSmithEconomy
 
 economy = KrusellSmithEconomy(agents=[agent])
-economy.max_loops = 10  # Maximum iterations for equilibrium
-economy.act_T = 11000  # Simulation periods
-economy.T_discard = 1000  # Initial periods to discard
+economy.make_Mrkv_history()  # draw a sequence of economic states
+economy.give_agent_params()  # distribute economy-level objects
 ```
+
+Use the `give_agent_params()` method to send economy-determined objects into the agents.
 
 ## Model Parameters
 
@@ -179,12 +174,6 @@ For a detailed implementation example, see the [KrusellSmith.ipynb](https://gith
 ### Solving Individual Problem Only
 
 ```python
-# First link to economy to get aggregate dynamics
-agent.get_economy_data(economy)
-
-# Construct solution inputs
-agent.construct()
-
 # Solve the individual problem
 agent.solve()
 
@@ -207,17 +196,8 @@ agent.simulate()
 
 # Access simulated data
 import numpy as np
-mean_wealth = np.mean(agent.history['aNow'])
-employment_rate = np.mean(agent.history['EmpNow'])
-```
-
-### Checking Convergence
-
-```python
-if economy.dynamics.distance < economy.tolerance:
-    print("Converged!")
-else:
-    print(f"Not converged. Distance: {economy.dynamics.distance}")
+mean_wealth = np.mean(agent.history['aNow'], axis=1)
+employment_rate = np.mean(agent.history['EmpNow'], axis=1)
 ```
 
 ### Visualizing Results
@@ -231,7 +211,7 @@ agent.track_vars = ['aNow']
 agent.initialize_sim()
 agent.simulate()
 
-plt.plot(np.mean(agent.history['aNow'], axis=1))
+plt.plot(mean_wealth)
 plt.title('Mean Assets Over Time')
 plt.xlabel('Time Period')
 plt.ylabel('Mean Assets')
@@ -250,17 +230,12 @@ plt.show()
 | `init_KS_agents`      | `HARK/ConsumptionSaving/ConsAggShockModel.py` | ~1596 | Default agent parameters   |
 | `init_KS_economy`     | `HARK/ConsumptionSaving/ConsAggShockModel.py` | ~2935 | Default economy parameters |
 
-### Helper Functions
-
-- `construct()`: Builds solution infrastructure from parameters
-- `get_economy_data()`: Imports aggregate dynamics from economy into agent
-- `make_AggShkHist()`: Generates simulated history of aggregate shocks
 
 ### Essential Methods
 
 **Agent Methods:**
 ```python
-agent.get_economy_data(economy)  # Import aggregate dynamics
+
 agent.construct()                # Build solution infrastructure
 agent.solve()                    # Solve individual problem
 agent.initialize_sim()           # Setup simulation
@@ -269,7 +244,8 @@ agent.simulate()                 # Simulate individual histories
 
 **Economy Methods:**
 ```python
-economy.make_AggShkHist()        # Generate aggregate shock history
+economy.give_agent_params()      # Distribute economy-level objects
+economy.make_Mrkv_history()      # Generate aggregate shock history
 economy.solve()                  # Find equilibrium
 economy.reset()                  # Reset to initial state
 ```
@@ -299,18 +275,17 @@ uv run pytest tests/ConsumptionSaving/test_ConsAggShockModel.py::KrusellSmithAge
 
 ### 1. Main Example Notebook
 
-**Location:** `examples/ConsumptionSaving/example_ConsAggShockModel.ipynb`
+**Location:** `examples/ConsAggShockModel/KrusellSmithType.ipynb`
 
-- Set `solve_krusell_smith = True` in Cell 2 to run KS model
 - Demonstrates both micro and macro solution
-- Compares to other aggregate shock models
-- Shows simulation and visualization
+- Presents and discusses KS model
+- Visualizes solution
 
 **For a complete replication:** See the [KrusellSmith.ipynb notebook](https://github.com/econ-ark/KrusellSmith/blob/master/Code/Python/KrusellSmith.ipynb) in the external REMARK repository, which provides a full implementation matching the original 1998 paper.
 
 ### 2. KS with Sequence Space Jacobian
 
-**Location:** `examples/ConsNewKeynesianModel/KS-HARK-presentation.ipynb`
+**Location:** `examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb`
 
 - Title: "Solving Krusell Smith Model with HARK and SSJ"
 - Author: William Du
@@ -320,25 +295,12 @@ uv run pytest tests/ConsumptionSaving/test_ConsAggShockModel.py::KrusellSmithAge
 
 ### 3. SSJ Explanation
 
-**Location:** `examples/ConsNewKeynesianModel/SSJ_explanation.ipynb`
+**Location:** `examples/SequenceSpaceJacobians/SSJ_explanation.ipynb`
 
 - Explains HARK-SSJ integration
 - Advanced general equilibrium techniques
 - References Krusell-Smith as example
 
-### 4. Journey Notebooks
-
-**Journey-PhD.ipynb:** `examples/Journeys/Journey-PhD.ipynb`
-
-- Section 5.3: Tutorial reference
-- Points to KS REMARK implementation
-- Explains `CobbDouglasMarkovEconomy` usage
-
-**Journey-Policymaker.ipynb:** `examples/Journeys/Journey-Policymaker.ipynb`
-
-- References KS REMARK
-- Discusses HARK-SSJ linkage
-- Cites Krusell and Smith (1998) paper
 
 ## Related Models in HARK
 
@@ -371,13 +333,13 @@ More flexible economy classes that allow for:
 **Start Small:** Use fewer agents and shorter simulations for initial exploration
 ```python
 agent.AgentCount = 1000  # Instead of 5000
-economy.act_T = 1100  # Instead of 11000
+economy.act_T = 3100  # Instead of 11000
 economy.max_loops = 2  # Quick convergence check
 ```
 
 **Damping Factor:** Use appropriate damping to ensure convergence
 ```python
-economy.DampingFac = 0.5  # Default is good starting point
+economy.DampingFac = 0.1  # Default is good starting point
 ```
 
 **Grid Sizes:** Balance accuracy and speed
@@ -410,7 +372,7 @@ plt.show()
 
 | Issue            | Solution                                                 |
 | ---------------- | -------------------------------------------------------- |
-| Non-convergence  | Increase `max_loops`, adjust `DampingFac` (0.3-0.7)      |
+| Non-convergence  | Increase `max_loops`, adjust `DampingFac` (0.1-0.7)      |
 | Slow computation | Reduce `AgentCount`, `aCount`, `MaggCount`               |
 | Memory error     | Reduce `AgentCount`, limit `track_vars`                  |
 | Explosive paths  | Check parameters (esp. `DiscFac`, `Rfree`), verify grids |

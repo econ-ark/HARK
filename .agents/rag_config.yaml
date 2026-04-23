@@ -149,7 +149,7 @@ metadata:
   created: '2025-01-22'
   description: Converted from .ragignore format
   migration:
-    from_ragignore: /Volumes/Sync/GitHub/econ-ark/HARK/.ragignore
+    from_ragignore: .agents/.ragignore
     notes: Converted from .ragignore format
   validation:
     max_priority_score: 10

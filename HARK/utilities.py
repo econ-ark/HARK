@@ -34,7 +34,9 @@ class get_it_from:
         self.name = name
 
     def __call__(self, parent, query):
-        if isinstance(parent, dict):
+        if isinstance(parent, (int, float, bool, complex, str)):
+            return parent  # the desired result is the thing itself
+        elif isinstance(parent, dict):
             return parent[query]
         else:
             return getattr(parent, query)

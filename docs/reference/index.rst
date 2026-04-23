@@ -27,6 +27,7 @@ API Reference
    ConsumptionSaving/ConsAggShockModel
    ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
+   ConsumptionSaving/ConsHabitModel
    ConsumptionSaving/ConsHealthModel
    ConsumptionSaving/ConsIndShockModel
    ConsumptionSaving/ConsIndShockModelFast
