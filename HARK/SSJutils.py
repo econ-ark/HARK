@@ -432,7 +432,9 @@ def make_flat_LC_SSJ_matrices(
     PopGroFac=1.0,
     ProdGroFac=1.0,
     solved=False,
+    age_agg=True,
     construct=True,
+    offset=False,
     verbose=False,
 ):
     """
@@ -494,6 +496,11 @@ def make_flat_LC_SSJ_matrices(
         it will be solved as the very first step. Solving the agent's long run
         model before constructing SSJ matrices has the advantage of not needing
         to re-solve the long run model for each shock variable.
+    age_agg : bool
+        Whether the returned SSJs should combine effects across ages (default True)
+        or leave effects disaggregated by age (False). When False, each SSJ will
+        be shape (T_age, T_max, T_max), and the overall SSJ matrix can be found by
+        doing np.sum(SSJ, axis=0).
     construct : bool
         Whether the construct (update) method should be run after the shock is
         updated. The default is True, which is the "safe" option. If the shock
@@ -502,6 +509,13 @@ def make_flat_LC_SSJ_matrices(
         set to False to save a (very) small amount of time during computation.
         If it is set to False improperly, the SSJs will be very wrong, potentially
         just zero everywhere.
+    offset : bool
+        Whether the shock variable is "offset in time" for the solver, with a
+        default of False. This should be set to True if the named shock variable
+        (or the constructed model input that it affects) is indexed by t+1 from
+        the perspective of the solver. For example, the period t solver for the
+        ConsIndShock model takes in risk free interest factor Rfree as an argument,
+        but it represents the value of R that will occur at the start of t+1.
     verbose : bool
         Whether to display timing/progress to screen. The default is False.
 
@@ -509,7 +523,7 @@ def make_flat_LC_SSJ_matrices(
     -------
     SSJ : np.array or [np.array]
         One or more sequence space Jacobian arrays over the outcome variables
-        with respect to the named shock variable.
+        with respect to the named shock variable. Each is shape (T_max, T_max).
     """
     if agent.cycles != 1:
         raise ValueError("This function is only compatible with life-cycle models!")
@@ -518,10 +532,10 @@ def make_flat_LC_SSJ_matrices(
         no_list = True
     else:
         no_list = False
+    J = len(outcomes)
 
     # Store the simulator if it exists
-    if hasattr(agent, "_simulator"):
-        simulator_backup = agent._simulator
+    simulator_backup = agent._simulator if hasattr(agent, "_simulator") else None
 
     # Make sure the shock variable is age-varying
     if shock in agent.time_inv:
@@ -572,7 +586,7 @@ def make_flat_LC_SSJ_matrices(
     X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
     SS_dstn = deepcopy(X.state_dstn_by_age)
     SS_outcomes = {}
-    for j in len(outcomes):
+    for j in range(J):
         name = outcomes[j]
         SS_outcomes[name] = [
             np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
@@ -585,20 +599,30 @@ def make_flat_LC_SSJ_matrices(
             + " seconds."
         )
 
-    # Generate the steady state distribution of ages; adjust this later for pop growth
-    SS_age_dstn = np.cumprod(np.concatenate(([1.0], survival_by_age)))
-    SS_age_dstn /= np.sum(SS_age_dstn)
-
     # Construct the "expectation vectors" for all outcomes at all ages
     t0 = time()
     E_vecs = {}
-    for j in len(outcomes):
+    for j in range(J):
         name = outcomes[j]
-        E_vecs[name] = [SS_outcomes.copy() for t in range(T_age)]
+        E_temp = [[SS_outcomes[name][a].copy()] for a in range(T_age)]
         for t in range(1, T_age):
             for a in range(T_age - t):
-                E_vecs[name][a].append(np.dot(LR_trans[a], E_vecs[a + 1][-1]))
+                S = survival_by_age[a]
+                E_temp[a].append(np.dot(S * LR_trans[a], E_temp[a + 1][-1]))
+        E_vecs[name] = E_temp
     t1 = time()
+
+    # Rearrange the expectation vectors for better access later
+    E_curly = [
+        np.stack(
+            [
+                np.stack([E_vecs[name][a][t] for name in outcomes])
+                for t in range(T_age - a)
+            ]
+        )
+        for a in range(T_age)
+    ]
+
     if verbose:
         print(
             "Constructing expectation vectors took {:.3f}".format(t1 - t0) + " seconds."
@@ -610,32 +634,42 @@ def make_flat_LC_SSJ_matrices(
     # in period t conditional on being age a and at state space gridpoint n at t=0.
 
     # Initialize the fake news matrices for each output
-    J = len(outcomes)
     fake_news_array = np.zeros((J, T_age, T_age, T_age))
     # Dimensions of fake news arrays:
     # dim 0 --> j: index of outcome variable
     # dim 1 --> a: age when news arrives
     # dim 2 --> t: periods since news arrived
-    # dim 3 --> s: periods ahead that news arrived
+    # dim 3 --> s: periods ahead about which the news arrived
 
     # Loop over ages of the model and have the news shock apply at each one;
     # k is the age index at which the shock arrives
     t0 = time()
-    for k in reversed(range(T_age - 1)):
-        # Perturb the shock variable at age k
-        shock_val_orig = getattr(agent, shock)[k]
+    for k in reversed(range(T_age)):
+        # Adjust the timing for "offset" shocks
+        l = k - int(offset)
+        shock_val_orig = getattr(agent, shock)[l]
         shock_val_new = shock_val_orig + eps
-        getattr(agent, shock)[k] = shock_val_new
 
-        # Solve the model starting from age k
-        if construct:
-            agent.update()
-        agent.solve(from_solution=LR_soln[k + 1], from_t=k + 1)
+        # Perturb the shock variable at age l
+        if l >= 0:
+            getattr(agent, shock)[l] = shock_val_new
 
-        # Build transitions and outcomes up to age k
+            # Solve the model starting from age l
+            if construct:
+                agent.update()
+            if l + 1 < T_age:
+                agent.solve(from_solution=LR_soln[l + 1], from_t=l + 1)
+            else:
+                agent.solve()
+        else:
+            agent.solution = [LR_soln[0]]
+
+        # Build transitions and outcomes up to age k. Don't use "fake news timing" option!
         agent.initialize_sym()
         X = agent._simulator  # for easier typing
-        X.make_transition_matrices(grids, norm, for_t=range(k + 1))  # not FNT!
+        if l < 0:
+            setattr(X.periods[0], shock, shock_val_new)
+        X.make_transition_matrices(grids, norm, for_t=range(k + 1))
         shocked_trans = deepcopy(X.trans_arrays)
         shocked_outcomes = []
         for var in outcomes:
@@ -647,30 +681,64 @@ def make_flat_LC_SSJ_matrices(
         # Update the t=0 row of the fake news matrices
         for j in range(J):
             for a in range(k + 1):
-                fake_news_array[j, a, 0, k - a] += np.sum(
-                    (shocked_outcomes[j][a] - LR_outcomes[j][a]) * SS_dstn[a]
-                )
+                temp = np.dot(SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a])
+                fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
 
         # Update the other t rows of the fake news matrices
-        for a in range(k + 1):
+        for a in range(k):
+            S = survival_by_age[a]
             D_dstn_news = (
-                np.dot(shocked_trans[a], SS_dstn[a]) - SS_dstn[a + 1]
+                S * np.dot(shocked_trans[a], SS_dstn[a]) - SS_dstn[a + 1]
             ).flatten()
-            update_FN_mats(fake_news_array, E_vecs[a + 1], D_dstn_news, T_age - 1, a, k)
+            update_FN_mats(fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k)
+
+        # Reset the shock variable at age l
+        if l >= 0:
+            getattr(agent, shock)[l] = shock_val_orig
+
     t1 = time()
     if verbose:
         print(
-            "Perturbing each period of the problem took {:.3f}".format(t1 - t0)
+            "Making fake news arrays for each period of the problem took {:.3f}".format(
+                t1 - t0
+            )
             + " seconds."
         )
 
-    # Normalize everything by the shock size and pad with 0s to the time horizon
-    fake_news_array /= eps
+    t0 = time()
+    # Normalize everything by the shock size (and pad out with zeros)
+    FN_pad = np.zeros((J, T_age, T_max, T_max))
+    FN_pad[:, :, :T_age, :T_age] = fake_news_array
 
-    # Construct the (aggregate) SSJ object
+    # Construct age-specific Jacobian matrices
+    SSJ_by_age = np.zeros_like(FN_pad)
+    for a in range(T_age):
+        SSJ_by_age[:, a, :, :] = calc_ssj_from_fake_news_matrices(
+            T_max, J, FN_pad[:, a, :, :], eps
+        )
 
-    # Structure and return outputs
-    return None
+    t1 = time()
+    if verbose:
+        print(
+            "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    # Restore the simulator to its prior state
+    if simulator_backup is None:
+        del agent._simulator
+    else:
+        agent._simulator = simulator_backup
+
+    # Structure and return outputs, aggregating by age if requested
+    SSJ = [SSJ_by_age[j, :, :, :] for j in range(J)]
+    if age_agg:
+        for j in range(J):
+            SSJ[j] = np.sum(SSJ[j], axis=0)
+    if no_list:
+        return SSJ[0]
+    else:
+        return SSJ
 
 
 def calc_shock_response_manually(
@@ -986,7 +1054,7 @@ def calc_ssj_from_fake_news_matrices(T, J, FN, dx):  # pragma: no cover
     SSJ : np.array
         HA-SSJ array of shape (J,T,T).
     """
-    SSJ = np.empty((J, T, T))
+    SSJ = np.zeros((J, T, T))
     SSJ[:, 0, :] = FN[:, 0, :]  # Fill in row zero
     SSJ[:, :, 0] = FN[:, :, 0]  # Fill in column zero
     for t in range(1, T):  # Loop over other rows
@@ -997,21 +1065,21 @@ def calc_ssj_from_fake_news_matrices(T, J, FN, dx):  # pragma: no cover
 
 
 @njit
-def update_FN_mats(FN_mats, evecs, dD1, A, a, k):
+def update_FN_mats(FN_mats, evecs, dD1, A, a, k):  # pragma: no cover
     """
-    This is copy-pasted from Mateo's code.
+    This is adapted from Mateo's code.
 
-    Fn_mats: (J, A, A, A)
-    evecs : (T, n_out, G)
+    FN_mats: (J, A, A, A)
+    evecs : (T, J, G)
     dD1   : (G,)
     """
-    n_out = FN_mats.shape[0]
+    J = FN_mats.shape[0]
     G = dD1.shape[0]
 
-    for oi in range(n_out):
+    for j in range(J):
         for t in range(1, A - a):
-            # compute dot(evecs[t-1, oi, :], dD1) by hand
+            # compute dot(evecs[t-1, j, :], dD1) by hand
             s = 0.0
             for g in range(G):
-                s += evecs[t - 1, oi, g] * dD1[g]
-            FN_mats[oi, a + t, t, k - a] += s
+                s += evecs[t - 1, j, g] * dD1[g]
+            FN_mats[j, a + t, t, k - a] += s
