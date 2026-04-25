@@ -646,7 +646,7 @@ def make_flat_LC_SSJ_matrices(
     fake_news_array = np.zeros((J, T_age, T_age, T_age))
     # Dimensions of fake news arrays:
     # dim 0 --> j: index of outcome variable
-    # dim 1 --> a: age
+    # dim 1 --> a: age in period t
     # dim 2 --> t: periods since news arrived
     # dim 3 --> s: periods ahead about which the news arrived
 
@@ -683,18 +683,18 @@ def make_flat_LC_SSJ_matrices(
         shocked_outcomes = []
         for var in outcomes:
             temp_outcomes = []
-            for a in range(k + 1):
+            for a in range(l + 1):
                 temp_outcomes.append(X.periods[a].matrices[var])
             shocked_outcomes.append(temp_outcomes)
 
         # Update the t=0 row of the fake news matrices
         for j in range(J):
-            for a in range(k + 1):
+            for a in range(l + 1):
                 temp = np.dot(SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a])
                 fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
 
         # Update the other t rows of the fake news matrices
-        for a in range(k):
+        for a in range(l + 1):
             S = survival_by_age[a]
             D_dstn_news = (
                 np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
@@ -727,7 +727,6 @@ def make_flat_LC_SSJ_matrices(
         SSJ_by_age[:, a, :, :] = calc_ssj_from_fake_news_matrices(
             T_max, J, FN_pad[:, a, :, :], eps
         )
-
     SSJ_by_age /= pop_sum
 
     t1 = time()
