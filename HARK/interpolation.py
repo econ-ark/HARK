@@ -933,6 +933,46 @@ class LinearInterp(HARKinterpolator1D):
         return y, dydx
 
 
+def _assign_cubic_grid_inputs(self, x_list, y_list, dydx_list):
+    """
+    Shared input handling for cubic-spline interpolators: copy/flatten the
+    grid arrays, validate dimensions, and set self.n.
+    """
+    self.x_list = (
+        np.asarray(x_list) if _check_flatten(1, x_list) else np.array(x_list).flatten()
+    )
+    self.y_list = (
+        np.asarray(y_list) if _check_flatten(1, y_list) else np.array(y_list).flatten()
+    )
+    self.dydx_list = (
+        np.asarray(dydx_list)
+        if _check_flatten(1, dydx_list)
+        else np.array(dydx_list).flatten()
+    )
+    _check_grid_dimensions(1, self.y_list, self.x_list)
+    _check_grid_dimensions(1, self.dydx_list, self.x_list)
+    self.n = len(x_list)
+
+
+def _cubic_extrap_row(intercept_limit, slope_limit, x_last, y_last, dydx_last):
+    """
+    Compute the upper-extrapolation coefficient row [intercept, slope, gap, decay]
+    for the cubic-spline interpolators. If both intercept_limit and slope_limit
+    are None, defaults to linear extrapolation along the last gridpoint's slope.
+    """
+    if slope_limit is None and intercept_limit is None:
+        slope_limit = dydx_last
+        intercept_limit = y_last - slope_limit * x_last
+    gap = slope_limit * x_last + intercept_limit - y_last
+    slope = slope_limit - dydx_last
+    if (gap != 0) and (slope <= 0):
+        return [intercept_limit, slope_limit, gap, slope / gap]
+    if slope > 0:
+        # fixing a problem when slope is positive
+        return [intercept_limit, slope_limit, 0, 0]
+    return [intercept_limit, slope_limit, gap, 0]
+
+
 class CubicInterp(HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines.  Matches level and
@@ -971,25 +1011,7 @@ class CubicInterp(HARKinterpolator1D):
         slope_limit=None,
         lower_extrap=False,
     ):
-        self.x_list = (
-            np.asarray(x_list)
-            if _check_flatten(1, x_list)
-            else np.array(x_list).flatten()
-        )
-        self.y_list = (
-            np.asarray(y_list)
-            if _check_flatten(1, y_list)
-            else np.array(y_list).flatten()
-        )
-        self.dydx_list = (
-            np.asarray(dydx_list)
-            if _check_flatten(1, dydx_list)
-            else np.array(dydx_list).flatten()
-        )
-        _check_grid_dimensions(1, self.y_list, self.x_list)
-        _check_grid_dimensions(1, self.dydx_list, self.x_list)
-
-        self.n = len(x_list)
+        _assign_cubic_grid_inputs(self, x_list, y_list, dydx_list)
 
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
@@ -1016,23 +1038,11 @@ class CubicInterp(HARKinterpolator1D):
             self.coeffs.append(temp)
 
         # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
-        if slope_limit is None and intercept_limit is None:
-            slope_limit = dydx_list[-1]
-            intercept_limit = y_list[-1] - slope_limit * x_list[-1]
-        gap = slope_limit * x1 + intercept_limit - y1
-        slope = slope_limit - dydx_list[self.n - 1]
-        if (gap != 0) and (slope <= 0):
-            temp = [intercept_limit, slope_limit, gap, slope / gap]
-        elif slope > 0:
-            temp = [
-                intercept_limit,
-                slope_limit,
-                0,
-                0,
-            ]  # fixing a problem when slope is positive
-        else:
-            temp = [intercept_limit, slope_limit, gap, 0]
-        self.coeffs.append(temp)
+        self.coeffs.append(
+            _cubic_extrap_row(
+                intercept_limit, slope_limit, x1, y1, dydx_list[self.n - 1]
+            )
+        )
         self.coeffs = np.array(self.coeffs)
 
     def _evaluate(self, x):
@@ -1188,25 +1198,7 @@ class CubicHermiteInterp(HARKinterpolator1D):
         slope_limit=None,
         lower_extrap=False,
     ):
-        self.x_list = (
-            np.asarray(x_list)
-            if _check_flatten(1, x_list)
-            else np.array(x_list).flatten()
-        )
-        self.y_list = (
-            np.asarray(y_list)
-            if _check_flatten(1, y_list)
-            else np.array(y_list).flatten()
-        )
-        self.dydx_list = (
-            np.asarray(dydx_list)
-            if _check_flatten(1, dydx_list)
-            else np.array(dydx_list).flatten()
-        )
-        _check_grid_dimensions(1, self.y_list, self.x_list)
-        _check_grid_dimensions(1, self.dydx_list, self.x_list)
-
-        self.n = len(x_list)
+        _assign_cubic_grid_inputs(self, x_list, y_list, dydx_list)
 
         self._chs = CubicHermiteSpline(
             self.x_list, self.y_list, self.dydx_list, extrapolate=None
@@ -1215,29 +1207,21 @@ class CubicHermiteInterp(HARKinterpolator1D):
 
         # Define lower extrapolation as linear function (or just NaN)
         if lower_extrap:
-            temp = np.array([self.y_list[0], self.dydx_list[0], 0, 0])
+            lower = np.array([self.y_list[0], self.dydx_list[0], 0, 0])
         else:
-            temp = np.array([np.nan, np.nan, np.nan, np.nan])
-
-        self.coeffs = np.vstack((temp, self.coeffs))
-
-        x1 = self.x_list[self.n - 1]
-        y1 = self.y_list[self.n - 1]
+            lower = np.array([np.nan, np.nan, np.nan, np.nan])
 
         # Calculate extrapolation coefficients as a decay toward limiting function y = mx+b
-        if slope_limit is None and intercept_limit is None:
-            slope_limit = self.dydx_list[-1]
-            intercept_limit = self.y_list[-1] - slope_limit * self.x_list[-1]
-        gap = slope_limit * x1 + intercept_limit - y1
-        slope = slope_limit - self.dydx_list[self.n - 1]
-        if (gap != 0) and (slope <= 0):
-            temp = np.array([intercept_limit, slope_limit, gap, slope / gap])
-        elif slope > 0:
-            # fixing a problem when slope is positive
-            temp = np.array([intercept_limit, slope_limit, 0, 0])
-        else:
-            temp = np.array([intercept_limit, slope_limit, gap, 0])
-        self.coeffs = np.vstack((self.coeffs, temp))
+        upper = np.array(
+            _cubic_extrap_row(
+                intercept_limit,
+                slope_limit,
+                self.x_list[self.n - 1],
+                self.y_list[self.n - 1],
+                self.dydx_list[self.n - 1],
+            )
+        )
+        self.coeffs = np.vstack((lower, self.coeffs, upper))
 
     def out_of_bounds(self, x):
         out_bot = x < self.x_list[0]
