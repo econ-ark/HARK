@@ -235,6 +235,48 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
 # ================================================================================
 
 
+def _finalize_added_outcome(distribution, atoms, pmv, x, p, method, sort):
+    """
+    Shared finalization for add_discrete_outcome variants: optional sort,
+    infimum/supremum derivation, and DiscreteDistribution construction.
+    """
+    if sort:
+        indices = np.argsort(atoms)
+        atoms = atoms[indices]
+        pmv = pmv[indices]
+
+    temp_x = np.array(x, ndmin=1)
+    try:
+        infimum = np.array(
+            [
+                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except:
+        infimum = np.min(atoms, axis=-1, keepdims=True)
+    try:
+        supremum = np.array(
+            [
+                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except:
+        supremum = np.max(atoms, axis=-1, keepdims=True)
+
+    limit = {
+        "dist": distribution,
+        "method": method,
+        "x": x,
+        "p": p,
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+
+    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+
+
 def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
@@ -271,46 +313,11 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
             seed=distribution.seed,
         )
 
-    else:
-        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
-        pmv = np.append(p, distribution.pmv * (1 - p))
-
-        if sort:
-            indices = np.argsort(atoms)
-            atoms = atoms[indices]
-            pmv = pmv[indices]
-
-        # Update infimum and supremum
-        temp_x = np.array(x, ndmin=1)
-        try:
-            infimum = np.array(
-                [
-                    np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except:
-            infimum = np.min(atoms, axis=-1, keepdims=True)
-        try:
-            supremum = np.array(
-                [
-                    np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except:
-            supremum = np.max(atoms, axis=-1, keepdims=True)
-
-        limit = {
-            "dist": distribution,
-            "method": "add_discrete_outcome_constant_mean",
-            "x": x,
-            "p": p,
-            "infimum": infimum,
-            "supremum": supremum,
-        }
-
-        return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+    pmv = np.append(p, distribution.pmv * (1 - p))
+    return _finalize_added_outcome(
+        distribution, atoms, pmv, x, p, "add_discrete_outcome_constant_mean", sort
+    )
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -333,46 +340,11 @@ def add_discrete_outcome(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-
     atoms = np.append(x, distribution.atoms)
     pmv = np.append(p, distribution.pmv * (1 - p))
-
-    if sort:
-        indices = np.argsort(atoms)
-        atoms = atoms[indices]
-        pmv = pmv[indices]
-
-    # Update infimum and supremum
-    temp_x = np.array(x, ndmin=1)
-    try:
-        infimum = np.array(
-            [
-                np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except:
-        infimum = np.min(atoms, axis=-1, keepdims=True)
-    try:
-        supremum = np.array(
-            [
-                np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except:
-        supremum = np.max(atoms, axis=-1, keepdims=True)
-
-    limit = {
-        "dist": distribution,
-        "method": "add_discrete_outcome",
-        "x": x,
-        "p": p,
-        "infimum": infimum,
-        "supremum": supremum,
-    }
-
-    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    return _finalize_added_outcome(
+        distribution, atoms, pmv, x, p, "add_discrete_outcome", sort
+    )
 
 
 def combine_indep_dstns(*distributions, seed=0):

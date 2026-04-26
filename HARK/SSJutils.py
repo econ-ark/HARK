@@ -6,8 +6,97 @@ AgentType itself.
 
 from time import time
 from copy import deepcopy
+from types import SimpleNamespace
 import numpy as np
 from numba import njit
+
+
+def _setup_ssj_long_run(agent, outcomes, grids, norm, solved, verbose):
+    """
+    Common long-run setup shared by SSJ helpers: validate the agent is a
+    one-period infinite horizon model, normalize ``outcomes`` to a list,
+    backup any pre-existing simulator, solve the long-run model if needed,
+    build its transition matrices, and locate the steady state.
+
+    Returns
+    -------
+    state : SimpleNamespace
+        Fields: outcomes, no_list, simulator_backup (or None), LR_soln, X,
+        LR_trans, LR_period, LR_outcomes, outcome_grids, SS_dstn, SS_outcomes.
+    """
+    if (agent.cycles > 0) or (agent.T_cycle != 1):
+        raise ValueError(
+            "This function is only compatible with one period infinite horizon models!"
+        )
+    if not isinstance(outcomes, list):
+        outcomes = [outcomes]
+        no_list = True
+    else:
+        no_list = False
+
+    simulator_backup = agent._simulator if hasattr(agent, "_simulator") else None
+
+    if not solved:
+        t0 = time()
+        agent.solve()
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
+            )
+    LR_soln = deepcopy(agent.solution[0])
+
+    t0 = time()
+    agent.initialize_sym()
+    X = agent._simulator
+    X.make_transition_matrices(grids, norm)
+    LR_trans = X.trans_arrays[0].copy()
+    LR_period = X.periods[0]
+    LR_outcomes = []
+    outcome_grids = []
+    for var in outcomes:
+        try:
+            LR_outcomes.append(X.periods[0].matrices[var])
+            outcome_grids.append(X.periods[0].grids[var])
+        except:
+            raise ValueError(
+                "Outcome " + var + " was requested, but no grid was provided!"
+            )
+    t1 = time()
+    if verbose:
+        print(
+            "Making the transition matrix for the long run model took {:.3f}".format(
+                t1 - t0
+            )
+            + " seconds."
+        )
+
+    t0 = time()
+    X.find_steady_state()
+    SS_dstn = X.steady_state_dstn.copy()
+    SS_outcomes = [
+        np.dot(LR_outcomes[j].transpose(), SS_dstn) for j in range(len(outcomes))
+    ]
+    t1 = time()
+    if verbose:
+        print(
+            "Finding the long run steady state took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    return SimpleNamespace(
+        outcomes=outcomes,
+        no_list=no_list,
+        simulator_backup=simulator_backup,
+        LR_soln=LR_soln,
+        X=X,
+        LR_trans=LR_trans,
+        LR_period=LR_period,
+        LR_outcomes=LR_outcomes,
+        outcome_grids=outcome_grids,
+        SS_dstn=SS_dstn,
+        SS_outcomes=SS_outcomes,
+    )
 
 
 def make_basic_SSJ_matrices(
@@ -88,70 +177,18 @@ def make_basic_SSJ_matrices(
         One or more sequence space Jacobian arrays over the outcome variables
         with respect to the named shock variable.
     """
-    if (agent.cycles > 0) or (agent.T_cycle != 1):
-        raise ValueError(
-            "This function is only compatible with one period infinite horizon models!"
-        )
-    if not isinstance(outcomes, list):
-        outcomes = [outcomes]
-        no_list = True
-    else:
-        no_list = False
-
-    # Store the simulator if it exists
-    if hasattr(agent, "_simulator"):
-        simulator_backup = agent._simulator
-
-    # Solve the long run model if it wasn't already
-    if not solved:
-        t0 = time()
-        agent.solve()
-        t1 = time()
-        if verbose:
-            print(
-                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
-            )
-    LR_soln = deepcopy(agent.solution[0])
-
-    # Construct the transition matrix for the long run model
-    t0 = time()
-    agent.initialize_sym()
-    X = agent._simulator  # for easier referencing
-    X.make_transition_matrices(grids, norm)
-    LR_trans = X.trans_arrays[0].copy()  # the transition matrix in LR model
-    LR_period = X.periods[0]
-    LR_outcomes = []
-    outcome_grids = []
-    for var in outcomes:
-        try:
-            LR_outcomes.append(X.periods[0].matrices[var])
-            outcome_grids.append(X.periods[0].grids[var])
-        except:
-            raise ValueError(
-                "Outcome " + var + " was requested, but no grid was provided!"
-            )
-    t1 = time()
-    if verbose:
-        print(
-            "Making the transition matrix for the long run model took {:.3f}".format(
-                t1 - t0
-            )
-            + " seconds."
-        )
-
-    # Find the steady state for the long run model
-    t0 = time()
-    X.find_steady_state()
-    SS_dstn = X.steady_state_dstn.copy()
-    SS_outcomes = []
-    for j in range(len(outcomes)):
-        SS_outcomes.append(np.dot(LR_outcomes[j].transpose(), SS_dstn))
-    t1 = time()
-    if verbose:
-        print(
-            "Finding the long run steady state took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
+    state = _setup_ssj_long_run(agent, outcomes, grids, norm, solved, verbose)
+    outcomes = state.outcomes
+    no_list = state.no_list
+    simulator_backup = state.simulator_backup
+    LR_soln = state.LR_soln
+    X = state.X
+    LR_trans = state.LR_trans
+    LR_period = state.LR_period
+    LR_outcomes = state.LR_outcomes
+    outcome_grids = state.outcome_grids
+    SS_dstn = state.SS_dstn
+    SS_outcomes = state.SS_outcomes
 
     # Solve back one period while perturbing the shock variable
     t0 = time()
@@ -290,9 +327,9 @@ def make_basic_SSJ_matrices(
     agent.solution = [LR_soln]
     agent.cycles = 0
     agent._simulator.reset()
-    try:
+    if simulator_backup is not None:
         agent._simulator = simulator_backup
-    except:
+    else:
         del agent._simulator
     if no_list:
         return SSJ[0]
@@ -378,70 +415,17 @@ def calc_shock_response_manually(
     dYdX : np.array or [np.array]
         One or more vectors of length T_max.
     """
-    if (agent.cycles > 0) or (agent.T_cycle != 1):
-        raise ValueError(
-            "This function is only compatible with one period infinite horizon models!"
-        )
-    if not isinstance(outcomes, list):
-        outcomes = [outcomes]
-        no_list = True
-    else:
-        no_list = False
-
-    # Store the simulator if it exists
-    if hasattr(agent, "_simulator"):
-        simulator_backup = agent._simulator
-
-    # Solve the long run model if it wasn't already
-    if not solved:
-        t0 = time()
-        agent.solve()
-        t1 = time()
-        if verbose:
-            print(
-                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
-            )
-    LR_soln = deepcopy(agent.solution[0])
-
-    # Construct the transition matrix for the long run model
-    t0 = time()
-    agent.initialize_sym()
-    X = agent._simulator  # for easier referencing
-    X.make_transition_matrices(grids, norm)
-    LR_outcomes = []
-    outcome_grids = []
-    for var in outcomes:
-        try:
-            LR_outcomes.append(X.periods[0].matrices[var])
-            outcome_grids.append(X.periods[0].grids[var])
-        except:
-            raise ValueError(
-                "Outcome " + var + " was requested, but no grid was provided!"
-            )
-    t1 = time()
-    if verbose:
-        print(
-            "Making the transition matrix for the long run model took {:.3f}".format(
-                t1 - t0
-            )
-            + " seconds."
-        )
-
-    # Find the steady state for the long run model
-    t0 = time()
-    X.find_steady_state()
-    SS_dstn = X.steady_state_dstn.copy()
-    SS_outcomes = []
-    SS_avgs = []
-    for j in range(len(outcomes)):
-        SS_outcomes.append(np.dot(LR_outcomes[j].transpose(), SS_dstn))
-        SS_avgs.append(np.dot(SS_outcomes[j], outcome_grids[j]))
-    t1 = time()
-    if verbose:
-        print(
-            "Finding the long run steady state took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
+    state = _setup_ssj_long_run(agent, outcomes, grids, norm, solved, verbose)
+    outcomes = state.outcomes
+    no_list = state.no_list
+    simulator_backup = state.simulator_backup
+    LR_soln = state.LR_soln
+    X = state.X
+    LR_outcomes = state.LR_outcomes
+    outcome_grids = state.outcome_grids
+    SS_dstn = state.SS_dstn
+    SS_outcomes = state.SS_outcomes
+    SS_avgs = [np.dot(SS_outcomes[j], outcome_grids[j]) for j in range(len(outcomes))]
 
     # Make a temporary agent to construct the perturbed constructed objects
     t0 = time()
@@ -551,9 +535,9 @@ def calc_shock_response_manually(
     agent.solution = [LR_soln]
     agent.cycles = 0
     agent._simulator.reset()
-    try:
+    if simulator_backup is not None:
         agent._simulator = simulator_backup
-    except:
+    else:
         del agent._simulator
     if no_list:
         return dYdX[0]

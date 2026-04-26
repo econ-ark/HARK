@@ -21,18 +21,24 @@ CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_decay(
-    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+def _decay_extrap_coeffs(
+    x_list, y_list, intercept_limit, slope_limit
 ):  # pragma: no cover
-    # Make a decay extrapolation
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
     level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
     slope_diff = slope_limit - slope_at_top
-
     decay_extrap_A = level_diff
     decay_extrap_B = -slope_diff / level_diff
-    intercept_limit = intercept_limit
-    slope_limit = slope_limit
+    return decay_extrap_A, decay_extrap_B
+
+
+@njit(cache=True, error_model="numpy")
+def _interp_decay(
+    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+):  # pragma: no cover
+    decay_extrap_A, decay_extrap_B = _decay_extrap_coeffs(
+        x_list, y_list, intercept_limit, slope_limit
+    )
 
     i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
     alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
@@ -98,15 +104,9 @@ def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):  # pragma: no cover
 def _interp_decay_deriv(
     x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
 ):  # pragma: no cover
-    # Make a decay extrapolation
-    slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
-    level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
-    slope_diff = slope_limit - slope_at_top
-
-    decay_extrap_A = level_diff
-    decay_extrap_B = -slope_diff / level_diff
-    intercept_limit = intercept_limit
-    slope_limit = slope_limit
+    decay_extrap_A, decay_extrap_B = _decay_extrap_coeffs(
+        x_list, y_list, intercept_limit, slope_limit
+    )
 
     i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
     alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
