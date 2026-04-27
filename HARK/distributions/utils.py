@@ -572,10 +572,10 @@ def expected(func=None, dstn=None, args=(), vectorized=True, **kwargs):
     inputs along with a DiscreteDistribution object that specifies the probability
     of each configuration.
 
-    If the func you want to use has complex including tiling or logical indexing,
-    pass `vectorized=False`, which calculates expectations by looping over each
-    atom in the distribution. Otherwise, this function uses array operations and
-    tries to compute all atoms simultaneously.
+    If the function you want to evaluate uses complex array operations, such as
+    tiling or logical indexing, pass `vectorized=False`. In that case, expectations
+    are calculated by looping over each atom in the distribution. Otherwise, this
+    function uses array operations and tries to compute all atoms simultaneously.
 
     Parameters
     ----------
@@ -616,7 +616,9 @@ def expected(func=None, dstn=None, args=(), vectorized=True, **kwargs):
         args = (args,)
 
     if not vectorized:
-        return expected_with_loop(dstn, func, *args, **kwargs)
+        loop_kwargs = kwargs.copy()
+        loop_kwargs.pop("labels", None)
+        return expected_with_loop(dstn, func, *args, **loop_kwargs)
 
     if args:
         if kwargs:

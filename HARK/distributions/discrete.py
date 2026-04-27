@@ -302,7 +302,7 @@ class DiscreteDistribution(Distribution):
             It may also take other arguments \\*args.
             Note: If you need to use a function that acts on single outcomes
             of the distribution, manipulates arrays, or uses branching or logical
-            indexing, used `expected(func, dstn, vectorized=False)` instead.
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
@@ -653,7 +653,7 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             It may also take other arguments \\*args.
             Note: If you need to use a function that acts on single outcomes
             of the distribution, manipulates arrays, or uses branching or logical
-            indexing, used `expected(func, dstn, vectorized=False)` instead.
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
