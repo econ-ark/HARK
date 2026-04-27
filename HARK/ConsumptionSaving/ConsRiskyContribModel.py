@@ -1848,44 +1848,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         """
-
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method of the class first."
-            )
-
-        # Mortality adjusts the agent population
-        self.get_mortality()  # Replace some agents with "newborns"
-
-        # Make state_now into state_prev, clearing state_now
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
-
-        if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.read_shocks_from_history()
-        else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.get_shocks()
-
-        # Sequentially get states and controls of every stage
+        self._sim_period_prologue()
         for s in self.stages:
             self.get_states[s]()
             self.get_controls[s]()
-
         self.get_post_states()
-
-        # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = (
-            0  # Resetting to zero for those who have reached the end
-        )
+        self._sim_period_epilogue()
 
     def get_states_Reb(self):
         """

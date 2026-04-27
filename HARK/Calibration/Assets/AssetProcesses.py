@@ -105,7 +105,7 @@ def combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn):
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn[t]) for t in range(T_cycle)
         ]
-    except:
+    except (TypeError, IndexError, KeyError):
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn) for t in range(T_cycle)
         ]

@@ -134,6 +134,34 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
+    def _assign_dist_mGrid(self, dist_mGrid, m_points, timestonest, m_density):
+        """
+        Set ``self.dist_mGrid`` from a prespecified grid or via exponential nesting.
+
+        Builds an exponentially-nested grid of normalized market resources,
+        optionally densifying it ``m_density`` times by inserting midpoints
+        between consecutive gridpoints.  If ``dist_mGrid`` already has a
+        ``__len__``, it is taken to be a user-supplied grid and used directly.
+        """
+        if not hasattr(dist_mGrid, "__len__"):
+            mGrid = make_grid_exp_mult(
+                ming=self.mMin,
+                maxg=self.mMax,
+                ng=m_points,
+                timestonest=timestonest,
+            )
+            for _ in range(m_density):
+                m_shifted = np.delete(mGrid, -1)
+                m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
+                dist_betw_pts = mGrid - m_shifted
+                dist_betw_pts_half = dist_betw_pts / 2
+                new_A_grid = m_shifted + dist_betw_pts_half
+                mGrid = np.concatenate((mGrid, new_A_grid))
+                mGrid = np.sort(mGrid)
+            self.dist_mGrid = mGrid
+        else:
+            self.dist_mGrid = dist_mGrid
+
     def define_distribution_grid(
         self,
         dist_mGrid=None,
@@ -192,28 +220,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
             raise TypeError("timestonest must be a numeric value (int or float).")
 
         if self.cycles == 0:
-            if not hasattr(dist_mGrid, "__len__"):
-                mGrid = make_grid_exp_mult(
-                    ming=self.mMin,
-                    maxg=self.mMax,
-                    ng=m_points,
-                    timestonest=timestonest,
-                )  # Generate Market resources grid given density and number of points
-
-                for i in range(m_density):
-                    m_shifted = np.delete(mGrid, -1)
-                    m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
-                    dist_betw_pts = mGrid - m_shifted
-                    dist_betw_pts_half = dist_betw_pts / 2
-                    new_A_grid = m_shifted + dist_betw_pts_half
-                    mGrid = np.concatenate((mGrid, new_A_grid))
-                    mGrid = np.sort(mGrid)
-
-                self.dist_mGrid = mGrid
-
-            else:
-                # If grid of market resources prespecified then use as mgrid
-                self.dist_mGrid = dist_mGrid
+            self._assign_dist_mGrid(dist_mGrid, m_points, timestonest, m_density)
 
             if not hasattr(dist_pGrid, "__len__"):
                 num_points = num_pointsP  # Number of permanent income gridpoints
@@ -249,28 +256,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
             else:
                 m_points = num_pointsM
 
-            if not hasattr(dist_mGrid, "__len__"):
-                mGrid = make_grid_exp_mult(
-                    ming=self.mMin,
-                    maxg=self.mMax,
-                    ng=m_points,
-                    timestonest=timestonest,
-                )  # Generate Market resources grid given density and number of points
-
-                for i in range(m_density):
-                    m_shifted = np.delete(mGrid, -1)
-                    m_shifted = np.insert(m_shifted, 0, 1.00000000e-04)
-                    dist_betw_pts = mGrid - m_shifted
-                    dist_betw_pts_half = dist_betw_pts / 2
-                    new_A_grid = m_shifted + dist_betw_pts_half
-                    mGrid = np.concatenate((mGrid, new_A_grid))
-                    mGrid = np.sort(mGrid)
-
-                self.dist_mGrid = mGrid
-
-            else:
-                # If grid of market resources prespecified then use as mgrid
-                self.dist_mGrid = dist_mGrid
+            self._assign_dist_mGrid(dist_mGrid, m_points, timestonest, m_density)
 
             if not hasattr(dist_pGrid, "__len__"):
                 self.dist_pGrid = []  # list of grids of permanent income
