@@ -823,7 +823,7 @@ class UtilityFuncCRRA(UtilityFunction):
         if order == 0:
             try:
                 return CRRAutility(c, self.CRRA)
-            except:
+            except Exception:
                 return CRRAutility_X(c, self.CRRA)
         else:  # order >= 1
             return self.derivative(c, order)
@@ -853,12 +853,12 @@ class UtilityFuncCRRA(UtilityFunction):
         if order == 1:
             try:
                 return CRRAutilityP(c, self.CRRA)
-            except:
+            except Exception:
                 return CRRAutilityP_X(c, self.CRRA)
         elif order == 2:
             try:
                 return CRRAutilityPP(c, self.CRRA)
-            except:
+            except Exception:
                 return CRRAutilityPP_X(c, self.CRRA)
         elif order == 3:
             return CRRAutilityPPP(c, self.CRRA)

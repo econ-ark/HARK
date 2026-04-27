@@ -174,7 +174,7 @@ def describe_metric(thing, n=0, label=None, D=100000):
             for key in my_keys:
                 try:
                     desc += describe_metric(thing[key], n + 1, label=key, D=D)
-                except:
+                except KeyError:
                     desc += key + " (missing): CAN'T COMPARE\n"
 
     elif isinstance(thing, MetricObject):
