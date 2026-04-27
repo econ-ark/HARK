@@ -247,7 +247,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20, offset=0.0):
 
 def make_polynomial_grid(ming, maxg, ng, order=1.0):
     """
-    Construct a polynomially spaced grid with chosen exponential order.
+    Construct a polynomially spaced grid with chosen polynomial order.
     A uniformly spaced grid on [0,1] is raised to the chosen order, then linearly
     remapped to the specified interval. Supports any real valued grid bounds.
 

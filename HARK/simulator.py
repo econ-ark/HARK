@@ -655,7 +655,12 @@ class SimBlock:
 
             # Determine whether it's polynomial, exponential, or custom
             if "custom" in spec:  # it's custom-specified
-                new_grid = spec["custom"]
+                this_grid = np.array(spec["custom"], astype=float).flatten()
+                if not np.all(np.diff(this_grid) > 0):
+                    raise ValueError(
+                        "Custom grid for " + var + " is not strictly increasing!"
+                    )
+                new_grid = this_grid
                 is_cont = True
                 grid_orders[var] = None
                 grid_nests[var] = None
@@ -675,6 +680,18 @@ class SimBlock:
                     grid_nests[var] = None
                 elif "nest" in spec:  # it's exponentially spaced
                     K = spec["nest"]
+                    if type(K) is not int:
+                        raise TypeError(
+                            "The nest level for " + var + " must be an integer!"
+                        )
+                    if K < 1:
+                        raise ValueError(
+                            "Nest level must be at least 1, but is "
+                            + str(K)
+                            + " for "
+                            + var
+                            + "!"
+                        )
                     new_grid = make_grid_exp_mult(
                         0.0, top - bot, N, timestonest=K, offset=bot
                     )
@@ -762,7 +779,7 @@ class SimBlock:
         for cont_var in twist.keys():
             arr_var = twist[cont_var]
             if cont_var not in list(grids_out.keys()):
-                is_cont = grids_in[arr_var].dtype is np.dtype(np.float64)
+                is_cont = np.issubdtype(grids_in[arr_var].dtype, np.floating)
                 continuous_grid_out_bool.append(is_cont)
             grids_out[cont_var] = copy(grids_in[arr_var])
             grid_orders[cont_var] = grid_orders[arr_var]
@@ -844,7 +861,7 @@ class SimBlock:
             M = grid.size if grid is not None else 0
 
             # Semi-hacky fix to deal with omitted arrival variables
-            if (M == 1) and (vals.dtype is np.dtype(np.float64)):
+            if (M == 1) and np.issubdtype(vals, np.floating):
                 grid = grid.astype(float)
                 grids_out[var] = grid
                 grid_out_is_continuous[k] = True
@@ -1083,6 +1100,8 @@ class SimBlock:
             the points is determined by setting `order` (polynomial) or `nest`
             (multi-exponential). If neither is provided, then spacing is linear.
             If only `N` is given, then the gridpoints are the integers 0,...,N.
+            Alternatively, a grid specification can provide only the key `custom`,
+            with a strictly increasing 1D array as its value.
         twist : dict or None
             Mapping from end-of-period (continuation) variables to successor's
             arrival variables. When this is specified, additional output is created
@@ -3821,9 +3840,9 @@ def aggregate_blobs_onto_exponential_grid(
         jj = origins[n]
         p = pmv[n]
         if (x > bot) and (x < top):
-            y = x
+            y = x - bot
             for k in range(K):
-                y = np.log(y + 1)
+                y = np.log(y + 1.0)
             ii = int(np.floor(y * scale * Mm1))
             temp = (x - grid[ii]) / diffs[ii]
             probs[jj, ii] += (1.0 - temp) * p
@@ -3951,7 +3970,7 @@ def aggregate_blobs_onto_exponential_grid_alt(
         jj = origins[n]
         p = pmv[n]
         if (x > bot) and (x < top):
-            y = x
+            y = x - bot
             for k in range(K):
                 y = np.log(y + 1)
             ii = int(np.floor(y * scale * Mm1))
