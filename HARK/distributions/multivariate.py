@@ -260,6 +260,136 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
         return np.exp(self.dstn.rvs(size, random_state=random_state))
 
+    @staticmethod
+    def _make_inners(N: int, tail_N: int) -> np.ndarray:
+        """Build the per-dimension ``inners`` index vector used for tail tagging."""
+        inners = np.zeros(N + 2 * tail_N)
+        if tail_N > 0:
+            inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
+            inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
+        return inners
+
+    def _fill_interiors_row(
+        self,
+        interiors: np.ndarray,
+        inners: np.ndarray,
+        N: int,
+        tail_N: int,
+        i: int,
+    ) -> None:
+        """Populate ``interiors[i]`` by tiling ``inners`` for dimension ``i``."""
+        inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
+        interiors[i] = np.repeat([*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1)))
+
+    def _diagonal_atoms(self, N, tail_N, tail_bound, endpoints):
+        """Build the atoms tensor for the case where Sigma is diagonal."""
+        ind_atoms = np.empty((self.M, N + 2 * tail_N))
+        for i in range(self.M):
+            if self.Sigma[i, i] == 0.0:
+                ind_atoms[i] = np.repeat(np.exp(self.mu[i]), N + 2 * tail_N)
+            else:
+                ind_atoms[i] = (
+                    Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                    ._approx_equiprobable(
+                        N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints
+                    )
+                    .atoms
+                )
+        atoms_list = [ind_atoms[i] for i in range(self.M)]
+        return np.stack(
+            [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
+        ).T
+
+    @staticmethod
+    def _compute_z_bins(N, tail_N, tail_bound):
+        """Return ``(z_bins, int_prob)`` shared by Cholesky/eig decomposition branches."""
+        if tail_bound is not None:
+            if type(tail_bound) is float:
+                tail_bound = [tail_bound, 1 - tail_bound]
+            if tail_bound[0] < 0 or tail_bound[1] > 1:
+                raise ValueError("Tail bounds must be between 0 and 1")
+            cdf_cuts = np.linspace(tail_bound[0], tail_bound[1], N + 1)
+            int_prob = tail_bound[1] - tail_bound[0]
+        else:
+            cdf_cuts = np.linspace(0, 1, N + 1)
+            int_prob = 1.0
+
+        Z = Normal()
+        z_cuts = np.empty(2 * tail_N + N + 1)
+        if tail_N > 0:
+            z_cuts[0:tail_N] = Z.ppf(cdf_cuts[0])
+            z_cuts[-tail_N:] = Z.ppf(cdf_cuts[-1])
+        z_cuts[tail_N : tail_N + N + 1] = Z.ppf(cdf_cuts)
+        z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N + 2 * tail_N)]
+        return z_bins, int_prob
+
+    @staticmethod
+    def _eval_atom_density(params, z, N, int_prob):
+        """Compute the integral of the lognormal density over a multidimensional z bin."""
+        inds = []
+        excl = []
+        for j in range(len(z)):
+            if z[j, 0] == z[j, 1]:
+                excl.append(j)
+            elif params[j] != 0.0:
+                inds.append(j)
+
+        dim = len(inds)
+        if dim > 0:
+            p = np.repeat(params[inds], 2).reshape(dim, 2)
+            Z = np.multiply(p, z[inds])
+            bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
+            x_exp = np.prod(
+                -0.5
+                * np.exp(np.square(params[inds]) / 2)
+                * (special.erf(bounds[1]) - special.erf(bounds[0]))
+            )
+        else:
+            x_exp = 1
+
+        if len(excl) > 0:
+            x_others = np.prod(np.exp(np.multiply(params[excl], z[excl, 1])))
+        else:
+            x_others = 1
+
+        return x_exp * x_others * (N / int_prob) ** dim
+
+    def _fill_decomp_atoms(
+        self, decomp, atoms, interiors, inners, z_bins, N, tail_N, int_prob
+    ):
+        """Fill the atoms tensor for non-diagonal Sigma using the chosen decomposition."""
+        if decomp == "cholesky":
+            L = np.linalg.cholesky(self.Sigma)
+            for i in range(self.M):
+                params = L[i, 0 : i + 1]
+                num_z_dims = i + 1
+                xi_atoms = self._row_atoms(
+                    self.mu[i], params, z_bins, num_z_dims, N, int_prob
+                )
+                self._fill_interiors_row(interiors, inners, N, tail_N, i)
+                atoms[i] = np.repeat(xi_atoms, (N + 2 * tail_N) ** (self.M - (i + 1)))
+        else:
+            Lambda, Q = np.linalg.eig(self.Sigma)
+            A = Q @ np.diag(np.sqrt(Lambda))
+            if decomp == "sqrt":
+                A = A @ Q.T
+            for i in range(self.M):
+                params = A[i]
+                xi_atoms = self._row_atoms(
+                    self.mu[i], params, z_bins, self.M, N, int_prob
+                )
+                self._fill_interiors_row(interiors, inners, N, tail_N, i)
+                atoms[i] = xi_atoms
+
+    @classmethod
+    def _row_atoms(cls, mu_i, params, z_bins, num_z_dims, N, int_prob):
+        """Compute the per-row xi atoms by integrating the density over each z bin."""
+        Z_bins = [np.array(x) for x in product(*([z_bins] * num_z_dims))]
+        return [
+            np.exp(mu_i) * cls._eval_atom_density(params, z_bin, N, int_prob)
+            for z_bin in Z_bins
+        ]
+
     def _approx_equiprobable(
         self,
         N: int,
@@ -299,179 +429,26 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
             points for discrete probability mass function.
         """
 
-        if endpoints:
-            tail_N = 1
-        else:
-            tail_N = 0
+        tail_N = 1 if endpoints else 0
 
         if decomp not in ["cholesky", "sqrt", "eig"]:
             raise NotImplementedError(
                 "Decomposition method must be 'cholesky', 'sqrt' or 'eig'"
             )
 
+        interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
+        inners = self._make_inners(N, tail_N)
+
         if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
-            ind_atoms = np.empty((self.M, N + 2 * tail_N))
-
+            atoms = self._diagonal_atoms(N, tail_N, tail_bound, endpoints)
             for i in range(self.M):
-                if self.Sigma[i, i] == 0.0:
-                    x_atoms = np.repeat(np.exp(self.mu[i]), N + 2 * tail_N)
-                    ind_atoms[i] = x_atoms
-                else:
-                    x_atoms = (
-                        Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
-                        ._approx_equiprobable(
-                            N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints
-                        )
-                        .atoms
-                    )
-                    ind_atoms[i] = x_atoms
-
-            atoms_list = [ind_atoms[i] for i in range(self.M)]
-            atoms = np.stack(
-                [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
-            ).T
-
-            interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
-
-            inners = np.zeros(N + 2 * tail_N)
-
-            if tail_N > 0:
-                inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
-                inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
-
-            for i in range(self.M):
-                inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
-
-                interiors[i] = np.repeat(
-                    [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
-                )
-
+                self._fill_interiors_row(interiors, inners, N, tail_N, i)
         else:
-            if tail_bound is not None:
-                if type(tail_bound) is float:
-                    tail_bound = [tail_bound, 1 - tail_bound]
-
-                if tail_bound[0] < 0 or tail_bound[1] > 1:
-                    raise ValueError("Tail bounds must be between 0 and 1")
-
-                cdf_cuts = np.linspace(tail_bound[0], tail_bound[1], N + 1)
-                int_prob = tail_bound[1] - tail_bound[0]
-
-            else:
-                cdf_cuts = np.linspace(0, 1, N + 1)
-                int_prob = 1.0
-
-            Z = Normal()
-
-            z_cuts = np.empty(2 * tail_N + N + 1)
-            if tail_N > 0:
-                z_cuts[0:tail_N] = Z.ppf(cdf_cuts[0])
-                z_cuts[-tail_N:] = Z.ppf(cdf_cuts[-1])
-
-            z_cuts[tail_N : tail_N + N + 1] = Z.ppf(cdf_cuts)
-            z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N + 2 * tail_N)]
-
+            z_bins, int_prob = self._compute_z_bins(N, tail_N, tail_bound)
             atoms = np.empty([self.M, (N + (2 * tail_N)) ** self.M])
-
-            interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
-
-            inners = np.zeros(N + 2 * tail_N)
-
-            if tail_N > 0:
-                inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
-                inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
-
-            def eval(params, z):
-                inds = []
-                excl = []
-
-                for j in range(len(z)):
-                    if z[j, 0] == z[j, 1]:
-                        excl.append(j)
-                    elif params[j] != 0.0:
-                        inds.append(j)
-
-                dim = len(inds)
-
-                p = np.repeat(params[inds], 2).reshape(dim, 2)
-
-                Z = np.multiply(p, z[inds])
-
-                bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
-
-                if len(inds) > 0:
-                    x_exp = np.prod(
-                        -0.5
-                        * np.exp(np.square(params[inds]) / 2)
-                        * (special.erf(bounds[1]) - special.erf(bounds[0]))
-                    )
-                else:
-                    x_exp = 1
-
-                if len(excl) > 0:
-                    x_others = np.prod(np.exp(np.multiply(params[excl], z[excl, 1])))
-                else:
-                    x_others = 1
-
-                return x_exp * x_others * (N / int_prob) ** dim
-
-            if decomp == "cholesky":
-                L = np.linalg.cholesky(self.Sigma)
-
-                for i in range(self.M):
-                    mui = self.mu[i]
-                    params = L[i, 0 : i + 1]
-
-                    Z_list = [z_bins for _ in range(i + 1)]
-
-                    Z_bins = [np.array(x) for x in list(product(*Z_list))]
-
-                    xi_atoms = []
-
-                    for z_bin in Z_bins:
-                        atom = np.exp(mui) * eval(params, z_bin)
-                        xi_atoms.append(atom)
-
-                    xi_atoms_arr = np.repeat(
-                        xi_atoms, (N + 2 * tail_N) ** (self.M - (i + 1))
-                    )
-
-                    inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
-
-                    interiors[i] = np.repeat(
-                        [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
-                    )
-
-                    atoms[i] = xi_atoms_arr
-            else:
-                Λ, Q = np.linalg.eig(self.Sigma)
-
-                A = Q @ np.diag(np.sqrt(Λ))
-
-                if decomp == "sqrt":
-                    A = A @ Q.T
-
-                for i in range(self.M):
-                    mui = self.mu[i]
-                    params = A[i]
-
-                    Z_list = [z_bins for _ in range(self.M)]
-
-                    Z_bins = [np.array(x) for x in list(product(*Z_list))]
-
-                    xi_atoms = []
-
-                    for z_bin in Z_bins:
-                        atom = np.exp(mui) * eval(params, z_bin)
-                        xi_atoms.append(atom)
-
-                    inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
-
-                    interiors[i] = np.repeat(
-                        [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
-                    )
-
-                    atoms[i] = xi_atoms
+            self._fill_decomp_atoms(
+                decomp, atoms, interiors, inners, z_bins, N, tail_N, int_prob
+            )
 
         max_locs = np.argmax(np.abs(interiors), axis=0)
 

@@ -235,6 +235,57 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
 # ================================================================================
 
 
+def _bounds_with_added_atom(distribution, x, atoms):
+    """
+    Compute (infimum, supremum) for a distribution after a new atom ``x`` is added.
+
+    Falls back to taking min/max over the augmented atoms array when the source
+    distribution does not expose ``infimum``/``supremum`` in its ``limit`` dict.
+    """
+    temp_x = np.array(x, ndmin=1)
+    try:
+        infimum = np.array(
+            [
+                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except KeyError:
+        infimum = np.min(atoms, axis=-1, keepdims=True)
+    try:
+        supremum = np.array(
+            [
+                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except KeyError:
+        supremum = np.max(atoms, axis=-1, keepdims=True)
+    return infimum, supremum
+
+
+def _finalize_with_added_atom(distribution, atoms, x, p, method, sort):
+    """Build the new ``DiscreteDistribution`` after a value ``x`` (probability ``p``)
+    has been spliced onto ``distribution``. Shared by ``add_discrete_outcome`` and
+    ``add_discrete_outcome_constant_mean``.
+    """
+    pmv = np.append(p, distribution.pmv * (1 - p))
+    if sort:
+        indices = np.argsort(atoms)
+        atoms = atoms[indices]
+        pmv = pmv[indices]
+    infimum, supremum = _bounds_with_added_atom(distribution, x, atoms)
+    limit = {
+        "dist": distribution,
+        "method": method,
+        "x": x,
+        "p": p,
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+
+
 def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
@@ -271,46 +322,10 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
             seed=distribution.seed,
         )
 
-    else:
-        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
-        pmv = np.append(p, distribution.pmv * (1 - p))
-
-        if sort:
-            indices = np.argsort(atoms)
-            atoms = atoms[indices]
-            pmv = pmv[indices]
-
-        # Update infimum and supremum
-        temp_x = np.array(x, ndmin=1)
-        try:
-            infimum = np.array(
-                [
-                    np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except KeyError:
-            infimum = np.min(atoms, axis=-1, keepdims=True)
-        try:
-            supremum = np.array(
-                [
-                    np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except KeyError:
-            supremum = np.max(atoms, axis=-1, keepdims=True)
-
-        limit = {
-            "dist": distribution,
-            "method": "add_discrete_outcome_constant_mean",
-            "x": x,
-            "p": p,
-            "infimum": infimum,
-            "supremum": supremum,
-        }
-
-        return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+    return _finalize_with_added_atom(
+        distribution, atoms, x, p, "add_discrete_outcome_constant_mean", sort
+    )
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -335,44 +350,9 @@ def add_discrete_outcome(distribution, x, p, sort=False):
     """
 
     atoms = np.append(x, distribution.atoms)
-    pmv = np.append(p, distribution.pmv * (1 - p))
-
-    if sort:
-        indices = np.argsort(atoms)
-        atoms = atoms[indices]
-        pmv = pmv[indices]
-
-    # Update infimum and supremum
-    temp_x = np.array(x, ndmin=1)
-    try:
-        infimum = np.array(
-            [
-                np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except KeyError:
-        infimum = np.min(atoms, axis=-1, keepdims=True)
-    try:
-        supremum = np.array(
-            [
-                np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except KeyError:
-        supremum = np.max(atoms, axis=-1, keepdims=True)
-
-    limit = {
-        "dist": distribution,
-        "method": "add_discrete_outcome",
-        "x": x,
-        "p": p,
-        "infimum": infimum,
-        "supremum": supremum,
-    }
-
-    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    return _finalize_with_added_atom(
+        distribution, atoms, x, p, "add_discrete_outcome", sort
+    )
 
 
 def combine_indep_dstns(*distributions, seed=None):
