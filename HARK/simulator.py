@@ -861,7 +861,7 @@ class SimBlock:
             M = grid.size if grid is not None else 0
 
             # Semi-hacky fix to deal with omitted arrival variables
-            if (M == 1) and np.issubdtype(vals, np.floating):
+            if (M == 1) and np.issubdtype(vals.dtype, np.floating):
                 grid = grid.astype(float)
                 grids_out[var] = grid
                 grid_out_is_continuous[k] = True
