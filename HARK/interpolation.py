@@ -62,7 +62,11 @@ def _check_flatten(dimension, *args):
 
 def _coerce_1d_grid(arr):
     """Return ``arr`` as a 1D numpy array, flattening if necessary."""
-    return np.array(arr) if _check_flatten(1, arr) else np.array(arr).flatten()
+    a = np.asarray(arr)
+    if a.ndim != 1:
+        warnings.warn("input not of the size (n, ), attempting to flatten")
+        return a.flatten()
+    return a
 
 
 def _broadcast_eval(inner, *args):
@@ -179,24 +183,12 @@ class HARKinterpolator1D(MetricObject):
         sets ``self.n``, and runs ``_check_grid_dimensions`` against ``x_list``.
         Shared between :class:`CubicInterp` and :class:`CubicHermiteInterp`.
         """
-        self.x_list = (
-            np.asarray(x_list)
-            if _check_flatten(1, x_list)
-            else np.array(x_list).flatten()
-        )
-        self.y_list = (
-            np.asarray(y_list)
-            if _check_flatten(1, y_list)
-            else np.array(y_list).flatten()
-        )
-        self.dydx_list = (
-            np.asarray(dydx_list)
-            if _check_flatten(1, dydx_list)
-            else np.array(dydx_list).flatten()
-        )
+        self.x_list = _coerce_1d_grid(x_list)
+        self.y_list = _coerce_1d_grid(y_list)
+        self.dydx_list = _coerce_1d_grid(dydx_list)
         _check_grid_dimensions(1, self.y_list, self.x_list)
         _check_grid_dimensions(1, self.dydx_list, self.x_list)
-        self.n = len(x_list)
+        self.n = self.x_list.size
 
 
 class HARKinterpolator2D(MetricObject):
@@ -1382,8 +1374,8 @@ class BilinearInterp(HARKinterpolator2D):
         self.x_list = _coerce_1d_grid(x_list)
         self.y_list = _coerce_1d_grid(y_list)
         _check_grid_dimensions(2, self.f_values, self.x_list, self.y_list)
-        self.x_n = x_list.size
-        self.y_n = y_list.size
+        self.x_n = self.x_list.size
+        self.y_n = self.y_list.size
         if xSearchFunc is None:
             xSearchFunc = np.searchsorted
         if ySearchFunc is None:
@@ -2085,7 +2077,7 @@ class UpperEnvelope(_Envelope1D):
         Any number of real functions; often instances of HARKinterpolator1D
     nan_bool : boolean
         An indicator for whether the solver should exclude NA's when forming
-        the lower envelope.
+        the upper envelope.
     """
 
     def __init__(self, *functions, nan_bool=True):
@@ -3826,7 +3818,7 @@ def _eval_c_and_mpc(cFunc, *cFuncArgs):
     if hasattr(cFunc, "derivativeX"):
         return cFunc(*cFuncArgs), cFunc.derivativeX(*cFuncArgs)
     raise Exception(
-        "cFunc does not have a 'derivativeX' attribute. Can't compute"
+        "cFunc does not have a 'derivativeX' attribute. Can't compute "
         "marginal marginal value."
     )
 
