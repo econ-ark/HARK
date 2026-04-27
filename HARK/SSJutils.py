@@ -653,7 +653,7 @@ def make_flat_LC_SSJ_matrices(
     # Loop over ages of the model and have the news shock apply at each one;
     # k is the age index at which the shock arrives
     t0 = time()
-    for k in reversed(range(T_age)):
+    for k in reversed(range(T_age - 1)):
         # Adjust the timing for "offset" shocks
         l = k - int(offset)
         shock_val_orig = getattr(agent, shock)[l]
@@ -683,7 +683,7 @@ def make_flat_LC_SSJ_matrices(
         shocked_outcomes = []
         for var in outcomes:
             temp_outcomes = []
-            for a in range(l + 1):
+            for a in range(k + 1):
                 temp_outcomes.append(X.periods[a].matrices[var])
             shocked_outcomes.append(temp_outcomes)
 
@@ -691,15 +691,13 @@ def make_flat_LC_SSJ_matrices(
         for j in range(J):
             for a in range(l + 1):
                 temp = np.dot(SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a])
-                fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
+                fake_news_array[j, a, 0, l - a] += np.dot(temp, outcome_grids[j][a])
 
         # Update the other t rows of the fake news matrices
         for a in range(l + 1):
             S = survival_by_age[a]
-            D_dstn_news = (
-                np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
-            ).flatten()
-            update_FN_mats(fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k)
+            D_dstn_news = np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
+            update_FN_mats(fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, l)
 
         # Reset the shock variable at age l
         if l >= 0:
@@ -713,8 +711,6 @@ def make_flat_LC_SSJ_matrices(
             )
             + " seconds."
         )
-
-    # return fake_news_array
 
     t0 = time()
     # Pad out the fake news array with zeros

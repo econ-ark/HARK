@@ -2139,7 +2139,7 @@ class AgentSimulator:
                     history_avg[name][t] = np.dot(this_dstn, this_grid)
 
             # Advance the distribution to the next period
-            current_dstn = np.dot(self.trans_arrays[t].transpose(), current_dstn)
+            current_dstn = np.dot(self.trans_arrays[t].T, current_dstn)
 
         # Reshape the distribution histories if possible
         if calc_dstn:
