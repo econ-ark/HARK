@@ -655,7 +655,7 @@ class SimBlock:
 
             # Determine whether it's polynomial, exponential, or custom
             if "custom" in spec:  # it's custom-specified
-                this_grid = np.array(spec["custom"], astype=float).flatten()
+                this_grid = np.array(spec["custom"]).astype(float).flatten()
                 if not np.all(np.diff(this_grid) > 0):
                     raise ValueError(
                         "Custom grid for " + var + " is not strictly increasing!"
