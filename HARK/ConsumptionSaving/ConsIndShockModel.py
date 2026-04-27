@@ -2666,7 +2666,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.conditions["GICHrm"]:
             GICHrm_message = "\nBecause the GICHrm is satisfied, there exists a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         else:
-            GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure.."
+            GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         self.log_condition_result(None, None, GICHrm_message, verbose)
 
         self._emit_conditions_report()

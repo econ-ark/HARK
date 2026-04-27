@@ -52,7 +52,7 @@ def _build_lifecycle_unemployment_lists(
         IncUnemp_list = IncUnemp
     else:
         raise Exception(
-            "Unemployment must be specified either using floats for UnempPrb,"
+            "Unemployment must be specified either using floats for UnempPrb, "
             "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
             "unemployment probability and income change only with retirement, or "
             "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
