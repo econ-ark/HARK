@@ -6,7 +6,7 @@ and the prior habit stock.
 """
 
 import numpy as np
-from HARK.utilities import make_exponential_grid
+from HARK.utilities import make_polynomial_grid
 from HARK.interpolation import (
     LinearInterp,
     LinearInterpOnInterp1D,
@@ -134,8 +134,8 @@ class HabitFormationInverter:
         if HabitWgt <= 0.0:
             raise ValueError("HabitWgt must be strictly positive!")
 
-        xGrid = make_exponential_grid(0.0, ChiMax, ChiCount, ChiOrder)
-        hGrid = make_exponential_grid(0.0, HabitMax, HabitCount, HabitOrder)
+        xGrid = make_polynomial_grid(0.0, ChiMax, ChiCount, ChiOrder)
+        hGrid = make_polynomial_grid(0.0, HabitMax, HabitCount, HabitOrder)
         hMesh, xMesh = np.meshgrid(hGrid, xGrid, indexing="ij")
 
         PostHabit = (
@@ -184,7 +184,7 @@ def make_habit_inverter(
 
 
 def make_habit_grid(HabitMin, HabitMax, HabitCount, HabitOrder):
-    return make_exponential_grid(HabitMin, HabitMax, HabitCount, HabitOrder)
+    return make_polynomial_grid(HabitMin, HabitMax, HabitCount, HabitOrder)
 
 
 def make_dense_grids(
@@ -199,7 +199,7 @@ def make_dense_grids(
     aXtraExtra,
     DenseFactor,
 ):
-    HabitGridDense = make_exponential_grid(
+    HabitGridDense = make_polynomial_grid(
         HabitMin, HabitMax, HabitCount * DenseFactor, HabitOrder
     )
     mXtraGridDense = make_assets_grid(
