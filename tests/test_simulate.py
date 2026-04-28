@@ -7,6 +7,7 @@ simulator structure. Simulation tests for various HARK models are in the model t
 # Bring in modules we need
 import unittest
 import numpy as np
+from HARK.utilities import make_grid_exp_mult
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
     parse_income_spec,
@@ -86,13 +87,23 @@ class testSimulatorClass(unittest.TestCase):
             "min": 0.0,
             "max": 60.0,
             "N": 401,
+            "order": 2.5,
         }
+        kNrm_grid_alt = {
+            "min": 0.0,
+            "max": 60.0,
+            "N": 401,
+            "nest": 2,
+        }
+        kNrm_grid_ult = {"custom": make_grid_exp_mult(0.0, 60.0, 401, timestonest=2)}
         cNrm_grid = {
             "min": 0.0,
             "max": 5.0,
             "N": 151,
         }
         self.grid_specs = {"kNrm": kNrm_grid, "cNrm": cNrm_grid}
+        self.grid_specs_alt = {"kNrm": kNrm_grid_alt, "cNrm": cNrm_grid}
+        self.grid_specs_ult = {"kNrm": kNrm_grid_ult, "cNrm": cNrm_grid}
 
     def test_sim_match(self):
         self.agent.initialize_sim()
@@ -159,8 +170,37 @@ class testSimulatorClass(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=1e-5)))
         self.assertTrue(np.all(np.isclose(resp_A, dA_dR[:, 50], atol=5e-4)))
 
+    def test_grid_formats(self):
+        # Check that we get the same results for similar grids
+        SSJ_base = self.agent.make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs,
+            norm="PermShk",
+            offset=True,
+        )
+
+        SSJ_alt = self.agent.make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs_alt,
+            norm="PermShk",
+            offset=True,
+        )
+
+        SSJ_ult = self.agent.make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs_ult,
+            norm="PermShk",
+            offset=True,
+        )
+
+        self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_alt, atol=1e-4)))
+        self.assertTrue(np.all(np.isclose(SSJ_base, SSJ_ult, atol=1e-4)))
+
     def test_SSJ_no_list(self):
-        dC_dR = self.agent.make_basic_SSJ(
+        dC_daBar = self.agent.make_basic_SSJ(
             "BoroCnstArt",
             "cNrm",
             self.grid_specs,
