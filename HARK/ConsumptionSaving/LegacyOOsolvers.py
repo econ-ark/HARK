@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import brentq
 from HARK import NullFunc
-from HARK.distributions import expected, calc_expectation, DiscreteDistribution
+from HARK.distributions import expected, expected_with_loop, DiscreteDistribution
 from HARK.interpolation import (
     BilinearInterp,
     BilinearInterpOnInterp1D,
@@ -3595,7 +3595,9 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             p_lvl_next = self.p_lvl_next(shocks, p_lvl)
             return shocks[1] * p_lvl_next + solution_next.hLvl(p_lvl_next)
 
-        hLvlGrid = 1.0 / self.Rfree * calc_expectation(IncShkDstn, h_lvl, self.pLvlGrid)
+        hLvlGrid = (
+            1.0 / self.Rfree * expected_with_loop(IncShkDstn, h_lvl, self.pLvlGrid)
+        )
 
         self.hLvlNow = LinearInterp(
             np.insert(self.pLvlGrid, 0, 0.0), np.insert(hLvlGrid, 0, 0.0)
@@ -3726,7 +3728,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
         EndOfPrdvP = (
             self.DiscFacEff
             * self.Rfree
-            * calc_expectation(self.IncShkDstn, vp_next, self.aLvlNow, self.pLvlNow)
+            * expected_with_loop(self.IncShkDstn, vp_next, self.aLvlNow, self.pLvlNow)
         )
 
         return EndOfPrdvP
@@ -3753,7 +3755,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             return self.vFuncNext(mLvlNext, pLvlNext)
 
         # value in many possible future states
-        vLvlNext = calc_expectation(
+        vLvlNext = expected_with_loop(
             self.IncShkDstn, v_lvl_next, self.aLvlNow, self.pLvlNow
         )
 
@@ -4093,7 +4095,7 @@ class ConsGenIncProcessSolver(ConsIndShockSetup):
             self.DiscFacEff
             * self.Rfree
             * self.Rfree
-            * calc_expectation(self.IncShkDstn, vpp_next, self.aLvlNow, self.pLvlNow)
+            * expected_with_loop(self.IncShkDstn, vpp_next, self.aLvlNow, self.pLvlNow)
         )
 
         dcda = EndOfPrdvPP / self.u.der(np.array(cLvl[1:, 1:]), order=2)
@@ -4945,7 +4947,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
             return shock ** (1.0 - self.CRRA)
 
         self.AbsPatFac = (
-            self.DiscFacEff * calc_expectation(self.RiskyDstn, abs_pat_fac)
+            self.DiscFacEff * expected_with_loop(self.RiskyDstn, abs_pat_fac)
         ) ** (1.0 / self.CRRA)
 
         self.MPCminNow = 1.0 / (1.0 + self.AbsPatFac / solution_next.MPCmin)
@@ -4959,7 +4961,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
                 * (shocks[0] * shocks[1] + solution_next.hNrm)
             )
 
-        self.hNrmNow = calc_expectation(self.ShockDstn, h_nrm_now)
+        self.hNrmNow = expected_with_loop(self.ShockDstn, h_nrm_now)
 
         self.MPCmaxNow = 1.0 / (
             1.0
@@ -5071,7 +5073,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         a function, and a set of interpolation nodes.
         """
 
-        vals = calc_expectation(dstn, func, grid)
+        vals = expected_with_loop(dstn, func, grid)
         nvrs = self.u.derinv(vals, order=(1, 0))
         nvrsFunc = LinearInterp(grid, nvrs)
         margValueFunc = MargValueFuncCRRA(nvrsFunc, self.CRRA)
@@ -5173,7 +5175,7 @@ class ConsIndShkRiskyAssetSolver(ConsIndShockSolver):
         function, and interpolating nodes.
         """
 
-        vals = calc_expectation(dstn, func, grid)
+        vals = expected_with_loop(dstn, func, grid)
         nvrs = self.u.inv(vals)
         nvrsFunc = LinearInterp(grid, nvrs)
         valueFunc = ValueFuncCRRA(nvrsFunc, self.CRRA)
@@ -5356,7 +5358,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
             return r_port ** (1.0 - self.CRRA)
 
         self.AbsPatFac = (
-            self.DiscFacEff * calc_expectation(self.RiskyDstn, abs_pat_fac)
+            self.DiscFacEff * expected_with_loop(self.RiskyDstn, abs_pat_fac)
         ) ** (1.0 / self.CRRA)
 
         self.MPCminNow = 1.0 / (1.0 + self.AbsPatFac / solution_next.MPCmin)
@@ -5454,7 +5456,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
 
         # optimize share by discrete interpolation
         if True:
-            EndOfPrddvds = calc_expectation(
+            EndOfPrddvds = expected_with_loop(
                 self.RiskyDstn, endOfPrddvds, self.aNrmMat, self.shareMat
             )
 
@@ -5465,7 +5467,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
         else:
 
             def obj(share, a_nrm):
-                return calc_expectation(self.RiskyDstn, endOfPrddvds, a_nrm, share)
+                return expected_with_loop(self.RiskyDstn, endOfPrddvds, a_nrm, share)
 
             risky_share_optimal = np.empty_like(self.aNrmNow)
 
@@ -5495,7 +5497,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
             b_nrm = a_nrm * r_port
             return r_port * preIncShkvPfunc(b_nrm)
 
-        EndOfPrddvda = self.DiscFacEff * calc_expectation(
+        EndOfPrddvda = self.DiscFacEff * expected_with_loop(
             self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
         )
         EndOfPrddvdaNvrs = self.u.derinv(EndOfPrddvda, order=(1, 0))
@@ -5536,7 +5538,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
 
                 return r_diff * a_nrm * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm)
 
-            EndOfPrddvds = calc_expectation(
+            EndOfPrddvds = expected_with_loop(
                 self.RiskyDstn, endOfPrddvds, self.aNrmMat, self.shareMat
             )
 
@@ -5551,7 +5553,7 @@ class ConsPortfolioIndShkRiskyAssetSolver(ConsIndShkRiskyAssetSolver):
 
                 return r_port * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm)
 
-            EndOfPrddvda = self.DiscFacEff * calc_expectation(
+            EndOfPrddvda = self.DiscFacEff * expected_with_loop(
                 self.RiskyDstn, endOfPrddvda, self.aNrmNow, self.risky_share_optimal
             )
 
@@ -5667,7 +5669,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
             return self.r_port(shock) ** (1.0 - self.CRRA)
 
         self.AbsPatFac = (
-            self.DiscFacEff * calc_expectation(self.RiskyDstn, abs_pat_fac)
+            self.DiscFacEff * expected_with_loop(self.RiskyDstn, abs_pat_fac)
         ) ** (1.0 / self.CRRA)
 
         self.MPCminNow = 1.0 / (1.0 + self.AbsPatFac / solution_next.MPCmin)
@@ -5678,7 +5680,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
             r_port = self.r_port(shock)
             return self.PermGroFac / r_port * (self.Ex_IncNext + solution_next.hNrm)
 
-        self.hNrmNow = calc_expectation(self.RiskyDstn, h_nrm_now)
+        self.hNrmNow = expected_with_loop(self.RiskyDstn, h_nrm_now)
 
         self.MPCmaxNow = 1.0 / (
             1.0
@@ -5761,7 +5763,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
             m_nrm_next = a_nrm * r_port / p_shk + shocks[1]
             return r_port * p_shk ** (-self.CRRA) * self.vPfuncNext(m_nrm_next)
 
-        EndOfPrdvP = self.DiscFacEff * calc_expectation(
+        EndOfPrdvP = self.DiscFacEff * expected_with_loop(
             self.ShockDstn, vp_next, self.aNrmNow
         )
 
@@ -5791,7 +5793,7 @@ class ConsFixedPortfolioIndShkRiskyAssetSolver(ConsIndShockSolver):
         EndOfPrdv = (
             self.DiscFacEff
             * self.PermGroFac ** (1.0 - self.CRRA)
-            * calc_expectation(self.ShockDstn, v_next, self.aNrmNow)
+            * expected_with_loop(self.ShockDstn, v_next, self.aNrmNow)
         )
         # value transformed through inverse utility
         EndOfPrdvNvrs = self.u.inv(EndOfPrdv)
