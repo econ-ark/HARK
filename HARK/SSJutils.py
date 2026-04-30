@@ -429,8 +429,9 @@ def make_flat_LC_SSJ_matrices(
     eps=1e-4,
     T_max=100,
     norm=None,
-    PopGroFac=1.0,
-    ProdGroFac=1.0,
+    trend=None,
+    pop_gro=1.0,
+    prod_gro=1.0,
     solved=False,
     age_agg=True,
     construct=True,
@@ -481,16 +482,28 @@ def make_flat_LC_SSJ_matrices(
         Name of the model variable to normalize by for Harmenberg aggregation,
         if any. For many HARK models, this should be 'PermShk', which enables
         the grid over permanent income to be omitted as an explicit state.
-    PopGroFac : float
+    trend : str or None
+        Name of the model variable that represents the "normalization trend factor"
+        for the outcomes. For example, most consumption-saving models in HARK are
+        normalized by permanent income, which grows by factor `PermGroFac` each
+        period of the life-cycle; `PermGroFac` should be named as the `trend` for
+        any model outputs that are normalized by permanent income (i.e. they have
+        `Nrm` in their name). In contrast, if you wanted the fraction of agents
+        that have `Lbr > 0.0` for `LaborIntMargConsumerType`, a binary indicator
+        for this outcome should *not* have `PermGroFac` named as the `trend`--
+        you don't want to upweight people who have accumulated more income growth
+        more when calculating the employment rate!
+    pop_gro : float
         Constant population growth factor, defaulting to 1. Each successive
         birth cohort is this factor bigger than the prior birth cohort. With flat
         demographic dynamics, this results in the entire population growing by
-        this factor each period as well.
-    ProdGroFac : float
+        this factor each period as well. NOT YET IMPLEMENTED
+    prod_gro : float
         Constant aggregate productivity growth factor, defaulting to 1. Each
         successive birth cohort has permanent labor productivity that is this
         factor bigger than the prior cohort. With flat demographic dynamics,
         this results in aggregate productivity growing by this factor as well.
+        NOT YET IMPLEMENTED
     solved : bool
         Whether the agent's model has already been solved. If False (default),
         it will be solved as the very first step. Solving the agent's long run
@@ -534,6 +547,16 @@ def make_flat_LC_SSJ_matrices(
         no_list = False
     J = len(outcomes)
 
+    # Check for attempts to use future functionality
+    if pop_gro != 1.0:
+        raise ValueError(
+            "Population growth is not yet implemented for make_flat_LC_SSJ_matrices!"
+        )
+    if prod_gro != 1.0:
+        raise ValueError(
+            "Productivity growth is not yet implemented for make_flat_LC_SSJ_matrices!"
+        )
+
     # Store the simulator if it exists
     simulator_backup = agent._simulator if hasattr(agent, "_simulator") else None
 
@@ -555,10 +578,11 @@ def make_flat_LC_SSJ_matrices(
             )
     LR_soln = deepcopy(agent.solution)
 
-    # Construct the transition matrices for the long run model
     t0 = time()
     agent.initialize_sym()
     X = agent._simulator  # for easier referencing
+
+    # Construct the transition matrices for the long run model
     X.make_transition_matrices(grids, norm)
     LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
     T_age = len(LR_trans)
@@ -572,6 +596,15 @@ def make_flat_LC_SSJ_matrices(
             raise ValueError(
                 "Outcome " + var + " was requested, but no grid was provided!"
             )
+
+    # Extract the normalizing trend
+    if trend is not None:
+        trend_adj_fac = np.array([X.periods[t].content[trend] for t in range(T_age)])
+        trend_adj_fac[0] = 1.0
+        trend_adj_cum = np.cumprod(trend_adj_fac)
+    else:
+        trend_adj_cum = np.ones(T_age)
+
     t1 = time()
     if verbose:
         print(
@@ -664,15 +697,12 @@ def make_flat_LC_SSJ_matrices(
         if l >= 0:
             getattr(agent, shock)[l] = shock_val_new
 
-            # Solve the model starting from age l
+            # Solve the model backwards from age l
             if construct:
-                agent.update()
-            if l + 1 < T_age:
-                agent.solve(from_solution=LR_soln[l + 1], from_t=l + 1)
-            else:
-                agent.solve()
+                agent.construct()
+            agent.solve(from_solution=LR_soln[l + 1], from_t=l + 1)
         else:
-            agent.solution = [LR_soln[0]]
+            agent.solution = LR_soln
 
         # Build transitions and outcomes up to age k. Don't use "fake news timing" option!
         agent.initialize_sym()
@@ -726,6 +756,9 @@ def make_flat_LC_SSJ_matrices(
         SSJ_by_age[:, a, :, :] = calc_ssj_from_fake_news_matrices(
             T_max, J, FN_pad[:, a, :, :], eps
         )
+
+    # Apply normalization factors
+    SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
     SSJ_by_age /= pop_sum
 
     t1 = time()
