@@ -300,11 +300,9 @@ class DiscreteDistribution(Distribution):
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
             It may also take other arguments \\*args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consider `distribution.calc_expectation`.
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
@@ -653,11 +651,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             When extra keyword arguments are passed, func receives the full
             ``xr.Dataset``.
             It may also take other arguments \\*args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consider `distribution.calc_expectation`.
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
