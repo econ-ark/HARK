@@ -69,6 +69,7 @@ Overview
    ../../examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
    ../../examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
    ../../examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ-lifecycle.ipynb
 
 
 .. toctree::

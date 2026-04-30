@@ -477,7 +477,7 @@ def make_flat_LC_SSJ_matrices(
         Amount by which to perturb the shock variable. The default is 1e-4.
     T_max : int
         Size of the SSJ matrices: the maximum number of periods to consider.
-        The default is 300.
+        The default is 100.
     norm : str or None
         Name of the model variable to normalize by for Harmenberg aggregation,
         if any. For many HARK models, this should be 'PermShk', which enables
@@ -586,16 +586,21 @@ def make_flat_LC_SSJ_matrices(
     X.make_transition_matrices(grids, norm)
     LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
     T_age = len(LR_trans)
+    if T_max < T_age:
+        raise ValueError(
+            "T_max must be greater than or equal to T_age in order to pad "
+            "fake_news_array without truncation."
+        )
     LR_outcomes = []
     outcome_grids = []
     for var in outcomes:
         try:
             LR_outcomes.append([X.periods[t].matrices[var] for t in range(T_age)])
             outcome_grids.append([X.periods[t].grids[var] for t in range(T_age)])
-        except:
-            raise ValueError(
+        except KeyError as exc:
+            raise KeyError(
                 "Outcome " + var + " was requested, but no grid was provided!"
-            )
+            ) from exc
 
     # Extract the normalizing trend
     if trend is not None:
@@ -768,11 +773,12 @@ def make_flat_LC_SSJ_matrices(
             + " seconds."
         )
 
-    # Restore the simulator to its prior state
+    # Restore the simulator to its prior state, and put in the long run solution
     if simulator_backup is None:
         del agent._simulator
     else:
         agent._simulator = simulator_backup
+    agent.solution = LR_soln
 
     # Structure and return outputs, aggregating by age if requested
     SSJ = [SSJ_by_age[j, :, :, :] for j in range(J)]

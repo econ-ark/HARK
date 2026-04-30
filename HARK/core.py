@@ -2217,8 +2217,9 @@ class AgentType(Model):
         """
         Construct and return sequence space Jacobian matrices for specified outcomes
         with respect to specified "shock" variable. This "basic" method only works
-        for "one period infinite horizon" models (cycles=0, T_cycle=1). See documen-
-        tation for simulator.make_basic_SSJ_matrices for more information.
+        for "one period infinite horizon" models (cycles=0, T_cycle=1) and for life-
+        cycle models (cycles=1). See documentation for simulator.make_basic_SSJ_matrices
+        and simulator.make_flat_LC_SSJ_matrices for more information.
         """
         if (self.cycles == 0) and (self.T_cycle == 1):
             return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
