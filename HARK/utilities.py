@@ -1086,12 +1086,12 @@ def plot_SSJ(jac, S, outcome=None, shock=None, t_max=None):
     ----------
     jac : np.array
         T x T array representing an HA-SSJ matrix.
-    S : int or [int]
+    S : int | Sequence[int]
         Which columns of the SSJ should be plotted, representing how many periods
         ahead the shock happens after announcement at t=0.
     outcome : str, optional
         The name or description of the outcome to be plotted.
-    shock : TYPE
+    shock : str, optional
         The name or description of the variable that is shocked at t=s.
     t_max : int, optional
         Optional last period t to plot, truncating the graph to the right.
@@ -1103,7 +1103,7 @@ def plot_SSJ(jac, S, outcome=None, shock=None, t_max=None):
     import matplotlib.pyplot as plt
 
     top = jac.shape[0] + 1 if t_max is None else t_max + 1
-    if type(S) is int:
+    if isinstance(S, (int, np.integer)) and not isinstance(S, bool):
         S = [S]
     for s in S:
         plt.plot(jac[:, s], "-", label="s=" + str(s))
