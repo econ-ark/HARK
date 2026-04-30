@@ -594,6 +594,7 @@ def make_flat_LC_SSJ_matrices(
 
     # Re-apply mortality to downweight older ages
     survival_by_age = 1.0 - X.history_avg["dead"]
+    survival_by_age[-1] = 0.0  # Force automatic death
     cum_liv_prb = 1.0
     pop_sum = 0.0
     for a in range(T_age):
@@ -653,13 +654,13 @@ def make_flat_LC_SSJ_matrices(
     # Loop over ages of the model and have the news shock apply at each one;
     # k is the age index at which the shock arrives
     t0 = time()
-    for k in reversed(range(T_age - 1)):
+    for k in reversed(range(T_age)):
         # Adjust the timing for "offset" shocks
         l = k - int(offset)
         shock_val_orig = getattr(agent, shock)[l]
         shock_val_new = shock_val_orig + eps
 
-        # Perturb the shock variable at age l
+        # Perturb the shock variable at age k, which corresponds to "solver period" l
         if l >= 0:
             getattr(agent, shock)[l] = shock_val_new
 
@@ -689,15 +690,17 @@ def make_flat_LC_SSJ_matrices(
 
         # Update the t=0 row of the fake news matrices
         for j in range(J):
-            for a in range(l + 1):
+            for a in range(k + 1):
                 temp = np.dot(SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a])
-                fake_news_array[j, a, 0, l - a] += np.dot(temp, outcome_grids[j][a])
+                fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
 
         # Update the other t rows of the fake news matrices
-        for a in range(l + 1):
+        for a in range(k + 1):
+            if a >= T_age - 1:
+                continue
             S = survival_by_age[a]
             D_dstn_news = np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
-            update_FN_mats(fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, l)
+            update_FN_mats(fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k)
 
         # Reset the shock variable at age l
         if l >= 0:
@@ -1087,7 +1090,7 @@ def update_FN_mats(FN_mats, evecs, dD1, A, a, k):  # pragma: no cover
     for j in range(J):
         for t in range(1, A - a):
             # compute dot(evecs[t-1, j, :], dD1) by hand
-            s = 0.0
+            v = 0.0
             for g in range(G):
-                s += evecs[t - 1, j, g] * dD1[g]
-            FN_mats[j, a + t, t, k - a] += s
+                v += evecs[t - 1, j, g] * dD1[g]
+            FN_mats[j, a + t, t, k - a] += v
