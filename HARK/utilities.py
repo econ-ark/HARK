@@ -1102,6 +1102,8 @@ def plot_SSJ(jac, S, outcome=None, shock=None, t_max=None):
     """
     import matplotlib.pyplot as plt
 
+    plt.ion()
+
     top = jac.shape[0] + 1 if t_max is None else t_max + 1
     if isinstance(S, (int, np.integer)) and not isinstance(S, bool):
         S = [S]

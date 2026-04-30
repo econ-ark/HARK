@@ -404,7 +404,10 @@ def make_basic_SSJ_matrices(
 
         # Construct the SSJ matrices, one for each outcome variable
         t0 = time()
-        SSJ_array = calc_ssj_from_fake_news_matrices(T_max, J, FN, eps)
+        SSJ_array = FN.copy()
+        for t in range(1, T_max):
+            SSJ_array[:, 1:, t] += SSJ_array[:, :-1, t - 1]
+        SSJ_array /= eps
         SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
         t1 = time()
         if verbose:
@@ -417,6 +420,7 @@ def make_basic_SSJ_matrices(
             return SSJ[0]
         else:
             return SSJ
+
     finally:
         _restore_agent(agent, LR_soln, simulator_backup)
 
@@ -578,217 +582,221 @@ def make_flat_LC_SSJ_matrices(
             )
     LR_soln = deepcopy(agent.solution)
 
-    t0 = time()
-    agent.initialize_sym()
-    X = agent._simulator  # for easier referencing
+    try:
+        t0 = time()
+        agent.initialize_sym()
+        X = agent._simulator  # for easier referencing
 
-    # Construct the transition matrices for the long run model
-    X.make_transition_matrices(grids, norm)
-    LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
-    T_age = len(LR_trans)
-    if T_max < T_age:
-        raise ValueError(
-            "T_max must be greater than or equal to T_age in order to pad "
-            "fake_news_array without truncation."
-        )
-    LR_outcomes = []
-    outcome_grids = []
-    for var in outcomes:
-        try:
-            LR_outcomes.append([X.periods[t].matrices[var] for t in range(T_age)])
-            outcome_grids.append([X.periods[t].grids[var] for t in range(T_age)])
-        except KeyError as exc:
-            raise KeyError(
-                "Outcome " + var + " was requested, but no grid was provided!"
-            ) from exc
-
-    # Extract the normalizing trend
-    if trend is not None:
-        trend_adj_fac = np.array([X.periods[t].content[trend] for t in range(T_age)])
-        trend_adj_fac[0] = 1.0
-        trend_adj_cum = np.cumprod(trend_adj_fac)
-    else:
-        trend_adj_cum = np.ones(T_age)
-
-    t1 = time()
-    if verbose:
-        print(
-            "Making the transition matrix for the long run model took {:.3f}".format(
-                t1 - t0
+        # Construct the transition matrices for the long run model
+        X.make_transition_matrices(grids, norm)
+        LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
+        T_age = len(LR_trans)
+        if T_max < T_age:
+            raise ValueError(
+                "T_max must be greater than or equal to T_age in order to pad "
+                "fake_news_array without truncation."
             )
-            + " seconds."
-        )
+        LR_outcomes = []
+        outcome_grids = []
+        for var in outcomes:
+            try:
+                LR_outcomes.append([X.periods[t].matrices[var] for t in range(T_age)])
+                outcome_grids.append([X.periods[t].grids[var] for t in range(T_age)])
+            except KeyError as exc:
+                raise KeyError(
+                    "Outcome " + var + " was requested, but no grid was provided!"
+                ) from exc
 
-    # Find the steady state for the long run model
-    t0 = time()
-    X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
-    SS_dstn = deepcopy(X.state_dstn_by_age)
-    SS_outcomes = {}
-    for j in range(J):
-        name = outcomes[j]
-        SS_outcomes[name] = [
-            np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
+        # Extract the normalizing trend
+        if trend is not None:
+            trend_adj_fac = np.array(
+                [X.periods[t].content[trend] for t in range(T_age)]
+            )
+            trend_adj_fac[0] = 1.0
+            trend_adj_cum = np.cumprod(trend_adj_fac)
+        else:
+            trend_adj_cum = np.ones(T_age)
+
+        t1 = time()
+        if verbose:
+            print(
+                "Making the transition matrix for the long run model took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
+
+        # Find the steady state for the long run model
+        t0 = time()
+        X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
+        SS_dstn = deepcopy(X.state_dstn_by_age)
+        SS_outcomes = {}
+        for j in range(J):
+            name = outcomes[j]
+            SS_outcomes[name] = [
+                np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
+            ]
+
+        # Re-apply mortality to downweight older ages
+        survival_by_age = 1.0 - X.history_avg["dead"]
+        survival_by_age[-1] = 0.0  # Force automatic death
+        cum_liv_prb = 1.0
+        pop_sum = 0.0
+        for a in range(T_age):
+            SS_dstn[a] *= cum_liv_prb
+            pop_sum += cum_liv_prb
+            cum_liv_prb *= survival_by_age[a]
+
+        t1 = time()
+        if verbose:
+            print(
+                "Finding the long run steady state took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Construct the "expectation vectors" for all outcomes at all ages
+        t0 = time()
+        E_vecs = {}
+        for j in range(J):
+            name = outcomes[j]
+            E_temp = [[SS_outcomes[name][a].copy()] for a in range(T_age)]
+            for t in range(1, T_age):
+                for a in range(T_age - t):
+                    S = survival_by_age[a]
+                    E_temp[a].append(np.dot(S * LR_trans[a], E_temp[a + 1][-1]))
+            E_vecs[name] = E_temp
+        t1 = time()
+
+        # Rearrange the expectation vectors for better access later
+        E_curly = [
+            np.stack(
+                [
+                    np.stack([E_vecs[name][a][t] for name in outcomes])
+                    for t in range(T_age - a)
+                ]
+            )
+            for a in range(T_age)
         ]
 
-    # Re-apply mortality to downweight older ages
-    survival_by_age = 1.0 - X.history_avg["dead"]
-    survival_by_age[-1] = 0.0  # Force automatic death
-    cum_liv_prb = 1.0
-    pop_sum = 0.0
-    for a in range(T_age):
-        SS_dstn[a] *= cum_liv_prb
-        pop_sum += cum_liv_prb
-        cum_liv_prb *= survival_by_age[a]
-
-    t1 = time()
-    if verbose:
-        print(
-            "Finding the long run steady state took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
-
-    # Construct the "expectation vectors" for all outcomes at all ages
-    t0 = time()
-    E_vecs = {}
-    for j in range(J):
-        name = outcomes[j]
-        E_temp = [[SS_outcomes[name][a].copy()] for a in range(T_age)]
-        for t in range(1, T_age):
-            for a in range(T_age - t):
-                S = survival_by_age[a]
-                E_temp[a].append(np.dot(S * LR_trans[a], E_temp[a + 1][-1]))
-        E_vecs[name] = E_temp
-    t1 = time()
-
-    # Rearrange the expectation vectors for better access later
-    E_curly = [
-        np.stack(
-            [
-                np.stack([E_vecs[name][a][t] for name in outcomes])
-                for t in range(T_age - a)
-            ]
-        )
-        for a in range(T_age)
-    ]
-
-    if verbose:
-        print(
-            "Constructing expectation vectors took {:.3f}".format(t1 - t0) + " seconds."
-        )
-
-    # Each entry of the E_vecs dictionary is a nested list. The outer index of the
-    # list is a, the age at t=0, and the inner index is time period t. The elements
-    # in the nested list are expectation vectors: the expected value of the outcome
-    # in period t conditional on being age a and at state space gridpoint n at t=0.
-
-    # Initialize the fake news matrices for each output
-    fake_news_array = np.zeros((J, T_age, T_age, T_age))
-    # Dimensions of fake news arrays:
-    # dim 0 --> j: index of outcome variable
-    # dim 1 --> a: age in period t
-    # dim 2 --> t: periods since news arrived
-    # dim 3 --> s: periods ahead about which the news arrived
-
-    # Loop over ages of the model and have the news shock apply at each one;
-    # k is the age index at which the shock arrives
-    t0 = time()
-    for k in reversed(range(T_age)):
-        # Adjust the timing for "offset" shocks
-        l = k - int(offset)
-        shock_val_orig = getattr(agent, shock)[l]
-        shock_val_new = shock_val_orig + eps
-
-        # Perturb the shock variable at age k, which corresponds to "solver period" l
-        if l >= 0:
-            getattr(agent, shock)[l] = shock_val_new
-
-            # Solve the model backwards from age l
-            if construct:
-                agent.construct()
-            agent.solve(from_solution=LR_soln[l + 1], from_t=l + 1)
-        else:
-            agent.solution = LR_soln
-
-        # Build transitions and outcomes up to age k. Don't use "fake news timing" option!
-        agent.initialize_sym()
-        X = agent._simulator  # for easier typing
-        if l < 0:
-            setattr(X.periods[0], shock, shock_val_new)
-        X.make_transition_matrices(grids, norm, for_t=range(k + 1))
-        shocked_trans = deepcopy(X.trans_arrays)
-        shocked_outcomes = []
-        for var in outcomes:
-            temp_outcomes = []
-            for a in range(k + 1):
-                temp_outcomes.append(X.periods[a].matrices[var])
-            shocked_outcomes.append(temp_outcomes)
-
-        # Update the t=0 row of the fake news matrices
-        for j in range(J):
-            for a in range(k + 1):
-                temp = np.dot(SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a])
-                fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
-
-        # Update the other t rows of the fake news matrices
-        for a in range(k + 1):
-            if a >= T_age - 1:
-                continue
-            S = survival_by_age[a]
-            D_dstn_news = np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
-            update_FN_mats(fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k)
-
-        # Reset the shock variable at age l
-        if l >= 0:
-            getattr(agent, shock)[l] = shock_val_orig
-
-    t1 = time()
-    if verbose:
-        print(
-            "Making fake news arrays for each period of the problem took {:.3f}".format(
-                t1 - t0
+        if verbose:
+            print(
+                "Constructing expectation vectors took {:.3f}".format(t1 - t0)
+                + " seconds."
             )
-            + " seconds."
-        )
 
-    t0 = time()
-    # Pad out the fake news array with zeros
-    FN_pad = np.zeros((J, T_age, T_max, T_max))
-    FN_pad[:, :, :T_age, :T_age] = fake_news_array
+        # Each entry of the E_vecs dictionary is a nested list. The outer index of the
+        # list is a, the age at t=0, and the inner index is time period t. The elements
+        # in the nested list are expectation vectors: the expected value of the outcome
+        # in period t conditional on being age a and at state space gridpoint n at t=0.
 
-    # Construct age-specific Jacobian matrices
-    SSJ_by_age = np.zeros_like(FN_pad)
-    for a in range(T_age):
-        SSJ_by_age[:, a, :, :] = calc_ssj_from_fake_news_matrices(
-            T_max, J, FN_pad[:, a, :, :], eps
-        )
+        # Initialize the fake news matrices for each output
+        fake_news_array = np.zeros((J, T_age, T_age, T_age))
+        # Dimensions of fake news arrays:
+        # dim 0 --> j: index of outcome variable
+        # dim 1 --> a: age in period t
+        # dim 2 --> t: periods since news arrived
+        # dim 3 --> s: periods ahead about which the news arrived
 
-    # Apply normalization factors
-    SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
-    SSJ_by_age /= pop_sum
+        # Loop over ages of the model and have the news shock apply at each one;
+        # k is the age index at which the shock arrives
+        t0 = time()
+        for k in reversed(range(T_age)):
+            # Adjust the timing for "offset" shocks
+            l = k - int(offset)
+            shock_val_orig = getattr(agent, shock)[l]
+            shock_val_new = shock_val_orig + eps
 
-    t1 = time()
-    if verbose:
-        print(
-            "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
-            + " seconds."
-        )
+            # Perturb the shock variable at age k, which corresponds to "solver period" l
+            if l >= 0:
+                getattr(agent, shock)[l] = shock_val_new
 
-    # Restore the simulator to its prior state, and put in the long run solution
-    if simulator_backup is None:
-        del agent._simulator
-    else:
-        agent._simulator = simulator_backup
-    agent.solution = LR_soln
+                # Solve the model backwards from age l
+                if construct:
+                    agent.construct()
+                agent.solve(from_solution=LR_soln[l + 1], from_t=l + 1)
+            else:
+                agent.solution = LR_soln
 
-    # Structure and return outputs, aggregating by age if requested
-    SSJ = [SSJ_by_age[j, :, :, :] for j in range(J)]
-    if age_agg:
-        for j in range(J):
-            SSJ[j] = np.sum(SSJ[j], axis=0)
-    if no_list:
-        return SSJ[0]
-    else:
-        return SSJ
+            # Build transitions and outcomes up to age k. Don't use "fake news timing" option!
+            agent.initialize_sym()
+            X = agent._simulator  # for easier typing
+            if l < 0:
+                setattr(X.periods[0], shock, shock_val_new)
+            X.make_transition_matrices(grids, norm, for_t=range(k + 1))
+            shocked_trans = deepcopy(X.trans_arrays)
+            shocked_outcomes = []
+            for var in outcomes:
+                temp_outcomes = []
+                for a in range(k + 1):
+                    temp_outcomes.append(X.periods[a].matrices[var])
+                shocked_outcomes.append(temp_outcomes)
+
+            # Update the t=0 row of the fake news matrices
+            for j in range(J):
+                for a in range(k + 1):
+                    temp = np.dot(
+                        SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a]
+                    )
+                    fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
+
+            # Update the other t rows of the fake news matrices
+            for a in range(k + 1):
+                if a >= T_age - 1:
+                    continue
+                S = survival_by_age[a]
+                D_dstn_news = (
+                    np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
+                )
+                update_FN_mats(
+                    fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k
+                )
+
+            # Reset the shock variable at age l
+            if l >= 0:
+                getattr(agent, shock)[l] = shock_val_orig
+
+        t1 = time()
+        if verbose:
+            print(
+                "Making fake news arrays for each period of the problem took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
+
+        t0 = time()
+        # Pad out the fake news array with zeros
+        FN_pad = np.zeros((J, T_age, T_max, T_max))
+        FN_pad[:, :, :T_age, :T_age] = fake_news_array
+
+        # Construct age-specific Jacobian matrices
+        SSJ_by_age = FN_pad.copy()
+        for t in range(1, T_max):
+            SSJ_by_age[:, :, 1:, t] += SSJ_by_age[:, :, :-1, t - 1]
+
+        # Apply normalization factors
+        SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
+        SSJ_by_age /= pop_sum * eps
+
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Structure and return outputs, aggregating by age if requested
+        SSJ = [SSJ_by_age[j, :, :, :] for j in range(J)]
+        if age_agg:
+            for j in range(J):
+                SSJ[j] = np.sum(SSJ[j], axis=0)
+        if no_list:
+            return SSJ[0]
+        else:
+            return SSJ
+
+    finally:
+        _restore_agent(agent, LR_soln, simulator_backup)
 
 
 def calc_shock_response_manually(
@@ -1081,37 +1089,6 @@ def make_fake_news_matrices(T, J, dY, D_dstn, trans_LR, E):  # pragma: no cover
             FN[:, t, s] = np.dot(E, D_dstn[s, :])
         E = np.dot(E, trans_LR)
     return FN
-
-
-@njit
-def calc_ssj_from_fake_news_matrices(T, J, FN, dx):  # pragma: no cover
-    """
-    Numba-compatible function to calculate the HA-SSJ from fake news matrices.
-
-    Parameters
-    ----------
-    T : int
-        Maximum time horizon for the fake news algorithm.
-    J : int
-        Number of outcomes of interest.
-    FN : np.array
-        Fake news array of shape (J,T,T).
-    dx : float
-        Size of the perturbation of the shock variables (epsilon).
-
-    Returns
-    -------
-    SSJ : np.array
-        HA-SSJ array of shape (J,T,T).
-    """
-    SSJ = np.zeros((J, T, T))
-    SSJ[:, 0, :] = FN[:, 0, :]  # Fill in row zero
-    SSJ[:, :, 0] = FN[:, :, 0]  # Fill in column zero
-    for t in range(1, T):  # Loop over other rows
-        for s in range(1, T):  # Loop over other columns
-            SSJ[:, t, s] = SSJ[:, t - 1, s - 1] + FN[:, t, s]
-    SSJ *= dx**-1.0  # Scale by dx
-    return SSJ
 
 
 @njit

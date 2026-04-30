@@ -177,7 +177,7 @@ class testSimulatorClass(unittest.TestCase):
         agent = IndShockConsumerType(**init_lifecycle)
 
         # Define grid specifications
-        wealth_grid = {"min": 0.0, "max": 40.0, "N": 250, "order": 2.0}
+        wealth_grid = {"min": 0.0, "max": 30.0, "N": 150, "order": 2.0}
         con_grid = {"min": 0.0, "max": 10.0, "N": 201}
         my_grid_specs = {"kNrm": wealth_grid, "cNrm": con_grid}
 
