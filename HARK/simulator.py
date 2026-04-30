@@ -1685,7 +1685,7 @@ class AgentSimulator:
         K = self.newborn_dstn.size
 
         # Make the period-by-period transition matrices
-        these_t = range(len(self.periods)) if for_t is None else for_t
+        these_t = list(range(len(self.periods))) if for_t is None else for_t
         for t in these_t:
             block = self.periods[t]
             block.make_transition_matrices(
@@ -1706,7 +1706,7 @@ class AgentSimulator:
         if fake_news_timing:
             T_set = np.arange(len(self.periods)).tolist()
         elif for_t is None:
-            T_set = [len(self.periods)]
+            T_set = [len(self.periods) - 1]
         else:
             T_set = []
         newborn_dstn = np.reshape(self.newborn_dstn, (1, K))

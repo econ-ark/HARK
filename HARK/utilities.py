@@ -1078,6 +1078,52 @@ def plot_func_slices(
     plt.show(block=False)
 
 
+def plot_SSJ(jac, S, outcome=None, shock=None, t_max=None):
+    """
+    Plots selected columns of an HA-SSJ matrix.
+
+    Parameters
+    ----------
+    jac : np.array
+        T x T array representing an HA-SSJ matrix.
+    S : int or [int]
+        Which columns of the SSJ should be plotted, representing how many periods
+        ahead the shock happens after announcement at t=0.
+    outcome : str, optional
+        The name or description of the outcome to be plotted.
+    shock : TYPE
+        The name or description of the variable that is shocked at t=s.
+    t_max : int, optional
+        Optional last period t to plot, truncating the graph to the right.
+
+    Returns
+    -------
+    None
+    """
+    import matplotlib.pyplot as plt
+
+    top = jac.shape[0] + 1 if t_max is None else t_max + 1
+    if type(S) is int:
+        S = [S]
+    for s in S:
+        plt.plot(jac[:, s], "-", label="s=" + str(s))
+    plt.legend()
+    plt.xlabel(r"time $t$")
+    if outcome is None:
+        plt.ylabel("rate of change")
+    else:
+        plt.ylabel("rate of change of " + outcome)
+    if outcome is not None and shock is not None:
+        plt.title("SSJ for " + outcome + " with respect to " + shock + r" at time $s$")
+    elif shock is not None:
+        plt.title("SSJ with respect to " + shock + r" at time $s$")
+    elif outcome is not None:
+        plt.title("SSJ for " + outcome + r" for a shock at time $s$")
+    plt.tight_layout()
+    plt.xlim(-1, top)
+    plt.show()
+
+
 ###############################################################################
 
 
