@@ -2140,12 +2140,9 @@ class AgentSimulator:
             history_dstn, history_avg = self._full_dstn_history(
                 init_dstn, outcomes, T, trans_array, calc_avg
             )
-        elif calc_avg:
-            history_dstn = {}
-            history_avg = self._stream_avg_history(init_dstn, outcomes, T, trans_array)
         else:
             history_dstn = {}
-            history_avg = {}
+            history_avg = self._stream_avg_history(init_dstn, outcomes, T, trans_array)
 
         self.history_dstn = history_dstn
         self.history_avg = history_avg
