@@ -254,14 +254,30 @@ class BaseLabeledSolver(MetricObject):
         )
         v_end = xr.Dataset(v_end).drop_vars(["mNrm"])
 
+        return self._finalize_value_func(v_end)
+
+    def _finalize_value_func(self, v_end, transform=None) -> ValueFuncCRRALabeled:
+        """Apply the post-processing shared by ``create_continuation_function``
+        across solver subclasses: write inverse value variables, merge in the
+        borrowing-constraint boundary when natural, and optionally apply
+        ``transform`` (e.g. a ``.transpose(...)`` reordering)."""
         v_end["v_inv"] = self.u.inv(v_end["v"])
         v_end["v_der_inv"] = self.u.derinv(v_end["v_der"])
-
         borocnst = self.borocnst.drop_vars(["mNrm"]).expand_dims("aNrm")
         if self.nat_boro_cnst:
             v_end = xr.merge([borocnst, v_end], join="outer", compat="no_conflicts")
-
+        if transform is not None:
+            v_end = transform(v_end)
         return ValueFuncCRRALabeled(v_end, self.params.CRRA)
+
+    def _natural_boro_cnst_with_shocks(self, perm_shk_min, tran_shk_min) -> float:
+        """Compute ``BoroCnstNat`` accounting for minimum shock realizations.
+        Shared by ``ConsIndShockLabeledSolver`` and ``ConsRiskyAssetLabeledSolver``."""
+        return (
+            (self.solution_next.attrs["m_nrm_min"] - tran_shk_min)
+            * (self.params.PermGroFac * perm_shk_min)
+            / self.params.Rfree
+        )
 
     # =========================================================================
     # CORE METHODS - Shared implementation, rarely overridden
@@ -504,34 +520,20 @@ class ConsIndShockLabeledSolver(BaseLabeledSolver):
 
     def calculate_borrowing_constraint(self) -> None:
         """Calculate constraint accounting for minimum shock realizations."""
-        PermShkMinNext = np.min(self.IncShkDstn.atoms[0])
-        TranShkMinNext = np.min(self.IncShkDstn.atoms[1])
-
-        self.BoroCnstNat = (
-            (self.solution_next.attrs["m_nrm_min"] - TranShkMinNext)
-            * (self.params.PermGroFac * PermShkMinNext)
-            / self.params.Rfree
+        self.BoroCnstNat = self._natural_boro_cnst_with_shocks(
+            np.min(self.IncShkDstn.atoms[0]),
+            np.min(self.IncShkDstn.atoms[1]),
         )
 
     def create_continuation_function(self) -> ValueFuncCRRALabeled:
         """Create continuation function by integrating over income shocks."""
-        value_next = self.solution_next.value
-
         v_end = self.IncShkDstn.expected(
             func=self._continuation_for_expectation,
             post_state=self.post_state,
-            value_next=value_next,
+            value_next=self.solution_next.value,
             params=self.params,
         )
-
-        v_end["v_inv"] = self.u.inv(v_end["v"])
-        v_end["v_der_inv"] = self.u.derinv(v_end["v_der"])
-
-        borocnst = self.borocnst.drop_vars(["mNrm"]).expand_dims("aNrm")
-        if self.nat_boro_cnst:
-            v_end = xr.merge([borocnst, v_end], join="outer", compat="no_conflicts")
-
-        return ValueFuncCRRALabeled(v_end, self.params.CRRA)
+        return self._finalize_value_func(v_end)
 
 
 class ConsRiskyAssetLabeledSolver(BaseLabeledSolver):
@@ -578,37 +580,22 @@ class ConsRiskyAssetLabeledSolver(BaseLabeledSolver):
         """Calculate constraint with artificial borrowing constraint."""
         self.BoroCnstArt = 0.0
         self.IncShkDstn = self.ShockDstn
-
-        PermShkMinNext = np.min(self.ShockDstn.atoms[0])
-        TranShkMinNext = np.min(self.ShockDstn.atoms[1])
-
-        self.BoroCnstNat = (
-            (self.solution_next.attrs["m_nrm_min"] - TranShkMinNext)
-            * (self.params.PermGroFac * PermShkMinNext)
-            / self.params.Rfree
+        self.BoroCnstNat = self._natural_boro_cnst_with_shocks(
+            np.min(self.ShockDstn.atoms[0]),
+            np.min(self.ShockDstn.atoms[1]),
         )
 
     def create_continuation_function(self) -> ValueFuncCRRALabeled:
         """Create continuation function integrating over shock distribution."""
-        value_next = self.solution_next.value
-
         v_end = self.ShockDstn.expected(
             func=self._continuation_for_expectation,
             post_state=self.post_state,
-            value_next=value_next,
+            value_next=self.solution_next.value,
             params=self.params,
         )
-
-        v_end["v_inv"] = self.u.inv(v_end["v"])
-        v_end["v_der_inv"] = self.u.derinv(v_end["v_der"])
-
-        borocnst = self.borocnst.drop_vars(["mNrm"]).expand_dims("aNrm")
-        if self.nat_boro_cnst:
-            v_end = xr.merge([borocnst, v_end], join="outer", compat="no_conflicts")
-
-        v_end = v_end.transpose("aNrm", ...)
-
-        return ValueFuncCRRALabeled(v_end, self.params.CRRA)
+        return self._finalize_value_func(
+            v_end, transform=lambda d: d.transpose("aNrm", ...)
+        )
 
 
 class ConsFixedPortfolioLabeledSolver(ConsRiskyAssetLabeledSolver):

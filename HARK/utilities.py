@@ -276,6 +276,38 @@ def make_polynomial_grid(ming, maxg, ng, order=1.0):
 # ==============================================================================
 
 
+def _validate_percentiles(percentiles):
+    """Default to ``[0.5]`` if ``None``; otherwise validate and return."""
+    if percentiles is None:
+        return [0.5]
+    if (
+        not isinstance(percentiles, (list, np.ndarray))
+        or min(percentiles) <= 0
+        or max(percentiles) >= 1
+    ):
+        raise ValueError(
+            "Percentiles should be a list or numpy array of floats between 0 and 1"
+        )
+    return percentiles
+
+
+def _sort_and_cum_dist(data, weights, presorted):
+    """Sort ``data``/``weights`` if needed and return ``(data_sorted,
+    weights_sorted, cum_dist)`` where ``cum_dist`` is the normalized cumulative
+    weight."""
+    if weights is None:
+        weights = np.ones(data.size)
+    if presorted:
+        data_sorted = data
+        weights_sorted = weights
+    else:
+        order = np.argsort(data)
+        data_sorted = data[order]
+        weights_sorted = weights[order]
+    cum_dist = np.cumsum(weights_sorted) / np.sum(weights_sorted)
+    return data_sorted, weights_sorted, cum_dist
+
+
 def get_percentiles(data, weights=None, percentiles=None, presorted=False):
     """
     Calculates the requested percentiles of (weighted) data.  Median by default.
@@ -297,41 +329,12 @@ def get_percentiles(data, weights=None, percentiles=None, presorted=False):
     pctl_out : numpy.array
         The requested percentiles of the data.
     """
-    if percentiles is None:
-        percentiles = [0.5]
-    else:
-        if (
-            not isinstance(percentiles, (list, np.ndarray))
-            or min(percentiles) <= 0
-            or max(percentiles) >= 1
-        ):
-            raise ValueError(
-                "Percentiles should be a list or numpy array of floats between 0 and 1"
-            )
-
+    percentiles = _validate_percentiles(percentiles)
     if data.size < 2:
         return np.zeros(np.array(percentiles).shape) + np.nan
-
-    if weights is None:  # Set equiprobable weights if none were passed
-        weights = np.ones(data.size) / float(data.size)
-
-    if presorted:  # Sort the data if it is not already
-        data_sorted = data
-        weights_sorted = weights
-    else:
-        order = np.argsort(data)
-        data_sorted = data[order]
-        weights_sorted = weights[order]
-
-    cum_dist = np.cumsum(weights_sorted) / np.sum(
-        weights_sorted
-    )  # cumulative probability distribution
-
-    # Calculate the requested percentiles by interpolating the data over the
-    # cumulative distribution, then evaluating at the percentile values
+    data_sorted, _, cum_dist = _sort_and_cum_dist(data, weights, presorted)
     inv_CDF = interp1d(cum_dist, data_sorted, bounds_error=False, assume_sorted=True)
-    pctl_out = inv_CDF(percentiles)
-    return pctl_out
+    return inv_CDF(percentiles)
 
 
 def get_lorenz_shares(data, weights=None, percentiles=None, presorted=False):
@@ -356,39 +359,12 @@ def get_lorenz_shares(data, weights=None, percentiles=None, presorted=False):
     lorenz_out : numpy.array
         The requested Lorenz curve points of the data.
     """
-    if percentiles is None:
-        percentiles = [0.5]
-    else:
-        if (
-            not isinstance(percentiles, (list, np.ndarray))
-            or min(percentiles) <= 0
-            or max(percentiles) >= 1
-        ):
-            raise ValueError(
-                "Percentiles should be a list or numpy array of floats between 0 and 1"
-            )
-    if weights is None:  # Set equiprobable weights if none were given
-        weights = np.ones(data.size)
-
-    if presorted:  # Sort the data if it is not already
-        data_sorted = data
-        weights_sorted = weights
-    else:
-        order = np.argsort(data)
-        data_sorted = data[order]
-        weights_sorted = weights[order]
-
-    cum_dist = np.cumsum(weights_sorted) / np.sum(
-        weights_sorted
-    )  # cumulative probability distribution
+    percentiles = _validate_percentiles(percentiles)
+    data_sorted, weights_sorted, cum_dist = _sort_and_cum_dist(data, weights, presorted)
     temp = data_sorted * weights_sorted
-    cum_data = np.cumsum(temp) / sum(temp)  # cumulative ownership shares
-
-    # Calculate the requested Lorenz shares by interpolating the cumulative ownership
-    # shares over the cumulative distribution, then evaluating at requested points
+    cum_data = np.cumsum(temp) / sum(temp)
     lorenzFunc = interp1d(cum_dist, cum_data, bounds_error=False, assume_sorted=True)
-    lorenz_out = lorenzFunc(percentiles)
-    return lorenz_out
+    return lorenzFunc(percentiles)
 
 
 def calc_subpop_avg(data, reference, cutoffs, weights=None):
@@ -530,8 +506,8 @@ def kernel_regression(x, y, bot=None, top=None, N=500, h=None, kernel="epanechni
     # Get kernel if possible
     try:
         kern = kernel_dict[kernel]
-    except:
-        raise ValueError("Can't find a kernel named '" + kernel + "'!")
+    except KeyError:
+        raise ValueError(f"Can't find a kernel named '{kernel}'!") from None
 
     # Construct a local linear approximation
     x_vec = np.linspace(bot, top, num=N)
@@ -858,6 +834,31 @@ def gen_tran_matrix_2D(
 # ==============================================================================
 
 
+def _plot_functions_grid(
+    functions, bottom, top, N, legend_kwds, xlabel, ylabel, x_grid, evaluate
+):
+    """Plot one or more 1D ``functions`` over ``[bottom, top]``.
+
+    ``x_grid(bottom, top, N)`` produces the abscissa, and
+    ``evaluate(function, x)`` returns the ordinate values.
+    """
+    import matplotlib.pyplot as plt
+
+    plt.ion()
+    function_list = functions if type(functions) == list else [functions]
+    for function in function_list:
+        x = x_grid(bottom, top, N)
+        plt.plot(x, evaluate(function, x))
+    plt.xlim([bottom, top])
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+    if legend_kwds is not None:
+        plt.legend(**legend_kwds)
+    plt.show(block=False)
+
+
 def plot_funcs(
     functions, bottom, top, N=1000, legend_kwds=None, xlabel=None, ylabel=None
 ):
@@ -885,27 +886,17 @@ def plot_funcs(
     -------
     none
     """
-    import matplotlib.pyplot as plt
-
-    plt.ion()
-
-    if type(functions) == list:
-        function_list = functions
-    else:
-        function_list = [functions]
-
-    for function in function_list:
-        x = np.linspace(bottom, top, N, endpoint=True)
-        y = function(x)
-        plt.plot(x, y)
-    plt.xlim([bottom, top])
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
-    if legend_kwds is not None:
-        plt.legend(**legend_kwds)
-    plt.show(block=False)
+    _plot_functions_grid(
+        functions,
+        bottom,
+        top,
+        N,
+        legend_kwds,
+        xlabel,
+        ylabel,
+        x_grid=lambda b, t, n: np.linspace(b, t, n, endpoint=True),
+        evaluate=lambda f, x: f(x),
+    )
 
 
 def plot_funcs_der(
@@ -935,28 +926,17 @@ def plot_funcs_der(
     -------
     none
     """
-    import matplotlib.pyplot as plt
-
-    plt.ion()
-
-    if type(functions) == list:
-        function_list = functions
-    else:
-        function_list = [functions]
-
-    step = (top - bottom) / N
-    for function in function_list:
-        x = np.arange(bottom, top, step)
-        y = function.derivative(x)
-        plt.plot(x, y)
-    plt.xlim([bottom, top])
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
-    if legend_kwds is not None:
-        plt.legend(**legend_kwds)
-    plt.show(block=False)
+    _plot_functions_grid(
+        functions,
+        bottom,
+        top,
+        N,
+        legend_kwds,
+        xlabel,
+        ylabel,
+        x_grid=lambda b, t, n: np.arange(b, t, (t - b) / n),
+        evaluate=lambda f, x: f.derivative(x),
+    )
 
 
 def plot_func_slices(
@@ -1324,7 +1304,7 @@ def find_gui():
     """
     try:
         import matplotlib.pyplot as plt
-    except:
+    except ImportError:
         return False
     if plt.get_backend() == "Agg":
         return False
