@@ -196,7 +196,7 @@ def solveConsAggShock(
     Solve one period of a consumption-saving problem with idiosyncratic and
     aggregate shocks (transitory and permanent).  This is a basic solver that
     can't handle cubic splines, nor can it calculate a value function. This
-    version uses calc_expectation to reduce code clutter.
+    version uses the `expected` function to reduce code clutter.
 
     Parameters
     ----------
