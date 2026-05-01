@@ -308,7 +308,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         can store the consistent value in ``limit`` metadata.
         """
         if tail_bound is not None:
-            if type(tail_bound) is float:
+            if isinstance(tail_bound, (float, np.floating)):
                 tail_bound = [tail_bound, 1 - tail_bound]
             if tail_bound[0] < 0 or tail_bound[1] > 1:
                 raise ValueError("Tail bounds must be between 0 and 1")
