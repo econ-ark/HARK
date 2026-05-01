@@ -120,6 +120,93 @@ class Simulator:
             self.history[var_name] = np.empty((self.T_sim, self.agent_count))
             self.history[var_name].fill(np.nan)
 
+    def _setup_block_state(
+        self, calibration, block, dr, initial, seed, agent_count, T_sim
+    ):
+        """
+        Common attribute setup shared by every block-driven Simulator subclass.
+
+        Stores the calibration/block/dr/initial inputs, builds the shock
+        distribution from the block, sizes ``vars_now``/``vars_prev`` from
+        ``block.get_vars()``, and seeds the simulator's RNG.  History dicts
+        are also initialized.  Subclasses set their own subclass-specific
+        attributes (e.g. ``read_shocks``) before or after this call.
+        """
+        self.calibration = calibration
+        self.block = block
+
+        # Shocks are exogenous (but for age) but can depend on calibration.
+        raw_shocks = block.get_shocks()
+        self.shocks = construct_shocks(raw_shocks, calibration)
+
+        self.dynamics = block.get_dynamics()
+        self.dr = dr
+        self.initial = initial
+
+        self.seed = seed  # NOQA
+        self.agent_count = agent_count
+        self.T_sim = T_sim
+
+        self.vars = block.get_vars()
+        self.vars_now = {v: None for v in self.vars}
+        self.vars_prev = self.vars_now.copy()
+
+        self._init_history_dicts()
+        self.reset_rng()  # NOQA
+
+    def _init_newborn_init_history(self):
+        """Allocate ``newborn_init_history`` arrays for each variable in ``self.initial``."""
+        for var_name in self.initial:
+            self.newborn_init_history[var_name] = (
+                np.zeros((self.T_sim, self.agent_count)) + np.nan
+            )
+
+    def _init_history_dicts(self):
+        """Allocate empty history dicts shared by every Simulator subclass."""
+        self.shock_history = {}
+        self.newborn_init_history = {}
+        self.history = {}
+
+    def _init_blank_now_vars(self):
+        """Fill any uninitialized ``vars_now`` entries with NaN arrays."""
+        blank_array = np.empty(self.agent_count)
+        blank_array[:] = np.nan
+        for var in self.vars:
+            if self.vars_now[var] is None:
+                self.vars_now[var] = copy(blank_array)
+
+    def _rotate_state_buffers(self):
+        """Move ``vars_now`` to ``vars_prev`` and reinitialize array buffers to NaN."""
+        for var in self.vars:
+            self.vars_prev[var] = self.vars_now[var]
+            if isinstance(self.vars_now[var], np.ndarray):
+                self.vars_now[var] = np.empty(self.agent_count)
+                self.vars_now[var][:] = np.nan
+            # else: aggregate variable possibly set by a Market - leave alone
+
+    def _start_sim(self):
+        """Common ``initialize_sim`` prefix: validate, reset RNG, blank buffers,
+        initialize ``t_cycle``, and return the all-agents mask used for sim_birth."""
+        self._validate_T_sim()
+        self.reset_rng()
+        self.t_sim = 0
+        self._init_blank_now_vars()
+        self.t_cycle = np.zeros(self.agent_count, dtype=int)
+        return np.ones(self.agent_count, dtype=bool)
+
+    def _finish_sim_init(self, all_agents):
+        """Common ``initialize_sim`` suffix: birth all agents and clear history."""
+        self.sim_birth(all_agents)
+        self.clear_history()
+
+    def _validate_T_sim(self):
+        """Raise if ``T_sim`` was not set to a positive integer."""
+        if self.T_sim <= 0:
+            raise Exception(
+                "T_sim represents the largest number of observations "
+                + "that can be simulated for an agent, and must be a positive number."
+            )
+
     def _assign_initial_vals(self, which_agents, initial_vals):
         """
         Assign drawn initial values to the agents flagged by ``which_agents``
@@ -249,61 +336,18 @@ class AgentTypeMonteCarloSimulator(Simulator):
         self, calibration, block: DBlock, dr, initial, seed=0, agent_count=1, T_sim=10
     ):
         super().__init__()
-
-        self.calibration = calibration
-        self.block = block
-
-        # shocks are exogenous (but for age) but can depend on calibration
-        raw_shocks = block.get_shocks()
-        self.shocks = construct_shocks(raw_shocks, calibration)
-
-        self.dynamics = block.get_dynamics()
-        self.dr = dr
-        self.initial = initial
-
-        self.seed = seed  # NOQA
-        self.agent_count = agent_count
-        self.T_sim = T_sim
-
-        # changes here from HARK.core.AgentType
-        self.vars = block.get_vars()
-
-        self.vars_now = {v: None for v in self.vars}
-        self.vars_prev = self.vars_now.copy()
-
-        self.read_shocks = False  # NOQA
-        self.shock_history = {}
-        self.newborn_init_history = {}
-        self.history = {}
-
-        self.reset_rng()  # NOQA
+        self.read_shocks = False  # NOQA  -- must precede _setup if used by helpers
+        self._setup_block_state(
+            calibration, block, dr, initial, seed, agent_count, T_sim
+        )
 
     def initialize_sim(self):
         """
         Prepares for a new simulation.  Resets the internal random number generator,
         makes initial states for all agents (using sim_birth), clears histories of tracked variables.
         """
-        if self.T_sim <= 0:
-            raise Exception(
-                "T_sim represents the largest number of observations "
-                + "that can be simulated for an agent, and must be a positive number."
-            )
-
-        self.reset_rng()
-        self.t_sim = 0
-        all_agents = np.ones(self.agent_count, dtype=bool)
-        blank_array = np.empty(self.agent_count)
-        blank_array[:] = np.nan
-        for var in self.vars:
-            if self.vars_now[var] is None:
-                self.vars_now[var] = copy(blank_array)
-
-        self.t_age = np.zeros(
-            self.agent_count, dtype=int
-        )  # Number of periods since agent entry
-        self.t_cycle = np.zeros(
-            self.agent_count, dtype=int
-        )  # Which cycle period each agent is on
+        all_agents = self._start_sim()
+        self.t_age = np.zeros(self.agent_count, dtype=int)
 
         # Get recorded newborn conditions or initialize blank history.
         if self.read_shocks and bool(self.newborn_init_history):
@@ -312,14 +356,9 @@ class AgentTypeMonteCarloSimulator(Simulator):
                     self.t_sim, :
                 ]
         else:
-            for var_name in self.initial:
-                self.newborn_init_history[var_name] = (
-                    np.zeros((self.T_sim, self.agent_count)) + np.nan
-                )
+            self._init_newborn_init_history()
 
-        self.sim_birth(all_agents)
-
-        self.clear_history()
+        self._finish_sim_init(all_agents)
         return None
 
     def sim_one_period(self):
@@ -332,16 +371,7 @@ class AgentTypeMonteCarloSimulator(Simulator):
         # Mortality adjusts the agent population
         self.get_mortality()  # Replace some agents with "newborns"
 
-        # state_{t-1}
-        for var in self.vars:
-            self.vars_prev[var] = self.vars_now[var]
-
-            if isinstance(self.vars_now[var], np.ndarray):
-                self.vars_now[var] = np.empty(self.agent_count)
-                self.vars_now[var][:] = np.nan
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
+        self._rotate_state_buffers()
 
         shocks_now = {}
 
@@ -483,66 +513,19 @@ class MonteCarloSimulator(Simulator):
         self, calibration, block: DBlock, dr, initial, seed=0, agent_count=1, T_sim=10
     ):
         super().__init__()
-
-        self.calibration = calibration
-        self.block = block
-
-        # shocks are exogenous (but for age) but can depend on calibration
-        raw_shocks = block.get_shocks()
-        self.shocks = construct_shocks(raw_shocks, calibration)
-
-        self.dynamics = block.get_dynamics()
-        self.dr = dr
-        self.initial = initial
-
-        self.seed = seed  # NOQA
-        self.agent_count = agent_count  # TODO: pass this in at block level
-        self.T_sim = T_sim
-
-        # changes here from HARK.core.AgentType
-        self.vars = block.get_vars()
-
-        self.vars_now = {v: None for v in self.vars}
-        self.vars_prev = self.vars_now.copy()
-
-        self.shock_history = {}
-        self.newborn_init_history = {}
-        self.history = {}
-
-        self.reset_rng()  # NOQA
+        # TODO: pass agent_count in at block level
+        self._setup_block_state(
+            calibration, block, dr, initial, seed, agent_count, T_sim
+        )
 
     def initialize_sim(self):
         """
         Prepares for a new simulation.  Resets the internal random number generator,
         makes initial states for all agents (using sim_birth), clears histories of tracked variables.
         """
-        if self.T_sim <= 0:
-            raise Exception(
-                "T_sim represents the largest number of observations "
-                + "that can be simulated for an agent, and must be a positive number."
-            )
-
-        self.reset_rng()
-        self.t_sim = 0
-        all_agents = np.ones(self.agent_count, dtype=bool)
-        blank_array = np.empty(self.agent_count)
-        blank_array[:] = np.nan
-        for var in self.vars:
-            if self.vars_now[var] is None:
-                self.vars_now[var] = copy(blank_array)
-
-        self.t_cycle = np.zeros(
-            self.agent_count, dtype=int
-        )  # Which cycle period each agent is on
-
-        for var_name in self.initial:
-            self.newborn_init_history[var_name] = (
-                np.zeros((self.T_sim, self.agent_count)) + np.nan
-            )
-
-        self.sim_birth(all_agents)
-
-        self.clear_history()
+        all_agents = self._start_sim()
+        self._init_newborn_init_history()
+        self._finish_sim_init(all_agents)
         return None
 
     def sim_one_period(self):
@@ -552,19 +535,7 @@ class MonteCarloSimulator(Simulator):
         AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
         instead) and read_shocks.
         """
-
-        # state_{t-1}
-        for var in self.vars:
-            self.vars_prev[var] = self.vars_now[var]
-
-            if isinstance(self.vars_now[var], np.ndarray):
-                self.vars_now[var] = np.empty(self.agent_count)
-                self.vars_now[var][:] = np.nan
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
-
-        shocks_now = {}
+        self._rotate_state_buffers()
 
         shocks_now = draw_shocks(
             self.shocks,

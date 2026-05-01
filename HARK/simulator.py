@@ -277,17 +277,27 @@ class RandomEvent(ModelEvent):
     def run(self):
         self.assign(self.draw())
 
+    def _apply_harmenberg(self, probs, atoms, norm):
+        """
+        Apply Harmenberg permanent-income normalization to ``probs`` in place.
+
+        If ``norm`` matches one of the variable names in ``self.assigns``,
+        scale ``probs`` by the corresponding atoms; otherwise leave ``probs``
+        unchanged.  Returns ``probs`` for chained use.
+        """
+        try:
+            harm_idx = self.assigns.index(norm)
+            probs *= atoms[harm_idx]
+        except ValueError:
+            pass
+        return probs
+
     def quasi_run(self, origins, norm=None):
         # Get distribution
         atoms = self.dstn.atoms
         probs = self.dstn.pmv.copy()
 
-        # Apply Harmenberg normalization if applicable
-        try:
-            harm_idx = self.assigns.index(norm)
-            probs *= atoms[harm_idx]
-        except:
-            pass
+        probs = self._apply_harmenberg(probs, atoms, norm)
 
         # Expand the set of simulated blobs
         origins_new = self.expand_information(origins, probs, atoms)
@@ -350,12 +360,7 @@ class RandomIndexedEvent(RandomEvent):
             atoms = self.dstn[j].atoms
             probs = self.dstn[j].pmv.copy()
 
-            # Apply Harmenberg normalization if applicable
-            try:
-                harm_idx = self.assigns.index(norm)
-                probs *= atoms[harm_idx]
-            except:
-                pass
+            probs = self._apply_harmenberg(probs, atoms, norm)
 
             # Expand the set of simulated blobs
             origins_new = self.expand_information(
@@ -576,32 +581,25 @@ class SimBlock:
         for j in range(len(self.events)):
             self.events[j].reset()
 
+    def _lookup_content(self, name, kind):
+        """Return ``self.content[name]`` or raise ValueError naming ``kind``."""
+        try:
+            return self.content[name]
+        except KeyError:
+            verb = "distribute the" if kind == "parameter" else "find a"
+            raise ValueError(f"Could not {verb} {kind} called {name}!") from None
+
     def distribute_content(self):
         """
         Fill in parameters, functions, and distributions to each event.
         """
         for event in self.events:
             for param in event.parameters.keys():
-                try:
-                    event.parameters[param] = self.content[param]
-                except:
-                    raise ValueError(
-                        "Could not distribute the parameter called " + param + "!"
-                    )
+                event.parameters[param] = self._lookup_content(param, "parameter")
             if (type(event) is RandomEvent) or (type(event) is RandomIndexedEvent):
-                try:
-                    event.dstn = self.content[event._dstn_name]
-                except:
-                    raise ValueError(
-                        "Could not find a distribution called " + event._dstn_name + "!"
-                    )
+                event.dstn = self._lookup_content(event._dstn_name, "distribution")
             if type(event) is EvaluationEvent:
-                try:
-                    event.func = self.content[event._func_name]
-                except:
-                    raise ValueError(
-                        "Could not find a function called " + event._func_name + "!"
-                    )
+                event.func = self._lookup_content(event._func_name, "function")
 
     def _build_input_grids(self, grid_specs, arrival_N):
         """
@@ -650,7 +648,7 @@ class SimBlock:
                 idx = self.arrival.index(var)
                 completed[idx] = True
                 is_arrival = True
-            except:
+            except ValueError:
                 is_arrival = False
 
             # Determine whether it's polynomial, exponential, or custom
@@ -1846,80 +1844,24 @@ class AgentSimulator:
         bounds = bounds or [0.0, 100.0]
         state_grid = np.linspace(bounds[0], bounds[1], num=N)
 
-        # Process keyword arguments into a dictionary of fixed values
         period = self.periods[0]
-        event_count = len(period.events)
-        fixed = {}
-        var_names = list(self.types.keys())
-        for name in kwargs:
-            if name in var_names:
-                fixed[name] = kwargs[name]
-            else:
-                raise ValueError(
-                    "Could not find a model variable called " + name + " to hold fixed!"
-                )
-
-        # Find the event index at which to start and stop the quasi-simulation
-        var_names = [target_var] + list(fixed.keys())
-        var_count = len(var_names)
-        found_count = 0
-        found = var_count * [False]
-        j = 0
-        if target_var not in period.arrival:
-            while (found_count < var_count) and (j < event_count):
-                event = period.events[j]
-                assigns = event.assigns
-                for i in range(var_count):
-                    if (var_names[i] in assigns) and (not found[i]):
-                        found[i] = True
-                        found_count += 1
-                j += 1
-            if not np.all(found):
-                raise ValueError(
-                    "Could not find events that assign target variable and all fixed variables!"
-                )
-        idx0 = j  # Event index where the quasi-sim should start and stop
-
-        # Construct the starting information set for the quasi-simulation
-        data_init = {}
-        trivial_vars = []
-
-        # Assign dummy data for all vars assigned prior to start/stop
-        for var in period.arrival:
-            data_init[var] = np.zeros(N, dtype=int)  # dummy data
-            trivial_vars.append(var)
-        for j in range(idx0):
-            event = period.events[j]
-            assigns = event.assigns
-            for var in assigns:
-                data_init[var] = np.zeros(N, dtype=int)  # dummy data
-                trivial_vars.append(var)
-
-        # Assign fixed data and the grid of candidate target values
-        for key in fixed.keys():
-            data_init[key] = fixed[key] * np.ones(N)
-        data_init[target_var] = state_grid
+        fixed = self._validate_fixed_kwargs(kwargs)
+        idx0 = self._find_search_start_event(target_var, fixed, period)
+        data_init, trivial_vars = self._make_target_data_init(
+            target_var, fixed, period, state_grid, idx0, N
+        )
 
         # Run the quasi-simulation on the initial grid of states
         period.run_quasi_sim(data_init, j0=idx0, twist=self.twist)
-        origins = period.origin_array
-        data_final = period.data[target_var]
-        pmv_final = period.data["pmv_"]
-
-        # Calculate mean value of next period's state at each point in the grid
-        E_state_next = np.empty(N)
-        for n in range(N):
-            these = origins == n
-            E_state_next[n] = np.dot(pmv_final[these], data_final[these])
-        E_delta_state = E_state_next - state_grid  # expected change in state
+        E_delta_state = self._compute_expected_delta(period, target_var, state_grid, N)
 
         # Find indices in the grid where E[Delta x] flips from positive to negative
         sign = E_delta_state > 0.0
-        flip = np.logical_and(sign[:-1], np.logical_not(sign[1:]))
-        flip_idx = np.argwhere(flip).flatten()
+        flip_idx = np.argwhere(
+            np.logical_and(sign[:-1], np.logical_not(sign[1:]))
+        ).flatten()
         if flip_idx.size == 0:
-            state_targ = []
-            return state_targ
+            return []
 
         # Reduce the fixed values in data_init to single valued vectors
         for var in trivial_vars:
@@ -1927,25 +1869,214 @@ class AgentSimulator:
         for key in fixed.keys():
             data_init[key] = np.array([fixed[key]])
 
-        # Define a function that can be used to search for states where E[Delta x] = 0
         def delta_zero_func(x):
             data_init[target_var] = np.array([x])
             period.run_quasi_sim(data_init, j0=idx0, twist=self.twist)
-            data_final = period.data[target_var]
-            pmv_final = period.data["pmv_"]
-            E_delta = np.dot(pmv_final, data_final) - x
+            E_delta = np.dot(period.data["pmv_"], period.data[target_var]) - x
             return E_delta
 
-        # For each segment index with a sign flip for E[Delta x], find x_targ
         state_targ = []
         for i in flip_idx:
-            bot = state_grid[i]
-            top = state_grid[i + 1]
-            x_targ = brentq(delta_zero_func, bot, top, xtol=tol, rtol=tol)
+            x_targ = brentq(
+                delta_zero_func, state_grid[i], state_grid[i + 1], xtol=tol, rtol=tol
+            )
             state_targ.append(x_targ)
-
-        # Return the output
         return state_targ
+
+    def _validate_fixed_kwargs(self, kwargs):
+        var_names = list(self.types.keys())
+        fixed = {}
+        for name in kwargs:
+            if name not in var_names:
+                raise ValueError(
+                    "Could not find a model variable called " + name + " to hold fixed!"
+                )
+            fixed[name] = kwargs[name]
+        return fixed
+
+    @staticmethod
+    def _find_search_start_event(target_var, fixed, period):
+        if target_var in period.arrival:
+            return 0
+        var_names = [target_var] + list(fixed.keys())
+        var_count = len(var_names)
+        found = [False] * var_count
+        found_count = 0
+        j = 0
+        event_count = len(period.events)
+        while (found_count < var_count) and (j < event_count):
+            assigns = period.events[j].assigns
+            for i in range(var_count):
+                if (var_names[i] in assigns) and (not found[i]):
+                    found[i] = True
+                    found_count += 1
+            j += 1
+        if not np.all(found):
+            raise ValueError(
+                "Could not find events that assign target variable and all fixed variables!"
+            )
+        return j
+
+    @staticmethod
+    def _make_target_data_init(target_var, fixed, period, state_grid, idx0, N):
+        data_init = {}
+        trivial_vars = []
+        for var in period.arrival:
+            data_init[var] = np.zeros(N, dtype=int)
+            trivial_vars.append(var)
+        for j in range(idx0):
+            for var in period.events[j].assigns:
+                data_init[var] = np.zeros(N, dtype=int)
+                trivial_vars.append(var)
+        for key, val in fixed.items():
+            data_init[key] = val * np.ones(N)
+        data_init[target_var] = state_grid
+        return data_init, trivial_vars
+
+    @staticmethod
+    def _compute_expected_delta(period, target_var, state_grid, N):
+        origins = period.origin_array
+        data_final = period.data[target_var]
+        pmv_final = period.data["pmv_"]
+        E_state_next = np.empty(N)
+        for n in range(N):
+            these = origins == n
+            E_state_next[n] = np.dot(pmv_final[these], data_final[these])
+        return E_state_next - state_grid
+
+    def _validate_shock_call(self, calc_dstn, calc_avg, shock, from_dstn):
+        if not (calc_dstn or calc_avg):
+            raise ValueError(
+                "At least one of calc_dstn or calc_avg must be true, or there's no work!"
+            )
+        if (shock is None) and (from_dstn is None):
+            raise ValueError(
+                "The shock or from_dstn must be specified, or there's nothing to simulate!"
+            )
+        if self.T_total != 1:
+            raise ValueError(
+                "simulate_shock_by_grids is only implemented for infinite-horizon models with T_total == 1."
+            )
+        if not hasattr(self, "trans_arrays"):
+            raise KeyError(
+                "This method can't be run before running make_transition_matrices!"
+            )
+
+    @staticmethod
+    def _normalize_shock_args(shock, outcomes):
+        if shock is None:
+            shock = []
+        if type(shock) is str:
+            shock = [shock]
+        if isinstance(outcomes, str):
+            outcomes = [outcomes]
+        return shock, outcomes
+
+    def _resolve_initial_dstn(self, from_dstn):
+        if from_dstn is None:
+            if not hasattr(self, "steady_state_dstn"):
+                self.find_steady_state()
+            return self.steady_state_dstn
+        dstn_sum = np.sum(from_dstn)
+        dstn_N = from_dstn.size
+        if not np.isclose(dstn_sum, 1.0):
+            raise ValueError(
+                "Specified from_dstn should be a stochastic vector, but its values sum to "
+                + str(dstn_sum)
+            )
+        arrival_N = len(self.state_grids[0])
+        if arrival_N != dstn_N:
+            raise ValueError(
+                "Specified from_dstn should be a vector of size "
+                + str(arrival_N)
+                + ", but has size "
+                + str(dstn_N)
+                + "!"
+            )
+        return from_dstn
+
+    def _parse_shock_statement(self, S):
+        op = next((c for c in ("+", "*", "=") if c in S), None)
+        if op is None:
+            raise ValueError(
+                "The shock statement (" + S + ") did not contain a valid operator!"
+            )
+        loc = S.index(op)
+        var = S[:loc].strip()
+        val = S[(loc + 1) :].strip()
+        if var not in self.twist:
+            raise KeyError(
+                "All shocked variables must be continuation states, but "
+                + var
+                + " is not!"
+            )
+        try:
+            float(val)
+        except (ValueError, TypeError):
+            raise ValueError("Couldn't interpret " + val + " as a number!")
+        return var, op, val
+
+    def _build_shock_event_strings(self, shock):
+        event_strings = []
+        shock_vars = []
+        for S in shock:
+            var, op, val = self._parse_shock_statement(S)
+            var_alt = self.twist[var]
+            if op == "+":
+                this_event = var + " = " + var_alt + " + " + val
+            elif op == "*":
+                this_event = var + " = " + var_alt + " * " + val
+            else:
+                this_event = var + " = " + var_alt + " * 0.0 + " + val
+            event_strings.append(this_event)
+            shock_vars.append(var)
+        for var in self.twist.keys():
+            if var in shock_vars:
+                continue
+            event_strings.append(var + " = " + self.twist[var])
+        return event_strings
+
+    def _apply_shock_block(self, init_dstn, event_strings):
+        grid_specs_temp = {
+            var: self.grid_specs[var]
+            for var in self.grid_specs
+            if (var in self.twist) or (var in self.periods[0].arrival)
+        }
+        shock_model = {"name": "exogenous shock", "dynamics": event_strings}
+        shock_block, _info, _offset, _solution, _comments = make_template_block(
+            shock_model, arrival=self.periods[0].arrival
+        )
+        shock_block.make_transition_matrices(grid_specs_temp, twist=self.twist)
+        shock_block.reset()
+        return np.dot(init_dstn, shock_block.trans_array)
+
+    def _stream_avg_history(self, init_dstn, outcomes, T, trans_array):
+        outcome_arrays_0 = self.outcome_arrays[0]
+        outcome_grids_0 = self.outcome_grids[0]
+        history_avg = {name: np.empty(T) for name in outcomes}
+        current_dstn = init_dstn.copy()
+        for t in range(T):
+            for name in outcomes:
+                this_dstn_t = np.dot(current_dstn, outcome_arrays_0[name])
+                history_avg[name][t] = np.dot(outcome_grids_0[name], this_dstn_t)
+            current_dstn = current_dstn @ trans_array
+        return history_avg
+
+    def _full_dstn_history(self, init_dstn, outcomes, T, trans_array, calc_avg):
+        current_dstn = init_dstn.copy()
+        state_dstn_by_t = np.empty((current_dstn.size, T))
+        for t in range(T):
+            state_dstn_by_t[:, t] = current_dstn
+            current_dstn = current_dstn @ trans_array
+        history_dstn = {}
+        history_avg = {}
+        for name in outcomes:
+            this_outcome = self.outcome_arrays[0][name]
+            this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
+            history_dstn[name] = this_dstn
+            if calc_avg:
+                history_avg[name] = np.dot(self.outcome_grids[0][name], this_dstn)
+        return history_dstn, history_avg
 
     def simulate_shock_by_grids(
         self,
@@ -2000,176 +2131,21 @@ class AgentSimulator:
         -------
         None.
         """
-        if not (calc_dstn or calc_avg):
-            raise ValueError(
-                "At least one of calc_dstn or calc_avg must be true, or there's no work!"
-            )
-        if (shock is None) and (from_dstn is None):
-            raise ValueError(
-                "The shock or from_dstn must be specified, or there's nothing to simulate!"
-            )
-        if self.T_total != 1:
-            raise ValueError(
-                "simulate_shock_by_grids is only implemented for infinite-horizon models with T_total == 1."
-            )
-        if not hasattr(self, "trans_arrays"):
-            raise KeyError(
-                "This method can't be run before running make_transition_matrices!"
-            )
-        if shock is None:
-            shock = []
-        if type(shock) is str:
-            shock = [shock]
-        if isinstance(outcomes, str):
-            outcomes = [outcomes]
-
-        # Get the starting unperturbed distribution
-        if from_dstn is None:
-            if not hasattr(self, "steady_state_dstn"):
-                self.find_steady_state()
-            init_dstn = self.steady_state_dstn
-        else:
-            dstn_sum = np.sum(from_dstn)
-            dstn_N = from_dstn.size
-            if not np.isclose(dstn_sum, 1.0):
-                raise ValueError(
-                    "Specified from_dstn should be a stochastic vector, but its values sum to "
-                    + str(dstn_sum)
-                )
-            arrival_N = len(self.state_grids[0])
-            if not arrival_N == dstn_N:
-                raise ValueError(
-                    "Specified from_dstn should be a vector of size "
-                    + str(arrival_N)
-                    + ", but has size "
-                    + str(dstn_N)
-                    + "!"
-                )
-            init_dstn = from_dstn
-
-        # Make dynamic event strings for each shock statement
-        event_strings = []
-        shock_vars = []
-        op_list = ["+", "*", "="]
-        for k in range(len(shock)):
-            # Parse the shock statement for its parts
-            S = shock[k]
-            op = None
-            for j in range(len(op_list)):
-                if op_list[j] in S:
-                    op = op_list[j]
-                    break
-            if op is None:
-                raise ValueError(
-                    "The shock statement (" + S + ") did not contain a valid operator!"
-                )
-            loc = S.index(op)
-            var = S[:loc].strip()
-            val = S[(loc + 1) :].strip()
-            if var not in self.twist:
-                raise KeyError(
-                    "All shocked variables must be continuation states, but "
-                    + var
-                    + " is not!"
-                )
-            try:
-                float(val)
-            except (ValueError, TypeError):
-                raise ValueError("Couldn't interpret " + val + " as a number!")
-
-            # Make a string for this shock event
-            var_alt = self.twist[var]
-            if op == "+":
-                this_event = var + " = " + var_alt + " + " + val
-            elif op == "*":
-                this_event = var + " = " + var_alt + " * " + val
-            elif op == "=":
-                this_event = var + " = " + var_alt + " * 0.0 + " + val
-            event_strings.append(this_event)
-            shock_vars.append(var)
-
-        # For any continuation states that weren't shocked, make a trivial event
-        cont_vars = list(self.twist.keys())
-        for k in range(len(cont_vars)):
-            var = cont_vars[k]
-            if var in shock_vars:
-                continue
-            var_alt = self.twist[var]
-            this_event = var + " = " + var_alt
-            event_strings.append(this_event)
-
-        # Extract grid specifications only for arrival and continuation variables
-        grid_specs_temp = {}
-        for var in self.grid_specs:
-            if (var in self.twist) or (var in self.periods[0].arrival):
-                grid_specs_temp[var] = self.grid_specs[var]
-
-        # Make a fake model block that applies the shock
-        shock_model = {"name": "exogenous shock", "dynamics": event_strings}
-        shock_block, info, offset, solution, comments = make_template_block(
-            shock_model, arrival=self.periods[0].arrival
-        )
-        shock_block.make_transition_matrices(grid_specs_temp, twist=self.twist)
-        shock_block.reset()
-
-        # Apply the shock transition to the starting distribution
-        init_dstn = np.dot(init_dstn, shock_block.trans_array)
-
-        # Initialize generated output
-        history_dstn = {}
-        history_avg = {}
-
-        # Initialize the state distribution
-        current_dstn = init_dstn.copy()
-
-        # If we need the full distribution history, allocate state_dstn_by_t;
-        # otherwise, avoid this potentially large O(num_states * T) array.
-        if calc_dstn:
-            state_dstn_by_t = np.empty((current_dstn.size, T))
-        else:
-            state_dstn_by_t = None
+        self._validate_shock_call(calc_dstn, calc_avg, shock, from_dstn)
+        shock, outcomes = self._normalize_shock_args(shock, outcomes)
+        init_dstn = self._resolve_initial_dstn(from_dstn)
+        event_strings = self._build_shock_event_strings(shock)
+        init_dstn = self._apply_shock_block(init_dstn, event_strings)
 
         trans_array = csc_matrix(self.trans_arrays[0])
+        if calc_dstn:
+            history_dstn, history_avg = self._full_dstn_history(
+                init_dstn, outcomes, T, trans_array, calc_avg
+            )
+        else:
+            history_dstn = {}
+            history_avg = self._stream_avg_history(init_dstn, outcomes, T, trans_array)
 
-        # If we only need averages (no full distributions), we can stream
-        # the averages over time without storing the full state history.
-        if calc_avg and not calc_dstn:
-            outcome_arrays_0 = self.outcome_arrays[0]
-            outcome_grids_0 = self.outcome_grids[0]
-            for name in outcomes:
-                history_avg[name] = np.empty(T)
-
-        # Loop over requested periods of this agent type's model
-        for t in range(T):
-            # Store full state distribution history only if requested
-            if calc_dstn:
-                state_dstn_by_t[:, t] = current_dstn
-
-            # Stream averages when only averages are needed
-            if calc_avg and not calc_dstn:
-                for name in outcomes:
-                    this_outcome = outcome_arrays_0[name]
-                    this_grid = outcome_grids_0[name]
-                    this_dstn_t = np.dot(current_dstn, this_outcome)
-                    history_avg[name][t] = np.dot(this_grid, this_dstn_t)
-
-            current_dstn = current_dstn @ trans_array
-
-        # Calculate history of outcomes as requested
-        for name in outcomes:
-            this_outcome = self.outcome_arrays[0][name]
-            this_grid = self.outcome_grids[0][name]
-
-            if calc_dstn:
-                this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
-                history_dstn[name] = this_dstn
-
-                if calc_avg:
-                    history_avg[name] = np.dot(this_grid, this_dstn)
-            elif calc_avg:
-                # Averages have already been filled in the time loop
-                continue
-        # Store results as attributes of self
         self.history_dstn = history_dstn
         self.history_avg = history_avg
 
@@ -2213,73 +2189,71 @@ class AgentSimulator:
         -------
         None
         """
-        # First, verify that newborn and transition matrices exist for all periods
-        if not hasattr(self, "newborn_dstn"):
-            raise ValueError(
-                "The newborn state distribution does not exist; make_transition_matrices() must be run before grid simulations!"
-            )
-        if T_max is None:
-            T_max = self.T_total
-        T_max = np.minimum(T_max, self.T_total)
-        if not hasattr(self, "trans_arrays"):
-            raise ValueError(
-                "The transition arrays do not exist; make_transition_matrices() must be run before grid simulations!"
-            )
-        if len(self.trans_arrays) < T_max:
-            raise ValueError(
-                "There are somehow fewer elements of trans_array than there should be!"
-            )
+        T_max = self._validate_cohort_call(T_max)
         if not (calc_dstn or calc_avg):
-            return  # No work actually requested, we're done here
+            return
 
-        # Initialize generated output as requested
         if isinstance(outcomes, str):
             outcomes = [outcomes]
-        if calc_dstn:
-            history_dstn = {}
-            for name in outcomes:  # List will be concatenated to array at end
-                history_dstn[name] = []  # if all distributions are same size
-        if calc_avg:
-            history_avg = {}
-            for name in outcomes:
-                history_avg[name] = np.empty(T_max)
+        history_dstn = {name: [] for name in outcomes} if calc_dstn else None
+        history_avg = {name: np.empty(T_max) for name in outcomes} if calc_avg else None
 
-        # Initialize the state distribution
         current_dstn = (
             self.newborn_dstn.copy() if from_dstn is None else from_dstn.copy()
         )
         state_dstn_by_age = []
 
-        # Loop over requested periods of this agent type's model
         for t in range(T_max):
             state_dstn_by_age.append(current_dstn)
-
-            # Calculate outcome distributions and averages as requested
-            for name in outcomes:
-                this_outcome = self.periods[t].matrices[name].transpose()
-                this_dstn = np.dot(this_outcome, current_dstn)
-                if calc_dstn:
-                    history_dstn[name].append(this_dstn)
-                if calc_avg:
-                    this_grid = self.periods[t].grids[name]
-                    history_avg[name][t] = np.dot(this_dstn, this_grid)
-
-            # Advance the distribution to the next period
+            self._record_cohort_outcomes(
+                t, current_dstn, outcomes, history_dstn, history_avg
+            )
             current_dstn = np.dot(self.trans_arrays[t].T, current_dstn)
 
-        # Reshape the distribution histories if possible
         if calc_dstn:
-            for name in outcomes:
-                dstn_sizes = np.array([dstn.size for dstn in history_dstn[name]])
-                if np.all(dstn_sizes == dstn_sizes[0]):
-                    history_dstn[name] = np.stack(history_dstn[name], axis=1)
+            self._stack_uniform_dstns(outcomes, history_dstn)
 
-        # Store results as attributes of self
         self.state_dstn_by_age = state_dstn_by_age
         if calc_dstn:
             self.history_dstn = history_dstn
         if calc_avg:
             self.history_avg = history_avg
+
+    def _validate_cohort_call(self, T_max):
+        if not hasattr(self, "newborn_dstn"):
+            raise ValueError(
+                "The newborn state distribution does not exist; make_transition_matrices() must be run before grid simulations!"
+            )
+        if not hasattr(self, "trans_arrays"):
+            raise ValueError(
+                "The transition arrays do not exist; make_transition_matrices() must be run before grid simulations!"
+            )
+        if T_max is None:
+            T_max = self.T_total
+        T_max = np.minimum(T_max, self.T_total)
+        if len(self.trans_arrays) < T_max:
+            raise ValueError(
+                "There are somehow fewer elements of trans_array than there should be!"
+            )
+        return T_max
+
+    def _record_cohort_outcomes(
+        self, t, current_dstn, outcomes, history_dstn, history_avg
+    ):
+        for name in outcomes:
+            this_outcome = self.periods[t].matrices[name].transpose()
+            this_dstn = np.dot(this_outcome, current_dstn)
+            if history_dstn is not None:
+                history_dstn[name].append(this_dstn)
+            if history_avg is not None:
+                history_avg[name][t] = np.dot(this_dstn, self.periods[t].grids[name])
+
+    @staticmethod
+    def _stack_uniform_dstns(outcomes, history_dstn):
+        for name in outcomes:
+            dstn_sizes = np.array([dstn.size for dstn in history_dstn[name]])
+            if np.all(dstn_sizes == dstn_sizes[0]):
+                history_dstn[name] = np.stack(history_dstn[name], axis=1)
 
     def describe_model(self, display=True):
         """
@@ -2538,6 +2512,88 @@ def _build_periods(
     return periods
 
 
+def _load_agent_model(agent):
+    if hasattr(agent, "model_statement"):
+        model_statement = copy(agent.model_statement)
+    else:
+        with importlib.resources.open_text("HARK.models", agent.model_file) as f:
+            model_statement = f.read()
+    return yaml.safe_load(model_statement)
+
+
+def _build_declared_types(variables, comments, arrival, common):
+    types = {}
+    for var_line in variables:
+        var_name, var_type, flags, desc = parse_declaration_for_parts(var_line)
+        if var_type is not None:
+            try:
+                var_type = eval(var_type)
+            except (NameError, SyntaxError) as exc:
+                raise ValueError(
+                    f"Couldn't understand type {var_type} for declared variable {var_name}!"
+                ) from exc
+        else:
+            var_type = float
+        types[var_name] = var_type
+        comments[var_name] = desc
+        if ("arrival" in flags) and (var_name not in arrival):
+            arrival.append(var_name)
+        if ("common" in flags) and (var_name not in common):
+            common.append(var_name)
+    return types
+
+
+def _classify_symbols(information):
+    parameters = []
+    functions = []
+    distributions = []
+    for key, val in information.items():
+        if val is None:
+            parameters.append(key)
+        elif type(val) is NullFunc:
+            functions.append(key)
+        elif type(val) is Distribution:
+            distributions.append(key)
+    return parameters, functions, distributions
+
+
+def _augment_types_with_undeclared(information, types, comments):
+    for var, this in information.items():
+        if var in types:
+            continue
+        if (this is None) or (type(this) is Distribution) or (type(this) is NullFunc):
+            continue
+        types[var] = float
+        comments[var] = ""
+    if "dead" in types:
+        types["dead"] = bool
+        comments["dead"] = "whether agent died this period"
+    types["t_seq"] = int
+    types["t_age"] = int
+    comments["t_seq"] = "which period of the sequence the agent is on"
+    comments["t_age"] = "how many periods the agent has already lived for"
+
+
+def _resolve_initializer_values(agent, init_info):
+    init_dict = {}
+    for name in init_info.keys():
+        try:
+            init_dict[name] = getattr(agent, name)
+        except AttributeError as exc:
+            raise ValueError(
+                f"Couldn't get a value for initializer object {name}!"
+            ) from exc
+    return init_dict
+
+
+def _resolve_T_age(T_age, cycles, T_seq):
+    if T_age is None:
+        T_age = 0
+    if cycles > 0:
+        T_age = np.minimum(T_seq - 1, T_age)
+    return T_age
+
+
 def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=None):
     """
     Build an AgentSimulator instance based on an AgentType instance. The AgentType
@@ -2571,14 +2627,7 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
     new_simulator : AgentSimulator
         A simulator structure based on the agents.
     """
-    # Read the model statement into a dictionary, and get names of attributes
-    if hasattr(agent, "model_statement"):  # look for a custom model statement
-        model_statement = copy(agent.model_statement)
-    else:  # otherwise use the default model file
-        with importlib.resources.open_text("HARK.models", agent.model_file) as f:
-            model_statement = f.read()
-            f.close()
-    model = yaml.safe_load(model_statement)
+    model = _load_agent_model(agent)
     time_vary = agent.time_vary
     time_inv = agent.time_inv
     cycles = agent.cycles
@@ -2586,92 +2635,28 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
     comments = {}
     RNG = agent.RNG  # this is only for generating seeds for MarkovEvents
 
-    # Extract basic fields from the model using helper
     model_name, description, variables, twist, common, arrival = _parse_model_fields(
         model, common_override=common
     )
 
-    # Make a dictionary of declared data types and add comments
-    types = {}
-    for var_line in variables:  # Loop through declared variables
-        var_name, var_type, flags, desc = parse_declaration_for_parts(var_line)
-        if var_type is not None:
-            try:
-                var_type = eval(var_type)
-            except:
-                raise ValueError(
-                    "Couldn't understand type "
-                    + var_type
-                    + " for declared variable "
-                    + var_name
-                    + "!"
-                )
-        else:
-            var_type = float
-        types[var_name] = var_type
-        comments[var_name] = desc
-        if ("arrival" in flags) and (var_name not in arrival):
-            arrival.append(var_name)
-        if ("common" in flags) and (var_name not in common):
-            common.append(var_name)
+    types = _build_declared_types(variables, comments, arrival, common)
 
-    # Make a blank "template" period with structure but no data
     template_period, information, offset, solution, block_comments = (
         make_template_block(model, arrival, common)
     )
     comments.update(block_comments)
 
-    # Make the agent initializer, without parameter values (etc)
     initializer, init_info = make_initializer(model, arrival, common)
-
-    # Extract basic fields from the template period and model
     statement = template_period.statement
     content = template_period.content
 
-    # Get the names of parameters, functions, and distributions
-    parameters = []
-    functions = []
-    distributions = []
-    for key in information.keys():
-        val = information[key]
-        if val is None:
-            parameters.append(key)
-        elif type(val) is NullFunc:
-            functions.append(key)
-        elif type(val) is Distribution:
-            distributions.append(key)
+    parameters, functions, distributions = _classify_symbols(information)
+    _augment_types_with_undeclared(information, types, comments)
 
-    # Loop through variables that appear in the model block but were undeclared
-    for var in information.keys():
-        if var in types.keys():
-            continue
-        this = information[var]
-        if (this is None) or (type(this) is Distribution) or (type(this) is NullFunc):
-            continue
-        types[var] = float
-        comments[var] = ""
-    if "dead" in types.keys():
-        types["dead"] = bool
-        comments["dead"] = "whether agent died this period"
-    types["t_seq"] = int
-    types["t_age"] = int
-    comments["t_seq"] = "which period of the sequence the agent is on"
-    comments["t_age"] = "how many periods the agent has already lived for"
-
-    # Make a dictionary for the initializer and distribute information
-    init_dict = {}
-    for name in init_info.keys():
-        try:
-            init_dict[name] = getattr(agent, name)
-        except:
-            raise ValueError(
-                "Couldn't get a value for initializer object " + name + "!"
-            )
-    initializer.content = init_dict
+    initializer.content = _resolve_initializer_values(agent, init_info)
     initializer.distribute_content()
 
-    # Create a list of periods, pulling appropriate data from the agent for each one
-    T_seq = len(agent.solution)  # Number of periods in the solution sequence
+    T_seq = len(agent.solution)
     T_cycle = agent.T_cycle
     periods = _build_periods(
         template_period,
@@ -2686,16 +2671,8 @@ def make_simulator_from_agent(agent, stop_dead=True, replace_dead=True, common=N
         T_cycle,
     )
 
-    # Calculate maximum age
-    if T_age is None:
-        T_age = 0
-    if cycles > 0:
-        T_age_max = T_seq - 1
-        T_age = np.minimum(T_age_max, T_age)
-    try:
-        T_sim = agent.T_sim
-    except:
-        T_sim = 0  # very boring default!
+    T_age = _resolve_T_age(T_age, cycles, T_seq)
+    T_sim = getattr(agent, "T_sim", 0)
 
     # Make and return the new simulator
     new_simulator = AgentSimulator(
@@ -2786,6 +2763,89 @@ def _extract_symbol_class(
     return result
 
 
+def _build_event_list(lines, info, common):
+    """
+    Walk a sequence of statement lines and build the corresponding event list.
+
+    Each line is parsed into a new event via :func:`make_new_event`, the event's
+    assigned variables are folded into ``info`` (raising on duplicates), and
+    events whose assigned variables overlap ``common`` are flagged as common.
+
+    Returns ``(events, names_used)``.
+    """
+    events = []
+    names_used = []
+    for line in lines:
+        new_event, used = make_new_event(line, info)
+        events.append(new_event)
+        names_used += used
+
+        for var in new_event.assigns:
+            if var in info.keys():
+                raise ValueError(var + " is assigned, but already exists!")
+            info[var] = 0
+
+        for var in new_event.assigns:
+            if var in common:
+                new_event.common = True
+                break
+    return events, names_used
+
+
+def _format_block_statement(events):
+    """
+    Format an aligned text representation of an event list for SimBlock display.
+
+    Each event's ``statement`` is right-padded to the longest statement, then
+    appended with ``": " + event.description``.
+    """
+    if not events:
+        return ""
+    longest = np.max([len(event.statement) for event in events])
+    parts = []
+    for event in events:
+        pad = (longest + 1) - len(event.statement)
+        parts.append(event.statement + pad * " " + ": " + event.description + "\n")
+    return "".join(parts)
+
+
+def _collect_initializer_symbols(model, class_name, constructor, expected_datatype):
+    """
+    Collect one class of symbols (parameters, functions, or distributions) for the
+    initializer SimBlock.
+
+    Parameters
+    ----------
+    model : dict
+        Parsed model dictionary containing a 'symbols' sub-dict.
+    class_name : str
+        Key within ``model['symbols']`` to look up.
+    constructor : callable or None
+        Called with no arguments to build each entry's placeholder value. Pass
+        ``None`` for parameters (which use ``None`` as their placeholder).
+    expected_datatype : str or None
+        If non-None, declarations must either omit the datatype or use this
+        exact string; otherwise a ValueError is raised.
+    """
+    result = {}
+    symbols = model.get("symbols", {})
+    if class_name not in symbols:
+        return result
+    for line in symbols[class_name]:
+        name, datatype, flags, desc = parse_declaration_for_parts(line)
+        if (
+            expected_datatype is not None
+            and datatype is not None
+            and datatype != expected_datatype
+        ):
+            raise ValueError(
+                f"{name} was declared as a {class_name[:-1]}, "
+                "but given a different datatype!"
+            )
+        result[name] = constructor() if constructor is not None else None
+    return result
+
+
 def make_template_block(model, arrival=None, common=None):
     """
     Construct a new SimBlock object as a "template" of the model block. It has
@@ -2852,46 +2912,16 @@ def make_template_block(model, arrival=None, common=None):
     for var in arrival:
         info[var] = 0  # Mark as a state variable
 
-    # Parse the model dynamics
+    # Parse the model dynamics and build the event list
     dynamics = format_block_statement(model["dynamics"])
-
-    # Make the list of ordered events
-    events = []
-    names_used_in_dynamics = []
-    for line in dynamics:
-        # Make the new event and add it to the list
-        new_event, names_used = make_new_event(line, info)
-        events.append(new_event)
-        names_used_in_dynamics += names_used
-
-        # Add newly assigned variables to the information set
-        for var in new_event.assigns:
-            if var in info.keys():
-                raise ValueError(var + " is assigned, but already exists!")
-            info[var] = 0
-
-        # If any assigned variables are common, mark the event as common
-        for var in new_event.assigns:
-            if var in common:
-                new_event.common = True
-                break  # No need to check further
+    events, names_used_in_dynamics = _build_event_list(dynamics, info, common)
 
     # Remove content that is never referenced within the dynamics
-    delete_these = []
-    for name in content.keys():
-        if name not in names_used_in_dynamics:
-            delete_these.append(name)
-    for name in delete_these:
+    for name in [n for n in content.keys() if n not in names_used_in_dynamics]:
         del content[name]
 
     # Make a single string model statement
-    statement = ""
-    longest = np.max([len(event.statement) for event in events])
-    for event in events:
-        this_statement = event.statement
-        L = len(this_statement)
-        pad = (longest + 1) - L
-        statement += this_statement + pad * " " + ": " + event.description + "\n"
+    statement = _format_block_statement(events)
 
     # Make a description for the template block
     if name is None:
@@ -2938,42 +2968,13 @@ def make_initializer(model, arrival=None, common=None):
         arrival = []
     if common is None:
         common = []
-    try:
-        name = model["name"]
-    except:
-        name = "DEFAULT_NAME"
+    name = model.get("name", "DEFAULT_NAME")
 
-    # Extract parameters, functions, and distributions
-    parameters = {}
-    if "parameters" in model["symbols"].keys():
-        param_lines = model["symbols"]["parameters"]
-        for line in param_lines:
-            param_name, datatype, flags, desc = parse_declaration_for_parts(line)
-            parameters[param_name] = None
-
-    functions = {}
-    if "functions" in model["symbols"].keys():
-        func_lines = model["symbols"]["functions"]
-        for line in func_lines:
-            func_name, datatype, flags, desc = parse_declaration_for_parts(line)
-            if (datatype is not None) and (datatype != "func"):
-                raise ValueError(
-                    func_name
-                    + " was declared as a function, but given a different datatype!"
-                )
-            functions[func_name] = NullFunc()
-
-    distributions = {}
-    if "distributions" in model["symbols"].keys():
-        dstn_lines = model["symbols"]["distributions"]
-        for line in dstn_lines:
-            dstn_name, datatype, flags, desc = parse_declaration_for_parts(line)
-            if (datatype is not None) and (datatype != "dstn"):
-                raise ValueError(
-                    dstn_name
-                    + " was declared as a distribution, but given a different datatype!"
-                )
-            distributions[dstn_name] = Distribution()
+    parameters = _collect_initializer_symbols(model, "parameters", None, None)
+    functions = _collect_initializer_symbols(model, "functions", NullFunc, "func")
+    distributions = _collect_initializer_symbols(
+        model, "distributions", Distribution, "dstn"
+    )
 
     # Combine those dictionaries into a single "information" dictionary
     content = parameters.copy()
@@ -2981,29 +2982,9 @@ def make_initializer(model, arrival=None, common=None):
     content.update(distributions)
     info = deepcopy(content)
 
-    # Parse the initialization routine
+    # Parse the initialization routine and build the event list
     initialize = format_block_statement(model["initialize"])
-
-    # Make the list of ordered events
-    events = []
-    names_used_in_initialize = []  # this doesn't actually get used
-    for line in initialize:
-        # Make the new event and add it to the list
-        new_event, names_used = make_new_event(line, info)
-        events.append(new_event)
-        names_used_in_initialize += names_used
-
-        # Add newly assigned variables to the information set
-        for var in new_event.assigns:
-            if var in info.keys():
-                raise ValueError(var + " is assigned, but already exists!")
-            info[var] = 0
-
-        # If any assigned variables are common, mark the event as common
-        for var in new_event.assigns:
-            if var in common:
-                new_event.common = True
-                break  # No need to check further
+    events, _ = _build_event_list(initialize, info, common)
 
     # Verify that all arrival variables were created in the initializer
     for var in arrival:
@@ -3019,38 +3000,32 @@ def make_initializer(model, arrival=None, common=None):
             if var not in init_requires.keys():
                 try:
                     init_requires[var] = parameters[var]
-                except:
+                except KeyError as exc:
                     raise ValueError(
-                        var
-                        + " was referenced in initialize, but not declared as a parameter!"
-                    )
+                        f"{var} was referenced in initialize, "
+                        "but not declared as a parameter!"
+                    ) from exc
         if type(event) is RandomEvent:
+            dstn_name = getattr(event, "_dstn_name", None)
             try:
-                dstn_name = event._dstn_name
                 init_requires[dstn_name] = distributions[dstn_name]
-            except:
+            except KeyError as exc:
                 raise ValueError(
-                    dstn_name
-                    + " was referenced in initialize, but not declared as a distribution!"
-                )
+                    f"{dstn_name} was referenced in initialize, "
+                    "but not declared as a distribution!"
+                ) from exc
         if type(event) is EvaluationEvent:
+            func_name = getattr(event, "_func_name", None)
             try:
-                func_name = event._func_name
-                init_requires[dstn_name] = functions[func_name]
-            except:
+                init_requires[func_name] = functions[func_name]
+            except KeyError as exc:
                 raise ValueError(
-                    func_name
-                    + " was referenced in initialize, but not declared as a function!"
-                )
+                    f"{func_name} was referenced in initialize, "
+                    "but not declared as a function!"
+                ) from exc
 
     # Make a single string initializer statement
-    statement = ""
-    longest = np.max([len(event.statement) for event in events])
-    for event in events:
-        this_statement = event.statement
-        L = len(this_statement)
-        pad = (longest + 1) - L
-        statement += this_statement + pad * " " + ": " + event.description + "\n"
+    statement = _format_block_statement(events)
 
     # Make and return the new SimBlock
     initializer = SimBlock(
