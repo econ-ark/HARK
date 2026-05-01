@@ -187,7 +187,7 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
 # ==============================================================================
 
 
-def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
+def make_grid_exp_mult(ming, maxg, ng, timestonest=20, offset=0.0):
     r"""
     Makes a multi-exponentially spaced grid.
     If the function :math:`\ln(1+x)` were applied timestonest times, the grid would
@@ -196,7 +196,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 
     NOTE: The bounds of the grid must be non-negative, else this function will
     return an invalid grid with NaNs in it. If you want a non-linearly spaced
-    grid that spans negative numbers, use make_exponential_grid; see below.
+    grid that spans negative numbers, use make_polynomial_grid or specify an offset.
 
     Parameters
     ----------
@@ -205,24 +205,26 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     maxg : float
         Maximum value of the grid, which must be greater than ming.
     ng : int
-        The number of grid points
-    timestonest : int
-        the number of times to nest the exponentiation
+        The number of gridpoints
+    timestonest : int, optional
+        The number of times to nest the exponentiation; the default is 20.
+    offset : float
+        Offset added to the final grid, so it spans [ming+offset, maxg+offset].
+        The default is zero.
 
     Returns
     -------
     points : np.array
-        A multi-exponentially spaced grid
+        A multi-exponentially spaced grid.
 
     Notes
     -----
     Original Matab code can be found in Chris Carroll's
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 01 May 2015
     """
     if timestonest == -1:
-        grid = np.linspace(ming, maxg, ng)
+        grid = np.linspace(ming, maxg, ng) + offset
         return grid
     if timestonest > 0:
         Lming = ming
@@ -239,12 +241,13 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
         Lmaxg = np.log(maxg)
         Lgrid = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
+    grid += offset
     return grid
 
 
-def make_exponential_grid(ming, maxg, ng, order=1.0):
+def make_polynomial_grid(ming, maxg, ng, order=1.0):
     """
-    Construct an exponentially spaced grid with chosen exponential order.
+    Construct a polynomially spaced grid with chosen polynomial order.
     A uniformly spaced grid on [0,1] is raised to the chosen order, then linearly
     remapped to the specified interval. Supports any real valued grid bounds.
 
@@ -257,12 +260,12 @@ def make_exponential_grid(ming, maxg, ng, order=1.0):
     ng : int
         Number of points in the grid.
     order : float, optional
-        Exponential spacing order for the grid. The default is 1.0, or linear.
+        Polynomial spacing order for the grid. The default is 1.0, or linear.
 
     Returns
     -------
     grid : np.array
-        Exponentially spaced grid on [ming, maxg] with ng points.
+        Polynomial spaced grid on [ming, maxg] with ng points.
     """
     grid = np.linspace(0.0, 1.0, ng) ** order * (maxg - ming) + ming
     return grid
@@ -1028,7 +1031,7 @@ def plot_func_slices(
     if (zmin is not None) and (zmax is not None):
         if Z is None:
             if zmax > zmin:
-                Z = make_exponential_grid(zmin, zmax, zn, order=zorder)
+                Z = make_polynomial_grid(zmin, zmax, zn, order=zorder)
             else:
                 raise ValueError("zmax must be greater than zmin!")
         else:
