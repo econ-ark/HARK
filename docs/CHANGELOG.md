@@ -21,6 +21,9 @@ There are some breaking changes:
 - Parameter `PortfolioBool` has been deprecated. To allow portfolio choice for `RiskyAssetConsumerType`, just set `RiskyShareFixed=None`. #1740
 - The parameter `BeqCRRA` has been deprecated; agents with a warm glow bequest motive must use the same CRRA as their ordinary utility function. #1758
 - "Terminal bequest parameters" have been deprecated; agents have the same bequest motive in period T as they do in all other periods. #1758
+- `calc_expectation` has been renamed to `expected_with_loop`; use `expected` and pass `vectorized=False` for this functionality. #1763
+- The argument `dist` in `expected` has been renamed to `dstn`. #1763
+- The function `make_exponential_grid` has been renamed to `make_polynomial_grid` to reduce confusion with `make_grid_exp_mult`. #1762
 
 #### Major Changes
 
@@ -31,6 +34,7 @@ There are some breaking changes:
 - Added habit-formation model with portfolio allocation, along with example notebooks. #1748
 - Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
 - Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
+- The `make_basic_SSJ` method can now handle life-cycle models (`cycles=1`) as well as standard infinite horizon models. #1718
 
 #### Minor Changes
 
@@ -44,6 +48,9 @@ There are some breaking changes:
 - Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
 - Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
 - Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
+- Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1761
+- Matrix transition methods (including HA-SSJ) now support multi-exponential grids, as well as fully custom grids. #1762
+- Small documentation notebook for life-cycle HA-SSJ construction has been added. #1718
 
 ### 0.17.1
 
