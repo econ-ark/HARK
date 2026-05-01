@@ -34,6 +34,7 @@ There are some breaking changes:
 - Added habit-formation model with portfolio allocation, along with example notebooks. #1748
 - Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
 - Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
+- The `make_basic_SSJ` method can now handle life-cycle models (`cycles=1`) as well as standard infinite horizon models. #1718
 
 #### Minor Changes
 
@@ -57,6 +58,7 @@ There are some breaking changes:
 - Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1763
 - Matrix transition methods (including HA-SSJ) now support multi-exponential grids, as well as fully custom grids. #1762
 - `HARK.interpolation` refactored to reduce repetition and code clutter. #1765
+- Small documentation notebook for life-cycle HA-SSJ construction has been added. #1718
 
 ### 0.17.1
 

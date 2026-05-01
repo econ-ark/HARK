@@ -7,7 +7,7 @@ simulator structure. Simulation tests for various HARK models are in the model t
 # Bring in modules we need
 import unittest
 import numpy as np
-from HARK.utilities import make_grid_exp_mult
+from HARK.utilities import make_grid_exp_mult, plot_SSJ
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
     parse_income_spec,
@@ -153,6 +153,9 @@ class testSimulatorClass(unittest.TestCase):
             verbose=True,
         )
 
+        # Test the plotting tool
+        plot_SSJ(dC_dR, [0, 10, 30, 50, 80], "consumption", "interest rate")
+
         # Verify that all of the SSJs return near zero (for shocks < 100 periods ahead)
         self.assertTrue(np.all(np.isclose(dC_dR[-1, :100], 0.0)))
         self.assertTrue(np.all(np.isclose(dA_dR[-1, :100], 0.0)))
@@ -169,6 +172,27 @@ class testSimulatorClass(unittest.TestCase):
         )
         self.assertTrue(np.all(np.isclose(resp_C, dC_dR[:, 50], atol=1e-5)))
         self.assertTrue(np.all(np.isclose(resp_A, dA_dR[:, 50], atol=5e-4)))
+
+    def test_make_LC_SSJ(self):
+        agent = IndShockConsumerType(**init_lifecycle)
+
+        # Define grid specifications
+        wealth_grid = {"min": 0.0, "max": 30.0, "N": 150, "order": 2.0}
+        con_grid = {"min": 0.0, "max": 10.0, "N": 201}
+        my_grid_specs = {"kNrm": wealth_grid, "cNrm": con_grid}
+
+        # Make a life-cycle SSJ
+        J_A_R, J_C_R = agent.make_basic_SSJ(
+            "Rfree",
+            ["aNrm", "cNrm"],
+            my_grid_specs,
+            offset=True,
+            norm="PermShk",
+            trend="PermGroFac",
+        )
+
+        self.assertTrue(np.all(np.isreal(J_A_R)))
+        self.assertTrue(np.all(np.isreal(J_C_R)))
 
     def test_grid_formats(self):
         # Check that we get the same results for similar grids
@@ -223,10 +247,6 @@ class testSimulatorClass(unittest.TestCase):
         self.agent.describe_model()  # check that it doesn't crash
 
     def test_SSJ_errors(self):
-        # Not infinite horizon
-        MyType = IndShockConsumerType()
-        self.assertRaises(ValueError, MyType.make_basic_SSJ, "Rfree", "cNrm", None)
-
         # No grid provided
         MyType = IndShockConsumerType(cycles=0)
         self.assertRaises(
