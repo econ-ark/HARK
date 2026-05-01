@@ -1123,7 +1123,7 @@ def plot_SSJ(jac, S, outcome=None, shock=None, t_max=None):
         plt.title("SSJ for " + outcome + r" for a shock at time $s$")
     plt.tight_layout()
     plt.xlim(-1, top)
-    plt.show()
+    plt.show(block=False)
 
 
 ###############################################################################
