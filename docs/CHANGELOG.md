@@ -8,9 +8,9 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.17.2 (dev)
+### 0.17.2
 
-Release Date: TBD
+Release Date: May 1, 2026
 
 #### Release Notes
 
@@ -43,12 +43,20 @@ There are some breaking changes:
 - Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
 - Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
 - Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
+- Refactoring of representative agent model solver and the "labeled" submodule. #1727
 - Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740
 - Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
+- The `labels` argument now works as intended with `distribution.expected`. #1742
+- Example notebook `Transition_Matrix_Example.ipynb` has been cleaned up and expanded. #1744
+- `AggIndMarkovConsumerType` added for models with both aggregate (shared) and idiosyncratic discrete states; `KrusellSmithType` refactored to extend it. #1747
+- Light safety fixes to the new `HabitConsumerType`. #1753
 - Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
 - Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
-- Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1761
+- Handling of income shocks for model "newborns" has been made consistent across models, with transitory shocks optional. #1760
+- Tests added to handle a variety of unusual corner cases. #1761
+- Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1763
 - Matrix transition methods (including HA-SSJ) now support multi-exponential grids, as well as fully custom grids. #1762
+- `HARK.interpolation` refactored to reduce repetition and code clutter. #1765
 
 ### 0.17.1
 
