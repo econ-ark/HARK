@@ -1685,7 +1685,7 @@ class AgentSimulator:
         K = self.newborn_dstn.size
 
         # Make the period-by-period transition matrices
-        these_t = range(len(self.periods)) if for_t is None else for_t
+        these_t = list(range(len(self.periods))) if for_t is None else for_t
         for t in these_t:
             block = self.periods[t]
             block.make_transition_matrices(
@@ -1696,7 +1696,7 @@ class AgentSimulator:
         self.norm = norm
 
         # Extract the master transition matrices into a single list
-        p2p_trans_arrays = [block.trans_array for block in self.periods]
+        p2p_trans_arrays = [self.periods[t].trans_array for t in these_t]
 
         # Apply agent replacement to the last period of the model, representing
         # newborns filling in for decedents. This will usually only do anything
@@ -1705,10 +1705,14 @@ class AgentSimulator:
         # newborns in *all* periods, because model timing is funny in this case.
         if fake_news_timing:
             T_set = np.arange(len(self.periods)).tolist()
+        elif for_t is None:
+            T_set = [len(self.periods) - 1]
         else:
-            T_set = [-1]
+            T_set = []
         newborn_dstn = np.reshape(self.newborn_dstn, (1, K))
         for t in T_set:
+            if t not in these_t:
+                continue
             if "dead" not in self.periods[t].matrices.keys():
                 continue
             death_prbs = self.periods[t].matrices["dead"][:, 1]
@@ -1719,11 +1723,9 @@ class AgentSimulator:
         self.trans_arrays = p2p_trans_arrays
 
         # Build and store lists of state meshes, outcome arrays, and outcome grids
-        self.state_grids = [self.periods[t].mesh for t in range(len(self.periods))]
-        self.outcome_grids = [self.periods[t].grids for t in range(len(self.periods))]
-        self.outcome_arrays = [
-            self.periods[t].matrices for t in range(len(self.periods))
-        ]
+        self.state_grids = [self.periods[t].mesh for t in these_t]
+        self.outcome_grids = [self.periods[t].grids for t in these_t]
+        self.outcome_arrays = [self.periods[t].matrices for t in these_t]
 
     def find_steady_state(self):
         """
@@ -2263,7 +2265,7 @@ class AgentSimulator:
                     history_avg[name][t] = np.dot(this_dstn, this_grid)
 
             # Advance the distribution to the next period
-            current_dstn = np.dot(self.trans_arrays[t].transpose(), current_dstn)
+            current_dstn = np.dot(self.trans_arrays[t].T, current_dstn)
 
         # Reshape the distribution histories if possible
         if calc_dstn:
