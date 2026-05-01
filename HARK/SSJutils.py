@@ -343,12 +343,6 @@ def make_basic_SSJ_matrices(
             outcome_grids,
             verbose,
         )
-        t1 = time()
-        if verbose:
-            print(
-                "Constructing the fake news matrices took {:.3f}".format(t1 - t0)
-                + " seconds."
-            )
 
         # Construct the SSJ matrices, one for each outcome variable
         t0 = time()
@@ -357,12 +351,7 @@ def make_basic_SSJ_matrices(
             SSJ_array[:, 1:, t] += SSJ_array[:, :-1, t - 1]
         SSJ_array /= eps
         SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
-        t1 = time()
-        if verbose:
-            print(
-                "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
-                + " seconds."
-            )
+        _log_timing(verbose, "Constructing the sequence space Jacobians", t0, time())
 
         if no_list:
             return SSJ[0]
@@ -507,12 +496,6 @@ def _build_fake_news(
     return FN
 
 
-def _build_ssj_arrays(T_max, J, FN, eps, verbose):
-    t0 = time()
-    SSJ_array = calc_ssj_from_fake_news_matrices(T_max, J, FN, eps)
-    SSJ = [SSJ_array[j, :, :] for j in range(J)]
-    _log_timing(verbose, "Constructing the sequence space Jacobians", t0, time())
-    return SSJ
 def make_flat_LC_SSJ_matrices(
     agent,
     shock,
