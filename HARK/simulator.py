@@ -3685,9 +3685,30 @@ def aggregate_blobs_onto_polynomial_grid(
     version is for non-continuation variables, returning only the probability array
     mapping from arrival states to the outcome variable.
     """
-    probs, _idx, _alpha = aggregate_blobs_onto_polynomial_grid_alt(
-        vals, pmv, origins, grid, J, Q
-    )
+    bot = grid[0]
+    top = grid[-1]
+    M = grid.size
+    Mm1 = M - 1
+    N = pmv.size
+    scale = 1.0 / (top - bot)
+    order = 1.0 / Q
+    diffs = grid[1:] - grid[:-1]
+
+    probs = np.zeros((J, M))
+
+    for n in range(N):
+        x = vals[n]
+        jj = origins[n]
+        p = pmv[n]
+        if (x > bot) and (x < top):
+            ii = int(np.floor(((x - bot) * scale) ** order * Mm1))
+            temp = (x - grid[ii]) / diffs[ii]
+            probs[jj, ii] += (1.0 - temp) * p
+            probs[jj, ii + 1] += temp * p
+        elif x <= bot:
+            probs[jj, 0] += p
+        else:
+            probs[jj, -1] += p
     return probs
 
 
