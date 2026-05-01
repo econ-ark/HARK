@@ -302,7 +302,11 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
 
     @staticmethod
     def _compute_z_bins(N, tail_N, tail_bound):
-        """Return ``(z_bins, int_prob)`` shared by Cholesky/eig decomposition branches."""
+        """Return ``(z_bins, int_prob, tail_bound)`` shared by Cholesky/eig decomposition branches.
+
+        ``tail_bound`` is returned in normalized list form so that the caller
+        can store the consistent value in ``limit`` metadata.
+        """
         if tail_bound is not None:
             if type(tail_bound) is float:
                 tail_bound = [tail_bound, 1 - tail_bound]
@@ -321,7 +325,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
             z_cuts[-tail_N:] = Z.ppf(cdf_cuts[-1])
         z_cuts[tail_N : tail_N + N + 1] = Z.ppf(cdf_cuts)
         z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N + 2 * tail_N)]
-        return z_bins, int_prob
+        return z_bins, int_prob, tail_bound
 
     @staticmethod
     def _eval_atom_density(params, z, N, int_prob):
@@ -444,7 +448,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
             for i in range(self.M):
                 self._fill_interiors_row(interiors, inners, N, tail_N, i)
         else:
-            z_bins, int_prob = self._compute_z_bins(N, tail_N, tail_bound)
+            z_bins, int_prob, tail_bound = self._compute_z_bins(N, tail_N, tail_bound)
             atoms = np.empty([self.M, (N + (2 * tail_N)) ** self.M])
             self._fill_decomp_atoms(
                 decomp, atoms, interiors, inners, z_bins, N, tail_N, int_prob

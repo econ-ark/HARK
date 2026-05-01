@@ -322,8 +322,9 @@ class DiscreteDistribution(Distribution):
         """Apply ``func`` to ``source`` and the broadcast-prepared ``*args``,
         then take the dot product with ``self.pmv``.
 
-        Wraps the broadcast-expansion idiom shared by ``expected`` and
-        ``dist_of_func`` across the discrete distribution classes.
+        This helper centralizes the broadcast-expansion step used by
+        ``expected`` before weighting the result by the distribution's
+        probability mass vector.
         """
         if args:
             args = [

@@ -316,7 +316,7 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         # apply recursively on all the internal distributions
         return IndexDistribution(
             distributions=[
-                add_discrete_outcome_constant_mean(d, x, p)
+                add_discrete_outcome_constant_mean(d, x, p, sort=sort)
                 for d in distribution.distributions
             ],
             seed=distribution.seed,
