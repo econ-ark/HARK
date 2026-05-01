@@ -567,9 +567,13 @@ def make_flat_LC_SSJ_matrices(
     # Make sure the shock variable is age-varying
     if shock in agent.time_inv:
         temp = getattr(agent, shock)
+        original_shock_value = temp
         setattr(agent, shock, agent.T_cycle * [temp])
         agent.del_from_time_inv(shock)
         agent.add_to_time_vary(shock)
+        shock_was_time_inv = True
+    else:
+        shock_was_time_inv = False
 
     # Solve the long run model if it wasn't already
     if not solved:
@@ -796,7 +800,12 @@ def make_flat_LC_SSJ_matrices(
             return SSJ
 
     finally:
+        # Make sure the agent wasn't unexpectedly mutated in this method
         _restore_agent(agent, LR_soln, simulator_backup)
+        if shock_was_time_inv:
+            setattr(agent, shock, original_shock_value)
+            agent.del_from_time_vary(shock)
+            agent.add_to_time_inv(shock)
 
 
 def calc_shock_response_manually(
