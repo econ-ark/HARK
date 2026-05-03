@@ -189,6 +189,7 @@ class testSimulatorClass(unittest.TestCase):
             offset=True,
             norm="PermShk",
             trend="PermGroFac",
+            verbose=True,
         )
 
         self.assertTrue(np.all(np.isreal(J_A_R)))
