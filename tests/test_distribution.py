@@ -601,6 +601,84 @@ class MarkovProcessTests(unittest.TestCase):
                 ),
             )
 
+    def test_shuffle_with_draws_converges_to_iid(self):
+        """The new draws= argument should produce per-agent assignments
+        that converge to per-agent iid as N -> infinity (Glivenko-
+        Cantelli).  At N=10000 with a 2-state chain, per-agent match
+        rate between iid and draws=-shuffle should be > 99%.
+
+        The default shuffle (no draws=) uses a random permutation
+        independent of any per-agent input, so agent-by-agent it
+        does NOT match iid even at large N — typically agreeing only
+        on the trivial "stay-in-same-target" mass.
+        """
+        P = np.array([[0.95, 0.05], [0.30, 0.70]])
+        N = 10_000
+        rng = np.random.default_rng(seed=42)
+        # Half emp, half unemp — exercises both rows of P.
+        state = np.repeat([0, 1], N // 2)
+        u = rng.uniform(size=N)
+
+        # Per-agent iid via searchsorted on cumulative cond_mrkv.
+        cdf = np.cumsum(P, axis=1)
+        new_iid = np.empty(N, dtype=int)
+        for j in range(2):
+            mask = state == j
+            new_iid[mask] = np.searchsorted(cdf[j, :], u[mask])
+
+        # New mode: rank-based stratified inverse-CDF with shared draws.
+        mp_strat = MarkovProcess(P, seed=42)
+        new_strat = mp_strat.draw(state, shuffle=True, draws=u)
+
+        match_strat = (new_iid == new_strat).mean()
+        self.assertGreater(
+            match_strat,
+            0.99,
+            f"draws=-shuffle should match iid agent-by-agent at >99% "
+            f"for N={N}; got {match_strat:.4f}",
+        )
+
+    def test_shuffle_with_draws_preserves_quotas(self):
+        """The new draws= argument must preserve the quota-exact
+        target counts that are the original purpose of shuffle.  Each
+        per-source-state target count K[j,k] should equal
+        floor(N_j * P[j,k]) plus at most ±1 from leftover allocation.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 1000
+        rng = np.random.default_rng(seed=1)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        mp = MarkovProcess(P, seed=0)
+        new_state = mp.draw(state, shuffle=True, draws=u)
+
+        for j in range(2):
+            N_j = (state == j).sum()
+            for k in range(2):
+                count = int(((state == j) & (new_state == k)).sum())
+                expected = N_j * P[j, k]
+                self.assertLessEqual(
+                    abs(count - expected),
+                    1,
+                    f"source {j} -> target {k}: count {count} not within "
+                    f"±1 of expected quota {expected:.1f}",
+                )
+
+    def test_shuffle_draws_and_sort_key_mutually_exclusive(self):
+        """draws= and sort_key= specify mutually exclusive assignment
+        modes; passing both should raise ValueError.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 100
+        rng = np.random.default_rng(seed=0)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        mp = MarkovProcess(P, seed=0)
+        with self.assertRaises(ValueError):
+            mp.draw(state, shuffle=True, draws=u, sort_key=u)
+
 
 class LogNormalToNormalTests(unittest.TestCase):
     """
