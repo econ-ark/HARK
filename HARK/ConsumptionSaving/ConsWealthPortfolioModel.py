@@ -8,6 +8,7 @@ from HARK.ConsumptionSaving.ConsPortfolioModel import (
 )
 from HARK.distributions import expected
 from HARK.interpolation import (
+    IdentityFunction,
     BilinearInterp,
     ConstantFunction,
     CubicInterp,
@@ -376,7 +377,9 @@ def solve_one_period_WealthPortfolio(
     # Package and return the solution
     solution_now = PortfolioSolution(
         cFuncAdj=cFuncNow,
+        cFuncFxd=ConstantFunction(0.0),  # this is never used, but needs to exist
         ShareFuncAdj=ShareFuncNow,
+        ShareFuncFxd=IdentityFunction(i_dim=1, n_dims=2),  # also never used
         vPfuncAdj=vPfuncNow,
         vFuncAdj=vFuncNow,
     )
@@ -565,11 +568,12 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
         "WealthShift",
         "ChiFunc",
         "RiskyDstn",
+        "AdjustPrb",
     ]
     default_ = {
         "params": init_wealth_portfolio,
         "solver": solve_one_period_WealthPortfolio,
-        "model": "ConsRiskyAsset.yaml",
+        "model": "ConsPortfolio.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }
 
