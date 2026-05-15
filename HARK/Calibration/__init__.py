@@ -4,6 +4,7 @@ __all__ = [
     "Cagetti_income",
     "CGM_income",
     "load_SCF_wealth_weights",
+    "parse_time_params",
 ]
 
 from HARK.Calibration.load_data import load_SCF_wealth_weights
@@ -12,4 +13,5 @@ from HARK.Calibration.Income.IncomeTools import (
     parse_income_spec,
     Cagetti_income,
     CGM_income,
+    parse_time_params,
 )
