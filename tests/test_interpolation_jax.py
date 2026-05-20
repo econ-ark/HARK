@@ -214,5 +214,154 @@ class TestCRRAHelpersJax(unittest.TestCase):
         _assert_close(c_back, c, name="CRRA inverse u'^-1")
 
 
+# ============================================================
+# Edge-case coverage (broader matrix follow-up)
+# ============================================================
+
+
+@unittest.skipUnless(HAS_JAX, "JAX not installed")
+class TestLinearInterp1DEdgeCases(unittest.TestCase):
+    """Edge cases for ``linear_interp_1d`` parity."""
+
+    def test_two_point_grid(self):
+        """Minimum-size grid (n=2): everything is the single segment."""
+        x_grid = np.array([0.0, 1.0])
+        y_vals = np.array([3.0, 5.0])
+        x_query = np.array([-0.5, 0.0, 0.25, 0.5, 1.0, 1.5])
+        hark = LinearInterp(x_grid, y_vals, lower_extrap=True)(x_query)
+        jaxv = ij.linear_interp_1d(
+            x_grid, y_vals, jnp.asarray(x_query), lower_extrap=True
+        )
+        _assert_close(jaxv, hark, name="LinearInterp n=2 grid")
+
+    def test_constant_function(self):
+        """All y_vals equal: result must be constant."""
+        x_grid = np.linspace(0, 10, 30)
+        y_vals = np.full(30, 7.42)
+        x_query = np.linspace(-5, 15, 50)
+        hark = LinearInterp(x_grid, y_vals, lower_extrap=True)(x_query)
+        jaxv = ij.linear_interp_1d(
+            x_grid, y_vals, jnp.asarray(x_query), lower_extrap=True
+        )
+        _assert_close(jaxv, hark, name="LinearInterp constant y")
+
+    def test_single_query(self):
+        """Scalar query (shape ()): result should also be scalar."""
+        rng = np.random.default_rng(101)
+        x_grid = np.sort(rng.uniform(0, 10, 20))
+        y_vals = np.sin(x_grid)
+        for x_q in (0.001, 5.0, 9.999):
+            hark = float(LinearInterp(x_grid, y_vals, lower_extrap=True)(x_q))
+            jaxv = float(
+                ij.linear_interp_1d(x_grid, y_vals, jnp.asarray(x_q), lower_extrap=True)
+            )
+            self.assertAlmostEqual(jaxv, hark, places=8, msg=f"scalar query x={x_q}")
+
+    def test_large_query_array(self):
+        """1e5 query points — vectorization correctness, not timing."""
+        rng = np.random.default_rng(102)
+        x_grid = np.sort(rng.uniform(0, 100, 50))
+        y_vals = np.cos(x_grid)
+        x_query = rng.uniform(0, 100, 100_000)
+        hark = LinearInterp(x_grid, y_vals, lower_extrap=True)(x_query)
+        jaxv = ij.linear_interp_1d(
+            x_grid, y_vals, jnp.asarray(x_query), lower_extrap=True
+        )
+        _assert_close(jaxv, hark, name="LinearInterp 100k queries")
+
+    def test_strictly_decreasing_values_increasing_grid(self):
+        """Monotone-decreasing y on monotone-increasing x grid."""
+        x_grid = np.linspace(0.1, 10, 25)
+        y_vals = 1.0 / x_grid  # strictly decreasing
+        x_query = np.linspace(0.5, 9.5, 50)
+        hark = LinearInterp(x_grid, y_vals, lower_extrap=True)(x_query)
+        jaxv = ij.linear_interp_1d(
+            x_grid, y_vals, jnp.asarray(x_query), lower_extrap=True
+        )
+        _assert_close(jaxv, hark, name="LinearInterp 1/x decreasing y")
+
+
+@unittest.skipUnless(HAS_JAX, "JAX not installed")
+class TestBilinearInterpEdgeCases(unittest.TestCase):
+    """Edge cases for ``bilinear_interp`` parity."""
+
+    def test_two_by_two_grid(self):
+        """Minimum-size 2D grid: a single bilinear patch."""
+        x_grid = np.array([0.0, 1.0])
+        y_grid = np.array([0.0, 1.0])
+        f_vals = np.array([[1.0, 2.0], [3.0, 5.0]])  # bilinear in x and y
+        x_query = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        y_query = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        hark = BilinearInterp(f_vals, x_grid, y_grid)(x_query, y_query)
+        jaxv = ij.bilinear_interp(
+            f_vals,
+            x_grid,
+            y_grid,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
+        )
+        _assert_close(jaxv, hark, name="BilinearInterp 2x2 grid")
+
+    def test_constant_2d(self):
+        """f_vals all equal: bilinear result must be the constant."""
+        x_grid = np.linspace(0, 10, 8)
+        y_grid = np.linspace(0, 5, 6)
+        f_vals = np.full((8, 6), -3.14)
+        rng = np.random.default_rng(103)
+        x_query = rng.uniform(-1, 11, 25)
+        y_query = rng.uniform(-1, 6, 25)
+        hark = BilinearInterp(f_vals, x_grid, y_grid)(x_query, y_query)
+        jaxv = ij.bilinear_interp(
+            f_vals,
+            x_grid,
+            y_grid,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
+        )
+        _assert_close(jaxv, hark, name="BilinearInterp constant 2D")
+
+    def test_exact_grid_points(self):
+        """Queries at exact grid corners must return the corner values."""
+        rng = np.random.default_rng(104)
+        x_grid = np.sort(rng.uniform(0, 10, 8))
+        y_grid = np.sort(rng.uniform(0, 5, 6))
+        f_vals = rng.uniform(-2, 2, (8, 6))
+        Xg, Yg = np.meshgrid(x_grid, y_grid, indexing="ij")
+        x_query = Xg.flatten()
+        y_query = Yg.flatten()
+        hark = BilinearInterp(f_vals, x_grid, y_grid)(x_query, y_query)
+        jaxv = ij.bilinear_interp(
+            f_vals,
+            x_grid,
+            y_grid,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
+        )
+        _assert_close(jaxv, hark, name="BilinearInterp exact corners")
+
+
+@unittest.skipUnless(HAS_JAX, "JAX not installed")
+class TestCRRAHelpersEdgeCases(unittest.TestCase):
+    """Edge cases for CRRA helpers."""
+
+    def test_log_utility_rho_1(self):
+        """CRRA=1 (log utility) round-trip."""
+        rng = np.random.default_rng(105)
+        rho = 1.0
+        c = rng.uniform(0.1, 5.0, 30)
+        vP = c ** (-rho)
+        c_back = ij.marg_value_to_consumption(jnp.asarray(vP), rho)
+        _assert_close(c_back, c, name="CRRA rho=1 (log)")
+
+    def test_high_curvature_rho_6(self):
+        """High curvature rho=6 round-trip — vP can be very large for small c."""
+        rng = np.random.default_rng(106)
+        rho = 6.0
+        c = rng.uniform(0.5, 5.0, 30)  # avoid c→0 where vP→inf
+        vP = c ** (-rho)
+        c_back = ij.marg_value_to_consumption(jnp.asarray(vP), rho)
+        _assert_close(c_back, c, name="CRRA rho=6 (high curvature)")
+
+
 if __name__ == "__main__":
     unittest.main()
