@@ -97,6 +97,101 @@ class TestAggShockMarkovJAXParity(unittest.TestCase):
                     err_msg=f"cFunc mismatch at Markov state k={k}, M={M_val:.3f}",
                 )
 
+    def test_cfunc_state1_at_MSS(self):
+        """Second Markov state cFunc at MSS — explicit (grid test covers this implicitly)."""
+        m_query = 10.0
+        M_query = self.economy_np.MSS
+        c_np = float(self.agent_np.solution[0].cFunc[1](m_query, M_query))
+        c_jax = float(self.agent_jax.solution[0].cFunc[1](m_query, M_query))
+        self.assertAlmostEqual(c_jax, c_np, delta=PARITY_RTOL * abs(c_np) + 1e-6)
+
+    def test_mNrmMin_per_state(self):
+        """Per-state mNrmMin matches on a grid of M values."""
+        M_query = np.linspace(
+            0.5 * self.economy_np.MSS,
+            2.0 * self.economy_np.MSS,
+            10,
+        )
+        n_states = len(self.agent_np.solution[0].mNrmMin)
+        for k in range(n_states):
+            mNrmMin_np = np.asarray(
+                [float(self.agent_np.solution[0].mNrmMin[k](M)) for M in M_query]
+            )
+            mNrmMin_jax = np.asarray(
+                [float(self.agent_jax.solution[0].mNrmMin[k](M)) for M in M_query]
+            )
+            np.testing.assert_allclose(
+                mNrmMin_jax,
+                mNrmMin_np,
+                rtol=PARITY_RTOL,
+                atol=1e-6,
+                err_msg=f"mNrmMin mismatch at state k={k}",
+            )
+
+    def test_cfunc_extreme_m_low(self):
+        """Queries near the borrowing constraint (low m)."""
+        n_states = len(self.agent_np.solution[0].cFunc)
+        M_query = self.economy_np.MSS
+        for k in range(n_states):
+            mNrmMin_at_MSS = float(self.agent_np.solution[0].mNrmMin[k](M_query))
+            # Queries just above the constraint
+            m_query = np.linspace(mNrmMin_at_MSS + 0.05, mNrmMin_at_MSS + 1.0, 20)
+            c_np = np.asarray(
+                self.agent_np.solution[0].cFunc[k](
+                    m_query, np.full_like(m_query, M_query)
+                )
+            )
+            c_jax = np.asarray(
+                self.agent_jax.solution[0].cFunc[k](
+                    m_query, np.full_like(m_query, M_query)
+                )
+            )
+            np.testing.assert_allclose(
+                c_jax,
+                c_np,
+                rtol=PARITY_RTOL,
+                err_msg=f"cFunc near constraint mismatch at state k={k}",
+            )
+
+    def test_cfunc_extreme_m_high(self):
+        """Queries at high m (well above human-wealth scale)."""
+        n_states = len(self.agent_np.solution[0].cFunc)
+        M_query = self.economy_np.MSS
+        m_query = np.linspace(50.0, 200.0, 20)
+        for k in range(n_states):
+            c_np = np.asarray(
+                self.agent_np.solution[0].cFunc[k](
+                    m_query, np.full_like(m_query, M_query)
+                )
+            )
+            c_jax = np.asarray(
+                self.agent_jax.solution[0].cFunc[k](
+                    m_query, np.full_like(m_query, M_query)
+                )
+            )
+            np.testing.assert_allclose(
+                c_jax,
+                c_np,
+                rtol=PARITY_RTOL,
+                err_msg=f"cFunc at high m mismatch at state k={k}",
+            )
+
+    def test_cfunc_extreme_M(self):
+        """Queries at very low and very high aggregate M values."""
+        n_states = len(self.agent_np.solution[0].cFunc)
+        m_query = 10.0
+        M_extreme = [0.3 * self.economy_np.MSS, 3.0 * self.economy_np.MSS]
+        for k in range(n_states):
+            for M_val in M_extreme:
+                c_np = float(self.agent_np.solution[0].cFunc[k](m_query, M_val))
+                c_jax = float(self.agent_jax.solution[0].cFunc[k](m_query, M_val))
+                self.assertAlmostEqual(
+                    c_jax,
+                    c_np,
+                    delta=PARITY_RTOL * abs(c_np) + 1e-6,
+                    msg=f"extreme M mismatch at state k={k}, M={M_val:.3f}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
