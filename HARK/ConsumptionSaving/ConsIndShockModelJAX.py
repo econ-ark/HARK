@@ -16,6 +16,7 @@ raise ``NotImplementedError`` when requested.
 
 The interpolation primitives used here live in ``HARK.interpolation_jax``.
 """
+
 from __future__ import annotations
 
 try:
@@ -32,7 +33,6 @@ import numpy as np
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    solve_one_period_ConsIndShock,  # for fallback when CubicBool/vFuncBool
 )
 from HARK.interpolation import LinearInterp, LowerEnvelope, MargValueFuncCRRA
 from HARK.interpolation_jax import linear_interp_1d
@@ -80,14 +80,15 @@ def _lift_cfunc_to_grid(cfunc, m_min, m_max, n=_DEFAULT_LIFT_GRID):
 # EGM kernel (pure JAX, jit-able)
 # ============================================================
 
+
 @jax.jit
 def _egm_kernel(
-    a_grid,           # (Na,) end-of-period asset grid (already shifted by BoroCnstNat)
-    perm_shks,        # (Ns,) permanent shock atoms
-    tran_shks,        # (Ns,) transitory shock atoms
-    pmv,              # (Ns,) probabilities (sum to 1)
-    cfunc_x_grid,     # (Nx,) lifted next-period cFunc grid
-    cfunc_y_vals,     # (Nx,) lifted next-period cFunc values
+    a_grid,  # (Na,) end-of-period asset grid (already shifted by BoroCnstNat)
+    perm_shks,  # (Ns,) permanent shock atoms
+    tran_shks,  # (Ns,) transitory shock atoms
+    pmv,  # (Ns,) probabilities (sum to 1)
+    cfunc_x_grid,  # (Nx,) lifted next-period cFunc grid
+    cfunc_y_vals,  # (Nx,) lifted next-period cFunc values
     Rfree,
     PermGroFac,
     CRRA,
@@ -107,10 +108,10 @@ def _egm_kernel(
         cNrm[i] = EndOfPrdvP[i] ** (-1/CRRA)
         mNrm[i] = a_grid[i] + cNrm[i]
     """
-    a_b = a_grid[:, None]              # (Na, 1)
-    perm_b = perm_shks[None, :]        # (1, Ns)
-    tran_b = tran_shks[None, :]        # (1, Ns)
-    pmv_b = pmv[None, :]               # (1, Ns)
+    a_b = a_grid[:, None]  # (Na, 1)
+    perm_b = perm_shks[None, :]  # (1, Ns)
+    tran_b = tran_shks[None, :]  # (1, Ns)
+    pmv_b = pmv[None, :]  # (1, Ns)
 
     m_next = Rfree * a_b / (PermGroFac * perm_b) + tran_b  # (Na, Ns)
 
@@ -121,7 +122,9 @@ def _egm_kernel(
     vP_next = c_next ** (-CRRA)
     weights = pmv_b * (perm_b ** (-CRRA))
     EndOfPrdvP = (
-        DiscFacEff * Rfree * (PermGroFac ** (-CRRA))
+        DiscFacEff
+        * Rfree
+        * (PermGroFac ** (-CRRA))
         * jnp.sum(weights * vP_next, axis=1)
     )
     cNrm = EndOfPrdvP ** (-1.0 / CRRA)
@@ -132,6 +135,7 @@ def _egm_kernel(
 # ============================================================
 # Public solver (drop-in replacement for solve_one_period_ConsIndShock)
 # ============================================================
+
 
 def solve_one_period_ConsIndShock_jax(
     solution_next,
@@ -177,16 +181,15 @@ def solve_one_period_ConsIndShock_jax(
     tran_shks = np.asarray(IncShkDstn.atoms[1], dtype=np.float64)
     pmv = np.asarray(IncShkDstn.pmv, dtype=np.float64)
     Ex_IncNext = float(np.sum(pmv * perm_shks * tran_shks))
-    WorstIncPrb = float(np.sum(
-        pmv[(perm_shks == perm_shks.min()) & (tran_shks == tran_shks.min())]
-    ))
+    WorstIncPrb = float(
+        np.sum(pmv[(perm_shks == perm_shks.min()) & (tran_shks == tran_shks.min())])
+    )
 
     # Natural and effective borrowing constraints
     PermShkMinNext = float(perm_shks.min())
     TranShkMinNext = float(tran_shks.min())
     BoroCnstNat = (
-        (solution_next.mNrmMin - TranShkMinNext)
-        * (PermGroFac * PermShkMinNext) / Rfree
+        (solution_next.mNrmMin - TranShkMinNext) * (PermGroFac * PermShkMinNext) / Rfree
     )
     if BoroCnstArt is None:
         mNrmMinNow = BoroCnstNat
@@ -198,8 +201,7 @@ def solve_one_period_ConsIndShock_jax(
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
     hNrmNow = (PermGroFac / Rfree) * (Ex_IncNext + solution_next.hNrm)
     MPCmaxUnc = 1.0 / (
-        1.0
-        + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / solution_next.MPCmax
+        1.0 + (WorstIncPrb ** (1.0 / CRRA)) * PatFac / solution_next.MPCmax
     )
     MPCmaxNow = 1.0 if BoroCnstNat < mNrmMinNow else MPCmaxUnc
     cFuncLimitIntercept = MPCminNow * hNrmNow
@@ -212,8 +214,8 @@ def solve_one_period_ConsIndShock_jax(
     a_max_now = float(np.max(aXtraGrid)) + BoroCnstNat
     m_lift_max = max(
         m_lift_min + 1.0,
-        float(Rfree * a_max_now / (PermGroFac * PermShkMinNext)
-              + np.max(tran_shks)) * 1.1,
+        float(Rfree * a_max_now / (PermGroFac * PermShkMinNext) + np.max(tran_shks))
+        * 1.1,
     )
     cfunc_x_grid, cfunc_y_vals = _lift_cfunc_to_grid(
         solution_next.cFunc, m_lift_min, m_lift_max
@@ -267,6 +269,7 @@ def solve_one_period_ConsIndShock_jax(
 # ============================================================
 # Wrapper class — drop-in subclass of IndShockConsumerType
 # ============================================================
+
 
 class IndShockConsumerTypeJAX(IndShockConsumerType):
     """

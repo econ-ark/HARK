@@ -9,6 +9,7 @@ agreement — tighter than EGM truncation noise but not bit-precision.
 
 Skipped if JAX is not installed.
 """
+
 import os
 import unittest
 
@@ -17,10 +18,12 @@ import numpy as np
 try:
     os.environ.setdefault("JAX_ENABLE_X64", "True")
     import jax
+
     jax.config.update("jax_enable_x64", True)
     from HARK.ConsumptionSaving.ConsIndShockModelJAX import (
         IndShockConsumerTypeJAX,
     )
+
     HAS_JAX = True
 except ImportError:
     HAS_JAX = False
@@ -85,15 +88,9 @@ class TestConsIndShockModelJAXParity(unittest.TestCase):
         agent_jax.solve()
         sol_np = agent_np.solution[0]
         sol_jax = agent_jax.solution[0]
-        np.testing.assert_allclose(
-            sol_jax.hNrm, sol_np.hNrm, rtol=PARITY_RTOL
-        )
-        np.testing.assert_allclose(
-            sol_jax.MPCmin, sol_np.MPCmin, rtol=PARITY_RTOL
-        )
-        np.testing.assert_allclose(
-            sol_jax.MPCmax, sol_np.MPCmax, rtol=PARITY_RTOL
-        )
+        np.testing.assert_allclose(sol_jax.hNrm, sol_np.hNrm, rtol=PARITY_RTOL)
+        np.testing.assert_allclose(sol_jax.MPCmin, sol_np.MPCmin, rtol=PARITY_RTOL)
+        np.testing.assert_allclose(sol_jax.MPCmax, sol_np.MPCmax, rtol=PARITY_RTOL)
 
     def test_finite_horizon_cfunc_per_period(self):
         """Finite horizon (cycles=10, T_cycle=1): cFunc matches at every period."""
@@ -107,7 +104,9 @@ class TestConsIndShockModelJAXParity(unittest.TestCase):
             c_np = agent_np.solution[t].cFunc(m_query)
             c_jax = np.asarray(agent_jax.solution[t].cFunc(m_query))
             np.testing.assert_allclose(
-                c_jax, c_np, rtol=PARITY_RTOL,
+                c_jax,
+                c_np,
+                rtol=PARITY_RTOL,
                 err_msg=f"cFunc mismatch at period t={t}",
             )
 
