@@ -12,6 +12,7 @@ see ``HARK/tests/test_interpolation_jax.py`` for the parity tests.
 JAX is an optional dependency. Importing this module without JAX installed
 raises ``ImportError`` with installation instructions.
 """
+
 from __future__ import annotations
 
 try:
@@ -27,6 +28,7 @@ except ImportError as _e:  # pragma: no cover
 # ============================================================
 # 1-D linear interpolation — counterpart to HARK.interpolation.LinearInterp
 # ============================================================
+
 
 def linear_interp_1d(x_grid, y_vals, x_query, lower_extrap=False):
     """
@@ -59,7 +61,7 @@ def linear_interp_1d(x_grid, y_vals, x_query, lower_extrap=False):
     x_grid = jnp.asarray(x_grid)
     y_vals = jnp.asarray(y_vals)
     n = x_grid.shape[0]
-    i = jnp.clip(jnp.searchsorted(x_grid[:-1], x_query, side='left'), 1, n - 1)
+    i = jnp.clip(jnp.searchsorted(x_grid[:-1], x_query, side="left"), 1, n - 1)
     alpha = (x_query - x_grid[i - 1]) / (x_grid[i] - x_grid[i - 1])
     y = (1 - alpha) * y_vals[i - 1] + alpha * y_vals[i]
     if not lower_extrap:
@@ -70,6 +72,7 @@ def linear_interp_1d(x_grid, y_vals, x_query, lower_extrap=False):
 # ============================================================
 # 2-D bilinear interpolation — counterpart to HARK.interpolation.BilinearInterp
 # ============================================================
+
 
 def bilinear_interp(f_values, x_grid, y_grid, x_query, y_query):
     """
@@ -99,18 +102,20 @@ def bilinear_interp(f_values, x_grid, y_grid, x_query, y_query):
     y_grid = jnp.asarray(y_grid)
     Nx = x_grid.shape[0]
     Ny = y_grid.shape[0]
-    x_pos = jnp.clip(jnp.searchsorted(x_grid, x_query, side='left'), 1, Nx - 1)
-    y_pos = jnp.clip(jnp.searchsorted(y_grid, y_query, side='left'), 1, Ny - 1)
+    x_pos = jnp.clip(jnp.searchsorted(x_grid, x_query, side="left"), 1, Nx - 1)
+    y_pos = jnp.clip(jnp.searchsorted(y_grid, y_query, side="left"), 1, Ny - 1)
     alpha = (x_query - x_grid[x_pos - 1]) / (x_grid[x_pos] - x_grid[x_pos - 1])
     beta = (y_query - y_grid[y_pos - 1]) / (y_grid[y_pos] - y_grid[y_pos - 1])
     f00 = f_values[x_pos - 1, y_pos - 1]
     f01 = f_values[x_pos - 1, y_pos]
     f10 = f_values[x_pos, y_pos - 1]
     f11 = f_values[x_pos, y_pos]
-    return ((1 - alpha) * (1 - beta) * f00
-            + (1 - alpha) * beta * f01
-            + alpha * (1 - beta) * f10
-            + alpha * beta * f11)
+    return (
+        (1 - alpha) * (1 - beta) * f00
+        + (1 - alpha) * beta * f01
+        + alpha * (1 - beta) * f10
+        + alpha * beta * f11
+    )
 
 
 def bilinear_interp_derX(f_values, x_grid, y_grid, x_query, y_query):
@@ -125,13 +130,16 @@ def bilinear_interp_derX(f_values, x_grid, y_grid, x_query, y_query):
     y_grid = jnp.asarray(y_grid)
     Nx = x_grid.shape[0]
     Ny = y_grid.shape[0]
-    x_pos = jnp.clip(jnp.searchsorted(x_grid, x_query, side='left'), 1, Nx - 1)
-    y_pos = jnp.clip(jnp.searchsorted(y_grid, y_query, side='left'), 1, Ny - 1)
+    x_pos = jnp.clip(jnp.searchsorted(x_grid, x_query, side="left"), 1, Nx - 1)
+    y_pos = jnp.clip(jnp.searchsorted(y_grid, y_query, side="left"), 1, Ny - 1)
     beta = (y_query - y_grid[y_pos - 1]) / (y_grid[y_pos] - y_grid[y_pos - 1])
-    dfdx = (((1 - beta) * f_values[x_pos, y_pos - 1] + beta * f_values[x_pos, y_pos])
-            - ((1 - beta) * f_values[x_pos - 1, y_pos - 1]
-               + beta * f_values[x_pos - 1, y_pos])) / (
-        x_grid[x_pos] - x_grid[x_pos - 1])
+    dfdx = (
+        ((1 - beta) * f_values[x_pos, y_pos - 1] + beta * f_values[x_pos, y_pos])
+        - (
+            (1 - beta) * f_values[x_pos - 1, y_pos - 1]
+            + beta * f_values[x_pos - 1, y_pos]
+        )
+    ) / (x_grid[x_pos] - x_grid[x_pos - 1])
     return dfdx
 
 
@@ -139,8 +147,8 @@ def bilinear_interp_derX(f_values, x_grid, y_grid, x_query, y_query):
 # LinearInterpOnInterp1D — counterpart to HARK.interpolation.LinearInterpOnInterp1D
 # ============================================================
 
-def linear_interp_on_interp_1d_shared_xgrid(
-        x_grid, y_grid, f_values, x_query, y_query):
+
+def linear_interp_on_interp_1d_shared_xgrid(x_grid, y_grid, f_values, x_query, y_query):
     """
     LinearInterpOnInterp1D when all inner 1-D interpolators share ``x_grid``.
 
@@ -159,8 +167,7 @@ def linear_interp_on_interp_1d_shared_xgrid(
     return bilinear_interp(f_values.T, x_grid, y_grid, x_query, y_query)
 
 
-def linear_interp_on_interp_1d_general(
-        x_grids, y_grid, f_values, x_query, y_query):
+def linear_interp_on_interp_1d_general(x_grids, y_grid, f_values, x_query, y_query):
     """
     LinearInterpOnInterp1D when each inner 1-D interpolator has its own
     ``x_grid``.
@@ -185,16 +192,16 @@ def linear_interp_on_interp_1d_general(
     y_grid = jnp.asarray(y_grid)
     f_values = jnp.asarray(f_values)
     Ny = y_grid.shape[0]
-    y_pos = jnp.clip(jnp.searchsorted(y_grid, y_query, side='left'), 1, Ny - 1)
+    y_pos = jnp.clip(jnp.searchsorted(y_grid, y_query, side="left"), 1, Ny - 1)
     alpha = (y_query - y_grid[y_pos - 1]) / (y_grid[y_pos] - y_grid[y_pos - 1])
 
     def per_query_lo(xq, idx):
-        return linear_interp_1d(x_grids[idx - 1], f_values[idx - 1], xq,
-                                lower_extrap=True)
+        return linear_interp_1d(
+            x_grids[idx - 1], f_values[idx - 1], xq, lower_extrap=True
+        )
 
     def per_query_hi(xq, idx):
-        return linear_interp_1d(x_grids[idx], f_values[idx], xq,
-                                lower_extrap=True)
+        return linear_interp_1d(x_grids[idx], f_values[idx], xq, lower_extrap=True)
 
     f_lo = jax.vmap(per_query_lo)(x_query, y_pos)
     f_hi = jax.vmap(per_query_hi)(x_query, y_pos)
@@ -204,6 +211,7 @@ def linear_interp_on_interp_1d_general(
 # ============================================================
 # LowerEnvelope2D — counterpart to HARK.interpolation.LowerEnvelope2D
 # ============================================================
+
 
 def lower_envelope_2d_apply(*fvals):
     """
@@ -230,6 +238,7 @@ def lower_envelope_2d_apply(*fvals):
 # VariableLowerBoundFunc2D — counterpart to HARK.interpolation.VariableLowerBoundFunc2D
 # ============================================================
 
+
 def variable_lower_bound_eval(inner_fn, lb_values_at_y, x_query, y_query):
     """
     Evaluate ``inner_fn(x - lb(y), y)``.
@@ -252,6 +261,7 @@ def variable_lower_bound_eval(inner_fn, lb_values_at_y, x_query, y_query):
 # ============================================================
 # CRRA marginal-utility helpers — counterpart to MargValueFuncCRRA
 # ============================================================
+
 
 def marg_value_to_consumption(vP, rho):
     """
