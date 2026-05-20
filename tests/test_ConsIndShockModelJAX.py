@@ -142,5 +142,81 @@ class TestConsIndShockModelJAXNotYetSupported(unittest.TestCase):
             agent.solve()
 
 
+# ============================================================
+# Broader parameter-range matrix (Tier-1 follow-up)
+# ============================================================
+
+
+@unittest.skipUnless(HAS_JAX, "JAX not installed")
+class TestConsIndShockModelJAXParameterRange(unittest.TestCase):
+    """Parity at extreme but valid points of the parameter space."""
+
+    def test_log_utility_crra_1(self):
+        """CRRA=1 (log utility): c = vP^(-1) edge case for the inverse."""
+        params = _params_basic_infinite()
+        params["CRRA"] = 1.0
+        agent_np = IndShockConsumerType(**params)
+        agent_jax = IndShockConsumerTypeJAX(**params)
+        agent_np.solve()
+        agent_jax.solve()
+        m_query = np.linspace(1.0, 20.0, 50)
+        c_np = agent_np.solution[0].cFunc(m_query)
+        c_jax = np.asarray(agent_jax.solution[0].cFunc(m_query))
+        np.testing.assert_allclose(c_jax, c_np, rtol=PARITY_RTOL)
+
+    def test_high_curvature_crra_5(self):
+        """CRRA=5: high curvature; vPfunc is very steep."""
+        params = _params_basic_infinite()
+        params["CRRA"] = 5.0
+        agent_np = IndShockConsumerType(**params)
+        agent_jax = IndShockConsumerTypeJAX(**params)
+        agent_np.solve()
+        agent_jax.solve()
+        m_query = np.linspace(1.0, 20.0, 50)
+        c_np = agent_np.solution[0].cFunc(m_query)
+        c_jax = np.asarray(agent_jax.solution[0].cFunc(m_query))
+        np.testing.assert_allclose(c_jax, c_np, rtol=PARITY_RTOL)
+
+    def test_impatient_low_discfac(self):
+        """Low DiscFac (impatient agent): fast convergence, simpler dynamics."""
+        params = _params_basic_infinite()
+        params["DiscFac"] = 0.85
+        agent_np = IndShockConsumerType(**params)
+        agent_jax = IndShockConsumerTypeJAX(**params)
+        agent_np.solve()
+        agent_jax.solve()
+        m_query = np.linspace(1.0, 20.0, 50)
+        c_np = agent_np.solution[0].cFunc(m_query)
+        c_jax = np.asarray(agent_jax.solution[0].cFunc(m_query))
+        np.testing.assert_allclose(c_jax, c_np, rtol=PARITY_RTOL)
+
+    def test_tight_kink_at_boro_cnst(self):
+        """BoroCnstArt=0 (default in defaults) with mNrm queries crossing 0."""
+        params = _params_basic_infinite()
+        agent_np = IndShockConsumerType(**params)
+        agent_jax = IndShockConsumerTypeJAX(**params)
+        agent_np.solve()
+        agent_jax.solve()
+        # Query near the borrowing constraint
+        mNrmMin = agent_np.solution[0].mNrmMin
+        m_query = np.linspace(mNrmMin + 1e-3, mNrmMin + 0.5, 50)
+        c_np = agent_np.solution[0].cFunc(m_query)
+        c_jax = np.asarray(agent_jax.solution[0].cFunc(m_query))
+        np.testing.assert_allclose(c_jax, c_np, rtol=PARITY_RTOL)
+
+    def test_high_interest_rate(self):
+        """Higher Rfree=1.05 (vs default 1.03)."""
+        params = _params_basic_infinite()
+        params["Rfree"] = [1.05]  # HARK expects a list for time-varying Rfree
+        agent_np = IndShockConsumerType(**params)
+        agent_jax = IndShockConsumerTypeJAX(**params)
+        agent_np.solve()
+        agent_jax.solve()
+        m_query = np.linspace(1.0, 20.0, 50)
+        c_np = agent_np.solution[0].cFunc(m_query)
+        c_jax = np.asarray(agent_jax.solution[0].cFunc(m_query))
+        np.testing.assert_allclose(c_jax, c_np, rtol=PARITY_RTOL)
+
+
 if __name__ == "__main__":
     unittest.main()
