@@ -7,17 +7,20 @@ existing HARK implementation to a tight relative tolerance (1e-10 default).
 
 Skipped if JAX is not installed.
 """
+
 import os
 import unittest
 
 import numpy as np
 
 try:
-    os.environ.setdefault('JAX_ENABLE_X64', 'True')
+    os.environ.setdefault("JAX_ENABLE_X64", "True")
     import jax
-    jax.config.update('jax_enable_x64', True)
+
+    jax.config.update("jax_enable_x64", True)
     import jax.numpy as jnp
     from HARK import interpolation_jax as ij
+
     HAS_JAX = True
 except ImportError:
     HAS_JAX = False
@@ -61,12 +64,14 @@ class TestLinearInterp1DJax(unittest.TestCase):
         rng = np.random.default_rng(42)
         x_grid = np.sort(rng.uniform(0, 10, 20))
         y_vals = np.sin(x_grid) + 0.1 * x_grid
-        x_query = np.concatenate([
-            rng.uniform(x_grid.min(), x_grid.max(), 50),
-            np.array([x_grid.min() - 1.0, x_grid.min() - 0.001]),
-            np.array([x_grid.max() + 0.001, x_grid.max() + 5.0]),
-            x_grid,
-        ])
+        x_query = np.concatenate(
+            [
+                rng.uniform(x_grid.min(), x_grid.max(), 50),
+                np.array([x_grid.min() - 1.0, x_grid.min() - 0.001]),
+                np.array([x_grid.max() + 0.001, x_grid.max() + 5.0]),
+                x_grid,
+            ]
+        )
         hark = LinearInterp(x_grid, y_vals, lower_extrap=False)(x_query)
         jaxv = ij.linear_interp_1d(
             x_grid, y_vals, jnp.asarray(x_query), lower_extrap=False
@@ -93,14 +98,17 @@ class TestBilinearInterpJax(unittest.TestCase):
         rng = np.random.default_rng(44)
         x_grid = np.sort(rng.uniform(0, 10, 12))
         y_grid = np.sort(rng.uniform(0, 5, 8))
-        Xg, Yg = np.meshgrid(x_grid, y_grid, indexing='ij')
+        Xg, Yg = np.meshgrid(x_grid, y_grid, indexing="ij")
         f_vals = np.sin(Xg) * np.cos(Yg) + 0.1 * Xg
         x_query = rng.uniform(-1, 11, 80)
         y_query = rng.uniform(-0.5, 6, 80)
         hark = BilinearInterp(f_vals, x_grid, y_grid)(x_query, y_query)
         jaxv = ij.bilinear_interp(
-            f_vals, x_grid, y_grid,
-            jnp.asarray(x_query), jnp.asarray(y_query),
+            f_vals,
+            x_grid,
+            y_grid,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
         )
         _assert_close(jaxv, hark, name="BilinearInterp value")
 
@@ -108,14 +116,17 @@ class TestBilinearInterpJax(unittest.TestCase):
         rng = np.random.default_rng(45)
         x_grid = np.sort(rng.uniform(0, 10, 10))
         y_grid = np.sort(rng.uniform(0, 5, 7))
-        Xg, Yg = np.meshgrid(x_grid, y_grid, indexing='ij')
-        f_vals = Xg ** 2 + Yg ** 2
+        Xg, Yg = np.meshgrid(x_grid, y_grid, indexing="ij")
+        f_vals = Xg**2 + Yg**2
         x_query = rng.uniform(1, 9, 50)
         y_query = rng.uniform(0.5, 4.5, 50)
         hark = BilinearInterp(f_vals, x_grid, y_grid).derivativeX(x_query, y_query)
         jaxv = ij.bilinear_interp_derX(
-            f_vals, x_grid, y_grid,
-            jnp.asarray(x_query), jnp.asarray(y_query),
+            f_vals,
+            x_grid,
+            y_grid,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
         )
         _assert_close(jaxv, hark, name="BilinearInterp.derivativeX")
 
@@ -133,12 +144,17 @@ class TestLinearInterpOnInterp1DJax(unittest.TestCase):
             f_vals[k] = np.sin(x_grid) + 0.3 * y * x_grid
         x_query = rng.uniform(x_grid.min(), x_grid.max(), 40)
         y_query = rng.uniform(y_grid.min(), y_grid.max(), 40)
-        inner = [LinearInterp(x_grid, f_vals[k], lower_extrap=True)
-                 for k in range(len(y_grid))]
+        inner = [
+            LinearInterp(x_grid, f_vals[k], lower_extrap=True)
+            for k in range(len(y_grid))
+        ]
         hark = LinearInterpOnInterp1D(inner, y_grid)(x_query, y_query)
         jaxv = ij.linear_interp_on_interp_1d_shared_xgrid(
-            x_grid, y_grid, f_vals,
-            jnp.asarray(x_query), jnp.asarray(y_query),
+            x_grid,
+            y_grid,
+            f_vals,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
         )
         _assert_close(jaxv, hark, name="LinearInterpOnInterp1D shared x_grid")
 
@@ -153,12 +169,17 @@ class TestLinearInterpOnInterp1DJax(unittest.TestCase):
             f_vals[k] = np.sin(x_grids[k]) + 0.3 * y * x_grids[k]
         x_query = rng.uniform(2, 8, 30)
         y_query = rng.uniform(y_grid.min(), y_grid.max(), 30)
-        inner = [LinearInterp(x_grids[k], f_vals[k], lower_extrap=True)
-                 for k in range(len(y_grid))]
+        inner = [
+            LinearInterp(x_grids[k], f_vals[k], lower_extrap=True)
+            for k in range(len(y_grid))
+        ]
         hark = LinearInterpOnInterp1D(inner, y_grid)(x_query, y_query)
         jaxv = ij.linear_interp_on_interp_1d_general(
-            x_grids, y_grid, f_vals,
-            jnp.asarray(x_query), jnp.asarray(y_query),
+            x_grids,
+            y_grid,
+            f_vals,
+            jnp.asarray(x_query),
+            jnp.asarray(y_query),
         )
         _assert_close(jaxv, hark, name="LinearInterpOnInterp1D per-y x_grid")
 
@@ -193,5 +214,5 @@ class TestCRRAHelpersJax(unittest.TestCase):
         _assert_close(c_back, c, name="CRRA inverse u'^-1")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
