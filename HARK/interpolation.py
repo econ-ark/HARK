@@ -3508,7 +3508,7 @@ class ValueFuncCRRA(MetricObject):
         which makes the outcome infinitely bad.
     """
 
-    distance_criteria = ["func", "CRRA"]
+    distance_criteria = ["vFuncNvrs", "CRRA"]
 
     def __init__(self, vFuncNvrs, CRRA, illegal_value=None):
         self.vFuncNvrs = deepcopy(vFuncNvrs)

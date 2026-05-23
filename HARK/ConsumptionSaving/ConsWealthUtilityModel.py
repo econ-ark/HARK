@@ -388,6 +388,7 @@ def solve_one_period_WealthUtility(
         v_now = u_now + EndOfPrd_v
         vNvrs_now = np.insert(uFunc.inverse(v_now), 0, 0.0)
         vNvrsFunc = LinearInterp(np.insert(m_temp, 0, mNrmMinNow), vNvrs_now)
+        # TODO: Change this to use cubic spline interp for vNvrsFunc
         vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA)
     else:
         vFuncNow = NullFunc()

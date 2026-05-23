@@ -128,13 +128,9 @@ def solve_one_period_WealthPortfolio(
     solution_next : PortfolioSolution
         Representation of the succeeding period's solution.
     IncShkDstn : Distribution
-        Discrete distribution of permanent income shocks and transitory income
-        shocks. This is only used if the input IndepDstnBool is True, indicating
-        that income and return distributions are independent.
+        Discrete distribution of permanent income shocks and transitory income shocks.
     RiskyDstn : Distribution
-       Distribution of risky asset returns. This is only used if the input
-       IndepDstnBool is True, indicating that income and return distributions
-       are independent.
+       Distribution of risky asset returns.
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -153,9 +149,7 @@ def solve_one_period_WealthPortfolio(
         Array of "extra" end-of-period asset values-- assets above the
         absolute minimum acceptable level.
     ShareGrid : np.array
-        Array of risky portfolio shares on which to define the interpolation
-        of the consumption function when Share is fixed. Also used when the
-        risky share choice is specified as discrete rather than continuous.
+        Array of risky portfolio shares on which to compute the FOC.
     ShareLimit : float
         Limiting lower bound of risky portfolio share as mNrm approaches infinity.
     vFuncBool: bool
@@ -351,18 +345,16 @@ def solve_one_period_WealthPortfolio(
         end_v_func = ValueFuncCRRA(end_v_nvrs_func, CRRA)
         # This will be used later to make the value function for this period
 
-        # Create the value functions for this period, defined over market resources
-        # mNrm when agent can adjust his portfolio, and over market resources and
-        # fixed share when agent can not adjust his portfolio.
-
-        # Construct the value function
+        # Create the value functions for this period, defined over mNrm
         mNrm_temp = aXtraGrid  # Just use aXtraGrid as our grid of mNrm values
         cNrm_temp = cFuncNow(mNrm_temp)
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFuncNow(mNrm_temp)
-        v_temp = uFunc(cNrm_temp) + end_v_func(aNrm_temp, Share_temp)
+        v_temp = utility(
+            cNrm_temp, aNrm_temp, CRRA, WealthShare, WealthShift
+        ) + end_v_func(aNrm_temp, Share_temp)
         vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrsP_temp = vPfuncNow(mNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
         vNvrsFunc = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list

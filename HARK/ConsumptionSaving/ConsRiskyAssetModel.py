@@ -404,7 +404,6 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         "ShockDstn",
         "kNrmInitDstn",
         "pLvlInitDstn",
-        "RiskyDstn",
     ]
 
     def pre_solve(self):
@@ -1026,11 +1025,6 @@ def solve_one_period_ConsPortChoice(
     # Calculate the continuous optimal risky share and optimal consumption
     Share_now = (1.0 - alpha) * bot_s + alpha * top_s
     cNrm_now = (1.0 - alpha) * bot_c + alpha * top_c
-
-    # If agent wants to put more than 100% into risky asset, he is constrained.
-    # Likewise if he wants to put less than 0% into risky asset, he is constrained.
-    constrained_top = FOC_s[:, -1] > 0.0
-    constrained_bot = FOC_s[:, 0] < 0.0
 
     # Apply the constraints to both risky share and consumption (but lower
     # constraint should never be relevant)

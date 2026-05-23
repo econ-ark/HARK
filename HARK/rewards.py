@@ -1100,8 +1100,6 @@ class UtilityFuncCobbDouglasCRRA(UtilityFuncCobbDouglas):
     """
     A class for representing a Cobb-Douglas aggregated CRRA utility function.
 
-    TODO: Add derivative and inverse methods.
-
     Parameters
     ----------
     c_share : float
