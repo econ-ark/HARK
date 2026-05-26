@@ -47,13 +47,17 @@ from HARK.Calibration.Assets.AssetProcesses import (
     combine_IncShkDstn_and_RiskyDstn,
     calc_ShareLimit_for_CRRA,
 )
-from HARK.ConsumptionSaving.ConsIndShockModel import init_lifecycle
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    init_lifecycle,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
+)
 from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     RiskyAssetConsumerType,
     init_risky_asset,
     make_AdjustDstn,
 )
-from HARK.distributions import calc_expectation
+from HARK.distributions import expected
 from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
     ConstantFunction,  # Interpolator-like class that returns constant value
@@ -161,7 +165,7 @@ def make_mNrm_grid(mNrmMin, mNrmMax, mNrmCount, mNrmNestFac):
     return mNrmGrid
 
 
-def make_solution_terminal_risky_contrib(CRRA, tau):
+def make_solution_terminal_risky_contrib(CRRA, WithdrawTax):
     """
     Solves the terminal period. The solution is trivial.
     Cns: agent will consume all of his liquid resources.
@@ -172,8 +176,8 @@ def make_solution_terminal_risky_contrib(CRRA, tau):
     ----------
     CRRA : float
         Coefficient of relative risk aversion.
-    tau : float
-        Tax rate of some kind.
+    WithdrawTax : float
+        Tax penalty for withdrawing from the risky asset.
 
     Returns
     -------
@@ -227,16 +231,16 @@ def make_solution_terminal_risky_contrib(CRRA, tau):
 
     # Find the withdrawal penalty. If it is time-varying, assume it takes
     # the same value as in the last non-terminal period
-    if type(tau) is list:
-        tau = tau[-1]
-    else:
-        tau = tau
+    if type(WithdrawTax) is list:
+        WithdrawTax = WithdrawTax[-1]
 
     # Value and marginal value function of the adjusting agent
-    vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + tau), CRRA)
-    dvdmFunc_Reb_Adj_term = MargValueFuncCRRA(lambda m, n: m + n / (1 + tau), CRRA)
+    vFunc_Reb_Adj_term = ValueFuncCRRA(lambda m, n: m + n / (1 + WithdrawTax), CRRA)
+    dvdmFunc_Reb_Adj_term = MargValueFuncCRRA(
+        lambda m, n: m + n / (1 + WithdrawTax), CRRA
+    )
     # A marginal unit of n will be withdrawn and put into m. Then consumed.
-    dvdnFunc_Reb_Adj_term = lambda m, n: dvdmFunc_Reb_Adj_term(m, n) / (1 + tau)
+    dvdnFunc_Reb_Adj_term = lambda m, n: dvdmFunc_Reb_Adj_term(m, n) / (1 + WithdrawTax)
 
     Reb_stage_sol = RiskyContribRebSolution(
         # Rebalancing stage
@@ -598,8 +602,8 @@ def m_nrm_next(shocks, aNrm, Share, Rfree, PermGroFac):
 
     """
     # Extract shocks
-    perm_shk = shocks[0]
-    tran_shk = shocks[1]
+    perm_shk = shocks["PermShk"]
+    tran_shk = shocks["TranShk"]
 
     m_nrm_tp1 = Rfree * aNrm / (perm_shk * PermGroFac) + (1.0 - Share) * tran_shk
 
@@ -614,11 +618,11 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
 
     Parameters
     ----------
-    shocks : np.array
-        Length-3 array with the stochastic shocks that get realized between the
-        end of the current period and the start of next period. Their order is
-        (0) permanent income shock, (1) transitory income shock, (2) risky
-        asset return.
+    shocks : dict
+        Dictionary with the stochastic shocks that get realized between the
+        end of the current period and the start of next period: "PermShk" is the
+        permanent income shock, "TranShk" is the transitory income shock, and
+        "Risky" is the risky asset return.
     nNrm : float
         End-of-period risky asset balances.
     Share : float
@@ -634,9 +638,9 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
     """
 
     # Extract shocks
-    perm_shk = shocks[0]
-    tran_shk = shocks[1]
-    R_risky = shocks[2]
+    perm_shk = shocks["PermShk"]
+    tran_shk = shocks["TranShk"]
+    R_risky = shocks["Risky"]
 
     n_nrm_tp1 = R_risky * nNrm / (perm_shk * PermGroFac) + Share * tran_shk
 
@@ -792,8 +796,8 @@ def solve_RiskyContrib_Cns(
         # as functions of those and the contribution share
 
         def post_return_derivs(inc_shocks, b_aux, g_aux, s):
-            perm_shk = inc_shocks[0]
-            tran_shk = inc_shocks[1]
+            perm_shk = inc_shocks["PermShk"]
+            tran_shk = inc_shocks["TranShk"]
 
             temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
             temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
@@ -841,8 +845,11 @@ def solve_RiskyContrib_Cns(
 
         # Find end of period derivatives and value as expectations of (discounted)
         # next period's derivatives and value.
-        pr_derivs = calc_expectation(
-            IncShkDstn, post_return_derivs, b_aux_tiled, g_aux_tiled, Share_tiled
+        pr_derivs = expected(
+            post_return_derivs,
+            IncShkDstn,
+            (b_aux_tiled, g_aux_tiled, Share_tiled),
+            vectorized=False,
         )
 
         # Unpack results and create interpolators
@@ -923,11 +930,11 @@ def solve_RiskyContrib_Cns(
 
             Parameters
             ----------
-            shocks : np.array
-                Length-3 array with the stochastic shocks that get realized between the
-                end of the current period and the start of next period. Their order is
-                (0) permanent income shock, (1) transitory income shock, (2) risky
-                asset return.
+            shocks : dict
+                Dictionary with the stochastic shocks that get realized between the
+                end of the current period and the start of next period: "PermShk" is the
+                permanent income shock, "TranShk" is the transitory income shock, and
+                "Risky" is the risky asset return.
             a : float
                 end-of-period risk-free assets.
             nTil : float
@@ -935,8 +942,12 @@ def solve_RiskyContrib_Cns(
             s : float
                 end-of-period income deduction share.
             """
-            temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
-            temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
+            perm_shk = shocks["PermShk"]
+            tran_shk = shocks["TranShk"]
+            risky = shocks["Risky"]
+
+            temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
+            temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
 
             # Find next-period asset balances
             m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
@@ -945,10 +956,10 @@ def solve_RiskyContrib_Cns(
             # Interpolate next-period-value derivatives
             dvdm_tp1 = dvdm_next(m_next, n_next, s)
             dvdn_tp1 = dvdn_next(m_next, n_next, s)
-            if shocks[1] == 0:
+            if tran_shk == 0:
                 dvds_tp1 = dvds_next(m_next, n_next, s)
             else:
-                dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(
+                dvds_tp1 = tran_shk * (dvdn_tp1 - dvdm_tp1) + dvds_next(
                     m_next, n_next, s
                 )
 
@@ -957,7 +968,7 @@ def solve_RiskyContrib_Cns(
             # Liquid resources
             end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
             # Iliquid resources
-            end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
+            end_of_prd_dvdn = DiscFac * risky * LivPrb * temp_fac_A * dvdn_tp1
             # Contribution share
             end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
 
@@ -984,12 +995,11 @@ def solve_RiskyContrib_Cns(
 
     # Find end of period derivatives and value as expectations of (discounted)
     # next period's derivatives and value.
-    eop_derivs = calc_expectation(
-        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+    eop_derivs = expected(
         end_of_period_derivs,
-        aNrm_tiled,
-        nNrm_tiled,
-        Share_tiled,
+        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+        (aNrm_tiled, nNrm_tiled, Share_tiled),
+        vectorized=False,
     )
 
     # Unpack results
@@ -1308,7 +1318,14 @@ def solve_RiskyContrib_Sha(
 
 # Solver for the asset rebalancing stage
 def solve_RiskyContrib_Reb(
-    solution_next, CRRA, tau, nNrmGrid, mNrmGrid, dfracGrid, vFuncBool, **unused_params
+    solution_next,
+    CRRA,
+    WithdrawTax,
+    nNrmGrid,
+    mNrmGrid,
+    dfracGrid,
+    vFuncBool,
+    **unused_params,
 ):
     """
     Solves the asset-rebalancing-stage of the agent's problem
@@ -1319,7 +1336,7 @@ def solve_RiskyContrib_Reb(
         Solution to the income-contribution-share stage problem that follows.
     CRRA : float
         Coefficient of relative risk aversion.
-    tau : float
+    WithdrawTax : float
         Tax rate on risky asset withdrawals.
     nNrmGrid : numpy array
         Exogenous grid for risky resources.
@@ -1372,14 +1389,14 @@ def solve_RiskyContrib_Reb(
     )
 
     # Get post-rebalancing assets.
-    m_tilde, n_tilde = rebalance_assets(d_tiled, mNrm_tiled, nNrm_tiled, tau)
+    m_tilde, n_tilde = rebalance_assets(d_tiled, mNrm_tiled, nNrm_tiled, WithdrawTax)
 
     # Now the marginals, in inverse space
     dvdmNvrs = dvdmFunc_Adj_next.cFunc(m_tilde, n_tilde)
     dvdnNvrs = dvdnFunc_Adj_next.cFunc(m_tilde, n_tilde)
 
-    # Pre-evaluate the inverse of (1-tau)
-    taxNvrs = uPinv(1 - tau)
+    # Pre-evaluate the inverse of (1-WithdrawTax)
+    taxNvrs = uPinv(1 - WithdrawTax)
     # Create a tiled array of the tax
     taxNvrs_tiled = np.tile(
         np.reshape(
@@ -1430,7 +1447,9 @@ def solve_RiskyContrib_Reb(
     dfrac_opt[constrained_top] = dfracGrid[-1]
 
     # Find m_tilde and n_tilde
-    mtil_opt, ntil_opt = rebalance_assets(dfrac_opt, mNrm_tiled[0], nNrm_tiled[0], tau)
+    mtil_opt, ntil_opt = rebalance_assets(
+        dfrac_opt, mNrm_tiled[0], nNrm_tiled[0], WithdrawTax
+    )
 
     # Now the derivatives. These are not straight forward because of corner
     # solutions with partial derivatives that change the limits. The idea then
@@ -1442,7 +1461,7 @@ def solve_RiskyContrib_Reb(
     # An additional unit of n kept in n
     marg_n = dvdnFunc_Adj_next(mtil_opt, ntil_opt)
     # An additional unit of n withdrawn to m
-    marg_n_to_m = marg_m * (1 - tau)
+    marg_n_to_m = marg_m * (1 - WithdrawTax)
 
     # Marginal value is the maximum of the marginals in their possible uses
     dvdm_Adj = np.maximum(marg_m, marg_n)
@@ -1500,7 +1519,7 @@ def solveRiskyContrib(
     CRRA,
     Rfree,
     PermGroFac,
-    tau,
+    WithdrawTax,
     BoroCnstArt,
     aXtraGrid,
     nNrmGrid,
@@ -1540,7 +1559,7 @@ def solveRiskyContrib(
         Risk-free return factor.
     PermGroFac : float
         Deterministic permanent income growth factor.
-    tau : float
+    WithdrawTax : float
         Tax rate on risky asset withdrawals.
     BoroCnstArt : float
         Minimum allowed market resources (must be 0).
@@ -1584,7 +1603,7 @@ def solveRiskyContrib(
         "CRRA": CRRA,
         "Rfree": Rfree,
         "PermGroFac": PermGroFac,
-        "tau": tau,
+        "WithdrawTax": WithdrawTax,
         "BoroCnstArt": BoroCnstArt,
         "aXtraGrid": aXtraGrid,
         "nNrmGrid": nNrmGrid,
@@ -1645,6 +1664,8 @@ risky_contrib_constructor_dict = {
     "dfracGrid": make_simple_dGrid,
     "mNrmGrid": make_mNrm_grid,
     "nNrmGrid": make_nNrm_grid,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
 
 risky_contrib_params = {
@@ -1653,6 +1674,7 @@ risky_contrib_params = {
     # averse and impatient agents
     "CRRA": 5.0,
     "DiscFac": 0.90,
+    "WithdrawTax": [0.1],
     # Artificial borrowing constraint must be on
     "BoroCnstArt": 0.0,
     # Grids go up high wealth/P ratios and are less clustered at the bottom.
@@ -1740,7 +1762,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         "RiskyDstn",
         "dfracGrid",
     ]
-    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["tau", "AdjustPrb"]
+    time_vary_ = RiskyAssetConsumerType.time_vary_ + ["WithdrawTax", "AdjustPrb"]
 
     # The new state variables (over those in ConsIndShock) are:
     # - nNrm: start-of-period risky resources.
@@ -1757,7 +1779,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         "Share",
     ]
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
-    default_ = {"params": init_risky_contrib, "solver": solveRiskyContrib}
+    default_ = {
+        "params": init_risky_contrib,
+        "solver": solveRiskyContrib,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "nNrm", "dfrac", "Share", "pLvl"],
+    }
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
@@ -1872,7 +1898,7 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         aNrmPrev = self.state_prev["aNrm"]
         SharePrev = self.state_prev["Share"]
         nNrmTildePrev = self.state_prev["nNrmTilde"]
-        Rfree = self.get_Rfree()
+        Rfree = np.array(self.Rfree)[self.t_cycle - 1]
         Rrisk = self.shocks["Risky"]
 
         # Calculate new states:
@@ -1947,12 +1973,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
 
         # Post-states are assets after rebalancing
 
-        if "tau" not in self.time_vary:
+        if "WithdrawTax" not in self.time_vary:
             mNrmTilde, nNrmTilde = rebalance_assets(
                 self.controls["dfrac"],
                 self.state_now["mNrm"],
                 self.state_now["nNrm"],
-                self.tau,
+                self.WithdrawTax,
             )
 
         else:
@@ -1966,13 +1992,13 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
                 these = t == self.t_cycle
 
                 if np.sum(these) > 0:
-                    tau = self.tau[t]
+                    WithdrawTax = self.WithdrawTax[t]
 
                     mNrmTilde[these], nNrmTilde[these] = rebalance_assets(
                         self.controls["dfrac"][these],
                         self.state_now["mNrm"][these],
                         self.state_now["nNrm"][these],
-                        tau,
+                        WithdrawTax,
                     )
 
         self.state_now["mNrmTilde"] = mNrmTilde

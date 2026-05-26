@@ -1,18 +1,22 @@
 name: Test examples as a cron job
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+    cancel-in-progress: true
+
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/workflows/documentation.yml"
-      - "Documentation/**"
+      - "docs/**"
   pull_request:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/workflows/documentation.yml"
-      - "Documentation/**"
+      - "docs/**"
   schedule:
     - cron: 0 0 * * *
 

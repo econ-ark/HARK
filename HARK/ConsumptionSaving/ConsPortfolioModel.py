@@ -11,6 +11,8 @@ import numpy as np
 from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    make_lognormal_pLvl_init_dstn,
+    make_lognormal_kNrm_init_dstn,
 )
 from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
@@ -257,56 +259,6 @@ def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
     return b_nrm / (shocks["PermShk"] * perm_gro_fac) + shocks["TranShk"]
 
 
-def calc_dvdm_next(
-    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, vp_func_adj, dvdm_func_fxd
-):
-    """
-    Evaluate realizations of marginal value of market resources next period,
-    based on the income distribution "shocks", values of bank balances bNrm, and
-    values of the risky share z.
-    """
-    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
-    dvdm_adj = vp_func_adj(m_nrm)
-
-    if adjust_prob < 1.0:
-        # Expand to the same dimensions as mNrm
-        share_exp = np.full_like(m_nrm, share)
-        dvdm_fxd = dvdm_func_fxd(m_nrm, share_exp)
-        # Combine by adjustment probability
-        dvdm_next = adjust_prob * dvdm_adj + (1.0 - adjust_prob) * dvdm_fxd
-    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-        dvdm_next = dvdm_adj
-
-    dvdm_next = (shocks["PermShk"] * perm_gro_fac) ** (-crra) * dvdm_next
-    return dvdm_next
-
-
-def calc_dvds_next(
-    shocks, b_nrm, share, adjust_prob, perm_gro_fac, crra, dvds_func_fxd
-):
-    """
-    Evaluate realizations of marginal value of risky share next period, based
-    on the income distribution "shocks", values of bank balances bNrm, and values of
-    the risky share z.
-    """
-    m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
-
-    # No marginal value of shockshare if it's a free choice!
-    dvds_adj = np.zeros_like(m_nrm)
-
-    if adjust_prob < 1.0:
-        # Expand to the same dimensions as mNrm
-        share_exp = np.full_like(m_nrm, share)
-        dvds_fxd = dvds_func_fxd(m_nrm, share_exp)
-        # Combine by adjustment probability
-        dvds_next = adjust_prob * dvds_adj + (1.0 - adjust_prob) * dvds_fxd
-    else:  # Don't bother evaluating if there's no chance that portfolio share is fixed
-        dvds_next = dvds_adj
-
-    dvds_next = (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * dvds_next
-    return dvds_next
-
-
 def calc_dvdx_next(
     shocks,
     b_nrm,
@@ -345,41 +297,6 @@ def calc_dvdx_next(
     dvds = perm_shk_fac ** (1.0 - crra) * dvds
 
     return dvdm, dvds
-
-
-def calc_end_of_prd_dvda(shocks, a_nrm, share, rfree, dvdb_func):
-    """
-    Compute end-of-period marginal value of assets at values a, conditional
-    on risky asset return shocks and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    r_port = rfree + share * ex_ret  # Portfolio return
-    b_nrm = r_port * a_nrm
-
-    # Ensure shape concordance
-    share_exp = np.full_like(b_nrm, share)
-
-    # Calculate and return dvda
-    return r_port * dvdb_func(b_nrm, share_exp)
-
-
-def calc_end_of_prd_dvds(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
-    """
-    Compute end-of-period marginal value of risky share at values a, conditional
-    on risky asset return shocks and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    r_port = rfree + share * ex_ret  # Portfolio return
-    b_nrm = r_port * a_nrm
-
-    # Make the shares match the dimension of b, so that it can be vectorized
-    share_exp = np.full_like(b_nrm, share)
-
-    # Calculate and return dvds
-
-    return ex_ret * a_nrm * dvdb_func(b_nrm, share_exp) + dvds_func(b_nrm, share_exp)
 
 
 def calc_end_of_prd_dvdx(shocks, a_nrm, share, rfree, dvdb_func, dvds_func):
@@ -1015,7 +932,23 @@ PortfolioConsumerType_constructors_default = {
     "ShareLimit": calc_ShareLimit_for_CRRA,
     "ShareGrid": make_simple_ShareGrid,
     "AdjustDstn": make_AdjustDstn,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_portfolio_solution_terminal,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+PortfolioConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+PortfolioConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -1034,7 +967,7 @@ PortfolioConsumerType_IncShkDstn_default = {
 # Default parameters to make aXtraGrid using make_assets_grid
 PortfolioConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
-    "aXtraMax": 100,  # Maximum end-of-period "assets above minimum" value
+    "aXtraMax": 100.0,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 1,  # Exponential nesting factor for aXtraGrid
     "aXtraCount": 200,  # Number of points in the grid of "assets above minimum"
     "aXtraExtra": None,  # Additional other values to add in grid (optional)
@@ -1047,7 +980,7 @@ PortfolioConsumerType_RiskyDstn_default = {
     "RiskyCount": 5,  # Number of integration nodes to use in approximation of risky returns
 }
 PortfolioConsumerType_ShareGrid_default = {
-    "ShareCount": 25  # Number of discrete points in the risky share approximation
+    "ShareCount": 26  # Number of discrete points in the risky share approximation
 }
 
 # Make a dictionary to specify a risky asset consumer type
@@ -1064,23 +997,19 @@ PortfolioConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # Whether there is actually portfolio choice
     "PortfolioBisect": False,  # What does this do?
     "IndepDstnBool": True,  # Whether return and income shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "RiskyShareFixed": None,  # This does nothing in this model; only exists because of inheritance
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
 PortfolioConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -1092,6 +1021,8 @@ PortfolioConsumerType_simulation_default = {
 PortfolioConsumerType_default = {}
 PortfolioConsumerType_default.update(PortfolioConsumerType_solving_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_simulation_default)
+PortfolioConsumerType_default.update(PortfolioConsumerType_kNrmInitDstn_default)
+PortfolioConsumerType_default.update(PortfolioConsumerType_pLvlInitDstn_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_aXtraGrid_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_ShareGrid_default)
 PortfolioConsumerType_default.update(PortfolioConsumerType_IncShkDstn_default)
@@ -1132,19 +1063,19 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
     ShareGrid: Constructor
         The agent's risky asset share grid
 
-        It's default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsRiskyAssetModel.make_simple_ShareGrid`
     RiskyDstn: Constructor, :math:`\phi`
         The agent's asset shock distribution for risky assets.
 
-        It's default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
+        Its default constructor is :func:`HARK.Calibration.Assets.AssetProcesses.make_lognormal_RiskyDstn`
 
     Solving Parameters
     ------------------
@@ -1241,9 +1172,12 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
     RiskyDstn_default = PortfolioConsumerType_RiskyDstn_default
     solving_default = PortfolioConsumerType_solving_default
     simulation_default = PortfolioConsumerType_simulation_default
+
     default_ = {
         "params": PortfolioConsumerType_default,
         "solver": solve_one_period_ConsPortfolio,
+        "model": "ConsPortfolio.yaml",
+        "track_vars": ["aNrm", "cNrm", "Share", "mNrm", "pLvl"],
     }
 
     time_inv_ = deepcopy(RiskyAssetConsumerType.time_inv_)
@@ -1327,5 +1261,8 @@ class PortfolioConsumerType(RiskyAssetConsumerType):
         self.controls["cNrm"] = cNrmNow
         self.controls["Share"] = ShareNow
 
+    def check_conditions(self, verbose=None):  # pragma: no cover
+        raise NotImplementedError()
 
-###############################################################################
+    def calc_limiting_values(self):  # pragma: no cover
+        raise NotImplementedError()

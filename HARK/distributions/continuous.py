@@ -1,13 +1,45 @@
-import math
 from typing import Any, Optional, Union
 
 import numpy as np
-from scipy import stats
-from scipy.stats import rv_continuous
+from scipy.special import erfc
+from scipy.stats import (
+    rv_continuous,
+    norm,
+    lognorm,
+    uniform,
+    weibull_min,
+)
 from scipy.stats._distn_infrastructure import rv_continuous_frozen
 
 from HARK.distributions.base import Distribution
 from HARK.distributions.discrete import DiscreteDistribution
+
+
+def _hermite_discretize(distribution, N, endpoints, atoms_transform, lower_endpoint):
+    """Gauss-Hermite quadrature discretization shared by Normal/Lognormal.
+
+    ``atoms_transform`` maps the linear ``sqrt(2)*sigma*x + mu`` grid to the
+    distribution's support (identity for Normal, ``np.exp`` for Lognormal).
+    ``lower_endpoint`` is the value prepended when ``endpoints=True``.
+    """
+    x, w = np.polynomial.hermite.hermgauss(N)
+    pmv = w * np.pi**-0.5
+    atoms = atoms_transform(np.sqrt(2.0) * distribution.sigma * x + distribution.mu)
+    if endpoints:
+        atoms = np.r_[lower_endpoint, atoms, np.inf]
+        pmv = np.r_[0.0, pmv, 0.0]
+    return DiscreteDistribution(
+        pmv,
+        atoms,
+        seed=distribution.random_seed(),
+        limit={
+            "dist": distribution,
+            "method": "hermite",
+            "N": N,
+            "endpoints": endpoints,
+        },
+    )
+
 
 # CONTINUOUS DISTRIBUTIONS
 
@@ -50,17 +82,46 @@ class Normal(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, mu=0.0, sigma=1.0, seed=0):
+    def __new__(
+        cls,
+        mu: Union[float, np.ndarray] = 0.0,
+        sigma: Union[float, np.ndarray] = 1.0,
+        seed: Optional[int] = None,
+    ):
+        """
+        Create a new Normal distribution. If sigma is zero, return a
+        DiscreteDistribution with a single atom at mu.
+        Parameters
+        ----------
+        mu : Union[float, np.ndarray], optional
+            Mean of normal distribution, by default 0.0
+        sigma : Union[float, np.ndarray], optional
+            Standard deviation of normal distribution, by default 1.0
+        seed : Optional[int], optional
+            Seed for random number generator, by default None
+        Returns
+        -------
+        Normal or DiscreteDistribution
+            Normal distribution or DiscreteDistribution with a single atom.
+        """
+
+        if sigma == 0:
+            # If sigma is zero, return a DiscreteDistribution with a single atom
+            return DiscreteDistribution([1.0], mu, seed=seed)
+
+        return super().__new__(cls)
+
+    def __init__(self, mu=0.0, sigma=1.0, seed=None):
         self.mu = np.asarray(mu)
         self.sigma = np.asarray(sigma)
 
         if self.mu.size != self.sigma.size:
             raise AttributeError(
-                "mu and sigma must be of same size, are %s, %s"
-                % ((self.mu.size), (self.sigma.size))
+                f"'mu' and 'sigma' must be of the same size. Instead 'mu' is of "
+                f"size {self.mu.size} and 'sigma' is of size {self.sigma.size}."
             )
 
-        super().__init__(stats.norm, loc=mu, scale=sigma, seed=seed)
+        super().__init__(norm, loc=mu, scale=sigma, seed=seed)
         self.infimum = -np.inf * np.ones(self.mu.size)
         self.supremum = np.inf * np.ones(self.mu.size)
 
@@ -87,21 +148,7 @@ class Normal(ContinuousFrozenDistribution):
         DiscreteDistribution
             Discrete approximation of this distribution.
         """
-
-        x, w = np.polynomial.hermite.hermgauss(N)
-        # normalize w
-        pmv = w * np.pi**-0.5
-        # correct x
-        atoms = math.sqrt(2.0) * self.sigma * x + self.mu
-
-        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
-
-        return DiscreteDistribution(
-            pmv,
-            atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
-            limit=limit,
-        )
+        return _hermite_discretize(self, N, endpoints, lambda v: v, -np.inf)
 
     def _approx_equiprobable(self, N, endpoints=False):
         """
@@ -119,12 +166,16 @@ class Normal(ContinuousFrozenDistribution):
         """
 
         CDF = np.linspace(0, 1, N + 1)
-        lims = stats.norm.ppf(CDF)
-        pdf = stats.norm.pdf(lims)
+        lims = norm.ppf(CDF)
+        pdf = norm.pdf(lims)
 
         # Find conditional means using Mills's ratio
         pmv = np.diff(CDF)
         atoms = self.mu - np.diff(pdf) / pmv * self.sigma
+
+        if endpoints:
+            atoms = np.r_[-np.inf, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
 
         limit = {"dist": self, "method": "equiprobable", "N": N, "endpoints": endpoints}
 
@@ -156,7 +207,7 @@ class Lognormal(ContinuousFrozenDistribution):
         cls,
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
-        seed: Optional[int] = 0,
+        seed: Optional[int] = None,
         mean=None,
         std=None,
     ):
@@ -195,7 +246,7 @@ class Lognormal(ContinuousFrozenDistribution):
         self,
         mu: Union[float, np.ndarray] = 0.0,
         sigma: Union[float, np.ndarray] = 1.0,
-        seed: Optional[int] = 0,
+        seed: Optional[int] = None,
         mean=None,
         std=None,
     ):
@@ -218,9 +269,7 @@ class Lognormal(ContinuousFrozenDistribution):
             )
 
         # Set up the RNG
-        super().__init__(
-            stats.lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed
-        )
+        super().__init__(lognorm, s=self.sigma, scale=np.exp(self.mu), loc=0, seed=seed)
         self.infimum = np.array([0.0])
         self.supremum = np.array([np.inf])
 
@@ -232,8 +281,6 @@ class Lognormal(ContinuousFrozenDistribution):
         normal distribution N(mu,sigma).  Makes an equiprobable distribution by
         default, but user can optionally request augmented tails with exponentially
         sized point masses.  This can improve solution accuracy in some models.
-
-        TODO: add endpoints option
 
         Parameters
         ----------
@@ -255,10 +302,15 @@ class Lognormal(ContinuousFrozenDistribution):
             Probability associated with each point in array of discrete
             points for discrete probability mass function.
         """
+        tail_bound = tail_bound or [0.02, 0.98]
 
-        tail_bound = tail_bound if tail_bound is not None else [0.02, 0.98]
-        # Find the CDF boundaries of each segment
-        if self.sigma > 0.0:
+        # Handle the trivial case first
+        if self.sigma == 0.0:
+            pmv = np.ones(N) / N
+            atoms = np.exp(self.mu) * np.ones(N)
+
+        else:
+            # Find the CDF boundaries of each segment
             if tail_N > 0:
                 lo_cut = tail_bound[0]
                 hi_cut = tail_bound[1]
@@ -282,50 +334,34 @@ class Lognormal(ContinuousFrozenDistribution):
                     upper_CDF_vals.append(
                         upper_CDF_vals[-1] + (1.0 - hi_cut) * scale**x / mag
                     )
-            CDF_vals = lower_CDF_vals + inner_CDF_vals + upper_CDF_vals
-            temp_cutoffs = list(
-                stats.lognorm.ppf(
-                    CDF_vals[1:-1], s=self.sigma, loc=0, scale=np.exp(self.mu)
-                )
-            )
-            cutoffs = [0] + temp_cutoffs + [np.inf]
-            CDF_vals = np.array(CDF_vals)
+            CDF_vals = np.array(lower_CDF_vals + inner_CDF_vals + upper_CDF_vals)
+            CDF_vals[-1] = 1.0
+            CDF_vals[0] = 0.0  # somehow these need fixing sometimes
 
-            K = CDF_vals.size - 1  # number of points in approximation
-            pmv = CDF_vals[1 : (K + 1)] - CDF_vals[0:K]
-            atoms = np.zeros(K)
-            for i in range(K):
-                zBot = cutoffs[i]
-                zTop = cutoffs[i + 1]
-                # Manual check to avoid the RuntimeWarning generated by "divide by zero"
-                # with np.log(zBot).
-                if zBot == 0:
-                    tempBot = np.inf
-                else:
-                    tempBot = (self.mu + self.sigma**2 - np.log(zBot)) / (
-                        np.sqrt(2) * self.sigma
-                    )
-                tempTop = (self.mu + self.sigma**2 - np.log(zTop)) / (
-                    np.sqrt(2) * self.sigma
-                )
-                if tempBot <= 4:
-                    atoms[i] = (
-                        -0.5
-                        * np.exp(self.mu + (self.sigma**2) * 0.5)
-                        * (math.erf(tempTop) - math.erf(tempBot))
-                        / pmv[i]
-                    )
-                else:
-                    atoms[i] = (
-                        -0.5
-                        * np.exp(self.mu + (self.sigma**2) * 0.5)
-                        * (math.erfc(tempBot) - math.erfc(tempTop))
-                        / pmv[i]
-                    )
+            # Calculate probability masses for each node
+            pmv = CDF_vals[1:] - CDF_vals[:-1]
+            pmv /= np.sum(pmv)
 
-        else:
-            pmv = np.ones(N) / N
-            atoms = np.exp(self.mu) * np.ones(N)
+            # Translate the CDF values to z-scores (stdevs from mean), then get q-scores
+            z_cuts = norm.ppf(CDF_vals)
+            q_cuts = (z_cuts - self.sigma) / np.sqrt(2)
+
+            # Evaluate the (complementary) error function at the q values
+            erf_q = erfc(q_cuts)
+            erf_q_neg = erfc(-q_cuts)
+
+            # Evaluate the base for the conditional expectations
+            vals_base = erf_q[:-1] - erf_q[1:]
+            these = q_cuts[:-1] < -2.0  # flag low q values and use the *other* version
+            vals_base[these] = erf_q_neg[1:][these] - erf_q_neg[:-1][these]
+
+            # Make and apply the normalization factor and probability weights
+            norm_fac = 0.5 * np.exp(self.mu + 0.5 * self.sigma**2) / pmv
+            atoms = vals_base * norm_fac
+
+        if endpoints:
+            atoms = np.r_[0.0, atoms, np.inf]
+            pmv = np.r_[0.0, pmv, 0.0]
 
         limit = {
             "dist": self,
@@ -340,7 +376,7 @@ class Lognormal(ContinuousFrozenDistribution):
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -360,23 +396,10 @@ class Lognormal(ContinuousFrozenDistribution):
             Discrete approximation of this distribution.
         """
 
-        x, w = np.polynomial.hermite.hermgauss(N)
-        # normalize w
-        pmv = w * np.pi**-0.5
-        # correct x
-        atoms = np.exp(np.sqrt(2.0) * self.sigma * x + self.mu)
-
-        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
-
-        return DiscreteDistribution(
-            pmv,
-            atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
-            limit=limit,
-        )
+        return _hermite_discretize(self, N, endpoints, np.exp, 0.0)
 
     @classmethod
-    def from_mean_std(cls, mean, std, seed=0):
+    def from_mean_std(cls, mean, std, seed=None):
         """
         Construct a LogNormal distribution from its
         mean and standard deviation.
@@ -409,6 +432,9 @@ class Lognormal(ContinuousFrozenDistribution):
         return cls(mu=mu, sigma=sigma, seed=seed)
 
 
+LogNormal = Lognormal
+
+
 class MeanOneLogNormal(Lognormal):
     """
     A Lognormal distribution with mean 1.
@@ -437,13 +463,11 @@ class Uniform(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, bot=0.0, top=1.0, seed=0):
+    def __init__(self, bot=0.0, top=1.0, seed=None):
         self.bot = np.asarray(bot)
         self.top = np.asarray(top)
 
-        super().__init__(
-            stats.uniform, loc=self.bot, scale=self.top - self.bot, seed=seed
-        )
+        super().__init__(uniform, loc=self.bot, scale=self.top - self.bot, seed=seed)
         self.infimum = np.array([0.0])
         self.supremum = np.array([np.inf])
 
@@ -486,7 +510,7 @@ class Uniform(ContinuousFrozenDistribution):
         return DiscreteDistribution(
             pmv,
             atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -508,11 +532,11 @@ class Weibull(ContinuousFrozenDistribution):
         Seed for random number generator.
     """
 
-    def __init__(self, scale=1.0, shape=1.0, seed=0):
+    def __init__(self, scale=1.0, shape=1.0, seed=None):
         self.scale = np.asarray(scale)
         self.shape = np.asarray(shape)
 
         # Set up the RNG
-        super().__init__(stats.weibull_min, c=shape, scale=scale, seed=seed)
+        super().__init__(weibull_min, c=shape, scale=scale, seed=seed)
         self.infimum = np.array([0.0])
         self.supremum = np.array([np.inf])

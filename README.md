@@ -8,15 +8,15 @@
 [![Anaconda Cloud](https://anaconda.org/conda-forge/econ-ark/badges/version.svg?style=flat)](https://anaconda.org/conda-forge/econ-ark)
 [![PyPi](https://img.shields.io/pypi/v/econ-ark.png?style=flat)](https://pypi.org/project/econ-ark/)
 [![Documentation Status](https://readthedocs.org/projects/hark/badge/?style=flat&version=latest)](https://docs.econ-ark.org/?badge=latest)
-[![Code Coverage](https://codecov.io/gh/econ-ark/hark/branch/master/graph/badge.svg)](https://app.codecov.io/gh/econ-ark/hark/branch/master)
+[![Code Coverage](./docs/images/coverage.svg)](https://remote-unzip.deno.dev/econ-ark/HARK/main)
 [![GitHub Good First Issues](https://img.shields.io/github/issues/econ-ark/HARK/good%20first%20issue.svg)](https://github.com/econ-ark/HARK/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 [![DOI](https://zenodo.org/badge/50448254.svg)](https://zenodo.org/badge/latestdoi/50448254)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org/)
 [![Donate](https://img.shields.io/badge/donate-$2-brightgreen.svg)](https://numfocus.org/donate-to-econ-ark)
 [![Actions Status](https://github.com/econ-ark/hark/workflows/HARK%20build%20on%20MacOS%2C%20Ubuntu%20and%20Windows/badge.svg)](https://github.com/econ-ark/hark/actions)
-[![badge](https://img.shields.io/badge/HARK-DemARK-579ACA.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABZCAMAAABi1XidAAAB8lBMVEX///9XmsrmZYH1olJXmsr1olJXmsrmZYH1olJXmsr1olJXmsrmZYH1olL1olJXmsr1olJXmsrmZYH1olL1olJXmsrmZYH1olJXmsr1olL1olJXmsrmZYH1olL1olJXmsrmZYH1olL1olL0nFf1olJXmsrmZYH1olJXmsq8dZb1olJXmsrmZYH1olJXmspXmspXmsr1olL1olJXmsrmZYH1olJXmsr1olL1olJXmsrmZYH1olL1olLeaIVXmsrmZYH1olL1olL1olJXmsrmZYH1olLna31Xmsr1olJXmsr1olJXmsrmZYH1olLqoVr1olJXmsr1olJXmsrmZYH1olL1olKkfaPobXvviGabgadXmsqThKuofKHmZ4Dobnr1olJXmsr1olJXmspXmsr1olJXmsrfZ4TuhWn1olL1olJXmsqBi7X1olJXmspZmslbmMhbmsdemsVfl8ZgmsNim8Jpk8F0m7R4m7F5nLB6jbh7jbiDirOEibOGnKaMhq+PnaCVg6qWg6qegKaff6WhnpKofKGtnomxeZy3noG6dZi+n3vCcpPDcpPGn3bLb4/Mb47UbIrVa4rYoGjdaIbeaIXhoWHmZYHobXvpcHjqdHXreHLroVrsfG/uhGnuh2bwj2Hxk17yl1vzmljzm1j0nlX1olL3AJXWAAAAbXRSTlMAEBAQHx8gICAuLjAwMDw9PUBAQEpQUFBXV1hgYGBkcHBwcXl8gICAgoiIkJCQlJicnJ2goKCmqK+wsLC4usDAwMjP0NDQ1NbW3Nzg4ODi5+3v8PDw8/T09PX29vb39/f5+fr7+/z8/Pz9/v7+zczCxgAABC5JREFUeAHN1ul3k0UUBvCb1CTVpmpaitAGSLSpSuKCLWpbTKNJFGlcSMAFF63iUmRccNG6gLbuxkXU66JAUef/9LSpmXnyLr3T5AO/rzl5zj137p136BISy44fKJXuGN/d19PUfYeO67Znqtf2KH33Id1psXoFdW30sPZ1sMvs2D060AHqws4FHeJojLZqnw53cmfvg+XR8mC0OEjuxrXEkX5ydeVJLVIlV0e10PXk5k7dYeHu7Cj1j+49uKg7uLU61tGLw1lq27ugQYlclHC4bgv7VQ+TAyj5Zc/UjsPvs1sd5cWryWObtvWT2EPa4rtnWW3JkpjggEpbOsPr7F7EyNewtpBIslA7p43HCsnwooXTEc3UmPmCNn5lrqTJxy6nRmcavGZVt/3Da2pD5NHvsOHJCrdc1G2r3DITpU7yic7w/7Rxnjc0kt5GC4djiv2Sz3Fb2iEZg41/ddsFDoyuYrIkmFehz0HR2thPgQqMyQYb2OtB0WxsZ3BeG3+wpRb1vzl2UYBog8FfGhttFKjtAclnZYrRo9ryG9uG/FZQU4AEg8ZE9LjGMzTmqKXPLnlWVnIlQQTvxJf8ip7VgjZjyVPrjw1te5otM7RmP7xm+sK2Gv9I8Gi++BRbEkR9EBw8zRUcKxwp73xkaLiqQb+kGduJTNHG72zcW9LoJgqQxpP3/Tj//c3yB0tqzaml05/+orHLksVO+95kX7/7qgJvnjlrfr2Ggsyx0eoy9uPzN5SPd86aXggOsEKW2Prz7du3VID3/tzs/sSRs2w7ovVHKtjrX2pd7ZMlTxAYfBAL9jiDwfLkq55Tm7ifhMlTGPyCAs7RFRhn47JnlcB9RM5T97ASuZXIcVNuUDIndpDbdsfrqsOppeXl5Y+XVKdjFCTh+zGaVuj0d9zy05PPK3QzBamxdwtTCrzyg/2Rvf2EstUjordGwa/kx9mSJLr8mLLtCW8HHGJc2R5hS219IiF6PnTusOqcMl57gm0Z8kanKMAQg0qSyuZfn7zItsbGyO9QlnxY0eCuD1XL2ys/MsrQhltE7Ug0uFOzufJFE2PxBo/YAx8XPPdDwWN0MrDRYIZF0mSMKCNHgaIVFoBbNoLJ7tEQDKxGF0kcLQimojCZopv0OkNOyWCCg9XMVAi7ARJzQdM2QUh0gmBozjc3Skg6dSBRqDGYSUOu66Zg+I2fNZs/M3/f/Grl/XnyF1Gw3VKCez0PN5IUfFLqvgUN4C0qNqYs5YhPL+aVZYDE4IpUk57oSFnJm4FyCqqOE0jhY2SMyLFoo56zyo6becOS5UVDdj7Vih0zp+tcMhwRpBeLyqtIjlJKAIZSbI8SGSF3k0pA3mR5tHuwPFoa7N7reoq2bqCsAk1HqCu5uvI1n6JuRXI+S1Mco54YmYTwcn6Aeic+kssXi8XpXC4V3t7/ADuTNKaQJdScAAAAAElFTkSuQmCC)](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks)
-[![badge](https://img.shields.io/badge/HARK-examples-579ACA.svg?logo=data:image/png;base64,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)](https://mybinder.org/v2/gh/econ-ark/HARK/master?filepath=examples)
+[![badge](https://img.shields.io/badge/HARK-DemARK-579ACA.svg?logo=data:image/png;base64,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)](https://mybinder.org/v2/gh/econ-ark/DemARK/main?filepath=notebooks)
+[![badge](https://img.shields.io/badge/HARK-examples-579ACA.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFkAAABZCAMAAABi1XidAAAB8lBMVEX///9XmsrmZYH1olJXmsr1olJXmsrmZYH1olJXmsr1olJXmsrmZYH1olL1olJXmsr1olJXmsrmZYH1olL1olJXmsrmZYH1olJXmsr1olL1olJXmsrmZYH1olL1olJXmsrmZYH1olL1olL0nFf1olJXmsrmZYH1olJXmsq8dZb1olJXmsrmZYH1olJXmspXmspXmsr1olL1olJXmsrmZYH1olJXmsr1olL1olJXmsrmZYH1olL1olLeaIVXmsrmZYH1olL1olL1olJXmsrmZYH1olLna31Xmsr1olJXmsr1olJXmsrmZYH1olLqoVr1olJXmsr1olJXmsrmZYH1olL1olKkfaPobXvviGabgadXmsqThKuofKHmZ4Dobnr1olJXmsr1olJXmspXmsr1olJXmsrfZ4TuhWn1olL1olJXmsqBi7X1olJXmspZmslbmMhbmsdemsVfl8ZgmsNim8Jpk8F0m7R4m7F5nLB6jbh7jbiDirOEibOGnKaMhq+PnaCVg6qWg6qegKaff6WhnpKofKGtnomxeZy3noG6dZi+n3vCcpPDcpPGn3bLb4/Mb47UbIrVa4rYoGjdaIbeaIXhoWHmZYHobXvpcHjqdHXreHLroVrsfG/uhGnuh2bwj2Hxk17yl1vzmljzm1j0nlX1olL3AJXWAAAAbXRSTlMAEBAQHx8gICAuLjAwMDw9PUBAQEpQUFBXV1hgYGBkcHBwcXl8gICAgoiIkJCQlJicnJ2goKCmqK+wsLC4usDAwMjP0NDQ1NbW3Nzg4ODi5+3v8PDw8/T09PX29vb39/f5+fr7+/z8/Pz9/v7+zczCxgAABC5JREFUeAHN1ul3k0UUBvCb1CTVpmpaitAGSLSpSuKCLWpbTKNJFGlcSMAFF63iUmRccNG6gLbuxkXU66JAUef/9LSpmXnyLr3T5AO/rzl5zj137p136BISy44fKJXuGN/d19PUfYeO67Znqtf2KH33Id1psXoFdW30sPZ1sMvs2D060AHqws4FHeJojLZqnw53cmfvg+XR8mC0OEjuxrXEkX5ydeVJLVIlV0e10PXk5k7dYeHu7Cj1j+49uKg7uLU61tGLw1lq27ugQYlclHC4bgv7VQ+TAyj5Zc/UjsPvs1sd5cWryWObtvWT2EPa4rtnWW3JkpjggEpbOsPr7F7EyNewtpBIslA7p43HCsnwooXTEc3UmPmCNn5lrqTJxy6nRmcavGZVt/3Da2pD5NHvsOHJCrdc1G2r3DITpU7yic7w/7Rxnjc0kt5GC4djiv2Sz3Fb2iEZg41/ddsFDoyuYrIkmFehz0HR2thPgQqMyQYb2OtB0WxsZ3BeG3+wpRb1vzl2UYBog8FfGhttFKjtAclnZYrRo9ryG9uG/FZQU4AEg8ZE9LjGMzTmqKXPLnlWVnIlQQTvxJf8ip7VgjZjyVPrjw1te5otM7RmP7xm+sK2Gv9I8Gi++BRbEkR9EBw8zRUcKxwp73xkaLiqQb+kGduJTNHG72zcW9LoJgqQxpP3/Tj//c3yB0tqzaml05/+orHLksVO+95kX7/7qgJvnjlrfr2Ggsyx0eoy9uPzN5SPd86aXggOsEKW2Prz7du3VID3/tzs/sSRs2w7ovVHKtjrX2pd7ZMlTxAYfBAL9jiDwfLkq55Tm7ifhMlTGPyCAs7RFRhn47JnlcB9RM5T97ASuZXIcVNuUDIndpDbdsfrqsOppeXl5Y+XVKdjFCTh+zGaVuj0d9zy05PPK3QzBamxdwtTCrzyg/2Rvf2EstUjordGwa/kx9mSJLr8mLLtCW8HHGJc2R5hS219IiF6PnTusOqcMl57gm0Z8kanKMAQg0qSyuZfn7zItsbGyO9QlnxY0eCuD1XL2ys/MsrQhltE7Ug0uFOzufJFE2PxBo/YAx8XPPdDwWN0MrDRYIZF0mSMKCNHgaIVFoBbNoLJ7tEQDKxGF0kcLQimojCZopv0OkNOyWCCg9XMVAi7ARJzQdM2QUh0gmBozjc3Skg6dSBRqDGYSUOu66Zg+I2fNZs/M3/f/Grl/XnyF1Gw3VKCez0PN5IUfFLqvgUN4C0qNqYs5YhPL+aVZYDE4IpUk57oSFnJm4FyCqqOE0jhY2SMyLFoo56zyo6becOS5UVDdj7Vih0zp+tcMhwRpBeLyqtIjlJKAIZSbI8SGSF3k0pA3mR5tHuwPFoa7N7reoq2bqCsAk1HqCu5uvI1n6JuRXI+S1Mco54YmYTwcn6Aeic+kssXi8XpXC4V3t7/ADuTNKaQJdScAAAAAElFTkSuQmCC)](https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples)
 
 <!--
    Badges to be created:
@@ -24,7 +24,7 @@
 [![Azure](https://dev.azure.com/econ-ark/HARK/_apis/build/status/azure-pipeline%20econ-ark.hark)](
     https://dev.azure.com/econ-ark/hark/_build/latest?definitionId=5)
 
-[![codecov](https://codecov.io/gh/econ-ark/hark/branch/master/graph/badge.svg)](
+[![codecov](https://codecov.io/gh/econ-ark/hark/branch/main/graph/badge.svg)](
     https://codecov.io/gh/econ-ark/hark)
 
 -->
@@ -71,24 +71,40 @@ Install from [Anaconda Cloud](https://docs.anaconda.com/anaconda/install/) by ru
 
 `conda install -c conda-forge econ-ark`
 
-Install from [PyPi](https://pypi.org/) by running:
+Install from [PyPI](https://pypi.org/) by running:
 
 `pip install econ-ark`
 
+Once HARK is installed, you can copy its example notebooks into a local working directory of your choice from within a Python environment:
+
+```python
+from HARK import install_examples
+
+install_examples()
+```
+
+Follow the simple prompts to make an examples subdirectory inside the directory you specify.
+
+To use the interactive notebooks, you will need to install Jupyter: `pip install jupyter`. Moreover, the math and text formatting in some notebooks might require the `latex-envs` extension. To set this up, follow these steps:
+
+1. Install the package: `pip install jupyter_latex_envs`
+2. Install associated JS files: `jupyter contrib nbextension install --user`
+3. Enable the extension: `jupyter nbextension enable latex_envs --user --py`
+
+You can launch Jupyter from the command line with `jupyter notebook`, then navigate to the directory where you have installed the example notebooks. We recommend starting with `/examples/Gentle-Intro/Gentle-Intro-to-HARK.ipynb`, which links to the other introductory notebooks near the bottom.
+
 ## Usage
 
-We start with almost the simplest possible consumption model: A consumer with CRRA utility
+We start with almost the simplest possible consumption model: A consumer with constant relative risk aversion (CRRA) utility who has perfect foresight about everything except the (stochastic) date of death.
 
 <div align="center">
-  <img height="30px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-crra-utility-function.png">
+  <img height="52px" src="https://github.com/econ-ark/HARK/blob/main/docs/images/usage-crra-utility-function.png">
 </div>
 
-has perfect foresight about everything except the (stochastic) date of death.
-
-The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
+The agent's one period problem can be recursively expressed in [Bellman form](https://en.wikipedia.org/wiki/Bellman_equation) as:
 
 <div align="center">
-  <img height="80px" src="https://github.com/econ-ark/HARK/blob/master/Documentation/images/usage-agent-problem-bellman-form.png">
+  <img height="180px" src="https://github.com/econ-ark/HARK/blob/main/docs/images/usage-agent-problem-bellman-form.png">
 </div>
 
 <br>
@@ -96,37 +112,23 @@ The agent's problem can be written in [Bellman form](https://en.wikipedia.org/wi
 To model the above problem, start by importing the `PerfForesightConsumerType` model from the appropriate `HARK` module then create an agent instance using the appropriate parameters:
 
 ```python
-import HARK
+from HARK.models import PerfForesightConsumerType
 
-from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-
-PF_params = {
-    "CRRA": 2.5,  # Relative risk aversion
-    "DiscFac": 0.96,  # Discount factor
-    "Rfree": 1.03,  # Risk free interest factor
-    "LivPrb": [0.98],  # Survival probability
-    "PermGroFac": [1.01],  # Income growth factor
-    "T_cycle": 1,
-    "cycles": 0,
-    "AgentCount": 10000,
-}
-
-# Create an instance of a Perfect Foresight agent with the above parameters
-PFexample = PerfForesightConsumerType(**PF_params)
+# Create an instance of a Perfect Foresight agent with otherwise default parameters
+PFexample = PerfForesightConsumerType(cycles=0)
 ```
-The parameter `T_cycle` sets the length of the period cycle. Lists of time-varying parameters must have this length. With `cycles=0` the single cycle repeats forever. If a parameter `T_age` is provided, each agent is removed from the simulation when their `t_age` counter reaches this value.
+With `cycles=0`, the default parameters yield a single period cycle that repeats forever.
 
-
-Once the model is created, ask the the agent to solve the problem with `.solve()`:
+Once the model is created, ask the the agent to solve the problem with  its `solve()` method:
 
 ```python
 # Tell the agent to solve the problem
 PFexample.solve()
 ```
 
-Solving the problem populates the agent's `.solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**.
+Solving the problem populates the agent's `solution` list attribute with solutions to each period of the problem. In the case of an infinite horizon model, there is just one element in the list, at **index-zero**.
 
-You can retrieve the solution's consumption function from the `.cFunc` attribute:
+You can retrieve the solution's consumption function from the `cFunc` attribute:
 
 ```python
 # Retrieve the consumption function of the solution
@@ -142,7 +144,9 @@ PFexample.solution[0].hNrm
 
 For a detailed explanation of the above example please see the demo notebook [_A Gentle Introduction to HARK_](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
-For more examples please visit the [examples](https://docs.econ-ark.org/Documentation/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+For more examples please visit the [examples](https://docs.econ-ark.org/docs/overview/index.html) section of the [documentation](https://docs.econ-ark.org/index.html), or the [econ-ark/DemARK](https://github.com/econ-ark/DemARK) repository.
+
+The examples can also be copied to a local working directory for you to run and investigate; see the Install section above.
 
 ## Citation
 
@@ -191,7 +195,7 @@ Most of what economists have done so far with 'big data' has been like what Kepl
 
 An alternative approach called 'structural modeling' aims to do, for economic data, what Newton did for astronomical data: Provide a deep and rigorous mathematical (or computational) framework that distills the essence of the underlying behavior that produces the 'big data.'
 
-The notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](<https://en.wikipedia.org/wiki/Shock_(economics)>) and changing constructed attributes.
+The notebook [_A Gentle Introduction to HARK_](https://mybinder.org/v2/gh/econ-ark/DemARK/main?filepath=notebooks/Gentle-Intro-To-HARK-PerfForesightCRRA.ipynb) details how you can easily utilize our toolkit for structural modeling. Starting with a simple [Perfect Foresight Model](https://en.wikipedia.org/wiki/Rational_expectations) we solve an agent problem, then experiment with adding [income shocks](<https://en.wikipedia.org/wiki/Shock_(economics)>) and changing constructed attributes.
 
 ### For Economists: Structural Modeling with HARK
 
@@ -201,9 +205,9 @@ The same kinds of modeling techniques are also gaining popularity among microeco
 
 HARK provides a robust, well-designed, open-source toolkit for building such models much more efficiently than has been possible in the past.
 
-Our [_DCEGM Upper Envelope_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem.
+Our [_DCEGM Upper Envelope_](https://mybinder.org/v2/gh/econ-ark/DemARK/main?filepath=notebooks%2FDCEGM-Upper-Envelope.ipynb) notebook illustrates using HARK to replicate the [Iskhakov, Jørgensen, Rust, and Schjerning paper](https://onlinelibrary.wiley.com/doi/abs/10.3982/QE643) for solving the discrete-continuous retirement saving problem.
 
-The notebook [_Making Structural Estimates From Empirical Results_](https://mybinder.org/v2/gh/econ-ark/DemARK/master?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [_MPC Heterogeneity and Household Balance Sheets_ by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
+The notebook [_Making Structural Estimates From Empirical Results_](https://mybinder.org/v2/gh/econ-ark/DemARK/main?filepath=notebooks%2FStructural-Estimates-From-Empirical-MPCs-Fagereng-et-al.ipynb) is another demonstration of using HARK to conduct a quick structural estimation based on Table 9 of [_MPC Heterogeneity and Household Balance Sheets_ by Fagereng, Holm, and Natvik](https://www.ssb.no/en/forskning/discussion-papers/_attachment/286054?_ts=158af859c98).
 
 ### For Computational Economics Developers
 
@@ -211,7 +215,7 @@ HARK provides a modular and extensible open-source toolkit for solving heterogen
 
 HARK is written in Python, making significant use of libraries such as numpy and scipy which offer a wide array of mathematical and statistical functions and tools. Our modules are generally categorized into Tools (mathematical functions and techniques), Models (particular economic models and solvers) and Applications (use of tools to simulate an economic phenomenon).
 
-For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/Documentation/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
+For more information on how you can create your own Models or use Tools and Model to create Applications please see the [documentation](https://docs.econ-ark.org/docs/guides/quick_start.html#for-other-developers-of-software-for-computational-economics)
 
 ### Contributing to HARK
 
@@ -232,9 +236,9 @@ Contributions go far beyond pull requests and commits. Although we love giving y
 
 If you are worried or don’t know how to start, you can always reach out to us through the gitter [community](https://gitter.im/econ-ark/community)(#tsc-technical-steering-committee) or simply submit [an issue](https://github.com/econ-ark/HARK/issues/new) and a member can help give you guidance!
 
-To install for development see the [Quickstart Guide](https://docs.econ-ark.org/Documentation/guides/installation.html).
+To install for development see the [Quickstart Guide](https://docs.econ-ark.org/docs/guides/installation.html).
 
-For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/Documentation/guides/contributing.html).
+For more information on contributing to HARK please see [the contributing guide](https://docs.econ-ark.org/docs/guides/contributing.html).
 This is the guide that collaborators follow in maintaining the Econ-ARK project.
 
 ## Disclaimer
@@ -245,8 +249,8 @@ This is a beta version of HARK. The code has not been extensively tested as it s
 
 To help users understand the purpose and features of the repository, we have provided detailed explanations and examples in various sections of the documentation. Here are some key resources:
 
-- [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
-- [Guides](https://docs.econ-ark.org/Documentation/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
-- [Reference](https://docs.econ-ark.org/Documentation/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
+- [Overview and Examples](https://docs.econ-ark.org/docs/overview/index.html): This section provides an introduction to HARK and includes various examples to help users understand how to use the toolkit.
+- [Guides](https://docs.econ-ark.org/docs/guides/index.html): This section includes guides on installation, quick start, and contributing to HARK.
+- [Reference](https://docs.econ-ark.org/docs/reference/index.html): This section provides detailed explanations and examples of the various tools and models available in the repository.
 
 For more information and resources, please visit the [Econ-ARK documentation](https://docs.econ-ark.org/).

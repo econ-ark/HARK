@@ -15,6 +15,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
@@ -72,8 +74,83 @@ def make_simple_binary_rep_markov(Mrkv_p11, Mrkv_p22):
 ###############################################################################
 
 
+def _calc_end_of_prd_vP(
+    vPfuncNext, IncShkDstn, aNrmNow, PermGroFac, DiscFac, CRRA, CapShare, DeprRte
+):
+    """
+    Compute end-of-period marginal value of assets given an income shock
+    distribution and a single permanent growth factor.
+
+    Parameters
+    ----------
+    vPfuncNext : function
+        Marginal value function for next period's normalized market resources.
+    IncShkDstn : distribution.Distribution
+        Discrete approximation to the income process. Contains event
+        probabilities in ``pmv`` and shock atoms in ``atoms[0]``
+        (permanent) and ``atoms[1]`` (transitory).
+    aNrmNow : np.array
+        End-of-period normalized asset grid.
+    PermGroFac : float
+        Expected permanent income growth factor for this state.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    CapShare : float
+        Capital's share of income in Cobb-Douglas production function.
+    DeprRte : float
+        Depreciation rate for capital.
+
+    Returns
+    -------
+    EndOfPrdvP : np.array
+        End-of-period marginal value of assets, one value per point in
+        ``aNrmNow``.
+    """
+    # Unpack the shock distribution
+    ShkPrbsNext = IncShkDstn.pmv
+    PermShkValsNext = IncShkDstn.atoms[0]
+    TranShkValsNext = IncShkDstn.atoms[1]
+
+    # Make tiled versions of end-of-period assets, shocks, and probabilities
+    aNrmCount = aNrmNow.size
+    ShkCount = ShkPrbsNext.size
+    aNrm_tiled = np.tile(np.reshape(aNrmNow, (aNrmCount, 1)), (1, ShkCount))
+
+    # Tile arrays of the income shocks and put them into useful shapes
+    PermShkVals_tiled = np.tile(
+        np.reshape(PermShkValsNext, (1, ShkCount)), (aNrmCount, 1)
+    )
+    TranShkVals_tiled = np.tile(
+        np.reshape(TranShkValsNext, (1, ShkCount)), (aNrmCount, 1)
+    )
+    ShkPrbs_tiled = np.tile(np.reshape(ShkPrbsNext, (1, ShkCount)), (aNrmCount, 1))
+
+    # Calculate next period's capital-to-permanent-labor ratio under each
+    # combination of end-of-period assets and shock realization
+    kNrmNext = aNrm_tiled / (PermGroFac * PermShkVals_tiled)
+
+    # Calculate next period's market resources
+    KtoLnext = kNrmNext / TranShkVals_tiled
+    RfreeNext = 1.0 - DeprRte + CapShare * KtoLnext ** (CapShare - 1.0)
+    wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
+    mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
+
+    # Calculate end-of-period marginal value of assets for the RA
+    vPnext = vPfuncNext(mNrmNext)
+    EndOfPrdvP = DiscFac * np.sum(
+        RfreeNext
+        * (PermGroFac * PermShkVals_tiled) ** (-CRRA)
+        * vPnext
+        * ShkPrbs_tiled,
+        axis=1,
+    )
+    return EndOfPrdvP
+
+
 def solve_ConsRepAgent(
-    solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprFac, PermGroFac, aXtraGrid
+    solution_next, DiscFac, CRRA, IncShkDstn, CapShare, DeprRte, PermGroFac, aXtraGrid
 ):
     """
     Solve one period of the simple representative agent consumption-saving model.
@@ -92,7 +169,7 @@ def solve_ConsRepAgent(
         permanent shocks, transitory shocks.
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
-    DeprFac : float
+    DeprRte : float
         Depreciation rate for capital.
     PermGroFac : float
         Expected permanent income growth factor at the end of this period.
@@ -106,45 +183,13 @@ def solve_ConsRepAgent(
     solution_now : ConsumerSolution
         Solution to this period's problem (new iteration).
     """
-    # Unpack next period's solution and the income distribution
+    # Unpack next period's solution
     vPfuncNext = solution_next.vPfunc
-    ShkPrbsNext = IncShkDstn.pmv
-    PermShkValsNext = IncShkDstn.atoms[0]
-    TranShkValsNext = IncShkDstn.atoms[1]
-
-    # Make tiled versions of end-of-period assets, shocks, and probabilities
     aNrmNow = aXtraGrid
-    aNrmCount = aNrmNow.size
-    ShkCount = ShkPrbsNext.size
-    aNrm_tiled = np.tile(np.reshape(aNrmNow, (aNrmCount, 1)), (1, ShkCount))
 
-    # Tile arrays of the income shocks and put them into useful shapes
-    PermShkVals_tiled = np.tile(
-        np.reshape(PermShkValsNext, (1, ShkCount)), (aNrmCount, 1)
-    )
-    TranShkVals_tiled = np.tile(
-        np.reshape(TranShkValsNext, (1, ShkCount)), (aNrmCount, 1)
-    )
-    ShkPrbs_tiled = np.tile(np.reshape(ShkPrbsNext, (1, ShkCount)), (aNrmCount, 1))
-
-    # Calculate next period's capital-to-permanent-labor ratio under each combination
-    # of end-of-period assets and shock realization
-    kNrmNext = aNrm_tiled / (PermGroFac * PermShkVals_tiled)
-
-    # Calculate next period's market resources
-    KtoLnext = kNrmNext / TranShkVals_tiled
-    RfreeNext = 1.0 - DeprFac + CapShare * KtoLnext ** (CapShare - 1.0)
-    wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
-    mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
-
-    # Calculate end-of-period marginal value of assets for the RA
-    vPnext = vPfuncNext(mNrmNext)
-    EndOfPrdvP = DiscFac * np.sum(
-        RfreeNext
-        * (PermGroFac * PermShkVals_tiled) ** (-CRRA)
-        * vPnext
-        * ShkPrbs_tiled,
-        axis=1,
+    # Compute end-of-period marginal value of assets
+    EndOfPrdvP = _calc_end_of_prd_vP(
+        vPfuncNext, IncShkDstn, aNrmNow, PermGroFac, DiscFac, CRRA, CapShare, DeprRte
     )
 
     # Invert the first order condition to get consumption, then find endogenous gridpoints
@@ -167,7 +212,7 @@ def solve_ConsRepAgentMarkov(
     CRRA,
     IncShkDstn,
     CapShare,
-    DeprFac,
+    DeprRte,
     PermGroFac,
     aXtraGrid,
 ):
@@ -186,12 +231,12 @@ def solve_ConsRepAgentMarkov(
     CRRA : float
         Coefficient of relative risk aversion.
     IncShkDstn : [distribution.Distribution]
-        A list of discrete approximations to the income process between the
-        period being solved and the one immediately following (in solution_next).
-        Order: event probabilities, permanent shocks, transitory shocks.
+        A list of Distribution objects for the income process, one per Markov
+        state.  Each has ``.pmv`` (event probabilities), ``.atoms[0]``
+        (permanent shocks), and ``.atoms[1]`` (transitory shocks).
     CapShare : float
         Capital's share of income in Cobb-Douglas production function.
-    DeprFac : float
+    DeprRte : float
         Depreciation rate of capital.
     PermGroFac : [float]
         Expected permanent income growth factor for each state we could be in
@@ -214,43 +259,15 @@ def solve_ConsRepAgentMarkov(
 
     # Loop over *next period* states, calculating conditional EndOfPrdvP
     for j in range(StateCount):
-        # Define next-period-state conditional objects
-        vPfuncNext = solution_next.vPfunc[j]
-        ShkPrbsNext = IncShkDstn[j].pmv
-        PermShkValsNext = IncShkDstn[j].atoms[0]
-        TranShkValsNext = IncShkDstn[j].atoms[1]
-
-        # Make tiled versions of end-of-period assets, shocks, and probabilities
-        ShkCount = ShkPrbsNext.size
-        aNrm_tiled = np.tile(np.reshape(aNrmNow, (aNrmCount, 1)), (1, ShkCount))
-
-        # Tile arrays of the income shocks and put them into useful shapes
-        PermShkVals_tiled = np.tile(
-            np.reshape(PermShkValsNext, (1, ShkCount)), (aNrmCount, 1)
-        )
-        TranShkVals_tiled = np.tile(
-            np.reshape(TranShkValsNext, (1, ShkCount)), (aNrmCount, 1)
-        )
-        ShkPrbs_tiled = np.tile(np.reshape(ShkPrbsNext, (1, ShkCount)), (aNrmCount, 1))
-
-        # Calculate next period's capital-to-permanent-labor ratio under each combination
-        # of end-of-period assets and shock realization
-        kNrmNext = aNrm_tiled / (PermGroFac[j] * PermShkVals_tiled)
-
-        # Calculate next period's market resources
-        KtoLnext = kNrmNext / TranShkVals_tiled
-        RfreeNext = 1.0 - DeprFac + CapShare * KtoLnext ** (CapShare - 1.0)
-        wRteNext = (1.0 - CapShare) * KtoLnext**CapShare
-        mNrmNext = RfreeNext * kNrmNext + wRteNext * TranShkVals_tiled
-
-        # Calculate end-of-period marginal value of assets for the RA
-        vPnext = vPfuncNext(mNrmNext)
-        EndOfPrdvP_cond[j, :] = DiscFac * np.sum(
-            RfreeNext
-            * (PermGroFac[j] * PermShkVals_tiled) ** (-CRRA)
-            * vPnext
-            * ShkPrbs_tiled,
-            axis=1,
+        EndOfPrdvP_cond[j, :] = _calc_end_of_prd_vP(
+            solution_next.vPfunc[j],
+            IncShkDstn[j],
+            aNrmNow,
+            PermGroFac[j],
+            DiscFac,
+            CRRA,
+            CapShare,
+            DeprRte,
         )
 
     # Apply the Markov transition matrix to get unconditional end-of-period marginal value
@@ -284,7 +301,24 @@ repagent_constructor_dict = {
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
     "solution_terminal": make_basic_CRRA_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
+}
+
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
 default_IncShkDstn_params = {
@@ -322,7 +356,7 @@ init_rep_agent = {
     "LivPrb": [1.0],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
-    "DeprFac": 0.05,  # Depreciation rate for capital
+    "DeprRte": 0.05,  # Depreciation rate for capital
     "CapShare": 0.36,  # Capital's share in Cobb-Douglas production function
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
@@ -330,10 +364,6 @@ init_rep_agent = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 1,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -344,6 +374,8 @@ init_rep_agent = {
 }
 init_rep_agent.update(default_IncShkDstn_params)
 init_rep_agent.update(default_aXtraGrid_params)
+init_rep_agent.update(default_kNrmInitDstn_params)
+init_rep_agent.update(default_pLvlInitDstn_params)
 
 
 class RepAgentConsumerType(IndShockConsumerType):
@@ -355,8 +387,12 @@ class RepAgentConsumerType(IndShockConsumerType):
 
     """
 
-    time_inv_ = ["CRRA", "DiscFac", "CapShare", "DeprFac", "aXtraGrid"]
-    default_ = {"params": init_rep_agent, "solver": solve_ConsRepAgent}
+    time_inv_ = ["CRRA", "DiscFac", "CapShare", "DeprRte", "aXtraGrid"]
+    default_ = {
+        "params": init_rep_agent,
+        "solver": solve_ConsRepAgent,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
+    }
 
     def pre_solve(self):
         self.construct("solution_terminal")
@@ -390,7 +426,7 @@ class RepAgentConsumerType(IndShockConsumerType):
             + self.CapShare
             * self.kNrmNow ** (self.CapShare - 1.0)
             * self.shocks["TranShk"] ** (1.0 - self.CapShare)
-            - self.DeprFac
+            - self.DeprRte
         )
         self.wRte = (
             (1.0 - self.CapShare)
@@ -398,6 +434,12 @@ class RepAgentConsumerType(IndShockConsumerType):
             * self.shocks["TranShk"] ** (-self.CapShare)
         )
         self.mNrmNow = self.Rfree * self.kNrmNow + self.wRte * self.shocks["TranShk"]
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()  # pragma: nocover
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()  # pragma: nocover
 
 
 ###############################################################################
@@ -420,26 +462,20 @@ init_markov_rep_agent["constructors"] = markov_repagent_constructor_dict
 class RepAgentMarkovConsumerType(RepAgentConsumerType):
     """
     A class for representing representative agents with inelastic labor supply
-    and a discrete MarkovState
-
-    Parameters
-    ----------
+    and a discrete Markov state.
     """
 
     time_inv_ = RepAgentConsumerType.time_inv_ + ["MrkvArray"]
-
-    def __init__(self, **kwds):
-        params = init_markov_rep_agent.copy()
-        params.update(kwds)
-
-        RepAgentConsumerType.__init__(self, **params)
-        self.solve_one_period = solve_ConsRepAgentMarkov
+    default_ = {
+        "params": init_markov_rep_agent,
+        "solver": solve_ConsRepAgentMarkov,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl", "Mrkv"],
+    }
 
     def pre_solve(self):
         self.construct("solution_terminal")
 
     def initialize_sim(self):
-        # self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         RepAgentConsumerType.initialize_sim(self)
         self.shocks["Mrkv"] = self.Mrkv
 
@@ -449,14 +485,6 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     def get_shocks(self):
         """
         Draws a new Markov state and income shocks for the representative agent.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         self.shocks["Mrkv"] = MarkovProcess(
             self.MrkvArray, seed=self.RNG.integers(0, 2**31 - 1)
@@ -478,14 +506,6 @@ class RepAgentMarkovConsumerType(RepAgentConsumerType):
     def get_controls(self):
         """
         Calculates consumption for the representative agent using the consumption functions.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
         """
         t = self.t_cycle[0]
         i = self.shocks["Mrkv"]
