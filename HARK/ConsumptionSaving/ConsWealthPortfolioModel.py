@@ -106,6 +106,7 @@ def solve_one_period_WealthPortfolio(
     solution_next,
     IncShkDstn,
     RiskyDstn,
+    RiskyShareFixed,
     LivPrb,
     DiscFac,
     CRRA,
@@ -131,6 +132,8 @@ def solve_one_period_WealthPortfolio(
         Discrete distribution of permanent income shocks and transitory income shocks.
     RiskyDstn : Distribution
        Distribution of risky asset returns.
+    RiskyShareFixed : float or None
+        Exogenously fixed risky asset share, if any (None means choose optimal).
     LivPrb : float
         Survival probability; likelihood of being alive at the beginning of
         the succeeding period.
@@ -231,76 +234,93 @@ def solve_one_period_WealthPortfolio(
     # Make tiled arrays to calculate future realizations of bNrm and Share when integrating over RiskyDstn
     aNrmNow, ShareNext = np.meshgrid(aNrmGrid, ShareGrid, indexing="ij")
 
-    # Evaluate realizations of value and marginal value after asset returns are realized
-    end_dvda, end_dvds = DiscFacEff * expected(
-        calc_end_dvdx,
-        RiskyDstn,
-        args=(aNrmNow, ShareNext, Rfree, med_dvdb_func),
-    )
-    end_dvda_nvrs = uFunc.derinv(end_dvda)
+    # Method split: If RiskyShare is not fixed, then we need to find optimal risky share
+    # as a function of end-of-period assets.
+    if RiskyShareFixed is None:
+        # Evaluate realizations of value and marginal value after asset returns are realized
+        end_dvda, end_dvds = DiscFacEff * expected(
+            calc_end_dvdx,
+            RiskyDstn,
+            args=(aNrmNow, ShareNext, Rfree, med_dvdb_func),
+        )
+        end_dvda_nvrs = uFunc.derinv(end_dvda)
 
-    # Now find the optimal (continuous) risky share on [0,1] by solving the first
-    # order condition end_dvds == 0.
-    focs = end_dvds  # Relabel for convenient typing
+        # Now find the optimal (continuous) risky share on [0,1] by solving the first
+        # order condition end_dvds == 0.
+        focs = end_dvds  # Relabel for convenient typing
 
-    # For each value of aNrm, find the value of Share such that focs == 0
-    crossing = np.logical_and(focs[:, 1:] <= 0.0, focs[:, :-1] >= 0.0)
-    share_idx = np.argmax(crossing, axis=1)
-    # This represents the index of the segment of the share grid where dvds flips
-    # from positive to negative, indicating that there's a zero *on* the segment
+        # For each value of aNrm, find the value of Share such that focs == 0
+        crossing = np.logical_and(focs[:, 1:] <= 0.0, focs[:, :-1] >= 0.0)
+        share_idx = np.argmax(crossing, axis=1)
+        # This represents the index of the segment of the share grid where dvds flips
+        # from positive to negative, indicating that there's a zero *on* the segment
 
-    # Calculate the fractional distance between those share gridpoints where the
-    # zero should be found, assuming a linear function; call it alpha
-    a_idx = np.arange(aNrmCount)
-    bot_s = ShareGrid[share_idx]
-    top_s = ShareGrid[share_idx + 1]
-    bot_f = focs[a_idx, share_idx]
-    top_f = focs[a_idx, share_idx + 1]
-    bot_c = end_dvda_nvrs[a_idx, share_idx]
-    top_c = end_dvda_nvrs[a_idx, share_idx + 1]
-    bot_dvda = end_dvda[a_idx, share_idx]
-    top_dvda = end_dvda[a_idx, share_idx + 1]
-    alpha = 1.0 - top_f / (top_f - bot_f)
+        # Calculate the fractional distance between those share gridpoints where the
+        # zero should be found, assuming a linear function; call it alpha
+        a_idx = np.arange(aNrmCount)
+        bot_s = ShareGrid[share_idx]
+        top_s = ShareGrid[share_idx + 1]
+        bot_f = focs[a_idx, share_idx]
+        top_f = focs[a_idx, share_idx + 1]
+        bot_c = end_dvda_nvrs[a_idx, share_idx]
+        top_c = end_dvda_nvrs[a_idx, share_idx + 1]
+        bot_dvda = end_dvda[a_idx, share_idx]
+        top_dvda = end_dvda[a_idx, share_idx + 1]
+        alpha = 1.0 - top_f / (top_f - bot_f)
 
-    # Calculate the continuous optimal risky share and optimal consumption
-    Share_now = (1.0 - alpha) * bot_s + alpha * top_s
-    end_dvda_nvrs_now = (1.0 - alpha) * bot_c + alpha * top_c
-    end_dvda_now = (1.0 - alpha) * bot_dvda + alpha * top_dvda
+        # Calculate the continuous optimal risky share and optimal consumption
+        Share_now = (1.0 - alpha) * bot_s + alpha * top_s
+        end_dvda_nvrs_now = (1.0 - alpha) * bot_c + alpha * top_c
+        end_dvda_now = (1.0 - alpha) * bot_dvda + alpha * top_dvda
 
-    # If agent wants to put more than 100% into risky asset, he is constrained.
-    # Likewise if he wants to put less than 0% into risky asset, he is constrained.
-    constrained_top = focs[:, -1] > 0.0
-    constrained_bot = focs[:, 0] < 0.0
+        # If agent wants to put more than 100% into risky asset, he is constrained.
+        # Likewise if he wants to put less than 0% into risky asset, he is constrained.
+        constrained_top = focs[:, -1] > 0.0
+        constrained_bot = focs[:, 0] < 0.0
 
-    # Apply those constraints to both risky share and consumption (but lower
-    # constraint should never be relevant)
-    Share_now[constrained_top] = 1.0
-    Share_now[constrained_bot] = 0.0
-    end_dvda_nvrs_now[constrained_top] = end_dvda_nvrs[constrained_top, -1]
-    end_dvda_nvrs_now[constrained_bot] = end_dvda_nvrs[constrained_bot, 0]
-    end_dvda_now[constrained_top] = end_dvda[constrained_top, -1]
-    end_dvda_now[constrained_bot] = end_dvda[constrained_bot, 0]
+        # Apply those constraints to both risky share and consumption (but lower
+        # constraint should never be relevant)
+        Share_now[constrained_top] = 1.0
+        Share_now[constrained_bot] = 0.0
+        end_dvda_nvrs_now[constrained_top] = end_dvda_nvrs[constrained_top, -1]
+        end_dvda_nvrs_now[constrained_bot] = end_dvda_nvrs[constrained_bot, 0]
+        end_dvda_now[constrained_top] = end_dvda[constrained_top, -1]
+        end_dvda_now[constrained_bot] = end_dvda[constrained_bot, 0]
 
-    # When the natural borrowing constraint is *not* zero, then aNrm=0 is in the
-    # grid, but there's no way to "optimize" the portfolio if a=0, and consumption
-    # can't depend on the risky share if it doesn't meaningfully exist. Apply
-    # a small fix to the bottom gridpoint (aNrm=0) when this happens.
-    if not BoroCnstNat_iszero:
-        Share_now[0] = 1.0
-        end_dvda_nvrs_now[0] = end_dvda_nvrs[0, -1]
-        end_dvda_now[0] = end_dvda[0, -1]
+        # When the natural borrowing constraint is *not* zero, then aNrm=0 is in the
+        # grid, but there's no way to "optimize" the portfolio if a=0, and consumption
+        # can't depend on the risky share if it doesn't meaningfully exist. Apply
+        # a small fix to the bottom gridpoint (aNrm=0) when this happens.
+        if not BoroCnstNat_iszero:
+            Share_now[0] = 1.0
+            end_dvda_nvrs_now[0] = end_dvda_nvrs[0, -1]
+            end_dvda_now[0] = end_dvda[0, -1]
+
+    # If RiskyShareFixed *is not* None, then it is constant everywhere. We get
+    # Share_now for free and only have to calculate expectations for that value.
+    else:
+        Share_now = RiskyShareFixed * np.ones_like(aNrmGrid)
+        end_dvda_now, unused = DiscFacEff * expected(
+            calc_end_dvdx,
+            RiskyDstn,
+            args=(aNrmGrid, Share_now, Rfree, med_dvdb_func),
+        )
+        end_dvda_nvrs_now = uFunc.derinv(end_dvda_now)
+
+        # Apply a small fix at a=0
+        # if not BoroCnstNat_iszero:
+        #    end_dvda_nvrs_now[0] = end_dvda_nvrs[0, -1]
+        #    end_dvda_now[0] = end_dvda[0, -1]
 
     # Now this is where we look for optimal C
-    # for each a in the agrid find corresponding c that satisfies the euler equation
-
+    # For each a in the agrid find corresponding c that satisfies the Euler equation
     if WealthShare == 0.0:
         cNrm_now = end_dvda_nvrs_now
     else:
         omega = end_dvda_nvrs_now / (aNrmGrid + WealthShift)
         cNrm_now = ChiFunc(omega) * (aNrmGrid + WealthShift)
 
-    # Calculate the endogenous mNrm gridpoints when the agent adjusts his portfolio,
-    # then construct the consumption function when the agent can adjust his share
+    # Calculate the endogenous mNrm gridpoints, then construct the consumption function
     mNrm_now = np.insert(aNrmGrid + cNrm_now, 0, 0.0)
     cNrm_now = np.insert(cNrm_now, 0, 0.0)
     cFuncNow = LinearInterp(mNrm_now, cNrm_now)
@@ -309,16 +329,16 @@ def solve_one_period_WealthPortfolio(
     dudc_nvrs_now = uFunc.derinv(dudc_now, order=(1, 0))
     dudc_nvrs_func_now = LinearInterp(mNrm_now, dudc_nvrs_now)
 
-    # Construct the marginal value (of mNrm) function
-    vPfuncNow = MargValueFuncCRRA(dudc_nvrs_func_now, CRRA)
-
-    # If the share choice is continuous, just make an ordinary interpolating function
+    # Make an interpolating function for the risky share function
     if BoroCnstNat_iszero:
         Share_lower_bound = ShareLimit
     else:
         Share_lower_bound = 1.0
     Share_now = np.insert(Share_now, 0, Share_lower_bound)
     ShareFuncNow = LinearInterp(mNrm_now, Share_now, ShareLimit, 0.0)
+
+    # Construct the marginal value (of mNrm) function
+    vPfuncNow = MargValueFuncCRRA(dudc_nvrs_func_now, CRRA)
 
     # Add the value function if requested
     if vFuncBool:
@@ -472,7 +492,7 @@ WealthPortfolioConsumerType_solving_default = {
     "CubicBool": False,  # Whether to use cubic spline interpolation
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
     "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
-    "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
+    "RiskyShareFixed": None,  # Fixed risky asset share, if any (None means optimize)
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
 WealthPortfolioConsumerType_simulation_default = {
@@ -568,7 +588,3 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
         "model": "ConsPortfolio.yaml",
         "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }
-
-    def pre_solve(self):
-        self.construct("solution_terminal")
-        self.solution_terminal.ShareFunc = ConstantFunction(1.0)

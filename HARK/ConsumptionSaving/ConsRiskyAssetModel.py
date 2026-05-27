@@ -416,22 +416,31 @@ class IndShockRiskyAssetConsumerType(IndShockConsumerType):
         This method simply ensures that a few attributes that could be in either
         time_inv or time_vary are appropriately labeled.
         """
-        if type(self.AdjustDstn) is IndexDistribution:
+        if hasattr(self.AdjustDstn, "__getitem__"):
             self.add_to_time_vary("AdjustPrb")
             self.del_from_time_inv("AdjustPrb")
         else:
             self.add_to_time_inv("AdjustPrb")
             self.del_from_time_vary("AdjustPrb")
+
         if hasattr(self.RiskyDstn, "__getitem__"):
             self.add_to_time_vary("RiskyDstn")
         else:
             self.add_to_time_inv("RiskyDstn")
-        if type(self.ShareLimit) is list:
+
+        if hasattr(self.ShareLimit, "__getitem__"):
             self.add_to_time_vary("ShareLimit")
             self.del_from_time_inv("ShareLimit")
         else:
             self.add_to_time_inv("ShareLimit")
             self.del_from_time_vary("ShareLimit")
+
+        if hasattr(self.RiskyShareFixed, "__getitem__"):
+            self.add_to_time_vary("RiskyShareFixed")
+            self.del_from_time_inv("RiskyShareFixed")
+        else:
+            self.add_to_time_inv("RiskyShareFixed")
+            self.del_from_time_vary("RiskyShareFixed")
 
     def get_Rport(self):
         """
