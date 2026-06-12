@@ -1,8 +1,9 @@
 """
-This module has consumption-models with habit formation. Right now, it only has
-a single basic model with permanent and transitory income shocks, one risk-free
-asset, and a habit stock that evolves as a weighted average of current consumption
-and the prior habit stock.
+This module has consumption-models with habit formation. It has a basic model with
+permanent and transitory income shocks, one risk-free asset, and a habit stock that
+evolves as a weighted average of current consumption and the prior habit stock. It
+also has a version of the same model with portfolio allocation between a risky and
+a risk-free asset.
 """
 
 import numpy as np
