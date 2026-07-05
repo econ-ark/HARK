@@ -884,6 +884,26 @@ class LinearInterp(HARKinterpolator1D):
         default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
         WARNING: User is responsible for verifying that their custom indexer is
         actually correct versus default behavior.
+    decay_extrap_form : str
+        Functional form of the decay toward the limiting linear function when
+        ``intercept_limit`` and ``slope_limit`` are provided (irrelevant
+        otherwise). ``'exp'`` (default, the long-standing behavior): the gap
+        below the limiting line decays exponentially in ``x - x_list[-1]``.
+        ``'powerlaw'``: the gap decays as a power law,
+        ``gap(x) = A*((x + h)/(x_list[-1] + h))**(-Q)`` with pivot
+        ``h = intercept_limit/slope_limit`` and ``Q = B*(x_list[-1] + h)``.
+        Both forms match the level and the slope of the interpolant at the top
+        gridpoint, so neither needs parameters beyond the limiting line; over a
+        short span above the grid they coincide (the exponential is the
+        local linearization of the power law), but the power law is the
+        asymptotically correct tail for buffer-stock consumption functions,
+        whose gap below the perfect-foresight asymptote ``MPCmin*(x + hNrm)``
+        decays polynomially, not exponentially (``h`` is then human wealth).
+        ``'powerlaw'`` requires ``slope_limit > 0``, a top knot strictly below
+        the limiting line with slope strictly above ``slope_limit``, and
+        ``x_list[-1] + h > 0``; if violated it warns and disables decay
+        extrapolation (``decay_extrap == False``) rather than risk a divergent
+        tail.
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -897,6 +917,7 @@ class LinearInterp(HARKinterpolator1D):
         lower_extrap=False,
         pre_compute=False,
         indexer=None,
+        decay_extrap_form="exp",
     ):
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
@@ -907,6 +928,12 @@ class LinearInterp(HARKinterpolator1D):
         self.indexer = indexer
 
         # Make a decay extrapolation
+        if decay_extrap_form not in ("exp", "powerlaw"):
+            raise ValueError(
+                "decay_extrap_form must be 'exp' or 'powerlaw', got "
+                + repr(decay_extrap_form)
+            )
+        self.decay_extrap_form = decay_extrap_form
         if intercept_limit is not None and slope_limit is not None:
             slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
             level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
@@ -920,6 +947,8 @@ class LinearInterp(HARKinterpolator1D):
                 self.intercept_limit = intercept_limit
                 self.slope_limit = slope_limit
                 self.decay_extrap = True
+                if decay_extrap_form == "powerlaw":
+                    self._init_powerlaw_decay(level_diff, slope_diff)
             else:
                 self.decay_extrap = False
         else:
@@ -931,6 +960,42 @@ class LinearInterp(HARKinterpolator1D):
                 self.x_list[1:] - self.x_list[:-1]
             )
             self.intercepts = self.y_list[:-1] - self.slopes * self.x_list[:-1]
+
+    def _init_powerlaw_decay(self, level_diff, slope_diff):
+        """Set up the power-law decay tail, or fall back to no decay (with a
+        warning) if the required configuration does not hold.
+
+        The gap below the limiting line is
+        ``gap(x) = A * ((x + h)/(x_top + h))**(-Q)`` with pivot
+        ``h = intercept_limit/slope_limit`` and ``Q = B*(x_top + h)``, which
+        matches the level AND the slope of the interpolant at the top
+        gridpoint -- the same two conditions the exponential form matches, so
+        no parameters beyond (``intercept_limit``, ``slope_limit``) are
+        needed. A valid power-law tail requires the top knot strictly below
+        the limiting line (``level_diff > 0``) and approaching it (top slope
+        strictly above ``slope_limit``, i.e. ``B > 0``), plus
+        ``slope_limit > 0`` and a positive pivot ``x_top + h``. For a
+        converged consumption function these hold by Carroll-Kimball (1996)
+        concavity, so a violation signals bad inputs; decay is then disabled
+        outright rather than risk a divergent tail.
+        """
+        x_top = self.x_list[-1]
+        ok = self.slope_limit > 0.0 and level_diff > 0.0 and self.decay_extrap_B > 0.0
+        if ok:
+            pivot = x_top + self.intercept_limit / self.slope_limit
+            ok = pivot > 0.0
+        if not ok:
+            warnings.warn(
+                "LinearInterp(decay_extrap_form='powerlaw'): the top knot is "
+                "not strictly below the limiting line with slope strictly "
+                f"above slope_limit (level_diff={level_diff:.6g}, "
+                f"slope_diff={slope_diff:.6g}, slope_limit={self.slope_limit:.6g}); "
+                "disabling decay extrapolation for this interpolant."
+            )
+            self.decay_extrap = False
+            return
+        self.decay_extrap_pivot = pivot
+        self.decay_extrap_Q = self.decay_extrap_B * pivot
 
     def _segment_index(self, x):
         """Return the bracketing right-endpoint index for each query in ``x``."""
@@ -978,14 +1043,33 @@ class LinearInterp(HARKinterpolator1D):
 
     def _apply_upper_decay(self, x, y, dydx):
         """In-place: replace queries above ``x_list[-1]`` with the limiting linear
-        plus exponential-decay envelope. ``y`` and ``dydx`` may each be ``None``
-        to skip; no-op when ``self.decay_extrap`` is False."""
+        function minus a decaying gap (exponential or power-law, per
+        ``decay_extrap_form``). ``y`` and ``dydx`` may each be ``None`` to
+        skip; no-op when ``self.decay_extrap`` is False."""
         if not self.decay_extrap or (y is None and dydx is None):
             return
         above = x > self.x_list[-1]
         if not np.any(above):
             return
         x_temp = x[above] - self.x_list[-1]
+        if getattr(self, "decay_extrap_form", "exp") == "powerlaw":
+            # gap = A * ((x + h)/(x_top + h))**(-Q), computed via exp/log1p for
+            # numerical stability. For x_temp << x_top + h it reduces to
+            # A*exp(-B*x_temp): the exponential form is the local linearization
+            # of this one, which is why fits over a short span above the grid
+            # cannot tell them apart while the tails differ materially.
+            decay = self.decay_extrap_A * np.exp(
+                -self.decay_extrap_Q * np.log1p(x_temp / self.decay_extrap_pivot)
+            )
+            if y is not None:
+                y[above] = self.intercept_limit + self.slope_limit * x[above] - decay
+            if dydx is not None:
+                # d(-gap)/dx = +(Q/(x + h))*gap, with x + h = x_temp + pivot
+                dydx[above] = (
+                    self.slope_limit
+                    + self.decay_extrap_Q / (x_temp + self.decay_extrap_pivot) * decay
+                )
+            return
         decay = self.decay_extrap_A * np.exp(-self.decay_extrap_B * x_temp)
         if y is not None:
             y[above] = self.intercept_limit + self.slope_limit * x[above] - decay

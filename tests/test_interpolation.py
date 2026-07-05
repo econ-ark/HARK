@@ -1057,3 +1057,167 @@ class TestInterpolation2DBroadcasting(unittest.TestCase):
         result_array = lioi(np.array([2.0, 2.0, 2.0]), y)
 
         np.testing.assert_array_almost_equal(result_scalar, result_array)
+
+
+###############################################################################
+# Decay extrapolation above the grid: exponential (legacy) and power-law tails
+###############################################################################
+
+
+class TestLinearInterpDecay(unittest.TestCase):
+    """Tests for LinearInterp's decay extrapolation toward a limiting line.
+
+    Knot layout: y = intercept + slope*x - C*(x + h)**(-Q_true) with
+    h = intercept/slope, so the knots approach the limiting line from below
+    with slope falling toward ``slope`` from above -- the configuration the
+    top of a converged consumption function is in (Carroll-Kimball concavity),
+    and an exact power-law gap with known exponent Q_true.
+    """
+
+    intercept = 1.0
+    slope = 0.5  # limiting line 1.0 + 0.5*x = 0.5*(x + 2); pivot h = 2
+    C = 4.0
+    Q_true = 1.5
+
+    def gap_truth(self, x):
+        h = self.intercept / self.slope
+        return self.C * (x + h) ** (-self.Q_true)
+
+    def truth(self, x):
+        return self.intercept + self.slope * x - self.gap_truth(x)
+
+    def knots(self, n=201, top=21.0):
+        x = np.linspace(1.0, top, n)
+        return x, self.truth(x)
+
+    def test_exp_default_unchanged(self):
+        # The default form is the long-standing exponential decay; pin its
+        # closed form so any behavior change would be caught here.
+        x, y = self.knots()
+        f = LinearInterp(x, y, self.intercept, self.slope)
+        self.assertTrue(f.decay_extrap)
+        self.assertEqual(f.decay_extrap_form, "exp")
+        slope_top = (y[-1] - y[-2]) / (x[-1] - x[-2])
+        A = self.intercept + self.slope * x[-1] - y[-1]
+        B = -(self.slope - slope_top) / A
+        q = np.array([25.0, 40.0, 100.0])
+        expect = self.intercept + self.slope * q - A * np.exp(-B * (q - x[-1]))
+        np.testing.assert_allclose(f(q), expect, rtol=1e-12)
+        d_expect = self.slope + B * A * np.exp(-B * (q - x[-1]))
+        np.testing.assert_allclose(f.derivative(q), d_expect, rtol=1e-12)
+
+    def test_exp_formula_survives_missing_form_attribute(self):
+        # Instances unpickled from versions predating decay_extrap_form must
+        # keep evaluating with the exponential formula.
+        x, y = self.knots()
+        f = LinearInterp(x, y, self.intercept, self.slope)
+        del f.decay_extrap_form
+        g = LinearInterp(x, y, self.intercept, self.slope)
+        q = np.array([25.0, 40.0, 100.0])
+        np.testing.assert_array_equal(f(q), g(q))
+
+    def test_invalid_form_raises(self):
+        x, y = self.knots()
+        with self.assertRaises(ValueError):
+            LinearInterp(x, y, self.intercept, self.slope, decay_extrap_form="foo")
+
+    def test_powerlaw_level_and_slope_continuous_at_top_knot(self):
+        x, y = self.knots()
+        f = LinearInterp(
+            x, y, self.intercept, self.slope, decay_extrap_form="powerlaw"
+        )
+        self.assertTrue(f.decay_extrap)
+        self.assertEqual(f.decay_extrap_form, "powerlaw")
+        slope_top = (y[-1] - y[-2]) / (x[-1] - x[-2])
+        eps = 1e-7
+        level_above = float(f(np.array([x[-1] + eps]))[0])
+        self.assertAlmostEqual(level_above, y[-1] + slope_top * eps, places=10)
+        deriv_above = float(f.derivative(np.array([x[-1] + 1e-9]))[0])
+        self.assertAlmostEqual(deriv_above, slope_top, places=9)
+
+    def test_powerlaw_tail_is_exact_power_law(self):
+        # The extrapolated gap must have constant log-log slope equal to -Q
+        # in (x + h); an exponential tail's log-log slope diverges instead.
+        x, y = self.knots()
+        f = LinearInterp(
+            x, y, self.intercept, self.slope, decay_extrap_form="powerlaw"
+        )
+        h = self.intercept / self.slope
+        lad = np.geomspace(25.0, 2000.0, 30)
+        gap = self.intercept + self.slope * lad - f(lad)
+        slopes = np.diff(np.log(gap)) / np.diff(np.log(lad + h))
+        np.testing.assert_allclose(slopes, -f.decay_extrap_Q, rtol=1e-4)
+
+    def test_powerlaw_beats_exp_against_truth(self):
+        # Dense knots on an exact power-law gap: the power-law tail recovers
+        # the true function far above the grid; the exponential kills the gap
+        # orders of magnitude too fast.
+        x, y = self.knots(n=20001)
+        fp = LinearInterp(
+            x, y, self.intercept, self.slope, decay_extrap_form="powerlaw"
+        )
+        fe = LinearInterp(x, y, self.intercept, self.slope)
+        self.assertAlmostEqual(fp.decay_extrap_Q, self.Q_true, delta=1e-3)
+        lad = np.geomspace(25.0, 2000.0, 30)
+        gap_true = self.gap_truth(lad)
+        gap_pl = self.intercept + self.slope * lad - fp(lad)
+        gap_exp = self.intercept + self.slope * lad - fe(lad)
+        np.testing.assert_allclose(gap_pl, gap_true, rtol=1e-3)
+        # the exponential has destroyed most of the true gap by the ladder top
+        self.assertLess(gap_exp[-1], 0.5 * gap_true[-1])
+        err_pl = np.abs(gap_pl - gap_true)
+        err_exp = np.abs(gap_exp - gap_true)
+        self.assertGreater(err_exp[-1], 100.0 * err_pl[-1])
+
+    def test_powerlaw_approaches_line_from_below_slope_from_above(self):
+        x, y = self.knots()
+        f = LinearInterp(
+            x, y, self.intercept, self.slope, decay_extrap_form="powerlaw"
+        )
+        # Measurable window: the gap must stay above float64 cancellation
+        # noise (eps * line) for below-line/monotonicity to be observable from
+        # the outside -- the same pitfall as measuring consumption-function
+        # gaps on deep grids.
+        lad = np.geomspace(25.0, 1.0e5, 40)
+        vals = f(lad)
+        gap = self.intercept + self.slope * lad - vals
+        self.assertTrue(np.all(np.isfinite(vals)))
+        self.assertTrue(np.all(gap > 0.0))  # strictly below the line
+        self.assertTrue(np.all(np.diff(gap) < 0.0))  # gap shrinks monotonically
+        ders = f.derivative(lad)
+        self.assertTrue(np.all(ders > self.slope))  # slope above the limit...
+        self.assertTrue(np.all(np.diff(ders) < 0.0))  # ...falling toward it
+        # Astronomical query: finite, at the line to float precision, slope at
+        # the limit (the true gap ~1e-18 is below float64 resolution there).
+        far = np.array([1.0e12])
+        val_far = float(f(far)[0])
+        line_far = self.intercept + self.slope * far[0]
+        self.assertTrue(np.isfinite(val_far))
+        self.assertLessEqual(val_far, line_far * (1.0 + 1e-12))
+        der_far = float(f.derivative(far)[0])
+        self.assertGreaterEqual(der_far, self.slope)
+        self.assertAlmostEqual(der_far, self.slope, places=10)
+
+    def test_powerlaw_guards_disable_decay(self):
+        x = np.linspace(1.0, 21.0, 201)
+        h = self.intercept / self.slope
+        line = self.intercept + self.slope * x
+        # (a) top knot above the limiting line (approach from above)
+        y_above = line + self.C * (x + h) ** (-self.Q_true)
+        with self.assertWarns(UserWarning):
+            f = LinearInterp(
+                x, y_above, self.intercept, self.slope, decay_extrap_form="powerlaw"
+            )
+        self.assertFalse(f.decay_extrap)
+        # (b) below the line but diverging from it (top slope below slope_limit)
+        y_diverge = line - 0.1 * (x + h) ** 0.5
+        with self.assertWarns(UserWarning):
+            f = LinearInterp(
+                x, y_diverge, self.intercept, self.slope, decay_extrap_form="powerlaw"
+            )
+        self.assertFalse(f.decay_extrap)
+        # (c) non-positive slope_limit
+        x2, y2 = self.knots()
+        with self.assertWarns(UserWarning):
+            f = LinearInterp(x2, y2, self.intercept, -0.5, decay_extrap_form="powerlaw")
+        self.assertFalse(f.decay_extrap)
