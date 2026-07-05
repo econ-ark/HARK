@@ -180,7 +180,7 @@ def pf_human_wealth_markov(MrkvArray, Rfree, ExpIncNext, PermGroFac):
     return np.linalg.solve(np.eye(S) - D, D @ E)
 
 
-def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None):
+def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerlaw"):
     """Build one per-Mgrid consumption slice, optionally with PF decay extrapolation.
 
     When ``MPCmin`` and ``hNrm`` are both supplied (not None), the returned
@@ -189,6 +189,15 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None):
     (``slope_limit=MPCmin``, ``intercept_limit=MPCmin*hNrm``). Otherwise it is
     the legacy bare ``LinearInterp(m_temp, c_temp)`` with naive constant-slope
     extrapolation -- byte-for-byte the prior behavior.
+
+    The decay uses ``decay_form`` (default ``'powerlaw'``): the gap below the
+    PF asymptote of a buffer-stock consumption function decays as a POWER LAW
+    in ``(m + hNrm)``, not exponentially, so ``LinearInterp``'s legacy ``'exp'``
+    form (available here by passing ``decay_form='exp'``) vanishes far too fast
+    above the grid -- it hands back the PF line itself where the true function
+    is still measurably below it. The power-law tail matches the level and the
+    slope of the solved slice at its top knot, exactly as the exponential does,
+    so the switch needs no extra parameters.
 
     Concavity guard (Carroll & Kimball, 1996). The true consumption function is
     strictly concave and lies strictly *below* the PF line ``MPCmin*(m+hNrm)`` at
@@ -233,8 +242,12 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None):
 
     if level_diff > tol and slope_top > MPCmin:
         # c strictly below the PF line and steeper than the asymptotic MPC: decay
-        # engages with a strictly positive rate toward the asymptote.
-        return LinearInterp(m_temp, c_temp, intercept_limit, MPCmin)
+        # engages with a strictly positive rate toward the asymptote. (These two
+        # conditions are exactly LinearInterp's power-law validity guards, so the
+        # powerlaw setup cannot fall back to no-decay from here.)
+        return LinearInterp(
+            m_temp, c_temp, intercept_limit, MPCmin, decay_extrap_form=decay_form
+        )
 
     # Near the line, an above-line transient, or a slope already <= MPCmin:
     # fall back to legacy naive-linear extrapolation for this slice (never blows up).

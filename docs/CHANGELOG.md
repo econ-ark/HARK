@@ -24,6 +24,8 @@ Release Date: TBD
 
 #### Minor Changes
 
+- Adds `decay_extrap_form='powerlaw'` to `LinearInterp`: the gap below the limiting line decays as a power law in `(x + intercept_limit/slope_limit)` instead of exponentially, matching the level and slope of the interpolant at the top gridpoint just as the exponential form does. This is the asymptotically correct tail for buffer-stock consumption functions approaching their perfect-foresight asymptote; the default remains `'exp'` (byte-for-byte unchanged). [#TBD](https://github.com/econ-ark/HARK/pull/TBD)
+- Adds opt-in perfect-foresight decay extrapolation machinery to the aggregate-shock consumption solvers (`ConsAggShockModel`): `pf_mpc_min` / `pf_human_wealth_markov` compute the PF asymptote slope and per-Markov-state joint human wealth at a caller-chosen reference return, and `make_cFunc_slice` attaches the (power-law) decay toward `MPCmin*(m + hNrm)` to each per-`Mgrid` cFunc slice, with a Carroll-Kimball concavity guard that raises on theoretically-impossible inputs. Default off: with the new solver arguments `MPCmin`/`hNrm` at their `None` defaults, behavior is byte-for-byte unchanged. [#TBD](https://github.com/econ-ark/HARK/pull/TBD)
 - future item
 - future item
 - future item
