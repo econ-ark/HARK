@@ -6,6 +6,7 @@ used for solving "macroeconomic" models with aggregate shocks.
 """
 
 from copy import deepcopy
+import warnings
 
 import numpy as np
 import scipy.stats as stats
@@ -80,6 +81,164 @@ utilityPP = CRRAutilityPP
 utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
+
+
+# ---------------------------------------------------------------------------
+# Perfect-foresight asymptote bounds for decay extrapolation (opt-in)
+# ---------------------------------------------------------------------------
+# The 2D aggregate-shock consumption solve builds each per-Markov-state cFunc
+# slice as a piecewise-linear interpolation that, above its top gridpoint,
+# extrapolates with the last segment's slope (naive linear). The theoretically
+# correct behavior is to decay toward the affine perfect-foresight (PF)
+# asymptote c(m) -> MPCmin * (m + hNrm). These helpers compute that asymptote's
+# slope (MPCmin) and human-wealth intercept (hNrm) at a *reference* capital
+# ratio, because in this general-equilibrium model the gross return R = Rfunc(k)
+# and wage w = wFunc(k) are endogenous -- there is no scalar Rfree in the solver
+# (unlike the 1D ConsIndShock/ConsMarkov solvers, which already decay). The
+# bounds are used only when the consumer type's ``MPCmin`` and ``hNrm``
+# attributes are set (both default to None); otherwise the legacy
+# bare-LinearInterp path is preserved byte-for-byte.
+
+
+def pf_mpc_min(Rfree, DiscFac, CRRA, LivPrb=1.0):
+    """Limiting (minimum) MPC of the perfect-foresight consumer.
+
+    ``MPCmin = 1 - (Rfree * DiscFac * LivPrb) ** (1/CRRA) / Rfree``
+
+    This is HARK's standard return-impatience MPC bound (cf. the ``MPCminNow``
+    recursion in ConsMarkovModel), specialized to a return ``Rfree`` that is
+    uniform across Markov states -- the relevant case here, since the bound is
+    evaluated at a single reference capital ratio. Survival enters through the
+    effective discount factor ``DiscFac * LivPrb`` (NOT through human wealth).
+    Warns and returns a value ``<= 0`` if return impatience fails, which the
+    caller treats as "no valid PF bound" (legacy extrapolation).
+    """
+    patience = (Rfree * DiscFac * LivPrb) ** (1.0 / CRRA) / Rfree
+    if patience >= 1.0:
+        warnings.warn(
+            f"pf_mpc_min: patience factor {patience:.6f} >= 1 (return impatience "
+            "violated); MPCmin <= 0, PF decay bound is undefined."
+        )
+    return 1.0 - patience
+
+
+def pf_human_wealth_markov(MrkvArray, Rfree, ExpIncNext, PermGroFac):
+    """Per-Markov-state normalized human wealth at a reference return.
+
+    Solves the joint fixed point (the Markov generalization of the
+    perfect-foresight recursion ``h = (G/R)(E[income] + h')``)::
+
+        h_i = sum_j MrkvArray[i, j] * (G_j / R) * (ExpIncNext_j + h_j)
+
+    i.e. ``(I - D) h = D @ ExpIncNext`` with ``D[i, j] = MrkvArray[i, j] * G_j / R``.
+    Under a return ``R`` that is uniform across states, this is exactly HARK's
+    risk-adjusted Markov human-wealth recursion (ConsMarkovModel.py ~554-559):
+    its ``R**(1-CRRA) / R_adj`` factors collapse to ``G_j / R`` when ``R`` is
+    state-invariant. The "remain-in-this-state-forever" limit would be
+    degenerate for zero-income deep-unemployment states; this joint solve is the
+    correct PF human-wealth limit.
+
+    Existence requires the spectral radius of ``D`` to be below 1 -- the
+    finite-human-wealth condition (the Markov FHWC). If it fails (e.g. a state
+    with ``G_j >= R``), human wealth is infinite/undefined and an array of NaNs
+    is returned, which the caller treats as "no valid PF bound" (legacy
+    extrapolation).
+
+    Parameters
+    ----------
+    MrkvArray : np.array, shape (S, S)
+        Macro-state transition matrix (rows sum to 1). Use ``[[1.0]]`` for the
+        single-aggregate-state case.
+    Rfree : float
+        Gross return at the reference capital ratio (uniform across states).
+    ExpIncNext : np.array, shape (S,)
+        Expected next-period normalized labor income by *arrival* state, i.e.
+        ``wRef * E[PermShk * TranShk | state]`` where ``wRef`` is the
+        general-equilibrium wage at the reference capital ratio.
+    PermGroFac : np.array, shape (S,)
+        Total deterministic permanent growth by state (the individual
+        ``PermGroFac`` times the macro-state aggregate growth ``PermGroFacAgg``).
+
+    Returns
+    -------
+    hNrm : np.array, shape (S,)
+        Per-state normalized human wealth, or all-NaN if the FHWC fails.
+    """
+    M = np.asarray(MrkvArray, dtype=float)
+    S = M.shape[0]
+    G = np.asarray(PermGroFac, dtype=float).reshape(S)
+    E = np.asarray(ExpIncNext, dtype=float).reshape(S)
+    D = M * (G / Rfree)[None, :]
+    spec_rad = float(np.max(np.abs(np.linalg.eigvals(D))))
+    if spec_rad >= 1.0:
+        warnings.warn(
+            f"pf_human_wealth_markov: spectral radius of the growth-discounted "
+            f"transition is {spec_rad:.6f} >= 1 (finite-human-wealth condition "
+            "violated); human wealth is infinite, PF decay bound is undefined."
+        )
+        return np.full(S, np.nan)
+    return np.linalg.solve(np.eye(S) - D, D @ E)
+
+
+def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None):
+    """Build one per-Mgrid consumption slice, optionally with PF decay extrapolation.
+
+    When ``MPCmin`` and ``hNrm`` are both supplied (not None), the returned
+    ``LinearInterp`` decays above its top gridpoint toward the affine
+    perfect-foresight asymptote ``c(m) -> MPCmin * (m + hNrm)``
+    (``slope_limit=MPCmin``, ``intercept_limit=MPCmin*hNrm``). Otherwise it is
+    the legacy bare ``LinearInterp(m_temp, c_temp)`` with naive constant-slope
+    extrapolation -- byte-for-byte the prior behavior.
+
+    Concavity guard (Carroll & Kimball, 1996). The true consumption function is
+    strictly concave and lies strictly *below* the PF line ``MPCmin*(m+hNrm)`` at
+    every finite m, approaching it from below with slope falling to ``MPCmin``
+    from above. So in a converged solve the top knot sits below the line
+    (``level_diff > 0``) with ``slope_top > MPCmin``; decay is engaged only then,
+    which also guarantees the decay rate ``B = (slope_top - MPCmin)/level_diff``
+    is strictly positive (a genuine decay, never an exponential blow-up). A top
+    knot *meaningfully above* the line (``level_diff < -tol``) whose top slope has
+    already fallen to ``MPCmin`` is theoretically impossible in a converged
+    solution -- it signals a broken asset grid, an incorrect reference
+    ``MPCmin``/``hNrm``, or a non-converged solve -- so we raise rather than
+    silently extrapolate. An above-line knot whose slope is still well above
+    ``MPCmin`` is an ordinary pre-asymptotic backward-induction transient (HARK's
+    aggregate-shock solve starts from ``c = m``, above the line) and is left to
+    the legacy extrapolation for that slice.
+    """
+    if MPCmin is None or hNrm is None:
+        return LinearInterp(m_temp, c_temp)
+
+    intercept_limit = MPCmin * hNrm
+    m_top = m_temp[-1]
+    c_top = c_temp[-1]
+    # PF line minus the solved consumption at the top knot; > 0 means c is below
+    # the line (the theoretically required configuration).
+    level_diff = intercept_limit + MPCmin * m_top - c_top
+    tol = 1e-8 * max(1.0, abs(c_top))
+    slope_top = (c_temp[-1] - c_temp[-2]) / (m_temp[-1] - m_temp[-2])
+
+    if level_diff < -tol and slope_top <= MPCmin + 1e-12:
+        raise ValueError(
+            "ConsAggShockModel PF decay: the top consumption knot at "
+            f"m={m_top:.6g} (c={c_top:.6g}) lies above the perfect-foresight line "
+            f"MPCmin*(m+hNrm)={intercept_limit + MPCmin * m_top:.6g} while its top "
+            f"slope {slope_top:.6g} has already fallen to MPCmin={MPCmin:.6g}. By "
+            "the Carroll-Kimball (1996) concavity of the consumption function this "
+            "is impossible in a converged solution; it signals a broken asset "
+            "grid, an incorrect reference MPCmin/hNrm, or a non-converged solve. "
+            "Review the algorithm/parameters rather than extrapolating (HARK's "
+            "decay term would otherwise grow without bound here)."
+        )
+
+    if level_diff > tol and slope_top > MPCmin:
+        # c strictly below the PF line and steeper than the asymptotic MPC: decay
+        # engages with a strictly positive rate toward the asymptote.
+        return LinearInterp(m_temp, c_temp, intercept_limit, MPCmin)
+
+    # Near the line, an above-line transient, or a slope already <= MPCmin:
+    # fall back to legacy naive-linear extrapolation for this slice (never blows up).
+    return LinearInterp(m_temp, c_temp)
 
 
 def make_aggshock_solution_terminal(CRRA):
@@ -191,6 +350,8 @@ def solveConsAggShock(
     AFunc,
     Rfunc,
     wFunc,
+    MPCmin=None,
+    hNrm=None,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -307,7 +468,7 @@ def solveConsAggShock(
     for j in range(Mcount):
         c_temp = np.insert(cNrmNow[:, j], 0, 0.0)  # Add point at bottom
         m_temp = np.insert(mNrmNow[:, j] - BoroCnstNat_vec[j], 0, 0.0)
-        cFuncBaseByM_list.append(LinearInterp(m_temp, c_temp))
+        cFuncBaseByM_list.append(make_cFunc_slice(m_temp, c_temp, MPCmin, hNrm))
 
     # Construct the overall unconstrained consumption function by combining the M-specific functions
     BoroCnstNat = LinearInterp(
@@ -355,6 +516,8 @@ def solve_ConsAggMarkov(
     AFunc,
     Rfunc,
     wFunc,
+    MPCmin=None,
+    hNrm=None,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -591,11 +754,13 @@ def solve_ConsAggMarkov(
         mNrmNow = aNrmNow_tiled + cNrmNow
 
         # Loop through the values in Mgrid and make a piecewise linear consumption function for each
+        # PF decay intercept uses the *current* macro state i's human wealth (None -> legacy).
+        hNrm_i = None if hNrm is None else hNrm[i]
         cFuncBaseByM_list = []
         for n in range(Mcount):
             c_temp = np.insert(cNrmNow[n, :], 0, 0.0)  # Add point at bottom
             m_temp = np.insert(mNrmNow[n, :] - BoroCnstNat_vec[n], 0, 0.0)
-            cFuncBaseByM_list.append(LinearInterp(m_temp, c_temp))
+            cFuncBaseByM_list.append(make_cFunc_slice(m_temp, c_temp, MPCmin, hNrm_i))
             # Add the M-specific consumption function to the list
 
         # Construct the unconstrained consumption function by combining the M-specific functions
@@ -831,8 +996,17 @@ class AggShockConsumerType(IndShockConsumerType):
         "solver": solveConsAggShock,
         "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
+    # Opt-in: above the top asset gridpoint, decay each cFunc slice toward the
+    # perfect-foresight asymptote c(m) -> MPCmin*(m + hNrm) instead of extrapolating
+    # with the last segment's slope. Both default to None -> legacy bare
+    # LinearInterp (byte-for-byte unchanged). To opt in, set BOTH attributes
+    # (e.g. via pf_mpc_min / pf_human_wealth_markov at a reference return of the
+    # caller's choosing); they are threaded to the solver as time-invariant
+    # parameters. Computing them is deliberately left to the caller: the return
+    # here is endogenous (R = Rfunc(k)), so no single in-model R is "the" right
+    # anchor for the PF asymptote.
     time_inv_ = IndShockConsumerType.time_inv_.copy()
-    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "PermGroFacAgg"]
+    time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "PermGroFacAgg", "MPCmin", "hNrm"]
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
@@ -851,6 +1025,14 @@ class AggShockConsumerType(IndShockConsumerType):
 
     def __init__(self, **kwds):
         AgentType.__init__(self, construct=False, **kwds)
+        # solve_one_cycle reads time_inv_ parameters from the INSTANCE dict
+        # (HARK/core.py, solve_dict), so the opt-in PF-decay bounds must exist
+        # there even when unused; None selects the legacy extrapolation path.
+        # A value passed via **kwds (assign_parameters) is preserved.
+        if "MPCmin" not in self.__dict__:
+            self.MPCmin = None
+        if "hNrm" not in self.__dict__:
+            self.hNrm = None
 
     def reset(self):
         """
