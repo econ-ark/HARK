@@ -6,6 +6,7 @@ used for solving "macroeconomic" models with aggregate shocks.
 """
 
 from copy import deepcopy
+import logging
 import warnings
 
 import numpy as np
@@ -49,6 +50,7 @@ from HARK.interpolation import (
     UpperEnvelope,
     VariableLowerBoundFunc2D,
 )
+from HARK.ConsumptionSaving.pf_decay import PFDecayGridWarning
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
@@ -180,7 +182,23 @@ def pf_human_wealth_markov(MrkvArray, Rfree, ExpIncNext, PermGroFac):
     return np.linalg.solve(np.eye(S) - D, D @ E)
 
 
-def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerlaw"):
+_pf_decay_logger = logging.getLogger(__name__)
+
+# One amplitude-ratio log line per decay_theory params object (id-keyed; a
+# recycled id after gc at worst re-logs -- this is a log-dedup, not logic).
+_AMPLITUDE_RATIO_LOGGED = set()
+
+# ('amplitude', B) mode only: refuse the closed-form-amplitude tail when the
+# implied gap at the top knot, B/(x_top + h), exceeds the solved level gap by
+# more than this relative tolerance -- attaching it would force a level DROP in
+# consumption above the grid (non-monotone c, MPC sign flip). 10% mirrors the
+# design's amplitude_jump_tol; at a pre-asymptotic top knot the measured jump is
+# order +138% of the local gap, far beyond it.
+AMPLITUDE_JUMP_TOL = 0.10
+
+
+def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerlaw",
+                     decay_theory=None, decay_Q="theory"):
     """Build one per-Mgrid consumption slice, optionally with PF decay extrapolation.
 
     When ``MPCmin`` and ``hNrm`` are both supplied (not None), the returned
@@ -198,6 +216,79 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     is still measurably below it. The power-law tail matches the level and the
     slope of the solved slice at its top knot, exactly as the exponential does,
     so the switch needs no extra parameters.
+
+    Theory-informed tails (``decay_theory``, ``decay_Q``)
+    -----------------------------------------------------
+    ``decay_theory`` is an optional ``pf_decay.PowerLawDecayParams`` for this
+    agent's primitives (one object covers every Markov state and M-slice that
+    shares (R, Gamma, beta_eff, rho, psi) -- the theory quantities do not
+    depend on income levels or the aggregate law of motion). ``decay_Q``
+    selects the tail exponent policy:
+
+    * ``decay_theory=None`` (default): byte-for-byte the prior PR behavior
+      (the fitted power-law tail; ``decay_Q`` is inert without theory).
+    * ``decay_theory`` supplied, ``decay_Q='theory'`` (the DEFAULT): attach the
+      power-law tail with the THEORY exponent ``q = min(1, q_star)``,
+      level-matched at the top knot (explicit-Q semantics of ``LinearInterp``).
+
+      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))"]
+      #   min(1, q*) is the realized asymptotic decay exponent of the gap below
+      #   the PF asymptote: the here-and-now 1/x precautionary component vs the
+      #   discounted near-target x^(-q*) component, whichever fades slower.
+
+      Measured tradeoff (phase-1, pre-registered): on reachable grid windows at
+      the near-resonance calibrations, theory-exponent tails were measured
+      1.3-3.8x LESS accurate than the fitted tangent (the local exponent
+      migrates toward min(1, q*) only over hundreds of descent shells), while
+      both beat the exponential form by 2.6-8x. The fitted exponent, however,
+      is a noisy 2-knot estimator: it is grid-non-monotone (measured
+      0.51/0.46/0.53 across truncation depths vs q = 0.59), it badly
+      understates the q* > 1 closed-form amplitude as an asymptotic statement
+      (42% of B_psi at the HAFiscal grid top -- final_proof Fig 2a), and
+      nothing intrinsic stops a pathological top knot from producing an
+      asymptotically impossible exponent > 1. The theory exponent is the
+      principled, grid-independent default; flipping back to the guarded fit
+      is the one-line ``decay_Q=None``.
+    * ``decay_Q=None`` WITH ``decay_theory``: 'theory-guarded fit' -- the
+      fitted exponent is used but CLAMPED to the ceiling ``min(1, q_star)``
+      (with a ``PFDecayGridWarning`` when the clamp bites; inert on healthy
+      solves, where every measured fitted exponent sat below the ceiling).
+
+      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free)]
+      #   Prop A0 impossibility floor: the true gap can never decay faster than
+      #   1/x, so a fitted exponent above min(1, q*) is theory-infeasible and
+      #   signals a coarse or non-converged grid top; the clamp is the hard cap.
+    * ``decay_Q=<positive float>``: explicit exponent, passed through to
+      ``LinearInterp(decay_extrap_Q=...)`` (level-matched, documented C1 kink
+      ``(Q_fit - Q)*A/pivot`` at the top knot).
+    * ``decay_Q=('amplitude', B)``: closed-form-amplitude tail ``gap = B/(x+h)``
+      (exponent exactly 1), gated by a level-jump guard: refused (with a
+      warning, falling back to the theory-exponent tail) when the implied
+      top-knot gap ``B/(x_top+h)`` exceeds the solved level gap by more than
+      ``AMPLITUDE_JUMP_TOL``. NEVER a default: at a pre-asymptotic top knot the
+      forced level discontinuity is catastrophic (measured +138% of the local
+      gap at the GIC-cap calibration).
+
+      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: 3.4 Theorem I (the owner's one number): the boundary value at q* > 1]
+      #   Theorem I: at q* > 1 the compensated gap x*g(x) converges to the
+      #   closed-form boundary value B -- the exact top-of-grid boundary
+      #   condition c(m) ~ kappa*(m+h) - B/m for compactified-boundary use.
+
+    Rescue: with an explicit exponent available (theory default, guarded fit's
+    ceiling, or a float), the branches where the FITTED form must disable decay
+    (top slope at or below ``MPCmin`` with the knot still below the line --
+    previously naive-linear extrapolation that never rejoins the PF line)
+    instead attach the level-matched explicit-Q tail.
+
+    When ``decay_theory`` is supplied the returned interpolant carries a
+    ``decay_theory`` metadata dict (``q_star``, ``q``, ``Q_used``, ``Q_fit``,
+    ``B_psi``, ``lambda_B``, ``near_resonance``), and at ``q* > 1`` the
+    fitted-vs-closed-form amplitude ratio ``A*(x_top+h)/B_psi`` is logged once
+    per params object (the Fig-2a pre-asymptotic understatement, visible in
+    production logs instead of silently absorbed). NOTE: ``B_psi`` is in the
+    theorem's E[income] = 1 units; the ratio is unit-consistent only when the
+    slice's income scale is ~1 (wage-scaled slices shift it by the square of
+    the income unit).
 
     Concavity guard (Carroll & Kimball, 1996). The true consumption function is
     strictly concave and lies strictly *below* the PF line ``MPCmin*(m+hNrm)`` at
@@ -240,18 +331,181 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             "decay term would otherwise grow without bound here)."
         )
 
-    if level_diff > tol and slope_top > MPCmin:
-        # c strictly below the PF line and steeper than the asymptotic MPC: decay
-        # engages with a strictly positive rate toward the asymptote. (These two
-        # conditions are exactly LinearInterp's power-law validity guards, so the
-        # powerlaw setup cannot fall back to no-decay from here.)
-        return LinearInterp(
-            m_temp, c_temp, intercept_limit, MPCmin, decay_extrap_form=decay_form
+    # ----- resolve the tail policy (see the docstring's mode table) -----
+    amplitude_B = None
+    Q_explicit = None
+    if isinstance(decay_Q, tuple):
+        if (len(decay_Q) != 2 or decay_Q[0] != "amplitude"
+                or not isinstance(decay_Q[1], (int, float))
+                or isinstance(decay_Q[1], bool)
+                or not np.isfinite(decay_Q[1]) or decay_Q[1] <= 0.0):
+            raise ValueError(
+                "decay_Q tuple form must be ('amplitude', B) with B a positive "
+                f"finite float, got {decay_Q!r}"
+            )
+        mode = "amplitude"
+        amplitude_B = float(decay_Q[1])
+    elif decay_Q is None:
+        mode = "guarded_fit" if decay_theory is not None else "legacy"
+    elif isinstance(decay_Q, str) and decay_Q == "theory":
+        if decay_theory is None:
+            mode = "legacy"  # inert default: byte-for-byte prior behavior
+        elif np.isfinite(getattr(decay_theory, "q", float("nan"))):
+            mode = "explicit"
+            Q_explicit = float(decay_theory.q)
+        else:
+            # theory refused (FHWC/GIC): no finite exponent to attach; the
+            # Prop-A0 ceiling of 1.0 still guards the fit
+            mode = "guarded_fit"
+    elif isinstance(decay_Q, (int, float)) and not isinstance(decay_Q, bool):
+        mode = "explicit"
+        Q_explicit = float(decay_Q)
+    else:
+        raise ValueError(
+            "decay_Q must be 'theory', None, a positive float, or "
+            f"('amplitude', B); got {decay_Q!r}"
+        )
+    if mode != "legacy" and decay_form != "powerlaw":
+        raise ValueError(
+            "decay_theory / non-default decay_Q require decay_form='powerlaw'"
         )
 
-    # Near the line, an above-line transient, or a slope already <= MPCmin:
-    # fall back to legacy naive-linear extrapolation for this slice (never blows up).
-    return LinearInterp(m_temp, c_temp)
+    # theory ceiling min(1, q*); q* nan (theory refused) leaves the GIC-free
+    # Prop-A0 floor exponent 1.0 as the only cap
+    ceiling = 1.0
+    if decay_theory is not None:
+        q_th = getattr(decay_theory, "q", float("nan"))
+        if np.isfinite(q_th):
+            ceiling = min(1.0, float(q_th))
+
+    healthy = level_diff > tol and slope_top > MPCmin
+    # the fitted exponent LinearInterp would infer at this knot (diagnostic;
+    # may be <= 0 outside the healthy branch)
+    Q_fit = (
+        (slope_top - MPCmin) * (m_top + hNrm) / level_diff
+        if abs(level_diff) > 0.0
+        else float("nan")
+    )
+
+    Q_used = None
+    if mode == "legacy":
+        if healthy:
+            # byte-for-byte the prior PR behavior
+            f = LinearInterp(
+                m_temp, c_temp, intercept_limit, MPCmin, decay_extrap_form=decay_form
+            )
+        else:
+            # Near the line, an above-line transient, or a slope already <=
+            # MPCmin: legacy naive-linear extrapolation (never blows up).
+            f = LinearInterp(m_temp, c_temp)
+        return f
+
+    if mode == "amplitude":
+        if level_diff > tol:
+            A_implied = amplitude_B / (m_top + hNrm)
+            if A_implied > (1.0 + AMPLITUDE_JUMP_TOL) * level_diff:
+                warnings.warn(
+                    f"make_cFunc_slice(decay_Q=('amplitude', ...)): the implied "
+                    f"top-knot gap B/(x_top+h) = {A_implied:.6g} exceeds the "
+                    f"solved level gap {level_diff:.6g} by more than "
+                    f"{AMPLITUDE_JUMP_TOL:.0%} (a pre-asymptotic top knot); "
+                    "attaching it would force a level drop in consumption above "
+                    "the grid. Falling back to the level-matched theory-exponent "
+                    "tail.",
+                    PFDecayGridWarning,
+                )
+                f = LinearInterp(
+                    m_temp, c_temp, intercept_limit, MPCmin,
+                    decay_extrap_form="powerlaw", decay_extrap_Q=ceiling,
+                )
+                Q_used = ceiling
+            else:
+                # gap = B/(x+h): exponent exactly 1 with the boundary-value
+                # amplitude; the (bounded) level jump at the top knot is
+                # A_implied - level_diff
+                f = LinearInterp(
+                    m_temp, c_temp, intercept_limit, MPCmin,
+                    decay_extrap_form="powerlaw", decay_extrap_Q=1.0,
+                )
+                f.decay_extrap_A = A_implied
+                f.decay_extrap_Q_source = "amplitude"
+                Q_used = 1.0
+        else:
+            f = LinearInterp(m_temp, c_temp)
+    elif mode == "explicit":
+        if level_diff > tol:
+            # healthy knot OR the rescue case (slope_top <= MPCmin): the
+            # explicit-Q relaxed guard attaches a level-matched decaying tail
+            # where the fitted form would have disabled decay entirely.
+            # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+            #   g ~ C*(m+h)**(-q), q = min(1, q*), is the asymptotically correct
+            #   extrapolation form; unlike naive-linear it rejoins the PF line.
+            f = LinearInterp(
+                m_temp, c_temp, intercept_limit, MPCmin,
+                decay_extrap_form="powerlaw", decay_extrap_Q=Q_explicit,
+            )
+            Q_used = Q_explicit
+        else:
+            f = LinearInterp(m_temp, c_temp)
+    else:  # guarded_fit
+        if healthy and Q_fit > ceiling:
+            warnings.warn(
+                f"make_cFunc_slice: fitted decay exponent Q={Q_fit:.3f} exceeds "
+                f"the theoretical ceiling min(1, q*)={ceiling:.3f}; clamped. "
+                "A top-knot slope this steep signals a coarse or non-converged "
+                "grid top.",
+                PFDecayGridWarning,
+            )
+            f = LinearInterp(
+                m_temp, c_temp, intercept_limit, MPCmin,
+                decay_extrap_form="powerlaw", decay_extrap_Q=ceiling,
+            )
+            Q_used = ceiling
+        elif healthy:
+            # inert clamp: the ordinary fitted attach, unchanged
+            f = LinearInterp(
+                m_temp, c_temp, intercept_limit, MPCmin,
+                decay_extrap_form="powerlaw",
+            )
+            Q_used = float(f.decay_extrap_Q)
+        elif level_diff > tol:
+            # rescue (see mode table): theory ceiling instead of naive-linear
+            f = LinearInterp(
+                m_temp, c_temp, intercept_limit, MPCmin,
+                decay_extrap_form="powerlaw", decay_extrap_Q=ceiling,
+            )
+            Q_used = ceiling
+        else:
+            f = LinearInterp(m_temp, c_temp)
+
+    if decay_theory is not None:
+        f.decay_theory = dict(
+            q_star=decay_theory.q_star,
+            q=decay_theory.q,
+            Q_used=Q_used,
+            Q_fit=Q_fit,
+            B_psi=decay_theory.B_psi,
+            lambda_B=decay_theory.lambda_B,
+            near_resonance=decay_theory.near_resonance,
+        )
+        if (decay_theory.B_psi is not None and level_diff > tol
+                and id(decay_theory) not in _AMPLITUDE_RATIO_LOGGED):
+            _AMPLITUDE_RATIO_LOGGED.add(id(decay_theory))
+            # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The knife-edge window, quantified on HAFiscal's own numbers]
+            #   At q* > 1 near resonance the solved amplitude at any feasible grid
+            #   top badly understates the closed-form boundary value B_psi (42% of
+            #   the way at the HAFiscal grid top); surface the ratio in logs so
+            #   the pre-asymptotic understatement is visible, never absorbed.
+            _pf_decay_logger.info(
+                "PF decay (q* > 1): fitted-vs-closed-form amplitude ratio "
+                "A*(x_top+h)/B_psi = %.3f at the top knot (m_top=%.4g); "
+                "a ratio well below 1 is the expected pre-asymptotic "
+                "understatement of the boundary amplitude B_psi=%.4g.",
+                level_diff * (m_top + hNrm) / decay_theory.B_psi,
+                m_top,
+                decay_theory.B_psi,
+            )
+    return f
 
 
 def make_aggshock_solution_terminal(CRRA):
@@ -365,6 +619,8 @@ def solveConsAggShock(
     wFunc,
     MPCmin=None,
     hNrm=None,
+    decay_theory=None,
+    decay_Q="theory",
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -481,7 +737,12 @@ def solveConsAggShock(
     for j in range(Mcount):
         c_temp = np.insert(cNrmNow[:, j], 0, 0.0)  # Add point at bottom
         m_temp = np.insert(mNrmNow[:, j] - BoroCnstNat_vec[j], 0, 0.0)
-        cFuncBaseByM_list.append(make_cFunc_slice(m_temp, c_temp, MPCmin, hNrm))
+        cFuncBaseByM_list.append(
+            make_cFunc_slice(
+                m_temp, c_temp, MPCmin, hNrm,
+                decay_theory=decay_theory, decay_Q=decay_Q,
+            )
+        )
 
     # Construct the overall unconstrained consumption function by combining the M-specific functions
     BoroCnstNat = LinearInterp(
@@ -531,6 +792,8 @@ def solve_ConsAggMarkov(
     wFunc,
     MPCmin=None,
     hNrm=None,
+    decay_theory=None,
+    decay_Q="theory",
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -773,7 +1036,12 @@ def solve_ConsAggMarkov(
         for n in range(Mcount):
             c_temp = np.insert(cNrmNow[n, :], 0, 0.0)  # Add point at bottom
             m_temp = np.insert(mNrmNow[n, :] - BoroCnstNat_vec[n], 0, 0.0)
-            cFuncBaseByM_list.append(make_cFunc_slice(m_temp, c_temp, MPCmin, hNrm_i))
+            cFuncBaseByM_list.append(
+                make_cFunc_slice(
+                    m_temp, c_temp, MPCmin, hNrm_i,
+                    decay_theory=decay_theory, decay_Q=decay_Q,
+                )
+            )
             # Add the M-specific consumption function to the list
 
         # Construct the unconstrained consumption function by combining the M-specific functions
@@ -1020,6 +1288,7 @@ class AggShockConsumerType(IndShockConsumerType):
     # anchor for the PF asymptote.
     time_inv_ = IndShockConsumerType.time_inv_.copy()
     time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "PermGroFacAgg", "MPCmin", "hNrm"]
+    time_inv_ += ["decay_theory", "decay_Q"]
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
@@ -1046,6 +1315,18 @@ class AggShockConsumerType(IndShockConsumerType):
             self.MPCmin = None
         if "hNrm" not in self.__dict__:
             self.hNrm = None
+        # Theory-informed tail policy (see make_cFunc_slice): decay_theory=None
+        # keeps the prior behavior byte-for-byte; decay_Q='theory' is inert
+        # without it. Set decay_theory to a pf_decay.PowerLawDecayParams built
+        # from this type's primitives (e.g. pf_decay.powerlaw_decay_params) to
+        # attach theory-exponent tails; one params object covers every Markov
+        # state and M-slice sharing (R, Gamma, beta_eff, rho, psi). Per-state
+        # PermGroFac heterogeneity would need a per-state params list, which is
+        # deliberately NOT built here.
+        if "decay_theory" not in self.__dict__:
+            self.decay_theory = None
+        if "decay_Q" not in self.__dict__:
+            self.decay_Q = "theory"
 
     def reset(self):
         """
