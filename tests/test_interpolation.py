@@ -1221,3 +1221,161 @@ class TestLinearInterpDecay(unittest.TestCase):
         with self.assertWarns(UserWarning):
             f = LinearInterp(x2, y2, self.intercept, -0.5, decay_extrap_form="powerlaw")
         self.assertFalse(f.decay_extrap)
+
+
+class TestLinearInterpExplicitQ(unittest.TestCase):
+    """Tests for the keyword-only ``decay_extrap_Q`` (explicit power-law
+    exponent) extension of LinearInterp.
+
+    Pre-registered tolerances: level continuity at the top knot to 1e-9
+    (absolute); kinked derivative just above the top knot equals
+    ``slope_limit + Q*A/pivot`` to rel 1e-6; ``decay_extrap_Q=None``
+    evaluations identical (==) to a construction without the kwarg.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+    #   The theorem's extrapolation form of record is g ~ C*(x+h)**(-q) with
+    #   q = min(1, q*); the explicit-Q keyword lets callers attach that exponent
+    #   level-matched at the top knot instead of the fitted 2-knot exponent.
+    """
+
+    intercept = 1.0
+    slope = 0.5  # limiting line 1.0 + 0.5*x = 0.5*(x + 2); pivot h = 2
+    C = 4.0
+    Q_true = 1.5
+
+    def truth(self, x):
+        h = self.intercept / self.slope
+        return self.intercept + self.slope * x - self.C * (x + h) ** (-self.Q_true)
+
+    def knots(self, n=201, top=21.0):
+        x = np.linspace(1.0, top, n)
+        return x, self.truth(x)
+
+    def test_explicit_Q_level_match_and_kink(self):
+        # F13 mechanics: level continuity preserved to 1e-9; derivative just
+        # above the top knot equals slope_limit + Q*A/pivot to rel 1e-6.
+        x, y = self.knots()
+        Q_new = 0.777
+        f = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q_new,
+        )
+        self.assertTrue(f.decay_extrap)
+        self.assertEqual(f.decay_extrap_Q, Q_new)
+        self.assertEqual(f.decay_extrap_Q_source, "explicit")
+        A = float(f.decay_extrap_A)
+        pivot = float(f.decay_extrap_pivot)
+        lvl = float(f(np.array([x[-1] + 1e-9]))[0])
+        lvl_expect = self.intercept + self.slope * (x[-1] + 1e-9) - A
+        self.assertLessEqual(abs(lvl - lvl_expect), 1e-9)
+        der = float(f.derivative(np.array([x[-1] + 1e-12]))[0])
+        der_expect = self.slope + Q_new * A / pivot
+        self.assertLessEqual(abs(der / der_expect - 1.0), 1e-6)
+
+    def test_explicit_Q_tail_has_the_explicit_exponent(self):
+        x, y = self.knots()
+        Q_new = 0.777
+        f = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q_new,
+        )
+        h = self.intercept / self.slope
+        lad = np.geomspace(25.0, 2000.0, 30)
+        gap = self.intercept + self.slope * lad - f(lad)
+        slopes = np.diff(np.log(gap)) / np.diff(np.log(lad + h))
+        np.testing.assert_allclose(slopes, -Q_new, rtol=1e-4)
+
+    def test_validation_errors(self):
+        x, y = self.knots()
+        with self.assertRaises(ValueError):  # requires powerlaw form
+            LinearInterp(x, y, self.intercept, self.slope, decay_extrap_Q=0.5)
+        with self.assertRaises(ValueError):  # requires the limiting line
+            LinearInterp(x, y, decay_extrap_form="powerlaw", decay_extrap_Q=0.5)
+        for bad in (0.0, -1.0, np.nan, np.inf):
+            with self.assertRaises(ValueError):
+                LinearInterp(
+                    x, y, self.intercept, self.slope,
+                    decay_extrap_form="powerlaw", decay_extrap_Q=bad,
+                )
+
+    def test_default_None_is_identical_to_current_behavior(self):
+        # decay_extrap_Q=None must be byte-identical to not passing the kwarg,
+        # for both forms (the new branch is dead until opted in).
+        x, y = self.knots()
+        q = np.geomspace(22.0, 5000.0, 50)
+        for form in ("exp", "powerlaw"):
+            f_old = LinearInterp(x, y, self.intercept, self.slope,
+                                 decay_extrap_form=form)
+            f_new = LinearInterp(x, y, self.intercept, self.slope,
+                                 decay_extrap_form=form, decay_extrap_Q=None)
+            np.testing.assert_array_equal(f_old(q), f_new(q))
+            np.testing.assert_array_equal(f_old.derivative(q), f_new.derivative(q))
+        f_fit = LinearInterp(x, y, self.intercept, self.slope,
+                             decay_extrap_form="powerlaw")
+        self.assertEqual(f_fit.decay_extrap_Q_source, "fitted")
+        self.assertAlmostEqual(
+            f_fit.decay_extrap_Q,
+            f_fit.decay_extrap_B * f_fit.decay_extrap_pivot,
+            places=14,
+        )
+
+    def test_rescue_where_fitted_form_disables_decay(self):
+        # Below the line but top slope BELOW slope_limit (fitted B <= 0): the
+        # fitted powerlaw must disable decay (warns); an explicit Q attaches a
+        # level-matched decaying tail instead — the rescue case.
+        x = np.linspace(1.0, 21.0, 201)
+        h = self.intercept / self.slope
+        line = self.intercept + self.slope * x
+        y_diverge = line - 0.1 * (x + h) ** 0.5
+        with self.assertWarns(UserWarning):
+            f_fit = LinearInterp(
+                x, y_diverge, self.intercept, self.slope,
+                decay_extrap_form="powerlaw",
+            )
+        self.assertFalse(f_fit.decay_extrap)
+        f_q = LinearInterp(
+            x, y_diverge, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=0.6,
+        )
+        self.assertTrue(f_q.decay_extrap)
+        self.assertEqual(f_q.decay_extrap_Q_source, "explicit")
+        # level-matched at the top knot, decaying toward the line above it
+        gap_top = self.intercept + self.slope * x[-1] - y_diverge[-1]
+        lad = np.geomspace(25.0, 2000.0, 20)
+        gap = self.intercept + self.slope * lad - f_q(lad)
+        self.assertTrue(np.all(gap > 0.0))
+        self.assertTrue(np.all(np.diff(gap) < 0.0))
+        self.assertLess(gap[0], gap_top)
+
+    def test_explicit_Q_guard_still_refuses_above_line_knot(self):
+        # Top knot ABOVE the limiting line: even an explicit exponent cannot
+        # define a positive decaying gap; warn + disable, as the fitted form does.
+        x = np.linspace(1.0, 21.0, 201)
+        h = self.intercept / self.slope
+        y_above = self.intercept + self.slope * x + self.C * (x + h) ** (-self.Q_true)
+        with self.assertWarns(UserWarning):
+            f = LinearInterp(
+                x, y_above, self.intercept, self.slope,
+                decay_extrap_form="powerlaw", decay_extrap_Q=0.6,
+            )
+        self.assertFalse(f.decay_extrap)
+
+    def test_pickle_roundtrip_and_missing_source_attribute(self):
+        import pickle
+
+        x, y = self.knots()
+        f = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=0.777,
+        )
+        g = pickle.loads(pickle.dumps(f))
+        q = np.geomspace(22.0, 5000.0, 30)
+        np.testing.assert_array_equal(f(q), g(q))
+        self.assertEqual(g.decay_extrap_Q_source, "explicit")
+        # instances unpickled from versions predating decay_extrap_Q_source
+        # (fitted powerlaw) must keep evaluating identically
+        f_fit = LinearInterp(x, y, self.intercept, self.slope,
+                             decay_extrap_form="powerlaw")
+        vals_before = f_fit(q).copy()
+        del f_fit.decay_extrap_Q_source
+        np.testing.assert_array_equal(f_fit(q), vals_before)

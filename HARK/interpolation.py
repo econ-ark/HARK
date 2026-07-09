@@ -904,6 +904,32 @@ class LinearInterp(HARKinterpolator1D):
         ``x_list[-1] + h > 0``; if violated it warns and disables decay
         extrapolation (``decay_extrap == False``) rather than risk a divergent
         tail.
+    decay_extrap_Q : float or None (default), keyword-only
+        ``None``: byte-for-byte the behavior described above for both forms
+        (the power-law exponent is FITTED from the top two knots as
+        ``Q = B*(x_list[-1] + h)``). A positive float (requires
+        ``decay_extrap_form='powerlaw'``, else ``ValueError``): use this
+        EXPLICIT decay exponent instead of the fitted one. The gap amplitude
+        ``A`` stays the level gap at the top knot, so the tail is
+        level-matched (continuous) by construction, but its slope no longer
+        matches the interpolant's top-segment slope: the derivative just above
+        the top knot is ``slope_limit + Q*A/pivot``, i.e. a C1 kink of size
+        ``(Q_fit - Q)*A/pivot`` relative to the fitted tangent (tiny in
+        absolute terms when ``A`` is small and the pivot large, but
+        sign-indefinite). Because the exponent no longer needs to be inferred
+        from the top-segment slope, the slope-tangency part of the powerlaw
+        validity guard is relaxed: only ``slope_limit > 0``, a top knot
+        strictly below the limiting line, and a positive pivot are required —
+        in particular a top slope at or below ``slope_limit`` (fitted
+        ``B <= 0``, where the fitted form must disable decay) still attaches
+        an explicit-Q tail. ``self.decay_extrap_Q_source`` records
+        ``'explicit'`` vs ``'fitted'`` for introspection.
+
+        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+        #   The gap extrapolant g ~ C*(x + h)**(-q) with q = min(1, q*) is the
+        #   asymptotically correct form for buffer-stock consumption functions;
+        #   this keyword is the hook that lets callers pin the exponent to the
+        #   theory value (or any explicit value) instead of the 2-knot fit.
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -918,6 +944,8 @@ class LinearInterp(HARKinterpolator1D):
         pre_compute=False,
         indexer=None,
         decay_extrap_form="exp",
+        *,
+        decay_extrap_Q=None,
     ):
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
@@ -934,14 +962,35 @@ class LinearInterp(HARKinterpolator1D):
                 + repr(decay_extrap_form)
             )
         self.decay_extrap_form = decay_extrap_form
+        if decay_extrap_Q is not None:
+            if decay_extrap_form != "powerlaw":
+                raise ValueError(
+                    "decay_extrap_Q requires decay_extrap_form='powerlaw'"
+                )
+            if intercept_limit is None or slope_limit is None:
+                raise ValueError(
+                    "decay_extrap_Q requires intercept_limit and slope_limit"
+                )
+            decay_extrap_Q = float(decay_extrap_Q)
+            if not np.isfinite(decay_extrap_Q) or decay_extrap_Q <= 0.0:
+                raise ValueError(
+                    "decay_extrap_Q must be a positive finite float, got "
+                    + repr(decay_extrap_Q)
+                )
         if intercept_limit is not None and slope_limit is not None:
             slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
             level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
             slope_diff = slope_limit - slope_at_top
+            if decay_extrap_Q is not None:
+                # Explicit-exponent power law: level-matched at the top knot,
+                # exponent supplied by the caller (relaxed guard; see docstring)
+                self.intercept_limit = intercept_limit
+                self.slope_limit = slope_limit
+                self._init_explicit_Q_decay(level_diff, slope_diff, decay_extrap_Q)
             # If the model that can handle uncertainty has been calibrated with
             # with uncertainty set to zero, the 'extrapolation' will blow up
             # Guard against that and nearby problems by testing slope equality
-            if not np.isclose(slope_limit, slope_at_top, atol=1e-15):
+            elif not np.isclose(slope_limit, slope_at_top, atol=1e-15):
                 self.decay_extrap_A = level_diff
                 self.decay_extrap_B = -slope_diff / level_diff
                 self.intercept_limit = intercept_limit
@@ -996,6 +1045,46 @@ class LinearInterp(HARKinterpolator1D):
             return
         self.decay_extrap_pivot = pivot
         self.decay_extrap_Q = self.decay_extrap_B * pivot
+        self.decay_extrap_Q_source = "fitted"
+
+    def _init_explicit_Q_decay(self, level_diff, slope_diff, Q):
+        """Set up the power-law decay tail with an EXPLICIT exponent ``Q``, or
+        fall back to no decay (with a warning) if the relaxed guard fails.
+
+        The gap is ``gap(x) = A * ((x + h)/(x_top + h))**(-Q)`` with
+        ``A = level_diff`` (level-matched at the top knot by construction) and
+        the caller's ``Q``. Because ``Q`` is not inferred from the top-segment
+        slope, only ``slope_limit > 0``, ``level_diff > 0`` (top knot strictly
+        below the limiting line), and a positive pivot are required — NOT
+        ``decay_extrap_B > 0``: a top slope at or below ``slope_limit`` (where
+        the fitted form must disable decay) is exactly the rescue case an
+        explicit exponent exists to serve. The cost is a C1 kink at the top
+        knot: the derivative just above is ``slope_limit + Q*A/pivot`` rather
+        than the interior top-segment slope.
+        """
+        x_top = self.x_list[-1]
+        ok = self.slope_limit > 0.0 and level_diff > 0.0
+        pivot = None
+        if ok:
+            pivot = x_top + self.intercept_limit / self.slope_limit
+            ok = pivot > 0.0
+        if not ok:
+            warnings.warn(
+                "LinearInterp(decay_extrap_Q=...): explicit-exponent decay "
+                "requires slope_limit > 0, a top knot strictly below the "
+                f"limiting line, and a positive pivot (level_diff="
+                f"{level_diff:.6g}, slope_limit={self.slope_limit:.6g}); "
+                "disabling decay extrapolation for this interpolant."
+            )
+            self.decay_extrap = False
+            return
+        self.decay_extrap_A = level_diff
+        # fitted-rate diagnostic (may be <= 0 here; not used by the eval path)
+        self.decay_extrap_B = -slope_diff / level_diff
+        self.decay_extrap_pivot = pivot
+        self.decay_extrap_Q = Q
+        self.decay_extrap_Q_source = "explicit"
+        self.decay_extrap = True
 
     def _segment_index(self, x):
         """Return the bracketing right-endpoint index for each query in ``x``."""
