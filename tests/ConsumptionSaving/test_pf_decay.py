@@ -306,6 +306,51 @@ class TestDegenerateAndConditions(unittest.TestCase):
         self.assertFalse(r.valid)
         self.assertTrue(any("RIC" in w for w in r.warnings))
 
+    def test_qstar_beyond_bracket_cap_is_finite_not_false_gic(self):
+        # Regression: a LEGITIMATE calibration (GIC/RIC/FHWC all hold) whose
+        # (E)-root exceeds the bracket-expansion cap. psi == 1 with Lambda ~ 1e-6
+        # gives analytic q* = ln(Rcal)/Lambda ~ 4963 >> the historical 1024 cap.
+        # The old fixed cap returned nan + a FALSE 'GIC violated' diagnosis, which
+        # poisoned the realized exponent (should be min(1, q*) = 1) and dropped B_psi.
+        import math
+        R, G, rho = 1.01, 1.005, 1.0            # rho=1 => Thorn = R*beta_eff
+        Thorn_Gamma = math.exp(-1e-6)           # Lambda = 1e-6, deep near-resonance
+        beta = (Thorn_Gamma * G) / R
+        r = powerlaw_decay_params(
+            R, G, beta, rho, LivPrb=1.0,
+            PermShkDstn=None, TranShkDstn=(TH_C, TP_C), warn=False,
+        )
+        self.assertTrue(r.valid)                # GIC, RIC, FHWC all hold
+        self.assertTrue(np.isfinite(r.q_star))
+        self.assertAlmostEqual(r.q_star, math.log(R / G) / 1e-6, delta=1e-2)
+        self.assertGreater(r.q_star, 1024.0)    # genuinely beyond the historical cap
+        self.assertEqual(r.q, 1.0)              # realized exponent min(1, q*) = 1
+        self.assertIsNotNone(r.B_psi)           # q* > 1 and denom > 0 => B_psi defined
+        self.assertEqual(r.diagnosis, "")       # no false condition claim
+
+    def test_dual_root_beyond_bracket_cap_is_finite(self):
+        # Regression: a genuine Kesten root zeta* beyond the bracket cap. A single
+        # marginally-expanding psi atom (A = Thorn_Gamma/psi just above 1) with
+        # E[ln A] < 0 has a real but enormous Pareto exponent; the old fixed 1024
+        # cap returned a false None ('bracket cap hit') for a tail that exists, and
+        # the inline 'not reachable for finite atoms' comment was factually wrong.
+        R, G, rho = 1.01, 1.0, 2.0
+        Thorn_Gamma = 0.9999
+        beta = (Thorn_Gamma * G) ** rho / R     # Thorn = (R*beta)^(1/rho) = Thorn_Gamma*G
+        psi = np.array([0.9995, 1.0000102])
+        pr = np.array([0.02, 0.98])
+        psi = psi / float((pr * psi).sum())     # exact mean 1
+        r = powerlaw_decay_params(
+            R, G, beta, rho, LivPrb=1.0,
+            PermShkDstn=(psi, pr), TranShkDstn=(TH_C, TP_C), warn=False,
+        )
+        self.assertIsNotNone(r.zeta_star)
+        self.assertGreater(r.zeta_star, 1024.0)  # genuinely beyond the historical cap
+        self.assertLess(r.E_ln_A, 0.0)           # contracts on average
+        self.assertGreater(r.P_A_gt_1, 0.0)      # occasionally expands
+        A = Thorn_Gamma / psi                    # satisfies E[(Thorn_Gamma/psi)^zeta] = 1
+        self.assertAlmostEqual(float(np.dot(pr, A ** r.zeta_star)), 1.0, places=6)
+
 
 class TestInputAcceptance(unittest.TestCase):
     def test_hark_discrete_distribution_objects(self):
@@ -628,6 +673,23 @@ class TestTailDiagnostic(unittest.TestCase):
             self._synthetic(self.q + 0.6), self.kappa, self.hN, self.params,
             m_lo=50.0, m_hi=5000.0,
         )
+        self.assertEqual(d.verdict, "INCONSISTENT")
+        self.assertIn("STEEPER", d.notes)
+
+    def test_inconsistent_in_steeper_deadband(self):
+        # Regression (docstring/code alignment): a local exponent in the band
+        # (q - 2*flat_tol, q - flat_tol), i.e. center in (-0.16, -0.08) at the
+        # default flat_tol=0.08. The old docstring implied INCONSISTENT only for
+        # center < -2*flat_tol, leaving this band undocumented; the code (and now
+        # the docstring) classify ANY steeper-than-CONFIRMED center as INCONSISTENT
+        # (Prop A0: no true transient decays faster than min(1, q*)).
+        d = powerlaw_tail_diagnostic(
+            self._synthetic(self.q + 0.12), self.kappa, self.hN, self.params,
+            m_lo=50.0, m_hi=5000.0,
+        )
+        center = d.slopes[list(d.s_grid).index(self.q)]
+        self.assertLess(center, -0.08)          # steeper than the CONFIRMED band
+        self.assertGreater(center, -0.16)       # inside the old-docstring dead-band
         self.assertEqual(d.verdict, "INCONSISTENT")
         self.assertIn("STEEPER", d.notes)
 

@@ -123,7 +123,16 @@ __all__ = [
 
 _LD = np.longdouble
 
-_BRACKET_CAP = 1024.0  # bracket-expansion cap for both root searches
+# Bracket-expansion cap for both root searches. Generous (not 1024): near the
+# r = g knife-edge Lambda = -ln(Thorn_Gamma) -> 0 drives the primal root
+# q* = ln(Rcal)/Lambda (and, symmetrically, the dual root zeta*) arbitrarily
+# large, so a tight cap would return a spurious "no root" for a perfectly valid
+# calibration whose realized exponent min(1, q*) is simply 1. Both L(q) and f(z)
+# are evaluated by logsumexp, so a large cap cannot overflow; the expansion loop
+# still tightens the upper bracket to the smallest power of two past the root
+# before bisection, so the cost of the large cap is only ~30 extra doublings in
+# the (unreached) pathological limit.
+_BRACKET_CAP = 1.0e12  # bracket-expansion cap for both root searches
 
 
 # ----------------------------------------------------------------- warning taxonomy
@@ -285,9 +294,19 @@ def qstar_root(psi_atoms, psi_probs, Rcal, Thorn_Gamma):
     ppf = np.asarray(psi_probs, float)
     RG, PG = float(Rcal), float(Thorn_Gamma)
 
+    ln_RG, ln_PG = np.log(RG), np.log(PG)
+    ln_psf = np.log(psf)
+    with np.errstate(divide="ignore"):        # a 0-prob atom -> -inf, drops out
+        ln_ppf = np.log(ppf)
+
     def L(q):
-        return float(np.log(np.dot(ppf, psf ** (1.0 + q)))
-                     - np.log(RG) - q * np.log(PG))
+        # L(q) = ln E[psi^(1+q)] - ln Rcal - q*ln Thorn_Gamma. The expectation is
+        # formed by logsumexp so that psi atoms > 1 cannot overflow at the large q
+        # reached near the r = g knife-edge (Lambda -> 0 => q* -> oo); identical to
+        # log(dot(ppf, psf**(1+q))) to machine precision on well-scaled inputs.
+        t = (1.0 + q) * ln_psf + ln_ppf
+        tm = t.max()
+        return float(tm + np.log(np.exp(t - tm).sum()) - ln_RG - q * ln_PG)
 
     L0 = L(0.0)
     if L0 >= 0.0:
@@ -298,10 +317,24 @@ def qstar_root(psi_atoms, psi_probs, Rcal, Thorn_Gamma):
     while L(hi) < 0.0 and hi < _BRACKET_CAP:
         hi *= 2.0
     if L(hi) < 0.0:
+        # No crossing within the (generous) cap. L(q) is EVENTUALLY INCREASING iff
+        # its large-q slope ln(psi_max) - ln(Thorn_Gamma) > 0 (the largest psi atom
+        # dominates E[psi^(1+q)]); under GIC with E[psi] = 1 that always holds and a
+        # finite root exists. So a miss here means one of two things, and we must
+        # NOT conflate them (the old message hard-asserted GIC violation for both):
+        psi_max = float(psf.max())
+        if float(ln_psf.max()) - ln_PG > 0.0:
+            # L increasing: the root is finite but beyond the cap — an astronomically
+            # near-resonance calibration (Lambda ~ 0). The realized exponent is 1.
+            return float("nan"), (
+                f"(E)-root exceeds bracket cap {_BRACKET_CAP:g}: L(q) is increasing "
+                f"(psi_max = {psi_max:.6g} > Thorn_Gamma = {PG:.6g}) so q* is finite "
+                f"but astronomically large (Lambda = {-ln_PG:.3g} ~ 0, the r = g "
+                f"knife-edge); the realized decay exponent min(1, q*) = 1")
         return float("nan"), (
-            f"no (E)-root found in (0, {_BRACKET_CAP:g}]: L never crosses zero "
-            f"(with Thorn_Gamma = {PG:.6g} >= 1 and degenerate/narrow psi, L(q) is "
-            f"non-increasing — GIC violated)")
+            f"no (E)-root: L(q) is non-increasing (psi_max = {psi_max:.6g} <= "
+            f"Thorn_Gamma = {PG:.6g}) — Thorn_Gamma >= 1 (GIC violated) or psi "
+            f"degenerate")
     return _bisect(L, 0.0, hi, L0), None
 
 
@@ -353,10 +386,17 @@ def dual_root(psi_atoms, psi_probs, Thorn_Gamma):
     hi = 1.0
     while f(hi) < 0.0 and hi < _BRACKET_CAP:
         hi *= 2.0
-    if f(hi) < 0.0:  # not reachable for finite atoms with P(A>1)>0, kept for safety
+    if f(hi) < 0.0:
+        # f(z) ~ z*ln(A_max) -> +inf whenever P(A > 1) > 0, so a finite root ALWAYS
+        # exists here and the only way to reach this branch is zeta* beyond the
+        # (generous) bracket cap — an astronomically near-resonance calibration where
+        # the single expanding atom has A only marginally above 1. Kept as a numerical
+        # backstop (with cap = 1e12 it is unreachable for any realistic calibration;
+        # a tight cap of 1024 used to make it fire on legitimate near-resonance psi).
         return None, E_ln_A, P_A_gt_1, (
             f"no dual root found in (0, {_BRACKET_CAP:g}] despite E[ln A] < 0 and "
-            f"P(A > 1) > 0 (bracket cap hit)")
+            f"P(A > 1) > 0: zeta* exceeds the bracket cap (astronomically "
+            f"near-resonance; the Pareto tail is real but its exponent is enormous)")
     # f(0) = 0 with f'(0) = E[ln A] < 0, so f < 0 just inside 0: halve down from
     # hi/2 until the lower bracket endpoint is strictly negative (covers roots < 1)
     lo = hi / 2.0
@@ -819,11 +859,15 @@ def powerlaw_tail_diagnostic(cFunc, MPCmin, hNrm, params, m_lo=None, m_hi=None,
       appended.
     * ``INCONSISTENT``: ``center > inconsistency_tol`` (default 0.5: the flat
       point is far from min(1, q*) — e.g. the h-convention trap turns the gap
-      into a constant, Q_local ~ 0) OR ``center < -2*flat_tol`` (a local
+      into a constant, Q_local ~ 0) OR ``center < -flat_tol`` (any local
       exponent STEEPER than min(1, q*): the impossibility-floor side, which no
-      transient of the true solution produces over a measurable window). The
-      actionable verdict: broken grid, wrong MPCmin/hNrm reference, or a
-      non-converged solve.
+      transient of the true solution produces over a measurable window — Prop A0
+      forbids a gap fading faster than 1/x). Equivalently, any ``center`` outside
+      the symmetric CONFIRMED band ``[-flat_tol, +flat_tol]`` on the steeper
+      (negative) side is INCONSISTENT; the PRE_ASYMPTOTIC band is one-sided
+      (``flat_tol < center <= inconsistency_tol``), because migration toward
+      min(1, q*) only ever comes from BELOW. The actionable verdict: broken grid,
+      wrong MPCmin/hNrm reference, or a non-converged solve.
 
     Parameters
     ----------
