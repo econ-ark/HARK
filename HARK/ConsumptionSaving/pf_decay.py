@@ -111,6 +111,8 @@ __all__ = [
     "resonance_constants",
     "qstar_root",
     "dual_root",
+    "TailDiagnostic",
+    "powerlaw_tail_diagnostic",
     "PFDecayConditionWarning",
     "PFDecayGridWarning",
     "NearResonanceWarning",
@@ -755,3 +757,180 @@ def resonance_constants(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
     return dict(C_B=C_B, cJ_over_Rcal=cJ_over_Rcal, Lprime1=Lprime1,
                 lambda_B=th.lambda_B, resonance_residual=abs(th.lambda_B - 1.0),
                 theory=th)
+
+
+# --------------------------------------------------------------- tail diagnostic
+@dataclass
+class TailDiagnostic:
+    """Result of :func:`powerlaw_tail_diagnostic` (all fields per the theorem's
+    Figure-4 presentation)."""
+
+    verdict: str          # 'CONFIRMED' | 'PRE_ASYMPTOTIC' | 'INCONSISTENT'
+    #                       | 'UNMEASURABLE'
+    s_grid: np.ndarray    # trial exponents q + trial_offsets
+    slopes: np.ndarray    # compensated slope d ln(x^s * gap)/d ln(x) per trial s
+    #                       (gamma-T prediction: ~ s - q_true, flat only at the
+    #                       true exponent)
+    q_theory: float       # min(1, q_star) used as the tested exponent
+    window: tuple         # (m_lo, m_hi) of the points that survived the guard
+    n_points: int         # points surviving the gap guard
+    notes: str
+
+
+def powerlaw_tail_diagnostic(cFunc, MPCmin, hNrm, params, m_lo=None, m_hi=None,
+                             n_pts=40, trial_offsets=(-0.15, 0.0, +0.15),
+                             flat_tol=0.08, inconsistency_tol=0.5,
+                             guard_rel_gap=1e-9):
+    """Wrong-exponent detection: a cheap post-solve grid test (no re-solve).
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §4. Theorem II: the trichotomy — three things a linear recursion can do at a boundary :: Theorem γ-T]
+    #   Theorem γ-T (wrong-exponent detection): compensate the gap by a trial
+    #   exponent s — only s = min(1, q*) makes the compensated series flat
+    #   (bounded with a positive limit); any other s makes it drift with sign
+    #   s - min(1, q*). The compensated-flatness test below is that theorem
+    #   read as a diagnostic on a solved consumption function.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: A built-in diagnostic]
+    #   The grid-depth migration of measured exponents toward min(1, q*) is the
+    #   theorem-backed convergence signature for solver validation; a flat point
+    #   far from min(1, q*) is the actionable wrong-exponent signature (broken
+    #   grid / wrong MPCmin-hNrm reference / non-converged solve).
+
+    Sweeps ``cFunc`` once on a log-spaced window, forms the gap
+    ``g(m) = MPCmin*(m + hNrm) - cFunc(m)`` against ``x = m + hNrm``, drops
+    points below the float-cancellation floor (``gap/c <= guard_rel_gap`` or
+    ``gap <= 0``), then fits the windowed log-log slope of the gap over >= 20
+    points (NEVER the 2-knot top-slope estimator, which is grid-non-monotone).
+    With a single-window fit the compensated slope is exactly affine in the
+    trial exponent, ``slope(s) = s - Q_local`` with ``Q_local`` the fitted
+    local exponent, so the verdict reduces to the location of the flat point
+    ``s = Q_local`` relative to ``q = min(1, q_star)`` — pre-registered
+    semantics (not tuned post hoc), with ``center := slope(s=q) = q - Q_local``:
+
+    * ``UNMEASURABLE``: fewer than ``n_pts//2`` points survive the guard
+      (deep-grid float cancellation), or ``params.q`` is nan (theory refused).
+    * ``CONFIRMED``: ``|center| <= flat_tol`` (default 0.08; the phase-1
+      measurement on a deep real solve was +0.039).
+    * ``PRE_ASYMPTOTIC``: ``flat_tol < center <= inconsistency_tol`` — the
+      local exponent sits BELOW min(1, q*), the theorem-backed transient side
+      (the measured exponent migrates upward toward min(1, q*) with grid
+      depth); expected at near-resonance calibrations, where a note is
+      appended.
+    * ``INCONSISTENT``: ``center > inconsistency_tol`` (default 0.5: the flat
+      point is far from min(1, q*) — e.g. the h-convention trap turns the gap
+      into a constant, Q_local ~ 0) OR ``center < -2*flat_tol`` (a local
+      exponent STEEPER than min(1, q*): the impossibility-floor side, which no
+      transient of the true solution produces over a measurable window). The
+      actionable verdict: broken grid, wrong MPCmin/hNrm reference, or a
+      non-converged solve.
+
+    Parameters
+    ----------
+    cFunc : callable
+        Solved 1D consumption function (a slice of a 2D solution or a 1D
+        cFunc); called as ``cFunc(m_array)``.
+    MPCmin : float
+        PF asymptote slope kappa (from primitives, e.g. ``params.kappa``).
+    hNrm : float
+        Theorem-convention human wealth IN THE MODEL'S INCOME UNITS, i.e.
+        ``params.h * params.E_inc`` computed from primitives. Do NOT pass
+        ``solution.hNrm`` (tolerance-truncated) or ``bilt['hNrm']`` (includes
+        current income); either poisons the gap — see the h-convention tag in
+        the module docstring.
+    params : PowerLawDecayParams
+        Theory quantities for the same primitives; supplies q = min(1, q*).
+    m_lo, m_hi : float, optional
+        Test window. ``m_hi`` defaults to half the top of the solved grid when
+        discoverable (``cFunc.x_list``), else it is required; ``m_lo``
+        defaults to ``0.1*m_hi``.
+    n_pts : int
+        Log-spaced sweep size (>= 20 recommended).
+    trial_offsets : tuple of float
+        Figure-4 probe offsets around q (must include 0.0).
+    flat_tol, inconsistency_tol, guard_rel_gap : float
+        Pre-registered thresholds described above.
+
+    Returns
+    -------
+    TailDiagnostic
+    """
+    if 0.0 not in tuple(trial_offsets):
+        raise ValueError("trial_offsets must include 0.0 (the s = q probe)")
+    q = float(getattr(params, "q", float("nan")))
+    s_grid = np.array(sorted(q + np.asarray(trial_offsets, dtype=float)))
+    if not np.isfinite(q):
+        return TailDiagnostic(
+            verdict="UNMEASURABLE", s_grid=s_grid,
+            slopes=np.full(s_grid.shape, np.nan), q_theory=q,
+            window=(np.nan, np.nan), n_points=0,
+            notes="theory exponent undefined (q_star is nan): "
+                  + (params.diagnosis or "see params.warnings"),
+        )
+    if m_hi is None:
+        x_list = getattr(cFunc, "x_list", None)
+        if x_list is None:
+            raise ValueError(
+                "m_hi is required when the solved grid top is not discoverable "
+                "from cFunc (no x_list attribute)"
+            )
+        m_hi = 0.5 * float(np.asarray(x_list)[-1])
+    if m_lo is None:
+        m_lo = 0.1 * m_hi
+    if not (0.0 < m_lo < m_hi):
+        raise ValueError(f"need 0 < m_lo < m_hi, got ({m_lo}, {m_hi})")
+
+    m = np.geomspace(m_lo, m_hi, int(n_pts))
+    c = np.asarray(cFunc(m), dtype=float)
+    x = m + hNrm
+    gap = MPCmin * x - c
+    keep = np.isfinite(gap) & np.isfinite(c) & (gap > 0.0) & (c > 0.0)
+    keep &= np.where(keep, gap > guard_rel_gap * np.abs(c), False)
+    n_keep = int(keep.sum())
+    notes = []
+    if n_keep < int(n_pts) // 2:
+        return TailDiagnostic(
+            verdict="UNMEASURABLE", s_grid=s_grid,
+            slopes=np.full(s_grid.shape, np.nan), q_theory=q,
+            window=(float(m[keep][0]), float(m[keep][-1])) if n_keep else
+                   (np.nan, np.nan),
+            n_points=n_keep,
+            notes=f"only {n_keep}/{int(n_pts)} points survive the "
+                  f"gap/c > {guard_rel_gap:g} guard (float-cancellation floor "
+                  "or negative gap: wrong reference or window too deep)",
+        )
+    ln_x = np.log(x[keep])
+    ln_gap = np.log(gap[keep])
+    # windowed log-log fit over the surviving points (the >= 20-point
+    # estimator; never the 2-knot top slope)
+    Q_local = -float(np.polyfit(ln_x, ln_gap, 1)[0])
+    slopes = s_grid - Q_local
+    center = q - Q_local
+    if abs(center) <= flat_tol:
+        verdict = "CONFIRMED"
+    elif flat_tol < center <= inconsistency_tol:
+        verdict = "PRE_ASYMPTOTIC"
+        if bool(getattr(params, "near_resonance", False)):
+            notes.append(
+                "expected at this near-resonance calibration; deepen the grid "
+                "only if the exponent itself is under test"
+            )
+    else:
+        verdict = "INCONSISTENT"
+        if center < 0.0:
+            notes.append(
+                f"local exponent {Q_local:.3f} STEEPER than min(1, q*) = "
+                f"{q:.3f}: impossibility-floor side (Prop A0)"
+            )
+        else:
+            notes.append(
+                f"flat point at s = {Q_local:.3f}, far below min(1, q*) = "
+                f"{q:.3f}: wrong-exponent signature (broken grid, wrong "
+                "MPCmin/hNrm reference, or non-converged solve)"
+            )
+    notes.insert(0, f"local exponent Q_local = {Q_local:.4f}; "
+                    f"center slope(s=q) = {center:+.4f}")
+    return TailDiagnostic(
+        verdict=verdict, s_grid=s_grid, slopes=slopes, q_theory=q,
+        window=(float(m[keep][0]), float(m[keep][-1])), n_points=n_keep,
+        notes="; ".join(notes),
+    )

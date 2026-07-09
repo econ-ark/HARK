@@ -35,6 +35,7 @@ from HARK.ConsumptionSaving.pf_decay import (
     ShockCorrelationWarning,
     powerlaw_decay_params,
     powerlaw_decay_params_from_agent,
+    powerlaw_tail_diagnostic,
     resonance_constants,
 )
 from HARK.distributions import DiscreteDistribution
@@ -497,3 +498,172 @@ class TestResonanceHelper(unittest.TestCase):
             abs(rc["C_B"] * rc["Lprime1"] / rc["cJ_over_Rcal"] - 1.0), 1e-10
         )
         self.assertLessEqual(rc["resonance_residual"], 1e-6)
+
+
+class TestTailDiagnostic(unittest.TestCase):
+    """powerlaw_tail_diagnostic: the Theorem gamma-T compensated-flatness test
+    as a post-solve grid diagnostic.
+
+    Pre-registered expectations (measured during development, thresholds from
+    the function's docstring, never tuned):
+      * fine real solve (aXtraMax=1e5, aXtraCount=512), window [3e3, 6e4]:
+        center slope(s=q) measured +0.046 -> CONFIRMED (flat_tol 0.08);
+      * coarse real solve (aXtraCount=96), window [2e3, 2e4]: interpolation
+        bias flattens the local exponent (center +0.23) -> PRE_ASYMPTOTIC;
+        the healthy-solve contract is verdict in {CONFIRMED, PRE_ASYMPTOTIC},
+        NEVER INCONSISTENT (no false positive);
+      * beyond the solved grid the gap collapses below the float-cancellation
+        guard -> UNMEASURABLE;
+      * the h-convention trap (+E_inc on hNrm) turns the measured gap into
+        gap_true + kappa*E_inc. On SYNTHETIC theorem-form data with a window
+        where the constant dominates, the flat point sits near s=0, far from
+        q -> INCONSISTENT (the clean signature; pinned on synthetic data
+        because on a REAL solve at reachable windows the constant only
+        partially dominates and the poisoning mimics a transient --
+        PRE_ASYMPTOTIC with a visibly degraded center, asserted below).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            cls.agent_fine = IndShockConsumerType(
+                cycles=0, aXtraMax=1.0e5, aXtraCount=512, aXtraNestFac=1
+            )
+            cls.agent_fine.solve()
+            cls.agent_coarse = IndShockConsumerType(
+                cycles=0, aXtraMax=1.0e5, aXtraCount=96, aXtraNestFac=3
+            )
+            cls.agent_coarse.solve()
+        cls.params = powerlaw_decay_params_from_agent(cls.agent_fine, warn=False)
+        cls.kappa = cls.params.kappa
+        cls.hN = cls.params.h * cls.params.E_inc  # theorem-convention, primitives
+        cls.q = cls.params.q
+
+    # ---------------- real-solve verdicts ----------------
+    def test_confirmed_on_fine_real_solve(self):
+        d = powerlaw_tail_diagnostic(
+            self.agent_fine.solution[0].cFunc, self.kappa, self.hN, self.params,
+            m_lo=3e3, m_hi=6e4,
+        )
+        self.assertEqual(d.verdict, "CONFIRMED")
+        self.assertEqual(d.n_points, 40)
+        # probe drifts carry the gamma-T signs: slope increasing through 0 at q
+        center = d.slopes[list(d.s_grid).index(self.q)]
+        self.assertLessEqual(abs(center), 0.08)
+        self.assertLess(d.slopes[0], d.slopes[-1])
+
+    def test_no_false_positive_on_coarse_real_solve(self):
+        d = powerlaw_tail_diagnostic(
+            self.agent_coarse.solution[0].cFunc, self.kappa, self.hN,
+            self.params, m_lo=2e3, m_hi=2e4,
+        )
+        self.assertIn(d.verdict, ("CONFIRMED", "PRE_ASYMPTOTIC"))
+
+    def test_unmeasurable_beyond_the_grid(self):
+        d = powerlaw_tail_diagnostic(
+            self.agent_fine.solution[0].cFunc, self.kappa, self.hN, self.params,
+            m_lo=1e6, m_hi=1e8,
+        )
+        self.assertEqual(d.verdict, "UNMEASURABLE")
+        self.assertLess(d.n_points, 20)
+
+    def test_wrong_hNrm_degrades_the_center_on_a_real_solve(self):
+        # +E_inc (the h_BST trap): within a reachable window the constant
+        # poisoning mimics a transient; the verdict must NOT be CONFIRMED and
+        # the center must move away from flat by the poisoning
+        cF = self.agent_fine.solution[0].cFunc
+        d_right = powerlaw_tail_diagnostic(cF, self.kappa, self.hN, self.params,
+                                           m_lo=3e3, m_hi=6e4)
+        d_wrong = powerlaw_tail_diagnostic(
+            cF, self.kappa, self.hN + self.params.E_inc, self.params,
+            m_lo=3e3, m_hi=6e4,
+        )
+        self.assertEqual(d_right.verdict, "CONFIRMED")
+        self.assertNotEqual(d_wrong.verdict, "CONFIRMED")
+        c_right = d_right.slopes[list(d_right.s_grid).index(self.q)]
+        c_wrong = d_wrong.slopes[list(d_wrong.s_grid).index(self.q)]
+        self.assertGreater(c_wrong, c_right + 0.1)
+
+    # ---------------- synthetic theorem-form verdict logic ----------------
+    def _synthetic(self, expo, C=2.0):
+        kappa, hN = self.kappa, self.hN
+
+        def cF(m):
+            x = m + hN
+            return kappa * x - C * x ** (-expo)
+
+        return cF
+
+    def test_confirmed_on_exact_theorem_form(self):
+        d = powerlaw_tail_diagnostic(
+            self._synthetic(self.q), self.kappa, self.hN, self.params,
+            m_lo=50.0, m_hi=5000.0,
+        )
+        self.assertEqual(d.verdict, "CONFIRMED")
+        center = d.slopes[list(d.s_grid).index(self.q)]
+        self.assertLessEqual(abs(center), 1e-6)
+
+    def test_pre_asymptotic_on_shallow_transient(self):
+        # local exponent q - 0.3 (below q): the theorem-backed transient side
+        d = powerlaw_tail_diagnostic(
+            self._synthetic(self.q - 0.3), self.kappa, self.hN, self.params,
+            m_lo=50.0, m_hi=5000.0,
+        )
+        self.assertEqual(d.verdict, "PRE_ASYMPTOTIC")
+
+    def test_inconsistent_on_steeper_than_floor(self):
+        # local exponent q + 0.6: steeper than min(1, q*) -- the Prop-A0 side
+        d = powerlaw_tail_diagnostic(
+            self._synthetic(self.q + 0.6), self.kappa, self.hN, self.params,
+            m_lo=50.0, m_hi=5000.0,
+        )
+        self.assertEqual(d.verdict, "INCONSISTENT")
+        self.assertIn("STEEPER", d.notes)
+
+    def test_inconsistent_on_h_convention_trap_synthetic(self):
+        # exact theorem-form data measured with hNrm + E_inc: the gap becomes
+        # gap_true + kappa*E_inc; on a window where the constant dominates the
+        # flat point sits near s = 0, far from q (q = 0.5923 > the 0.5
+        # inconsistency_tol) -> INCONSISTENT, the trap detected
+        self.assertGreater(self.q, 0.5)  # precondition for the far-flat-point
+        d = powerlaw_tail_diagnostic(
+            self._synthetic(self.q), self.kappa, self.hN + self.params.E_inc,
+            self.params, m_lo=1e4, m_hi=1e6,
+        )
+        self.assertEqual(d.verdict, "INCONSISTENT")
+        self.assertIn("wrong-exponent signature", d.notes)
+
+    # ---------------- refusal / plumbing paths ----------------
+    def test_unmeasurable_when_qstar_nan(self):
+        bad = powerlaw_decay_params(
+            1.0, G_C, 0.98, RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(TH_C, TP_C), warn=False,
+        )
+        d = powerlaw_tail_diagnostic(
+            self._synthetic(0.5), self.kappa, self.hN, bad, m_lo=50.0, m_hi=5e3
+        )
+        self.assertEqual(d.verdict, "UNMEASURABLE")
+        self.assertIn("q_star is nan", d.notes)
+
+    def test_m_hi_discovery_and_requirement(self):
+        # bare-callable cFunc without x_list: m_hi is required
+        with self.assertRaises(ValueError):
+            powerlaw_tail_diagnostic(
+                self._synthetic(self.q), self.kappa, self.hN, self.params
+            )
+        # a LinearInterp slice carries x_list: m_hi defaults to half its top
+        from HARK.interpolation import LinearInterp
+
+        m = np.geomspace(1.0, 4.0e4, 400)
+        f = LinearInterp(m, self._synthetic(self.q)(m))
+        d = powerlaw_tail_diagnostic(f, self.kappa, self.hN, self.params)
+        self.assertEqual(d.verdict, "CONFIRMED")
+        self.assertLessEqual(d.window[1], 0.5 * 4.0e4)
+
+    def test_trial_offsets_must_include_zero(self):
+        with self.assertRaises(ValueError):
+            powerlaw_tail_diagnostic(
+                self._synthetic(self.q), self.kappa, self.hN, self.params,
+                m_lo=50.0, m_hi=5e3, trial_offsets=(-0.15, 0.15),
+            )
