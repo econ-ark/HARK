@@ -904,6 +904,12 @@ class LinearInterp(HARKinterpolator1D):
         ``x_list[-1] + h > 0``; if violated it warns and disables decay
         extrapolation (``decay_extrap == False``) rather than risk a divergent
         tail.
+
+        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+        #   The power-law gap tail C*(x + h)**(-q) is the theorem's extrapolation
+        #   form of record for buffer-stock consumption functions; the
+        #   exponential form is not merely inaccurate but impossible as an
+        #   asymptotic form (Prop A0) — 'exp' stays only as the legacy default.
     decay_extrap_Q : float or None (default), keyword-only
         ``None``: byte-for-byte the behavior described above for both forms
         (the power-law exponent is FITTED from the top two knots as
@@ -1027,6 +1033,12 @@ class LinearInterp(HARKinterpolator1D):
         converged consumption function these hold by Carroll-Kimball (1996)
         concavity, so a violation signals bad inputs; decay is then disabled
         outright rather than risk a divergent tail.
+
+        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996]
+        #   Imported foundations L0–L2′: a converged buffer-stock consumption
+        #   function is strictly increasing and strictly concave (Carroll–Kimball
+        #   1996) and approaches its PF asymptote from below with slope falling
+        #   to the limiting MPC — hence level_diff > 0 and B > 0 at a valid knot.
         """
         x_top = self.x_list[-1]
         ok = self.slope_limit > 0.0 and level_diff > 0.0 and self.decay_extrap_B > 0.0

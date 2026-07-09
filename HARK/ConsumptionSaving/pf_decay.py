@@ -21,8 +21,9 @@ resonance law exactly at ``q_star = 1``.
 
 # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: Prop A0]
 #   The gap can never decay FASTER than 1/x (a prudent consumer always collects at
-#   least today's Arrow-Pratt premium), so exponential decay is impossible as an
-#   asymptotic form and any fitted exponent above min(1, q*) is theory-infeasible.
+#   least today's Arrow-Pratt premium) — Prop A0's floor, which makes exponential
+#   decay impossible as an asymptotic form; and since the realized exponent is
+#   min(1, q*), any steeper fitted exponent is theory-infeasible.
 
 Conventions (all verified against the theorem program's reference implementations)
 -----------------------------------------------------------------------------------

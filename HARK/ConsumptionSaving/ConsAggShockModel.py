@@ -100,6 +100,12 @@ utility_inv = CRRAutility_inv
 # bounds are used only when the consumer type's ``MPCmin`` and ``hNrm``
 # attributes are set (both default to None); otherwise the legacy
 # bare-LinearInterp path is preserved byte-for-byte.
+#
+# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: L3 (level convergence)]
+#   The decay target is the theorem's gap g(x) = kappa*(m + h) - c(m), x = m + h:
+#   g is sandwiched 0 <= g <= kappa*h and g(x) -> 0 (L3, level convergence), so a
+#   correct extrapolation must rejoin the PF line from below — which naive-linear
+#   (last-segment-slope) extrapolation never does.
 
 
 def pf_mpc_min(Rfree, DiscFac, CRRA, LivPrb=1.0):
@@ -112,6 +118,13 @@ def pf_mpc_min(Rfree, DiscFac, CRRA, LivPrb=1.0):
     uniform across Markov states -- the relevant case here, since the bound is
     evaluated at a single reference capital ratio. Survival enters through the
     effective discount factor ``DiscFac * LivPrb`` (NOT through human wealth).
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: 4. Remarks :: Mortality]
+    #   Mortality-as-impatience (Remark 9, perpetual-youth): survival L replaces
+    #   beta by beta*L inside the patience factors only — here MPCmin via the
+    #   effective discount factor — while human wealth h and Rcal = R/Gamma stay
+    #   mortality-free, exactly this helper pair's split.
+
     Warns and returns a value ``<= 0`` if return impatience fails, which the
     caller treats as "no valid PF bound" (legacy extrapolation).
     """
@@ -139,6 +152,13 @@ def pf_human_wealth_markov(MrkvArray, Rfree, ExpIncNext, PermGroFac):
     state-invariant. The "remain-in-this-state-forever" limit would be
     degenerate for zero-income deep-unemployment states; this joint solve is the
     correct PF human-wealth limit.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
+    #   This fixed point EXCLUDES current income — the theorem's h-convention
+    #   (h = h_BST - 1, matching HARK's solver-side calc_human_wealth). Do NOT
+    #   swap in BST's h_BST = R/(R-Gamma), which INCLUDES current income: it
+    #   would shift hNrm up by one period's expected income (the guide's
+    #   documented spurious-refutation trap).
 
     Existence requires the spectral radius of ``D`` to be below 1 -- the
     finite-human-wealth condition (the Markov FHWC). If it fails (e.g. a state
@@ -217,6 +237,12 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     slope of the solved slice at its top knot, exactly as the exponential does,
     so the switch needs no extra parameters.
 
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+    #   The power-law gap tail g ~ C*(m+h)**(-q), q = min(1, q*), is the
+    #   theorem's extrapolation form of record; the exponential heuristic it
+    #   replaces is not merely inaccurate but impossible as an asymptotic form
+    #   (Prop A0).
+
     Theory-informed tails (``decay_theory``, ``decay_Q``)
     -----------------------------------------------------
     ``decay_theory`` is an optional ``pf_decay.PowerLawDecayParams`` for this
@@ -256,8 +282,10 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
 
       # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free)]
       #   Prop A0 impossibility floor: the true gap can never decay faster than
-      #   1/x, so a fitted exponent above min(1, q*) is theory-infeasible and
-      #   signals a coarse or non-converged grid top; the clamp is the hard cap.
+      #   1/x (any o(1/x) decay, exponential included, is impossible); with the
+      #   realized exponent min(1, q*) (Theorem A1/B1), a fitted exponent above
+      #   that ceiling is theory-infeasible and signals a coarse or
+      #   non-converged grid top; the clamp is the hard cap.
     * ``decay_Q=<positive float>``: explicit exponent, passed through to
       ``LinearInterp(decay_extrap_Q=...)`` (level-matched, documented C1 kink
       ``(Q_fit - Q)*A/pivot`` at the top knot).
@@ -305,6 +333,12 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     ``MPCmin`` is an ordinary pre-asymptotic backward-induction transient (HARK's
     aggregate-shock solve starts from ``c = m``, above the line) and is left to
     the legacy extrapolation for that slice.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996]
+    #   Imported foundations L0–L2′: c is strictly increasing and strictly
+    #   concave (Carroll–Kimball 1996), the gap obeys 0 <= g <= kappa*h with c
+    #   approaching the PF line from below and c' falling to kappa from above —
+    #   exactly the top-knot configuration this guard enforces.
     """
     if MPCmin is None or hNrm is None:
         return LinearInterp(m_temp, c_temp)

@@ -15,6 +15,16 @@ discount-factor atom) / CCAP (College GIC-cap atom):
 
 This makes the HAFiscal calibration table a permanent HARK regression anchor
 for the theory utility.
+
+# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/figures/FIGURES.md :: Calibrations]
+#   Anchor provenance: the theorem program's calibration table (CAL-HS /
+#   CAL-CTOP / CAL-CCAP, built from the estimated HAFiscal parameters) is the
+#   source of the q*, B_psi, lambda_B and E[psi^2] targets above.
+
+# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: The reachability taxonomy]
+#   The zeta* and E[ln A] targets above are the measured reachability table:
+#   dual root 9.19 (HS) / 3.17 (College top atom) / none (GIC-cap atom, whose
+#   positive log-drift leaves mortality-with-replacement to truncate its tail).
 """
 
 import pickle
