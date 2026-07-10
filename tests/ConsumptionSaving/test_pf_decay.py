@@ -44,9 +44,11 @@ from HARK.ConsumptionSaving.pf_decay import (
     PFDecayConditionWarning,
     ShockCorrelationWarning,
     aXtraMax_from_tail_tol,
+    mNrm_stable_points,
     powerlaw_decay_params,
     powerlaw_decay_params_from_agent,
     powerlaw_tail_diagnostic,
+    qstar_probe,
     rel_gap_at,
     resonance_constants,
 )
@@ -835,3 +837,117 @@ class TestExtentCriterion(unittest.TestCase):
         self.assertTrue(np.isnan(aXtraMax_from_tail_tol(
             np.nan, np.nan, np.nan, hN, 1e-4, B_psi=_params("HS").B_psi,
             MPCmin=params.kappa)) or _params("HS").B_psi is None)
+
+
+class TestQstarProbe(unittest.TestCase):
+    """The operator eigen-probe: numerical q* from the model's own one-period
+    backward step (no eigen-equation). Pre-registered: |q_hat - q*| <= 5e-4
+    per anchor (measured 5.6e-6..5.0e-5), depth-consistency <= 1e-4
+    (measured ~1e-6)."""
+
+    def test_matches_analytic_root_on_anchors(self):
+        for tag in ("HS", "CTOP", "CCAP"):
+            c = CALS[tag]
+            q_true = _params(tag).q_star
+            q_hat, cons, diag = qstar_probe(
+                R0, c["G"], c["beta"], RHO, LivPrb=LIV,
+                PermShkDstn=(PSI, PP), TranShkDstn=(c["th"], c["tp"]))
+            self.assertEqual(diag, "ok", tag)
+            self.assertLessEqual(abs(q_hat - q_true), 5e-4, tag)
+            self.assertLessEqual(cons, 1e-4, tag)
+
+    def test_custom_one_step_hook_reproduces_primitives_mode(self):
+        # portability contract: a caller-supplied backward step + PF limits
+        c = CALS["HS"]
+        params = _params("HS")
+        hN = params.h * params.E_inc
+        PSIj, THj = np.meshgrid(PSI, c["th"], indexing="ij")
+        WPj = np.outer(PP, c["tp"]).ravel()
+        WPj = WPj / WPj.sum()
+        psi_j, th_j = PSIj.ravel(), THj.ravel()
+
+        def my_step(c_trial, a):
+            m_img = (R0 / (c["G"] * psi_j))[None, :] * a[:, None] \
+                + th_j[None, :]
+            rhs = c["beta"] * LIV * R0 * (
+                WPj[None, :] * (c["G"] * psi_j[None, :]) ** (-RHO)
+                * c_trial(m_img) ** (-RHO)).sum(1)
+            return rhs ** (-1.0 / RHO)
+
+        q_a, _, diag_a = qstar_probe(
+            R0, c["G"], c["beta"], RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(c["th"], c["tp"]))
+        q_b, _, diag_b = qstar_probe(
+            R0, c["G"], c["beta"], RHO, LivPrb=LIV,
+            one_step=my_step, MPCmin=params.kappa, hNrm=hN)
+        self.assertEqual((diag_a, diag_b), ("ok", "ok"))
+        self.assertLessEqual(abs(q_a - q_b), 1e-6)
+
+    def test_fails_closed_without_pf_asymptote(self):
+        # FHWC violated: Rcal <= 1 -> h nan -> nan + reason, no exception
+        c = CALS["HS"]
+        q_hat, cons, diag = qstar_probe(
+            1.0, 1.02, c["beta"], RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(c["th"], c["tp"]))
+        self.assertTrue(np.isnan(q_hat))
+        self.assertIn("asymptote unavailable", diag)
+
+
+class TestStablePoints(unittest.TestCase):
+    """mNrm_stable_points: the two classical loci + the mortality-adjusted
+    (R -> LivPrb*R) twins, with end-of-period-asset images."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.c = CALS["HS"]
+        cls.params = _params("HS")
+        hE = cls.params.h * cls.params.E_inc
+        kap = cls.params.kappa
+        # synthetic concave cFunc below its PF line with a power-law gap
+        cls.cf = staticmethod(
+            lambda m: kap * (np.asarray(m, float) + hE)
+            - 0.9 * (np.asarray(m, float) + hE) ** (-0.38) * hE ** 0.76)
+        cls.sp = mNrm_stable_points(
+            cls.cf, R0, cls.c["G"], LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(cls.c["th"], cls.c["tp"]))
+
+    def test_roots_satisfy_their_defining_loci(self):
+        sp, c = self.sp, self.c
+        R, G, L = R0, c["G"], LIV
+        Eth, Eip = sp.E_theta, sp.E_inv_psi
+        loci = {
+            sp.mNrmTrg: lambda m: m - (m - Eth) / ((R / G) * Eip),
+            sp.mNrmStE: lambda m: m - (m - Eth) * G / R,
+            sp.mNrmTrg_mort: lambda m: m - (m - Eth) / ((L * R / G) * Eip),
+            sp.mNrmStE_mort: lambda m: m - (m - Eth) * G / (L * R),
+        }
+        for m_hat, locus in loci.items():
+            self.assertTrue(np.isfinite(m_hat))
+            resid = abs(float(self.cf(np.array([m_hat]))[0]) - locus(m_hat))
+            self.assertLessEqual(resid, 1e-7 * max(1.0, m_hat))
+
+    def test_orderings_and_a_images(self):
+        sp = self.sp
+        # Jensen (E[1/psi] > 1): StE below Trg; mortality shave lowers both
+        self.assertLess(sp.mNrmStE, sp.mNrmTrg)
+        self.assertLess(sp.mNrmTrg_mort, sp.mNrmTrg)
+        self.assertLess(sp.mNrmStE_mort, sp.mNrmStE)
+        # a-images are m - c(m) (the grid-relevant coordinates)
+        self.assertAlmostEqual(
+            sp.aNrmTrg,
+            sp.mNrmTrg - float(self.cf(np.array([sp.mNrmTrg]))[0]), places=10)
+
+    def test_LivPrb_one_degenerates_to_unadjusted(self):
+        sp1 = mNrm_stable_points(
+            self.cf, R0, self.c["G"], LivPrb=1.0,
+            PermShkDstn=(PSI, PP), TranShkDstn=(self.c["th"], self.c["tp"]))
+        self.assertAlmostEqual(sp1.mNrmTrg, sp1.mNrmTrg_mort, places=12)
+        self.assertAlmostEqual(sp1.mNrmStE, sp1.mNrmStE_mort, places=12)
+
+    def test_nan_when_no_crossing(self):
+        sp = mNrm_stable_points(
+            lambda m: np.full_like(np.asarray(m, float), 0.35),
+            R0, self.c["G"], LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(self.c["th"], self.c["tp"]))
+        self.assertTrue(np.isnan(sp.mNrmTrg))
+        self.assertTrue(np.isnan(sp.mNrmStE))

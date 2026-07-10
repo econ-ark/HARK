@@ -116,6 +116,9 @@ __all__ = [
     "powerlaw_tail_diagnostic",
     "rel_gap_at",
     "aXtraMax_from_tail_tol",
+    "qstar_probe",
+    "StablePoints",
+    "mNrm_stable_points",
     "PFDecayConditionWarning",
     "PFDecayGridWarning",
     "NearResonanceWarning",
@@ -1112,3 +1115,249 @@ def aXtraMax_from_tail_tol(m_ref, rel_gap_ref, q_eff, hNrm, tail_tol,
     x_ref = m_ref + hNrm
     x_top = x_ref * (safety * rel_gap_ref / tail_tol) ** (1.0 / (1.0 + q_eff))
     return float(x_top - hNrm)
+
+
+# ---------------------------------------------------------------------------
+# The operator eigen-probe: numerical q* without the eigen-equation
+# ---------------------------------------------------------------------------
+def qstar_probe(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
+                PermShkDstn=None, TranShkDstn=None, IncShkDstn=None,
+                x0s=(1e6, 1e7, 1e8), eps=1e-4, s_lo=0.05, s_hi=5.0,
+                one_step=None, MPCmin=None, hNrm=None):
+    """Measure the decay-exponent root q* NUMERICALLY from the model's own
+    one-period backward operator — no closed-form eigen-equation required.
+
+    The exponent is the eigenvalue condition of the period operator acting on
+    power-law perturbations of the PF asymptote. Working in the EGM's native
+    END-OF-PERIOD-ASSET coordinate (the probe never touches a grid): at deep
+    a = x0 - hNrm, apply one backward step to the trial next-period function
+
+        c_trial(m') = MPCmin*(m' + hNrm) - eps*MPCmin*x0*((m' + hNrm)/x0)^(-s),
+
+    difference the eps > 0 and eps = 0 responses (cancels the one-period
+    Arrow-Pratt premium, isolates the linear response), and root-find the s
+    at which the per-period gap multiplier equals one. Normalizing the trial
+    at the probe point is LOAD-BEARING: an unnormalized eps*x^(-s) trial at
+    x = 1e8 is ~1e-40, beneath float64 resolution of the gap.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: eq (E)]
+    #   The analytic eigen-equation E[psi^(1+q)] = Rcal*Thorn_Gamma^q is this
+    #   probe evaluated on paper: the root of the one-period multiplier on
+    #   x^(-q) gap perturbations. The probe is the model-agnostic form.
+
+    # THEOREM-REF[HAFiscal-Latest @ 8ad5a853 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: The operator eigen-probe]
+    #   Validation (F9): matches the analytic q* to 5.6e-6 / 8.6e-6 / 5.0e-5
+    #   at the HS / CTOP / CCAP anchors with ~1e-6 depth-consistency, while
+    #   estimation FROM SOLVED VALUES is 15-40% off even on deep windows (the
+    #   h-shift starves the identifying x-variation). Outside GIC the probe
+    #   (true finite-x operator) and the (E)-root (idealized limit) disagree —
+    #   report q_hat only alongside the condition flags.
+
+    Portability: for the standard CRRA model, primitives suffice (the step is
+    built internally). For OTHER models, pass ``one_step(c_trial, a_array) ->
+    c_today_array`` (the model's backward step applied to a supplied
+    next-period consumption function) together with that model's PF limits
+    ``MPCmin``/``hNrm`` — anything solved by time iteration has all three.
+
+    Returns
+    -------
+    (q_hat, consistency, diagnosis) : (float, float, str)
+        q_hat: the multiplier's unit root (realized decay exponent is
+        min(1, q_hat) — the universal 1/x premium floor, Prop A0); nan when
+        no root lies in (s_lo, s_hi) or inputs fail (never raises).
+        consistency: relative spread of the multiplier across the probe
+        depths ``x0s`` at the root (a built-in self-check; ~1e-6 measured).
+        diagnosis: 'ok' or the failure reason.
+    """
+    try:
+        if MPCmin is None or hNrm is None:
+            base = powerlaw_decay_params(
+                Rfree, PermGroFac, DiscFac, CRRA, LivPrb=LivPrb,
+                PermShkDstn=PermShkDstn, TranShkDstn=TranShkDstn,
+                IncShkDstn=IncShkDstn, warn=False)
+            MPCmin = base.kappa if MPCmin is None else MPCmin
+            hNrm = base.h * base.E_inc if hNrm is None else hNrm
+        MPCmin, hNrm = float(MPCmin), float(hNrm)
+        if not (np.isfinite(MPCmin) and MPCmin > 0.0 and np.isfinite(hNrm)):
+            return float("nan"), float("nan"), \
+                "PF asymptote unavailable (MPCmin/hNrm non-finite)"
+        if one_step is None:
+            R = float(_time_indexed(Rfree, 0))
+            G = float(_time_indexed(PermGroFac, 0))
+            L = float(_time_indexed(LivPrb, 0))
+            beta, rho = float(DiscFac), float(CRRA)
+            if IncShkDstn is not None:
+                psi_j, th_j, wp = _as_joint(IncShkDstn)
+                psi_j = np.asarray(psi_j, float)
+                th_j = np.asarray(th_j, float)
+                wp = np.asarray(wp, float)
+            else:
+                if PermShkDstn is None:
+                    psi_a, psi_p = np.array([1.0]), np.array([1.0])
+                else:
+                    psi_a, psi_p = _as_atoms_probs(PermShkDstn, "PermShkDstn")
+                th_a, th_p = _as_atoms_probs(TranShkDstn, "TranShkDstn")
+                PSI, TH = np.meshgrid(np.asarray(psi_a, float),
+                                      np.asarray(th_a, float), indexing="ij")
+                wp = np.outer(np.asarray(psi_p, float),
+                              np.asarray(th_p, float)).ravel()
+                psi_j, th_j = PSI.ravel(), TH.ravel()
+            wp = wp / wp.sum()
+
+            def one_step(c_trial, a):
+                m_img = (R / (G * psi_j))[None, :] * a[:, None] + th_j[None, :]
+                c_next = c_trial(m_img)
+                rhs = beta * L * R * (wp[None, :]
+                                      * (G * psi_j[None, :]) ** (-rho)
+                                      * c_next ** (-rho)).sum(1)
+                return rhs ** (-1.0 / rho)
+
+        def lam_at(s, x0):
+            a = np.array([x0 - hNrm])
+            c0 = MPCmin * x0
+
+            def response(e):
+                def c_trial(m_img):
+                    x_img = m_img + hNrm
+                    return MPCmin * x_img - e * c0 * (x_img / x0) ** (-s)
+                c_t = one_step(c_trial, a)
+                x_t = float(a[0] + c_t[0] + hNrm)
+                return float(MPCmin * x_t - c_t[0]), x_t
+
+            g1, x_t = response(0.0)
+            g2, _ = response(eps)
+            return (g2 - g1) / (eps * c0 * (x_t / x0) ** (-s))
+
+        def lam(s):
+            vals = [lam_at(s, float(x0)) for x0 in x0s]
+            m = float(np.mean(vals))
+            return m, (float(np.std(vals) / abs(m)) if m != 0.0
+                       else float("inf"))
+
+        lo, hi = float(s_lo), float(s_hi)
+        flo = lam(lo)[0] - 1.0
+        fhi = lam(hi)[0] - 1.0
+        if not (np.isfinite(flo) and np.isfinite(fhi)) or flo * fhi > 0:
+            return float("nan"), float("nan"), \
+                f"no unit-multiplier root in ({s_lo}, {s_hi}) (fails closed)"
+        for _ in range(60):
+            mid = 0.5 * (lo + hi)
+            fm = lam(mid)[0] - 1.0
+            if flo * fm <= 0:
+                hi = mid
+            else:
+                lo, flo = mid, fm
+        q_hat = 0.5 * (lo + hi)
+        return float(q_hat), lam(q_hat)[1], "ok"
+    except Exception as exc:  # behavior contract: never raises
+        return float("nan"), float("nan"), f"probe failed: {exc!r}"
+
+
+# ---------------------------------------------------------------------------
+# Stable points (targets), with the mortality-adjusted (L*R) loci
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class StablePoints:
+    """Roots of the consumption function against the stable-point loci, in
+    BOTH coordinates: the m-roots and their end-of-period-asset images
+    a = m - c(m) (the grid-relevant objects — the asset grid, the consumed
+    function c(a), and everything the solver controls live in a-space)."""
+    mNrmTrg: float          # E[m'] = m (needs GIC-Mod); nan if no crossing
+    mNrmStE: float          # E[psi*m'] = m, balanced LEVEL growth (GIC-Raw)
+    mNrmTrg_mort: float     # Delta-m=0 locus with R -> LivPrb*R (GIC-Mod-Liv)
+    mNrmStE_mort: float     # balanced-growth locus with R -> LivPrb*R
+    aNrmTrg: float = float("nan")
+    aNrmStE: float = float("nan")
+    aNrmTrg_mort: float = float("nan")
+    aNrmStE_mort: float = float("nan")
+    E_theta: float = float("nan")
+    E_inv_psi: float = float("nan")
+    notes: str = ""
+
+
+def mNrm_stable_points(cFunc, Rfree, PermGroFac, LivPrb=1.0,
+                       PermShkDstn=None, TranShkDstn=None, IncShkDstn=None,
+                       m_hi=1.0e4):
+    """All four stable points of a solved consumption function: the two
+    classical loci and their mortality-adjusted twins, plus a-space images.
+
+    Loci (independent shocks, E[psi] = 1; a(m) = m - c(m)):
+      Trg  (E[m'] = m):      c(m) = m - (m - E[theta]) / ((R/Gamma)*E[1/psi])
+      StE  (E[psi*m'] = m):  c(m) = m - (m - E[theta]) * Gamma/R
+      *_mort: replace R by LivPrb*R. With perpetual-youth replacement
+      (newborns at a = 0 drawing the same transitory income), mortality
+      factors EXACTLY as this return shave in the cross-sectional mean
+      dynamics, so the adjusted loci exist under GIC-Mod-Liv / GIC-Raw-Liv
+      even when the unadjusted target does not (the pure-GIC case).
+
+    # THEOREM-REF[HAFiscal-Latest @ 8ad5a853 :: theory/powerlaw-decay/grid_design_final_spec.md :: The findings ledger (each measured this arc, HS/CTOP/CCAP anchors) :: mortality EXACTLY as a return shave]
+    #   Measured at the GIC-cap atom (GIC-Mod fails; unadjusted StE = 340.9):
+    #   the L*R-adjusted balanced-growth root 40.18 lands on the
+    #   Harmenberg-neutral ergodic mean 41.23 to 2.5% (Jensen sign correct,
+    #   a(m) convex). The MEASURE picks the locus: neutral-measure
+    #   aggregation has E_N[1/psi] = 1, so its mean-dynamics anchor is the
+    #   StE locus; the raw cross-section carries E[1/psi] and anchors on Trg.
+
+    ``cFunc`` is any callable m -> c (duck-typed, like
+    ``powerlaw_tail_diagnostic``). Roots by bisection on
+    [E[theta]/2 + 1e-6, m_hi]; nan (never an exception) when a locus does not
+    cross — existence requires the corresponding growth condition.
+    """
+    R = float(_time_indexed(Rfree, 0))
+    G = float(_time_indexed(PermGroFac, 0))
+    L = float(_time_indexed(LivPrb, 0))
+    if IncShkDstn is not None:
+        psi_j, th_j, wp = _as_joint(IncShkDstn)
+        psi_j = np.asarray(psi_j, float)
+        th_j = np.asarray(th_j, float)
+        wp = np.asarray(wp, float) / np.asarray(wp, float).sum()
+        E_th = float((wp * th_j).sum())
+        E_ip = float((wp / psi_j).sum())
+    else:
+        if PermShkDstn is None:
+            E_ip = 1.0
+        else:
+            pa, pp = _as_atoms_probs(PermShkDstn, "PermShkDstn")
+            E_ip = float((np.asarray(pp, float) / np.asarray(pa, float)).sum())
+        ta, tp = _as_atoms_probs(TranShkDstn, "TranShkDstn")
+        E_th = float((np.asarray(tp, float) * np.asarray(ta, float)).sum())
+
+    def _root(locus):
+        lo = 0.5 * E_th + 1e-6
+        hi = float(m_hi)
+        f = lambda m: float(np.atleast_1d(cFunc(np.array([m])))[0]) - locus(m)
+        try:
+            flo, fhi = f(lo), f(hi)
+        except Exception:
+            return float("nan")
+        if not (np.isfinite(flo) and np.isfinite(fhi)) or flo * fhi > 0:
+            return float("nan")
+        for _ in range(200):
+            mid = 0.5 * (lo + hi)
+            fm = f(mid)
+            if flo * fm <= 0:
+                hi = mid
+            else:
+                lo, flo = mid, fm
+            if hi - lo < 1e-12 * max(1.0, mid):
+                break
+        return 0.5 * (lo + hi)
+
+    m_trg = _root(lambda m: m - (m - E_th) / ((R / G) * E_ip))
+    m_ste = _root(lambda m: m - (m - E_th) * G / R)
+    m_trg_L = _root(lambda m: m - (m - E_th) / ((L * R / G) * E_ip))
+    m_ste_L = _root(lambda m: m - (m - E_th) * G / (L * R))
+
+    def _a_of(m):
+        if not np.isfinite(m):
+            return float("nan")
+        return float(m - np.atleast_1d(cFunc(np.array([m])))[0])
+
+    return StablePoints(
+        mNrmTrg=m_trg, mNrmStE=m_ste,
+        mNrmTrg_mort=m_trg_L, mNrmStE_mort=m_ste_L,
+        aNrmTrg=_a_of(m_trg), aNrmStE=_a_of(m_ste),
+        aNrmTrg_mort=_a_of(m_trg_L), aNrmStE_mort=_a_of(m_ste_L),
+        E_theta=E_th, E_inv_psi=E_ip,
+        notes="mort loci: R -> LivPrb*R (exact for cross-sectional mean "
+              "dynamics under perpetual-youth a=0 newborns)")
