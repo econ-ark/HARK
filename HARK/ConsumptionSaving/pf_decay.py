@@ -114,6 +114,8 @@ __all__ = [
     "dual_root",
     "TailDiagnostic",
     "powerlaw_tail_diagnostic",
+    "rel_gap_at",
+    "aXtraMax_from_tail_tol",
     "PFDecayConditionWarning",
     "PFDecayGridWarning",
     "NearResonanceWarning",
@@ -979,3 +981,86 @@ def powerlaw_tail_diagnostic(cFunc, MPCmin, hNrm, params, m_lo=None, m_hi=None,
         window=(float(m[keep][0]), float(m[keep][-1])), n_points=n_keep,
         notes="; ".join(notes),
     )
+
+
+# ---------------------------------------------------------------------------
+# Certified grid-extent criterion
+# ---------------------------------------------------------------------------
+def rel_gap_at(cFunc, m, MPCmin, hNrm):
+    """Relative consumption gap (kappa*(m + h) - c(m)) / c(m) at ``m``.
+
+    The measurement the extent criterion consumes, and the quantity its
+    ex-post certificate bounds.  ``MPCmin``/``hNrm`` must come from
+    primitives (``params.kappa`` and ``params.h * params.E_inc`` in solver
+    units) — never from ``solution.hNrm`` (tolerance-truncated) or
+    ``bilt['hNrm']`` (h + 1 convention).
+    """
+    m = np.atleast_1d(np.asarray(m, float))
+    c = np.asarray(cFunc(m), float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out = (MPCmin * (m + hNrm) - c) / c
+    return out if out.size > 1 else float(out[0])
+
+
+def aXtraMax_from_tail_tol(m_ref, rel_gap_ref, q_eff, hNrm, tail_tol,
+                           safety=1.5):
+    """Grid-extent inversion: the m at which the RELATIVE consumption gap
+    reaches ``tail_tol`` — i.e. where the grid may stop and hand the tail to
+    the power-law extrapolation with a certified error bound.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: Theorem A1 :: leading exponent is `min(1, q*)`]
+    #   gap(x) ≍ x^(-min(1,q*)) with x = m + h; with c ~ kappa*x the RELATIVE
+    #   gap decays one power faster, gap/c ∝ x^(-(1+q)), so a reference
+    #   measurement inverts to x_top = x_ref*(rel_gap_ref/tail_tol)^(1/(1+q)).
+
+    Ex-post certificate (the guarantee that motivates the criterion): the true
+    consumption function is strictly concave with c' > MPCmin at every finite
+    m (Carroll-Kimball concavity + RIC/FHWC), so the gap is positive and
+    strictly DECREASING; a level-matched, monotone-decaying below-line tail
+    extrapolant therefore stays, together with the true c, inside the band
+    [PF-line - gap(m_top), PF-line] for every m >= m_top, giving pointwise
+    |c_extrap - c_true| <= gap(m_top) and relative error <=
+    rel_gap_at(cFunc, m_top, ...) <= tail_tol.  Check it after solving on the
+    delivered grid; the amplitude-jump mode of the tail law is excluded from
+    this certificate (it is not level-matched).
+
+    Parameters
+    ----------
+    m_ref : float
+        Reference point (typically the top endogenous gridpoint of a coarse
+        solve) where the relative gap was MEASURED.
+    rel_gap_ref : float
+        ``rel_gap_at(cFunc, m_ref, MPCmin, hNrm)`` from that solve.
+    q_eff : float
+        The inversion exponent's q.  Use ``min(params.q, Q_local)`` with
+        Q_local the fitted local log-log gap slope of the coarse solve (e.g.
+        from ``powerlaw_tail_diagnostic``): for q* < 1 the pre-asymptotic
+        local exponent approaches min(1, q*) from BELOW, so inverting with
+        the asymptotic exponent alone under-sizes the top.
+    hNrm : float
+        ``params.h * params.E_inc`` (solver units; see the h-convention
+        warning in this module's docstring).
+    tail_tol : float
+        Target relative gap at the top.  Values below 1e-6 are clamped: the
+        measured float64 gap dies into cancellation around gap/c ~ 1e-10, so
+        tighter targets are not certifiable ex post.
+    safety : float
+        Multiplies the ratio before inversion (default 1.5) to absorb
+        reference-measurement error; the ex-post certificate remains the
+        binding check.
+
+    Returns
+    -------
+    float
+        The certified grid top (aXtraMax-scale, same units as m_ref), or nan
+        when the inputs cannot support the inversion (non-finite,
+        non-positive rel_gap_ref or q_eff).
+    """
+    if not (np.isfinite(m_ref) and np.isfinite(rel_gap_ref)
+            and rel_gap_ref > 0.0 and np.isfinite(q_eff) and q_eff > 0.0
+            and np.isfinite(hNrm)):
+        return float("nan")
+    tail_tol = max(float(tail_tol), 1.0e-6)
+    x_ref = m_ref + hNrm
+    x_top = x_ref * (safety * rel_gap_ref / tail_tol) ** (1.0 / (1.0 + q_eff))
+    return float(x_top - hNrm)

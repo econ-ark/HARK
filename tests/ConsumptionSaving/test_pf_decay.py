@@ -43,9 +43,11 @@ from HARK.ConsumptionSaving.pf_decay import (
     NoDualRootWarning,
     PFDecayConditionWarning,
     ShockCorrelationWarning,
+    aXtraMax_from_tail_tol,
     powerlaw_decay_params,
     powerlaw_decay_params_from_agent,
     powerlaw_tail_diagnostic,
+    rel_gap_at,
     resonance_constants,
 )
 from HARK.distributions import DiscreteDistribution
@@ -739,3 +741,61 @@ class TestTailDiagnostic(unittest.TestCase):
                 self._synthetic(self.q), self.kappa, self.hN, self.params,
                 m_lo=50.0, m_hi=5e3, trial_offsets=(-0.15, 0.15),
             )
+
+
+class TestExtentCriterion(unittest.TestCase):
+    """aXtraMax_from_tail_tol + rel_gap_at: the certified grid-extent
+    criterion (the surviving deliverable of the grid-placement P1 program —
+    the placement scheme itself was KILLED by its pre-registered gates; see
+    theory/powerlaw-decay/grid_placement_p1_frontier_of_failure.md in the
+    HAFiscal-Latest repository)."""
+
+    def test_inversion_reproduces_tolerance_on_synthetic_gap(self):
+        # pure power law: rel_gap(x) = rel_ref * (x/x_ref)^(-(1+q))
+        q, hN, m_ref, rel_ref, tol = 0.4, 150.0, 40.0, 0.5, 1e-4
+        m_top = aXtraMax_from_tail_tol(m_ref, rel_ref, q, hN, tol, safety=1.0)
+        rel_at_top = rel_ref * ((m_top + hN) / (m_ref + hN)) ** (-(1.0 + q))
+        self.assertAlmostEqual(rel_at_top / tol, 1.0, places=10)
+
+    def test_safety_extends_the_top(self):
+        args = (40.0, 0.5, 0.4, 150.0, 1e-4)
+        self.assertGreater(
+            aXtraMax_from_tail_tol(*args, safety=1.5),
+            aXtraMax_from_tail_tol(*args, safety=1.0),
+        )
+
+    def test_tol_floor_clamps_below_certifiable(self):
+        a = aXtraMax_from_tail_tol(40.0, 0.5, 0.4, 150.0, 1e-12)
+        b = aXtraMax_from_tail_tol(40.0, 0.5, 0.4, 150.0, 1e-6)
+        self.assertEqual(a, b)
+
+    def test_fails_closed_on_bad_inputs(self):
+        self.assertTrue(np.isnan(
+            aXtraMax_from_tail_tol(40.0, -0.1, 0.4, 150.0, 1e-4)))
+        self.assertTrue(np.isnan(
+            aXtraMax_from_tail_tol(40.0, 0.5, 0.0, 150.0, 1e-4)))
+        self.assertTrue(np.isnan(
+            aXtraMax_from_tail_tol(np.nan, 0.5, 0.4, 150.0, 1e-4)))
+
+    def test_rel_gap_at_measures_the_synthetic_gap(self):
+        kappa, hN = 0.02, 150.0
+        gapfun = lambda m: 0.8 * ((m + hN) / hN) ** (-0.4)
+        cfun = lambda m: kappa * (np.asarray(m, float) + hN) - gapfun(
+            np.asarray(m, float))
+        m = np.array([10.0, 100.0, 1000.0])
+        got = rel_gap_at(cfun, m, kappa, hN)
+        want = gapfun(m) / cfun(m)
+        self.assertTrue(np.allclose(got, want, rtol=1e-12))
+        # scalar in -> scalar out
+        self.assertIsInstance(rel_gap_at(cfun, 10.0, kappa, hN), float)
+
+    def test_live_extent_is_conservative_on_the_HS_anchor(self):
+        # Deeper reference points imply SMALLER certified tops than shallow
+        # ones inverted with the same q_eff would (the pre-asymptotic local
+        # exponent rises with depth), and the inversion is monotone in tol.
+        params = _params("HS")
+        hN = params.h * params.E_inc
+        top4 = aXtraMax_from_tail_tol(40.0, 0.75, params.q, hN, 1e-4)
+        top3 = aXtraMax_from_tail_tol(40.0, 0.75, params.q, hN, 1e-3)
+        self.assertGreater(top4, top3)
+        self.assertGreater(top3, 40.0)
