@@ -799,3 +799,39 @@ class TestExtentCriterion(unittest.TestCase):
         top3 = aXtraMax_from_tail_tol(40.0, 0.75, params.q, hN, 1e-3)
         self.assertGreater(top4, top3)
         self.assertGreater(top3, 40.0)
+
+    # --- review-hardening additions (2026-07-10 adversarial pass) ---
+
+    def test_rel_gap_at_empty_input_returns_empty(self):
+        out = rel_gap_at(lambda m: np.asarray(m, float), np.array([]), 0.02,
+                         150.0)
+        self.assertIsInstance(out, np.ndarray)
+        self.assertEqual(out.size, 0)
+
+    def test_bad_safety_fails_closed(self):
+        self.assertTrue(np.isnan(
+            aXtraMax_from_tail_tol(40.0, 0.5, 0.4, 150.0, 1e-4, safety=-1.5)))
+        self.assertTrue(np.isnan(
+            aXtraMax_from_tail_tol(40.0, 0.5, 0.4, 150.0, 1e-4, safety=0.0)))
+        self.assertTrue(np.isnan(
+            aXtraMax_from_tail_tol(40.0, 0.5, 0.4, 150.0, 1e-4,
+                                   safety=np.nan)))
+
+    def test_closed_form_route_guarantees_by_identity(self):
+        # q* > 1: x_top = sqrt(B_psi/(MPCmin*tol)) makes B_psi/(MPCmin*x^2)
+        # equal tol exactly; monotone in tol; live CCAP ex-post measured
+        # 6.9e-5 at tol 1e-4 (see the frontier-of-failure record).
+        params = _params("CCAP")
+        hN = params.h * params.E_inc
+        top = aXtraMax_from_tail_tol(np.nan, np.nan, np.nan, hN, 1e-4,
+                                     B_psi=params.B_psi, MPCmin=params.kappa)
+        x = top + hN
+        self.assertAlmostEqual(params.B_psi / (params.kappa * x * x) / 1e-4,
+                               1.0, places=10)
+        top6 = aXtraMax_from_tail_tol(np.nan, np.nan, np.nan, hN, 1e-6,
+                                      B_psi=params.B_psi, MPCmin=params.kappa)
+        self.assertGreater(top6, top)
+        # closed-form route with a q* < 1 calibration (B_psi None) -> nan
+        self.assertTrue(np.isnan(aXtraMax_from_tail_tol(
+            np.nan, np.nan, np.nan, hN, 1e-4, B_psi=_params("HS").B_psi,
+            MPCmin=params.kappa)) or _params("HS").B_psi is None)
