@@ -44,6 +44,8 @@ from HARK.ConsumptionSaving.pf_decay import (
     PFDecayConditionWarning,
     ShockCorrelationWarning,
     aXtraMax_from_tail_tol,
+    aXtraMax_from_wealth_mass,
+    dual_root,
     mNrm_stable_points,
     powerlaw_decay_params,
     powerlaw_decay_params_from_agent,
@@ -951,3 +953,96 @@ class TestStablePoints(unittest.TestCase):
             PermShkDstn=(PSI, PP), TranShkDstn=(self.c["th"], self.c["tp"]))
         self.assertTrue(np.isnan(sp.mNrmTrg))
         self.assertTrue(np.isnan(sp.mNrmStE))
+
+
+class TestZetaL(unittest.TestCase):
+    """dual_root(..., LivPrb): the mortality-augmented dual root."""
+
+    def test_livprb_one_is_byte_compatible_none_at_cap(self):
+        c = CALS["CCAP"]
+        params = _params("CCAP")
+        z, ElnA, PA, diag = dual_root(PSI, PP, params.Thorn_Gamma)
+        self.assertIsNone(z)
+        self.assertIn("positive log-drift", diag)
+
+    def test_mortality_root_exists_at_the_cap(self):
+        # the pure-GIC case: no Kesten root, but the mortality-augmented one
+        # exists via the expanding branch (measured ~1.92 at the anchor)
+        params = _params("CCAP")
+        z, _, _, diag = dual_root(PSI, PP, params.Thorn_Gamma, LivPrb=LIV)
+        self.assertIsNone(diag)
+        self.assertGreater(z, 1.2)
+        self.assertLess(z, 3.0)
+
+    def test_mortality_thins_the_tail(self):
+        params = _params("HS")
+        z1, _, _, _ = dual_root(PSI, PP, params.Thorn_Gamma)
+        zL, _, _, _ = dual_root(PSI, PP, params.Thorn_Gamma, LivPrb=LIV)
+        self.assertGreater(zL, z1)
+
+    def test_no_expanding_branch_stays_rootless(self):
+        # psi == 1 under GIC: compact support; mortality cannot create a tail
+        params = _params("HS")
+        z, _, _, diag = dual_root(np.array([1.0]), np.array([1.0]),
+                                  params.Thorn_Gamma, LivPrb=LIV)
+        self.assertIsNone(z)
+        self.assertIn("no expanding branch", diag)
+
+
+class TestWealthMassRule(unittest.TestCase):
+    """aXtraMax_from_wealth_mass on a synthetic solved cFunc (solve-free)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.c = CALS["HS"]
+        params = _params("HS")
+        hE = params.h * params.E_inc
+        kap = params.kappa
+        # harmonic blend: ~m at small m, ~kappa*(m+hE) at large m; smooth,
+        # 0 < c < min(m, line) so a = m - c > 0 and the gap is positive
+        cls.cf = staticmethod(
+            lambda m: 1.0 / (1.0 / np.maximum(np.asarray(m, float), 1e-12)
+                             + 1.0 / (kap * (np.asarray(m, float) + hE))))
+        cls.a_max, cls.info = aXtraMax_from_wealth_mass(
+            cls.cf, R0, cls.c["G"], cls.c["beta"], RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(cls.c["th"], cls.c["tp"]),
+            eps_wealth=1e-4, probe_count=384)
+
+    def test_returns_finite_adequate_top(self):
+        self.assertTrue(np.isfinite(self.a_max))
+        self.assertGreater(self.a_max, self.info.anchor_a)
+        self.assertTrue(self.info.cover_adequate)
+        self.assertEqual(self.info.diagnosis, "ok")
+
+    def test_dial_monotonicities(self):
+        t = self.info.quantile_table
+        for meas in ("agent", "wealth"):
+            self.assertLessEqual(t[(meas, 1e-2)], t[(meas, 1e-3)])
+            self.assertLessEqual(t[(meas, 1e-3)], t[(meas, 1e-4)])
+        for e in (1e-2, 1e-3, 1e-4):
+            self.assertGreaterEqual(t[("wealth", e)], t[("agent", e)])
+
+    def test_deterministic(self):
+        a2, info2 = aXtraMax_from_wealth_mass(
+            self.cf, R0, self.c["G"], self.c["beta"], RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(self.c["th"], self.c["tp"]),
+            eps_wealth=1e-4, probe_count=384)
+        self.assertEqual(self.a_max, a2)
+
+    def test_wealth_measure_refuses_when_aggregate_wealth_unbounded(self):
+        # cap-atom primitives with near-unit survival: zeta_L <= 1
+        c = CALS["CCAP"]
+        a_max, info = aXtraMax_from_wealth_mass(
+            self.cf, R0, c["G"], c["beta"], RHO, LivPrb=0.9999,
+            PermShkDstn=(PSI, PP), TranShkDstn=(c["th"], c["tp"]),
+            eps_wealth=1e-4, probe_count=384)
+        self.assertTrue(np.isnan(a_max))
+        self.assertIn("REFUSED", info.diagnosis)
+
+    def test_never_raises_on_degenerate_primitives(self):
+        a_max, info = aXtraMax_from_wealth_mass(
+            self.cf, 1.0, 1.02, 0.96, RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(self.c["th"], self.c["tp"]),
+            probe_count=256)
+        self.assertTrue(isinstance(info.diagnosis, str)
+                        and len(info.diagnosis) > 0)

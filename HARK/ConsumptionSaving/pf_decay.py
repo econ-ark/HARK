@@ -119,6 +119,8 @@ __all__ = [
     "qstar_probe",
     "StablePoints",
     "mNrm_stable_points",
+    "WealthMassInfo",
+    "aXtraMax_from_wealth_mass",
     "PFDecayConditionWarning",
     "PFDecayGridWarning",
     "NearResonanceWarning",
@@ -343,8 +345,21 @@ def qstar_root(psi_atoms, psi_probs, Rcal, Thorn_Gamma):
     return _bisect(L, 0.0, hi, L0), None
 
 
-def dual_root(psi_atoms, psi_probs, Thorn_Gamma):
-    """Dual (Kesten) root zeta* solving E[(Thorn_Gamma/psi)^zeta] = 1.
+def dual_root(psi_atoms, psi_probs, Thorn_Gamma, LivPrb=1.0):
+    """Dual (Kesten) root: zeta solving LivPrb * E[(Thorn_Gamma/psi)^zeta] = 1.
+
+    At ``LivPrb = 1`` this is the classical Kesten root zeta* (byte-identical
+    behavior to the original signature). With ``LivPrb < 1`` it is the
+    MORTALITY-AUGMENTED dual root zeta_L: perpetual-youth death-with-replacement
+    acts as a kill rate on the Kesten recursion, and the stationary wealth tail
+    of the population is Pareto with exponent zeta_L. Two consequences:
+    (i) existence no longer needs average contraction — for LivPrb < 1 the root
+    exists whenever an EXPANDING branch exists (P(Thorn_Gamma/psi > 1) > 0),
+    INCLUDING at the GIC patience cap where zeta* does not (there, mortality is
+    the only force truncating the tail); (ii) zeta_L > zeta* when both exist
+    (mortality thins the tail). zeta_L is the patience dial of the wealth
+    distribution: more patient => Thorn_Gamma nearer 1 => smaller zeta_L =>
+    fatter tail; and zeta_L > 1 is exactly "aggregate wealth is finite".
 
     # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists]
     #   Normalized wealth follows the Kesten recursion x' = A'x + B' with
@@ -353,6 +368,8 @@ def dual_root(psi_atoms, psi_probs, Thorn_Gamma):
     #   average (E[ln A] < 0) and occasionally expands (P(A > 1) > 0). zeta* and
     #   q* are the two members of one Mellin family: the DUAL root governs the
     #   wealth-distribution tail, the PRIMAL root q* the consumption function.
+    #   With survival probability L the moment condition gains the kill rate:
+    #   L*E[A^zeta] = 1 (random growth with death, the Toda-reset mechanism).
 
     Returns ``(zeta_star, E_ln_A, P_A_gt_1, diagnosis)`` with ``zeta_star = None``
     and a non-None diagnosis string when the root does not exist.  Root search is
@@ -363,30 +380,39 @@ def dual_root(psi_atoms, psi_probs, Thorn_Gamma):
     psf = np.asarray(psi_atoms, float)
     ppf = np.asarray(psi_probs, float)
     PG = float(Thorn_Gamma)
+    L = float(LivPrb)
+    ln_L = np.log(L) if 0.0 < L <= 1.0 else float("nan")
+    if not np.isfinite(ln_L):
+        return None, float("nan"), float("nan"), (
+            f"no dual root: LivPrb = {LivPrb!r} outside (0, 1]")
     ln_A = np.log(PG) - np.log(psf)
     E_ln_A = float(np.dot(ppf, ln_A))
     P_A_gt_1 = float(ppf[ln_A > 0.0].sum())
-    if E_ln_A >= 0.0:
+    if E_ln_A >= 0.0 and L >= 1.0:
         # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: The cap-atom exception]
         #   Positive log-drift is the GIC-cap-atom case: at the patience ceiling the
         #   mean log-step is positive, normalized wealth drifts UP on average, and
-        #   only mortality-with-replacement truncates that atom's wealth tail.
+        #   only mortality-with-replacement truncates that atom's wealth tail —
+        #   which is exactly what LivPrb < 1 supplies (then this branch is skipped
+        #   and the mortality-augmented root exists via the expanding branch).
         return None, E_ln_A, P_A_gt_1, (
             f"no dual root: positive log-drift E[ln(Thorn_Gamma/psi)] = "
             f"{E_ln_A:+.6g} >= 0 — normalized wealth drifts UP on average; no "
             f"stationary distribution from impatience alone (mortality/reset must "
-            f"truncate the tail)")
+            f"truncate the tail; pass LivPrb < 1 for the mortality-augmented root)")
     if P_A_gt_1 <= 0.0:
         return None, E_ln_A, P_A_gt_1, (
             "no dual root: P(Thorn_Gamma/psi > 1) = 0 — no expanding branch; the "
             "ergodic normalized-wealth support is compact (e.g. psi == 1 under "
-            "GIC), no Pareto tail of any kind")
+            "GIC), no Pareto tail of any kind" +
+            ("" if L >= 1.0 else " (mortality cannot create a tail without an "
+             "expanding branch)"))
     ln_p = np.log(ppf)
 
-    def f(z):  # ln E[A^z] via logsumexp (safe for large z)
+    def f(z):  # ln(LivPrb * E[A^z]) via logsumexp (safe for large z)
         t = z * ln_A + ln_p
         tm = t.max()
-        return float(tm + np.log(np.exp(t - tm).sum()))
+        return float(tm + np.log(np.exp(t - tm).sum())) + ln_L
 
     hi = 1.0
     while f(hi) < 0.0 and hi < _BRACKET_CAP:
@@ -399,20 +425,22 @@ def dual_root(psi_atoms, psi_probs, Thorn_Gamma):
         # backstop (with cap = 1e12 it is unreachable for any realistic calibration;
         # a tight cap of 1024 used to make it fire on legitimate near-resonance psi).
         return None, E_ln_A, P_A_gt_1, (
-            f"no dual root found in (0, {_BRACKET_CAP:g}] despite E[ln A] < 0 and "
-            f"P(A > 1) > 0: zeta* exceeds the bracket cap (astronomically "
-            f"near-resonance; the Pareto tail is real but its exponent is enormous)")
-    # f(0) = 0 with f'(0) = E[ln A] < 0, so f < 0 just inside 0: halve down from
-    # hi/2 until the lower bracket endpoint is strictly negative (covers roots < 1)
+            f"no dual root found in (0, {_BRACKET_CAP:g}] despite a usable lower "
+            f"bracket (E[ln A] < 0 or LivPrb < 1) and P(A > 1) > 0: the root "
+            f"exceeds the bracket cap (astronomically near-resonance; the Pareto "
+            f"tail is real but its exponent is enormous)")
+    # Lower bracket: at LivPrb = 1, f(0) = 0 with f'(0) = E[ln A] < 0, so f < 0
+    # just inside 0; at LivPrb < 1, f(0) = ln(LivPrb) < 0 outright. Either way,
+    # halve down from hi/2 until the endpoint is strictly negative (roots < 1).
     lo = hi / 2.0
     flo = f(lo)
     while flo >= 0.0 and lo > 1e-12:
         lo /= 2.0
         flo = f(lo)
-    if flo >= 0.0:  # mathematically unreachable given E[ln A] < 0; kept for safety
+    if flo >= 0.0:  # mathematically unreachable given the branch guards; safety
         return None, E_ln_A, P_A_gt_1, (
-            "no dual root: lower bracket could not be established despite "
-            "E[ln A] < 0 (numerical degeneracy)")
+            "no dual root: lower bracket could not be established "
+            "(numerical degeneracy)")
     return _bisect(f, lo, hi, flo), E_ln_A, P_A_gt_1, None
 
 
@@ -1361,3 +1389,231 @@ def mNrm_stable_points(cFunc, Rfree, PermGroFac, LivPrb=1.0,
         E_theta=E_th, E_inv_psi=E_ip,
         notes="mort loci: R -> LivPrb*R (exact for cross-sectional mean "
               "dynamics under perpetual-youth a=0 newborns)")
+
+
+# ---------------------------------------------------------------------------
+# The aXtraMax mass rule: measure the stationary wealth quantile
+# ---------------------------------------------------------------------------
+@dataclass
+class WealthMassInfo:
+    """Diagnostics bundle for :func:`aXtraMax_from_wealth_mass`."""
+    a_max: float = float("nan")
+    zeta_L: Optional[float] = None      # mortality-augmented dual root
+    zeta_diagnosis: Optional[str] = None
+    anchor_a: float = float("nan")      # a-image of the mortality-adjusted StE
+    a_cover: float = float("nan")       # covering-grid top used for measurement
+    cover_adequate: bool = False
+    quantile_table: dict = None         # {(measure, eps): a-quantile} 3x2 dial
+    measure: str = ""
+    eps_wealth: float = float("nan")
+    safety: float = float("nan")
+    diagnosis: str = ""
+
+
+def aXtraMax_from_wealth_mass(cFunc, Rfree, PermGroFac, DiscFac, CRRA,
+                              LivPrb=1.0, PermShkDstn=None, TranShkDstn=None,
+                              IncShkDstn=None, eps_wealth=1e-4,
+                              measure="wealth", safety=1.25, probe_count=1024,
+                              a_cover=None, round_to=None):
+    """The asset-grid top as a MEASURED stationary wealth quantile: the
+    smallest a_max leaving at most ``eps_wealth`` of the chosen mass above the
+    grid, from the deterministic stationary distribution implied by ``cFunc``.
+
+    Why each choice (the design rationale, in code where it belongs):
+
+    * WHY MEASURED, not closed-form: the Pareto-asymptotic inversion of the
+      tail exponent is a poor quantile estimator in exactly the regimes that
+      matter — measured against truth it UNDERSHOOTS (unsafely) when the tail
+      exponent is large (the quantile sits only a few multiples of the target,
+      before the Pareto regime begins) and overshoots by orders of magnitude
+      as the exponent nears 1 (hypersensitive (1/(zeta-1)) power). The closed
+      form therefore serves ONLY as the generous covering-grid top for this
+      measurement; the RULE is the measured quantile.
+    * WHY the tail exponent still matters — zeta_L, the MORTALITY-AUGMENTED
+      dual root (``dual_root(..., LivPrb)``), is the patience dial and the
+      existence test: it exists whenever an expanding branch exists, including
+      at the GIC patience cap where the classical Kesten root does not
+      (mortality truncates the patient tail); more patience => smaller zeta_L
+      => deeper top, automatically. zeta_L <= 1 means aggregate wealth is not
+      finite: no wealth-measure top exists and this function REFUSES rather
+      than gridding away an economic property (fresh anchors measured 9.74 /
+      4.34 / 1.92 across the patience range).
+    * WHY the WEALTH measure (default): moment consumers (Lorenz-type
+      statistics, aggregate wealth) weight states by wealth, and the wealthy
+      few dominate those moments; the agent measure is offered for
+      distributional work where heads count. Wealth quantiles are deeper than
+      agent quantiles at every tolerance (measured 3-7x at the patient edge).
+    * WHY eps_wealth may be MODERATE: with the power-law tail law attached
+      above a_max, the mass beyond the grid is PRICED (to corridor accuracy),
+      not lost — the induced wealth-moment bias is of order eps_wealth times
+      the tail-law error, several orders below eps_wealth itself.
+    * WHY the anchor: the covering scale is the a-image of the
+      mortality-adjusted balanced-growth point (``mNrm_stable_points``),
+      which tracks the stationary mean even in the pure-GIC case.
+    * Populations: apply per type/atom and take the max — the most patient
+      atom binds the common grid.
+
+    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: Patience fattens the tail]
+    #   The stationary wealth tail is Pareto with the dual-root exponent, and
+    #   patience fattens it — the theory reason the grid top must be
+    #   patience-sensitive, delivered here through zeta_L and the measurement.
+
+    # THEOREM-REF[HAFiscal-Latest @ d67f9183 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: THE RULE IS MEASURED]
+    #   F10 of the grid-design record: the measured-quantile rule, the
+    #   cover-only role of the closed form (0.38x unsafe / 128x over at the
+    #   patience extremes), and the fresh quantile table across
+    #   (measure, eps) on the anchor calibrations.
+
+    Parameters: ``cFunc`` = a solved consumption function (a coarse solve
+    suffices — the stationary objects it implies are second-order-insensitive
+    to solve refinement); shock inputs as elsewhere in this module;
+    ``eps_wealth`` = the one tolerance (share of the chosen mass allowed above
+    the grid); ``measure`` in {"wealth", "agent"}; ``safety`` multiplies the
+    measured quantile; ``a_cover`` overrides the covering top; ``round_to``
+    optionally ceils a_max to a multiple. Returns ``(a_max, WealthMassInfo)``
+    — a_max nan (never an exception) with ``info.diagnosis`` on refusal. The
+    certificate is one re-call on a cFunc RE-SOLVED with the returned top:
+    unchanged within a few percent closes the loop. The certificate step is
+    LOAD-BEARING for patient types whose own body extends beyond the first
+    solve's top (measured at the patience-cap anchor: the single-call
+    quantile is 33% short when the coarse top sits inside that atom's body;
+    the certified re-call lands within 3.4% of truth — and within 0.1% at
+    the impatient anchors). Deterministic throughout (power iteration from
+    the uniform start; no RNG).
+    """
+    info = WealthMassInfo(measure=str(measure), eps_wealth=float(eps_wealth),
+                          safety=float(safety), quantile_table={})
+    try:
+        theory = powerlaw_decay_params(
+            Rfree, PermGroFac, DiscFac, CRRA, LivPrb=LivPrb,
+            PermShkDstn=PermShkDstn, TranShkDstn=TranShkDstn,
+            IncShkDstn=IncShkDstn, warn=False)
+        R = float(_time_indexed(Rfree, 0))
+        G = float(_time_indexed(PermGroFac, 0))
+        L = float(_time_indexed(LivPrb, 0))
+        if IncShkDstn is not None:
+            psi_j, th_j, wp = _as_joint(IncShkDstn)
+            psi_j = np.asarray(psi_j, float)
+            th_j = np.asarray(th_j, float)
+            wp = np.asarray(wp, float)
+            psi_a, psi_p = _marginal(psi_j, wp)
+            psi_a, psi_p = np.asarray(psi_a, float), np.asarray(psi_p, float)
+        else:
+            if PermShkDstn is None:
+                psi_a, psi_p = np.array([1.0]), np.array([1.0])
+            else:
+                pa, pp = _as_atoms_probs(PermShkDstn, "PermShkDstn")
+                psi_a, psi_p = np.asarray(pa, float), np.asarray(pp, float)
+            ta, tp = _as_atoms_probs(TranShkDstn, "TranShkDstn")
+            PSI, TH = np.meshgrid(psi_a, np.asarray(ta, float), indexing="ij")
+            wp = np.outer(psi_p, np.asarray(tp, float)).ravel()
+            psi_j, th_j = PSI.ravel(), TH.ravel()
+        wp = wp / wp.sum()
+
+        z, _, _, z_diag = dual_root(psi_a, psi_p, theory.Thorn_Gamma,
+                                    LivPrb=L)
+        info.zeta_L, info.zeta_diagnosis = z, z_diag
+        if measure == "wealth" and z is not None and z <= 1.05:
+            info.diagnosis = (
+                f"REFUSED: zeta_L = {z:.4f} <= 1.05 — aggregate wealth is not "
+                f"(or barely) finite; a wealth-measure grid top is economically "
+                f"arbitrary. Use measure='agent' or revisit the calibration.")
+            return float("nan"), info
+
+        # anchor scale: a-image of the mortality-adjusted balanced-growth root
+        sp = mNrm_stable_points(cFunc, R, G, LivPrb=L,
+                                PermShkDstn=(psi_a, psi_p),
+                                TranShkDstn=(np.asarray(th_j, float),
+                                             wp) if IncShkDstn is not None
+                                else TranShkDstn)
+        anchor = sp.aNrmStE_mort
+        if not np.isfinite(anchor) or anchor <= 0:
+            anchor = sp.aNrmStE
+        if not np.isfinite(anchor) or anchor <= 0:
+            anchor = max(sp.E_theta, 1.0)
+        info.anchor_a = float(anchor)
+
+        # covering top: closed-form Pareto inversion, clipped generously —
+        # cover-only (see docstring); compact/no-tail case gets a flat multiple
+        if a_cover is None:
+            if z is not None and z > 1.05:
+                a_cover = anchor * (1.0 / min(eps_wealth, 1e-4)) \
+                    ** (1.0 / (z - 1.0))
+                a_cover = float(np.clip(a_cover, 50.0 * anchor,
+                                        1.0e4 * anchor))
+            else:
+                a_cover = 50.0 * anchor
+        a_cover = float(a_cover)
+
+        eps_grid = (1e-2, 1e-3, 1e-4)
+        for _attempt in range(4):
+            info.a_cover = a_cover
+            # m-cover such that a(m_cover) >= a_cover
+            m_cover = a_cover
+            for _ in range(80):
+                a_at = m_cover - float(np.atleast_1d(
+                    cFunc(np.array([m_cover])))[0])
+                if a_at >= a_cover:
+                    break
+                m_cover *= 1.5
+            probe = np.geomspace(1e-4, m_cover, int(probe_count))
+            c_p = np.asarray(cFunc(probe), float)
+            a_of = np.maximum(probe - c_p, 0.0)
+            # deterministic neutral-measure kernel with mortality + a=0 newborns
+            wN = wp * psi_j
+            wN = wN / wN.sum()
+            images = (R / (G * psi_j))[None, :] * a_of[:, None] \
+                + th_j[None, :]
+            H = probe.size
+            idx = np.clip(np.searchsorted(probe, images) - 1, 0, H - 2)
+            lo_g = probe[idx]
+            hi_g = probe[idx + 1]
+            frac = np.clip((images - lo_g) / (hi_g - lo_g), 0.0, 1.0)
+            P = np.zeros((H, H))
+            rows = np.repeat(np.arange(H), images.shape[1])
+            np.add.at(P, (rows, idx.ravel()),
+                      (np.broadcast_to(wN, images.shape)
+                       * (1.0 - frac)).ravel())
+            np.add.at(P, (rows, (idx + 1).ravel()),
+                      (np.broadcast_to(wN, images.shape) * frac).ravel())
+            nb_img = th_j[None, :]
+            nb_idx = np.clip(np.searchsorted(probe, nb_img) - 1, 0, H - 2)
+            nb_frac = np.clip((nb_img - probe[nb_idx])
+                              / (probe[nb_idx + 1] - probe[nb_idx]), 0.0, 1.0)
+            nb = np.zeros(H)
+            np.add.at(nb, nb_idx.ravel(), (wN * (1.0 - nb_frac)).ravel())
+            np.add.at(nb, (nb_idx + 1).ravel(), (wN * nb_frac).ravel())
+            P = L * P + (1.0 - L) * nb[None, :]
+            pi = np.full(H, 1.0 / H)
+            for _ in range(20000):
+                nxt = pi @ P
+                nxt /= nxt.sum()
+                if np.abs(nxt - pi).sum() < 1.0e-12:
+                    pi = nxt
+                    break
+                pi = nxt
+            table = {}
+            for name, mass in (("agent", pi), ("wealth", pi * a_of)):
+                mm = mass / mass.sum() if mass.sum() > 0 else mass
+                cm = np.cumsum(mm)
+                for e in eps_grid:
+                    table[(name, e)] = float(np.interp(1.0 - e, cm, a_of))
+            info.quantile_table = table
+            e_req = float(eps_wealth)
+            mm = (pi * a_of if measure == "wealth" else pi)
+            mm = mm / mm.sum()
+            a_q = float(np.interp(1.0 - e_req, np.cumsum(mm), a_of))
+            if a_q <= 0.9 * a_of[-1]:
+                info.cover_adequate = True
+                break
+            a_cover *= 4.0  # quantile at the cover edge: extend and re-measure
+        a_max = a_q * float(safety)
+        if round_to:
+            a_max = float(np.ceil(a_max / round_to) * round_to)
+        info.a_max = a_max
+        info.diagnosis = "ok" if info.cover_adequate else \
+            "WARNING: quantile still at the covering-grid edge after extension"
+        return a_max, info
+    except Exception as exc:  # behavior contract: never raises
+        info.diagnosis = f"failed: {exc!r}"
+        return float("nan"), info
