@@ -218,7 +218,7 @@ _AMPLITUDE_RATIO_LOGGED = set()
 
 
 def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerlaw",
-                     decay_theory=None, decay_Q="theory"):
+                     decay_theory=None, decay_Q="theory", decay_terms=2):
     """Build one per-Mgrid consumption slice, optionally with PF decay extrapolation.
 
     When ``MPCmin`` and ``hNrm`` are both supplied (not None), the returned
@@ -287,8 +287,10 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
       #   that ceiling is theory-infeasible and signals a coarse or
       #   non-converged grid top; the clamp is the hard cap.
     * ``decay_Q=<positive float>``: explicit exponent, passed through to
-      ``LinearInterp(decay_extrap_Q=...)`` (level-matched, documented C1 kink
-      ``(Q_fit - Q)*A/pivot`` at the top knot).
+      ``LinearInterp(decay_extrap_Q=...)`` (level-matched; under the default
+      ``decay_terms=2`` also slope-matched/C1 — the one-term variant's
+      documented C1 kink ``(Q_fit - Q)*A/pivot`` exists only at
+      ``decay_terms=1``).
     * ``decay_Q=('amplitude', B)``: REMOVED (raises ``ValueError``). This mode
       attached the closed-form-amplitude tail ``gap = B/(x+h)`` with a
       guarded level JUMP at the top knot; by design ruling (2026-07-11),
@@ -298,6 +300,17 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
       gap. Use ``decay_Q=1.0`` for a level-matched exponent-1 tail; the
       boundary value retains its diagnostic role via the amplitude-ratio
       log line (below).
+
+    ``decay_terms`` (default 2) selects the explicit-exponent attachment:
+    ``2`` = the C1 TWO-TERM tail (level- AND slope-matched with the theory
+    exponent leading; ``LinearInterp(decay_extrap_terms=2)``), ``1`` = the
+    one-term level-matched tail with the C1 kink. The two-term DEFAULT
+    exists to guard against Jacobian problems in SSJ-type (sequence-space
+    Jacobian) approaches: policy derivatives are primitive inputs to SSJ
+    Jacobian/fake-news construction and to differentiation through the
+    solution, and a C1 kink at the attachment point makes them
+    discontinuous for queries crossing it. Inert without an explicit
+    exponent (the fitted forms are inherently slope-matched).
 
     Rescue: with an explicit exponent available (theory default, guarded fit's
     ceiling, or a float), the branches where the FITTED form must disable decay
@@ -337,6 +350,10 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     #   approaching the PF line from below and c' falling to kappa from above —
     #   exactly the top-knot configuration this guard enforces.
     """
+    if isinstance(decay_terms, bool) or decay_terms not in (1, 2):
+        raise ValueError(
+            "decay_terms must be 1 or 2, got " + repr(decay_terms)
+        )
     if MPCmin is None or hNrm is None:
         return LinearInterp(m_temp, c_temp)
 
@@ -438,6 +455,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             f = LinearInterp(
                 m_temp, c_temp, intercept_limit, MPCmin,
                 decay_extrap_form="powerlaw", decay_extrap_Q=Q_explicit,
+                decay_extrap_terms=decay_terms,
             )
             Q_used = Q_explicit
         else:
@@ -454,6 +472,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             f = LinearInterp(
                 m_temp, c_temp, intercept_limit, MPCmin,
                 decay_extrap_form="powerlaw", decay_extrap_Q=ceiling,
+                decay_extrap_terms=decay_terms,
             )
             Q_used = ceiling
         elif healthy:
@@ -468,6 +487,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             f = LinearInterp(
                 m_temp, c_temp, intercept_limit, MPCmin,
                 decay_extrap_form="powerlaw", decay_extrap_Q=ceiling,
+                decay_extrap_terms=decay_terms,
             )
             Q_used = ceiling
         else:
@@ -479,6 +499,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             q=decay_theory.q,
             Q_used=Q_used,
             Q_fit=Q_fit,
+            terms=getattr(f, "decay_extrap_terms", None),
             B_psi=decay_theory.B_psi,
             lambda_B=decay_theory.lambda_B,
             near_resonance=decay_theory.near_resonance,
@@ -616,6 +637,7 @@ def solveConsAggShock(
     hNrm=None,
     decay_theory=None,
     decay_Q="theory",
+    decay_terms=2,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -736,6 +758,7 @@ def solveConsAggShock(
             make_cFunc_slice(
                 m_temp, c_temp, MPCmin, hNrm,
                 decay_theory=decay_theory, decay_Q=decay_Q,
+                decay_terms=decay_terms,
             )
         )
 
@@ -789,6 +812,7 @@ def solve_ConsAggMarkov(
     hNrm=None,
     decay_theory=None,
     decay_Q="theory",
+    decay_terms=2,
 ):
     """
     Solve one period of a consumption-saving problem with idiosyncratic and
@@ -1035,6 +1059,7 @@ def solve_ConsAggMarkov(
                 make_cFunc_slice(
                     m_temp, c_temp, MPCmin, hNrm_i,
                     decay_theory=decay_theory, decay_Q=decay_Q,
+                    decay_terms=decay_terms,
                 )
             )
             # Add the M-specific consumption function to the list
@@ -1283,7 +1308,7 @@ class AggShockConsumerType(IndShockConsumerType):
     # anchor for the PF asymptote.
     time_inv_ = IndShockConsumerType.time_inv_.copy()
     time_inv_ += ["Mgrid", "AFunc", "Rfunc", "wFunc", "PermGroFacAgg", "MPCmin", "hNrm"]
-    time_inv_ += ["decay_theory", "decay_Q"]
+    time_inv_ += ["decay_theory", "decay_Q", "decay_terms"]
     try:
         time_inv_.remove("vFuncBool")
         time_inv_.remove("CubicBool")
@@ -1322,6 +1347,10 @@ class AggShockConsumerType(IndShockConsumerType):
             self.decay_theory = None
         if "decay_Q" not in self.__dict__:
             self.decay_Q = "theory"
+        # 2 = the C1 two-term attachment (the default; SSJ-Jacobian guard,
+        # see make_cFunc_slice); 1 = the one-term level-matched tail
+        if "decay_terms" not in self.__dict__:
+            self.decay_terms = 2
 
     def reset(self):
         """

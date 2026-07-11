@@ -330,13 +330,29 @@ class TestMakeCFuncSliceTheoryModes(unittest.TestCase):
                                     decay_theory=self.theory_lo)
         self.assertTrue(f_theory.decay_extrap)
         self.assertEqual(f_theory.decay_extrap_Q, self.theory_lo.q)
-        # the rescued tail decays toward the PF line; naive-linear never rejoins
+        # default rescue is the C1 two-term attachment: it extends the body
+        # SMOOTHLY (matching its still-widening gap at the knot: an interior
+        # gap maximum, not immediate decay) and only then decays to the line
+        self.assertEqual(f_theory.decay_extrap_terms, 2)
+        self.assertEqual(f_theory.decay_theory["terms"], 2)
+        slope_top = (c[-1] - c[-2]) / (m[-1] - m[-2])
+        d_above = float(f_theory.derivative(np.array([m[-1] + 1e-11]))[0])
+        self.assertLess(abs(d_above - slope_top), 1e-9)  # C1, no kink
         lad = np.geomspace(50.0, 5000.0, 20)
         gap = self.line(lad) - f_theory(lad)
+        gap_top = self.line(m[-1]) - c[-1]
         self.assertTrue(np.all(gap > 0.0))
-        self.assertTrue(np.all(np.diff(gap) < 0.0))
+        self.assertLess(gap[-1], gap_top)  # eventually decays below the knot gap
         gap_legacy = self.line(lad) - f_legacy(lad)
         self.assertGreater(gap_legacy[-1], gap[-1])
+        # the ONE-TERM rescue keeps its original registrations: immediate
+        # monotone decay from a level-matched knot (with the documented kink)
+        f_one = make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
+                                 decay_theory=self.theory_lo, decay_terms=1)
+        gap1 = self.line(lad) - f_one(lad)
+        self.assertTrue(np.all(gap1 > 0.0))
+        self.assertTrue(np.all(np.diff(gap1) < 0.0))
+        self.assertLess(gap1[0], gap_top)
         # guarded fit rescues with the same ceiling exponent
         f_guard = make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
                                    decay_theory=self.theory_lo, decay_Q=None)
@@ -371,6 +387,12 @@ class TestMakeCFuncSliceTheoryModes(unittest.TestCase):
         m, c = self.knots()
         with self.assertRaises(ValueError):
             make_cFunc_slice(m, c, self.MPCmin, self.hNrm, decay_Q="bogus")
+        # refuter finding (B3): decay_terms must be validated even on the
+        # legacy early-return path (MPCmin/hNrm None)
+        with self.assertRaises(ValueError):
+            make_cFunc_slice(m, c, None, None, decay_terms=37)
+        with self.assertRaises(ValueError):
+            make_cFunc_slice(m, c, self.MPCmin, self.hNrm, decay_terms=True)
         with self.assertRaises(ValueError):
             make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
                              decay_Q=("amplitude", -1.0))

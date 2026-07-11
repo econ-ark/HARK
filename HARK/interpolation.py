@@ -929,13 +929,45 @@ class LinearInterp(HARKinterpolator1D):
         in particular a top slope at or below ``slope_limit`` (fitted
         ``B <= 0``, where the fitted form must disable decay) still attaches
         an explicit-Q tail. ``self.decay_extrap_Q_source`` records
-        ``'explicit'`` vs ``'fitted'`` for introspection.
+        ``'explicit'`` vs ``'fitted'`` for introspection. The C1-kink
+        description above applies to the ONE-TERM variant
+        (``decay_extrap_terms=1``); the default two-term attachment is C1.
 
         # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
         #   The gap extrapolant g ~ C*(x + h)**(-q) with q = min(1, q*) is the
         #   asymptotically correct form for buffer-stock consumption functions;
         #   this keyword is the hook that lets callers pin the exponent to the
         #   theory value (or any explicit value) instead of the 2-knot fit.
+    decay_extrap_terms : int, keyword-only (default 2)
+        Consulted only with ``decay_extrap_Q``. ``2`` (default): the C1
+        TWO-TERM attachment ``gap = A*z**(-Q) + A2*z**(-(Q+1))`` with
+        ``z = (x+h)/(x_top+h)``, level- AND slope-matched at the top knot
+        (``A2 = gap*(Q_fit - Q)``, ``A = gap - A2``, where ``Q_fit`` is the
+        2-knot fitted exponent); it carries the theory exponent as the
+        leading term, collapses EXACTLY to the one-term tail when
+        ``Q_fit == Q``, and preserves below-the-line, ``c' > slope_limit``,
+        and the leading exponent whenever it attaches. Guard: ``Q_fit >=
+        Q + 1`` (top segment locally steeper than theory+1 — a coarse or
+        non-converged grid top) warns and falls back to one term. ``1``: the
+        level-matched one-term tail with the documented C1 kink.
+
+        WHY the two-term default: it guards against Jacobian problems in
+        SSJ-type (sequence-space Jacobian) approaches. Policy derivatives
+        are primitive inputs to SSJ fake-news/Jacobian construction and to
+        automatic or numerical differentiation through the solution; a C1
+        kink at the attachment point makes those derivatives discontinuous
+        for queries crossing it, producing noisy or discontinuous Jacobian
+        rows for high-wealth states. The second exponent is ``Q + 1`` (NOT
+        the theory-subleading pair, whose spacing ``|q* - 1|`` vanishes at
+        the near-resonance calibrations and blows the amplitudes up): it is
+        an attachment (boundary-layer) term absorbing exactly the one-term
+        kink, not an asymptotic claim.
+
+        # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+        #   F11: closed-form amplitudes B = G*(Q_fit - Q), A = G*(1+Q-Q_fit)
+        #   from the level+slope matching conditions; conditioning argument
+        #   for Q+1 over the theory-subleading pair; property proofs
+        #   (below-line, MPC floor, concavity condition, guard + fallback).
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -952,6 +984,7 @@ class LinearInterp(HARKinterpolator1D):
         decay_extrap_form="exp",
         *,
         decay_extrap_Q=None,
+        decay_extrap_terms=2,
     ):
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
@@ -983,6 +1016,11 @@ class LinearInterp(HARKinterpolator1D):
                     "decay_extrap_Q must be a positive finite float, got "
                     + repr(decay_extrap_Q)
                 )
+        if isinstance(decay_extrap_terms, bool) or decay_extrap_terms not in (1, 2):
+            raise ValueError(
+                "decay_extrap_terms must be 1 or 2, got "
+                + repr(decay_extrap_terms)
+            )
         if intercept_limit is not None and slope_limit is not None:
             slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
             level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
@@ -992,7 +1030,9 @@ class LinearInterp(HARKinterpolator1D):
                 # exponent supplied by the caller (relaxed guard; see docstring)
                 self.intercept_limit = intercept_limit
                 self.slope_limit = slope_limit
-                self._init_explicit_Q_decay(level_diff, slope_diff, decay_extrap_Q)
+                self._init_explicit_Q_decay(
+                    level_diff, slope_diff, decay_extrap_Q, decay_extrap_terms
+                )
             # If the model that can handle uncertainty has been calibrated with
             # with uncertainty set to zero, the 'extrapolation' will blow up
             # Guard against that and nearby problems by testing slope equality
@@ -1059,20 +1099,28 @@ class LinearInterp(HARKinterpolator1D):
         self.decay_extrap_Q = self.decay_extrap_B * pivot
         self.decay_extrap_Q_source = "fitted"
 
-    def _init_explicit_Q_decay(self, level_diff, slope_diff, Q):
+    def _init_explicit_Q_decay(self, level_diff, slope_diff, Q, terms=2):
         """Set up the power-law decay tail with an EXPLICIT exponent ``Q``, or
         fall back to no decay (with a warning) if the relaxed guard fails.
 
-        The gap is ``gap(x) = A * ((x + h)/(x_top + h))**(-Q)`` with
-        ``A = level_diff`` (level-matched at the top knot by construction) and
-        the caller's ``Q``. Because ``Q`` is not inferred from the top-segment
+        With ``terms=2`` (the default; see ``decay_extrap_terms``) the gap is
+        the C1 two-term attachment
+        ``gap(x) = A*z**(-Q) + A2*z**(-(Q+1))``, ``z = (x+h)/(x_top+h)``,
+        level- AND slope-matched at the top knot:
+        ``A2 = level_diff*(Q_fit - Q)``, ``A = level_diff - A2`` (F11 closed
+        forms; collapses to one term exactly when ``Q_fit == Q``); when the
+        fitted rate is theory-infeasibly steep (``Q_fit >= Q + 1``, where the
+        leading amplitude would turn negative) it warns and falls back to one
+        term. With ``terms=1`` the gap is the one-term
+        ``A * ((x + h)/(x_top + h))**(-Q)`` with ``A = level_diff``
+        (level-matched only; C1 kink ``(Q_fit - Q)*A/pivot`` at the knot).
+        Because ``Q`` is not inferred from the top-segment
         slope, only ``slope_limit > 0``, ``level_diff > 0`` (top knot strictly
         below the limiting line), and a positive pivot are required — NOT
         ``decay_extrap_B > 0``: a top slope at or below ``slope_limit`` (where
         the fitted form must disable decay) is exactly the rescue case an
-        explicit exponent exists to serve. The cost is a C1 kink at the top
-        knot: the derivative just above is ``slope_limit + Q*A/pivot`` rather
-        than the interior top-segment slope.
+        explicit exponent exists to serve (the two-term rescue extends the
+        body smoothly; the one-term rescue kinks upward at the knot).
         """
         x_top = self.x_list[-1]
         ok = self.slope_limit > 0.0 and level_diff > 0.0
@@ -1090,12 +1138,41 @@ class LinearInterp(HARKinterpolator1D):
             )
             self.decay_extrap = False
             return
-        self.decay_extrap_A = level_diff
-        # fitted-rate diagnostic (may be <= 0 here; not used by the eval path)
+        # fitted-rate diagnostic; also the slope input of the two-term form
         self.decay_extrap_B = -slope_diff / level_diff
         self.decay_extrap_pivot = pivot
         self.decay_extrap_Q = Q
         self.decay_extrap_Q_source = "explicit"
+        Q_fit = self.decay_extrap_B * pivot
+        A2 = level_diff * (Q_fit - Q) if np.isfinite(Q_fit) else np.nan
+        if terms == 2 and np.isfinite(Q_fit) and Q_fit < Q + 1.0 and A2 != 0.0:
+            # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+            #   Level+slope matching with the theory exponent leading gives
+            #   A2 = G*(Q_fit - Q), A = G - A2; the second exponent Q+1 keeps
+            #   the system conditioned at near-resonance calibrations where
+            #   the theory-subleading pair collides. An EXACT collapse
+            #   (Q == Q_fit, A2 == 0) stores the one-term representation
+            #   below instead, so it is byte-identical to terms=1 including
+            #   derivatives; a non-finite Q_fit (degenerate top segment,
+            #   infinite pivot) falls back rather than attach a NaN tail.
+            self.decay_extrap_A2 = A2
+            self.decay_extrap_A = level_diff - self.decay_extrap_A2
+            self.decay_extrap_terms = 2
+        else:
+            if terms == 2 and not (np.isfinite(Q_fit) and Q_fit < Q + 1.0):
+                warnings.warn(
+                    "LinearInterp(decay_extrap_Q=..., decay_extrap_terms=2): "
+                    f"the fitted rate Q_fit={Q_fit:.4g} is not finite and "
+                    f"strictly below Q+1={Q + 1.0:.4g} (at or above it, the "
+                    "two-term leading amplitude would be non-positive -- a "
+                    "top segment that steep signals a coarse or non-converged "
+                    "grid top; non-finite signals a degenerate top segment); "
+                    "falling back to the one-term level-matched tail "
+                    "(C1 kink at the knot)."
+                )
+            self.decay_extrap_A = level_diff
+            self.decay_extrap_A2 = 0.0
+            self.decay_extrap_terms = 1
         self.decay_extrap = True
 
     def _segment_index(self, x):
@@ -1154,6 +1231,26 @@ class LinearInterp(HARKinterpolator1D):
             return
         x_temp = x[above] - self.x_list[-1]
         if getattr(self, "decay_extrap_form", "exp") == "powerlaw":
+            if getattr(self, "decay_extrap_terms", 1) == 2:
+                # C1 two-term attachment (F11): gap = A*z**(-Q) + A2*z**(-(Q+1))
+                # in z = (x+h)/(x_top+h); level- and slope-matched at the knot
+                # with the theory exponent leading. Same stable exp/log1p
+                # evaluation; both terms underflow to the line at depth.
+                lw = np.log1p(x_temp / self.decay_extrap_pivot)
+                w1 = np.exp(-self.decay_extrap_Q * lw)
+                w2 = np.exp(-(self.decay_extrap_Q + 1.0) * lw)
+                decay = self.decay_extrap_A * w1 + self.decay_extrap_A2 * w2
+                if y is not None:
+                    y[above] = (
+                        self.intercept_limit + self.slope_limit * x[above] - decay
+                    )
+                if dydx is not None:
+                    # d(-gap)/dx = +(Q*A*z**(-Q) + (Q+1)*A2*z**(-(Q+1)))/(x+h)
+                    dydx[above] = self.slope_limit + (
+                        self.decay_extrap_Q * self.decay_extrap_A * w1
+                        + (self.decay_extrap_Q + 1.0) * self.decay_extrap_A2 * w2
+                    ) / (x_temp + self.decay_extrap_pivot)
+                return
             # gap = A * ((x + h)/(x_top + h))**(-Q), computed via exp/log1p for
             # numerical stability. For x_temp << x_top + h it reduces to
             # A*exp(-B*x_temp): the exponential form is the local linearization
@@ -1269,9 +1366,11 @@ class DecayTailInterp(HARKinterpolator1D):
     interp : callable
         The wrapped interpolant: any object mapping a numpy array of query
         points to a numpy array of values (all HARK 1D interpolants qualify).
-        A ``derivative`` method is required only by the FITTED tail forms
-        (``decay_extrap_Q=None``), which infer the decay rate from the slope
-        at ``x_cut``; with an explicit exponent, any bare callable works.
+        A ``derivative`` method is required by the FITTED tail forms
+        (``decay_extrap_Q=None``) and by the DEFAULT two-term explicit mode
+        (``decay_extrap_terms=2``), both of which read the slope at
+        ``x_cut``; the one-term explicit mode (``decay_extrap_terms=1``)
+        works on any bare callable.
     intercept_limit : float
         Intercept of the limiting linear function (required).
     slope_limit : float
@@ -1307,11 +1406,36 @@ class DecayTailInterp(HARKinterpolator1D):
         exactly as ``LinearInterp`` fits from its top two knots (the wrapped
         interpolant's ``derivative(x_cut)`` supplies the slope). A positive
         float (requires ``decay_extrap_form='powerlaw'``): use this EXPLICIT
-        decay exponent; the gap amplitude is the level gap at ``x_cut``, so
-        the tail is level-matched (continuous) by construction with a C1 kink
-        whose size the ``LinearInterp.decay_extrap_Q`` documentation derives.
+        decay exponent; the tail is level-matched (continuous) by
+        construction, and under the default ``decay_extrap_terms=2`` it is
+        slope-matched (C1) as well; only the one-term variant
+        (``decay_extrap_terms=1``) has the C1 kink whose size the
+        ``LinearInterp.decay_extrap_Q`` documentation derives.
         The theory exponent for buffer-stock consumption functions is
         ``min(1, q*)`` from :mod:`HARK.ConsumptionSaving.pf_decay`.
+    decay_extrap_terms : int, keyword-only (default 2)
+        Consulted only with ``decay_extrap_Q``. ``2`` (default): the C1
+        TWO-TERM attachment ``gap = A*z**(-Q) + A2*z**(-(Q+1))``, level- AND
+        slope-matched at ``x_cut`` with the theory exponent leading (F11
+        closed forms ``A2 = gap*(Q_fit - Q)``, ``A = gap - A2``; collapses
+        exactly to one term when the local fitted rate equals ``Q``; warns
+        and falls back to one term when ``Q_fit >= Q + 1``). ``1``: the
+        level-matched one-term tail (C1 kink; the only explicit mode
+        available to derivative-less bodies).
+
+        WHY the two-term default: it guards against Jacobian problems in
+        SSJ-type (sequence-space Jacobian) approaches -- policy derivatives
+        are primitive inputs to SSJ Jacobian/fake-news construction and to
+        differentiation through the solution, and a C1 kink at the
+        attachment point makes them discontinuous for queries crossing the
+        cut. The second exponent is ``Q + 1`` (an attachment term absorbing
+        exactly the one-term kink), NOT the theory-subleading pair, whose
+        spacing ``|q* - 1|`` vanishes at near-resonance calibrations.
+
+        # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+        #   F11: derivation of the closed-form amplitudes, the conditioning
+        #   argument for Q+1, and the property proofs (below-line, MPC
+        #   floor, concavity condition, guard + one-term fallback).
 
     Notes
     -----
@@ -1321,10 +1445,10 @@ class DecayTailInterp(HARKinterpolator1D):
     never jumps. There is deliberately no amplitude-override hook: imposing
     an external amplitude (e.g. a closed-form boundary value) at a
     pre-asymptotic cut forces a level discontinuity, which is never
-    acceptable; if an amplitude-anchored tail is ever needed, it must be a
-    level-matched form whose correction term dies off (a two-term tail),
-    not a jump. The one discontinuity the class can exhibit is the
-    documented C1 (derivative-only) kink of the explicit-exponent mode.
+    acceptable. Under the default two-term attachment the composed function
+    is C1 at the cut as well; the one discontinuity the class can exhibit
+    is the documented C1 (derivative-only) kink of the one-term
+    explicit-exponent mode (``decay_extrap_terms=1``).
 
     Validity guards mirror ``LinearInterp``: the fitted forms require the
     level at ``x_cut`` strictly below the limiting line, approaching it
@@ -1371,12 +1495,18 @@ class DecayTailInterp(HARKinterpolator1D):
         decay_extrap_form="powerlaw",
         *,
         decay_extrap_Q=None,
+        decay_extrap_terms=2,
     ):
         self.interp = interp
         if decay_extrap_form not in ("exp", "powerlaw"):
             raise ValueError(
                 "decay_extrap_form must be 'exp' or 'powerlaw', got "
                 + repr(decay_extrap_form)
+            )
+        if isinstance(decay_extrap_terms, bool) or decay_extrap_terms not in (1, 2):
+            raise ValueError(
+                "decay_extrap_terms must be 1 or 2, got "
+                + repr(decay_extrap_terms)
             )
         self.decay_extrap_form = decay_extrap_form
         if intercept_limit is None or slope_limit is None:
@@ -1442,7 +1572,31 @@ class DecayTailInterp(HARKinterpolator1D):
         )
         self.decay_extrap = False
         if decay_extrap_Q is not None:
-            self._init_explicit_tail(level_diff, decay_extrap_Q)
+            slope_at_cut = None
+            if decay_extrap_terms == 2:
+                der = getattr(interp, "derivative", None)
+                if der is None:
+                    raise ValueError(
+                        "DecayTailInterp: the default two-term (C1) tail "
+                        "slope-matches at x_cut and needs the wrapped "
+                        "interpolant's derivative there; this interpolant "
+                        "has none -- pass decay_extrap_terms=1 for the "
+                        "level-matched one-term tail"
+                    )
+                slope_at_cut = float(
+                    np.asarray(der(np.array([self.x_cut]))).ravel()[0]
+                )
+                if not np.isfinite(slope_at_cut):
+                    raise ValueError(
+                        "DecayTailInterp: the wrapped interpolant returns a "
+                        f"non-finite derivative ({slope_at_cut!r}) at "
+                        f"x_cut={self.x_cut!r}; the two-term tail needs a "
+                        "finite slope there -- fix the cut or pass "
+                        "decay_extrap_terms=1"
+                    )
+            self._init_explicit_tail(
+                level_diff, decay_extrap_Q, decay_extrap_terms, slope_at_cut
+            )
             return
         der = getattr(interp, "derivative", None)
         if der is None:
@@ -1497,11 +1651,14 @@ class DecayTailInterp(HARKinterpolator1D):
         self.decay_extrap_Q = self.decay_extrap_B * pivot
         self.decay_extrap_Q_source = "fitted"
 
-    def _init_explicit_tail(self, level_diff, Q):
+    def _init_explicit_tail(self, level_diff, Q, terms, slope_at_cut):
         """Explicit-exponent tail setup, mirroring
         ``LinearInterp._init_explicit_Q_decay`` (relaxed guard: no slope
         condition -- the rescue case an explicit exponent exists to serve).
-        Level-matched at the cut unconditionally (the class invariant)."""
+        Level-matched at the cut unconditionally (the class invariant); with
+        ``terms=2`` (default) also slope-matched (the F11 C1 attachment,
+        ``A2 = gap*(Q_fit - Q)``, ``A = gap - A2``), falling back to one
+        term with a warning when ``Q_fit >= Q + 1``."""
         ok = self.slope_limit > 0.0 and level_diff > 0.0
         pivot = None
         if ok:
@@ -1518,12 +1675,44 @@ class DecayTailInterp(HARKinterpolator1D):
             )
             self.decay_extrap = False
             return
-        self.decay_extrap_A = level_diff
-        self.decay_extrap_Q_source = "explicit"
-        # fitted-rate diagnostic is undefined without a body slope reading
-        self.decay_extrap_B = np.nan
         self.decay_extrap_pivot = pivot
         self.decay_extrap_Q = Q
+        self.decay_extrap_Q_source = "explicit"
+        if terms == 2:
+            # same expressions as LinearInterp's setup, sourced from the
+            # wrapped function's slope reading (byte-parity on HARK bodies)
+            slope_diff = self.slope_limit - slope_at_cut
+            self.decay_extrap_B = -slope_diff / level_diff
+            Q_fit = self.decay_extrap_B * pivot
+            A2 = level_diff * (Q_fit - Q) if np.isfinite(Q_fit) else np.nan
+            if np.isfinite(Q_fit) and Q_fit < Q + 1.0 and A2 != 0.0:
+                # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+                #   F11 closed forms: level+slope matching with the theory
+                #   exponent leading; an EXACT collapse (A2 == 0) stores the
+                #   one-term representation (byte-identical to terms=1); a
+                #   non-finite Q_fit falls back rather than attach NaN.
+                self.decay_extrap_A2 = A2
+                self.decay_extrap_A = level_diff - self.decay_extrap_A2
+                self.decay_extrap_terms = 2
+                self.decay_extrap = True
+                return
+            if not (np.isfinite(Q_fit) and Q_fit < Q + 1.0):
+                warnings.warn(
+                    "DecayTailInterp(decay_extrap_Q=..., decay_extrap_terms="
+                    f"2): the fitted rate Q_fit={Q_fit:.4g} is not finite "
+                    f"and strictly below Q+1={Q + 1.0:.4g} (at or above it, "
+                    "the two-term leading amplitude would be non-positive -- "
+                    "a slope that steep at the cut signals a coarse or "
+                    "non-converged body top; non-finite signals a degenerate "
+                    "reading); falling back to the one-term level-matched "
+                    "tail (C1 kink at the cut)."
+                )
+        else:
+            # fitted-rate diagnostic is undefined without a body slope reading
+            self.decay_extrap_B = np.nan
+        self.decay_extrap_A = level_diff
+        self.decay_extrap_A2 = 0.0
+        self.decay_extrap_terms = 1
         self.decay_extrap = True
 
     def _body_y(self, x):
@@ -1555,6 +1744,27 @@ class DecayTailInterp(HARKinterpolator1D):
         ``LinearInterp._apply_upper_decay``."""
         x_temp = x_above - self.x_cut
         if self.decay_extrap_form == "powerlaw":
+            if getattr(self, "decay_extrap_terms", 1) == 2:
+                # C1 two-term attachment (F11); expressions identical to
+                # LinearInterp._apply_upper_decay's two-term branch
+                lw = np.log1p(x_temp / self.decay_extrap_pivot)
+                w1 = np.exp(-self.decay_extrap_Q * lw)
+                w2 = np.exp(-(self.decay_extrap_Q + 1.0) * lw)
+                decay = self.decay_extrap_A * w1 + self.decay_extrap_A2 * w2
+                y = (
+                    self.intercept_limit + self.slope_limit * x_above - decay
+                    if want_y
+                    else None
+                )
+                dydx = (
+                    self.slope_limit + (
+                        self.decay_extrap_Q * self.decay_extrap_A * w1
+                        + (self.decay_extrap_Q + 1.0) * self.decay_extrap_A2 * w2
+                    ) / (x_temp + self.decay_extrap_pivot)
+                    if want_der
+                    else None
+                )
+                return y, dydx
             decay = self.decay_extrap_A * np.exp(
                 -self.decay_extrap_Q * np.log1p(x_temp / self.decay_extrap_pivot)
             )
