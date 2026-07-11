@@ -9,7 +9,6 @@ import warnings
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsAggShockModel import (
-    AMPLITUDE_JUMP_TOL,
     AggShockConsumerType,
     CobbDouglasEconomy,
     make_cFunc_slice,
@@ -199,9 +198,9 @@ class TestMakeCFuncSliceTheoryModes(unittest.TestCase):
       (3) decay_theory + decay_Q=None  -> fitted exponent clamped to min(1, q*)
                                           (PFDecayGridWarning when the clamp
                                           bites; inert otherwise);
-      (4) decay_Q=('amplitude', B)     -> B/(x+h) tail behind a level-jump
-                                          guard (refuse + fall back to the
-                                          theory tail beyond AMPLITUDE_JUMP_TOL);
+      (4) decay_Q=('amplitude', B)     -> REMOVED (ValueError): level
+                                          continuity at the top knot is an
+                                          invariant (design ruling 2026-07-11);
       (5) theory rescues the fitted form's no-decay fallback (slope_top <=
           MPCmin with the knot below the line).
     """
@@ -343,42 +342,28 @@ class TestMakeCFuncSliceTheoryModes(unittest.TestCase):
                                    decay_theory=self.theory_lo, decay_Q=None)
         self.assertEqual(f_guard.decay_extrap_Q, self.theory_lo.q)
 
-    # ---- (4) amplitude mode -------------------------------------------------
-    def test_amplitude_mode_attaches_when_level_consistent(self):
-        # knots built from the EXACT boundary-value gap B0/(m+h): the implied
-        # top-knot gap equals the solved level gap, the guard passes, and the
-        # attached tail reproduces B0/(x+h) far above the grid (rel 1e-10)
+    # ---- (4) amplitude mode: REMOVED (continuity invariant) -----------------
+    def test_amplitude_mode_removed_raises(self):
+        # Design ruling 2026-07-11: level continuity at the top knot is an
+        # INVARIANT of the decay machinery -- the former ('amplitude', B)
+        # mode's guarded level jump is never attachable. The tuple form now
+        # raises, pointing callers at decay_Q=1.0; that level-matched
+        # exponent-1 tail remains available and jump-free.
         B0 = 25.0
         m = np.linspace(0.0, 30.0, 40)
         c = self.line(m) - B0 / (m + self.hNrm)
-        f = make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
+        with self.assertRaises(ValueError):
+            make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
                              decay_theory=self.theory_hi,
                              decay_Q=("amplitude", B0))
-        self.assertTrue(f.decay_extrap)
-        self.assertEqual(f.decay_extrap_Q, 1.0)
-        self.assertEqual(f.decay_extrap_Q_source, "amplitude")
-        lad = np.geomspace(50.0, 5000.0, 20)
-        gap = self.line(lad) - f(lad)
-        np.testing.assert_allclose(gap, B0 / (lad + self.hNrm), rtol=1e-10)
-        self.assertEqual(f.decay_theory["Q_used"], 1.0)
-
-    def test_amplitude_mode_refuses_at_preasymptotic_knot(self):
-        # implied top gap 3x the solved gap (>> AMPLITUDE_JUMP_TOL): refuse,
-        # warn, and fall back to the level-matched theory tail
-        B0 = 25.0
-        m = np.linspace(0.0, 30.0, 40)
-        c = self.line(m) - B0 / (m + self.hNrm)
-        self.assertGreater(3.0, 1.0 + AMPLITUDE_JUMP_TOL)
-        with self.assertWarns(PFDecayGridWarning):
-            f = make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
-                                 decay_theory=self.theory_hi,
-                                 decay_Q=("amplitude", 3.0 * B0))
+        f = make_cFunc_slice(m, c, self.MPCmin, self.hNrm,
+                             decay_theory=self.theory_hi, decay_Q=1.0)
         self.assertTrue(f.decay_extrap)
         self.assertEqual(f.decay_extrap_Q_source, "explicit")
-        self.assertEqual(f.decay_extrap_Q, 1.0)  # theory ceiling at q* > 1
-        # level-matched (no jump): the top-knot gap is the solved one
-        eps = 1e-9
-        lvl = float(f(np.array([m[-1] + eps]))[0])
+        self.assertEqual(f.decay_extrap_Q, 1.0)
+        # level-matched (no jump): the tail limit at the top knot is the
+        # solved value there
+        lvl = float(f(np.array([m[-1] + 1e-9]))[0])
         self.assertAlmostEqual(lvl, c[-1], places=7)
 
     # ---- validation and refusal paths --------------------------------------

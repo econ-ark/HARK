@@ -208,13 +208,13 @@ _pf_decay_logger = logging.getLogger(__name__)
 # recycled id after gc at worst re-logs -- this is a log-dedup, not logic).
 _AMPLITUDE_RATIO_LOGGED = set()
 
-# ('amplitude', B) mode only: refuse the closed-form-amplitude tail when the
-# implied gap at the top knot, B/(x_top + h), exceeds the solved level gap by
-# more than this relative tolerance -- attaching it would force a level DROP in
-# consumption above the grid (non-monotone c, MPC sign flip). 10% mirrors the
-# design's amplitude_jump_tol; at a pre-asymptotic top knot the measured jump is
-# order +138% of the local gap, far beyond it.
-AMPLITUDE_JUMP_TOL = 0.10
+# NOTE: the former ('amplitude', B) decay_Q mode (closed-form-amplitude tail
+# with a guarded level jump at the top knot) was REMOVED 2026-07-11 by design
+# ruling: LEVEL CONTINUITY AT THE TOP KNOT IS AN INVARIANT of the decay
+# machinery -- a forced level discontinuity is never acceptable (the measured
+# jump at a pre-asymptotic top knot was order +138% of the local gap). The
+# boundary value B_psi keeps its diagnostic role (the amplitude-ratio log
+# below); an exponent-1 level-matched tail is decay_Q=1.0.
 
 
 def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerlaw",
@@ -289,18 +289,15 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     * ``decay_Q=<positive float>``: explicit exponent, passed through to
       ``LinearInterp(decay_extrap_Q=...)`` (level-matched, documented C1 kink
       ``(Q_fit - Q)*A/pivot`` at the top knot).
-    * ``decay_Q=('amplitude', B)``: closed-form-amplitude tail ``gap = B/(x+h)``
-      (exponent exactly 1), gated by a level-jump guard: refused (with a
-      warning, falling back to the theory-exponent tail) when the implied
-      top-knot gap ``B/(x_top+h)`` exceeds the solved level gap by more than
-      ``AMPLITUDE_JUMP_TOL``. NEVER a default: at a pre-asymptotic top knot the
-      forced level discontinuity is catastrophic (measured +138% of the local
-      gap at the GIC-cap calibration).
-
-      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: 3.4 Theorem I (the owner's one number): the boundary value at q* > 1]
-      #   Theorem I: at q* > 1 the compensated gap x*g(x) converges to the
-      #   closed-form boundary value B -- the exact top-of-grid boundary
-      #   condition c(m) ~ kappa*(m+h) - B/m for compactified-boundary use.
+    * ``decay_Q=('amplitude', B)``: REMOVED (raises ``ValueError``). This mode
+      attached the closed-form-amplitude tail ``gap = B/(x+h)`` with a
+      guarded level JUMP at the top knot; by design ruling (2026-07-11),
+      level continuity at the top knot is an INVARIANT of the decay
+      machinery, so a forced discontinuity is never attachable -- at a
+      pre-asymptotic top knot it was measured at order +138% of the local
+      gap. Use ``decay_Q=1.0`` for a level-matched exponent-1 tail; the
+      boundary value retains its diagnostic role via the amplitude-ratio
+      log line (below).
 
     Rescue: with an explicit exponent available (theory default, guarded fit's
     ceiling, or a float), the branches where the FITTED form must disable decay
@@ -366,19 +363,15 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
         )
 
     # ----- resolve the tail policy (see the docstring's mode table) -----
-    amplitude_B = None
     Q_explicit = None
     if isinstance(decay_Q, tuple):
-        if (len(decay_Q) != 2 or decay_Q[0] != "amplitude"
-                or not isinstance(decay_Q[1], (int, float))
-                or isinstance(decay_Q[1], bool)
-                or not np.isfinite(decay_Q[1]) or decay_Q[1] <= 0.0):
-            raise ValueError(
-                "decay_Q tuple form must be ('amplitude', B) with B a positive "
-                f"finite float, got {decay_Q!r}"
-            )
-        mode = "amplitude"
-        amplitude_B = float(decay_Q[1])
+        raise ValueError(
+            "decay_Q=('amplitude', B) was removed: level continuity at the "
+            "top knot is an invariant of the decay machinery (design ruling "
+            "2026-07-11) -- an externally imposed amplitude forces a level "
+            "jump there. Use decay_Q=1.0 for the level-matched exponent-1 "
+            f"tail. Got {decay_Q!r}"
+        )
     elif decay_Q is None:
         mode = "guarded_fit" if decay_theory is not None else "legacy"
     elif isinstance(decay_Q, str) and decay_Q == "theory":
@@ -434,39 +427,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             f = LinearInterp(m_temp, c_temp)
         return f
 
-    if mode == "amplitude":
-        if level_diff > tol:
-            A_implied = amplitude_B / (m_top + hNrm)
-            if A_implied > (1.0 + AMPLITUDE_JUMP_TOL) * level_diff:
-                warnings.warn(
-                    f"make_cFunc_slice(decay_Q=('amplitude', ...)): the implied "
-                    f"top-knot gap B/(x_top+h) = {A_implied:.6g} exceeds the "
-                    f"solved level gap {level_diff:.6g} by more than "
-                    f"{AMPLITUDE_JUMP_TOL:.0%} (a pre-asymptotic top knot); "
-                    "attaching it would force a level drop in consumption above "
-                    "the grid. Falling back to the level-matched theory-exponent "
-                    "tail.",
-                    PFDecayGridWarning,
-                )
-                f = LinearInterp(
-                    m_temp, c_temp, intercept_limit, MPCmin,
-                    decay_extrap_form="powerlaw", decay_extrap_Q=ceiling,
-                )
-                Q_used = ceiling
-            else:
-                # gap = B/(x+h): exponent exactly 1 with the boundary-value
-                # amplitude; the (bounded) level jump at the top knot is
-                # A_implied - level_diff
-                f = LinearInterp(
-                    m_temp, c_temp, intercept_limit, MPCmin,
-                    decay_extrap_form="powerlaw", decay_extrap_Q=1.0,
-                )
-                f.decay_extrap_A = A_implied
-                f.decay_extrap_Q_source = "amplitude"
-                Q_used = 1.0
-        else:
-            f = LinearInterp(m_temp, c_temp)
-    elif mode == "explicit":
+    if mode == "explicit":
         if level_diff > tol:
             # healthy knot OR the rescue case (slope_top <= MPCmin): the
             # explicit-Q relaxed guard attaches a level-matched decaying tail

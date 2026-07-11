@@ -1650,8 +1650,9 @@ class TestDecayTailInterpCubic(unittest.TestCase):
 
 class TestDecayTailInterpGeneric(unittest.TestCase):
     """Composition over arbitrary callables plus the mechanism-level edge
-    semantics: explicit amplitude, x_cut requirement, argument validation,
-    deep-tail stability, NaN routing, scalar/empty shapes, distance."""
+    semantics: x_cut requirement, argument validation, the continuity
+    invariant, deep-tail stability, NaN routing, scalar/empty shapes,
+    distance."""
 
     intercept = 1.0
     slope = 0.5
@@ -1698,32 +1699,23 @@ class TestDecayTailInterpGeneric(unittest.TestCase):
                 warnings.simplefilter("ignore", DeprecationWarning)
                 DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
                                 decay_extrap_form="exp", decay_extrap_Q=1.0)
-        with self.assertRaises(ValueError):
-            # amplitude without an exponent
-            DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
-                            decay_extrap_A=0.1)
 
-    def test_amplitude_override_and_jump_warning(self):
-        import warnings
-
-        f_lvl = DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
-                                decay_extrap_Q=1.0)
-        gap = f_lvl.decay_extrap_A
-        with self.assertWarns(UserWarning):
-            f_amp = DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
-                                    decay_extrap_Q=1.0,
-                                    decay_extrap_A=2.0 * gap)
-        self.assertEqual(f_amp.decay_extrap_Q_source, "amplitude")
-        # just above the cut, the doubled amplitude sits ~gap deeper below
-        # the line than the level-matched tail
-        q = np.array([40.0 + 1e-9])
-        self.assertAlmostEqual(float(f_lvl(q)[0]) - float(f_amp(q)[0]), gap,
-                               places=6)
-        # an amplitude within 10% of the level gap attaches silently
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
+    def test_continuity_invariant_no_amplitude_hook(self):
+        # Design ruling 2026-07-11: level continuity at x_cut is an INVARIANT
+        # of the class -- there is deliberately NO amplitude-override
+        # parameter (an imposed amplitude would force a level jump at the
+        # cut). Every attachable tail is level-matched.
+        with self.assertRaises(TypeError):
             DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
-                            decay_extrap_Q=1.0, decay_extrap_A=1.05 * gap)
+                            decay_extrap_Q=1.0, decay_extrap_A=0.1)
+        f = DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                            decay_extrap_Q=1.0)
+        # the amplitude IS the level gap at the cut: continuous by
+        # construction
+        gap = (1.0 + 0.5 * 40.0) - float(self.body(40.0))
+        self.assertEqual(f.decay_extrap_A, gap)
+        self.assertAlmostEqual(float(f(np.array([40.0 + 1e-9]))[0]),
+                               float(self.body(40.0)), places=8)
 
     def test_deep_tail_is_finite_below_line_monotone(self):
         # normalized power-law evaluation: deep queries decay smoothly to the

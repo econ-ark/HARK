@@ -1312,19 +1312,20 @@ class DecayTailInterp(HARKinterpolator1D):
         whose size the ``LinearInterp.decay_extrap_Q`` documentation derives.
         The theory exponent for buffer-stock consumption functions is
         ``min(1, q*)`` from :mod:`HARK.ConsumptionSaving.pf_decay`.
-    decay_extrap_A : float or None (default), keyword-only
-        Requires ``decay_extrap_Q``. Overrides the tail AMPLITUDE instead of
-        level-matching at ``x_cut`` -- the hook for closed-form boundary
-        amplitudes (e.g. the ``pf_decay`` Theorem-I boundary value at
-        ``q* > 1``, or per-age amplitudes in life-cycle recursions). The tail
-        is then generally NOT continuous at ``x_cut``: it jumps by
-        ``A - level_gap`` just above the cut, and a warning is issued when
-        the mismatch exceeds 10% of the level gap. Level-matching (the
-        default) is the right choice unless a theory amplitude is known to
-        dominate the solved level at the cut.
 
     Notes
     -----
+    LEVEL CONTINUITY AT ``x_cut`` IS AN INVARIANT OF THIS CLASS: every tail
+    it can attach is level-matched to the wrapped function at the cut (the
+    amplitude is always the level gap read there), so the composed function
+    never jumps. There is deliberately no amplitude-override hook: imposing
+    an external amplitude (e.g. a closed-form boundary value) at a
+    pre-asymptotic cut forces a level discontinuity, which is never
+    acceptable; if an amplitude-anchored tail is ever needed, it must be a
+    level-matched form whose correction term dies off (a two-term tail),
+    not a jump. The one discontinuity the class can exhibit is the
+    documented C1 (derivative-only) kink of the explicit-exponent mode.
+
     Validity guards mirror ``LinearInterp``: the fitted forms require the
     level at ``x_cut`` strictly below the limiting line, approaching it
     (slope above ``slope_limit``), ``slope_limit > 0``, and a positive pivot;
@@ -1370,7 +1371,6 @@ class DecayTailInterp(HARKinterpolator1D):
         decay_extrap_form="powerlaw",
         *,
         decay_extrap_Q=None,
-        decay_extrap_A=None,
     ):
         self.interp = interp
         if decay_extrap_form not in ("exp", "powerlaw"):
@@ -1394,18 +1394,6 @@ class DecayTailInterp(HARKinterpolator1D):
                 raise ValueError(
                     "decay_extrap_Q must be a positive finite float, got "
                     + repr(decay_extrap_Q)
-                )
-        if decay_extrap_A is not None:
-            if decay_extrap_Q is None:
-                raise ValueError(
-                    "decay_extrap_A (an explicit tail amplitude) requires "
-                    "decay_extrap_Q (an explicit tail exponent)"
-                )
-            decay_extrap_A = float(decay_extrap_A)
-            if not np.isfinite(decay_extrap_A) or decay_extrap_A <= 0.0:
-                raise ValueError(
-                    "decay_extrap_A must be a positive finite float, got "
-                    + repr(decay_extrap_A)
                 )
         if x_cut is None:
             x_list = getattr(interp, "x_list", None)
@@ -1454,7 +1442,7 @@ class DecayTailInterp(HARKinterpolator1D):
         )
         self.decay_extrap = False
         if decay_extrap_Q is not None:
-            self._init_explicit_tail(level_diff, decay_extrap_Q, decay_extrap_A)
+            self._init_explicit_tail(level_diff, decay_extrap_Q)
             return
         der = getattr(interp, "derivative", None)
         if der is None:
@@ -1509,11 +1497,11 @@ class DecayTailInterp(HARKinterpolator1D):
         self.decay_extrap_Q = self.decay_extrap_B * pivot
         self.decay_extrap_Q_source = "fitted"
 
-    def _init_explicit_tail(self, level_diff, Q, A_override):
+    def _init_explicit_tail(self, level_diff, Q):
         """Explicit-exponent tail setup, mirroring
         ``LinearInterp._init_explicit_Q_decay`` (relaxed guard: no slope
-        condition -- the rescue case an explicit exponent exists to serve),
-        plus the optional explicit-amplitude override."""
+        condition -- the rescue case an explicit exponent exists to serve).
+        Level-matched at the cut unconditionally (the class invariant)."""
         ok = self.slope_limit > 0.0 and level_diff > 0.0
         pivot = None
         if ok:
@@ -1530,20 +1518,8 @@ class DecayTailInterp(HARKinterpolator1D):
             )
             self.decay_extrap = False
             return
-        if A_override is None:
-            self.decay_extrap_A = level_diff
-            self.decay_extrap_Q_source = "explicit"
-        else:
-            self.decay_extrap_A = A_override
-            self.decay_extrap_Q_source = "amplitude"
-            if abs(A_override - level_diff) > 0.10 * abs(level_diff):
-                warnings.warn(
-                    "DecayTailInterp(decay_extrap_A=...): the supplied tail "
-                    f"amplitude ({A_override:.6g}) differs from the level "
-                    f"gap at x_cut ({level_diff:.6g}) by more than 10%; the "
-                    "tail is NOT level-matched -- the function jumps by "
-                    f"{A_override - level_diff:.6g} just above x_cut."
-                )
+        self.decay_extrap_A = level_diff
+        self.decay_extrap_Q_source = "explicit"
         # fitted-rate diagnostic is undefined without a body slope reading
         self.decay_extrap_B = np.nan
         self.decay_extrap_pivot = pivot
