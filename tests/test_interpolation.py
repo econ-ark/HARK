@@ -4,6 +4,7 @@ This file implements unit tests for interpolation methods
 
 from HARK.interpolation import (
     IdentityFunction,
+    DecayTailInterp,
     LinearInterp,
     CubicInterp,
     CubicHermiteInterp,
@@ -1379,3 +1380,393 @@ class TestLinearInterpExplicitQ(unittest.TestCase):
         vals_before = f_fit(q).copy()
         del f_fit.decay_extrap_Q_source
         np.testing.assert_array_equal(f_fit(q), vals_before)
+
+
+###############################################################################
+# DecayTailInterp: the decay tail as a composable wrapper over any 1D body
+###############################################################################
+
+
+class TestDecayTailInterpParity(unittest.TestCase):
+    """The wrapper must reproduce LinearInterp's baked-in decay machinery
+    when composed over a bare linear body on the same knots: the level and
+    slope it reads at x_cut are byte-identical to the grid values the
+    baked-in setup uses, so values and derivatives must match bit for bit
+    (gate G1 of the decoupling pre-registration).
+    """
+
+    intercept = 1.0
+    slope = 0.5  # limiting line 1.0 + 0.5*x; pivot h = 2
+    C = 4.0
+    Q_true = 1.5
+
+    def truth(self, x):
+        h = self.intercept / self.slope
+        return self.intercept + self.slope * x - self.C * (x + h) ** (-self.Q_true)
+
+    def knots(self, n=201, top=21.0):
+        x = np.linspace(1.0, top, n)
+        return x, self.truth(x)
+
+    def probes(self, top=21.0):
+        # below-grid (NaN region), the bottom knot, interior points, the top
+        # knot itself, just above it, and the deep tail
+        return np.concatenate(
+            [
+                np.array([0.25, 0.5, 1.0, 1.37, 10.3, top]),
+                np.geomspace(top * (1.0 + 1e-12), 100.0 * top, 40),
+            ]
+        )
+
+    def pair(self, form, Q=None, pre_compute=False):
+        x, y = self.knots()
+        body = LinearInterp(x, y, pre_compute=pre_compute)
+        kwargs = {"decay_extrap_form": form}
+        if Q is not None:
+            kwargs["decay_extrap_Q"] = Q
+        wrapped = DecayTailInterp(body, self.intercept, self.slope, **kwargs)
+        baked = LinearInterp(x, y, self.intercept, self.slope, **kwargs)
+        return wrapped, baked
+
+    def assert_pair_byte_equal(self, wrapped, baked):
+        q = self.probes()
+        np.testing.assert_array_equal(wrapped(q), baked(q))
+        np.testing.assert_array_equal(wrapped.derivative(q), baked.derivative(q))
+        yw, dw = wrapped.eval_with_derivative(q)
+        yb, db = baked.eval_with_derivative(q)
+        np.testing.assert_array_equal(yw, yb)
+        np.testing.assert_array_equal(dw, db)
+
+    def test_powerlaw_explicit_Q_byte_parity(self):
+        wrapped, baked = self.pair("powerlaw", Q=1.5)
+        self.assertTrue(wrapped.decay_extrap)
+        self.assertEqual(wrapped.decay_extrap_Q_source, "explicit")
+        self.assert_pair_byte_equal(wrapped, baked)
+
+    def test_powerlaw_fitted_byte_parity(self):
+        wrapped, baked = self.pair("powerlaw")
+        self.assertEqual(wrapped.decay_extrap_Q_source, "fitted")
+        self.assertEqual(wrapped.decay_extrap_Q, baked.decay_extrap_Q)
+        self.assert_pair_byte_equal(wrapped, baked)
+
+    def test_exp_byte_parity_and_deprecation(self):
+        # the wrapper's exp form is deprecated at birth (selecting it warns);
+        # LinearInterp's own exp default is untouched legacy behavior
+        with self.assertWarns(DeprecationWarning):
+            wrapped, baked = self.pair("exp")
+        self.assert_pair_byte_equal(wrapped, baked)
+
+    def test_pre_compute_body_parity(self):
+        # pre_compute bodies evaluate knots through different float
+        # arithmetic, so the tail amplitude may differ by ulps: gate at
+        # 1e-13 relative (G1b); byte identity not required.
+        import warnings
+
+        for form, Q in [("powerlaw", 1.5), ("powerlaw", None), ("exp", None)]:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                wrapped, baked = self.pair(form, Q=Q, pre_compute=True)
+            q = self.probes()
+            np.testing.assert_allclose(
+                wrapped(q), baked(q), rtol=1e-13, equal_nan=True
+            )
+            np.testing.assert_allclose(
+                wrapped.derivative(q), baked.derivative(q),
+                rtol=1e-13, equal_nan=True,
+            )
+
+    def test_guard_parity_disable_paths(self):
+        # Guard-tripping configurations must disable decay in BOTH
+        # constructions, which then agree byte-for-byte above the cut where
+        # both fall back to the body's naive top-segment extrapolation.
+        x = np.linspace(1.0, 21.0, 201)
+        h = self.intercept / self.slope
+        # (a) top knot ABOVE the limiting line (level_diff < 0), slope still
+        #     approaching (so the silent isclose guard does not preempt)
+        y_above = self.truth(x) + 1.0
+        # (b) level below the line but slope flattening BELOW slope_limit
+        #     (fitted B < 0): gap GROWS linearly toward the top
+        y_flat = self.intercept + self.slope * x - (0.1 + 0.01 * (x - 1.0))
+        # (d) pivot <= 0: a limiting line with x-intercept above the grid top
+        icpt_neg = -30.0
+        y_pneg = icpt_neg + self.slope * x - self.C * (x + 100.0) ** (-self.Q_true)
+        for y_bad, icpt in [(y_above, self.intercept), (y_flat, self.intercept),
+                            (y_pneg, icpt_neg)]:
+            body = LinearInterp(x, y_bad)
+            with self.assertWarns(UserWarning):
+                wrapped = DecayTailInterp(
+                    body, icpt, self.slope, decay_extrap_form="powerlaw"
+                )
+            with self.assertWarns(UserWarning):
+                baked = LinearInterp(
+                    x, y_bad, icpt, self.slope, decay_extrap_form="powerlaw"
+                )
+            self.assertFalse(wrapped.decay_extrap)
+            self.assertFalse(baked.decay_extrap)
+            q = np.geomspace(22.0, 2000.0, 25)
+            np.testing.assert_array_equal(wrapped(q), baked(q))
+            np.testing.assert_array_equal(wrapped(q), body(q))
+        # (c) zero-uncertainty case: the body IS a line with the limiting
+        #     slope; both disable SILENTLY (np.isclose guard)
+        y_line = 0.3 + self.slope * x
+        body = LinearInterp(x, y_line)
+        wrapped = DecayTailInterp(body, self.intercept, self.slope,
+                                  decay_extrap_form="powerlaw")
+        baked = LinearInterp(x, y_line, self.intercept, self.slope,
+                             decay_extrap_form="powerlaw")
+        self.assertFalse(wrapped.decay_extrap)
+        self.assertFalse(baked.decay_extrap)
+        q = np.geomspace(22.0, 2000.0, 25)
+        np.testing.assert_array_equal(wrapped(q), baked(q))
+
+    def test_exact_zero_gap_at_cut_matches_linearinterp(self):
+        # Refuter finding (2026-07-11): a body whose value at x_cut lies
+        # EXACTLY on the limiting line (level_diff == 0.0) with slope not
+        # isclose used to raise ZeroDivisionError at construction (Python-
+        # float division), where LinearInterp's numpy arithmetic attaches
+        # B=inf (exp: evaluates to the line) or warn-disables (powerlaw).
+        # The wrapper must mirror LinearInterp, not crash.
+        import warnings
+
+        x = np.linspace(1.0, 21.0, 101)
+        y = 1.0 + 0.5 * x - (21.0 - x) * 0.05  # gap closes to exact 0 at top
+        q = np.array([25.0, 40.0, 100.0])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            w_exp = DecayTailInterp(LinearInterp(x, y), 1.0, 0.5,
+                                    decay_extrap_form="exp")
+            b_exp = LinearInterp(x, y, 1.0, 0.5, decay_extrap_form="exp")
+        np.testing.assert_array_equal(w_exp(q), b_exp(q))
+        # the exp tail with A=0, B=inf IS the limiting line
+        np.testing.assert_array_equal(w_exp(q), 1.0 + 0.5 * q)
+        with self.assertWarns(UserWarning):
+            w_pl = DecayTailInterp(LinearInterp(x, y), 1.0, 0.5,
+                                   decay_extrap_form="powerlaw")
+        with self.assertWarns(UserWarning):
+            b_pl = LinearInterp(x, y, 1.0, 0.5, decay_extrap_form="powerlaw")
+        self.assertFalse(w_pl.decay_extrap)
+        self.assertFalse(b_pl.decay_extrap)
+        np.testing.assert_array_equal(w_pl(q), b_pl(q))
+
+    def test_rescue_parity_explicit_Q_where_fit_disables(self):
+        # (b) above: fitted must disable, but an explicit exponent attaches a
+        # level-matched tail -- in both constructions, byte-identically.
+        x = np.linspace(1.0, 21.0, 201)
+        y_flat = self.intercept + self.slope * x - (0.1 + 0.01 * (x - 1.0))
+        body = LinearInterp(x, y_flat)
+        wrapped = DecayTailInterp(body, self.intercept, self.slope,
+                                  decay_extrap_Q=1.0)
+        baked = LinearInterp(x, y_flat, self.intercept, self.slope,
+                             decay_extrap_form="powerlaw", decay_extrap_Q=1.0)
+        self.assertTrue(wrapped.decay_extrap)
+        self.assertTrue(baked.decay_extrap)
+        self.assert_pair_byte_equal(wrapped, baked)
+
+
+class TestDecayTailInterpCubic(unittest.TestCase):
+    """Power-law tails composed over a cubic body -- the case the baked-in
+    machinery cannot express (CubicInterp carries only the legacy exponential
+    upper_row decay, with no power-law form and no explicit-exponent hook).
+    """
+
+    intercept = 1.0
+    slope = 0.5
+    C = 4.0
+    Q_true = 1.5
+
+    def cubic_body(self, n=201, top=21.0):
+        h = self.intercept / self.slope
+        x = np.linspace(1.0, top, n)
+        y = self.intercept + self.slope * x - self.C * (x + h) ** (-self.Q_true)
+        dydx = self.slope + self.Q_true * self.C * (x + h) ** (-self.Q_true - 1.0)
+        return CubicInterp(x, y, dydx), x, y
+
+    def test_below_cut_is_the_bare_cubic(self):
+        body, x, y = self.cubic_body()
+        f = DecayTailInterp(body, self.intercept, self.slope, decay_extrap_Q=1.0)
+        q = np.linspace(1.0, 21.0, 517)  # includes both grid endpoints
+        np.testing.assert_array_equal(f(q), body(q))
+        np.testing.assert_array_equal(f.derivative(q), body.derivative(q))
+
+    def test_level_matched_at_cut(self):
+        body, x, y = self.cubic_body()
+        f = DecayTailInterp(body, self.intercept, self.slope, decay_extrap_Q=1.0)
+        lvl = float(body(np.array([21.0]))[0])
+        gap = self.intercept + self.slope * 21.0 - lvl
+        # the amplitude IS the level gap read from the body at the cut
+        self.assertEqual(f.decay_extrap_A, gap)
+        # continuity: the tail limit at the cut equals the body value there
+        val_above = float(f(np.array([21.0 + 1e-9]))[0])
+        self.assertAlmostEqual(val_above, lvl, places=8)
+
+    def test_tail_is_exact_power_law_with_the_explicit_exponent(self):
+        body, x, y = self.cubic_body()
+        Q = 0.62  # an explicit (theory-style) exponent != the body's own
+        f = DecayTailInterp(body, self.intercept, self.slope, decay_extrap_Q=Q)
+        h = self.intercept / self.slope
+        lad = np.geomspace(25.0, 2000.0, 30)
+        gap = self.intercept + self.slope * lad - f(lad)
+        slopes = np.diff(np.log(gap)) / np.diff(np.log(lad + h))
+        np.testing.assert_allclose(slopes, -Q, rtol=1e-4)
+
+    def test_tail_derivative_matches_finite_difference(self):
+        body, x, y = self.cubic_body()
+        f = DecayTailInterp(body, self.intercept, self.slope, decay_extrap_Q=1.0)
+        q = np.geomspace(25.0, 500.0, 12)
+        eps = 1e-6
+        fd = (f(q + eps) - f(q - eps)) / (2 * eps)
+        np.testing.assert_allclose(f.derivative(q), fd, rtol=1e-6)
+
+    def test_fitted_form_reads_the_cubic_slope(self):
+        body, x, y = self.cubic_body()
+        f = DecayTailInterp(body, self.intercept, self.slope)  # fitted powerlaw
+        self.assertTrue(f.decay_extrap)
+        self.assertEqual(f.decay_extrap_Q_source, "fitted")
+        # the fitted exponent is built from the body's own slope reading at
+        # the cut (the cubic's analytic derivative), not a two-knot secant
+        h = self.intercept / self.slope
+        lvl = float(body(np.array([x[-1]]))[0])
+        gap = self.intercept + self.slope * x[-1] - lvl
+        slope_at = float(body.derivative(np.array([x[-1]]))[0])
+        B = (slope_at - self.slope) / gap
+        self.assertAlmostEqual(f.decay_extrap_Q, B * (x[-1] + h), places=12)
+
+    def test_off_knot_cut_truncates_the_body(self):
+        body, x, y = self.cubic_body()
+        cut = 15.0  # strictly inside the body grid
+        f = DecayTailInterp(body, self.intercept, self.slope, x_cut=cut,
+                            decay_extrap_Q=1.0)
+        # at and below the cut: still the body, untouched
+        q_lo = np.linspace(1.0, cut, 101)
+        np.testing.assert_array_equal(f(q_lo), body(q_lo))
+        # just above the cut: the tail, level-matched at the cut
+        lvl = float(body(np.array([cut]))[0])
+        self.assertAlmostEqual(float(f(np.array([cut + 1e-9]))[0]), lvl, places=8)
+        # farther out the tail (exponent 1.0) departs from the body's own
+        # values (its gap decays with a different exponent)
+        diff = abs(float(f(np.array([20.0]))[0]) - float(body(np.array([20.0]))[0]))
+        self.assertGreater(diff, 1e-3)
+
+
+class TestDecayTailInterpGeneric(unittest.TestCase):
+    """Composition over arbitrary callables plus the mechanism-level edge
+    semantics: explicit amplitude, x_cut requirement, argument validation,
+    deep-tail stability, NaN routing, scalar/empty shapes, distance."""
+
+    intercept = 1.0
+    slope = 0.5
+
+    @staticmethod
+    def body(x):
+        # a smooth concave function below the line 1 + 0.5*x; deliberately a
+        # bare callable with NO derivative method
+        x = np.asarray(x, dtype=float)
+        return 1.0 + 0.5 * x - 3.0 / (x + 2.0)
+
+    def test_explicit_Q_works_on_a_bare_callable(self):
+        f = DecayTailInterp(self.body, self.intercept, self.slope, x_cut=40.0,
+                            decay_extrap_Q=1.0)
+        self.assertTrue(f.decay_extrap)
+        self.assertAlmostEqual(
+            float(f(np.array([40.0 + 1e-9]))[0]), float(self.body(40.0)),
+            places=8,
+        )
+
+    def test_fitted_form_requires_a_derivative_method(self):
+        with self.assertRaises(ValueError):
+            DecayTailInterp(self.body, self.intercept, self.slope, x_cut=40.0)
+
+    def test_x_cut_required_without_a_grid(self):
+        with self.assertRaises(ValueError):
+            DecayTailInterp(self.body, self.intercept, self.slope,
+                            decay_extrap_Q=1.0)
+
+    def test_argument_validation(self):
+        import warnings
+
+        with self.assertRaises(ValueError):
+            DecayTailInterp(self.body, None, None, x_cut=40.0,
+                            decay_extrap_Q=1.0)
+        with self.assertRaises(ValueError):
+            DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                            decay_extrap_form="foo")
+        with self.assertRaises(ValueError):
+            DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                            decay_extrap_Q=-1.0)
+        with self.assertRaises(ValueError):
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                                decay_extrap_form="exp", decay_extrap_Q=1.0)
+        with self.assertRaises(ValueError):
+            # amplitude without an exponent
+            DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                            decay_extrap_A=0.1)
+
+    def test_amplitude_override_and_jump_warning(self):
+        import warnings
+
+        f_lvl = DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                                decay_extrap_Q=1.0)
+        gap = f_lvl.decay_extrap_A
+        with self.assertWarns(UserWarning):
+            f_amp = DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                                    decay_extrap_Q=1.0,
+                                    decay_extrap_A=2.0 * gap)
+        self.assertEqual(f_amp.decay_extrap_Q_source, "amplitude")
+        # just above the cut, the doubled amplitude sits ~gap deeper below
+        # the line than the level-matched tail
+        q = np.array([40.0 + 1e-9])
+        self.assertAlmostEqual(float(f_lvl(q)[0]) - float(f_amp(q)[0]), gap,
+                               places=6)
+        # an amplitude within 10% of the level gap attaches silently
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                            decay_extrap_Q=1.0, decay_extrap_A=1.05 * gap)
+
+    def test_deep_tail_is_finite_below_line_monotone(self):
+        # normalized power-law evaluation: deep queries decay smoothly to the
+        # LINE, never to nan/inf, even at a large explicit exponent
+        f = DecayTailInterp(self.body, 1.0, 0.5, x_cut=40.0,
+                            decay_extrap_Q=9.7)
+        q = np.geomspace(41.0, 4.0e7, 200)
+        vals = f(q)
+        line = 1.0 + 0.5 * q
+        self.assertTrue(np.all(np.isfinite(vals)))
+        self.assertTrue(np.all(vals <= line))
+        self.assertTrue(np.all(np.diff(vals) > 0))
+        # the gap has vanished to float resolution by the deep end
+        self.assertLess(line[-1] - vals[-1], 1e-6 * line[-1])
+
+    def test_nan_and_shape_semantics(self):
+        xg = np.linspace(1.0, 21.0, 41)
+        body_lin = LinearInterp(xg, self.body(xg))
+        f = DecayTailInterp(body_lin, 1.0, 0.5, decay_extrap_Q=1.0)
+        out = f(np.array([np.nan, 0.2, 5.0, 50.0]))
+        self.assertTrue(np.isnan(out[0]))  # NaN routes to the body
+        self.assertTrue(np.isnan(out[1]))  # below grid, lower_extrap=False
+        self.assertTrue(np.isfinite(out[2]) and np.isfinite(out[3]))
+        self.assertEqual(np.shape(f(3.0)), ())  # scalar in, scalar out
+        self.assertEqual(f(np.array([])).size, 0)
+        self.assertEqual(f.derivative(np.array([])).size, 0)
+
+    def test_distance_recurses_into_the_body(self):
+        xg = np.linspace(1.0, 21.0, 41)
+        b1 = LinearInterp(xg, self.body(xg))
+        b2 = LinearInterp(xg, self.body(xg) + 1e-3)
+        f1 = DecayTailInterp(b1, 1.0, 0.5, decay_extrap_Q=1.0)
+        f2 = DecayTailInterp(b2, 1.0, 0.5, decay_extrap_Q=1.0)
+        self.assertEqual(f1.distance(f2), b1.distance(b2))
+        self.assertEqual(f1.distance(f1), 0.0)
+
+    def test_pickle_roundtrip(self):
+        import pickle
+
+        xg = np.linspace(1.0, 21.0, 41)
+        body_lin = LinearInterp(xg, self.body(xg))
+        f = DecayTailInterp(body_lin, 1.0, 0.5, decay_extrap_Q=1.0)
+        g = pickle.loads(pickle.dumps(f))
+        q = np.geomspace(22.0, 5000.0, 30)
+        np.testing.assert_array_equal(f(q), g(q))
+        np.testing.assert_array_equal(f.derivative(q), g.derivative(q))
