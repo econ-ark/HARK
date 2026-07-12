@@ -2007,3 +2007,293 @@ class TestDecayTailInterpTwoTerm(unittest.TestCase):
         f = DecayTailInterp(body, 1.0, 0.5, x_cut=40.0, decay_extrap_Q=1.0,
                             decay_extrap_terms=1)
         self.assertTrue(f.decay_extrap)
+
+
+class TestDecayTailInterpModeration(unittest.TestCase):
+    """The 'moderation_tail' form: tail-only use of the Method-of-Moderation
+    coordinates. Registered properties (plan_moderation_tail.md): C1 at ANY
+    cut with no guard (including cuts where the two-term form must fall
+    back), gap strictly inside (0, slope*hEx), asymptotic exponent Q,
+    exact collapse to the pinned-slope line when chip_cut == Q, refuse
+    (not warn-and-disable) on inconsistent moderation inputs, and opt-in
+    neutrality. Deep-probe measurements stop where the gap is still
+    representable against the line (gap > ~1e4 ulps of the level): beyond
+    that, evaluating "line minus tiny gap" saturates to the line in
+    float64 -- a representation floor of ANY decaying-gap form, not a
+    property of this one.
+    """
+
+    intercept = 1.0
+    slope = 0.5  # optimist line 1 + 0.5*x; hNrm = 2
+    Q = 1.0
+    x_min = 0.0  # so mEx = x and hEx = 2; gap ceiling = 1.0
+
+    def steep_body(self, G=4.0, C=40.0, n=2001, top=21.0):
+        # gap = C*(x+h)^-G with G >> Q+1: the two-term guard trips here
+        h = self.intercept / self.slope
+        x = np.linspace(1.0, top, n)
+        y = self.intercept + self.slope * x - C * (x + h) ** (-G)
+        return LinearInterp(x, y)
+
+    def mild_body(self, G=1.3, gap_cut=1e-2, n=2001, top=21.0):
+        # gap_cut sets C so the cut sits at omega_cut = gap_cut/ceiling
+        h = self.intercept / self.slope
+        C = gap_cut * (top + h) ** G
+        x = np.linspace(1.0, top, n)
+        y = self.intercept + self.slope * x - C * (x + h) ** (-G)
+        return LinearInterp(x, y)
+
+    def rising_gap_body(self, n=2001, top=21.0):
+        # body slope BELOW slope_limit at the cut (gap widening): the
+        # fitted forms must disable here; moderation absorbs it (chip < 0)
+        x = np.linspace(1.0, top, n)
+        y = self.intercept + self.slope * x - (0.1 + 0.001 * x)
+        return LinearInterp(x, y)
+
+    def wrap(self, body, **kw):
+        kw.setdefault("decay_extrap_form", "moderation_tail")
+        kw.setdefault("decay_extrap_Q", self.Q)
+        kw.setdefault("x_min", self.x_min)
+        return DecayTailInterp(body, self.intercept, self.slope, **kw)
+
+    def test_C1_at_any_cut_including_guard_tripping_ones(self):
+        for body in (
+            self.steep_body(G=2.5, C=15.0),
+            self.steep_body(G=4.0, C=40.0),
+            self.steep_body(G=6.0, C=200.0),
+            self.rising_gap_body(),
+        ):
+            f = self.wrap(body)
+            cut = f.x_cut
+            d_body = float(body.derivative(np.array([cut]))[0])
+            d_tail = float(f.derivative(np.array([cut * (1 + 1e-12)]))[0])
+            self.assertAlmostEqual(d_tail / d_body, 1.0, places=9)
+            # level continuity (the class invariant)
+            y_body = float(body(np.array([cut]))[0])
+            y_tail = float(f(np.array([cut * (1 + 1e-13)]))[0])
+            self.assertAlmostEqual(y_tail / y_body, 1.0, places=12)
+
+    def test_bounds_gap_strictly_inside_zero_and_ceiling(self):
+        for body, floor_from in (
+            (self.steep_body(), 1.0),      # gap shrinking at the cut:
+            (self.rising_gap_body(), 2.0),  # floor holds everywhere ...
+        ):                                  # ... vs only past the bend
+            f = self.wrap(body)
+            q = np.geomspace(f.x_cut * (1 + 1e-10), 1e3 * f.x_cut, 4001)
+            gap = self.intercept + self.slope * q - f(q)
+            self.assertGreater(gap.min(), 0.0)
+            self.assertLess(gap.max(), f.decay_gap_ceiling)
+            # MPC floor f' > slope_limit holds where the gap is locally
+            # shrinking; a widening-gap cut (chip_cut < 0) C1-continues
+            # below slope_limit before the tail bends toward the line
+            deep = q >= floor_from * f.x_cut
+            self.assertGreaterEqual(f.derivative(q[deep]).min(), self.slope)
+
+    def test_asymptotic_exponent_is_Q(self):
+        # mild slope mismatch => the exp(-u) correction is < 1e-3 over the
+        # fitted decade [1e3, 1e4]*cut while the gap stays representable
+        f = self.wrap(self.mild_body())
+        q = np.geomspace(1e3 * f.x_cut, 1e4 * f.x_cut, 200)
+        gap = self.intercept + self.slope * q - f(q)
+        slope_fit = np.polyfit(np.log(q - self.x_min), np.log(gap), 1)[0]
+        self.assertAlmostEqual(slope_fit, -self.Q, delta=1e-3)
+
+    def test_local_exponent_identity_exact(self):
+        # -dln(gap)/dln(mEx) == (1 - omega)*(Q + (chip-Q)*e^-u) is an exact
+        # identity of the form; verify by central log-differences
+        # dl = 0.05 keeps float-cancellation noise in the subtracted gap
+        # (the gap is ~1e5 ulps of the line at depth 300) well below the
+        # 1e-3 gate while truncation stays ~4e-4 at depth 3
+        f = self.wrap(self.steep_body())
+        for depth in (3.0, 30.0, 300.0):
+            xq = depth * f.x_cut
+            dl = 0.05
+            qq = np.array([xq * np.exp(-dl), xq * np.exp(dl)])
+            gap = self.intercept + self.slope * qq - f(qq)
+            measured = -(np.log(gap[1]) - np.log(gap[0])) / (2 * dl)
+            mEx = xq - self.x_min
+            u = np.log(mEx / f.decay_mEx_cut)
+            eu = f.decay_mEx_cut / mEx
+            chi = (f.decay_chi_cut + f.decay_extrap_Q * u
+                   + (f.decay_chip_cut - f.decay_extrap_Q) * (1 - eu))
+            omega = 1.0 / (1.0 + np.exp(chi))
+            closed = (1 - omega) * (
+                f.decay_extrap_Q + (f.decay_chip_cut - f.decay_extrap_Q) * eu
+            )
+            self.assertAlmostEqual(measured / closed, 1.0, delta=1e-3)
+
+    def test_collapse_to_pinned_line_when_chip_equals_Q(self):
+        # a body that IS a chi-line with slope Q: chip_cut == Q exactly, and
+        # the tail must reproduce the body's own extension to float precision
+        intercept, slope, Q, x_min = (
+            self.intercept, self.slope, self.Q, self.x_min,
+        )
+        h = intercept / slope
+        ceiling = slope * (h + x_min)
+
+        class ChiLine:
+            def __init__(s, chi0, x0):
+                s.chi0, s.x0 = chi0, x0
+
+            def chi(s, x):
+                return s.chi0 + Q * np.log((x - x_min) / (s.x0 - x_min))
+
+            def __call__(s, x):
+                x = np.asarray(x, dtype=float)
+                om = 1.0 / (1.0 + np.exp(s.chi(x)))
+                return intercept + slope * x - ceiling * om
+
+            def derivative(s, x):
+                x = np.asarray(x, dtype=float)
+                om = 1.0 / (1.0 + np.exp(s.chi(x)))
+                return slope + ceiling * om * (1 - om) * Q / (x - x_min)
+
+        body = ChiLine(0.3, 21.0)
+        f = self.wrap(body, x_cut=21.0)
+        self.assertAlmostEqual(f.decay_chip_cut, Q, places=12)
+        probe = np.geomspace(21.0 * (1 + 1e-10), 100 * 21.0, 60)
+        np.testing.assert_allclose(f(probe), body(probe), rtol=1e-12)
+        np.testing.assert_allclose(
+            f.derivative(probe), body.derivative(probe), rtol=1e-10
+        )
+
+    def test_guard_free_where_two_term_falls_back(self):
+        # at the same steep cut: two-term warns + falls back to one term
+        # with its closed-form kink; moderation attaches with NO kink
+        body = self.steep_body()
+        with self.assertWarns(UserWarning):
+            two = DecayTailInterp(
+                body, self.intercept, self.slope, decay_extrap_Q=self.Q
+            )
+        self.assertEqual(two.decay_extrap_terms, 1)
+        cut = two.x_cut
+        d_body = float(body.derivative(np.array([cut]))[0])
+        kink_two = abs(
+            float(two.derivative(np.array([cut * (1 + 1e-12)]))[0]) - d_body
+        )
+        Q_fit = two.decay_extrap_B * two.decay_extrap_pivot
+        pred = (
+            (Q_fit - self.Q)
+            * float(two.decay_extrap_A)
+            / two.decay_extrap_pivot
+        )
+        self.assertAlmostEqual(kink_two / pred, 1.0, places=6)
+        f = self.wrap(body)
+        kink_mod = abs(
+            float(f.derivative(np.array([cut * (1 + 1e-12)]))[0]) - d_body
+        )
+        self.assertLessEqual(kink_mod, 1e-9 * abs(d_body))
+
+    def test_applicability_violations_raise(self):
+        body = self.mild_body()
+        # missing Q
+        with self.assertRaises(ValueError):
+            DecayTailInterp(
+                body, self.intercept, self.slope,
+                decay_extrap_form="moderation_tail", x_min=0.0,
+            )
+        # missing x_min
+        with self.assertRaises(ValueError):
+            DecayTailInterp(
+                body, self.intercept, self.slope,
+                decay_extrap_form="moderation_tail", decay_extrap_Q=1.0,
+            )
+        # terms=1 is meaningless for a form that is C1 by construction
+        with self.assertRaises(ValueError):
+            self.wrap(body, decay_extrap_terms=1)
+        # x_min with the exp form
+        with self.assertRaises(ValueError):
+            DecayTailInterp(
+                body, self.intercept, self.slope,
+                decay_extrap_form="exp", x_min=0.0,
+            )
+        # non-finite x_min
+        with self.assertRaises(ValueError):
+            self.wrap(body, x_min=np.inf)
+        # x_min at/above the cut
+        with self.assertRaises(ValueError):
+            self.wrap(body, x_min=25.0)
+        # hEx <= 0
+        with self.assertRaises(ValueError):
+            self.wrap(body, x_min=-2.5)
+        # body at the cut BELOW the pessimist line (omega_cut >= 1)
+        with self.assertRaises(ValueError):
+            self.wrap(body, x_min=-1.99)
+        # body at the cut ON/ABOVE the optimist line (level_diff <= 0)
+        x = np.linspace(1.0, 21.0, 201)
+        above = LinearInterp(x, self.intercept + self.slope * x + 0.1)
+        with self.assertRaises(ValueError):
+            self.wrap(above)
+        # derivative-less bodies cannot slope-match
+        bare = lambda z: np.asarray(z, dtype=float) * 0.0 + 5.0  # noqa: E731
+        with self.assertRaises(ValueError):
+            self.wrap(bare, x_cut=21.0)
+
+    def test_opt_in_neutrality(self):
+        # without the new form, x_min stays None and no moderation state is
+        # created; the powerlaw paths are untouched (their byte-parity with
+        # LinearInterp is asserted by TestDecayTailInterpParity)
+        body = self.mild_body()
+        f = DecayTailInterp(
+            body, self.intercept, self.slope, decay_extrap_Q=self.Q
+        )
+        self.assertIsNone(f.decay_x_min)
+        self.assertFalse(hasattr(f, "decay_chi_cut"))
+        self.assertEqual(f.decay_extrap_form, "powerlaw")
+
+    def test_derivative_matches_finite_differences(self):
+        f = self.wrap(self.steep_body())
+        q = np.geomspace(1.05 * f.x_cut, 200.0 * f.x_cut, 25)
+        eps = 1e-6 * q
+        fd = (f(q + eps) - f(q - eps)) / (2 * eps)
+        np.testing.assert_allclose(f.derivative(q), fd, rtol=1e-6)
+
+    def test_deep_queries_saturate_to_the_line_without_warnings(self):
+        # far beyond float representability of the gap, the tail must
+        # evaluate to the line exactly, with finite derivative == slope
+        # and no runtime warnings (the chi clip)
+        import warnings
+
+        f = self.wrap(self.steep_body())
+        q = np.array([1e8 * f.x_cut, 1e12 * f.x_cut])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            y = f(q)
+            d = f.derivative(q)
+        np.testing.assert_array_equal(
+            y, self.intercept + self.slope * q
+        )
+        np.testing.assert_allclose(d, self.slope, rtol=1e-12)
+
+    def test_guard_warning_enrichment(self):
+        # two-term trip WITH x_min: the warning carries the exact
+        # steepness diagnosis and both remedies
+        body = self.steep_body()
+        with self.assertWarnsRegex(
+            UserWarning,
+            r"moderation_tail.*s_mu=.*amplification.*guard-safe boundary",
+        ):
+            DecayTailInterp(
+                body, self.intercept, self.slope,
+                decay_extrap_Q=self.Q, x_min=self.x_min,
+            )
+        # LinearInterp's baked-in trip warning names the same remedies
+        h = self.intercept / self.slope
+        x = np.linspace(1.0, 21.0, 2001)
+        y = self.intercept + self.slope * x - 40.0 * (x + h) ** (-4.0)
+        with self.assertWarnsRegex(
+            UserWarning, r"human-wealth-scale.*moderation_tail"
+        ):
+            LinearInterp(
+                x, y, self.intercept, self.slope,
+                decay_extrap_form="powerlaw", decay_extrap_Q=self.Q,
+            )
+
+    def test_pickle_roundtrip(self):
+        import pickle
+
+        f = self.wrap(self.steep_body())
+        g = pickle.loads(pickle.dumps(f))
+        q = np.geomspace(1.01 * f.x_cut, 500.0 * f.x_cut, 40)
+        np.testing.assert_array_equal(f(q), g(q))
+        np.testing.assert_array_equal(f.derivative(q), g.derivative(q))

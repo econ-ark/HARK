@@ -1164,11 +1164,18 @@ class LinearInterp(HARKinterpolator1D):
                     "LinearInterp(decay_extrap_Q=..., decay_extrap_terms=2): "
                     f"the fitted rate Q_fit={Q_fit:.4g} is not finite and "
                     f"strictly below Q+1={Q + 1.0:.4g} (at or above it, the "
-                    "two-term leading amplitude would be non-positive -- a "
-                    "top segment that steep signals a coarse or non-converged "
-                    "grid top; non-finite signals a degenerate top segment); "
-                    "falling back to the one-term level-matched tail "
-                    "(C1 kink at the knot)."
+                    "two-term leading amplitude would be non-positive; "
+                    "non-finite signals a degenerate top segment); falling "
+                    "back to the one-term level-matched tail (C1 kink at "
+                    "the knot). A steep fitted rate at a human-wealth-"
+                    "dominated grid top is usually coordinate "
+                    "amplification rather than anomalous decay (the two are "
+                    "separated by the diagnosis where available): remedies "
+                    "are (a) extend the grid top "
+                    f"toward Q*hNrm ~= {Q * (pivot - x_top):.4g} (the "
+                    "human-wealth-scale rule), or (b) wrap the body in "
+                    "DecayTailInterp(decay_extrap_form='moderation_tail') "
+                    "(C1 at any cut, no guard)."
                 )
             self.decay_extrap_A = level_diff
             self.decay_extrap_A2 = 0.0
@@ -1401,6 +1408,44 @@ class DecayTailInterp(HARKinterpolator1D):
         #   it asymptotically -- the reason 'exp' is deprecated at birth in
         #   this new API while remaining LinearInterp's untouched legacy
         #   default.
+
+        ``'moderation_tail'``: tail-only use of the Method-of-Moderation
+        COORDINATES. The solved body is untouched, and this is NOT the full
+        Method of Moderation solution representation (see the
+        MethodOfModeration paper) -- it borrows MoM's coordinates for the
+        extrapolation region only. With ``mEx = x - x_min`` and
+        ``hEx = intercept_limit/slope_limit + x_min``, the gap is expressed
+        as ``omega = gap/(slope_limit*hEx)`` in (0, 1) -- the position
+        between the limiting ("optimist") line and the gap ceiling anchored
+        at ``x_min`` (the "pessimist" line) -- and, through
+        ``chi = log((1 - omega)/omega)`` and ``mu = log(mEx)``, the tail is
+
+            ``chi(mu) = chi_cut + Q*u + (chip_cut - Q)*(1 - exp(-u))``,
+            ``u = mu - mu_cut >= 0``.
+
+        The decay law is the POWER LAW ``gap ~ mEx**(-Q)``, asymptotically
+        the same law as ``'powerlaw'``; the logistic link is only the
+        coordinate system carrying it (this is NOT logistic or exponential
+        decay of the gap). Properties, each unit-tested: level- AND
+        slope-matched (C1) at ANY cut with NO guard -- the bounded
+        ``exp(-u)`` correction absorbs an arbitrarily steep local slope,
+        exactly the ``Q_fit >= Q + 1`` region where the two-term power-law
+        attachment must fall back to a kinked one-term tail; the gap stays
+        strictly inside ``(0, slope_limit*hEx)`` for all finite queries
+        (bounds by construction); and it collapses exactly to the
+        pinned-slope line when ``chip_cut == Q``. The derivative floor
+        ``f' > slope_limit`` holds wherever the gap is locally shrinking
+        (asymptotically always); at a cut where the body's gap is WIDENING
+        (``chip_cut < 0``, a configuration the fitted forms must refuse),
+        C1 fidelity necessarily continues the widening before the tail
+        bends toward the line -- the bounds still hold throughout. Requires
+        ``decay_extrap_Q`` (there is NO fitted mode: fitting the asymptotic
+        slope from the cut is definitionally the tangent extrapolation this
+        form exists to correct) and ``x_min``, and always reads the body's
+        derivative at the cut. Applicability violations RAISE (they signal
+        inconsistent inputs) instead of warn-and-disable: the body's level
+        at the cut must lie strictly between the pessimist and optimist
+        lines.
     decay_extrap_Q : float or None (default), keyword-only
         ``None``: the tail is FITTED -- level- and slope-matched at ``x_cut``
         exactly as ``LinearInterp`` fits from its top two knots (the wrapped
@@ -1436,6 +1481,17 @@ class DecayTailInterp(HARKinterpolator1D):
         #   F11: derivation of the closed-form amplitudes, the conditioning
         #   argument for Q+1, and the property proofs (below-line, MPC
         #   floor, concavity condition, guard + one-term fallback).
+    x_min : float or None (default), keyword-only
+        The lower support point of the moderation coordinates (for
+        consumption functions: ``mNrmMin``, the "pessimist" bound anchoring
+        the gap ceiling; often <= 0 under a natural borrowing constraint).
+        REQUIRED by ``decay_extrap_form='moderation_tail'`` (which needs
+        ``mEx = x - x_min > 0`` at the cut and
+        ``hEx = intercept_limit/slope_limit + x_min > 0``). OPTIONAL with
+        ``'powerlaw'``: supplying it enriches the two-term guard-trip
+        warning with the exact steepness diagnosis (``s_mu``, the
+        coordinate amplification factor ``1 + hEx/mEx``, and the guard-safe
+        grid boundary ``mEx > Q*hEx``). Rejected with ``'exp'``.
 
     Notes
     -----
@@ -1496,12 +1552,13 @@ class DecayTailInterp(HARKinterpolator1D):
         *,
         decay_extrap_Q=None,
         decay_extrap_terms=2,
+        x_min=None,
     ):
         self.interp = interp
-        if decay_extrap_form not in ("exp", "powerlaw"):
+        if decay_extrap_form not in ("exp", "powerlaw", "moderation_tail"):
             raise ValueError(
-                "decay_extrap_form must be 'exp' or 'powerlaw', got "
-                + repr(decay_extrap_form)
+                "decay_extrap_form must be 'exp', 'powerlaw', or "
+                "'moderation_tail', got " + repr(decay_extrap_form)
             )
         if isinstance(decay_extrap_terms, bool) or decay_extrap_terms not in (1, 2):
             raise ValueError(
@@ -1514,16 +1571,50 @@ class DecayTailInterp(HARKinterpolator1D):
                 "DecayTailInterp requires intercept_limit and slope_limit "
                 "(the limiting linear function is what the tail decays toward)"
             )
-        if decay_extrap_Q is not None:
-            if decay_extrap_form != "powerlaw":
+        if x_min is not None:
+            if decay_extrap_form == "exp":
                 raise ValueError(
-                    "decay_extrap_Q requires decay_extrap_form='powerlaw'"
+                    "x_min parameterizes the moderation coordinates (and the "
+                    "power-law guard diagnosis); it is meaningless with "
+                    "decay_extrap_form='exp'"
+                )
+            x_min = float(x_min)
+            if not np.isfinite(x_min):
+                raise ValueError("x_min must be finite, got " + repr(x_min))
+        self.decay_x_min = x_min
+        if decay_extrap_Q is not None:
+            if decay_extrap_form not in ("powerlaw", "moderation_tail"):
+                raise ValueError(
+                    "decay_extrap_Q requires decay_extrap_form='powerlaw' "
+                    "or 'moderation_tail'"
                 )
             decay_extrap_Q = float(decay_extrap_Q)
             if not np.isfinite(decay_extrap_Q) or decay_extrap_Q <= 0.0:
                 raise ValueError(
                     "decay_extrap_Q must be a positive finite float, got "
                     + repr(decay_extrap_Q)
+                )
+        if decay_extrap_form == "moderation_tail":
+            if decay_extrap_Q is None:
+                raise ValueError(
+                    "decay_extrap_form='moderation_tail' requires "
+                    "decay_extrap_Q (the explicit asymptotic exponent; the "
+                    "theory value is min(1, q*) from "
+                    "HARK.ConsumptionSaving.pf_decay) -- there is no fitted "
+                    "mode: fitting the asymptotic slope at the cut is the "
+                    "tangent extrapolation this form exists to correct"
+                )
+            if x_min is None:
+                raise ValueError(
+                    "decay_extrap_form='moderation_tail' requires x_min "
+                    "(the moderation coordinates' lower support point; "
+                    "mNrmMin for consumption functions)"
+                )
+            if decay_extrap_terms == 1:
+                raise ValueError(
+                    "decay_extrap_terms does not apply to "
+                    "decay_extrap_form='moderation_tail' (the form is C1 by "
+                    "construction); leave it at its default"
                 )
         if x_cut is None:
             x_list = getattr(interp, "x_list", None)
@@ -1571,6 +1662,26 @@ class DecayTailInterp(HARKinterpolator1D):
             self.intercept_limit + self.slope_limit * self.x_cut - level_at_cut
         )
         self.decay_extrap = False
+        if decay_extrap_form == "moderation_tail":
+            der = getattr(interp, "derivative", None)
+            if der is None:
+                raise ValueError(
+                    "DecayTailInterp: the moderation tail slope-matches at "
+                    "x_cut and needs the wrapped interpolant's derivative "
+                    "there; this interpolant has none"
+                )
+            slope_at_cut = float(
+                np.asarray(der(np.array([self.x_cut]))).ravel()[0]
+            )
+            if not np.isfinite(slope_at_cut):
+                raise ValueError(
+                    "DecayTailInterp: the wrapped interpolant returns a "
+                    f"non-finite derivative ({slope_at_cut!r}) at "
+                    f"x_cut={self.x_cut!r}; the moderation tail needs a "
+                    "finite slope there"
+                )
+            self._init_moderation_tail(level_diff, decay_extrap_Q, slope_at_cut)
+            return
         if decay_extrap_Q is not None:
             slope_at_cut = None
             if decay_extrap_terms == 2:
@@ -1697,15 +1808,38 @@ class DecayTailInterp(HARKinterpolator1D):
                 self.decay_extrap = True
                 return
             if not (np.isfinite(Q_fit) and Q_fit < Q + 1.0):
+                hNrm = pivot - self.x_cut
+                diag = ""
+                if self.decay_x_min is not None and np.isfinite(Q_fit):
+                    hEx = hNrm + self.decay_x_min
+                    mEx_cut = self.x_cut - self.decay_x_min
+                    if mEx_cut > 0.0 and hEx > 0.0:
+                        # exact steepness decomposition:
+                        # Q_fit = s_mu * (1 + hEx/mEx); guard-safe boundary
+                        # mEx > Q*hEx (the human-wealth-scale rule)
+                        amp = 1.0 + hEx / mEx_cut
+                        diag = (
+                            f" Diagnosis (x_min={self.decay_x_min:.6g}): "
+                            f"s_mu={Q_fit / amp:.4g} times coordinate "
+                            f"amplification {amp:.4g}; guard-safe boundary "
+                            f"mEx_cut > Q*hEx = {Q * hEx:.4g}, vs mEx_cut = "
+                            f"{mEx_cut:.4g} here."
+                        )
                 warnings.warn(
                     "DecayTailInterp(decay_extrap_Q=..., decay_extrap_terms="
                     f"2): the fitted rate Q_fit={Q_fit:.4g} is not finite "
                     f"and strictly below Q+1={Q + 1.0:.4g} (at or above it, "
-                    "the two-term leading amplitude would be non-positive -- "
-                    "a slope that steep at the cut signals a coarse or "
-                    "non-converged body top; non-finite signals a degenerate "
-                    "reading); falling back to the one-term level-matched "
-                    "tail (C1 kink at the cut)."
+                    "the two-term leading amplitude would be non-positive; "
+                    "non-finite signals a degenerate reading); falling back "
+                    "to the one-term level-matched tail (C1 kink at the "
+                    "cut). A steep fitted rate at a human-wealth-dominated "
+                    "cut is usually coordinate amplification rather than "
+                    "anomalous decay (the diagnosis below separates the two "
+                    "when x_min is supplied): remedies are (a) extend the "
+                    "grid top toward Q*hNrm ~= "
+                    f"{Q * hNrm:.4g} (the human-wealth-scale rule), or (b) "
+                    "decay_extrap_form='moderation_tail' (C1 at any cut, no "
+                    f"guard; requires x_min).{diag}"
                 )
         else:
             # fitted-rate diagnostic is undefined without a body slope reading
@@ -1713,6 +1847,66 @@ class DecayTailInterp(HARKinterpolator1D):
         self.decay_extrap_A = level_diff
         self.decay_extrap_A2 = 0.0
         self.decay_extrap_terms = 1
+        self.decay_extrap = True
+
+    def _init_moderation_tail(self, level_diff, Q, slope_at_cut):
+        """Moderation-coordinates C1 tail setup (tail-only; NOT the full
+        Method of Moderation -- see the class docstring). Level- and
+        slope-matched at ANY cut with no guard: the bounded ``exp(-u)``
+        correction absorbs an arbitrarily steep local slope, so there is no
+        analog of the two-term ``Q_fit >= Q + 1`` fallback. Violations of
+        the moderation premises signal INCONSISTENT INPUTS and raise
+        (unlike the fitted/explicit power-law guards, which warn and
+        disable): the wrapped body's level at the cut must lie strictly
+        between the limiting ("optimist") line and the gap ceiling anchored
+        at ``x_min`` (the "pessimist" line).
+
+        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+        #   Same decay law as the power-law forms: chi(mu) asymptotically
+        #   linear with slope Q in mu = ln(x - x_min) is IDENTICALLY
+        #   gap ~ mEx**(-Q); the moderation coordinates change only the
+        #   ATTACHMENT (C1 at any cut, bounds built in), not the law.
+        """
+        x_min = self.decay_x_min
+        if not self.slope_limit > 0.0:
+            raise ValueError(
+                "moderation_tail requires slope_limit > 0, got "
+                f"{self.slope_limit!r}"
+            )
+        if not x_min < self.x_cut:
+            raise ValueError(
+                "moderation_tail requires x_min < x_cut, got "
+                f"x_min={x_min!r} >= x_cut={self.x_cut!r}"
+            )
+        hEx = self.intercept_limit / self.slope_limit + x_min
+        if not hEx > 0.0:
+            raise ValueError(
+                "moderation_tail requires hEx = intercept_limit/slope_limit "
+                "+ x_min > 0 (the optimist-pessimist gap ceiling scale), "
+                f"got hEx={hEx!r}"
+            )
+        ceiling = self.slope_limit * hEx
+        if not 0.0 < level_diff < ceiling:
+            raise ValueError(
+                "moderation_tail requires the body's level at x_cut "
+                "strictly between the pessimist and optimist lines: need "
+                "0 < level_diff < slope_limit*hEx, got level_diff="
+                f"{float(level_diff)!r} vs ceiling={float(ceiling)!r}"
+            )
+        mEx_cut = self.x_cut - x_min
+        omega_cut = float(level_diff) / ceiling
+        # chi and its mu-slope at the cut, from the body's own level and
+        # slope: chip = -mEx*g'/(g*(1-omega)) with g' = slope_limit - body'
+        slope_diff = self.slope_limit - slope_at_cut
+        self.decay_hEx = hEx
+        self.decay_gap_ceiling = ceiling
+        self.decay_mEx_cut = mEx_cut
+        self.decay_chi_cut = float(np.log((1.0 - omega_cut) / omega_cut))
+        self.decay_chip_cut = float(
+            -mEx_cut * slope_diff / (float(level_diff) * (1.0 - omega_cut))
+        )
+        self.decay_extrap_Q = Q
+        self.decay_extrap_Q_source = "explicit"
         self.decay_extrap = True
 
     def _body_y(self, x):
@@ -1743,6 +1937,37 @@ class DecayTailInterp(HARKinterpolator1D):
         same numerically stable arrangement, as
         ``LinearInterp._apply_upper_decay``."""
         x_temp = x_above - self.x_cut
+        if self.decay_extrap_form == "moderation_tail":
+            # chi(mu) = chi_cut + Q*u + (chip_cut - Q)*(1 - e^-u): stable
+            # omega recovery via expm1 (chi clipped at 700, where omega has
+            # already underflowed to ~1e-304 and the tail IS the line);
+            # e^-u computed as the exact coordinate ratio mEx_cut/mEx.
+            mEx = x_above - self.decay_x_min
+            u = np.log1p(x_temp / self.decay_mEx_cut)
+            eu = self.decay_mEx_cut / mEx
+            chi = (
+                self.decay_chi_cut
+                + self.decay_extrap_Q * u
+                + (self.decay_chip_cut - self.decay_extrap_Q) * (1.0 - eu)
+            )
+            omega = 1.0 / (2.0 + np.expm1(np.minimum(chi, 700.0)))
+            y = (
+                self.intercept_limit + self.slope_limit * x_above
+                - self.decay_gap_ceiling * omega
+                if want_y
+                else None
+            )
+            dydx = (
+                self.slope_limit
+                + self.decay_gap_ceiling * omega * (1.0 - omega)
+                * (
+                    self.decay_extrap_Q
+                    + (self.decay_chip_cut - self.decay_extrap_Q) * eu
+                ) / mEx
+                if want_der
+                else None
+            )
+            return y, dydx
         if self.decay_extrap_form == "powerlaw":
             if getattr(self, "decay_extrap_terms", 1) == 2:
                 # C1 two-term attachment (F11); expressions identical to
