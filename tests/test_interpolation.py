@@ -1238,7 +1238,7 @@ class TestLinearInterpExplicitQ(unittest.TestCase):
     they are the ONE-TERM regression suite, preserving the original
     registrations verbatim. TestLinearInterpTwoTerm covers the default.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   The theorem's extrapolation form of record is g ~ C*(x+h)**(-q) with
     #   q = min(1, q*); the explicit-Q keyword lets callers attach that exponent
     #   level-matched at the top knot instead of the fitted 2-knot exponent.

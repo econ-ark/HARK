@@ -13,13 +13,13 @@ where ``q_star`` is the unique positive root of the eigen-equation
 with sharp closed-form amplitude ``B_psi`` at ``q_star > 1`` and a ``ln(x)``
 resonance law exactly at ``q_star = 1``.
 
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: eq (E)]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: eq (E) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
 #   q* = (discounting speed ln Rcal) / (descent speed Lambda) at psi == 1, and in
 #   general the root of (E). The realized decay exponent is min(1, q*): the gap is
 #   the sum of a here-and-now 1/x precautionary component and a near-target x^(-q*)
 #   component, and the slower-fading one wins asymptotically.
 
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: Prop A0]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: Prop A0 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
 #   The gap can never decay FASTER than 1/x (a prudent consumer always collects at
 #   least today's Arrow-Pratt premium) — Prop A0's floor, which makes exponential
 #   decay impossible as an asymptotic form; and since the realized exponent is
@@ -35,7 +35,7 @@ Conventions (all verified against the theorem program's reference implementation
 * ``h      = 1/(Rcal - 1)``                    (normalized human wealth EXCLUDING
   current income, per unit of expected income).
 
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
 #   The h-convention trap: BST's h_BST = R/(R-Gamma) = 1 + h INCLUDES current
 #   income; plugging h_BST into kappa*(m+h) sends the measured gap to -kappa*E_inc,
 #   a spurious refutation. HARK itself carries BOTH conventions: the solver-side
@@ -47,7 +47,7 @@ Conventions (all verified against the theorem program's reference implementation
 #   tolerance, because the solution distance criterion is vPfunc-based while the
 #   hNrm recursion contracts only at rate G/R per iteration).
 
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: 4. Remarks :: Mortality]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/statement.md :: 4. Remarks :: Mortality :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
 #   Mortality-as-impatience (Remark 9, perpetual-youth): with survival probability
 #   L, replace beta by beta*L throughout the patience factors (Thorn, Thorn_R,
 #   Thorn_Gamma, kappa, Lambda, q*); h and Rcal stay mortality-free. This is
@@ -285,7 +285,7 @@ def _bisect(f, lo, hi, flo, max_iter=200):
 def qstar_root(psi_atoms, psi_probs, Rcal, Thorn_Gamma):
     """Unique positive root of (E): E[psi^(1+q)] = Rcal * Thorn_Gamma^q.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Lemma A5]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Lemma A5 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   Lemma A5: L(q) := ln E[psi^(1+q)] - ln Rcal - q*ln Thorn_Gamma is convex
     #   with L(0) = -ln Rcal < 0 under FHWC, so (E) has a unique positive root;
     #   bracket-expansion upward from q=1 then bisection finds it.
@@ -361,7 +361,7 @@ def dual_root(psi_atoms, psi_probs, Thorn_Gamma, LivPrb=1.0):
     distribution: more patient => Thorn_Gamma nearer 1 => smaller zeta_L =>
     fatter tail; and zeta_L > 1 is exactly "aggregate wealth is finite".
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   Normalized wealth follows the Kesten recursion x' = A'x + B' with
     #   A' = Thorn_Gamma/psi'; the stationary wealth tail is Pareto with exponent
     #   zeta* solving E[A^zeta] = 1, which exists iff the multiplier contracts on
@@ -389,7 +389,7 @@ def dual_root(psi_atoms, psi_probs, Thorn_Gamma, LivPrb=1.0):
     E_ln_A = float(np.dot(ppf, ln_A))
     P_A_gt_1 = float(ppf[ln_A > 0.0].sum())
     if E_ln_A >= 0.0 and L >= 1.0:
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: The cap-atom exception]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: The cap-atom exception :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
         #   Positive log-drift is the GIC-cap-atom case: at the patience ceiling the
         #   mean log-step is positive, normalized wealth drifts UP on average, and
         #   only mortality-with-replacement truncates that atom's wealth tail —
@@ -653,7 +653,7 @@ def powerlaw_decay_params(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
     lambda_B = float(E_psi2 / (Rcal * Thorn_Gamma))
     near_res = bool(abs(lambda_B - 1.0) < near_resonance_band)
     if near_res:
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The knife-edge window, quantified on HAFiscal's own numbers]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The knife-edge window, quantified on HAFiscal's own numbers :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
         #   Near the r = g knife-edge (lambda_B near 1, Lambda near 0) the
         #   asymptotic regime begins only at astronomically large wealth: at the
         #   GIC-cap calibration the compensated gap has covered only 42% of the
@@ -682,7 +682,7 @@ def powerlaw_decay_params(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
             EW = (p_j * W).sum()
             sigma_B2 = float((p_j * (W - EW) ** 2).sum())
         else:
-            # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §5. Theorem III: permanent shocks — the human-wealth-revaluation channel]
+            # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §5. Theorem III: permanent shocks — the human-wealth-revaluation channel :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
             #   sigma_B^2 = Var(W) = E[psi^2]*Var(theta) + (1+h)^2*Var(psi): the
             #   (1+h)^2*Var(psi) term is the human-wealth revaluation channel — a
             #   permanent shock reprices the whole future income stream.
@@ -694,7 +694,7 @@ def powerlaw_decay_params(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
                                     / (2 * Lambda))
         denom = float(Rcal * Thorn_Gamma) - E_psi2
         if np.isfinite(q_star) and q_star > 1.0 and denom > 0.0:
-            # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §5. Theorem III: permanent shocks — the human-wealth-revaluation channel :: Theorem γ-B]
+            # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §5. Theorem III: permanent shocks — the human-wealth-revaluation channel :: Theorem γ-B :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
             #   Theorem III (= Theorem γ-B): at q* > 1,
             #   x*g(x) -> B_psi = kappa*(rho+1)*sigma_B^2 / (2*(Rcal*Thorn_Gamma - E[psi^2])),
             #   the closed-form boundary amplitude (Gordon-convergent perpetuity of
@@ -785,7 +785,7 @@ def resonance_constants(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
                         warn=True):
     """Sharp constants of the q* = 1 resonance case.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §4. Theorem II: the trichotomy — three things a linear recursion can do at a boundary :: Theorem γ-R]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §4. Theorem II: the trichotomy — three things a linear recursion can do at a boundary :: Theorem γ-R :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   At q* = 1 (Rcal*Thorn_Gamma = 1, the r = g knife-edge) the shell recursion
     #   escapes linearly instead of contracting to a value: the gap obeys the ln-x
     #   law (x/ln x)*g(x) -> C_B — a slope, not a value. This is a knife-edge, not
@@ -857,14 +857,14 @@ def powerlaw_tail_diagnostic(cFunc, MPCmin, hNrm, params, m_lo=None, m_hi=None,
                              guard_rel_gap=1e-9):
     """Wrong-exponent detection: a cheap post-solve grid test (no re-solve).
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §4. Theorem II: the trichotomy — three things a linear recursion can do at a boundary :: Theorem γ-T]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §4. Theorem II: the trichotomy — three things a linear recursion can do at a boundary :: Theorem γ-T :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   Theorem γ-T (wrong-exponent detection): compensate the gap by a trial
     #   exponent s — only s = min(1, q*) makes the compensated series flat
     #   (bounded with a positive limit); any other s makes it drift with sign
     #   s - min(1, q*). The compensated-flatness test below is that theorem
     #   read as a diagnostic on a solved consumption function.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: A built-in diagnostic]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: A built-in diagnostic :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   The grid-depth migration of measured exponents toward min(1, q*) is the
     #   theorem-backed convergence signature for solver validation; a flat point
     #   far from min(1, q*) is the actionable wrong-exponent signature (broken
@@ -1040,7 +1040,7 @@ def aXtraMax_from_tail_tol(m_ref, rel_gap_ref, q_eff, hNrm, tail_tol,
     reaches ``tail_tol`` — i.e. where the grid may stop and hand the tail to
     the power-law extrapolation with a certified error bound.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: Theorem A1 :: leading exponent is `min(1, q*)`]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/statement.md :: Theorem A1 :: leading exponent is `min(1, q*)` :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
     #   gap(x) ≍ x^(-min(1,q*)) with x = m + h; with c ~ kappa*x the RELATIVE
     #   gap decays one power faster, gap/c ∝ x^(-(1+q)), so a reference
     #   measurement inverts to x_top = x_ref*(rel_gap_ref/tail_tol)^(1/(1+q)).
@@ -1055,7 +1055,7 @@ def aXtraMax_from_tail_tol(m_ref, rel_gap_ref, q_eff, hNrm, tail_tol,
       at the top is <= tail_tol (up to an O(tail_tol) denominator
       correction).  Measured at the GIC-cap anchor: ex-post 6.9e-5 at
       tail_tol = 1e-4.
-      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/alt_proof_compactified.md :: Theorem γ-B (Stage-B boundary value). PROVEN-HERE. :: `M_n` increasing to the plateau]
+      # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/alt_proof_compactified.md :: Theorem γ-B (Stage-B boundary value). PROVEN-HERE. :: `M_n` increasing to the plateau :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/alt-proof-compactified/]
       #   W1(z) = x*g(x) extends continuously to z = 0 with boundary value
       #   B_psi, approached monotonically from below at q* > 1 — hence
       #   B_psi/x bounds the gap from above on the whole tail.
@@ -1168,12 +1168,12 @@ def qstar_probe(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
     at the probe point is LOAD-BEARING: an unnormalized eps*x^(-s) trial at
     x = 1e8 is ~1e-40, beneath float64 resolution of the gap.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: eq (E)]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: eq (E) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   The analytic eigen-equation E[psi^(1+q)] = Rcal*Thorn_Gamma^q is this
     #   probe evaluated on paper: the root of the one-period multiplier on
     #   x^(-q) gap perturbations. The probe is the model-agnostic form.
 
-    # THEOREM-REF[HAFiscal-Latest @ 8ad5a853 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: The operator eigen-probe]
+    # THEOREM-REF[BufferStockTheory-Latest @ 0d1f88d8 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: The operator eigen-probe :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
     #   Validation (F9): matches the analytic q* to 5.6e-6 / 8.6e-6 / 5.0e-5
     #   at the HS / CTOP / CCAP anchors with ~1e-6 depth-consistency, while
     #   estimation FROM SOLVED VALUES is 15-40% off even on deep windows (the
@@ -1318,7 +1318,7 @@ def mNrm_stable_points(cFunc, Rfree, PermGroFac, LivPrb=1.0,
       dynamics, so the adjusted loci exist under GIC-Mod-Liv / GIC-Raw-Liv
       even when the unadjusted target does not (the pure-GIC case).
 
-    # THEOREM-REF[HAFiscal-Latest @ 8ad5a853 :: theory/powerlaw-decay/grid_design_final_spec.md :: The findings ledger (each measured this arc, HS/CTOP/CCAP anchors) :: mortality EXACTLY as a return shave]
+    # THEOREM-REF[BufferStockTheory-Latest @ 0d1f88d8 :: theory/powerlaw-decay/grid_design_final_spec.md :: The findings ledger (each measured this arc, HS/CTOP/CCAP anchors) :: mortality EXACTLY as a return shave :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
     #   Measured at the GIC-cap atom (GIC-Mod fails; unadjusted StE = 340.9):
     #   the L*R-adjusted balanced-growth root 40.18 lands on the
     #   Harmenberg-neutral ergodic mean 41.23 to 2.5% (Jensen sign correct,
@@ -1453,12 +1453,12 @@ def aXtraMax_from_wealth_mass(cFunc, Rfree, PermGroFac, DiscFac, CRRA,
     * Populations: apply per type/atom and take the max — the most patient
       atom binds the common grid.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: Patience fattens the tail]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: Patience fattens the tail :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   The stationary wealth tail is Pareto with the dual-root exponent, and
     #   patience fattens it — the theory reason the grid top must be
     #   patience-sensitive, delivered here through zeta_L and the measurement.
 
-    # THEOREM-REF[HAFiscal-Latest @ d67f9183 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: THE RULE IS MEASURED]
+    # THEOREM-REF[BufferStockTheory-Latest @ 716cfd82 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: THE RULE IS MEASURED :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
     #   F10 of the grid-design record: the measured-quantile rule, the
     #   cover-only role of the closed form (0.38x unsafe / 128x over at the
     #   patience extremes), and the fresh quantile table across

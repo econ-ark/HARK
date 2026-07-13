@@ -905,7 +905,7 @@ class LinearInterp(HARKinterpolator1D):
         extrapolation (``decay_extrap == False``) rather than risk a divergent
         tail.
 
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
         #   The power-law gap tail C*(x + h)**(-q) is the theorem's extrapolation
         #   form of record for buffer-stock consumption functions; the
         #   exponential form is not merely inaccurate but impossible as an
@@ -933,7 +933,7 @@ class LinearInterp(HARKinterpolator1D):
         description above applies to the ONE-TERM variant
         (``decay_extrap_terms=1``); the default two-term attachment is C1.
 
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
         #   The gap extrapolant g ~ C*(x + h)**(-q) with q = min(1, q*) is the
         #   asymptotically correct form for buffer-stock consumption functions;
         #   this keyword is the hook that lets callers pin the exponent to the
@@ -963,7 +963,7 @@ class LinearInterp(HARKinterpolator1D):
         an attachment (boundary-layer) term absorbing exactly the one-term
         kink, not an asymptotic claim.
 
-        # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+        # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
         #   F11: closed-form amplitudes B = G*(Q_fit - Q), A = G*(1+Q-Q_fit)
         #   from the level+slope matching conditions; conditioning argument
         #   for Q+1 over the theory-subleading pair; property proofs
@@ -1074,7 +1074,7 @@ class LinearInterp(HARKinterpolator1D):
         concavity, so a violation signals bad inputs; decay is then disabled
         outright rather than risk a divergent tail.
 
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
         #   Imported foundations L0–L2′: a converged buffer-stock consumption
         #   function is strictly increasing and strictly concave (Carroll–Kimball
         #   1996) and approaches its PF asymptote from below with slope falling
@@ -1146,7 +1146,7 @@ class LinearInterp(HARKinterpolator1D):
         Q_fit = self.decay_extrap_B * pivot
         A2 = level_diff * (Q_fit - Q) if np.isfinite(Q_fit) else np.nan
         if terms == 2 and np.isfinite(Q_fit) and Q_fit < Q + 1.0 and A2 != 0.0:
-            # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+            # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
             #   Level+slope matching with the theory exponent leading gives
             #   A2 = G*(Q_fit - Q), A = G - A2; the second exponent Q+1 keeps
             #   the system conditioned at near-resonance calibrations where
@@ -1361,7 +1361,7 @@ class DecayTailInterp(HARKinterpolator1D):
     layer that chooses WHICH tail to attach to consumption slices -- this
     class is the mechanism such policy layers can target.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   The power-law gap tail C*(x + h)**(-q) is the theorem's extrapolation
     #   form of record for buffer-stock consumption functions, and it is a
     #   property of the FUNCTION being approximated, not of the interpolation
@@ -1402,7 +1402,7 @@ class DecayTailInterp(HARKinterpolator1D):
         accurate but impossible as an asymptotic form for the consumption
         gap, so new code should have no reason to choose it.
 
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free)]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
         #   Prop A0: the true gap below the perfect-foresight asymptote can
         #   never decay faster than 1/x, so any exponential tail understates
         #   it asymptotically -- the reason 'exp' is deprecated at birth in
@@ -1477,7 +1477,7 @@ class DecayTailInterp(HARKinterpolator1D):
         exactly the one-term kink), NOT the theory-subleading pair, whose
         spacing ``|q* - 1|`` vanishes at near-resonance calibrations.
 
-        # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+        # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
         #   F11: derivation of the closed-form amplitudes, the conditioning
         #   argument for Q+1, and the property proofs (below-line, MPC
         #   floor, concavity condition, guard + one-term fallback).
@@ -1515,7 +1515,7 @@ class DecayTailInterp(HARKinterpolator1D):
     composable analog of ``LinearInterp`` falling back to its naive top-
     segment extrapolation.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   Imported foundations L0-L2': a converged buffer-stock consumption
     #   function is strictly increasing and strictly concave (Carroll-Kimball
     #   1996) and approaches its PF asymptote from below with slope falling
@@ -1797,7 +1797,7 @@ class DecayTailInterp(HARKinterpolator1D):
             Q_fit = self.decay_extrap_B * pivot
             A2 = level_diff * (Q_fit - Q) if np.isfinite(Q_fit) else np.nan
             if np.isfinite(Q_fit) and Q_fit < Q + 1.0 and A2 != 0.0:
-                # THEOREM-REF[HAFiscal-Latest @ 367b9b34 :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment]
+                # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
                 #   F11 closed forms: level+slope matching with the theory
                 #   exponent leading; an EXACT collapse (A2 == 0) stores the
                 #   one-term representation (byte-identical to terms=1); a
@@ -1861,7 +1861,7 @@ class DecayTailInterp(HARKinterpolator1D):
         between the limiting ("optimist") line and the gap ceiling anchored
         at ``x_min`` (the "pessimist" line).
 
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
         #   Same decay law as the power-law forms: chi(mu) asymptotically
         #   linear with slope Q in mu = ln(x - x_min) is IDENTICALLY
         #   gap ~ mEx**(-Q); the moderation coordinates change only the

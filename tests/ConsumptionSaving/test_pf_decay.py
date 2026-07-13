@@ -16,12 +16,12 @@ discount-factor atom) / CCAP (College GIC-cap atom):
 This makes the HAFiscal calibration table a permanent HARK regression anchor
 for the theory utility.
 
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/figures/FIGURES.md :: Calibrations]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/figures/FIGURES.md :: Calibrations]
 #   Anchor provenance: the theorem program's calibration table (CAL-HS /
 #   CAL-CTOP / CAL-CCAP, built from the estimated HAFiscal parameters) is the
 #   source of the q*, B_psi, lambda_B and E[psi^2] targets above.
 
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: The reachability taxonomy]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §6.1 How rarely is the tail visited? The dual (Kesten) root, for economists :: The reachability taxonomy :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
 #   The zeta* and E[ln A] targets above are the measured reachability table:
 #   dual root 9.19 (HS) / 3.17 (College top atom) / none (GIC-cap atom, whose
 #   positive log-drift leaves mortality-with-replacement to truncate its tail).
@@ -133,7 +133,7 @@ class TestCalibrationAnchors(unittest.TestCase):
         self.assertEqual(self.res["CCAP"].q, 1.0)
 
     def test_B_psi(self):
-        # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/alt_proof_compactified.md :: Theorem γ-B (Stage-B boundary value)]
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/alt_proof_compactified.md :: Theorem γ-B (Stage-B boundary value) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/alt-proof-compactified/]
         #   The closed-form boundary amplitude B_psi exists only at q* > 1; at the
         #   GIC-cap calibration B_psi = 356.63. At q* < 1 the Gordon denominator
         #   Rcal*Thorn_Gamma - E[psi^2] is negative and B_psi must be refused.
@@ -186,7 +186,7 @@ class TestCalibrationAnchors(unittest.TestCase):
 class TestHConvention(unittest.TestCase):
     """The two-human-wealth-conventions fact, pinned as tripwires.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
     #   Theorem h = 1/(Rcal-1) EXCLUDES current income = h_BST - 1 with
     #   h_BST = R/(R-Gamma). HARK's SOLVER-side hNrm (calc_human_wealth) matches
     #   the theorem convention (h*E_inc); bilt['hNrm'] from calc_limiting_values

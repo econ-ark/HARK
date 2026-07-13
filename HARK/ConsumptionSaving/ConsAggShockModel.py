@@ -101,7 +101,7 @@ utility_inv = CRRAutility_inv
 # attributes are set (both default to None); otherwise the legacy
 # bare-LinearInterp path is preserved byte-for-byte.
 #
-# THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: L3 (level convergence)]
+# THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: L3 (level convergence) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
 #   The decay target is the theorem's gap g(x) = kappa*(m + h) - c(m), x = m + h:
 #   g is sandwiched 0 <= g <= kappa*h and g(x) -> 0 (L3, level convergence), so a
 #   correct extrapolation must rejoin the PF line from below — which naive-linear
@@ -119,7 +119,7 @@ def pf_mpc_min(Rfree, DiscFac, CRRA, LivPrb=1.0):
     evaluated at a single reference capital ratio. Survival enters through the
     effective discount factor ``DiscFac * LivPrb`` (NOT through human wealth).
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: 4. Remarks :: Mortality]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/statement.md :: 4. Remarks :: Mortality :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
     #   Mortality-as-impatience (Remark 9, perpetual-youth): survival L replaces
     #   beta by beta*L inside the patience factors only — here MPCmin via the
     #   effective discount factor — while human wealth h and Rcal = R/Gamma stay
@@ -153,7 +153,7 @@ def pf_human_wealth_markov(MrkvArray, Rfree, ExpIncNext, PermGroFac):
     degenerate for zero-income deep-unemployment states; this joint solve is the
     correct PF human-wealth limit.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/ADVERSARIAL_TESTING_GUIDE.md :: 5. LANDMINES — documented evaluation traps and silent-pass hazards :: The `h` human-wealth convention]
     #   This fixed point EXCLUDES current income — the theorem's h-convention
     #   (h = h_BST - 1, matching HARK's solver-side calc_human_wealth). Do NOT
     #   swap in BST's h_BST = R/(R-Gamma), which INCLUDES current income: it
@@ -237,7 +237,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     slope of the solved slice at its top knot, exactly as the exponential does,
     so the switch needs no extra parameters.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   The power-law gap tail g ~ C*(m+h)**(-q), q = min(1, q*), is the
     #   theorem's extrapolation form of record; the exponential heuristic it
     #   replaces is not merely inaccurate but impossible as an asymptotic form
@@ -257,7 +257,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
       power-law tail with the THEORY exponent ``q = min(1, q_star)``,
       level-matched at the top knot (explicit-Q semantics of ``LinearInterp``).
 
-      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))"]
+      # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §0 "What is q*? (and why min(1, q*))" :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
       #   min(1, q*) is the realized asymptotic decay exponent of the gap below
       #   the PF asymptote: the here-and-now 1/x precautionary component vs the
       #   discounted near-target x^(-q*) component, whichever fades slower.
@@ -280,7 +280,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
       (with a ``PFDecayGridWarning`` when the clamp bites; inert on healthy
       solves, where every measured fitted exponent sat below the ceiling).
 
-      # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free)]
+      # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
       #   Prop A0 impossibility floor: the true gap can never decay faster than
       #   1/x (any o(1/x) decay, exponential included, is impossible); with the
       #   realized exponent min(1, q*) (Theorem A1/B1), a fitted exponent above
@@ -344,7 +344,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
     aggregate-shock solve starts from ``c = m``, above the line) and is left to
     the legacy extrapolation for that slice.
 
-    # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996]
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
     #   Imported foundations L0–L2′: c is strictly increasing and strictly
     #   concave (Carroll–Kimball 1996), the gap obeys 0 <= g <= kappa*h with c
     #   approaching the PF line from below and c' falling to kappa from above —
@@ -449,7 +449,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
             # healthy knot OR the rescue case (slope_top <= MPCmin): the
             # explicit-Q relaxed guard attaches a level-matched decaying tail
             # where the fitted form would have disabled decay entirely.
-            # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record]
+            # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
             #   g ~ C*(m+h)**(-q), q = min(1, q*), is the asymptotically correct
             #   extrapolation form; unlike naive-linear it rejoins the PF line.
             f = LinearInterp(
@@ -507,7 +507,7 @@ def make_cFunc_slice(m_temp, c_temp, MPCmin=None, hNrm=None, decay_form="powerla
         if (decay_theory.B_psi is not None and level_diff > tol
                 and id(decay_theory) not in _AMPLITUDE_RATIO_LOGGED):
             _AMPLITUDE_RATIO_LOGGED.add(id(decay_theory))
-            # THEOREM-REF[HAFiscal-Latest @ 71ca7c61 :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The knife-edge window, quantified on HAFiscal's own numbers]
+            # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The knife-edge window, quantified on HAFiscal's own numbers :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
             #   At q* > 1 near resonance the solved amplitude at any feasible grid
             #   top badly understates the closed-form boundary value B_psi (42% of
             #   the way at the HAFiscal grid top); surface the ratio in logs so
