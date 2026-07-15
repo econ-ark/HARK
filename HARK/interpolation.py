@@ -2094,11 +2094,16 @@ class KappaBarTailInterp(HARKinterpolator1D):
     #   q_down = min(rho, s*_+) and this form is NOT theorem-backed -- callers
     #   should gate on ``HARK.ConsumptionSaving.pf_decay.ce_psi_regime``.
     # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-prop-C1-psi :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
-    #   kap_bar = 1 - p_eff**(1/rho)*Thorn_R (infinite horizon); finite
-    #   horizon: HARK's ``calc_mpc_max`` recursion IS Prop C2
-    #   (kap_bar_{T-n}**-1 = 1 + p_eff**(1/rho)*Thorn_R*kap_bar_{T-n+1}**-1,
-    #   terminal anchor 1), so passing the solver's ``MPCmaxUnc`` /
-    #   ``solution.MPCmax`` is exact at ANY horizon.
+    #   kap_bar = 1 - p_eff**(1/rho)*Thorn_R (infinite horizon), psi-invariant
+    #   with p_eff the worst-JOINT-atom mass -- the psi==1 Prop C1 formula
+    #   read with the joint worst mass.
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-prop-C2 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Prop C2 (the finite-horizon kap_bar_t recursion, terminal anchor
+    #   kap_bar_T = 1): kap_bar_{T-n}**-1 = 1 +
+    #   p_eff**(1/rho)*Thorn_R*kap_bar_{T-n+1}**-1. HARK's ``calc_mpc_max``
+    #   computes exactly this step, so passing the solver's ``MPCmaxUnc`` /
+    #   ``solution.MPCmax`` is exact at ANY horizon (an infinite-horizon
+    #   solve iterates it to the Prop C1 fixed point).
     # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-cor-C4 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
     #   Knot placement rule (the guard message below): the knot reads the
     #   constraint asymptote to relative tolerance tol iff

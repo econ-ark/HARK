@@ -677,7 +677,16 @@ def solve_one_period_ConsIndShock_with_tails(
         ``'powerlaw'``: the gap below the asymptote ``MPCmin*(m + hNrm)``
         decays as the theorem-backed power law with explicit exponent
         ``decay_extrap_Q`` (the C1 two-term attachment of the ``LinearInterp``
-        / ``DecayTailInterp`` machinery). Because the assembled ``cFunc`` of
+        / ``DecayTailInterp`` machinery).
+
+        # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/final_proof_myst.md :: eq-wbar-def :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+        #   The wealth coordinate of the gap law is wbar = m + hNrm: HARK's
+        #   solver-side hNrm EXCLUDES current income (= BST's h - 1), so the
+        #   PF asymptote cbar(m) = MPCmin*(m + hNrm) here IS the theory's
+        #   kappa*(m - 1 + h_BST) -- the h-convention bridge; the gap decays
+        #   as wbar**(-min(1, q*)).
+
+        Because the assembled ``cFunc`` of
         each backward step is what the NEXT step's Euler expectation
         evaluates (``calc_vp_next`` overruns the grid top whenever a large
         transitory draw lands there), the tail acts in BOTH roles at once:
@@ -2310,7 +2319,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Explicit top-tail exponent override (requires
         ``decay_extrap_form='powerlaw'``). ``None`` (default): computed
         automatically as ``min(1, q_star)`` from the agent's own primitives
-        in ``pre_solve``, refreshed each solve.
+        in ``pre_solve``, refreshed each solve while it remains
+        auto-computed. The automatic value uses the t=0 primitives, so
+        lifecycle calibrations with time-varying ``Rfree``/``PermGroFac``/
+        ``LivPrb``/shock processes that want period-specific exponents
+        should pass an explicit value instead.
     decay_extrap_form_lower: str or None
         Optional theory-pinned BOTTOM (constraint-end) tail. ``None``
         (default): the legacy EGM bottom secant, byte-for-byte.
@@ -2327,6 +2340,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
         ``pf_decay.ConstraintEndRegimeWarning`` (st-rem-CE-regime) and keeps
         the default bottom segment. The bottom grid-design rule st-cor-C4
         (``pf_decay.aXtraMin_from_tail_tol``) certifies knot placement.
+        NOTE (applies to both tail options): they are not yet supported with
+        ``ConsNewKeynesianModel.calc_jacobian`` -- its ghost agents solve
+        with ``presolve=False``, so a tails-enabled steady state would mix
+        with railed transition solves; keep the options at their ``None``
+        defaults there.
 
     Simulation Parameters
     ---------------------
