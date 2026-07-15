@@ -50,6 +50,7 @@ from HARK.ConsumptionSaving.pf_decay import (
     powerlaw_decay_params,
     powerlaw_decay_params_from_agent,
     powerlaw_tail_diagnostic,
+    powerlaw_validity_threshold,
     qstar_probe,
     rel_gap_at,
     resonance_constants,
@@ -1046,3 +1047,99 @@ class TestWealthMassRule(unittest.TestCase):
             probe_count=256)
         self.assertTrue(isinstance(info.diagnosis, str)
                         and len(info.diagnosis) > 0)
+
+
+class TestValidityThreshold(unittest.TestCase):
+    """pf_decay.powerlaw_validity_threshold: the proofs' explicit
+    guaranteed-validity floor wbar0 (stage_A_proof.md (5.0a)/(5.0))."""
+
+    def test_hand_computed_transitory_only(self):
+        # a clean psi == 1 calibration whose x0^0 is recomputed here from
+        # scratch (plain float arithmetic), independent of the module internals.
+        R, G, beta, rho = 1.04, 1.0, 0.90, 2.0
+        th = ([0.0, 1.25], [0.2, 0.8])  # E[theta]=1, theta_min=0, theta_max=1.25
+        res = powerlaw_validity_threshold(R, G, beta, rho, TranShkDstn=th,
+                                          warn=False)
+
+        Rcal = R / G
+        Thorn = (R * beta) ** (1.0 / rho)
+        Thorn_R = Thorn / R
+        Thorn_G = Thorn / G
+        kappa = 1.0 - Thorn_R
+        h = 1.0 / (Rcal - 1.0)
+        gbar = kappa * h
+        mbar = kappa * h / Thorn_R
+        theta_min, theta_max = 0.0, 1.25
+        C_plus = (theta_max - 1.0) + Rcal * gbar
+        C0 = max(1.0 - theta_min, C_plus)
+        zeta = C0 / (1.0 - Thorn_G)
+        tbar = 1.0 / (8.0 * (rho + 1.0))
+        c2 = (rho * (rho + 1.0) / 2.0) * (1.0 - tbar) ** (-(rho + 2.0))
+        terms = [
+            h + mbar,
+            (8.0 * (rho + 1.0) * gbar / kappa + C0) / Thorn_G,
+            8.0 * (rho + 1.0) * C0 / Thorn_G,
+            (h + 1.0 + C0) / Thorn_G,
+            2.0 * zeta,
+        ]
+        x00 = max(terms)
+        K_L = c2 * Thorn_G * gbar / (rho * Rcal * kappa)
+
+        # the composed constants match the independent recomputation
+        self.assertAlmostEqual(res.gbar, gbar, places=12)
+        self.assertAlmostEqual(res.mbar, mbar, places=12)
+        self.assertAlmostEqual(res.C0, C0, places=12)
+        self.assertAlmostEqual(res.zeta, zeta, places=10)
+        self.assertAlmostEqual(res.c2, c2, places=12)
+        self.assertAlmostEqual(res.K_L, K_L, places=9)
+        self.assertAlmostEqual(res.wbar0_hat_free, x00, places=6)
+        # explicit hand-computed anchor (this calibration -> 622.306271...)
+        self.assertAlmostEqual(res.wbar0_hat_free, 622.306271137, places=6)
+        # the gbar/kappa term binds (statement.md: "tens of h"), and the full
+        # floor is never below the K_hat-free one
+        self.assertEqual(
+            res.binding_term, "(8(rho+1)*gbar/kappa + C0)/Thorn_Gamma"
+        )
+        self.assertGreaterEqual(res.wbar0, res.wbar0_hat_free)
+        self.assertTrue(res.valid and res.diagnosis == "")
+
+    def test_full_floor_uses_two_Khat_when_it_dominates(self):
+        # wbar0 = max(x0^0, 2*K_hat); the binding entry is reported honestly.
+        res = powerlaw_validity_threshold(1.04, 1.0, 0.90, 2.0,
+                                          TranShkDstn=([0.0, 1.25], [0.2, 0.8]),
+                                          warn=False)
+        self.assertAlmostEqual(
+            res.wbar0, max(res.wbar0_hat_free, 2.0 * res.K_hat), places=9
+        )
+        self.assertIn(res.binding_term, res.terms)
+        self.assertAlmostEqual(
+            res.wbar0, res.terms[res.binding_term], places=9
+        )
+
+    def test_is_a_diagnostic_not_a_refusal_gate(self):
+        # FHWC violated (Rcal = R/G < 1): returns nan + diagnosis, never raises.
+        res = powerlaw_validity_threshold(1.0, 1.04, 0.96, 2.0,
+                                          TranShkDstn=([0.0, 1.25], [0.2, 0.8]),
+                                          warn=False)
+        self.assertFalse(res.valid)
+        self.assertTrue(np.isnan(res.wbar0))
+        self.assertTrue(np.isnan(res.wbar0_hat_free))
+        self.assertIn("FHWC", res.diagnosis)
+
+    def test_psi_general_scale_is_tens_of_h(self):
+        # on an estimated (psi-general) College calibration the guaranteed floor
+        # is finite, positive, and of order tens of h, dominated by the
+        # gbar/kappa term (statement.md Remark 7: crude but explicit).
+        c = CALS["CTOP"]
+        th = _params("CTOP")  # shares the module's patience objects
+        res = powerlaw_validity_threshold(
+            R0, c["G"], c["beta"], RHO, LivPrb=LIV,
+            PermShkDstn=(PSI, PP), TranShkDstn=(c["th"], c["tp"]), warn=False
+        )
+        self.assertTrue(res.valid)
+        self.assertTrue(np.isfinite(res.wbar0) and res.wbar0 > 0)
+        self.assertGreater(res.wbar0_hat_free, 10.0 * th.h)
+        self.assertLess(res.wbar0_hat_free, 100.0 * th.h)
+        self.assertEqual(
+            res.binding_term, "(8(rho+1)*gbar/kappa + C0)/Thorn_Gamma"
+        )

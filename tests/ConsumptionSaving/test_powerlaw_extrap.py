@@ -1034,6 +1034,79 @@ class TestRegimeGate(unittest.TestCase):
         vb = np.asarray(gated.solution[0].cFunc(probes), float)
         self.assertEqual(va.tolist(), vb.tolist())
 
+    def test_artificial_slack_constraint_builds_tail(self):
+        """A SLACK artificial constraint (BoroCnstArt < BoroCnstNat) must NOT
+        block the kappa_bar bottom tail: the natural constraint is still the
+        binding one, so Theorem CE applies (the gate is
+        BoroCnstNat >= BoroCnstArt, not BoroCnstArt is None). The tail is built
+        and recovers the removed-bottom window far better than the default EGM
+        secant. CE-rho2 has a zero-income atom => BoroCnstNat = 0, so -0.5 is
+        slack."""
+        tails = dict(decay_extrap_form="powerlaw", decay_extrap_form_lower="kappabar")
+        grid = log_grid(1e-6, 1e4, 500)
+        k = 100
+        sub = grid[k:-k]
+        truth_a = solve_agent(CE_PARS, grid, SOLVE_TOL, BoroCnstArt=-0.5, **tails)
+        tail_a = solve_agent(CE_PARS, sub, SOLVE_TOL, BoroCnstArt=-0.5, **tails)
+        rail_a = solve_agent(CE_PARS, sub, SOLVE_TOL, BoroCnstArt=-0.5)
+        truth, tail, rail = truth_a.solution[0], tail_a.solution[0], rail_a.solution[0]
+        # natural constraint still binds (mNrmMin == BoroCnstNat == 0 > -0.5),
+        # and the tail IS built despite the (slack) artificial constraint
+        self.assertEqual(truth.mNrmMin, 0.0)
+        self.assertIsInstance(tail.cFunc, KappaBarTailInterp)
+        # nested-grid fidelity in the removed-bottom window: tails >> rails
+        probes = bottom_window(truth, tail)
+        err_tails = sup_rel_err(tail.cFunc, truth.cFunc, probes)
+        err_rails = sup_rel_err(rail.cFunc, truth.cFunc, probes)
+        self.assertLess(err_tails, err_rails / 50.0)
+        self.assertLess(err_tails, 1e-6)
+
+    def test_lifecycle_gate_flips_across_ages(self):
+        """The gate is evaluated per backward step: in a finite-horizon
+        lifecycle whose natural constraint varies with age and crosses a FIXED
+        artificial constraint, the kappa_bar tail attaches at some ages and is
+        refused at others (per-period wrap types differ). Ages alternate a
+        zero-income unemployment atom (tran_min=0 => natural constraint binds)
+        with a strictly positive worst income (tran_min>0 => BoroCnstNat drops
+        below the fixed artificial floor)."""
+        unemp = 0.05
+        d_zero = make_joint_dstn(
+            [1.0], [1.0], [0.0, 1.0 / (1.0 - unemp)], [unemp, 1.0 - unemp]
+        )
+        d_pos = make_joint_dstn([1.0], [1.0], [0.6, 1.4], [0.5, 0.5])
+        pattern = ["zero", "pos", "zero", "pos"]
+        dstns = [d_zero if p == "zero" else d_pos for p in pattern]
+        T = len(pattern)
+        pars = dict(CE_PARS)
+        pars.update(
+            cycles=1,
+            T_cycle=T,
+            Rfree=[1.04] * T,
+            LivPrb=[1.0] * T,
+            PermGroFac=[1.0] * T,
+            TranShkStd=[0.1] * T,
+            PermShkStd=[0.0] * T,
+            BoroCnstArt=-0.3,  # fixed, between the two natural regimes
+            decay_extrap_form_lower="kappabar",
+        )
+        agent = IndShockConsumerType(**pars)
+        agent.verbose = 0
+        agent.IncShkDstn = list(dstns)
+        agent.aXtraGrid = log_grid(1e-4, 1e3, 120)
+        agent.tolerance = 1e-9
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            agent.solve()
+        built = [
+            isinstance(agent.solution[t].cFunc, KappaBarTailInterp) for t in range(T)
+        ]
+        # zero-income ages build the tail; positive-income ages refuse it
+        self.assertEqual(built, [True, False, True, False])
+        # the refused (positive-income) ages are pinned at the artificial floor
+        for t, p in enumerate(pattern):
+            if p == "pos":
+                self.assertAlmostEqual(agent.solution[t].mNrmMin, -0.3, places=9)
+
 
 # ============================================================== cubic path
 class TestCubicPath(unittest.TestCase):

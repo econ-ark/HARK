@@ -713,9 +713,17 @@ def solve_one_period_ConsIndShock_with_tails(
         rises to ``MPCmax`` as the constraint is approached instead of the
         secant's biased slope, in both roles (the expectation's worst-income
         branch queries next period's cFunc below its first gridpoint).
-        Attaches ONLY when (i) the NATURAL borrowing constraint binds (an
-        artificial-constraint kink has MPC 1 and no kappa_bar asymptote),
-        (ii) the calibration passes the Theorem CE-psi regime gate
+        Attaches ONLY when (i) the natural borrowing constraint is the BINDING
+        one -- ``BoroCnstArt is None`` OR ``BoroCnstNat >= BoroCnstArt`` (equiv.
+        ``BoroCnstNat >= mNrmMinNow``); an artificial constraint that STRICTLY
+        binds (``BoroCnstArt > BoroCnstNat``) makes the constraint end a kink
+        with MPC 1 on the constrained segment, so Theorem CE's
+        ``MPC -> kappa_bar`` mechanism does not operate there and the tail is
+        refused with a warning. A slack artificial constraint
+        (``BoroCnstArt < BoroCnstNat``) does NOT block the tail. The gate is
+        evaluated per backward step, so for a lifecycle agent whose
+        ``BoroCnstNat`` varies with age the tail may be active at some ages and
+        not others. (ii) the calibration passes the Theorem CE-psi regime gate
         (``pf_decay.ce_psi_regime``; regime II or undetermined warns a
         ``ConstraintEndRegimeWarning`` naming st-rem-CE-regime and REFUSES,
         keeping the default secant), and (iii) the per-step knot passes
@@ -880,8 +888,12 @@ def solve_one_period_ConsIndShock_with_tails(
         )
     if decay_extrap_form_lower == "kappabar":
         # Theorem CE bottom tail (KappaBarTailInterp), guarded three ways:
-        # (i) natural-constraint branch only -- with an artificial kink the
-        #     constraint end has MPC 1 and no kappa_bar asymptote;
+        # (i) the natural constraint must be the binding one -- BoroCnstArt is
+        #     None OR BoroCnstNat >= BoroCnstArt, i.e. BoroCnstNat >= mNrmMinNow
+        #     (a slack artificial constraint does NOT block the tail; only one
+        #     that STRICTLY binds does, since its constraint end is a kink with
+        #     MPC 1 and no kappa_bar asymptote). Evaluated per step, so a
+        #     lifecycle gate can flip across ages;
         # (ii) the Theorem CE-psi regime gate (st-thm-CE-psi): regime II or
         #     undetermined means q_down = min(CRRA, s*_+) rather than CRRA
         #     (st-rem-CE-regime), so the tail is refused with a warning;

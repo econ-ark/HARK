@@ -110,6 +110,8 @@ __all__ = [
     "powerlaw_decay_params",
     "powerlaw_decay_params_from_agent",
     "resonance_constants",
+    "ValidityThreshold",
+    "powerlaw_validity_threshold",
     "qstar_root",
     "dual_root",
     "TailDiagnostic",
@@ -843,6 +845,199 @@ def resonance_constants(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
     return dict(C_B=C_B, cJ_over_Rcal=cJ_over_Rcal, Lprime1=Lprime1,
                 lambda_B=th.lambda_B, resonance_residual=abs(th.lambda_B - 1.0),
                 theory=th)
+
+
+# ----------------------------------------------------- analytic validity floor
+@dataclass(frozen=True)
+class ValidityThreshold:
+    """Result of :func:`powerlaw_validity_threshold`: the proofs' explicit
+    guaranteed-validity floor ``wbar0`` for the top gap law, in the total-wealth
+    coordinate ``wbar = m + hNrm`` (same coordinate the gap ``g(wbar)`` decays
+    in).  ``nan`` when the calibration violates the theorem conditions (GIC /
+    FHWC / RIC); see ``valid`` / ``diagnosis``.  All constants are floats."""
+
+    wbar0: float            # x0 (5.0): full floor = max(x0^0, 2*K_hat)
+    wbar0_hat_free: float   # x0^0 (5.0a): the K_hat-free floor (5 primitive terms)
+    binding_term: str       # which entry of (5.0)/(5.0a) attains the max
+    terms: dict             # every candidate term of the max, by name
+    C0: float               # max(1 - theta_min, (theta_max - 1) + Rcal*gbar)
+    gbar: float             # kappa*h (the gap ceiling)
+    mbar: float             # kappa*h/Thorn_R (m above which the gap is strict)
+    zeta: float             # C0/(1 - Thorn_Gamma)
+    K_hat: float            # 2*(K_L + K_R) (Cor. 5.2); nan if omitted
+    K_L: float
+    K_R: float
+    c2: float               # (rho(rho+1)/2)*(1 - tbar)**(-(rho+2))
+    tbar: float             # 1/(8(rho+1))
+    theta_min: float
+    theta_max: float
+    valid: bool
+    diagnosis: str
+    warnings: Tuple[str, ...] = ()
+
+    def to_dict(self):
+        return asdict(self)
+
+
+def powerlaw_validity_threshold(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
+                                PermShkDstn=None, TranShkDstn=None,
+                                IncShkDstn=None, warn=True):
+    """The proofs' explicit guaranteed-validity threshold ``wbar0`` for the
+    top power-law gap law, computed from primitives.
+
+    The gap theorems are ASYMPTOTIC: the one-step gap machinery is PROVEN for
+    ``wbar >= wbar0``, where ``wbar0`` (written ``x0`` in the proof) has a fully
+    explicit primitive formula.  This is a DIAGNOSTIC, never a refusal gate:
+
+    * ``wbar0`` = the guaranteed-validity floor with explicit constants, which
+      are DELIBERATELY CRUDE (statement.md Remark 7).  It is NOT where the
+      extrapolation first becomes accurate in practice — empirically that
+      happens much earlier (typically near ``m ~ hNrm``, and the operative
+      quality rule is :func:`aXtraMax_from_tail_tol`).  Use ``wbar0`` to say
+      "the tail is PROVABLY valid beyond here", not "the grid must reach here".
+
+    # THEOREM-REF[BufferStockTheory-Latest @ a5cef781 :: theory/powerlaw-decay/stage_A_proof.md :: §5. Linearization control: the gap equation with explicit remainders (L4) :: (5.0a)]
+    #   Public: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/
+    #   The Stage-A (psi == 1) guaranteed-validity floor is
+    #   x0^0 := max{ h + mbar,  (8(rho+1)*gbar/kappa + C0)/Thorn_Gamma,
+    #                8(rho+1)*C0/Thorn_Gamma,  (h + 1 + C0)/Thorn_Gamma,  2*zeta }
+    #   (5.0a), and the full floor x0 := max{ x0^0, 2*K_hat } (5.0), with
+    #   gbar := kappa*h, mbar := kappa*h/Thorn_R, C0 := max(1 - theta_min,
+    #   (theta_max - 1) + Rcal*gbar), zeta := C0/(1 - Thorn_Gamma), tbar :=
+    #   1/(8(rho+1)), c2 := (rho(rho+1)/2)(1 - tbar)^(-(rho+2)), K_hat :=
+    #   2(K_L + K_R) (Cor. 5.2), K_L := c2*Thorn_Gamma*gbar/(rho*Rcal*kappa),
+    #   and K_R the x0^0-anchored constant of (5.5)/line 308.  The wealth
+    #   coordinate is wbar = m + h with (Rcal - 1)h = 1 (h EXCLUDES current
+    #   income == HARK's solver-side hNrm under E[theta] = 1).
+
+    This is the STAGE-A (transitory-only, ``psi == 1``) certified threshold: the
+    patience/return objects (``kappa``, ``Thorn_Gamma``, ``Thorn_R``, ``Rcal``,
+    ``h``) come from the full primitives, and ``theta_min``/``theta_max``/``C0``
+    from the TRANSITORY marginal.  For a psi-general calibration the number is a
+    (crude, conservative) heuristic floor rather than a proven one, and should
+    be read as one of three layered criteria — ``wbar0`` (guaranteed floor),
+    :func:`aXtraMax_from_tail_tol` (the operative ex-post quality rule), and the
+    pedagogical "top knot above human wealth" (``m >~ hNrm``).
+
+    Parameters
+    ----------
+    Rfree, PermGroFac, DiscFac, CRRA, LivPrb : float
+        Model primitives, exactly as :func:`powerlaw_decay_params`.
+    PermShkDstn, TranShkDstn, IncShkDstn : optional
+        Shock distributions (marginals or a HARK joint), as
+        :func:`powerlaw_decay_params`.  ``theta_min``/``theta_max`` are read off
+        the transitory marginal (a ``theta = 0`` unemployment atom is native and
+        drives ``C0`` through ``1 - theta_min``); ``PermShkDstn`` affects only
+        the patience objects, not the Stage-A constants.
+    warn : bool, default True
+        Emit categorized warnings (the underlying ``powerlaw_decay_params``
+        condition warnings).  Always recorded in the returned ``warnings``.
+
+    Returns
+    -------
+    ValidityThreshold
+        Frozen dataclass with ``wbar0`` (full), ``wbar0_hat_free`` (K_hat-free),
+        the binding term, and every constituent constant.  Never raises on
+        condition violations (returns ``nan`` + ``diagnosis``); raises only on
+        malformed inputs (via ``powerlaw_decay_params``).
+    """
+    th = powerlaw_decay_params(
+        Rfree, PermGroFac, DiscFac, CRRA, LivPrb=LivPrb,
+        PermShkDstn=PermShkDstn, TranShkDstn=TranShkDstn, IncShkDstn=IncShkDstn,
+        warn=warn)
+
+    # transitory marginal -> theta_min, theta_max (mirrors the main entry)
+    if IncShkDstn is not None:
+        _psi_j, th_j, p_j = _as_joint(IncShkDstn)
+        th_a, _th_p = _marginal(th_j, p_j)
+    elif TranShkDstn is not None:
+        th_a, _th_p = _as_atoms_probs(TranShkDstn, "TranShkDstn")
+    else:
+        th_a = np.array([_LD(1)])
+    theta_min = float(np.min(th_a))
+    theta_max = float(np.max(th_a))
+
+    rho = float(th.CRRA)
+    kappa = float(th.kappa)
+    h = float(th.h)
+    Thorn_Gamma = float(th.Thorn_Gamma)
+    Thorn_R = float(th.Thorn_R)
+    Rcal = float(th.Rcal)
+
+    # the threshold is only defined under GIC (Thorn_Gamma < 1), FHWC
+    # (Rcal > 1 => finite positive h), and RIC (kappa > 0). Fail closed to nan
+    # with a diagnosis rather than raising (diagnostic contract).
+    bad = []
+    if not (np.isfinite(Thorn_Gamma) and Thorn_Gamma < 1.0):
+        bad.append("GIC fails (Thorn_Gamma >= 1): the comparison ladder does "
+                   "not contract, so wbar0 is undefined")
+    if not (np.isfinite(Rcal) and Rcal > 1.0 and np.isfinite(h) and h > 0):
+        bad.append("FHWC fails (Rcal <= 1): human wealth h is not finite/"
+                   "positive, so the gap coordinate wbar = m + h degenerates")
+    if not (np.isfinite(kappa) and kappa > 0):
+        bad.append("RIC fails (kappa <= 0): the PF asymptote MPCmin has no "
+                   "interior, so the gap law has no target")
+    if bad:
+        return ValidityThreshold(
+            wbar0=float("nan"), wbar0_hat_free=float("nan"),
+            binding_term="", terms={}, C0=float("nan"),
+            gbar=float("nan"), mbar=float("nan"), zeta=float("nan"),
+            K_hat=float("nan"), K_L=float("nan"), K_R=float("nan"),
+            c2=float("nan"), tbar=float("nan"),
+            theta_min=theta_min, theta_max=theta_max,
+            valid=False, diagnosis="; ".join(bad), warnings=th.warnings)
+
+    # §5 constants (verbatim from the pinned displays)
+    gbar = kappa * h                                   # ln.28/123/189: gbar = kappa*h
+    mbar = kappa * h / Thorn_R                          # ln.124/152: mbar = kappa*h/Thorn_R
+    C_plus = (theta_max - 1.0) + Rcal * gbar            # ln.215: C+ = (theta_max-1) + Rcal*gbar
+    C0 = max(1.0 - theta_min, C_plus)                  # ln.215: C0 = max(1-theta_min, C+)
+    zeta = C0 / (1.0 - Thorn_Gamma)                    # ln.255: zeta = C0/(1-Thorn_Gamma)
+    tbar = 1.0 / (8.0 * (rho + 1.0))                   # ln.248: tbar = 1/(8(rho+1))
+    c2 = (rho * (rho + 1.0) / 2.0) * (1.0 - tbar) ** (-(rho + 2.0))  # ln.250
+
+    # x0^0 (5.0a): the five K_hat-free primitive terms
+    terms = {
+        "h + mbar": h + mbar,
+        "(8(rho+1)*gbar/kappa + C0)/Thorn_Gamma":
+            (8.0 * (rho + 1.0) * gbar / kappa + C0) / Thorn_Gamma,
+        "8(rho+1)*C0/Thorn_Gamma": 8.0 * (rho + 1.0) * C0 / Thorn_Gamma,
+        "(h + 1 + C0)/Thorn_Gamma": (h + 1.0 + C0) / Thorn_Gamma,
+        "2*zeta": 2.0 * zeta,
+    }
+    x00 = max(terms.values())
+
+    # K_R (line 308): tail terms anchored at x0^0 (never x0) — the non-circularity
+    # repair; K_L (line 307); K_hat := 2(K_L + K_R) (Cor. 5.2, line 372).
+    f = 8.0 / 7.0
+    g_kg = gbar / (kappa * Thorn_Gamma)                # gbar/(kappa*Thorn_Gamma) == h/Thorn_Gamma
+    K_L = c2 * Thorn_Gamma * gbar / (rho * Rcal * kappa)
+    K_R = f * (
+        f * C0 / Thorn_Gamma
+        + (1.0 / rho) * (
+            c2 * f * g_kg
+            + rho ** 2 * C0 / Thorn_Gamma
+            + rho * c2 * f * (C0 / Thorn_Gamma) * g_kg / x00
+            + rho * c2 * C0 ** 2 / (Thorn_Gamma ** 2 * x00)
+            + c2 ** 2 * (C0 ** 2 / Thorn_Gamma ** 2) * (f * g_kg) / x00 ** 2
+        )
+    )
+    K_hat = 2.0 * (K_L + K_R)
+
+    # x0 (5.0): full floor = max(x0^0, 2*K_hat)
+    terms_full = dict(terms)
+    terms_full["2*K_hat"] = 2.0 * K_hat
+    wbar0 = max(terms_full.values())
+    binding_term = max(terms_full, key=terms_full.get)
+
+    return ValidityThreshold(
+        wbar0=float(wbar0), wbar0_hat_free=float(x00),
+        binding_term=binding_term, terms=terms_full,
+        C0=float(C0), gbar=float(gbar), mbar=float(mbar), zeta=float(zeta),
+        K_hat=float(K_hat), K_L=float(K_L), K_R=float(K_R),
+        c2=float(c2), tbar=float(tbar),
+        theta_min=theta_min, theta_max=theta_max,
+        valid=bool(th.valid), diagnosis="", warnings=th.warnings)
 
 
 # --------------------------------------------------------------- tail diagnostic
