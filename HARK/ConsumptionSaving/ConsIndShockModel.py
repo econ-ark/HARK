@@ -2619,8 +2619,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
           with a wrong tail. pf_decay's warning practice (e.g.
           ``NearResonanceWarning`` near the q* = 1 knife-edge) surfaces here,
           once per solve, not once per backward step. The auto-computed value
-          is refreshed on every solve (so parameter changes are picked up); a
-          user-supplied ``decay_extrap_Q`` is left untouched.
+          is remembered and refreshed on every solve WHILE ``decay_extrap_Q``
+          still equals the last auto value (so parameter changes are picked
+          up); a user-supplied ``decay_extrap_Q`` -- including one assigned
+          AFTER an auto-computed solve -- differs from the remembered auto
+          value, is validated, and is respected, never recomputed over.
         """
         for name in ("decay_extrap_form", "decay_extrap_Q", "decay_extrap_form_lower"):
             if not hasattr(self, name):
@@ -2635,10 +2638,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 "decay_extrap_form_lower must be None or 'kappabar', got "
                 + repr(self.decay_extrap_form_lower)
             )
+        # decay_extrap_Q is treated as auto-computed only while it is None or
+        # still equals the REMEMBERED last auto value: a user who assigns an
+        # explicit Q after an auto solve must not have it recomputed over.
+        auto_val = getattr(self, "_decay_extrap_Q_auto_value", None)
+        is_auto = self.decay_extrap_Q is None or (
+            auto_val is not None and self.decay_extrap_Q == auto_val
+        )
         if self.decay_extrap_form == "powerlaw":
-            if self.decay_extrap_Q is None or getattr(
-                self, "_decay_extrap_Q_auto", False
-            ):
+            if is_auto:
                 params = powerlaw_decay_params_from_agent(self)
                 if not params.valid or not np.isfinite(params.q_star):
                     raise ValueError(
@@ -2654,7 +2662,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                         )
                     )
                 self.decay_extrap_Q = float(params.q)
-                self._decay_extrap_Q_auto = True
+                self._decay_extrap_Q_auto_value = self.decay_extrap_Q
             else:
                 Q = float(self.decay_extrap_Q)
                 if not np.isfinite(Q) or Q <= 0.0:
@@ -2662,11 +2670,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
                         "decay_extrap_Q must be a positive finite float, got "
                         + repr(self.decay_extrap_Q)
                     )
+                # explicitly user-chosen from here on
+                self._decay_extrap_Q_auto_value = None
         else:
-            if getattr(self, "_decay_extrap_Q_auto", False):
+            if is_auto and self.decay_extrap_Q is not None:
                 # stale auto-computed exponent from an earlier powerlaw solve
                 self.decay_extrap_Q = None
-                self._decay_extrap_Q_auto = False
+                self._decay_extrap_Q_auto_value = None
             elif self.decay_extrap_Q is not None:
                 raise ValueError("decay_extrap_Q requires decay_extrap_form='powerlaw'")
         if (

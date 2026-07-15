@@ -507,6 +507,44 @@ class TestOptionSurface(unittest.TestCase):
                          min(1.0, params_hs.q_star))
         self.assertLess(agent_hs.decay_extrap_Q, 1.0)  # HS: q_star ~ 0.376
 
+    def test_user_Q_after_auto_solve_is_respected(self):
+        """An explicit decay_extrap_Q assigned AFTER an auto-computed solve
+        must not be clobbered by the next solve's auto refresh (which applies
+        only while Q still equals the remembered auto value)."""
+        grid = log_grid(1e-4, 1e3, 100)
+
+        def fresh():
+            a = IndShockConsumerType(**CE_PARS)
+            a.verbose = 0
+            a.aXtraGrid = grid
+            a.tolerance = 1e-8
+            a.decay_extrap_form = "powerlaw"
+            return a
+
+        agent = fresh()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            agent.solve()
+        self.assertEqual(agent.decay_extrap_Q, 1.0)  # CE auto: min(1, ~49)
+        agent.decay_extrap_Q = 0.9  # user override AFTER the auto solve
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            agent.solve()
+        self.assertEqual(agent.decay_extrap_Q, 0.9)  # respected, not reset
+        # a still-auto value keeps refreshing across solves...
+        agent2 = fresh()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            agent2.solve()
+            agent2.solve()
+        self.assertEqual(agent2.decay_extrap_Q, 1.0)
+        # ...and disabling the form clears a still-auto Q (no stale exponent)
+        agent2.decay_extrap_form = None
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            agent2.solve()
+        self.assertIsNone(agent2.decay_extrap_Q)
+
     def test_vpfunc_carries_the_tails(self):
         """The role-1 mechanism: vPfunc = u'(cFunc(m')) is what the PREVIOUS
         backward step's Euler expectation evaluates (calc_vp_next), so the
