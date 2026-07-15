@@ -65,6 +65,7 @@ byte-zero guarantee is the in-process explicit-None-equals-stock test, which
 stays exact everywhere.
 """
 
+import os
 import platform
 import sys
 import unittest
@@ -81,6 +82,9 @@ from HARK.ConsumptionSaving.pf_decay import (
     ConstraintEndRegimeWarning,
     aXtraMin_from_tail_tol,
     ce_psi_regime,
+    ergodic_grid_diagnostics,
+    ergodic_grid_diagnostics_from_agent,
+    ergodic_grid_report,
     powerlaw_decay_params_from_agent,
 )
 from HARK.distributions import DiscreteDistributionLabeled
@@ -1145,6 +1149,187 @@ class TestCubicPath(unittest.TestCase):
     def test_cubic_default_untouched(self):
         a = solve_agent(CE_PARS, log_grid(1e-5, 1e4, 300), 1e-10, CubicBool=True)
         self.assertEqual(type(a.solution[0].cFunc).__name__, "LowerEnvelope")
+
+
+# ==================================================== ergodic-grid diagnostics
+# Task A/B consume the numeric core IMPORTED from BufferStockTheory-Latest's
+# ergodic_coverage_lib (theory/powerlaw-decay). These tests SKIP where that
+# checkout is absent (public-CI dormancy); they never vendor or reimplement it.
+def _locate_ergodic_lib():
+    for cand in (
+        os.environ.get("BST_POWERLAW_DECAY_DIR"),
+        "/home/shared/github/llorracc/BufferStockTheory-Latest/theory/powerlaw-decay",
+        os.path.expanduser(
+            "~/github/llorracc/BufferStockTheory-Latest/theory/powerlaw-decay"
+        ),
+    ):
+        if cand and os.path.isdir(cand) and cand not in sys.path:
+            sys.path.insert(0, cand)
+    try:
+        import ergodic_coverage_lib  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+_HAVE_ERGODIC = _locate_ergodic_lib()
+
+# the pinned College-TOP calibration (Appendix of the 20260715-1030h prompt); the
+# aXtra grid is the one the mNrmStE/mNrmTrg pins were measured on.
+ERGODIC_PARS = dict(
+    cycles=0,
+    T_cycle=1,
+    CRRA=2.0,
+    Rfree=[1.01],
+    DiscFac=0.995714,
+    LivPrb=[1.0 - 1.0 / 160.0],
+    PermGroFac=[1.0 + 0.01958 / 4],
+    BoroCnstArt=None,
+    vFuncBool=False,
+    CubicBool=False,
+    UnempPrb=0.027,
+    IncUnemp=0.0,
+    TranShkStd=[0.12**0.5],
+    TranShkCount=7,
+    PermShkStd=[0.003**0.5],
+    PermShkCount=7,
+    T_retire=0,
+    UnempPrbRet=0.0,
+    IncUnempRet=0.0,
+    aXtraMin=0.001,
+    aXtraMax=1000.0,
+    aXtraCount=120,
+    aXtraNestFac=3,
+)
+
+
+def _ergodic_agent(**over):
+    pars = dict(ERGODIC_PARS)
+    pars.update(over)
+    a = IndShockConsumerType(**pars)
+    a.verbose = 0
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        a.update_income_process()
+    return a
+
+
+@unittest.skipUnless(
+    _HAVE_ERGODIC,
+    "ergodic_coverage_lib not importable (no "
+    "BufferStockTheory-Latest checkout on sys.path)",
+)
+class TestErgodicScreen(unittest.TestCase):
+    """The ex-ante patience screen (Task A) — an adapter over the imported core.
+    Root pins are triple-confirmed (HARK brentq / BST bisection / EC2 _out.txt)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.d = ergodic_grid_diagnostics_from_agent(_ergodic_agent(), warn=False)
+
+    def test_alpha_roots_on_own_atoms(self):
+        d = self.d
+        self.assertAlmostEqual(d.alpha_survivor, 2.7078, delta=1e-3)
+        self.assertAlmostEqual(d.alpha_counting, 3.8715, delta=1e-3)
+        self.assertAlmostEqual(d.alpha_harmenberg, 5.5288, delta=1e-3)
+        self.assertAlmostEqual(d.alpha_survivor_rawbeta, 0.4666, delta=1e-3)
+
+    def test_ordering_and_corrected_harmenberg_gap(self):
+        d = self.d
+        self.assertLess(d.alpha_survivor, d.alpha_counting)
+        self.assertLess(d.alpha_counting, d.alpha_harmenberg)
+        # the correction of record: killed harm - count gap is strictly < 2
+        self.assertLess(d.alpha_harmenberg - d.alpha_counting, 2.0)
+
+    def test_gicnrm_split_and_mpcmin_eff(self):
+        d = self.d
+        self.assertFalse(d.GICNrm_raw_holds)  # raw GIC-Nrm FAILS (1.00075)
+        self.assertTrue(d.GICNrm_eff_holds)  # effective HOLDS (0.99762)
+        self.assertTrue(d.gicnrm_split)  # mortality-financed tameness
+        self.assertAlmostEqual(d.MPCmin_eff, 0.0102053, delta=2e-6)
+        self.assertFalse(d.infinite_mean)
+        self.assertFalse(d.infinite_variance)
+
+    def test_livprb_one_counting_equals_survivor(self):
+        d = ergodic_grid_diagnostics_from_agent(
+            _ergodic_agent(LivPrb=[1.0]), warn=False
+        )
+        self.assertAlmostEqual(d.alpha_counting, d.alpha_survivor, delta=1e-9)
+
+    def test_bounded_regime_degenerate_psi(self):
+        # psi degenerate at 1 => coefficient never exceeds 1 => bounded, routed
+        # before any root-find; cap = xi_max / (1 - GPF_eff).
+        d = ergodic_grid_diagnostics(
+            1.01,
+            1.0,
+            0.99,
+            2.0,
+            LivPrb=1.0,
+            PermShkDstn=([1.0], [1.0]),
+            TranShkDstn=([0.5, 1.5], [0.5, 0.5]),
+            warn=False,
+        )
+        self.assertEqual(d.regime, "bounded")
+        self.assertAlmostEqual(d.m_sup_cap, 1.5 / (1.0 - d.GPF_eff), delta=1e-6)
+        self.assertTrue(np.isnan(d.alpha_counting))
+
+    def test_api_level_drift_guard(self):
+        import ergodic_coverage_lib as lib
+
+        orig = lib.API_LEVEL
+        try:
+            lib.API_LEVEL = 999
+            with self.assertRaises(ImportError):
+                ergodic_grid_diagnostics(
+                    1.01, 1.0, 0.99, 2.0, PermShkDstn=([1.0], [1.0]), warn=False
+                )
+        finally:
+            lib.API_LEVEL = orig
+
+
+@unittest.skipUnless(_HAVE_ERGODIC, "ergodic_coverage_lib not importable")
+class TestErgodicReport(unittest.TestCase):
+    """The postmortem coverage certificate (Task B) — HARK-native simulation."""
+
+    @classmethod
+    def setUpClass(cls):
+        a = _ergodic_agent()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            a.solve()
+        cls.agent = a
+        cls.kw = dict(AgentCount=3000, T_sim=500, discard=300, seed=0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            cls.rep = ergodic_grid_report(a, **cls.kw)
+
+    def test_stable_points(self):
+        # HARK pinning HARK; tolerance-insensitive (do NOT pin solution.hNrm)
+        self.assertAlmostEqual(self.rep.mNrmStE, 3.4946, delta=1e-3)
+        self.assertAlmostEqual(self.rep.mNrmTrg, 3.7063, delta=1e-3)
+
+    def test_determinism(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            r2 = ergodic_grid_report(self.agent, **self.kw)
+        self.assertEqual(self.rep.quantiles, r2.quantiles)
+        self.assertEqual(self.rep.hill, r2.hill)
+
+    def test_hill_above_counting_and_loose_coverage(self):
+        # pre-asymptotic thinning: measured Hill reads ABOVE the ex-ante root
+        self.assertGreaterEqual(self.rep.hill[0.01], self.rep.alpha_counting_exante)
+        self.assertLessEqual(self.rep.mass_above_thresholds[20.0], 1e-3)
+
+    def test_never_mutates_the_users_agent(self):
+        before = float(self.agent.solution[0].cFunc(np.array([5.0]))[0])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ergodic_grid_report(
+                self.agent, AgentCount=200, T_sim=50, discard=25, seed=1
+            )
+        after = float(self.agent.solution[0].cFunc(np.array([5.0]))[0])
+        self.assertEqual(before, after)
 
 
 if __name__ == "__main__":

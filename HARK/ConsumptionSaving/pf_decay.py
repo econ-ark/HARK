@@ -131,6 +131,12 @@ __all__ = [
     "NoDualRootWarning",
     "ShockCorrelationWarning",
     "ConstraintEndRegimeWarning",
+    "ErgodicCoverageWarning",
+    "ErgodicGridDiagnostics",
+    "ergodic_grid_diagnostics",
+    "ergodic_grid_diagnostics_from_agent",
+    "ErgodicGridReport",
+    "ergodic_grid_report",
 ]
 
 _LD = np.longdouble
@@ -1989,3 +1995,463 @@ def aXtraMax_from_wealth_mass(cFunc, Rfree, PermGroFac, DiscFac, CRRA,
     except Exception as exc:  # behavior contract: never raises
         info.diagnosis = f"failed: {exc!r}"
         return float("nan"), info
+
+
+# ===================================================================================
+# Ergodic-grid coverage diagnostics: the ex-ante patience screen + postmortem report.
+#
+# Per the owner ruling (2026-07-15), the ex-ante NUMERIC CORE is NOT reimplemented
+# here: it is IMPORTED from BufferStockTheory-Latest's
+# ``theory/powerlaw-decay/ergodic_coverage_lib.py`` (the single source of truth for
+# this theory), so that no slightly-differing variant of the roots/ladder/regime
+# logic ever exists in HARK. This module supplies only (a) the HARK agent-adapter
+# around that imported core (Task A) and (b) a HARK-native postmortem that runs the
+# agent's own simulation (Task B). THEORY OF RECORD: ``ergodic_coverage.md`` in
+# BST-Latest; cite, do not re-derive.
+# ===================================================================================
+
+
+class ErgodicCoverageWarning(UserWarning):
+    """Advisory warning for a pathological ergodic-coverage screen (e.g. an
+    infinite-mean tail, or simulated mass spilling above the grid top). Filterable;
+    never raised as an exception, never triggers an action."""
+
+
+_ERGODIC_LIB_REQUIRED_API = 1
+
+
+def _get_ergodic_coverage_lib():
+    """Soft-import BST-Latest's ``ergodic_coverage_lib`` — the imported numeric core.
+
+    The import is LAZY (at call time, never at HARK import time): the ergodic screen
+    needs a local ``BufferStockTheory-Latest`` checkout, which public HARK CI does
+    not carry, so ``import HARK...pf_decay`` never fails on its account and only
+    *calling* an ergodic diagnostic without the module raises. Make the module
+    importable by putting its directory (``theory/powerlaw-decay``) on ``sys.path``,
+    or by setting ``$BST_POWERLAW_DECAY_DIR`` to it. The packaging/fork decision is
+    deliberately deferred to PR-merge time; do NOT vendor or reimplement the six
+    functions (own-request record: BST-Latest
+    ``_ai/prompts_local/20260715-1328h_prompt_from-HARK1782_...``).
+    """
+    def _try_import():
+        import ergodic_coverage_lib as _lib
+        return _lib
+
+    try:
+        lib = _try_import()
+    except ImportError as exc:
+        import os
+        import sys
+        d = os.environ.get("BST_POWERLAW_DECAY_DIR")
+        if d and os.path.isdir(d) and d not in sys.path:
+            sys.path.insert(0, d)
+            try:
+                lib = _try_import()
+            except ImportError:
+                lib = None
+        else:
+            lib = None
+        if lib is None:
+            raise ImportError(
+                "the ergodic-coverage screen needs BufferStockTheory-Latest's "
+                "ergodic_coverage_lib (theory/powerlaw-decay). Put that directory "
+                "on sys.path, or set $BST_POWERLAW_DECAY_DIR to it. This is a "
+                "dev-phase diagnostic imported from the theory repo (the single "
+                "source of truth for the ergodic theory); it is dormant wherever "
+                "that checkout is absent. See PR #1782."
+            ) from exc
+    api = getattr(lib, "API_LEVEL", None)
+    if api != _ERGODIC_LIB_REQUIRED_API:
+        raise ImportError(
+            "ergodic_coverage_lib API_LEVEL %r != the %d this adapter targets — "
+            "the imported numeric core changed its contract. Update pf_decay's "
+            "ergodic adapter to the new level (or pin an older "
+            "ergodic_coverage_lib)." % (api, _ERGODIC_LIB_REQUIRED_API)
+        )
+    return lib
+
+
+@dataclass(frozen=True)
+class ErgodicGridDiagnostics:
+    """Result of :func:`ergodic_grid_diagnostics` — the ex-ante patience screen for
+    grid design (numeric core imported from BST-Latest ``ergodic_coverage_lib``;
+    theory of record ``ergodic_coverage.md``). Plain floats/bools/strings."""
+
+    # patience ladder, raw vs mortality-EFFECTIVE (ergodic_coverage.md §1)
+    APF_raw: float
+    APF_eff: float
+    GPF_raw: float
+    GPF_eff: float
+    MPCmin_eff: float                 # 1 - APF_eff/R (== the solved policy's MPCmin)
+    E_inv_psi: float
+    E_log_psi: float
+    GICNrm_raw: float                 # GPF_raw*E[1/psi]  (< 1 <=> GIC-Nrm holds)
+    GICNrm_eff: float
+    GICNrm_raw_holds: bool
+    GICNrm_eff_holds: bool
+    gicnrm_split: bool                # raw vs effective disagree (mortality-financed)
+    drift_eff: float
+    psi_min: float
+    p_coef_gt1: float
+    # regime + tail exponents (ergodic_coverage.md §3, §7)
+    regime: str                       # 'bounded' | 'powerlaw'
+    m_sup_cap: float                  # bounded regime only, else nan
+    alpha_survivor: float
+    alpha_counting: float
+    alpha_harmenberg: float
+    alpha_survivor_rawbeta: float     # the no-mortality shadow root
+    alpha_survivor_reason: Optional[str]
+    alpha_counting_reason: Optional[str]
+    alpha_harmenberg_reason: Optional[str]
+    alpha_survivor_rawbeta_reason: Optional[str]
+    # lognormal closed-form COMPASS (a cross-check, not a pin; ergodic_coverage.md §3)
+    alpha_survivor_lognormal: float
+    alpha_counting_lognormal: float
+    alpha_harmenberg_lognormal: float
+    # pathology flags
+    survivor_nonergodic: bool
+    infinite_mean: bool               # alpha_counting <= 1
+    infinite_variance: bool           # alpha_counting <= 2
+    # provenance
+    ergodic_lib_version: str
+    notes: Tuple[str, ...] = ()
+
+    def to_dict(self):
+        return asdict(self)
+
+
+def ergodic_grid_diagnostics(Rfree, PermGroFac, DiscFac, CRRA, LivPrb=1.0,
+                             PermShkDstn=None, TranShkDstn=None, IncShkDstn=None,
+                             warn=True):
+    """Ex-ante patience screen for grid design, from primitives only.
+
+    A thin adapter over the IMPORTED numeric core
+    (BST-Latest ``ergodic_coverage_lib``): it reads the model's OWN discretized
+    permanent-shock atoms and calls ``ergodic_regime_psi`` / ``kesten_lognormal_roots``
+    / ``kesten_root_psi``; it re-implements none of that math.
+
+    The *shape* of the ergodic distribution of the market-resources ratio ``m`` is
+    pinned down ex ante by patience primitives (a Kesten random-growth process), so
+    the tail exponent is available WITHOUT a solve; only the distribution's location
+    needs one. See ``ergodic_coverage.md`` (theory of record) — this docstring cites,
+    it does not restate the derivations.
+
+    Two consumer rules honored here (ergodic_coverage.md §1, §8):
+
+    * **Effective patience** — ``DiscFac`` is the RAW discount factor; mortality
+      enters via ``LivPrb`` (the imported core forms ``beta_eff = DiscFac*LivPrb``
+      internally, the HARK ``DiscFacEff`` convention). Do NOT pre-multiply.
+    * **Own-atoms rule** — the screen runs on the model's own discretized ``psi``
+      atoms (menu swaps move ``alpha_counting`` materially); the lognormal closed
+      forms are reported only as a compass.
+
+    Parameters
+    ----------
+    Rfree, PermGroFac, DiscFac, CRRA, LivPrb : float
+        Primitives (scalars or length-1 lists), exactly as
+        :func:`powerlaw_decay_params`. ``DiscFac`` RAW (see above).
+    PermShkDstn, TranShkDstn, IncShkDstn : optional
+        The permanent-shock atoms drive the screen; the transitory ``xi_max`` sets
+        the bounded-regime cap. Marginals ``(PermShkDstn, TranShkDstn)`` or the
+        joint ``IncShkDstn`` (marginalized), as :func:`powerlaw_decay_params`.
+    warn : bool, default True
+        Emit an advisory :class:`ErgodicCoverageWarning` only when the counting-tail
+        mean is infinite (``alpha_counting <= 1``). All flags are in the result.
+
+    Returns
+    -------
+    ErgodicGridDiagnostics
+
+    Raises
+    ------
+    ImportError
+        (at call time) if ``ergodic_coverage_lib`` is not importable — see
+        :func:`_get_ergodic_coverage_lib`.
+    """
+    lib = _get_ergodic_coverage_lib()
+
+    # --- permanent-shock atoms (own-atoms rule) + transitory xi_max
+    if IncShkDstn is not None:
+        if PermShkDstn is not None or TranShkDstn is not None:
+            raise ValueError("pass IncShkDstn OR (PermShkDstn, TranShkDstn), not both")
+        psi_j, th_j, p_j = _as_joint(IncShkDstn)
+        psi_a, psi_p = _marginal(psi_j, p_j)
+        th_a, _th_p = _marginal(th_j, p_j)
+        xi_max = float(np.max(th_a))
+    else:
+        if PermShkDstn is None:
+            psi_a = np.array([_LD(1)])
+            psi_p = np.array([_LD(1)])
+        else:
+            psi_a, psi_p = _as_atoms_probs(PermShkDstn, "PermShkDstn")
+        if TranShkDstn is None:
+            xi_max = float("nan")
+        else:
+            th_a, _th_p = _as_atoms_probs(TranShkDstn, "TranShkDstn")
+            xi_max = float(np.max(th_a))
+
+    psf = np.asarray(psi_a, float)
+    ppf = np.asarray(psi_p, float)
+
+    def _scalar(v):
+        if isinstance(v, (list, tuple, np.ndarray)):
+            return float(np.asarray(v).ravel()[0])
+        return float(v)
+
+    R = _scalar(Rfree)
+    G = _scalar(PermGroFac)
+    beta = _scalar(DiscFac)
+    rho = _scalar(CRRA)
+    liv = _scalar(LivPrb)
+
+    # sigma^2 of ln psi from the atoms (for the lognormal COMPASS only)
+    E_log = float((ppf * np.log(psf)).sum()) if psf.size > 1 else 0.0
+    sigma2 = float((ppf * np.log(psf) ** 2).sum() - E_log ** 2) if psf.size > 1 else 0.0
+
+    # --- imported numeric core (no math reimplemented here)
+    scr = lib.ergodic_regime_psi(R, G, beta, rho, psf, ppf, xi_max, LivPrb=liv)
+    lad = scr["ladder"]
+    logn = lib.kesten_lognormal_roots(lad["GPF_eff"], sigma2, LivPrb=liv) \
+        if sigma2 > 0 else dict(alpha_surv=float("nan"),
+                                alpha_count=float("nan"), alpha_harm=float("nan"))
+    raw_shadow, raw_reason = lib.kesten_root_psi(
+        lad["GPF_raw"], psf, ppf, kill=1.0, tilt=0.0)
+
+    # --- package HARK-side (field names preserved from the imported contract)
+    notes = []
+    if scr["gicnrm_split"]:
+        notes.append(
+            "raw and effective GIC-Nrm disagree: with mortality folded in "
+            "(DiscFacEff) the distribution is tamed, but the raw-beta ladder would "
+            "not tame it — tameness is mortality-financed (ergodic_coverage.md §1).")
+    if scr.get("survivor_nonergodic"):
+        notes.append(
+            "survivor measure is non-ergodic (nonnegative log-drift); the "
+            "agent-counting measure with death+reset is still stationary (§3).")
+    if scr.get("infinite_mean"):
+        notes.append("alpha_counting <= 1: the ratio distribution has INFINITE "
+                     "MEAN — simulated means/top-shares will not converge (§7).")
+    elif scr.get("infinite_variance"):
+        notes.append("alpha_counting <= 2: INFINITE VARIANCE — simulated Lorenz/"
+                     "top-share statistics will not converge (§7).")
+    notes.append("Kesten exponent is the m >> hNrm asymptote; where the ergodic "
+                 "body sits below hNrm, measured Hill exponents read ABOVE alpha "
+                 "(pre-asymptotic thinning, ergodic_coverage.md §5).")
+
+    if warn and scr.get("infinite_mean"):
+        _warnings.warn(
+            "ergodic_grid_diagnostics: alpha_counting = %.4g <= 1 (infinite-mean "
+            "ratio distribution); the no-mortality shadow exponent is %.4g. "
+            "Coverage/top-share statistics will not converge (ergodic_coverage.md "
+            "§7)." % (scr.get("alpha_counting", float("nan")), raw_shadow),
+            ErgodicCoverageWarning, stacklevel=2)
+
+    return ErgodicGridDiagnostics(
+        APF_raw=lad["APF_raw"], APF_eff=lad["APF_eff"],
+        GPF_raw=lad["GPF_raw"], GPF_eff=lad["GPF_eff"],
+        MPCmin_eff=lad["kap_min_eff"], E_inv_psi=lad["E_inv_psi"],
+        E_log_psi=lad["E_log_psi"],
+        GICNrm_raw=lad["gicnrm_raw"], GICNrm_eff=lad["gicnrm_eff"],
+        GICNrm_raw_holds=bool(lad["gicnrm_raw"] < 1.0),
+        GICNrm_eff_holds=bool(lad["gicnrm_eff"] < 1.0),
+        gicnrm_split=scr["gicnrm_split"],
+        drift_eff=lad["drift_eff"], psi_min=lad["psi_min"],
+        p_coef_gt1=lad["p_coef_gt1"],
+        regime=scr["regime"], m_sup_cap=scr["m_sup_cap"],
+        alpha_survivor=scr["alpha_surv"],
+        alpha_counting=scr["alpha_count"],
+        alpha_harmenberg=scr["alpha_harm"],
+        alpha_survivor_rawbeta=float(raw_shadow),
+        alpha_survivor_reason=scr.get("alpha_surv_reason"),
+        alpha_counting_reason=scr.get("alpha_count_reason"),
+        alpha_harmenberg_reason=scr.get("alpha_harm_reason"),
+        alpha_survivor_rawbeta_reason=raw_reason,
+        alpha_survivor_lognormal=float(logn["alpha_surv"]),
+        alpha_counting_lognormal=float(logn["alpha_count"]),
+        alpha_harmenberg_lognormal=float(logn["alpha_harm"]),
+        survivor_nonergodic=scr["survivor_nonergodic"],
+        infinite_mean=scr["infinite_mean"],
+        infinite_variance=scr["infinite_variance"],
+        ergodic_lib_version=getattr(lib, "__version__", "?"),
+        notes=tuple(notes),
+    )
+
+
+def ergodic_grid_diagnostics_from_agent(agent, t=0, warn=True):
+    """Ex-ante patience screen for an ``IndShockConsumerType``-family agent.
+
+    Mirrors :func:`powerlaw_decay_params_from_agent`: reads ``Rfree[t]``,
+    ``PermGroFac[t]``, ``DiscFac`` (RAW), ``CRRA``, ``LivPrb[t]`` and the agent's
+    OWN ``PermShkDstn[t]`` / ``TranShkDstn[t]`` atoms (own-atoms rule; falls back to
+    the joint ``IncShkDstn[t]``). No solve, no RNG.
+    """
+    kwargs = dict(
+        Rfree=_time_indexed(agent.Rfree, t),
+        PermGroFac=_time_indexed(agent.PermGroFac, t),
+        DiscFac=_time_indexed(agent.DiscFac, t),
+        CRRA=_time_indexed(agent.CRRA, t),
+        LivPrb=_time_indexed(agent.LivPrb, t),
+        warn=warn,
+    )
+    perm = getattr(agent, "PermShkDstn", None)
+    tran = getattr(agent, "TranShkDstn", None)
+    if perm is not None and tran is not None:
+        return ergodic_grid_diagnostics(
+            PermShkDstn=perm[t], TranShkDstn=tran[t], **kwargs)
+    inc = getattr(agent, "IncShkDstn", None)
+    if inc is None:
+        raise ValueError("agent has neither (PermShkDstn, TranShkDstn) nor "
+                         "IncShkDstn")
+    return ergodic_grid_diagnostics(IncShkDstn=inc[t], **kwargs)
+
+
+@dataclass
+class ErgodicGridReport:
+    """Result of :func:`ergodic_grid_report` — the postmortem coverage certificate
+    (HARK-native simulation; the Hill estimator is imported from
+    ``ergodic_coverage_lib``)."""
+
+    mNrmStE: float
+    mNrmTrg: float
+    bottom_knot: float                # first EGM m-gridpoint
+    top_knot: float                   # last EGM m-gridpoint
+    mass_below_bottom: float
+    mass_above_top: float
+    mass_above_thresholds: dict       # {threshold: P(m > threshold)}
+    quantiles: dict                   # {0.5:..., ..., 0.9999:..., 'max':...}
+    hill: dict                        # {top_frac: Hill exponent}
+    alpha_counting_exante: float      # predicted Kesten counting exponent
+    rel_gap_at_top: float             # accuracy at the top knot (coverage vs accuracy)
+    coverage_framing: str             # tails-on vs tails-off reading (§7)
+    n_draws: int
+    seed: int
+    notes: Tuple[str, ...] = ()
+
+    def to_dict(self):
+        return asdict(self)
+
+
+def ergodic_grid_report(agent, t=0, AgentCount=10000, T_sim=1200, discard=800,
+                        seed=0, thresholds=(20.0,), warn=True):
+    """Postmortem grid-coverage certificate for a SOLVED agent (HARK-native).
+
+    The division of labor (owner ruling): the ex-ante numeric core lives in
+    BST-Latest; HARK owns the agent glue and this postmortem orchestration. Works on
+    a ``deepcopy`` of ``agent`` — it never mutates, re-grids, or re-solves the user's
+    agent — runs the agent's own fixed-seed simulation, and pairs grid COVERAGE
+    (simulated mass outside the grid) with grid ACCURACY (``rel_gap_at`` the top
+    knot). These are different questions at different scales
+    (ergodic_coverage.md §7). Advisory only; never re-grids.
+
+    Parameters
+    ----------
+    agent : IndShockConsumerType
+        A SOLVED infinite-horizon single-period agent (``cycles=0``).
+    t : int, default 0
+    AgentCount, T_sim, discard, seed : int
+        Fixed-seed simulation controls; the last ``T_sim - discard`` periods are
+        pooled. Determinism is guaranteed by ``seed``.
+    thresholds : iterable of float
+        Extra ``m`` levels to report ``P(m > threshold)`` for (e.g. HARK's default
+        ``aXtraMax`` of 20).
+    warn : bool, default True
+        Emit an advisory :class:`ErgodicCoverageWarning` only on genuine pathology
+        (mass above the top knot > 1%, or an ex-ante ``alpha_counting <= 2``).
+
+    Returns
+    -------
+    ErgodicGridReport
+    """
+    from copy import deepcopy
+
+    lib = _get_ergodic_coverage_lib()          # for the imported hill_exponent
+    a = deepcopy(agent)                         # never mutate the user's agent
+
+    # stable points (conditions are raw-beta; the raw-vs-effective distinction is
+    # documented in ergodic_grid_diagnostics — do not refactor HARK's machinery)
+    if not getattr(a, "conditions", None):
+        a.check_conditions(verbose=False)
+    a.calc_stable_points(force=True)
+    sol = a.solution[t]
+    mNrmStE = float(getattr(sol, "mNrmStE", float("nan")))
+    mNrmTrg = float(getattr(sol, "mNrmTrg", float("nan")))
+
+    # first/last EGM m-gridpoints (duck-typed through tail wrappers / lower-envelope)
+    def _knots(cf):
+        f = cf
+        for _ in range(8):
+            if hasattr(f, "x_list"):
+                xl = np.asarray(f.x_list, float)
+                return float(xl[1]), float(xl[-1])
+            if hasattr(f, "functions"):
+                f = f.functions[0]
+            elif hasattr(f, "interp"):
+                f = f.interp
+            else:
+                break
+        return float("nan"), float("nan")
+
+    bottom_knot, top_knot = _knots(sol.cFunc)
+
+    # fixed-seed simulation of the SOLVED policy
+    a.track_vars = ["mNrm"]
+    a.T_sim = int(T_sim)
+    a.AgentCount = int(AgentCount)
+    a.seed = int(seed)
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("ignore")
+        a.initialize_sim()
+        a.simulate()
+    pooled = np.asarray(a.history["mNrm"][int(discard):], float).ravel()
+    pooled = pooled[np.isfinite(pooled)]
+
+    quantiles = {q: float(np.quantile(pooled, q))
+                 for q in (0.5, 0.9, 0.99, 0.999, 0.9999)}
+    quantiles["max"] = float(pooled.max())
+    hill = {f: lib.hill_exponent(pooled, top_frac=f) for f in (0.01, 0.005, 0.001)}
+    mass_above_top = float(np.mean(pooled > top_knot)) if np.isfinite(top_knot) else float("nan")
+    mass_below_bottom = float(np.mean(pooled < bottom_knot)) if np.isfinite(bottom_knot) else float("nan")
+    mass_thr = {float(x): float(np.mean(pooled > float(x))) for x in thresholds}
+
+    # ex-ante prediction + accuracy at the top knot (coverage vs accuracy pairing)
+    diag = ergodic_grid_diagnostics_from_agent(agent, t=t, warn=False)
+    hh = powerlaw_decay_params_from_agent(agent, warn=False).h
+    if np.isfinite(top_knot):
+        rg = float(np.atleast_1d(
+            rel_gap_at(sol.cFunc, np.array([top_knot]), diag.MPCmin_eff, hh))[0])
+    else:
+        rg = float("nan")
+
+    tails_on = getattr(agent, "decay_extrap_form", None) is not None
+    framing = ("tails ON: mass above the top knot is the share of the population "
+               "SERVED BY the power-law extrapolation (accuracy there set by "
+               "rel_gap_at)" if tails_on else
+               "tails OFF: mass above the top knot rides HARK's default linear/"
+               "exponential extension (rel_gap_at measures the handoff error)")
+
+    notes = [framing,
+             "coverage (mass above the grid) and accuracy (rel_gap at the knot) are "
+             "different questions at different scales (ergodic_coverage.md §7).",
+             "Hill exponents read ABOVE the ex-ante alpha_counting when the body "
+             "sits below hNrm (pre-asymptotic thinning, §5); Hill BELOW the root "
+             "is the anomaly worth investigating."]
+
+    if warn and (mass_above_top > 0.01 or (np.isfinite(diag.alpha_counting)
+                                           and diag.alpha_counting <= 2.0)):
+        _warnings.warn(
+            "ergodic_grid_report: coverage looks pathological — mass above the top "
+            "knot = %.3g%%, ex-ante alpha_counting = %.4g. This is advisory: solve "
+            "on a wider aXtraMax if you need that mass covered; HARK does not "
+            "re-grid for you (ergodic_coverage.md §7)."
+            % (100.0 * mass_above_top, diag.alpha_counting),
+            ErgodicCoverageWarning, stacklevel=2)
+
+    return ErgodicGridReport(
+        mNrmStE=mNrmStE, mNrmTrg=mNrmTrg,
+        bottom_knot=bottom_knot, top_knot=top_knot,
+        mass_below_bottom=mass_below_bottom, mass_above_top=mass_above_top,
+        mass_above_thresholds=mass_thr, quantiles=quantiles, hill=hill,
+        alpha_counting_exante=diag.alpha_counting, rel_gap_at_top=rg,
+        coverage_framing=framing, n_draws=int(pooled.size), seed=int(seed),
+        notes=tuple(notes),
+    )
