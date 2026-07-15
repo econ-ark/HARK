@@ -13,6 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
+import warnings
 from copy import copy
 
 import numpy as np
@@ -39,6 +40,8 @@ from HARK.distributions import (
     expected,
 )
 from HARK.interpolation import (
+    DecayTailInterp,
+    KappaBarTailInterp,
     LinearInterp,
     LowerEnvelope,
     MargMargValueFuncCRRA,
@@ -46,6 +49,11 @@ from HARK.interpolation import (
     ValueFuncCRRA,
 )
 from HARK.interpolation import CubicHermiteInterp as CubicInterp
+from HARK.ConsumptionSaving.pf_decay import (
+    ConstraintEndRegimeWarning,
+    ce_psi_regime,
+    powerlaw_decay_params_from_agent,
+)
 from HARK.metric import MetricObject
 from HARK.rewards import (
     CRRAutility,
@@ -599,7 +607,7 @@ def calc_vpp_next(shock, a, rfree, crra, perm_gro_fac, vppfunc_next):
     )
 
 
-def solve_one_period_ConsIndShock(
+def solve_one_period_ConsIndShock_with_tails(
     solution_next,
     IncShkDstn,
     LivPrb,
@@ -611,9 +619,25 @@ def solve_one_period_ConsIndShock(
     aXtraGrid,
     vFuncBool,
     CubicBool,
+    decay_extrap_form=None,
+    decay_extrap_Q=None,
+    decay_extrap_form_lower=None,
 ):
     """Solves one period of a consumption-saving model with idiosyncratic shocks to
-    permanent and transitory income, with one risk free asset and CRRA utility.
+    permanent and transitory income, with one risk free asset and CRRA utility --
+    plus the OPTIONAL theory-pinned tail extrapolators.
+
+    This is the implementation behind ``solve_one_period_ConsIndShock`` (which
+    delegates here with the three decay options at ``None``, so the two are
+    byte-for-byte identical on the default path). It exists as a separate
+    entry point so that the long-standing public solver keeps its exact
+    signature: HARK's ``solve_one_cycle`` builds the solver's argument dict
+    from the argument NAMES, so adding keywords to the shared solver would
+    force every agent type that uses it (including internal re-solve paths
+    that skip ``pre_solve``, e.g. the HANK Jacobian machinery's
+    ``solve(presolve=False)``) to carry the new parameters.
+    ``IndShockConsumerType.pre_solve`` swaps this solver in -- and registers
+    the option parameters for delivery -- only when an option is enabled.
 
     Parameters
     ----------
@@ -646,6 +670,50 @@ def solve_one_period_ConsIndShock(
         included in the reported solution.
     CubicBool: boolean
         An indicator for whether the solver should use cubic or linear interpolation.
+    decay_extrap_form : str or None
+        Optional theory-pinned TOP tail for the consumption function. ``None``
+        (default): byte-for-byte the existing behavior (the legacy exponential
+        decay toward the perfect-foresight asymptote above the top gridpoint).
+        ``'powerlaw'``: the gap below the asymptote ``MPCmin*(m + hNrm)``
+        decays as the theorem-backed power law with explicit exponent
+        ``decay_extrap_Q`` (the C1 two-term attachment of the ``LinearInterp``
+        / ``DecayTailInterp`` machinery). Because the assembled ``cFunc`` of
+        each backward step is what the NEXT step's Euler expectation
+        evaluates (``calc_vp_next`` overruns the grid top whenever a large
+        transitory draw lands there), the tail acts in BOTH roles at once:
+        inside the solution recursion and on the returned policy.
+        Theory: statement st-thm-A1 / eq-powerlaw; in practice see
+        https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/extrapolators-in-practice
+    decay_extrap_Q : float or None
+        REQUIRED with ``decay_extrap_form='powerlaw'``: the explicit tail
+        exponent, the theory value ``min(1, q_star)`` with ``q_star`` from
+        ``HARK.ConsumptionSaving.pf_decay`` (``powerlaw_decay_params`` /
+        ``powerlaw_decay_params_from_agent``; ``IndShockConsumerType``
+        computes it automatically in ``pre_solve``). An explicit value is
+        demanded -- rather than falling back to ``LinearInterp``'s 2-knot
+        fitted exponent -- so that the option always carries the theory
+        exponent, never a noisy per-iteration fit.
+    decay_extrap_form_lower : str or None
+        Optional theory-pinned BOTTOM tail. ``None`` (default): byte-for-byte
+        the existing behavior (the EGM bottom SECANT between the constraint
+        corner and the first gridpoint). ``'kappabar'``: queries below the
+        first EGM gridpoint follow the Theorem CE constraint-end form
+        ``c = MPCmax*me - K*me**(1+CRRA)``, ``me = m - mNrmMin``, with the
+        solver's own analytic ``MPCmaxUnc`` (the Prop C2 recursion) and ``K``
+        value-matched at the first gridpoint (``KappaBarTailInterp``); MPC
+        rises to ``MPCmax`` as the constraint is approached instead of the
+        secant's biased slope, in both roles (the expectation's worst-income
+        branch queries next period's cFunc below its first gridpoint).
+        Attaches ONLY when (i) the NATURAL borrowing constraint binds (an
+        artificial-constraint kink has MPC 1 and no kappa_bar asymptote),
+        (ii) the calibration passes the Theorem CE-psi regime gate
+        (``pf_decay.ce_psi_regime``; regime II or undetermined warns a
+        ``ConstraintEndRegimeWarning`` naming st-rem-CE-regime and REFUSES,
+        keeping the default secant), and (iii) the per-step knot passes
+        ``KappaBarTailInterp.try_make``'s corridor + MPC-range exposure gate.
+        Theory: statement st-thm-CE (q_down = CRRA), st-thm-CE-psi (psi-
+        general regime I), st-cor-C4 (bottom grid rule), at
+        https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/
 
     Returns
     -------
@@ -653,6 +721,27 @@ def solve_one_period_ConsIndShock(
         Solution to this period's consumption-saving problem with income risk.
 
     """
+    # Validate the optional decay-extrapolation surface (default None = the
+    # legacy behavior, byte-for-byte).
+    if decay_extrap_form not in (None, "powerlaw"):
+        raise ValueError(
+            "decay_extrap_form must be None or 'powerlaw', got "
+            + repr(decay_extrap_form)
+        )
+    if decay_extrap_form_lower not in (None, "kappabar"):
+        raise ValueError(
+            "decay_extrap_form_lower must be None or 'kappabar', got "
+            + repr(decay_extrap_form_lower)
+        )
+    if decay_extrap_form == "powerlaw" and decay_extrap_Q is None:
+        raise ValueError(
+            "decay_extrap_form='powerlaw' requires decay_extrap_Q, the "
+            "explicit theory exponent min(1, q_star) (pf_decay.powerlaw_"
+            "decay_params; IndShockConsumerType.pre_solve computes it "
+            "automatically at the agent level)"
+        )
+    if decay_extrap_Q is not None and decay_extrap_form != "powerlaw":
+        raise ValueError("decay_extrap_Q requires decay_extrap_form='powerlaw'")
     # Define the current period utility function and effective discount factor
     uFunc = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb  # "effective" discount factor
@@ -736,16 +825,96 @@ def solve_one_period_ConsIndShock(
         )
     else:
         # Construct the unconstrained consumption function as a linear interpolation
-        cFuncNowUnc = LinearInterp(
-            m_for_interpolation,
-            c_for_interpolation,
-            cFuncLimitIntercept,
-            cFuncLimitSlope,
-        )
+        if decay_extrap_form == "powerlaw":
+            # Theory-pinned top tail, threaded through LinearInterp's own
+            # powerlaw decay machinery with the explicit exponent
+            # min(1, q_star); the limit args are the same PF asymptote the
+            # legacy exponential decay targets.
+            cFuncNowUnc = LinearInterp(
+                m_for_interpolation,
+                c_for_interpolation,
+                cFuncLimitIntercept,
+                cFuncLimitSlope,
+                decay_extrap_form="powerlaw",
+                decay_extrap_Q=decay_extrap_Q,
+            )
+        else:
+            cFuncNowUnc = LinearInterp(
+                m_for_interpolation,
+                c_for_interpolation,
+                cFuncLimitIntercept,
+                cFuncLimitSlope,
+            )
 
     # Combine the constrained and unconstrained functions into the true consumption function.
     # LowerEnvelope should only be used when BoroCnstArt is True
     cFuncNow = LowerEnvelope(cFuncNowUnc, cFuncNowCnst, nan_bool=False)
+
+    # Optional theory-pinned tails (decay_extrap_form / decay_extrap_form_lower;
+    # default None = byte-for-byte the assembly above). They are attached HERE,
+    # before vPfuncNow is built, because vPfuncNow = u'(cFuncNow(m')) is what
+    # the PREVIOUS backward step's Euler expectation evaluates (calc_vp_next):
+    # baking the tails into each period's cFuncNow serves both the in-solve
+    # role and the returned-policy role at once.
+    if decay_extrap_form == "powerlaw" and CubicBool:
+        # The cubic interpolant carries only the legacy exponential decay, so
+        # wrap the assembled function in the composable tail instead. x_cut is
+        # REQUIRED: cFuncNow is a LowerEnvelope, which exposes no x_list for
+        # the wrapper to infer the handoff point from.
+        cFuncNow = DecayTailInterp(
+            cFuncNow,
+            cFuncLimitIntercept,
+            cFuncLimitSlope,
+            x_cut=float(m_for_interpolation[-1]),
+            decay_extrap_form="powerlaw",
+            decay_extrap_Q=decay_extrap_Q,
+        )
+    if decay_extrap_form_lower == "kappabar":
+        # Theorem CE bottom tail (KappaBarTailInterp), guarded three ways:
+        # (i) natural-constraint branch only -- with an artificial kink the
+        #     constraint end has MPC 1 and no kappa_bar asymptote;
+        # (ii) the Theorem CE-psi regime gate (st-thm-CE-psi): regime II or
+        #     undetermined means q_down = min(CRRA, s*_+) rather than CRRA
+        #     (st-rem-CE-regime), so the tail is refused with a warning;
+        # (iii) the per-step corridor + MPC-range exposure gate inside
+        #     try_make (None keeps the default secant for this step).
+        if BoroCnstNat < mNrmMinNow:
+            warnings.warn(
+                "decay_extrap_form_lower='kappabar': the artificial borrowing "
+                "constraint binds (BoroCnstNat < mNrmMin), so the constraint "
+                "end is a kink with MPC 1, not the kappa_bar asymptote; "
+                "keeping the default bottom segment.",
+                ConstraintEndRegimeWarning,
+            )
+        else:
+            regime = ce_psi_regime(IncShkDstn, CRRA, PatFac * Rfree / PermGroFac)
+            if regime["regime"] != "I":
+                warnings.warn(
+                    "decay_extrap_form_lower='kappabar': constraint-end "
+                    "regime %s -- lambda(psi_min) = %.6g fails the Theorem "
+                    "CE-psi uniform-contraction criterion (%s), so q_down = "
+                    "min(CRRA, s*_+) rather than CRRA and the kappa_bar*me - "
+                    "K*me**(1+CRRA) bottom tail is NOT theorem-backed "
+                    "(st-rem-CE-regime; amplitude rigor open = GAP-CE-psi-II); "
+                    "keeping the default bottom segment."
+                    % (
+                        regime["regime"],
+                        regime["lambda_min_fiber"],
+                        regime["criterion"],
+                    ),
+                    ConstraintEndRegimeWarning,
+                )
+            else:
+                kappabar_tail = KappaBarTailInterp.try_make(
+                    cFuncNow,
+                    MPCmaxUnc,
+                    CRRA,
+                    mNrmMinNow,
+                    x_knot=float(m_for_interpolation[1]),
+                    y_knot=float(c_for_interpolation[1]),
+                )
+                if kappabar_tail is not None:
+                    cFuncNow = kappabar_tail
 
     # Make the marginal value function and the marginal marginal value function
     vPfuncNow = MargValueFuncCRRA(cFuncNow, CRRA)
@@ -814,6 +983,86 @@ def solve_one_period_ConsIndShock(
         MPCmax=MPCmaxNow,
     )
     return solution_now
+
+
+def solve_one_period_ConsIndShock(
+    solution_next,
+    IncShkDstn,
+    LivPrb,
+    DiscFac,
+    CRRA,
+    Rfree,
+    PermGroFac,
+    BoroCnstArt,
+    aXtraGrid,
+    vFuncBool,
+    CubicBool,
+):
+    """Solves one period of a consumption-saving model with idiosyncratic shocks to
+    permanent and transitory income, with one risk free asset and CRRA utility.
+
+    Delegates to :func:`solve_one_period_ConsIndShock_with_tails` with the
+    optional decay-extrapolation surface at its ``None`` defaults, so the
+    solve is byte-for-byte the long-standing behavior. The signature is kept
+    EXACTLY as before on purpose: ``solve_one_cycle`` demands every named
+    solver argument from the agent, so this public solver must not grow
+    keywords (see the note in the ``_with_tails`` docstring). To enable the
+    theory-pinned tails, set ``decay_extrap_form`` /
+    ``decay_extrap_form_lower`` on an ``IndShockConsumerType`` (whose
+    ``pre_solve`` swaps the ``_with_tails`` solver in), or call
+    ``solve_one_period_ConsIndShock_with_tails`` directly.
+
+    Parameters
+    ----------
+    solution_next : ConsumerSolution
+        The solution to next period's one period problem.
+    IncShkDstn : distribution.Distribution
+        A discrete approximation to the income process between the period being
+        solved and the one immediately following (in solution_next).
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  If it is less than the natural borrowing constraint,
+        then it is irrelevant; BoroCnstArt=None indicates no artificial bor-
+        rowing constraint.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    vFuncBool: boolean
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    CubicBool: boolean
+        An indicator for whether the solver should use cubic or linear interpolation.
+
+    Returns
+    -------
+    solution_now : ConsumerSolution
+        Solution to this period's consumption-saving problem with income risk.
+
+    """
+    return solve_one_period_ConsIndShock_with_tails(
+        solution_next,
+        IncShkDstn,
+        LivPrb,
+        DiscFac,
+        CRRA,
+        Rfree,
+        PermGroFac,
+        BoroCnstArt,
+        aXtraGrid,
+        vFuncBool,
+        CubicBool,
+    )
 
 
 def solve_one_period_ConsKinkedR(
@@ -1954,6 +2203,11 @@ IndShockConsumerType_solving_default = {
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation
+    # OPTIONAL THEORY-PINNED TAIL EXTRAPOLATION (None = legacy behavior,
+    # byte-for-byte; see solve_one_period_ConsIndShock)
+    "decay_extrap_form": None,  # None or 'powerlaw': top tail above the grid
+    "decay_extrap_Q": None,  # Explicit top-tail exponent; auto min(1, q_star)
+    "decay_extrap_form_lower": None,  # None or 'kappabar': constraint-end tail
 }
 IndShockConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -2038,6 +2292,41 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Whether to calculate the value function during solution.
     CubicBool: bool
         Whether to use cubic spline interpoliation.
+    decay_extrap_form: str or None
+        Optional theory-pinned TOP tail for the consumption function beyond
+        the grid top. ``None`` (default): the legacy exponential decay toward
+        the perfect-foresight asymptote, byte-for-byte. ``'powerlaw'``: the
+        gap below the asymptote decays as the theorem-backed power law with
+        exponent ``min(1, q_star)`` (Theorem A1 / eq-powerlaw of the
+        power-law-decay theory,
+        https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/ ),
+        computed automatically in ``pre_solve`` via
+        :mod:`HARK.ConsumptionSaving.pf_decay` and attached at every backward
+        step -- so it acts both INSIDE the solution recursion (the Euler
+        expectation evaluates next period's cFunc above its grid top) and on
+        the returned policy. Practical evidence and the two-roles finding:
+        https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/extrapolators-in-practice
+    decay_extrap_Q: float or None
+        Explicit top-tail exponent override (requires
+        ``decay_extrap_form='powerlaw'``). ``None`` (default): computed
+        automatically as ``min(1, q_star)`` from the agent's own primitives
+        in ``pre_solve``, refreshed each solve.
+    decay_extrap_form_lower: str or None
+        Optional theory-pinned BOTTOM (constraint-end) tail. ``None``
+        (default): the legacy EGM bottom secant, byte-for-byte.
+        ``'kappabar'``: below the first EGM gridpoint consumption follows
+        Theorem CE's ``c = MPCmax*me - K*me**(1+CRRA)`` with the solver's
+        analytic maximal MPC, so the MPC rises to ``MPCmax`` at the
+        constraint (st-thm-CE: the approach exponent is the CRRA itself;
+        psi-general regime I per st-thm-CE-psi,
+        https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/ ).
+        Guarded: attaches only when the NATURAL borrowing constraint binds
+        (note the IndShock default ``BoroCnstArt=0.0`` usually binds --
+        set ``BoroCnstArt=None`` to use this option) and only in the Theorem
+        CE-psi contraction regime; regime II warns a
+        ``pf_decay.ConstraintEndRegimeWarning`` (st-rem-CE-regime) and keeps
+        the default bottom segment. The bottom grid-design rule st-cor-C4
+        (``pf_decay.aXtraMin_from_tail_tol``) certifies knot placement.
 
     Simulation Parameters
     ---------------------
@@ -2301,6 +2590,107 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.construct("solution_terminal")
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
+        self._setup_decay_extrap()
+
+    def _setup_decay_extrap(self):
+        """Prepare the optional theory-pinned tail-extrapolation surface for
+        the solver (called from ``pre_solve``; a no-op stack of ``None``s by
+        default -- byte-for-byte the legacy solve).
+
+        * Ensures the three option attributes exist (``decay_extrap_form``,
+          ``decay_extrap_Q``, ``decay_extrap_form_lower``; subclasses built
+          from parameter dictionaries that predate the options get ``None``).
+        * When an option is enabled, swaps ``solve_one_period`` to
+          ``solve_one_period_ConsIndShock_with_tails`` and registers the
+          option names in ``time_inv`` so ``AgentType.solve`` delivers them
+          -- the ``vFuncBool``/``CubicBool`` delivery pattern. The public
+          ``solve_one_period_ConsIndShock`` keeps its exact legacy signature,
+          so agents with the options unset (including internal re-solve paths
+          that skip ``pre_solve``, e.g. ``solve(presolve=False)`` in the HANK
+          Jacobian machinery) are untouched. Note the corollary: a solve
+          path that skips ``pre_solve`` never performs the swap, so the
+          options take effect only through a normal ``solve()``.
+        * With ``decay_extrap_form='powerlaw'`` and ``decay_extrap_Q=None``,
+          computes the theory exponent ONCE, pre-solve, at the agent level:
+          ``q_eff = min(1, q_star)`` from
+          ``pf_decay.powerlaw_decay_params_from_agent`` (t=0 primitives),
+          validity-gated on the GIC/RIC/FHWC condition flags -- an invalid
+          calibration raises with pf_decay's diagnosis rather than solving
+          with a wrong tail. pf_decay's warning practice (e.g.
+          ``NearResonanceWarning`` near the q* = 1 knife-edge) surfaces here,
+          once per solve, not once per backward step. The auto-computed value
+          is refreshed on every solve (so parameter changes are picked up); a
+          user-supplied ``decay_extrap_Q`` is left untouched.
+        """
+        for name in ("decay_extrap_form", "decay_extrap_Q", "decay_extrap_form_lower"):
+            if not hasattr(self, name):
+                setattr(self, name, None)
+        if self.decay_extrap_form not in (None, "powerlaw"):
+            raise ValueError(
+                "decay_extrap_form must be None or 'powerlaw', got "
+                + repr(self.decay_extrap_form)
+            )
+        if self.decay_extrap_form_lower not in (None, "kappabar"):
+            raise ValueError(
+                "decay_extrap_form_lower must be None or 'kappabar', got "
+                + repr(self.decay_extrap_form_lower)
+            )
+        if self.decay_extrap_form == "powerlaw":
+            if self.decay_extrap_Q is None or getattr(
+                self, "_decay_extrap_Q_auto", False
+            ):
+                params = powerlaw_decay_params_from_agent(self)
+                if not params.valid or not np.isfinite(params.q_star):
+                    raise ValueError(
+                        "decay_extrap_form='powerlaw': the theory exponent "
+                        "min(1, q_star) is unavailable for this calibration "
+                        "(GIC=%s RIC=%s FHWC=%s; %s). Fix the calibration or "
+                        "pass an explicit decay_extrap_Q."
+                        % (
+                            params.GIC,
+                            params.RIC,
+                            params.FHWC,
+                            params.diagnosis or "; ".join(params.warnings),
+                        )
+                    )
+                self.decay_extrap_Q = float(params.q)
+                self._decay_extrap_Q_auto = True
+            else:
+                Q = float(self.decay_extrap_Q)
+                if not np.isfinite(Q) or Q <= 0.0:
+                    raise ValueError(
+                        "decay_extrap_Q must be a positive finite float, got "
+                        + repr(self.decay_extrap_Q)
+                    )
+        else:
+            if getattr(self, "_decay_extrap_Q_auto", False):
+                # stale auto-computed exponent from an earlier powerlaw solve
+                self.decay_extrap_Q = None
+                self._decay_extrap_Q_auto = False
+            elif self.decay_extrap_Q is not None:
+                raise ValueError("decay_extrap_Q requires decay_extrap_form='powerlaw'")
+        if (
+            self.decay_extrap_form is not None
+            or self.decay_extrap_form_lower is not None
+        ):
+            if self.solve_one_period is solve_one_period_ConsIndShock:
+                self.solve_one_period = solve_one_period_ConsIndShock_with_tails
+            elif self.solve_one_period is not solve_one_period_ConsIndShock_with_tails:
+                raise ValueError(
+                    "decay_extrap_form / decay_extrap_form_lower require the "
+                    "standard IndShock solver (solve_one_period_ConsIndShock); "
+                    "this agent's solve_one_period is " + repr(self.solve_one_period)
+                )
+            self.add_to_time_inv(
+                "decay_extrap_form", "decay_extrap_Q", "decay_extrap_form_lower"
+            )
+        elif (
+            getattr(self, "solve_one_period", None)
+            is solve_one_period_ConsIndShock_with_tails
+        ):
+            # options disabled again: restore the stock solver, so re-solve
+            # paths that skip pre_solve stay on the legacy signature
+            self.solve_one_period = solve_one_period_ConsIndShock
 
     def describe_parameters(self):
         """
