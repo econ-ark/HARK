@@ -2062,6 +2062,274 @@ class DecayTailInterp(HARKinterpolator1D):
         return y, dydx
 
 
+class KappaBarTailInterp(HARKinterpolator1D):
+    """
+    Constraint-end (maximal-MPC) tail wrapper over ANY 1D interpolant -- the
+    bottom-end member of the ``DecayTailInterp`` family. At and above a knot
+    ``x_knot`` every query is delegated, unchanged, to the wrapped
+    interpolant; below the knot (and above the binding minimum ``mNrmMin``)
+    the function is the Theorem CE constraint-end form
+
+        c(m) = MPCmax*me - K*me**(1.0 + CRRA),      me = m - mNrmMin,
+        K = (MPCmax*me_knot - y_knot)/me_knot**(1.0 + CRRA)   (value-matching),
+
+    so the composed function is continuous at the knot by construction (the
+    amplitude is always the knot's own gap below the ``MPCmax`` line -- the
+    same level-continuity invariant as ``DecayTailInterp``). Queries at or
+    below ``mNrmMin`` return 0.0 (consumption is zero at the constraint and
+    undefined below it).
+
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-thm-CE :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Theorem CE: the constraint-end approach exponent is the CRRA itself
+    #   (q_down = rho): c = kap_bar*me - K*me**(1+rho)*(1+o(1)) as me -> 0,
+    #   with NO log-periodic prefactor (the binding one-step map is the
+    #   deterministic worst-branch contraction lambda = wp**(1/rho)*Thorn_Gamma
+    #   < 1). No eigenvalue problem at this end: the exponent needs no
+    #   root-finder, unlike the high-wealth min(1, q*).
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-thm-CE-psi :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Theorem CE-psi (regime I): with permanent shocks the same q_down = rho
+    #   law holds under the uniform-contraction criterion
+    #   p_eff**(1/rho)*Thorn_Gamma < psi_min, with p_eff the worst-JOINT-atom
+    #   mass (exactly HARK's WorstIncPrb accounting); outside it (regime II)
+    #   q_down = min(rho, s*_+) and this form is NOT theorem-backed -- callers
+    #   should gate on ``HARK.ConsumptionSaving.pf_decay.ce_psi_regime``.
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-prop-C1-psi :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   kap_bar = 1 - p_eff**(1/rho)*Thorn_R (infinite horizon); finite
+    #   horizon: HARK's ``calc_mpc_max`` recursion IS Prop C2
+    #   (kap_bar_{T-n}**-1 = 1 + p_eff**(1/rho)*Thorn_R*kap_bar_{T-n+1}**-1,
+    #   terminal anchor 1), so passing the solver's ``MPCmaxUnc`` /
+    #   ``solution.MPCmax`` is exact at ANY horizon.
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-cor-C4 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Knot placement rule (the guard message below): the knot reads the
+    #   constraint asymptote to relative tolerance tol iff
+    #   me_knot <= (tol*kap_bar/K)**(1/rho) -- push the grid bottom below that
+    #   scale (``pf_decay.aXtraMin_from_tail_tol`` inverts it).
+
+    The MPC behavior is the theorem's content: c'(m) = MPCmax - (1 +
+    CRRA)*K*me**CRRA rises to MPCmax as me -> 0. This replaces (a) the EGM
+    bottom SECANT from the constraint corner to the first gridpoint, whose
+    slope understates MPCmax by exactly K*me_knot**CRRA, and (b) fitted-
+    tangent lower extrapolations, whose MPC can diverge (measured
+    Method-of-Moderation counterexample: MPC 3.56 at me = 1e-8).
+
+    Modes (``strict``) and the in-solve constructor (``try_make``)
+    ---------------------------------------------------------------
+    ``strict=True`` (default; post-solve attachment, where a violation is a
+    real diagnosis): requires the Theorem CE regime at the knot, ``K >= 0``
+    (knot at or below the MPCmax line) and ``K*me_knot**CRRA < MPCmax``
+    (positivity of c below the knot; monotone in me, so holding at the knot
+    certifies the whole tail). Violation raises ``ValueError`` with the
+    st-cor-C4 grid-rule message. ``strict=False`` admits the two-sided
+    bootstrap CORRIDOR ``|K|*me_knot**CRRA < MPCmax`` (a knot ABOVE the
+    MPCmax line -- K < 0 -- from a contaminated iterate or solve; the tail
+    then approaches the MPCmax line from above and the inherited bias decays
+    like (me/me_knot)**CRRA). ``in_regime`` records ``K >= 0``;
+    ``knot_rel_deficit = K*me_knot**CRRA/MPCmax`` is the SIGNED st-cor-C4
+    'tol' realized at the knot.
+
+    ``try_make`` is the guarded constructor for IN-SOLVE use (re-anchoring
+    each backward step): it returns ``None`` -- the caller keeps its default
+    assembly for that step -- unless the corridor holds AND the tail's MPC
+    over the exposed segment (0, me_knot] lies in ``(0, MPCmax]``:
+
+        MPC <= MPCmax  <=>  K >= 0,
+        MPC > 0 at the knot  <=>  (1 + CRRA)*K*me_knot**CRRA < MPCmax.
+
+    The MPC-range exposure gate closes the corridor's two recorded leaks (a
+    large-K corridor tail turns its MPC negative near the knot; a K < 0
+    corridor tail carries MPC above MPCmax throughout), so in-solve exposure
+    is always a theorem-shaped tail. Sign self-correction across iterations
+    is preserved by the FALLBACK, not by exposing K < 0 tails: a refused
+    iterate keeps HARK's bottom secant, which lies BELOW the true concave
+    consumption function and therefore biases the next iterate's knot back
+    below the MPCmax line (K > 0), re-activating the tail. (This differs
+    from the reference stack's crude ``c = m`` rail, whose MPC-1 bias has the
+    opposite sign and made a strict in-solve gate deadlock there.)
+
+    Parameters
+    ----------
+    interp : callable
+        The wrapped interpolant (any object mapping numpy query arrays to
+        value arrays; all HARK 1D interpolants qualify). Queries at or above
+        ``x_knot`` delegate to it; a ``derivative`` method is delegated to
+        where present.
+    MPCmax : float
+        The maximal MPC at the constraint end: the solver's ``MPCmaxUnc`` /
+        ``solution.MPCmax`` (the analytic Prop C2 recursion, exact at any
+        horizon; infinite-horizon fixed point 1 - wp**(1/CRRA)*Thorn_R).
+    CRRA : float
+        Relative risk aversion; ALSO the tail exponent (Theorem CE).
+    mNrmMin : float
+        The binding minimum of market resources (``solution.mNrmMin``); 0 for
+        zero-income-atom calibrations. Must lie strictly below ``x_knot``.
+        Attach ONLY when the NATURAL borrowing constraint binds: with an
+        artificially-constrained kink the constraint end has MPC 1 and no
+        kap_bar asymptote (HARK's ``MPCmaxNow = 1.0`` override branch).
+    x_knot : float
+        Market resources at the attachment knot -- the first EGM gridpoint
+        above the constraint corner (``m_for_interpolation[1]`` at the
+        solver's assembly site).
+    y_knot : float or None (default)
+        Consumption at the knot. ``None`` reads the wrapped interpolant at
+        ``x_knot`` (must be finite); the solver passes its own exact node
+        value ``c_for_interpolation[1]``.
+    strict : bool (default True)
+        See Modes above.
+    """
+
+    distance_criteria = ["interp"]
+
+    def __init__(self, interp, MPCmax, CRRA, mNrmMin, x_knot, y_knot=None,
+                 strict=True):
+        self.interp = interp
+        self.MPCmax = float(MPCmax)
+        self.CRRA = float(CRRA)
+        self.mNrmMin = float(mNrmMin)
+        self.x_knot = float(x_knot)
+        if not (np.isfinite(self.MPCmax) and self.MPCmax > 0.0):
+            raise ValueError(
+                "KappaBarTailInterp: MPCmax must be a positive finite float "
+                "(the solver's MPCmaxUnc / solution.MPCmax), got "
+                + repr(MPCmax)
+            )
+        if not (np.isfinite(self.CRRA) and self.CRRA > 0.0):
+            raise ValueError(
+                "KappaBarTailInterp: CRRA must be a positive finite float, "
+                "got " + repr(CRRA)
+            )
+        me_knot = self.x_knot - self.mNrmMin
+        if not (np.isfinite(me_knot) and me_knot > 0.0):
+            raise ValueError(
+                "KappaBarTailInterp: the knot must lie strictly above "
+                f"mNrmMin (x_knot={self.x_knot!r}, mNrmMin={self.mNrmMin!r})"
+            )
+        if y_knot is None:
+            y_knot = float(
+                np.asarray(self.interp(np.array([self.x_knot]))).ravel()[0]
+            )
+        self.y_knot = float(y_knot)
+        if not np.isfinite(self.y_knot):
+            raise ValueError(
+                "KappaBarTailInterp: non-finite consumption at the knot "
+                f"({self.y_knot!r} at x_knot={self.x_knot!r})"
+            )
+        # Value-matching amplitude (level continuity at the knot, the class
+        # invariant): K = (MPCmax*me - c)/me**(1+CRRA).
+        self.K = (self.MPCmax * me_knot - self.y_knot) / me_knot ** (
+            1.0 + self.CRRA
+        )
+        deficit = self.K * me_knot**self.CRRA  # signed st-cor-C4 'tol'
+        if strict:
+            if not (self.K >= 0.0 and deficit < self.MPCmax):
+                raise ValueError(
+                    "KappaBarTailInterp: knot outside the constraint-end "
+                    "regime -- enlarge the grid bottom (st-cor-C4: the knot "
+                    "obeys the asymptote to relative tolerance tol only for "
+                    "me_knot <= (tol*MPCmax/K)**(1/CRRA); K >= 0 requires "
+                    "y_knot <= MPCmax*me_knot, positivity requires "
+                    "K*me_knot**CRRA < MPCmax i.e. y_knot > 0; "
+                    "pf_decay.aXtraMin_from_tail_tol inverts the rule). "
+                    f"Got K={self.K:.6g}, me_knot={me_knot:.6g}, "
+                    f"MPCmax={self.MPCmax:.6g}. With permanent shocks or a "
+                    "positive worst atom also re-check MPCmax and mNrmMin "
+                    "(regime gate: pf_decay.ce_psi_regime, st-rem-CE-regime)."
+                )
+        else:
+            if not abs(deficit) < self.MPCmax:
+                raise ValueError(
+                    "KappaBarTailInterp(strict=False): knot outside even the "
+                    "bootstrap corridor |K|*me_knot**CRRA < MPCmax (relative "
+                    "distance of y_knot from the MPCmax line >= 100%) -- use "
+                    "try_make, which falls back instead of constructing this."
+                )
+        self.strict = bool(strict)
+        self.in_regime = bool(self.K >= 0.0)
+        self.knot_rel_deficit = float(deficit / self.MPCmax)
+        self.mpc_at_knot = float(self.MPCmax - (1.0 + self.CRRA) * deficit)
+
+    @classmethod
+    def try_make(cls, interp, MPCmax, CRRA, mNrmMin, x_knot, y_knot=None):
+        """Guarded constructor for IN-SOLVE use: returns ``None`` (the caller
+        keeps its default bottom assembly for that backward step) unless the
+        knot admits a corridor tail whose MPC over the exposed segment lies
+        in (0, MPCmax] -- the exposure gate described in the class docstring.
+        Never raises on out-of-regime knots; malformed scalar inputs
+        (non-positive MPCmax/CRRA, knot at or below mNrmMin, non-finite
+        y_knot) also return None so a transient broken iterate cannot abort
+        a solve."""
+        if MPCmax is None or not np.isfinite(float(MPCmax)) or float(MPCmax) <= 0.0:
+            return None
+        if not np.isfinite(float(CRRA)) or float(CRRA) <= 0.0:
+            return None
+        me_knot = float(x_knot) - float(mNrmMin)
+        if not (np.isfinite(me_knot) and me_knot > 0.0):
+            return None
+        if y_knot is None:
+            y_knot = float(np.asarray(interp(np.array([float(x_knot)]))).ravel()[0])
+        y_knot = float(y_knot)
+        if not np.isfinite(y_knot):
+            return None
+        K = (float(MPCmax) * me_knot - y_knot) / me_knot ** (1.0 + float(CRRA))
+        deficit = K * me_knot ** float(CRRA)
+        # bootstrap corridor + the MPC-in-(0, MPCmax] exposure gate
+        if not abs(deficit) < float(MPCmax):
+            return None
+        if not (K >= 0.0 and (1.0 + float(CRRA)) * deficit < float(MPCmax)):
+            return None
+        return cls(interp, MPCmax, CRRA, mNrmMin, x_knot, y_knot=y_knot,
+                   strict=True)
+
+    def _body_y(self, x):
+        return np.asarray(self.interp(x), dtype=float)
+
+    def _body_der(self, x):
+        der = getattr(self.interp, "derivative", None)
+        if der is not None:
+            return np.asarray(der(x), dtype=float)
+        eps = 1e-8
+        return (
+            np.asarray(self.interp(x + eps), dtype=float)
+            - np.asarray(self.interp(x), dtype=float)
+        ) / eps
+
+    def _tail_y(self, x_below):
+        me = np.maximum(x_below - self.mNrmMin, 0.0)
+        return self.MPCmax * me - self.K * me ** (1.0 + self.CRRA)
+
+    def _tail_der(self, x_below):
+        # MPC of the tail: -> MPCmax as me -> 0 (Theorem CE's content); the
+        # me <= 0 clip returns the limit MPCmax at/below the constraint.
+        me = np.maximum(x_below - self.mNrmMin, 0.0)
+        return self.MPCmax - (1.0 + self.CRRA) * self.K * me**self.CRRA
+
+    def _evaluate(self, x):
+        x = np.asarray(x, dtype=float)
+        below = x < self.x_knot
+        if not np.any(below):
+            return self._body_y(x)
+        y = np.empty(x.shape, dtype=float)
+        body = ~below
+        if np.any(body):
+            y[body] = self._body_y(x[body])
+        y[below] = self._tail_y(x[below])
+        return y
+
+    def _der(self, x):
+        x = np.asarray(x, dtype=float)
+        below = x < self.x_knot
+        if not np.any(below):
+            return self._body_der(x)
+        dydx = np.empty(x.shape, dtype=float)
+        body = ~below
+        if np.any(body):
+            dydx[body] = self._body_der(x[body])
+        dydx[below] = self._tail_der(x[below])
+        return dydx
+
+    def _evalAndDer(self, x):
+        return self._evaluate(x), self._der(x)
+
+
 class CubicInterp(HARKinterpolator1D):
     """
     An interpolating function using piecewise cubic splines.  Matches level and
