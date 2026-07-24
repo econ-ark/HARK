@@ -968,6 +968,22 @@ class LinearInterp(HARKinterpolator1D):
         #   from the level+slope matching conditions; conditioning argument
         #   for Q+1 over the theory-subleading pair; property proofs
         #   (below-line, MPC floor, concavity condition, guard + fallback).
+    q_diagnostics : tuple or None (default), keyword-only
+        Opaque measurement-diagnostics rider for explicit-Q callers, stashed
+        verbatim as ``self.local_q_diag`` and never consulted by evaluation.
+        Convention (pinned to the downstream reference implementation this
+        keyword mirrors -- HAFiscal's ``PowerLawDecayLinearInterp``, whose
+        attach sites pass the local two-secant measurement): the tuple
+        ``(Q1, Q2, drift)`` of the two log-log secant exponents of the gap
+        in the shifted abscissa ``x + h`` over the top three knots, plus the
+        drift advisory ``Q2 - Q1``; ``decay_extrap_Q`` is then ``Q2`` (the
+        most local secant). Post-solve tools read the measurement off
+        converged slices via ``getattr(slice, "local_q_diag", None)``.
+        Present (default ``None``) whether or not decay engages, including
+        on the guard-disable path -- diagnostics must survive exactly the
+        cases one wants to inspect. Both spellings (keyword
+        ``q_diagnostics``, attribute ``local_q_diag``) are API: they are
+        the drop-in contract with the reference implementation.
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -985,6 +1001,7 @@ class LinearInterp(HARKinterpolator1D):
         *,
         decay_extrap_Q=None,
         decay_extrap_terms=2,
+        q_diagnostics=None,
     ):
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
@@ -1001,6 +1018,10 @@ class LinearInterp(HARKinterpolator1D):
                 + repr(decay_extrap_form)
             )
         self.decay_extrap_form = decay_extrap_form
+        # Measurement-diagnostics rider (reference-implementation contract:
+        # both the keyword and the attribute spelling are API; see docstring).
+        # Stashed before any decay validation so it survives guard-disable.
+        self.local_q_diag = q_diagnostics
         if decay_extrap_Q is not None:
             if decay_extrap_form != "powerlaw":
                 raise ValueError(

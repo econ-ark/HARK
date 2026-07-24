@@ -1951,6 +1951,187 @@ class TestLinearInterpTwoTerm(unittest.TestCase):
         self.assertLess(gap[-1], gap_top)  # eventually decays below it
 
 
+class TestLinearInterpMeasuredQ(unittest.TestCase):
+    """The measured-Q workflow on ``LinearInterp``: an exponent measured by
+    two log-log secants over the TOP THREE knots (in the shifted abscissa
+    ``x + h``), attached via ``decay_extrap_Q=Q2`` (the most local secant)
+    with the measurement riding along as ``q_diagnostics=(Q1, Q2, drift)``
+    and readable back as ``self.local_q_diag`` -- the drop-in contract with
+    the downstream reference implementation (HAFiscal's
+    ``PowerLawDecayLinearInterp`` / its two-secant estimator).
+
+    HARK-scale mirror of the HAFiscal (e) family
+    (``test_pf_asymptote_decay.py::test_powerlaw_flag_value_attaches_powerlaw_form``):
+    the same below-the-line / powerlaw-holds-the-gap-the-exponential-destroys /
+    in-sample-unchanged assertions, exercised against this file's synthetic
+    power-law truth instead of a solved consumption function, out to 75x the
+    grid top (the certification depth of the measured-Q construction).
+
+    Pre-registered bounds (measured at authoring time; honest margins per
+    the platform-gating lesson on this branch, not byte-zero pins): on an
+    exact power-law fixture the two-secant measurement recovers the true
+    exponent to 1e-9 (measured 3e-12) with |drift| < 1e-9 (measured 6e-12);
+    the one-term attach equals the reference analytic tail to 1e-12 abs
+    (measured 0.0) and tracks the truth to 1e-12 rel (measured 1.3e-15);
+    the two-term default tracks the truth to 3e-5 rel (measured 3.2e-6)
+    while the exponential tail's worst error is >= 10x larger (measured
+    65x) and destroys > 90% of the truth gap by ~5x the grid top (measured
+    gap ratio 0.053 at x=100).
+    """
+
+    intercept = 1.0
+    slope = 0.5  # limiting line 1.0 + 0.5*x = 0.5*(x + 2); pivot h = 2
+    C = 4.0
+    Q_true = 1.5
+
+    def truth(self, x):
+        h = self.intercept / self.slope
+        return self.intercept + self.slope * x - self.C * (x + h) ** (-self.Q_true)
+
+    def knots(self, n=201, top=21.0):
+        x = np.linspace(1.0, top, n)
+        return x, self.truth(x)
+
+    def measure(self, x, y):
+        """Two-secant measurement from the top three knots (the reference
+        estimator's semantics, computed inline: log-log secants of the gap
+        below the limiting line in the shifted abscissa ``x + h``)."""
+        h = self.intercept / self.slope
+        z = x[-3:] + h
+        gap = self.intercept + self.slope * x[-3:] - y[-3:]
+        lg, lz = np.log(gap), np.log(z)
+        Q1 = -(lg[1] - lg[0]) / (lz[1] - lz[0])
+        Q2 = -(lg[2] - lg[1]) / (lz[2] - lz[1])
+        return Q1, Q2, Q2 - Q1
+
+    def ladder(self, top=21.0):
+        return np.geomspace(top + 0.01, 75.0 * top, 400)
+
+    def test_two_secant_recovers_truth_and_rider_attaches(self):
+        x, y = self.knots()
+        Q1, Q2, drift = self.measure(x, y)
+        # exact-power-law fixture: every log-log secant equals the exponent
+        self.assertLess(abs(Q2 - self.Q_true), 1e-9)
+        self.assertLess(abs(drift), 1e-9)
+        f = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+            q_diagnostics=(Q1, Q2, drift),
+        )
+        self.assertTrue(f.decay_extrap)
+        self.assertEqual(f.decay_extrap_form, "powerlaw")
+        self.assertEqual(f.decay_extrap_Q, Q2)
+        self.assertEqual(f.decay_extrap_Q_source, "explicit")
+        self.assertEqual(f.local_q_diag, (Q1, Q2, drift))
+
+    def test_rider_default_none_eval_neutral_and_survives_guard_disable(self):
+        x, y = self.knots()
+        Q1, Q2, drift = self.measure(x, y)
+        # default None, on every construction path (incl. plain exp form)
+        f_exp = LinearInterp(x, y, self.intercept, self.slope)
+        self.assertIsNone(f_exp.local_q_diag)
+        # rider never touches evaluation
+        f = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+            q_diagnostics=(Q1, Q2, drift),
+        )
+        f_no = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+        )
+        q = self.ladder()
+        np.testing.assert_array_equal(f(q), f_no(q))
+        np.testing.assert_array_equal(f.derivative(q), f_no.derivative(q))
+        # rider survives the guard-disable path (top knot above the line):
+        # diagnostics must remain inspectable exactly when the attach fails
+        h = self.intercept / self.slope
+        y_above = (
+            self.intercept + self.slope * x + self.C * (x + h) ** (-self.Q_true)
+        )
+        with self.assertWarns(UserWarning):
+            f_bad = LinearInterp(
+                x, y_above, self.intercept, self.slope,
+                decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+                q_diagnostics=(Q1, Q2, drift),
+            )
+        self.assertFalse(f_bad.decay_extrap)
+        self.assertEqual(f_bad.local_q_diag, (Q1, Q2, drift))
+
+    def test_one_term_reference_form_identity(self):
+        # the terms=1 attach IS the reference implementation's tail:
+        # gap(x) = A * ((x + h)/(x_top + h))**(-Q2), A = level gap at the top
+        # knot; derivative slope_limit + Q2/(x + h) * gap
+        x, y = self.knots()
+        _, Q2, _ = self.measure(x, y)
+        f = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+            decay_extrap_terms=1,
+        )
+        q = self.ladder()
+        h = self.intercept / self.slope
+        z, z_top = q + h, x[-1] + h
+        A = self.intercept + self.slope * x[-1] - y[-1]
+        gap_ref = A * np.exp(-Q2 * np.log(z / z_top))
+        c_ref = self.intercept + self.slope * q - gap_ref
+        self.assertLessEqual(np.max(np.abs(f(q) - c_ref)), 1e-12)
+        d_ref = self.slope + Q2 / z * gap_ref
+        self.assertLessEqual(np.max(np.abs(f.derivative(q) - d_ref)), 1e-12)
+        # and on the exact-power-law fixture it reproduces the truth itself
+        rel = np.max(np.abs(f(q) - self.truth(q)) / np.abs(self.truth(q)))
+        self.assertLessEqual(rel, 1e-12)
+
+    def test_tail_below_line_beats_exp_in_sample_identical(self):
+        # the (e)-family core, at interpolation scale
+        x, y = self.knots()
+        Q1, Q2, drift = self.measure(x, y)
+        f_pl = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+            q_diagnostics=(Q1, Q2, drift),
+        )
+        f_exp = LinearInterp(x, y, self.intercept, self.slope)
+        q = self.ladder()
+        line = self.intercept + self.slope * q
+        c_pl, c_exp = f_pl(q), f_exp(q)
+        # (i) strictly below the limiting line everywhere out to 75x the top
+        self.assertTrue(np.all(c_pl < line))
+        # (ii) weakly below the exponential variant (the power law holds the
+        # gap the exponential destroys), same 1e-9 slack as the mirror
+        self.assertTrue(np.all(c_pl <= c_exp * (1.0 + 1e-9)))
+        # (iii) gap destruction is material by ~5x the grid top ...
+        xx = np.array([100.0])
+        gap_truth = self.C * (xx[0] + 2.0) ** (-self.Q_true)
+        gap_exp = self.intercept + self.slope * xx[0] - f_exp(xx)[0]
+        gap_pl = self.intercept + self.slope * xx[0] - f_pl(xx)[0]
+        self.assertLess(gap_exp / gap_truth, 0.1)
+        # ... while the measured-Q tail keeps it
+        self.assertGreater(gap_pl / gap_truth, 0.99)
+        self.assertLess(gap_pl / gap_truth, 1.01)
+        # (iv) in-sample: the tail form touches nothing at or below the top
+        m_in = np.linspace(x[0], x[-1], 313)
+        np.testing.assert_array_equal(f_pl(m_in), f_exp(m_in))
+
+    def test_far_field_truth_tracking_beats_exp(self):
+        x, y = self.knots()
+        Q1, Q2, drift = self.measure(x, y)
+        f_pl = LinearInterp(
+            x, y, self.intercept, self.slope,
+            decay_extrap_form="powerlaw", decay_extrap_Q=Q2,
+            q_diagnostics=(Q1, Q2, drift),
+        )
+        f_exp = LinearInterp(x, y, self.intercept, self.slope)
+        q = self.ladder()
+        c_tr = self.truth(q)
+        rel_pl = np.max(np.abs(f_pl(q) - c_tr) / np.abs(c_tr))
+        rel_exp = np.max(np.abs(f_exp(q) - c_tr) / np.abs(c_tr))
+        # two-term default tracks the truth ...
+        self.assertLessEqual(rel_pl, 3e-5)
+        # ... at least 10x better than the exponential's worst error
+        self.assertGreater(rel_exp, 10.0 * rel_pl)
+
+
 class TestDecayTailInterpTwoTerm(unittest.TestCase):
     """Two-term default on the composable wrapper: byte parity with the
     baked-in machinery over a linear body, C1 over a cubic body, and the
