@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Adds `HARK.simulation.normalization`: opt-in mixins that pin simulated cross-sectional moments to their analytical values (`ShockNormalizationMixin` for exact shock means; `PermanentIncomeNormalizationMixin` for per-cohort log-pLvl moments, Markov-capable with an automatic mean-only mode under state-dependent growth). Purely additive — defaults change no behavior and no existing file is modified. [#1784](https://github.com/econ-ark/HARK/pull/1784)
 - future item
 - future item
 - future item
