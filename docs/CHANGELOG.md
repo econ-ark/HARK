@@ -18,6 +18,7 @@ Release Date: TBD
 
 #### Major Changes
 
+- Raises the minimum supported Python to 3.12 and adds 3.14, following [SPEC 0](https://scientific-python.org/specs/spec-0000/), which drops a Python version three years after release. Python 3.11 left that window in October 2025, and numpy and scipy both already require 3.12 or newer, so installing HARK on 3.10 or 3.11 resolved a dependency stack from two years ago rather than the one HARK is developed against. The CI matrix now sweeps 3.12, 3.13 and 3.14 on Linux and covers 3.13 on macOS and Windows.
 - future item
 - future item
 - future item
@@ -30,7 +31,6 @@ Release Date: TBD
 - Restores `calc_expectation` as a `DeprecationWarning`-bearing alias of `expected_with_loop` (renamed in 0.17.2), preserving import compatibility for downstream code pinned to earlier versions - including frozen reproduction archives that cannot be edited. Slated for removal in a future release. [#1800](https://github.com/econ-ark/HARK/pull/1800)
 - Exports `KrusellSmithType`, `KrusellSmithEconomy`, `init_KS_agents`, `init_KS_economy` in `HARK.ConsumptionSaving.ConsAggShockModel.__all__` (they were defined but unlisted); fixes a stale sentence in the KrusellSmithType example notebook. [#1795](https://github.com/econ-ark/HARK/pull/1795)
 - Adds `AgentType.post_state_hook()`: a no-op extension point invoked by `sim_one_period` between `get_states()` and `get_controls()`, for mixins that adjust states before controls are computed (e.g. variance-reduction normalization). Default behavior is bit-identical (pinned by a behavior-golden test). [#1787](https://github.com/econ-ark/HARK/pull/1787)
-- Fixes `DiscreteDistribution.draw(shuffle=True)`, which allocated the leftover slots after `floor(N*pmv)` in proportion to `pmv` itself rather than to the fractional remainders, so `E[count_j]` was not `N*pmv[j]`. The remainder is now distributed by systematic sampling, which makes the inclusion probability exactly the remainder. The error was `O(M/N)`, invisible at population-sized draws and severe for the small cohorts `sim_birth` redraws. Also makes `draw(0, shuffle=True)` return an empty array instead of raising.
 - future item
 - future item
 - future item

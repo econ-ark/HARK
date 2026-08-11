@@ -244,29 +244,21 @@ class DiscreteDistribution(Distribution):
             K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
             M = N - np.sum(K)  # number of unallocated slots
             J = P.size
-            Q = K_exact - K  # "missing" slots, fractional; these sum to M
+            eps = 1.0 / N
+            Q = K_exact - eps * K  # "missing" probability mass
+            draws = self._rng.random(M)  # uniform draws for "extra" slots
 
-            # Allocate the M leftover slots by systematic sampling on Q, which
-            # makes P(atom j gets an extra slot) exactly Q[j], hence
-            # E[count_j] == N * P[j]. Drawing them one at a time proportional
-            # to the remaining Q instead is successive sampling, whose
-            # inclusion probabilities are not proportional to Q, and that
-            # biases the result whenever M >= 2.
-            if M > 0:
-                start = self._rng.random()  # single uniform offset in [0, 1)
-                edges = np.cumsum(Q)
-                picks = np.searchsorted(edges, start + np.arange(M), side="right")
-                np.add.at(K, np.minimum(picks, J - 1), 1)
+            # Fill in each unallocated slot, one by one
+            for m in range(M):
+                Q_adj = Q / np.sum(Q)  # probabilities for this pass
+                Q_sum = np.cumsum(Q_adj)
+                j = np.searchsorted(Q_sum, draws[m])  # find index for this draw
+                K[j] += 1  # increment its allocated slots
+                Q[j] = 0.0  # zero out its probability because we used it
 
             # Make an array of atom indices based on the final slot counts
             nested_events = [K[j] * [j] for j in range(J)]
-            # dtype is explicit because N=0 makes every sublist empty, and an
-            # empty list would otherwise produce a float64 array that cannot
-            # index atoms. N=0 is reachable: sim_birth runs every period, and
-            # draws no agents in a period with no deaths.
-            events = np.array(
-                [i for sublist in nested_events for i in sublist], dtype=int
-            )
+            events = np.array([i for sublist in nested_events for i in sublist])
 
             # Draw a random permutation of the indices
             indices = self._rng.permutation(events)
