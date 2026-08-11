@@ -57,7 +57,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     make_AdjustDstn,
 )
-from HARK.distributions import calc_expectation
+from HARK.distributions import expected
 from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
     ConstantFunction,  # Interpolator-like class that returns constant value
@@ -845,8 +845,11 @@ def solve_RiskyContrib_Cns(
 
         # Find end of period derivatives and value as expectations of (discounted)
         # next period's derivatives and value.
-        pr_derivs = calc_expectation(
-            IncShkDstn, post_return_derivs, b_aux_tiled, g_aux_tiled, Share_tiled
+        pr_derivs = expected(
+            post_return_derivs,
+            IncShkDstn,
+            (b_aux_tiled, g_aux_tiled, Share_tiled),
+            vectorized=False,
         )
 
         # Unpack results and create interpolators
@@ -992,12 +995,11 @@ def solve_RiskyContrib_Cns(
 
     # Find end of period derivatives and value as expectations of (discounted)
     # next period's derivatives and value.
-    eop_derivs = calc_expectation(
-        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+    eop_derivs = expected(
         end_of_period_derivs,
-        aNrm_tiled,
-        nNrm_tiled,
-        Share_tiled,
+        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+        (aNrm_tiled, nNrm_tiled, Share_tiled),
+        vectorized=False,
     )
 
     # Unpack results

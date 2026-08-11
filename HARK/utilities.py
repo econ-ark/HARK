@@ -187,7 +187,7 @@ def make_assets_grid(aXtraMin, aXtraMax, aXtraCount, aXtraExtra, aXtraNestFac):
 # ==============================================================================
 
 
-def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
+def make_grid_exp_mult(ming, maxg, ng, timestonest=20, offset=0.0):
     r"""
     Makes a multi-exponentially spaced grid.
     If the function :math:`\ln(1+x)` were applied timestonest times, the grid would
@@ -196,7 +196,7 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
 
     NOTE: The bounds of the grid must be non-negative, else this function will
     return an invalid grid with NaNs in it. If you want a non-linearly spaced
-    grid that spans negative numbers, use make_exponential_grid; see below.
+    grid that spans negative numbers, use make_polynomial_grid or specify an offset.
 
     Parameters
     ----------
@@ -205,24 +205,26 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
     maxg : float
         Maximum value of the grid, which must be greater than ming.
     ng : int
-        The number of grid points
-    timestonest : int
-        the number of times to nest the exponentiation
+        The number of gridpoints
+    timestonest : int, optional
+        The number of times to nest the exponentiation; the default is 20.
+    offset : float
+        Offset added to the final grid, so it spans [ming+offset, maxg+offset].
+        The default is zero.
 
     Returns
     -------
     points : np.array
-        A multi-exponentially spaced grid
+        A multi-exponentially spaced grid.
 
     Notes
     -----
     Original Matab code can be found in Chris Carroll's
     [Solution Methods for Microeconomic Dynamic Optimization Problems]
     (https://www.econ2.jhu.edu/people/ccarroll/solvingmicrodsops/) toolkit.
-    Latest update: 01 May 2015
     """
     if timestonest == -1:
-        grid = np.linspace(ming, maxg, ng)
+        grid = np.linspace(ming, maxg, ng) + offset
         return grid
     if timestonest > 0:
         Lming = ming
@@ -239,12 +241,13 @@ def make_grid_exp_mult(ming, maxg, ng, timestonest=20):
         Lmaxg = np.log(maxg)
         Lgrid = np.linspace(Lming, Lmaxg, ng)
         grid = np.exp(Lgrid)
+    grid += offset
     return grid
 
 
-def make_exponential_grid(ming, maxg, ng, order=1.0):
+def make_polynomial_grid(ming, maxg, ng, order=1.0):
     """
-    Construct an exponentially spaced grid with chosen exponential order.
+    Construct a polynomially spaced grid with chosen polynomial order.
     A uniformly spaced grid on [0,1] is raised to the chosen order, then linearly
     remapped to the specified interval. Supports any real valued grid bounds.
 
@@ -257,12 +260,12 @@ def make_exponential_grid(ming, maxg, ng, order=1.0):
     ng : int
         Number of points in the grid.
     order : float, optional
-        Exponential spacing order for the grid. The default is 1.0, or linear.
+        Polynomial spacing order for the grid. The default is 1.0, or linear.
 
     Returns
     -------
     grid : np.array
-        Exponentially spaced grid on [ming, maxg] with ng points.
+        Polynomial spaced grid on [ming, maxg] with ng points.
     """
     grid = np.linspace(0.0, 1.0, ng) ** order * (maxg - ming) + ming
     return grid
@@ -271,6 +274,38 @@ def make_exponential_grid(ming, maxg, ng, order=1.0):
 # ==============================================================================
 # ============== Uncategorized general functions  ===================
 # ==============================================================================
+
+
+def _validate_percentiles(percentiles):
+    """Default to ``[0.5]`` if ``None``; otherwise validate and return."""
+    if percentiles is None:
+        return [0.5]
+    if (
+        not isinstance(percentiles, (list, np.ndarray))
+        or min(percentiles) <= 0
+        or max(percentiles) >= 1
+    ):
+        raise ValueError(
+            "Percentiles should be a list or numpy array of floats between 0 and 1"
+        )
+    return percentiles
+
+
+def _sort_and_cum_dist(data, weights, presorted):
+    """Sort ``data``/``weights`` if needed and return ``(data_sorted,
+    weights_sorted, cum_dist)`` where ``cum_dist`` is the normalized cumulative
+    weight."""
+    if weights is None:
+        weights = np.ones(data.size)
+    if presorted:
+        data_sorted = data
+        weights_sorted = weights
+    else:
+        order = np.argsort(data)
+        data_sorted = data[order]
+        weights_sorted = weights[order]
+    cum_dist = np.cumsum(weights_sorted) / np.sum(weights_sorted)
+    return data_sorted, weights_sorted, cum_dist
 
 
 def get_percentiles(data, weights=None, percentiles=None, presorted=False):
@@ -294,41 +329,12 @@ def get_percentiles(data, weights=None, percentiles=None, presorted=False):
     pctl_out : numpy.array
         The requested percentiles of the data.
     """
-    if percentiles is None:
-        percentiles = [0.5]
-    else:
-        if (
-            not isinstance(percentiles, (list, np.ndarray))
-            or min(percentiles) <= 0
-            or max(percentiles) >= 1
-        ):
-            raise ValueError(
-                "Percentiles should be a list or numpy array of floats between 0 and 1"
-            )
-
+    percentiles = _validate_percentiles(percentiles)
     if data.size < 2:
         return np.zeros(np.array(percentiles).shape) + np.nan
-
-    if weights is None:  # Set equiprobable weights if none were passed
-        weights = np.ones(data.size) / float(data.size)
-
-    if presorted:  # Sort the data if it is not already
-        data_sorted = data
-        weights_sorted = weights
-    else:
-        order = np.argsort(data)
-        data_sorted = data[order]
-        weights_sorted = weights[order]
-
-    cum_dist = np.cumsum(weights_sorted) / np.sum(
-        weights_sorted
-    )  # cumulative probability distribution
-
-    # Calculate the requested percentiles by interpolating the data over the
-    # cumulative distribution, then evaluating at the percentile values
+    data_sorted, _, cum_dist = _sort_and_cum_dist(data, weights, presorted)
     inv_CDF = interp1d(cum_dist, data_sorted, bounds_error=False, assume_sorted=True)
-    pctl_out = inv_CDF(percentiles)
-    return pctl_out
+    return inv_CDF(percentiles)
 
 
 def get_lorenz_shares(data, weights=None, percentiles=None, presorted=False):
@@ -353,39 +359,12 @@ def get_lorenz_shares(data, weights=None, percentiles=None, presorted=False):
     lorenz_out : numpy.array
         The requested Lorenz curve points of the data.
     """
-    if percentiles is None:
-        percentiles = [0.5]
-    else:
-        if (
-            not isinstance(percentiles, (list, np.ndarray))
-            or min(percentiles) <= 0
-            or max(percentiles) >= 1
-        ):
-            raise ValueError(
-                "Percentiles should be a list or numpy array of floats between 0 and 1"
-            )
-    if weights is None:  # Set equiprobable weights if none were given
-        weights = np.ones(data.size)
-
-    if presorted:  # Sort the data if it is not already
-        data_sorted = data
-        weights_sorted = weights
-    else:
-        order = np.argsort(data)
-        data_sorted = data[order]
-        weights_sorted = weights[order]
-
-    cum_dist = np.cumsum(weights_sorted) / np.sum(
-        weights_sorted
-    )  # cumulative probability distribution
+    percentiles = _validate_percentiles(percentiles)
+    data_sorted, weights_sorted, cum_dist = _sort_and_cum_dist(data, weights, presorted)
     temp = data_sorted * weights_sorted
-    cum_data = np.cumsum(temp) / sum(temp)  # cumulative ownership shares
-
-    # Calculate the requested Lorenz shares by interpolating the cumulative ownership
-    # shares over the cumulative distribution, then evaluating at requested points
+    cum_data = np.cumsum(temp) / sum(temp)
     lorenzFunc = interp1d(cum_dist, cum_data, bounds_error=False, assume_sorted=True)
-    lorenz_out = lorenzFunc(percentiles)
-    return lorenz_out
+    return lorenzFunc(percentiles)
 
 
 def calc_subpop_avg(data, reference, cutoffs, weights=None):
@@ -527,8 +506,8 @@ def kernel_regression(x, y, bot=None, top=None, N=500, h=None, kernel="epanechni
     # Get kernel if possible
     try:
         kern = kernel_dict[kernel]
-    except:
-        raise ValueError("Can't find a kernel named '" + kernel + "'!")
+    except KeyError:
+        raise ValueError(f"Can't find a kernel named '{kernel}'!") from None
 
     # Construct a local linear approximation
     x_vec = np.linspace(bot, top, num=N)
@@ -855,6 +834,31 @@ def gen_tran_matrix_2D(
 # ==============================================================================
 
 
+def _plot_functions_grid(
+    functions, bottom, top, N, legend_kwds, xlabel, ylabel, x_grid, evaluate
+):
+    """Plot one or more 1D ``functions`` over ``[bottom, top]``.
+
+    ``x_grid(bottom, top, N)`` produces the abscissa, and
+    ``evaluate(function, x)`` returns the ordinate values.
+    """
+    import matplotlib.pyplot as plt
+
+    plt.ion()
+    function_list = functions if type(functions) == list else [functions]
+    for function in function_list:
+        x = x_grid(bottom, top, N)
+        plt.plot(x, evaluate(function, x))
+    plt.xlim([bottom, top])
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+    if legend_kwds is not None:
+        plt.legend(**legend_kwds)
+    plt.show(block=False)
+
+
 def plot_funcs(
     functions, bottom, top, N=1000, legend_kwds=None, xlabel=None, ylabel=None
 ):
@@ -882,27 +886,17 @@ def plot_funcs(
     -------
     none
     """
-    import matplotlib.pyplot as plt
-
-    plt.ion()
-
-    if type(functions) == list:
-        function_list = functions
-    else:
-        function_list = [functions]
-
-    for function in function_list:
-        x = np.linspace(bottom, top, N, endpoint=True)
-        y = function(x)
-        plt.plot(x, y)
-    plt.xlim([bottom, top])
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
-    if legend_kwds is not None:
-        plt.legend(**legend_kwds)
-    plt.show(block=False)
+    _plot_functions_grid(
+        functions,
+        bottom,
+        top,
+        N,
+        legend_kwds,
+        xlabel,
+        ylabel,
+        x_grid=lambda b, t, n: np.linspace(b, t, n, endpoint=True),
+        evaluate=lambda f, x: f(x),
+    )
 
 
 def plot_funcs_der(
@@ -932,28 +926,17 @@ def plot_funcs_der(
     -------
     none
     """
-    import matplotlib.pyplot as plt
-
-    plt.ion()
-
-    if type(functions) == list:
-        function_list = functions
-    else:
-        function_list = [functions]
-
-    step = (top - bottom) / N
-    for function in function_list:
-        x = np.arange(bottom, top, step)
-        y = function.derivative(x)
-        plt.plot(x, y)
-    plt.xlim([bottom, top])
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
-    if legend_kwds is not None:
-        plt.legend(**legend_kwds)
-    plt.show(block=False)
+    _plot_functions_grid(
+        functions,
+        bottom,
+        top,
+        N,
+        legend_kwds,
+        xlabel,
+        ylabel,
+        x_grid=lambda b, t, n: np.arange(b, t, (t - b) / n),
+        evaluate=lambda f, x: f.derivative(x),
+    )
 
 
 def plot_func_slices(
@@ -1028,7 +1011,7 @@ def plot_func_slices(
     if (zmin is not None) and (zmax is not None):
         if Z is None:
             if zmax > zmin:
-                Z = make_exponential_grid(zmin, zmax, zn, order=zorder)
+                Z = make_polynomial_grid(zmin, zmax, zn, order=zorder)
             else:
                 raise ValueError("zmax must be greater than zmin!")
         else:
@@ -1072,6 +1055,54 @@ def plot_func_slices(
         plt.ylabel(ylabel)
     if legend_kwds is not None:
         plt.legend(**legend_kwds)
+    plt.show(block=False)
+
+
+def plot_SSJ(jac, S, outcome=None, shock=None, t_max=None):
+    """
+    Plots selected columns of an HA-SSJ matrix.
+
+    Parameters
+    ----------
+    jac : np.array
+        T x T array representing an HA-SSJ matrix.
+    S : int | Sequence[int]
+        Which columns of the SSJ should be plotted, representing how many periods
+        ahead the shock happens after announcement at t=0.
+    outcome : str, optional
+        The name or description of the outcome to be plotted.
+    shock : str, optional
+        The name or description of the variable that is shocked at t=s.
+    t_max : int, optional
+        Optional last period t to plot, truncating the graph to the right.
+
+    Returns
+    -------
+    None
+    """
+    import matplotlib.pyplot as plt
+
+    plt.ion()
+
+    top = jac.shape[0] + 1 if t_max is None else t_max + 1
+    if isinstance(S, (int, np.integer)) and not isinstance(S, bool):
+        S = [S]
+    for s in S:
+        plt.plot(jac[:, s], "-", label="s=" + str(s))
+    plt.legend()
+    plt.xlabel(r"time $t$")
+    if outcome is None:
+        plt.ylabel("rate of change")
+    else:
+        plt.ylabel("rate of change of " + outcome)
+    if outcome is not None and shock is not None:
+        plt.title("SSJ for " + outcome + " with respect to " + shock + r" at time $s$")
+    elif shock is not None:
+        plt.title("SSJ with respect to " + shock + r" at time $s$")
+    elif outcome is not None:
+        plt.title("SSJ for " + outcome + r" for a shock at time $s$")
+    plt.tight_layout()
+    plt.xlim(-1, top)
     plt.show(block=False)
 
 
@@ -1273,7 +1304,7 @@ def find_gui():
     """
     try:
         import matplotlib.pyplot as plt
-    except:
+    except ImportError:
         return False
     if plt.get_backend() == "Agg":
         return False

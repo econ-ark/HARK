@@ -27,7 +27,7 @@ Overview
    ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb
-   ../../examples/Journeys/Journey-PhD.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ-lifecycle.ipynb
 
 .. nbgallery::
    :caption: Consumption-Saving Models
@@ -69,6 +69,7 @@ Overview
    ../../examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
    ../../examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
    ../../examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
+   ../../examples/Journeys/Journey-PhD.ipynb
 
 
 .. toctree::

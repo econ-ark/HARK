@@ -58,6 +58,64 @@ def _validate_shock_keys(
         )
 
 
+def _simple_post_state(
+    transitions,
+    post_state: dict[str, Any],
+    shocks: dict[str, Any],
+    params: "SimpleNamespace",
+    return_rate: Any,
+) -> dict[str, Any]:
+    """
+    Shared ``post_state`` body for transitions whose only return component is
+    a single asset return rate (no portfolio decomposition).
+
+    Validates shock keys, then maps post-decision assets through to next-period
+    market resources ``mNrm = aNrm * return_rate / (PermGroFac * perm) + tran``.
+    Used by :class:`IndShockTransitions` (``return_rate = params.Rfree``) and
+    :class:`RiskyAssetTransitions` (``return_rate = shocks["risky"]``).
+    """
+    _validate_shock_keys(
+        shocks, transitions._required_shock_keys, type(transitions).__name__
+    )
+    next_state = {}
+    next_state["mNrm"] = (
+        post_state["aNrm"] * return_rate / (params.PermGroFac * shocks["perm"])
+        + shocks["tran"]
+    )
+    return next_state
+
+
+def _portfolio_post_state(
+    transitions,
+    post_state: dict[str, Any],
+    shocks: dict[str, Any],
+    params: "SimpleNamespace",
+    risky_share: Any,
+) -> dict[str, Any]:
+    """
+    Shared ``post_state`` body for portfolio transition classes.
+
+    Validates shock keys, computes the excess return ``rDiff`` and portfolio
+    return ``rPort`` for the supplied ``risky_share``, then maps post-decision
+    assets through to next-period market resources ``mNrm``.
+
+    The two portfolio variants differ only in where ``risky_share`` comes from:
+    ``FixedPortfolioTransitions`` reads ``params.RiskyShareFixed`` while
+    ``PortfolioTransitions`` reads ``post_state["stigma"]``.
+    """
+    _validate_shock_keys(
+        shocks, transitions._required_shock_keys, type(transitions).__name__
+    )
+    next_state = {}
+    next_state["rDiff"] = shocks["risky"] - params.Rfree
+    next_state["rPort"] = params.Rfree + next_state["rDiff"] * risky_share
+    next_state["mNrm"] = (
+        post_state["aNrm"] * next_state["rPort"] / (params.PermGroFac * shocks["perm"])
+        + shocks["tran"]
+    )
+    return next_state
+
+
 def _base_continuation(
     transitions,
     post_state: dict[str, Any],
@@ -291,13 +349,7 @@ class IndShockTransitions:
         KeyError
             If required shock keys are missing.
         """
-        _validate_shock_keys(shocks, self._required_shock_keys, "IndShockTransitions")
-        next_state = {}
-        next_state["mNrm"] = (
-            post_state["aNrm"] * params.Rfree / (params.PermGroFac * shocks["perm"])
-            + shocks["tran"]
-        )
-        return next_state
+        return _simple_post_state(self, post_state, shocks, params, params.Rfree)
 
     def continuation(
         self,
@@ -373,13 +425,7 @@ class RiskyAssetTransitions:
         KeyError
             If required shock keys are missing.
         """
-        _validate_shock_keys(shocks, self._required_shock_keys, "RiskyAssetTransitions")
-        next_state = {}
-        next_state["mNrm"] = (
-            post_state["aNrm"] * shocks["risky"] / (params.PermGroFac * shocks["perm"])
-            + shocks["tran"]
-        )
-        return next_state
+        return _simple_post_state(self, post_state, shocks, params, shocks["risky"])
 
     def continuation(
         self,
@@ -458,21 +504,9 @@ class FixedPortfolioTransitions:
         KeyError
             If required shock keys are missing.
         """
-        _validate_shock_keys(
-            shocks, self._required_shock_keys, "FixedPortfolioTransitions"
+        return _portfolio_post_state(
+            self, post_state, shocks, params, params.RiskyShareFixed
         )
-        next_state = {}
-        next_state["rDiff"] = shocks["risky"] - params.Rfree
-        next_state["rPort"] = (
-            params.Rfree + next_state["rDiff"] * params.RiskyShareFixed
-        )
-        next_state["mNrm"] = (
-            post_state["aNrm"]
-            * next_state["rPort"]
-            / (params.PermGroFac * shocks["perm"])
-            + shocks["tran"]
-        )
-        return next_state
 
     def continuation(
         self,
@@ -555,17 +589,9 @@ class PortfolioTransitions:
         KeyError
             If required shock keys are missing.
         """
-        _validate_shock_keys(shocks, self._required_shock_keys, "PortfolioTransitions")
-        next_state = {}
-        next_state["rDiff"] = shocks["risky"] - params.Rfree
-        next_state["rPort"] = params.Rfree + next_state["rDiff"] * post_state["stigma"]
-        next_state["mNrm"] = (
-            post_state["aNrm"]
-            * next_state["rPort"]
-            / (params.PermGroFac * shocks["perm"])
-            + shocks["tran"]
+        return _portfolio_post_state(
+            self, post_state, shocks, params, post_state["stigma"]
         )
-        return next_state
 
     def continuation(
         self,

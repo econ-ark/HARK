@@ -300,11 +300,9 @@ class DiscreteDistribution(Distribution):
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
             It may also take other arguments \\*args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consider `distribution.calc_expectation`.
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
@@ -318,14 +316,23 @@ class DiscreteDistribution(Distribution):
 
         if func is None:
             return np.dot(self.atoms, self.pmv)
+        return self._dot_with_pmv(func, self.atoms, args)
 
+    def _dot_with_pmv(self, func, source, args):
+        """Apply ``func`` to ``source`` and the broadcast-prepared ``*args``,
+        then take the dot product with ``self.pmv``.
+
+        This helper centralizes the broadcast-expansion step used by
+        ``expected`` before weighting the result by the distribution's
+        probability mass vector.
+        """
         if args:
             args = [
                 np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
                 for arg in args
             ]
-            return np.dot(func(self.atoms, *args), self.pmv)
-        return np.dot(func(self.atoms), self.pmv)
+            return np.dot(func(source, *args), self.pmv)
+        return np.dot(func(source), self.pmv)
 
     def dist_of_func(
         self, func: Callable[..., float] = lambda x: x, *args: Any
@@ -653,11 +660,9 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             When extra keyword arguments are passed, func receives the full
             ``xr.Dataset``.
             It may also take other arguments \\*args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consider `distribution.calc_expectation`.
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
@@ -682,24 +687,8 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
 
         if func is None:
             return np.dot(self.atoms, self.pmv)
-
-        # labels=False: pass raw numpy atoms, like DiscreteDistribution
-        if not labels:
-            if args:
-                args = [
-                    np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
-                    for arg in args
-                ]
-                return np.dot(func(self.atoms, *args), self.pmv)
-            return np.dot(func(self.atoms), self.pmv)
-
-        # Fast labeled path: use cached dict {var_name: np.ndarray} instead of
-        # the xarray dataset.  _wrapped_atoms maps variable names to the raw
-        # atom arrays, enabling np.dot without xarray overhead.
-        if args:
-            args = [
-                np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
-                for arg in args
-            ]
-            return np.dot(func(self._wrapped_atoms, *args), self.pmv)
-        return np.dot(func(self._wrapped_atoms), self.pmv)
+        # labels=False: pass raw numpy atoms, like DiscreteDistribution.
+        # Otherwise use cached _wrapped_atoms (a {var_name: np.ndarray} dict)
+        # to avoid xarray overhead in the hot path.
+        source = self.atoms if not labels else self._wrapped_atoms
+        return self._dot_with_pmv(func, source, args)

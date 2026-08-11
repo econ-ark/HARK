@@ -21,37 +21,16 @@ CRRAutilityP_invP = njit(CRRAutilityP_invP, cache=True)
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_decay(
-    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+def _decay_extrap_coeffs(
+    x_list, y_list, intercept_limit, slope_limit
 ):  # pragma: no cover
-    # Make a decay extrapolation
+    # Coefficients for decay extrapolation toward the line y = slope*x + intercept.
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
     level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
     slope_diff = slope_limit - slope_at_top
-
     decay_extrap_A = level_diff
     decay_extrap_B = -slope_diff / level_diff
-    intercept_limit = intercept_limit
-    slope_limit = slope_limit
-
-    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
-    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
-
-    if not lower_extrap:
-        below_lower_bound = x0 < x_list[0]
-        y0[below_lower_bound] = np.nan
-
-    above_upper_bound = x0 > x_list[-1]
-    x_temp = x0[above_upper_bound] - x_list[-1]
-
-    y0[above_upper_bound] = (
-        intercept_limit
-        + slope_limit * x0[above_upper_bound]
-        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
-    )
-
-    return y0
+    return decay_extrap_A, decay_extrap_B
 
 
 @njit(cache=True, error_model="numpy")
@@ -64,6 +43,34 @@ def _interp_linear(x0, x_list, y_list, lower_extrap):  # pragma: no cover
         below_lower_bound = x0 < x_list[0]
         y0[below_lower_bound] = np.nan
 
+    return y0
+
+
+@njit(cache=True, error_model="numpy")
+def _apply_y_decay_extrap(
+    x0, y0, x_list, intercept_limit, slope_limit, decay_extrap_A, decay_extrap_B
+):  # pragma: no cover
+    above_upper_bound = x0 > x_list[-1]
+    x_temp = x0[above_upper_bound] - x_list[-1]
+    y0[above_upper_bound] = (
+        intercept_limit
+        + slope_limit * x0[above_upper_bound]
+        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
+    )
+    return above_upper_bound, x_temp
+
+
+@njit(cache=True, error_model="numpy")
+def _interp_decay(
+    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+):  # pragma: no cover
+    decay_extrap_A, decay_extrap_B = _decay_extrap_coeffs(
+        x_list, y_list, intercept_limit, slope_limit
+    )
+    y0 = _interp_linear(x0, x_list, y_list, lower_extrap)
+    _apply_y_decay_extrap(
+        x0, y0, x_list, intercept_limit, slope_limit, decay_extrap_A, decay_extrap_B
+    )
     return y0
 
 
@@ -98,39 +105,16 @@ def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):  # pragma: no cover
 def _interp_decay_deriv(
     x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
 ):  # pragma: no cover
-    # Make a decay extrapolation
-    slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
-    level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
-    slope_diff = slope_limit - slope_at_top
-
-    decay_extrap_A = level_diff
-    decay_extrap_B = -slope_diff / level_diff
-    intercept_limit = intercept_limit
-    slope_limit = slope_limit
-
-    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
-    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
-    dydx = (y_list[i] - y_list[i - 1]) / (x_list[i] - x_list[i - 1])
-
-    if not lower_extrap:
-        below_lower_bound = x0 < x_list[0]
-        y0[below_lower_bound] = np.nan
-        dydx[below_lower_bound] = np.nan
-
-    above_upper_bound = x0 > x_list[-1]
-    x_temp = x0[above_upper_bound] - x_list[-1]
-
-    y0[above_upper_bound] = (
-        intercept_limit
-        + slope_limit * x0[above_upper_bound]
-        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
+    decay_extrap_A, decay_extrap_B = _decay_extrap_coeffs(
+        x_list, y_list, intercept_limit, slope_limit
     )
-
+    y0, dydx = _interp_linear_deriv(x0, x_list, y_list, lower_extrap)
+    above_upper_bound, x_temp = _apply_y_decay_extrap(
+        x0, y0, x_list, intercept_limit, slope_limit, decay_extrap_A, decay_extrap_B
+    )
     dydx[above_upper_bound] = slope_limit + decay_extrap_B * decay_extrap_A * np.exp(
         -decay_extrap_B * x_temp
     )
-
     return y0, dydx
 
 

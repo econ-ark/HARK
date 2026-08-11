@@ -306,3 +306,6 @@ test.png
 test.svg
 test_progress.txt
 sims-about/**
+
+# Code-duplication scan artifacts
+.jscpd-report/

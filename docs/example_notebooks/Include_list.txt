@@ -41,5 +41,6 @@ examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
 examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
 examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
 examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
+examples/SequenceSpaceJacobians/SSJ-lifecycle.ipynb
 examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb
 examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb

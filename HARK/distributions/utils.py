@@ -235,6 +235,57 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
 # ================================================================================
 
 
+def _bounds_with_added_atom(distribution, x, atoms):
+    """
+    Compute (infimum, supremum) for a distribution after a new atom ``x`` is added.
+
+    Falls back to taking min/max over the augmented atoms array when the source
+    distribution does not expose ``infimum``/``supremum`` in its ``limit`` dict.
+    """
+    temp_x = np.array(x, ndmin=1)
+    try:
+        infimum = np.array(
+            [
+                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except KeyError:
+        infimum = np.min(atoms, axis=-1, keepdims=True)
+    try:
+        supremum = np.array(
+            [
+                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except KeyError:
+        supremum = np.max(atoms, axis=-1, keepdims=True)
+    return infimum, supremum
+
+
+def _finalize_with_added_atom(distribution, atoms, x, p, method, sort):
+    """Build the new ``DiscreteDistribution`` after a value ``x`` (probability ``p``)
+    has been spliced onto ``distribution``. Shared by ``add_discrete_outcome`` and
+    ``add_discrete_outcome_constant_mean``.
+    """
+    pmv = np.append(p, distribution.pmv * (1 - p))
+    if sort:
+        indices = np.argsort(atoms)
+        atoms = atoms[indices]
+        pmv = pmv[indices]
+    infimum, supremum = _bounds_with_added_atom(distribution, x, atoms)
+    limit = {
+        "dist": distribution,
+        "method": method,
+        "x": x,
+        "p": p,
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+
+
 def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
     """
     Adds a discrete outcome of x with probability p to an existing distribution,
@@ -265,52 +316,16 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         # apply recursively on all the internal distributions
         return IndexDistribution(
             distributions=[
-                add_discrete_outcome_constant_mean(d, x, p)
+                add_discrete_outcome_constant_mean(d, x, p, sort=sort)
                 for d in distribution.distributions
             ],
             seed=distribution.seed,
         )
 
-    else:
-        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
-        pmv = np.append(p, distribution.pmv * (1 - p))
-
-        if sort:
-            indices = np.argsort(atoms)
-            atoms = atoms[indices]
-            pmv = pmv[indices]
-
-        # Update infimum and supremum
-        temp_x = np.array(x, ndmin=1)
-        try:
-            infimum = np.array(
-                [
-                    np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except KeyError:
-            infimum = np.min(atoms, axis=-1, keepdims=True)
-        try:
-            supremum = np.array(
-                [
-                    np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except KeyError:
-            supremum = np.max(atoms, axis=-1, keepdims=True)
-
-        limit = {
-            "dist": distribution,
-            "method": "add_discrete_outcome_constant_mean",
-            "x": x,
-            "p": p,
-            "infimum": infimum,
-            "supremum": supremum,
-        }
-
-        return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+    return _finalize_with_added_atom(
+        distribution, atoms, x, p, "add_discrete_outcome_constant_mean", sort
+    )
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -335,44 +350,9 @@ def add_discrete_outcome(distribution, x, p, sort=False):
     """
 
     atoms = np.append(x, distribution.atoms)
-    pmv = np.append(p, distribution.pmv * (1 - p))
-
-    if sort:
-        indices = np.argsort(atoms)
-        atoms = atoms[indices]
-        pmv = pmv[indices]
-
-    # Update infimum and supremum
-    temp_x = np.array(x, ndmin=1)
-    try:
-        infimum = np.array(
-            [
-                np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except KeyError:
-        infimum = np.min(atoms, axis=-1, keepdims=True)
-    try:
-        supremum = np.array(
-            [
-                np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except KeyError:
-        supremum = np.max(atoms, axis=-1, keepdims=True)
-
-    limit = {
-        "dist": distribution,
-        "method": "add_discrete_outcome",
-        "x": x,
-        "p": p,
-        "infimum": infimum,
-        "supremum": supremum,
-    }
-
-    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    return _finalize_with_added_atom(
+        distribution, atoms, x, p, "add_discrete_outcome", sort
+    )
 
 
 def combine_indep_dstns(*distributions, seed=None):
@@ -470,17 +450,17 @@ def combine_indep_dstns(*distributions, seed=None):
     return combined_dstn
 
 
-def calc_expectation(dstn, func=None, *args, **kwargs):
+def expected_with_loop(dstn, func=None, *args, **kwargs):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution object that specifies the probability
     of each configuration. Computation is performed by looping over each atom
     of the distribution and evaluating function one at a time. This approach is
-    broadly compatible with any func, but is slow because of the loop.
+    broadly compatible with any function, but is slow because of the loop.
 
     If func is relatively simple, and particularly if it does not involve array
     operations like tiling, reshaping, or logical indexing, consider using expected
-    instead of calc_expectation. That function evaluates all atoms simultaneously,
+    instead of expected_with_loop. That function evaluates all atoms simultaneously,
     avoiding the costly loop, but with reduced compatibility with "complex" operations.
 
     Parameters
@@ -566,34 +546,30 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     return f_dstn
 
 
-def expected(func=None, dist=None, args=(), **kwargs):
+def expected(func=None, dstn=None, args=(), vectorized=True, **kwargs):
     """
     Compute the expectation of a function, given an array of configurations of its
     inputs along with a DiscreteDistribution object that specifies the probability
     of each configuration.
 
-    This approach will only work correctly with relatively simple functions that
-    do not involve manipulation of arrays, including reshaping and tiling, etc.
-    If the func you want to use has complex operations like this, use calc_expectation
-    instead. It performs the same operation, but by looping over each atom in the
-    distribution. In contrast, expected uses array operations and tries to compute
-    all atoms simultaneously.
+    If the function you want to evaluate uses complex array operations, such as
+    tiling or logical indexing, pass `vectorized=False`. In that case, expectations
+    are calculated by looping over each atom in the distribution. Otherwise, this
+    function uses array operations and tries to compute all atoms simultaneously.
 
     Parameters
     ----------
     func : function
         The function to be evaluated. This function should take the full array of
         distribution values and return either arrays of arbitrary shape or scalars.
-        It may also take other arguments ``*args``. This function differs from the
-        `calc_expectation` function in that it uses numpy's vectorization and broad-
-        casting rules to avoid costly iteration.
-        Note: If you need to use a function that acts on single outcomes
-        of the distribution, use `distribution.calc_expectation` instead.
-    dist : DiscreteDistribution or DiscreteDistributionLabeled
+        It may also take other arguments ``*args``.
+    dstn : DiscreteDistribution or DiscreteDistributionLabeled
         The distribution over which the function is to be evaluated.
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
         The expectation is computed at ``f(dstn, *args)``.
+    vectorized : bool, optional
+        Whether func is vectorizable (True, default) or requires looped evaluation.
     labels : bool, optional
         For ``DiscreteDistributionLabeled`` only.  If True (default), func
         receives a dict of labeled arrays.  If False, func receives the raw
@@ -610,20 +586,25 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
-    if not isinstance(dist, DiscreteDistribution):
+    if not isinstance(dstn, DiscreteDistribution):
         raise TypeError(
-            f"expected(): 'dist' must be a DiscreteDistribution or "
-            f"DiscreteDistributionLabeled, got {type(dist).__name__}."
+            f"expected(): 'dstn' must be a DiscreteDistribution or "
+            f"DiscreteDistributionLabeled, got {type(dstn).__name__}."
         )
 
     if not isinstance(args, tuple):
         args = (args,)
 
+    if not vectorized:
+        loop_kwargs = kwargs.copy()
+        loop_kwargs.pop("labels", None)
+        return expected_with_loop(dstn, func, *args, **loop_kwargs)
+
     if args:
         if kwargs:
-            return dist.expected(func, *args, **kwargs)
-        return dist.expected(func, *args)
+            return dstn.expected(func, *args, **kwargs)
+        return dstn.expected(func, *args)
 
     if kwargs:
-        return dist.expected(func, **kwargs)
-    return dist.expected(func)
+        return dstn.expected(func, **kwargs)
+    return dstn.expected(func)

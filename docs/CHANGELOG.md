@@ -8,11 +8,39 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.17.2 (dev)
+### 0.17.3 (dev)
 
 Release Date: TBD
 
 #### Release Notes
+
+(None yet)
+
+#### Major Changes
+
+- future item
+- future item
+- future item
+
+#### Minor Changes
+
+- future item
+- future item
+- future item
+
+
+### 0.17.2
+
+Release Date: May 1, 2026
+
+#### Release Notes
+
+This is a moderately sized release with several exciting new features, as well as many small improvements and fixes.
+Most of the breaking changes (see below) are very small adjustments to parameter names or formats; two functions also had their name change.
+The only significant breaking change is a reworking of the interaction between `AgentType` instances and their associated `Market` with respect to aggregate-level parameters.
+
+The new features are headlined by the addition of two models with consumption habits in the new `ConsHabitModel` module.
+Additionally, HARK's automatic HA-SSJ construction method has been extended to life-cycle models, rather than only infinite horizon models.
 
 There are some breaking changes:
 
@@ -21,6 +49,9 @@ There are some breaking changes:
 - Parameter `PortfolioBool` has been deprecated. To allow portfolio choice for `RiskyAssetConsumerType`, just set `RiskyShareFixed=None`. #1740
 - The parameter `BeqCRRA` has been deprecated; agents with a warm glow bequest motive must use the same CRRA as their ordinary utility function. #1758
 - "Terminal bequest parameters" have been deprecated; agents have the same bequest motive in period T as they do in all other periods. #1758
+- `calc_expectation` has been renamed to `expected_with_loop`; use `expected` and pass `vectorized=False` for this functionality. #1763
+- The argument `dist` in `expected` has been renamed to `dstn`. #1763
+- The function `make_exponential_grid` has been renamed to `make_polynomial_grid` to reduce confusion with `make_grid_exp_mult`. #1762
 
 #### Major Changes
 
@@ -31,6 +62,7 @@ There are some breaking changes:
 - Added habit-formation model with portfolio allocation, along with example notebooks. #1748
 - Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
 - Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
+- The `make_basic_SSJ` method can now handle life-cycle models (`cycles=1`) as well as standard infinite horizon models. #1718
 
 #### Minor Changes
 
@@ -40,10 +72,25 @@ There are some breaking changes:
 - Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
 - Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
 - Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
+- Refactoring of representative agent model solver and the "labeled" submodule. #1727
 - Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740
 - Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
+- The `labels` argument now works as intended with `distribution.expected`. #1742
+- Example notebook `Transition_Matrix_Example.ipynb` has been cleaned up and expanded. #1744
+- `AggIndMarkovConsumerType` added for models with both aggregate (shared) and idiosyncratic discrete states; `KrusellSmithType` refactored to extend it. #1747
+- Light safety fixes to the new `HabitConsumerType`. #1753
 - Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
 - Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
+- Handling of income shocks for model "newborns" has been made consistent across models, with transitory shocks optional. #1760
+- Tests added to handle a variety of unusual corner cases. #1761
+- Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1763
+- Matrix transition methods (including HA-SSJ) now support multi-exponential grids, as well as fully custom grids. #1762
+- `HARK.interpolation` refactored to reduce repetition and code clutter. #1765
+- Small documentation notebook for life-cycle HA-SSJ construction has been added. #1718
+- `HARK.simulator` and experimental Monte Carlo submodule refactored to reduce repetition. #1766
+- `HARK.distributions` refactored to reduce repetition and improve structures. #1767
+- Additional refactoring in `Labeled`, `SSJutils`, `utilities`, and `metric` to reduce code repetition. #1768
+
 
 ### 0.17.1
 

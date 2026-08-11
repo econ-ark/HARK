@@ -358,7 +358,7 @@ class DBlock(Block):
 
                 return dvf(dvf_args)
 
-            return expected(func=mod_dvf, dist=ds)
+            return expected(func=mod_dvf, dstn=ds)
 
         return arrival_value_function
 
