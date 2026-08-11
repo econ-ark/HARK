@@ -87,8 +87,10 @@ class testAggShockMarkovConsumerType(unittest.TestCase):
         self.economy.solve()  # Solve for the general equilibrium of the economy
 
         self.economy.AFunc = self.economy.dynamics.AFunc
+        # Moved from 1.05654 when draw(shuffle=True) stopped biasing its
+        # remainder allocation; the simulated economy changes with it.
         self.assertAlmostEqual(
-            self.economy.AFunc[0].slope, 1.05654, places=HARK_PRECISION
+            self.economy.AFunc[0].slope, 1.06030, places=HARK_PRECISION
         )
 
     def test_small_open_economy(self):

@@ -30,7 +30,9 @@ from HARK.interpolation import (
 )
 
 import numpy as np
+import pickle
 import unittest
+from copy import deepcopy
 
 from tests import HARK_PRECISION
 
@@ -681,6 +683,54 @@ class testsCubicHermiteInterp(unittest.TestCase):
         self.assertEqual(cube(1.5), 2.25)
         cube = CubicHermiteInterp(self.x_array_t, self.z_array_t, self.dydx_array_t)
         self.assertEqual(cube(1.5), 2.25)
+
+
+class testsCubicHermiteInterpSerialization(unittest.TestCase):
+    """tests that CubicHermiteInterp deepcopies and pickles without relying
+    on scipy's spline internals being serializable: scipy 1.18.0 caches
+    array-namespace module objects on spline instances (scipy issue #25489),
+    and module objects cannot be pickled or deepcopied, so the class rebuilds
+    its scipy spline from the defining data on deserialization.
+    """
+
+    def setUp(self):
+        self.x = np.linspace(1.0, 10.0, 25)
+        self.y = np.log(self.x)
+        self.dydx = 1.0 / self.x
+        # points below, inside, and above the grid exercise the lower
+        # extrapolation branch, the scipy spline, and the upper decay
+        # extrapolation toward the limiting linear function
+        self.probe = np.linspace(0.25, 15.0, 301)
+
+    def make_interpolants(self):
+        return [
+            CubicHermiteInterp(self.x, self.y, self.dydx),
+            CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True),
+            CubicHermiteInterp(
+                self.x,
+                self.y,
+                self.dydx,
+                intercept_limit=3.0,
+                slope_limit=0.0,
+                lower_extrap=True,
+            ),
+        ]
+
+    def compare(self, original, clone):
+        np.testing.assert_array_equal(original(self.probe), clone(self.probe))
+        np.testing.assert_array_equal(
+            original.derivative(self.probe), clone.derivative(self.probe)
+        )
+        np.testing.assert_array_equal(original._chs.c, clone._chs.c)
+        self.assertIsNot(clone.x_list, original.x_list)
+
+    def test_deepcopy(self):
+        for original in self.make_interpolants():
+            self.compare(original, deepcopy(original))
+
+    def test_pickle(self):
+        for original in self.make_interpolants():
+            self.compare(original, pickle.loads(pickle.dumps(original)))
 
 
 class testsBilinearInterp(unittest.TestCase):

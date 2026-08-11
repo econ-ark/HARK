@@ -1,3 +1,4 @@
+import pickle
 import unittest
 from copy import copy, deepcopy
 
@@ -1030,3 +1031,34 @@ class testDeathShuffleStreamInvariance(unittest.TestCase):
             ],
             rtol=1e-10,
         )
+
+
+class testCubicSolutionSerialization(unittest.TestCase):
+    """
+    A solved agent whose consumption function is a cubic spline must survive
+    deepcopy, and its solution must survive pickle: with CubicBool the cFunc
+    wraps a scipy spline, and scipy 1.18.0 stores unpicklable module objects
+    on spline instances (scipy issue #25489), so CubicHermiteInterp rebuilds
+    the spline on deserialization instead of serializing it.
+    """
+
+    def setUp(self):
+        self.agent = IndShockConsumerType(CubicBool=True, vFuncBool=True)
+        self.agent.solve()
+        self.m = np.linspace(0.5, 20.0, 50)
+
+    def check_solution(self, solution):
+        np.testing.assert_array_equal(
+            self.agent.solution[0].cFunc(self.m), solution.cFunc(self.m)
+        )
+        np.testing.assert_array_equal(
+            self.agent.solution[0].vFunc(self.m), solution.vFunc(self.m)
+        )
+
+    def test_deepcopy_solved_agent(self):
+        clone = deepcopy(self.agent)
+        self.check_solution(clone.solution[0])
+
+    def test_pickle_solution(self):
+        restored = pickle.loads(pickle.dumps(self.agent.solution[0]))
+        self.check_solution(restored)
