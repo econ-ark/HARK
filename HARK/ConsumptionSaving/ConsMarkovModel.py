@@ -989,11 +989,11 @@ class MarkovConsumerType(IndShockConsumerType):
             # When balanced_transitions is enabled, pass pLvl as sort key
             # so that agents selected for each transition are systematically
             # sampled across the permanent income distribution.
-            # NOTE: Do NOT use aNrm or wealth as sort key — it creates a
+            # NOTE: Do NOT use aNrm or wealth as sort key - it creates a
             # feedback loop where low-wealth agents are repeatedly selected
             # for adverse transitions, trapping them in poverty.
             if getattr(self, "balanced_transitions", False):
-                sort_key = self.state_now["pLvl"][right_age]
+                sort_key = self.state_prev["pLvl"][right_age]
             else:
                 sort_key = None
             MrkvNow[right_age] = markov_process.draw(

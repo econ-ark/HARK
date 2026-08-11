@@ -10,6 +10,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.distributions.base import MarkovProcess
 from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
 
@@ -1263,7 +1265,6 @@ class testMarkovTransitionShuffle(unittest.TestCase):
 
     def test_markov_shuffle_state_counts(self):
         """With markov_shuffle=True, state counts should match deterministic targets."""
-        from HARK.distributions.base import MarkovProcess
 
         TM = np.array([[0.95, 0.05], [0.5, 0.5]])
         mp = MarkovProcess(TM, seed=42)
@@ -1287,7 +1288,6 @@ class testMarkovTransitionShuffle(unittest.TestCase):
 
     def test_markov_shuffle_consistent_over_time(self):
         """markov_shuffle=True produces correct counts over multiple periods."""
-        from HARK.distributions.base import MarkovProcess
 
         TM = np.array([[0.95, 0.05], [0.5, 0.5]])
         mp = MarkovProcess(TM, seed=123)
@@ -1307,7 +1307,6 @@ class testMarkovTransitionShuffle(unittest.TestCase):
 
     def test_markov_consumer_shuffle(self):
         """MarkovConsumerType with markov_shuffle=True completes simulation."""
-        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 
         agent = MarkovConsumerType(
             MrkvArray=[np.array([[0.9, 0.1], [0.1, 0.9]])],
