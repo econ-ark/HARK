@@ -14,6 +14,9 @@ from scipy import sparse as sp
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     make_basic_CRRA_solution_terminal,
+    solve_one_period_ConsIndShock,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 
 from HARK.Calibration.Income.IncomeProcesses import (
@@ -37,7 +40,23 @@ newkeynesian_constructor_dict = {
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
     "aXtraGrid": make_assets_grid,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_basic_CRRA_solution_terminal,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": 0.0,  # Mean of log initial capital
+    "kLogInitStd": 1.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -73,7 +92,7 @@ init_newkeynesian = {
     "constructors": newkeynesian_constructor_dict,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.0],  # Permanent income growth factor
@@ -84,10 +103,6 @@ init_newkeynesian = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -101,6 +116,8 @@ init_newkeynesian = {
     "mCount": 200,
     "mFac": 3,
 }
+init_newkeynesian.update(default_kNrmInitDstn_params)
+init_newkeynesian.update(default_pLvlInitDstn_params)
 init_newkeynesian.update(default_IncShkDstn_params)
 init_newkeynesian.update(default_aXtraGrid_params)
 
@@ -111,12 +128,11 @@ class NewKeynesianConsumerType(IndShockConsumerType):
     the wage rate, and the labor income tax rate to enter the income shock process.
     """
 
-    def __init__(self, verbose=1, quiet=False, **kwds):
-        params = init_newkeynesian.copy()
-        params.update(kwds)
-
-        # Run the basic initializer
-        super().__init__(verbose=verbose, quiet=quiet, **params)
+    default_ = {
+        "params": init_newkeynesian,
+        "solver": solve_one_period_ConsIndShock,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
+    }
 
     def define_distribution_grid(
         self,
@@ -170,10 +186,10 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         else:
             m_points = num_pointsM
 
-        if not isinstance(timestonest, int):
+        if timestonest is None:
             timestonest = self.mFac
-        else:
-            timestonest = timestonest
+        elif not isinstance(timestonest, (int, float)):
+            raise TypeError("timestonest must be a numeric value (int or float).")
 
         if self.cycles == 0:
             if not hasattr(dist_mGrid, "__len__"):
@@ -319,7 +335,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
             # Obtain shock values and shock probabilities from income distribution
             # Bank Balances next period (Interest rate * assets)
-            bNext = self.Rfree * aNext
+            bNext = self.Rfree[0] * aNext
             shk_prbs = shk_dstn[0].pmv  # Probability of shocks
             tran_shks = shk_dstn[0].atoms[1]  # Transitory shocks
             perm_shks = shk_dstn[0].atoms[0]  # Permanent shocks
@@ -398,10 +414,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                 aNext = dist_mGrid - Cnow  # Asset policy grid in period k
                 self.aPol_Grid.append(aNext)  # Add to list
 
-                if type(self.Rfree) == list:
-                    bNext = self.Rfree[k] * aNext
-                else:
-                    bNext = self.Rfree * aNext
+                bNext = self.Rfree[k] * aNext
 
                 # Obtain shocks and shock probabilities from income distribution this period
                 shk_prbs = shk_dstn[k].pmv  # Probability of shocks this period
@@ -481,14 +494,35 @@ class NewKeynesianConsumerType(IndShockConsumerType):
             (len(self.dist_mGrid), len(self.dist_pGrid))
         )
 
-    def compute_steady_state(self):
+    def compute_pe_steady_state(self):
+        """
+        Compute the partial equilibrium steady state levels of aggregate assets
+        and consumption, storing them in attributes A_ss and C_ss. General method:
+
+        1. Solve the agents' infinite horizon model.
+        2. Build transition matrices on a discretized state space using policy functions.
+        3. Find the ergodic distribution of idiosyncratic states.
+        4. Calculate average consumption and assets using policy functions and ergodic distribution.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        A_ss : float
+            Partial equilibrium steady state average level of (end-of-period) assets,
+            which also represent aggregate capital holdings in a general equilibrium framework.
+        C_ss : float
+            Partial equilibrium steady state average level of consumption.
+        """
         # Compute steady state to perturb around
         self.cycles = 0
         self.solve()
 
         # Use Harmenberg Measure
         self.neutral_measure = True
-        self.update_income_process()
+        self.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Non stochastic simuation
         self.define_distribution_grid()
@@ -544,7 +578,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
         params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
-        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree[0]]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["wage"] = params["T_cycle"] * [self.wage[0]]
@@ -554,11 +588,6 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Create instance of a finite horizon agent
         FinHorizonAgent = NewKeynesianConsumerType(**params)
-
-        # delete Rfree from time invariant list since it varies overtime
-        FinHorizonAgent.del_from_time_inv("Rfree")
-        # Add Rfree to time varying list to be able to introduce time varying interest rates
-        FinHorizonAgent.add_to_time_vary("Rfree")
 
         dx = 0.0001  # Size of perturbation
         # Period in which the change in the interest rate occurs (second to last period)
@@ -587,14 +616,14 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         self.parameters[shk_param] = perturbed_list
 
         # Update income process if perturbed parameter enters the income shock distribution
-        FinHorizonAgent.update_income_process()
+        FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Solve the "finite horizon" model assuming that it ends back in steady state
         FinHorizonAgent.solve(presolve=False, from_solution=self.solution[0])
 
         # Use Harmenberg Neutral Measure
         FinHorizonAgent.neutral_measure = True
-        FinHorizonAgent.update_income_process()
+        FinHorizonAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Calculate Transition Matrices
         FinHorizonAgent.define_distribution_grid()
@@ -731,7 +760,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         params["PermGroFac"] = params["T_cycle"] * [self.PermGroFac[0]]
         params["PermShkStd"] = params["T_cycle"] * [self.PermShkStd[0]]
         params["TranShkStd"] = params["T_cycle"] * [self.TranShkStd[0]]
-        params["Rfree"] = params["T_cycle"] * [self.Rfree]
+        params["Rfree"] = params["T_cycle"] * [self.Rfree[0]]
         params["UnempPrb"] = params["T_cycle"] * [self.UnempPrb]
         params["IncUnemp"] = params["T_cycle"] * [self.IncUnemp]
         params["IncShkDstn"] = params["T_cycle"] * [self.IncShkDstn[0]]
@@ -748,7 +777,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
         ZerothColAgent.add_to_time_vary(shk_param)
 
         # Update income process if perturbed parameter enters the income shock distribution
-        ZerothColAgent.update_income_process()
+        ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Solve the "finite horizon" problem, again assuming that steady state comes
         # after the shocks
@@ -772,7 +801,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
 
         # Use Harmenberg Neutral Measure
         ZerothColAgent.neutral_measure = True
-        ZerothColAgent.update_income_process()
+        ZerothColAgent.construct("IncShkDstn", "TranShkDstn", "PermShkDstn")
 
         # Calculate Transition Matrices
         ZerothColAgent.define_distribution_grid()

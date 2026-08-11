@@ -2,6 +2,9 @@
 Functions for manipulating the file system or environment.
 """
 
+import os
+from shutil import copytree
+
 # ------------------------------------------------------------------------------
 # Code to copy entire modules to a local directory
 # ------------------------------------------------------------------------------
@@ -62,8 +65,7 @@ def copy_module(target_path, my_directory_full_path, my_module):
             + """\nIs that correct? Please indicate: y / [n]\n\n"""
         )
         if user_input == "y" or user_input == "Y":
-            # print("copy_tree(",my_directory_full_path,",", target_path,")")
-            copy_tree(my_directory_full_path, target_path)
+            copytree(my_directory_full_path, target_path)
         else:
             print("Goodbye!")
             return
@@ -90,10 +92,10 @@ def copy_module_to_local(full_module_name):
         from HARK.core import copy_module_to_local
         copy_module_to_local("FULL-HARK-MODULE-NAME-HERE")
 
-    For example, if you want SolvingMicroDSOPs you would enter
+    For example, if you want our examples notebooks, you would enter
 
         from HARK.core import copy_module_to_local
-        copy_module_to_local("HARK.SolvingMicroDSOPs")
+        copy_module_to_local("examples")
 
     """
 
@@ -118,26 +120,37 @@ def copy_module_to_local(full_module_name):
     all_module_names_list = full_module_name.split(
         "."
     )  # Assume put in at correct format
-    if all_module_names_list[0] != "HARK":
-        print(
-            "\nWarning: the module name does not start with 'HARK'. Instead it is: '"
-            + all_module_names_list[0]
-            + "' --please format the full namespace of the module you want. \n"
-            "For example, 'HARK.SolvingMicroDSOPs'"
-        )
-        print("\nGoodbye!")
-        return
+    if all_module_names_list[0] == "HARK":
+        is_examples = False  # this is the base success case
+    else:
+        if all_module_names_list[0] == "examples":
+            is_examples = True  # allow this as a special case
+        else:
+            print(
+                "\nWarning: the module name does not start with 'HARK'. Instead it is: '"
+                + all_module_names_list[0]
+                + "' --please format the full namespace of the module you want. \n"
+                "For example, 'HARK.examples'"
+            )
+            print("\nGoodbye!")
+            return
 
     # Construct the pathname to the module to copy:
-    my_directory_full_path = hark_core_directory_full_path
-    for a_directory_name in all_module_names_list[1:]:
-        my_directory_full_path = os.path.join(my_directory_full_path, a_directory_name)
+    if is_examples:  # special case: it's actually accessed from the root!
+        my_directory_full_path = os.path.dirname(hark_core_directory_full_path)
+        my_directory_full_path = os.path.join(my_directory_full_path, full_module_name)
+    else:
+        my_directory_full_path = hark_core_directory_full_path
+        for a_directory_name in all_module_names_list[1:]:
+            my_directory_full_path = os.path.join(
+                my_directory_full_path, a_directory_name
+            )
 
     head_path, my_module = os.path.split(my_directory_full_path)
 
     home_directory_with_module = os.path.join(home_directory_RAW, my_module)
 
-    print("\n\n\nmy_directory_full_path:", my_directory_full_path, "\n\n\n")
+    # print("\n\n\nmy_directory_full_path:", my_directory_full_path, "\n\n\n")
 
     # Interact with the user:
     #     - Ask the user for the target place to copy the directory
@@ -194,3 +207,12 @@ def copy_module_to_local(full_module_name):
         copy_module(target_path, my_directory_full_path, my_module)
 
     return
+
+
+def install_examples():
+    """
+    Convenience function for copying HARK's example notebooks into a local working
+    directory of your choice. Run this function and then respond to the brief prompts.
+    An examples subdirectory will be created in the directory of your choosing.
+    """
+    copy_module_to_local("examples")

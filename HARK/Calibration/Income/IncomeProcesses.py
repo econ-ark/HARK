@@ -3,17 +3,19 @@ This file has various classes and functions for constructing income processes.
 """
 
 import numpy as np
+from scipy.stats import norm
 from HARK.metric import MetricObject
 from HARK.distributions import (
+    add_discrete_outcome,
     add_discrete_outcome_constant_mean,
     combine_indep_dstns,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
     MeanOneLogNormal,
-    TimeVaryingDiscreteDistribution,
     Lognormal,
     Uniform,
+    make_tauchen_ar1,
 )
 from HARK.interpolation import IdentityFunction, LinearInterp
 from HARK.utilities import get_percentiles, make_polynomial_params
@@ -74,14 +76,27 @@ class LognormPermIncShk(DiscreteDistribution):
 
     def __init__(self, sigma, n_approx, neutral_measure=False, seed=0):
         # Construct an auxiliary discretized normal
-        logn_approx = MeanOneLogNormal(sigma).discretize(
+        lognormal_dstn = MeanOneLogNormal(sigma)
+        logn_approx = lognormal_dstn.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
+
+        limit = {
+            "dist": lognormal_dstn,
+            "method": "equiprobable",
+            "N": n_approx,
+            "endpoints": False,
+            "infimum": logn_approx.limit["infimum"],
+            "supremum": logn_approx.limit["supremum"],
+        }
+
         # Change the pmv if necessary
         if neutral_measure:
             logn_approx.pmv = (logn_approx.atoms * logn_approx.pmv).flatten()
 
-        super().__init__(pmv=logn_approx.pmv, atoms=logn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=logn_approx.pmv, atoms=logn_approx.atoms, limit=limit, seed=seed
+        )
 
 
 class MixtureTranIncShk(DiscreteDistribution):
@@ -110,15 +125,22 @@ class MixtureTranIncShk(DiscreteDistribution):
     """
 
     def __init__(self, sigma, UnempPrb, IncUnemp, n_approx, seed=0):
-        dstn_approx = MeanOneLogNormal(sigma).discretize(
+        dstn_orig = MeanOneLogNormal(sigma)
+        dstn_approx = dstn_orig.discretize(
             n_approx if sigma > 0.0 else 1, method="equiprobable", tail_N=0
         )
+
         if UnempPrb > 0.0:
             dstn_approx = add_discrete_outcome_constant_mean(
                 dstn_approx, p=UnempPrb, x=IncUnemp
             )
 
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class MixtureTranIncShk_HANK(DiscreteDistribution):
@@ -173,7 +195,12 @@ class MixtureTranIncShk_HANK(DiscreteDistribution):
         # Rescale the transitory shock values to account for new features
         TranShkMean_temp = (1.0 - tax_rate) * labor * wage
         dstn_approx.atoms *= TranShkMean_temp
-        super().__init__(pmv=dstn_approx.pmv, atoms=dstn_approx.atoms, seed=seed)
+        super().__init__(
+            pmv=dstn_approx.pmv,
+            atoms=dstn_approx.atoms,
+            limit=dstn_approx.limit,
+            seed=seed,
+        )
 
 
 class BufferStockIncShkDstn(DiscreteDistributionLabeled):
@@ -239,6 +266,7 @@ class BufferStockIncShkDstn(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 
@@ -318,11 +346,66 @@ class IncShkDstn_HANK(DiscreteDistributionLabeled):
             var_names=["PermShk", "TranShk"],
             pmv=joint_dstn.pmv,
             atoms=joint_dstn.atoms,
+            limit=joint_dstn.limit,
             seed=seed,
         )
 
 
 ###############################################################################
+
+
+def construct_lognormal_wage_dstn(
+    T_cycle, WageRteMean, WageRteStd, WageRteCount, IncUnemp, UnempPrb, RNG
+):
+    """
+    Constructor for an age-dependent wage rate distribution. The distribution
+    at each age is (equiprobably discretized) lognormal with a point mass to
+    represent unemployment. This is effectively a "transitory only" income process.
+
+    Parameters
+    ----------
+    T_cycle : int
+        Number of periods in the agent's cycle or sequence.
+    WageRteMean : [float]
+        Age-varying list (or array) of mean wage rates.
+    WageRteStd : [float]
+        Age-varying standard deviations of (log) wage rates.
+    WageRteCount : int
+        Number of equiprobable nodes in the lognormal approximation.
+    UnempPrb : [float] or float
+        Age-varying probability of unemployment; can be specified to be constant.
+    IncUnemp : [float] or float
+        Age-varying "wage" rate when unemployed, maybe representing benefits.
+        Can be specified to be constant.
+    RNG : np.random.RandomState
+        Agent's internal random number generator.
+
+    Returns
+    -------
+    WageRteDstn : [DiscreteDistribution]
+        Age-varying list of discrete approximations to the lognormal wage distribution.
+    """
+    if len(WageRteMean) != T_cycle:
+        raise ValueError("WageRteMean must be a list of length T_cycle!")
+    if len(WageRteStd) != T_cycle:
+        raise ValueError("WageRteStd must be a list of length T_cycle!")
+    if not (isinstance(UnempPrb, float) or len(UnempPrb) == T_cycle):
+        raise ValueError("UnempPrb must be a single value or list of length T_cycle!")
+    if not (isinstance(IncUnemp, float) or len(IncUnemp) == T_cycle):
+        raise ValueError("IncUnemp must be a single value or list of length T_cycle!")
+
+    WageRteDstn = []
+    N = WageRteCount  # lazy typing
+    for t in range(T_cycle):
+        # Get current period values
+        W_sig = WageRteStd[t]
+        W_mu = np.log(WageRteMean[t]) - 0.5 * W_sig**2
+        B = IncUnemp if isinstance(IncUnemp, float) else IncUnemp[t]
+        U = UnempPrb if isinstance(UnempPrb, float) else UnempPrb[t]
+        temp_dstn = Lognormal(mu=W_mu, sigma=W_sig, seed=RNG.integers(0, 2**31 - 1))
+        temp_dstn_alt = add_discrete_outcome(temp_dstn.discretize(N), B, U)
+        WageRteDstn.append(temp_dstn_alt)
+    return WageRteDstn
 
 
 def construct_lognormal_income_process_unemployment(
@@ -556,7 +639,6 @@ def construct_markov_lognormal_income_process_unemployment(
             IncUnemp_K = IncUnemp.shape[0]
         K = PermShkStd_K
         assert K == TranShkStd_K
-        assert K == TranShkStd_K
         assert K == UnempPrb_K
         assert K == IncUnemp_K
     except:
@@ -779,6 +861,198 @@ def construct_HANK_lognormal_income_process_unemployment(
     return IncShkDstn
 
 
+def construct_lognormal_income_process_with_mvg_medical_expenses(
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    TranShkStd,
+    TranShkCount,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    age_min,
+    RNG,
+    CollegeBool=True,
+):
+    """
+    Extension of the standard permanent-transitory income process that adds medical
+    expense shocks, modeled as *negative* transitory income shocks. That is,
+    TranShk = 1.0 - ExpShk. The expense shock calibration is "hardwired" based on
+    table 12 of Mateo Velasquez-Giraldo's "Life-Cycle Portfolio Choices and Heterogeneous
+    Stock Market Expectations" (https://www.federalreserve.gov/econres/feds/files/2024097pap.pdf).
+
+    Expense shocks are only active after age 50, and are specified as seven equi-
+    probable point masses for each five-year age range. Because the expense shocks
+    are simply "negative transitory income shocks", they are homothetic with respect
+    to permanent income. This is not a particularly justified assumption, as income
+    elasticity of demand for medical care is around 0.15, but it's workable for a
+    representation of medical expenses that can be used with HARK's workhorse models.
+    This function assumes an annual frequency. If net income would ever be negative,
+    it is truncated to zero instead.
+
+    For microeconomic models that incorporate medical expenses that are not homothetic
+    in income, see ConsMedModel.
+
+    Relative to the standard construct_lognormal_income_process_unemployment, this
+    function takes two additional parameters: age_min and CollegeBool (default True).
+    This function assumes that the calibration does not include ages above 120 years.
+
+    Parameters
+    ----------
+    T_cycle :  int
+        Total number of non-terminal periods in the consumer's sequence of periods.
+    PermShkStd : [float]
+        List of standard deviations in log permanent income uncertainty during
+        the agent's life.
+    PermShkCount : int
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
+    TranShkStd : [float]
+        List of standard deviations in log transitory income uncertainty during
+        the agent's life.
+    TranShkCount : int
+        The number of approximation points to be used in the discrete approximation
+        to the permanent income shock distribution.
+    UnempPrb : float or [float]
+        The probability of becoming unemployed during the working period.
+    UnempPrbRet : float or None
+        The probability of not receiving typical retirement income when retired.
+    T_retire : int
+        The index value for the final working period in the agent's life.
+        If T_retire <= 0 then there is no retirement.
+    IncUnemp : float or [float]
+        Transitory income received when unemployed.
+    IncUnempRet : float or None
+        Transitory income received while "unemployed" when retired.
+    age_min : int
+        Age (in years) of agents at model birth.
+    RNG : np.random.RandomState
+        Random number generator for this type.
+    CollegeBool : bool
+        Indicator for whether to use the college (True, default) or high school
+        (False) calibration.
+
+    Returns
+    -------
+    IncShkDstn :  [distribution.Distribution]
+        A list with T_cycle elements, each of which is a
+        discrete approximation to the income process in a period.
+    """
+    # First, make the standard income process
+    IncShkDstnBase = construct_lognormal_income_process_unemployment(
+        T_cycle,
+        PermShkStd,
+        PermShkCount,
+        TranShkStd,
+        TranShkCount,
+        T_retire,
+        UnempPrb,
+        IncUnemp,
+        UnempPrbRet,
+        IncUnempRet,
+        RNG,
+    )
+    PermShkDstnBase = get_PermShkDstn_from_IncShkDstn(IncShkDstnBase, RNG)
+    TranShkDstnBase = get_TranShkDstn_from_IncShkDstn(IncShkDstnBase, RNG)
+
+    equiprobable_one_seventh = np.ones(7) / 7.0
+    if CollegeBool:
+        # Copy Mateo's college-educated expense shock distribution
+        exp_shks_51_to_55 = np.array([0.000, 0.003, 0.007, 0.012, 0.021, 0.039, 0.121])
+        exp_shks_56_to_60 = np.array([0.001, 0.005, 0.010, 0.016, 0.027, 0.049, 0.163])
+        exp_shks_61_to_65 = np.array([0.002, 0.007, 0.014, 0.023, 0.040, 0.078, 0.227])
+        exp_shks_66_to_70 = np.array([0.003, 0.010, 0.019, 0.031, 0.050, 0.089, 0.227])
+        exp_shks_71_to_75 = np.array([0.004, 0.013, 0.024, 0.039, 0.060, 0.103, 0.262])
+        exp_shks_76_to_80 = np.array([0.004, 0.015, 0.028, 0.047, 0.074, 0.123, 0.294])
+        exp_shks_81_to_85 = np.array([0.004, 0.017, 0.033, 0.054, 0.089, 0.155, 0.410])
+        exp_shks_86_to_90 = np.array([0.002, 0.015, 0.033, 0.057, 0.100, 0.191, 0.719])
+        exp_shks_91_plus = np.array([0.000, 0.015, 0.039, 0.075, 0.160, 0.389, 1.485])
+        exp_shks_all = (
+            50 * [None]
+            + 5 * [exp_shks_51_to_55]
+            + 5 * [exp_shks_56_to_60]
+            + 5 * [exp_shks_61_to_65]
+            + 5 * [exp_shks_66_to_70]
+            + 5 * [exp_shks_71_to_75]
+            + 5 * [exp_shks_76_to_80]
+            + 5 * [exp_shks_81_to_85]
+            + 5 * [exp_shks_86_to_90]
+            + 31 * [exp_shks_91_plus]
+        )
+
+    else:
+        # Copy Mateo's high school-educated expense shock distribution
+        exp_shks_51_to_55 = np.array([0.000, 0.004, 0.010, 0.019, 0.033, 0.064, 0.205])
+        exp_shks_56_to_60 = np.array([0.000, 0.005, 0.013, 0.023, 0.040, 0.077, 0.245])
+        exp_shks_61_to_65 = np.array([0.000, 0.008, 0.018, 0.032, 0.055, 0.104, 0.290])
+        exp_shks_66_to_70 = np.array([0.001, 0.011, 0.023, 0.038, 0.064, 0.111, 0.264])
+        exp_shks_71_to_75 = np.array([0.002, 0.014, 0.028, 0.046, 0.074, 0.126, 0.293])
+        exp_shks_76_to_80 = np.array([0.001, 0.015, 0.031, 0.053, 0.084, 0.143, 0.346])
+        exp_shks_81_to_85 = np.array([0.001, 0.016, 0.033, 0.059, 0.096, 0.168, 0.433])
+        exp_shks_86_to_90 = np.array([0.000, 0.016, 0.036, 0.066, 0.110, 0.229, 0.849])
+        exp_shks_91_plus = np.array([0.000, 0.011, 0.034, 0.069, 0.131, 0.301, 1.479])
+        exp_shks_all = (
+            50 * [None]
+            + 5 * [exp_shks_51_to_55]
+            + 5 * [exp_shks_56_to_60]
+            + 5 * [exp_shks_61_to_65]
+            + 5 * [exp_shks_66_to_70]
+            + 5 * [exp_shks_71_to_75]
+            + 5 * [exp_shks_76_to_80]
+            + 5 * [exp_shks_81_to_85]
+            + 5 * [exp_shks_86_to_90]
+            + 31 * [exp_shks_91_plus]
+        )
+
+    # Incorporate the expense shock distribution into the transitory income shock distribution
+    IncShkDstn = []
+    for t in range(T_cycle):
+        age = age_min + t
+        if age >= len(exp_shks_all):
+            raise ValueError(
+                f"Age {age} is outside the supported calibration range for expense shocks "
+                f"(maximum supported index is {len(exp_shks_all) - 1})."
+            )
+        exp_shks_t = exp_shks_all[age]
+
+        # If age <= 50, just use the baseline income shock distribution
+        if exp_shks_t is None:
+            IncShkDstn.append(IncShkDstnBase[t])
+            continue
+
+        # Otherwise, make a distribution of net transitory income as the difference
+        # between the transitory income shock and the medical expense shock
+        seed_t = RNG.integers(0, 2**31 - 1)
+        PermShkDstn_t = PermShkDstnBase[t]
+        ExpShkDstn_t = DiscreteDistribution(
+            pmv=equiprobable_one_seventh,
+            atoms=exp_shks_t,
+        )
+
+        # Prepare these for multiplication with broadcasting
+        TranAtomsBase = TranShkDstnBase[t].atoms[0][:, np.newaxis]
+        TranProbsBase = TranShkDstnBase[t].pmv[:, np.newaxis]
+        ExpAtoms = ExpShkDstn_t.atoms[0][np.newaxis, :]
+        ExpProbs = ExpShkDstn_t.pmv[np.newaxis, :]
+
+        # Calculate net income and joint probability
+        TranAtoms = np.maximum(TranAtomsBase - ExpAtoms, 0.0).flatten()
+        TranProbs = (TranProbsBase * ExpProbs).flatten()
+
+        # Make this period's joint income distribution
+        TranShkDstn_t = DiscreteDistribution(pmv=TranProbs, atoms=TranAtoms)
+        IncShkDstn_t = DiscreteDistributionLabeled.from_unlabeled(
+            combine_indep_dstns(PermShkDstn_t, TranShkDstn_t, seed=seed_t),
+            name="Income shocks with medical expenses",
+            var_names=["PermShk", "TranShk"],
+        )
+        IncShkDstn.append(IncShkDstn_t)
+
+    return IncShkDstn
+
+
 ###############################################################################
 
 
@@ -786,14 +1060,14 @@ def get_PermShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     PermShkDstn = [
         this.make_univariate(0, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
-    return TimeVaryingDiscreteDistribution(PermShkDstn, seed=RNG.integers(0, 2**31 - 1))
+    return IndexDistribution(distributions=PermShkDstn, seed=RNG.integers(0, 2**31 - 1))
 
 
 def get_TranShkDstn_from_IncShkDstn(IncShkDstn, RNG):
     TranShkDstn = [
         this.make_univariate(1, seed=RNG.integers(0, 2**31 - 1)) for this in IncShkDstn
     ]
-    return TimeVaryingDiscreteDistribution(TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
+    return IndexDistribution(distributions=TranShkDstn, seed=RNG.integers(0, 2**31 - 1))
 
 
 def get_PermShkDstn_from_IncShkDstn_markov(IncShkDstn, RNG):
@@ -1047,7 +1321,7 @@ def make_explicit_perminc_pLvlNextFunc(T_cycle, PermGroFac):
     return pLvlNextFunc
 
 
-def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
+def make_AR1_style_pLvlNextFunc(T_cycle, pLogInitMean, PermGroFac, PrstIncCorr):
     r"""
     A function that creates permanent income dynamics as a sequence of AR1-style
     functions. If cycles=0, the product of PermGroFac across all periods must be
@@ -1063,7 +1337,7 @@ def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
     ----------
     T_cycle : int
         Number of non-terminal periods in the agent's problem.
-    pLvlInitMean : float
+    pLogInitMean : float
         Mean of log permanent income at initialization.
     PermGroFac : [float]
         List of permanent income growth factors over the agent's problem.
@@ -1077,7 +1351,7 @@ def make_AR1_style_pLvlNextFunc(T_cycle, pLvlInitMean, PermGroFac, PrstIncCorr):
         List of AR1-style persistent income dynamics functions
     """
     pLvlNextFunc = []
-    pLogMean = pLvlInitMean  # Initial mean (log) persistent income
+    pLogMean = pLogInitMean  # Initial mean (log) persistent income
     for t in range(T_cycle):
         pLvlNextFunc.append(pLvlFuncAR1(pLogMean, PermGroFac[t], PrstIncCorr))
         pLogMean += np.log(PermGroFac[t])
@@ -1151,8 +1425,8 @@ def make_pLvlGrid_by_simulation(
     PermShkDstn,
     pLvlNextFunc,
     LivPrb,
-    pLvlInitMean,
-    pLvlInitStd,
+    pLogInitMean,
+    pLogInitStd,
     pLvlPctiles,
     pLvlExtra=None,
 ):
@@ -1163,7 +1437,7 @@ def make_pLvlGrid_by_simulation(
     If the model is lifecycle (cycles=1), explicit simulation is used. In either
     case, the input pLvlPctiles is used to choose percentiles from the distribution.
 
-    If the problem is neither infinite horizon nor lifecycle, this method will fail.
+    If the problem is neither infinite horizon nor life-cycle, this method will fail.
     If the problem is infinite horizon, cumprod(PermGroFac) must equal one.
 
     Parameters
@@ -1179,9 +1453,9 @@ def make_pLvlGrid_by_simulation(
     LivPrb : [float]
         List of survival probabilities by period of the cycle. Only used in infinite
         horizon specifications.
-    pLvlInitMean : float
+    pLogInitMean : float
         Mean of log permanent income at initialization.
-    pLvlInitStd : float
+    pLogInitStd : float
         Standard deviaition of log permanent income at initialization.
     pLvlPctiles : [float]
         List or array of percentiles (between 0 and 1) of permanent income to
@@ -1200,7 +1474,7 @@ def make_pLvlGrid_by_simulation(
 
     # Simulate the distribution of persistent income levels by t_cycle in a lifecycle model
     if cycles == 1:
-        pLvlNow = Lognormal(pLvlInitMean, sigma=pLvlInitStd, seed=31382).draw(Agent_N)
+        pLvlNow = Lognormal(pLogInitMean, sigma=pLogInitStd, seed=31382).draw(Agent_N)
         pLvlGrid = []  # empty list of time-varying persistent income grids
         # Calculate distribution of persistent income in each period of lifecycle
         for t in range(T_cycle):
@@ -1214,7 +1488,7 @@ def make_pLvlGrid_by_simulation(
         T_long = (
             1000  # Number of periods to simulate to get to "stationary" distribution
         )
-        pLvlNow = Lognormal(mu=pLvlInitMean, sigma=pLvlInitStd, seed=31382).draw(
+        pLvlNow = Lognormal(mu=pLogInitMean, sigma=pLogInitStd, seed=31382).draw(
             Agent_N
         )
         t_cycle = np.zeros(Agent_N, dtype=int)
@@ -1224,7 +1498,7 @@ def make_pLvlGrid_by_simulation(
             draws = Uniform(seed=t).draw(Agent_N)
             who_dies = draws > LivPrb
             pLvlNow[who_dies] = Lognormal(
-                pLvlInitMean, pLvlInitStd, seed=t + 92615
+                pLogInitMean, pLogInitStd, seed=t + 92615
             ).draw(np.sum(who_dies))
             t_cycle[who_dies] = 0
 
@@ -1253,3 +1527,218 @@ def make_pLvlGrid_by_simulation(
             pLvlGrid[t] = np.unique(np.concatenate((pLvlGrid_t, pLvlExtra_alt)))
 
     return pLvlGrid
+
+
+###############################################################################
+
+
+def make_persistent_income_process_dict(
+    cycles,
+    T_cycle,
+    PermShkStd,
+    PermShkCount,
+    pLogInitMean,
+    pLogInitStd,
+    PermGroFac,
+    PrstIncCorr,
+    pLogCount,
+    pLogRange,
+):
+    """
+    Constructs a dictionary with several elements that characterize the income
+    process for an agent with AR(1) persistent income process and lognormal transitory
+    shocks (with unemployment). The produced dictionary includes permanent income
+    grids and transition matrices and a mean permanent income lifecycle sequence.
+
+    This function only works with cycles>0 or T_cycle=1.
+
+    Parameters
+    ----------
+    cycles : int
+        Number of times the agent's sequence of periods repeats.
+    T_cycle : int
+        Number of periods in the sequence.
+    PermShkStd : [float]
+        Standard deviation of mean one permanent income shocks in each period,
+        assumed to be lognormally distributed.
+    PermShkCount : int
+        Number of discrete nodes in the permanent income shock distribution (can
+        be used during simulation).
+    pLogInitMean : float
+        Mean of log permanent income at model entry.
+    pLogInitStd : float
+        Standard deviation of log permanent income at model entry.
+    PermGroFac : [float]
+        Lifecycle sequence of permanent income growth factors, *not* offset by
+        one period as in most other HARK models.
+    PrstIncCorr : float
+        Correlation coefficient of the persistent component of income.
+    pLogCount : int
+        Number of gridpoints in the grid of (log) persistent income deviations.
+    pLogRange : float
+        Upper bound of log persistent income grid, in standard deviations from
+        the mean; grid has symmetric lower bound.
+
+    Returns
+    -------
+    IncomeProcessDict : dict
+        Dictionary with the following entries.
+
+    pLogGrid : [np.array]
+        Age-dependent grids of log persistent income, in deviations from mean.
+    pLvlMean : [float]
+        Mean persistent income level by age.
+    pLogMrkvArray : [np.array]
+        Age-dependent Markov transition arrays among pLog levels at the start of
+        each period in the sequence.
+    """
+    if cycles == 0:
+        if T_cycle > 1:
+            raise ValueError(
+                "Can't handle infinite horizon models with more than one period!"
+            )
+        if PermGroFac[0] != 1.0:
+            raise ValueError(
+                "Can't handle permanent income growth in infinite horizon!"
+            )
+
+        # The single pLogGrid and transition matrix can be generated by the basic
+        # Tauchen AR(1) method from HARK.distributions.
+        pLogGrid, pLogMrkvArray = make_tauchen_ar1(
+            pLogCount,
+            sigma=PermShkStd[0],
+            ar_1=PrstIncCorr,
+            bound=pLogRange,
+        )
+        pLogGrid = [pLogGrid]
+        pLogMrkvArray = [pLogMrkvArray]
+        pLvlMean = [np.exp(pLogInitMean + 0.5 * pLogInitStd**2)]
+
+    else:
+        # Start with the pLog distribution at model entry
+        pLvlMeanNow = np.exp(pLogInitMean + 0.5 * pLogInitStd**2)
+        pLogStdNow = pLogInitStd
+        pLogGridPrev = np.linspace(
+            -pLogRange * pLogStdNow, pLogRange * pLogStdNow, pLogCount
+        )
+
+        # Initialize empty lists to hold output
+        pLogGrid = []
+        pLogMrkvArray = []
+        pLvlMean = []
+
+        for c in range(cycles):
+            for t in range(T_cycle):
+                # Update the distribution of persistent income deviations from mean
+                pLvlMeanNow *= PermGroFac[t]
+                pLogStdNow = np.sqrt(
+                    (PrstIncCorr * pLogStdNow) ** 2 + PermShkStd[t] ** 2
+                )
+                pLogGridNow = np.linspace(
+                    -pLogRange * pLogStdNow, pLogRange * pLogStdNow, pLogCount
+                )
+
+                # Compute transition distances from prior grid to this one
+                pLogCuts = (pLogGridNow[1:] + pLogGridNow[:-1]) / 2.0
+                pLogCuts = np.concatenate(([-np.inf], pLogCuts, [np.inf]))
+                distances = np.reshape(pLogCuts, (1, pLogCount + 1)) - np.reshape(
+                    PrstIncCorr * pLogGridPrev, (pLogCount, 1)
+                )
+                distances /= PermShkStd
+
+                # Compute transition probabilities, ensuring that very small
+                # probabilities are treated identically in both directions
+                cdf_array = norm.cdf(distances)
+                sf_array = norm.sf(distances)
+                pLogMrkvNow = cdf_array[:, 1:] - cdf_array[:, :-1]
+                pLogMrkvNowAlt = sf_array[:, :-1] - sf_array[:, 1:]
+                pLogMrkvNow = np.maximum(pLogMrkvNow, pLogMrkvNowAlt)
+                pLogMrkvNow /= np.sum(pLogMrkvNow, axis=1, keepdims=True)
+
+                # Add this period's output to the lists
+                pLogGrid.append(pLogGridNow)
+                pLogMrkvArray.append(pLogMrkvNow)
+                pLvlMean.append(pLvlMeanNow)
+                pLogGridPrev = pLogGridNow
+
+    # Gather and return the output
+    IncomeProcessDict = {
+        "pLogGrid": pLogGrid,
+        "pLogMrkvArray": pLogMrkvArray,
+        "pLvlMean": pLvlMean,
+    }
+    return IncomeProcessDict
+
+
+###############################################################################
+
+
+def combine_ind_and_agg_income_shocks(IncShkDstnInd, AggShkDstn, RNG, T_cycle):
+    """
+    Updates attribute IncShkDstn by combining idiosyncratic shocks with aggregate shocks.
+
+    Parameters
+    ----------
+    IncShkDstnInd : [DiscreteDistribution]
+        Age-varying list of idiosyncratic income shock distributions.
+    AggShkDstn : DiscreteDistribution
+        Aggregate productivity shock distribution.
+    RNG : RandomState
+        Internal random number generator.
+    T_cycle : int
+        Number of periods in the agent's sequence of problems.
+
+    Returns
+    -------
+    IncShkDstn : [DiscreteDistribution]
+        Combined idiosyncratic and aggregate income shocks, discretized, by age.
+    """
+    IncShkDstn = [
+        combine_indep_dstns(
+            IncShkDstnInd[t], AggShkDstn, seed=RNG.integers(0, 2**31 - 1)
+        )
+        for t in range(T_cycle)
+    ]
+    return IncShkDstn
+
+
+def combine_markov_ind_and_agg_income_shocks(
+    IncShkDstnInd, AggShkDstn, MrkvArray, RNG, T_cycle
+):
+    """
+    Updates attribute IncShkDstn by combining idiosyncratic shocks with aggregate shocks,
+    for a model with an aggregate Markov discrete state.
+
+    Parameters
+    ----------
+    IncShkDstnInd : [DiscreteDistribution]
+        Age-varying list of idiosyncratic income shock distributions.
+    AggShkDstn : DiscreteDistribution
+        Aggregate productivity shock distribution.
+    MrkvArray : np.array
+        Markov transition matrix among discrete macroeconomic states.
+    RNG : RandomState
+        Internal random number generator.
+    T_cycle : int
+        Number of periods in the agent's sequence of problems.
+
+    Returns
+    -------
+    IncShkDstn : [[DiscreteDistribution]]
+        Combined idiosyncratic and aggregate income shocks, discretized, by age
+        and Markov state.
+    """
+    IncShkDstn = []
+    N = MrkvArray.shape[0]
+    for t in range(T_cycle):
+        IncShkDstn.append(
+            [
+                combine_indep_dstns(
+                    IncShkDstnInd[t][n],
+                    AggShkDstn[n],
+                    seed=RNG.integers(0, 2**31 - 1),
+                )
+                for n in range(N)
+            ]
+        )
+    return IncShkDstn

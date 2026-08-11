@@ -1,0 +1,1192 @@
+"""
+Functions for building heterogeneous agent sequence space Jacobian matrices from
+HARK AgentType instances. The top-level functions are accessible as methods on
+AgentType itself.
+"""
+
+from time import time
+from copy import deepcopy
+import numpy as np
+from numba import njit
+
+
+def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):
+    """
+    Shared setup for make_basic_SSJ_matrices and calc_shock_response_manually.
+    Validates the agent, normalizes outcomes, optionally solves the long run model,
+    builds transition matrices, and finds the steady state distribution.
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent for which setup should be performed.
+    outcomes : str or [str]
+        Names of outcome variables of interest (will be normalized to a list).
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information.
+    norm : str or None
+        Name of the model variable to normalize by for Harmenberg aggregation.
+    solved : bool
+        Whether the agent's model has already been solved.
+    verbose : bool
+        Whether to display timing/progress to screen.
+
+    Returns
+    -------
+    setup : dict
+        Dictionary containing:
+        - outcomes : [str]           normalized list of outcome variable names
+        - no_list : bool             True if outcomes was passed as a single string
+        - simulator_backup : object  agent._simulator backup, or None if not present
+        - LR_soln : object           deepcopy of the long run solution
+        - X : object                 reference to agent._simulator
+        - LR_trans : np.array        long run transition matrix
+        - LR_period : object         the long run period object from the simulator
+        - LR_outcomes : [np.array]   outcome matrices in the long run model
+        - outcome_grids : [np.array] outcome grids in the long run model
+        - SS_dstn : np.array         steady state distribution
+    """
+    if (agent.cycles > 0) or (agent.T_cycle != 1):
+        raise ValueError(
+            "This function is only compatible with one period infinite horizon models!"
+        )
+    if not isinstance(outcomes, list):
+        outcomes = [outcomes]
+        no_list = True
+    else:
+        no_list = False
+
+    # Store the simulator if it exists
+    if hasattr(agent, "_simulator"):
+        simulator_backup = agent._simulator
+    else:
+        simulator_backup = None
+
+    # Solve the long run model if it wasn't already
+    if not solved:
+        t0 = time()
+        agent.solve()
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
+            )
+    LR_soln = deepcopy(agent.solution[0])
+
+    # Construct the transition matrix for the long run model
+    t0 = time()
+    agent.initialize_sym()
+    X = agent._simulator  # for easier referencing
+    X.make_transition_matrices(grids, norm)
+    LR_trans = X.trans_arrays[0].copy()  # the transition matrix in LR model
+    LR_period = X.periods[0]
+    LR_outcomes = []
+    outcome_grids = []
+    for var in outcomes:
+        if var not in X.periods[0].matrices:
+            raise ValueError(
+                "Outcome " + var + " was requested but has no transition matrix."
+            )
+        if var not in X.periods[0].grids:
+            raise ValueError(
+                "Outcome " + var + " was requested but no grid was provided!"
+            )
+        LR_outcomes.append(X.periods[0].matrices[var])
+        outcome_grids.append(X.periods[0].grids[var])
+    t1 = time()
+    if verbose:
+        print(
+            "Making the transition matrix for the long run model took {:.3f}".format(
+                t1 - t0
+            )
+            + " seconds."
+        )
+
+    # Find the steady state for the long run model
+    t0 = time()
+    X.find_steady_state()
+    SS_dstn = X.steady_state_dstn.copy()
+    t1 = time()
+    if verbose:
+        print(
+            "Finding the long run steady state took {:.3f}".format(t1 - t0)
+            + " seconds."
+        )
+
+    return {
+        "outcomes": outcomes,
+        "no_list": no_list,
+        "simulator_backup": simulator_backup,
+        "LR_soln": LR_soln,
+        "X": X,
+        "LR_trans": LR_trans,
+        "LR_period": LR_period,
+        "LR_outcomes": LR_outcomes,
+        "outcome_grids": outcome_grids,
+        "SS_dstn": SS_dstn,
+    }
+
+
+def _perturb_shock(agent, shock):
+    """
+    Retrieve and validate the named shock attribute on an agent, returning the
+    scalar base value and a flag indicating whether it is stored as a singleton list.
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent whose shock attribute will be read.
+    shock : str
+        Name of the shock attribute to perturb.
+
+    Returns
+    -------
+    base_shock_value : float or np.floating
+        The scalar value of the shock attribute (unwrapped from a list if needed).
+    shock_is_list : bool
+        True if the shock attribute is stored as a list, False otherwise.
+    """
+    if not hasattr(agent, shock):
+        raise ValueError(
+            "The agent doesn't have anything called " + shock + " to perturb!"
+        )
+    base = getattr(agent, shock)
+    if isinstance(base, list):
+        base_shock_value = base[0]
+        shock_is_list = True
+    else:
+        base_shock_value = base
+        shock_is_list = False
+    if isinstance(base_shock_value, bool) or not isinstance(
+        base_shock_value, (float, np.floating)
+    ):
+        raise TypeError(
+            "The shock attribute '"
+            + shock
+            + "' must be a scalar float (Python float or np.floating), but got "
+            + str(type(base_shock_value))
+            + "."
+        )
+    return base_shock_value, shock_is_list
+
+
+def _restore_agent(agent, LR_soln, simulator_backup):
+    """
+    Reset the agent to its original long run state after SSJ or impulse response
+    computation, restoring the simulator backup if one was saved.
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent to restore.
+    LR_soln : object
+        Long run solution to reinstall as the agent's solution.
+    simulator_backup : object or None
+        The original simulator to restore, or None if no backup was stored.
+    """
+    agent.solution = [LR_soln]
+    agent.cycles = 0
+    agent._simulator.reset()
+    if simulator_backup is not None:
+        agent._simulator = simulator_backup
+    else:
+        del agent._simulator
+
+
+def make_basic_SSJ_matrices(
+    agent,
+    shock,
+    outcomes,
+    grids,
+    eps=1e-4,
+    T_max=300,
+    norm=None,
+    solved=False,
+    construct=True,
+    offset=False,
+    verbose=False,
+):
+    """
+    Constructs one or more sequence space Jacobian (SSJ) matrices for specified
+    outcomes over one shock variable. It is "basic" in the sense that it only
+    works for "one period infinite horizon" models, as in the original SSJ paper.
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent for which the SSJ(s) should be constructed. Must have T_cycle=1
+        and cycles=0, or the function will throw an error. Must have a model
+        file defined or this won't work at all.
+    shock : str
+        Name of the variable that Jacobians will be computed with respect to.
+        It does not need to be a "shock" in a modeling sense, but it must be a
+        single-valued parameter (possibly a singleton list) that can be changed.
+    outcomes : str or [str]
+        Names of outcome variables of interest; an SSJ matrix will be constructed
+        for each variable named here. If a single string is passed, the output
+        will be a single np.array. If a list of strings are passed, the output
+        will be a list of SSJ matrices in the order specified here.
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information. The grids
+        should include all arrival variables other than those that are normalized
+        out. They should also include all variables named in outcomes, except
+        outcomes that are continuation variables that remap to arrival variables.
+        Grid specification must include number of nodes N, should also include
+        min and max if the variable is continuous.
+    eps : float
+        Amount by which to perturb the shock variable. The default is 1e-4.
+    T_max : int
+        Size of the SSJ matrices: the maximum number of periods to consider.
+        The default is 300.
+    norm : str or None
+        Name of the model variable to normalize by for Harmenberg aggregation,
+        if any. For many HARK models, this should be 'PermShk', which enables
+        the grid over permanent income to be omitted as an explicit state.
+    solved : bool
+        Whether the agent's model has already been solved. If False (default),
+        it will be solved as the very first step. Solving the agent's long run
+        model before constructing SSJ matrices has the advantage of not needing
+        to re-solve the long run model for each shock variable.
+    construct : bool
+        Whether the construct (update) method should be run after the shock is
+        updated. The default is True, which is the "safe" option. If the shock
+        variable is a parameter that enters the model only *directly*, rather
+        than being used to build a more complex model input, then this can be
+        set to False to save a (very) small amount of time during computation.
+        If it is set to False improperly, the SSJs will be very wrong, potentially
+        just zero everywhere.
+    offset : bool
+        Whether the shock variable is "offset in time" for the solver, with a
+        default of False. This should be set to True if the named shock variable
+        (or the constructed model input that it affects) is indexed by t+1 from
+        the perspective of the solver. For example, the period t solver for the
+        ConsIndShock model takes in risk free interest factor Rfree as an argument,
+        but it represents the value of R that will occur at the start of t+1.
+    verbose : bool
+        Whether to display timing/progress to screen. The default is False.
+
+    Returns
+    -------
+    SSJ : np.array or [np.array]
+        One or more sequence space Jacobian arrays over the outcome variables
+        with respect to the named shock variable.
+    """
+    setup = _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose)
+    outcomes = setup["outcomes"]
+    no_list = setup["no_list"]
+    simulator_backup = setup["simulator_backup"]
+    LR_soln = setup["LR_soln"]
+    LR_trans = setup["LR_trans"]
+    LR_period = setup["LR_period"]
+    LR_outcomes = setup["LR_outcomes"]
+    outcome_grids = setup["outcome_grids"]
+    SS_dstn = setup["SS_dstn"]
+
+    try:
+        base_shock_value, shock_is_list = _perturb_shock(agent, shock)
+        Tm1_soln, period_Tm1, period_T = _solve_perturbed_Tm1(
+            agent,
+            shock,
+            base_shock_value,
+            shock_is_list,
+            eps,
+            construct,
+            LR_soln,
+            verbose,
+        )
+        _solve_finite_horizon(
+            agent,
+            shock,
+            base_shock_value,
+            shock_is_list,
+            T_max,
+            construct,
+            Tm1_soln,
+            verbose,
+        )
+        TmX_trans, TmX_outcomes = _build_finite_horizon_matrices(
+            agent,
+            period_Tm1,
+            period_T,
+            LR_period,
+            grids,
+            norm,
+            offset,
+            T_max,
+            outcomes,
+            verbose,
+        )
+
+        J = len(outcomes)
+        K = SS_dstn.size
+        D_dstn_array, dY_news_array = _compute_finite_horizon_derivatives(
+            T_max,
+            J,
+            outcomes,
+            TmX_trans,
+            TmX_outcomes,
+            LR_trans,
+            LR_outcomes,
+            outcome_grids,
+            SS_dstn,
+            verbose,
+        )
+
+        FN = _build_fake_news(
+            T_max,
+            J,
+            K,
+            dY_news_array,
+            D_dstn_array,
+            LR_trans,
+            LR_outcomes,
+            outcome_grids,
+            verbose,
+        )
+
+        # Construct the SSJ matrices, one for each outcome variable
+        t0 = time()
+        SSJ_array = FN.copy()
+        for t in range(1, T_max):
+            SSJ_array[:, 1:, t] += SSJ_array[:, :-1, t - 1]
+        SSJ_array /= eps
+        SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
+        _log_timing(verbose, "Constructing the sequence space Jacobians", t0, time())
+
+        if no_list:
+            return SSJ[0]
+        else:
+            return SSJ
+
+    finally:
+        _restore_agent(agent, LR_soln, simulator_backup)
+
+
+def _log_timing(verbose, label, t0, t1):
+    if verbose:
+        print(label + " took {:.3f}".format(t1 - t0) + " seconds.")
+
+
+def _shock_value(base_value, shock_is_list, eps=0.0):
+    return [base_value + eps] if shock_is_list else base_value + eps
+
+
+def _solve_perturbed_Tm1(
+    agent, shock, base_shock_value, shock_is_list, eps, construct, LR_soln, verbose
+):
+    t0 = time()
+    agent.cycles = 1
+    agent.assign_parameters(
+        **{shock: _shock_value(base_shock_value, shock_is_list, eps)}
+    )
+    if construct:
+        agent.update()
+    agent.solve(from_solution=LR_soln)
+    agent.initialize_sym()
+    Tm1_soln = deepcopy(agent.solution[0])
+    period_Tm1 = agent._simulator.periods[0]
+    period_T = agent._simulator.periods[-1]
+    _log_timing(verbose, "Solving period T-1 with a perturbed variable", t0, time())
+    return Tm1_soln, period_Tm1, period_T
+
+
+def _solve_finite_horizon(
+    agent, shock, base_shock_value, shock_is_list, T_max, construct, Tm1_soln, verbose
+):
+    t0 = time()
+    agent.cycles = T_max - 1
+    agent.assign_parameters(**{shock: _shock_value(base_shock_value, shock_is_list)})
+    if construct:
+        agent.update()
+    agent.solve(from_solution=Tm1_soln)
+    _log_timing(
+        verbose,
+        "Solving the finite horizon model for " + str(T_max - 1) + " more periods",
+        t0,
+        time(),
+    )
+
+
+def _build_finite_horizon_matrices(
+    agent,
+    period_Tm1,
+    period_T,
+    LR_period,
+    grids,
+    norm,
+    offset,
+    T_max,
+    outcomes,
+    verbose,
+):
+    t0 = time()
+    agent.initialize_sym()
+    X = agent._simulator
+    X.periods[-1] = period_Tm1
+    if offset:
+        for name in X.periods[-1].content.keys():
+            if name not in X.solution:
+                X.periods[-1].content[name] = LR_period.content[name]
+        X.periods[-1].distribute_content()
+        X.periods = X.periods[1:] + [period_T]
+    X.make_transition_matrices(grids, norm, fake_news_timing=True)
+    TmX_trans = deepcopy(X.trans_arrays)
+    TmX_outcomes = [
+        [X.periods[t].matrices[var] for var in outcomes] for t in range(T_max)
+    ]
+    _log_timing(
+        verbose,
+        "Constructing transition arrays for the finite horizon model",
+        t0,
+        time(),
+    )
+    return TmX_trans, TmX_outcomes
+
+
+def _compute_finite_horizon_derivatives(
+    T_max,
+    J,
+    outcomes,
+    TmX_trans,
+    TmX_outcomes,
+    LR_trans,
+    LR_outcomes,
+    outcome_grids,
+    SS_dstn,
+    verbose,
+):
+    t0 = time()
+    D_dstn_array = calc_derivs_of_state_dstns(
+        T_max, J, np.array(TmX_trans), LR_trans, SS_dstn
+    )
+    dY_news_array = np.empty((T_max, J))
+    for j in range(J):
+        temp_outcomes = np.array([TmX_outcomes[t][j] for t in range(T_max)])
+        dY_news_array[:, j] = calc_derivs_of_policy_funcs(
+            T_max, temp_outcomes, LR_outcomes[j], outcome_grids[j], SS_dstn
+        )
+    _log_timing(verbose, "Calculating derivatives by first differences", t0, time())
+    return D_dstn_array, dY_news_array
+
+
+def _build_fake_news(
+    T_max,
+    J,
+    K,
+    dY_news_array,
+    D_dstn_array,
+    LR_trans,
+    LR_outcomes,
+    outcome_grids,
+    verbose,
+):
+    t0 = time()
+    expectation_vectors = np.empty((J, K))
+    for j in range(J):
+        expectation_vectors[j, :] = np.dot(LR_outcomes[j], outcome_grids[j])
+    FN = make_fake_news_matrices(
+        T_max,
+        J,
+        dY_news_array,
+        D_dstn_array,
+        LR_trans.T,
+        expectation_vectors.copy(),
+    )
+    _log_timing(verbose, "Constructing the fake news matrices", t0, time())
+    return FN
+
+
+def make_flat_LC_SSJ_matrices(
+    agent,
+    shock,
+    outcomes,
+    grids,
+    eps=1e-4,
+    T_max=100,
+    norm=None,
+    trend=None,
+    pop_gro=1.0,
+    prod_gro=1.0,
+    solved=False,
+    age_agg=True,
+    construct=True,
+    offset=False,
+    verbose=False,
+):
+    """
+    Constructs one or more sequence space Jacobian (SSJ) matrices for specified
+    outcomes over one shock variable. This version of the function is for life-
+    cycle models with "flat" demographic dynamics: the long run distribution of
+    ages is stable. This requires that survival probability is not endogenous to
+    agent actions and thus cannot be affected by shocks.
+
+    "Flat" demographic dynamics permit two very specific growth trends: constant
+    population growth and constant aggregate productivity growth.
+
+    This algorithm (and some of the code) are directly taken from Mateo Velasquez
+    and Bence Bardoczy's paper on life-cycle Jacobians, and its accompanying repo.
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent for which the SSJ(s) should be constructed. Must have cycles = 1
+        or the function will throw an error. Must have a model file defined or
+        this won't work at all.
+    shock : str
+        Name of the variable that Jacobians will be computed with respect to.
+        It does not need to be a "shock" in a modeling sense, but it must be a
+        single-valued parameter (possibly a singleton list) that can be changed.
+    outcomes : str or [str]
+        Names of outcome variables of interest; an SSJ matrix will be constructed
+        for each variable named here. If a single string is passed, the output
+        will be a single np.array. If a list of strings are passed, the output
+        will be a list of SSJ matrices in the order specified here.
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information. The grids
+        should include all arrival variables other than those that are normalized
+        out. They should also include all variables named in outcomes, except
+        outcomes that are continuation variables that remap to arrival variables.
+        Grid specification must include number of nodes N, should also include
+        min and max if the variable is continuous.
+    eps : float
+        Amount by which to perturb the shock variable. The default is 1e-4.
+    T_max : int
+        Size of the SSJ matrices: the maximum number of periods to consider.
+        The default is 100.
+    norm : str or None
+        Name of the model variable to normalize by for Harmenberg aggregation,
+        if any. For many HARK models, this should be 'PermShk', which enables
+        the grid over permanent income to be omitted as an explicit state.
+    trend : str or None
+        Name of the model variable that represents the "normalization trend factor"
+        for the outcomes. For example, most consumption-saving models in HARK are
+        normalized by permanent income, which grows by factor `PermGroFac` each
+        period of the life-cycle; `PermGroFac` should be named as the `trend` for
+        any model outputs that are normalized by permanent income (i.e. they have
+        `Nrm` in their name). In contrast, if you wanted the fraction of agents
+        that have `Lbr > 0.0` for `LaborIntMargConsumerType`, a binary indicator
+        for this outcome should *not* have `PermGroFac` named as the `trend`--
+        you don't want to upweight people who have accumulated more income growth
+        more when calculating the employment rate!
+    pop_gro : float
+        Constant population growth factor, defaulting to 1. Each successive
+        birth cohort is this factor bigger than the prior birth cohort. With flat
+        demographic dynamics, this results in the entire population growing by
+        this factor each period as well. NOT YET IMPLEMENTED
+    prod_gro : float
+        Constant aggregate productivity growth factor, defaulting to 1. Each
+        successive birth cohort has permanent labor productivity that is this
+        factor bigger than the prior cohort. With flat demographic dynamics,
+        this results in aggregate productivity growing by this factor as well.
+        NOT YET IMPLEMENTED
+    solved : bool
+        Whether the agent's model has already been solved. If False (default),
+        it will be solved as the very first step. Solving the agent's long run
+        model before constructing SSJ matrices has the advantage of not needing
+        to re-solve the long run model for each shock variable.
+    age_agg : bool
+        Whether the returned SSJs should combine effects across ages (default True)
+        or leave effects disaggregated by age (False). When False, each SSJ will
+        be shape (T_age, T_max, T_max), and the overall SSJ matrix can be found by
+        doing np.sum(SSJ, axis=0).
+    construct : bool
+        Whether the construct (update) method should be run after the shock is
+        updated. The default is True, which is the "safe" option. If the shock
+        variable is a parameter that enters the model only *directly*, rather
+        than being used to build a more complex model input, then this can be
+        set to False to save a (very) small amount of time during computation.
+        If it is set to False improperly, the SSJs will be very wrong, potentially
+        just zero everywhere.
+    offset : bool
+        Whether the shock variable is "offset in time" for the solver, with a
+        default of False. This should be set to True if the named shock variable
+        (or the constructed model input that it affects) is indexed by t+1 from
+        the perspective of the solver. For example, the period t solver for the
+        ConsIndShock model takes in risk free interest factor Rfree as an argument,
+        but it represents the value of R that will occur at the start of t+1.
+    verbose : bool
+        Whether to display timing/progress to screen. The default is False.
+
+    Returns
+    -------
+    SSJ : np.array or [np.array]
+        One or more sequence space Jacobian arrays over the outcome variables
+        with respect to the named shock variable. Each is shape (T_max, T_max).
+    """
+    if agent.cycles != 1:
+        raise ValueError("This function is only compatible with life-cycle models!")
+    if not isinstance(outcomes, list):
+        outcomes = [outcomes]
+        no_list = True
+    else:
+        no_list = False
+    J = len(outcomes)
+
+    # Check for attempts to use future functionality
+    if pop_gro != 1.0:
+        raise ValueError(
+            "Population growth is not yet implemented for make_flat_LC_SSJ_matrices!"
+        )
+    if prod_gro != 1.0:
+        raise ValueError(
+            "Productivity growth is not yet implemented for make_flat_LC_SSJ_matrices!"
+        )
+
+    # Store the simulator if it exists
+    simulator_backup = agent._simulator if hasattr(agent, "_simulator") else None
+
+    # Make sure the shock variable is age-varying
+    if shock in agent.time_inv:
+        temp = getattr(agent, shock)
+        original_shock_value = temp
+        setattr(agent, shock, agent.T_cycle * [temp])
+        agent.del_from_time_inv(shock)
+        agent.add_to_time_vary(shock)
+        shock_was_time_inv = True
+    else:
+        shock_was_time_inv = False
+
+    # Solve the long run model if it wasn't already
+    if not solved:
+        t0 = time()
+        agent.solve()
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the long run model took {:.3f}".format(t1 - t0) + " seconds."
+            )
+    LR_soln = deepcopy(agent.solution)
+
+    try:
+        t0 = time()
+        agent.initialize_sym()
+        X = agent._simulator  # for easier referencing
+
+        # Construct the transition matrices for the long run model
+        X.make_transition_matrices(grids, norm)
+        LR_trans = deepcopy(X.trans_arrays)  # the transition matrices in LR model
+        T_age = len(LR_trans)
+        if T_max < T_age:
+            raise ValueError(
+                "T_max must be greater than or equal to T_age in order to pad "
+                "fake_news_array without truncation."
+            )
+        LR_outcomes = []
+        outcome_grids = []
+        for var in outcomes:
+            try:
+                LR_outcomes.append([X.periods[t].matrices[var] for t in range(T_age)])
+                outcome_grids.append([X.periods[t].grids[var] for t in range(T_age)])
+            except KeyError as exc:
+                raise KeyError(
+                    "Outcome " + var + " was requested, but no grid was provided!"
+                ) from exc
+
+        # Extract the normalizing trend
+        if trend is not None:
+            trend_adj_fac = np.array(
+                [X.periods[t].content[trend] for t in range(T_age)]
+            )
+            trend_adj_fac[0] = 1.0
+            trend_adj_cum = np.cumprod(trend_adj_fac)
+        else:
+            trend_adj_cum = np.ones(T_age)
+
+        t1 = time()
+        if verbose:
+            print(
+                "Making the transition matrix for the long run model took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
+
+        # Find the steady state for the long run model
+        t0 = time()
+        X.simulate_cohort_by_grids(outcomes=["dead"] + outcomes, calc_dstn=True)
+        SS_dstn = deepcopy(X.state_dstn_by_age)
+        SS_outcomes = {}
+        for j in range(J):
+            name = outcomes[j]
+            SS_outcomes[name] = [
+                np.dot(LR_outcomes[j][t], outcome_grids[j][t]) for t in range(T_age)
+            ]
+
+        # Re-apply mortality to downweight older ages
+        survival_by_age = 1.0 - X.history_avg["dead"]
+        survival_by_age[-1] = 0.0  # Force automatic death
+        cum_liv_prb = 1.0
+        pop_sum = 0.0
+        for a in range(T_age):
+            SS_dstn[a] *= cum_liv_prb
+            pop_sum += cum_liv_prb
+            cum_liv_prb *= survival_by_age[a]
+
+        t1 = time()
+        if verbose:
+            print(
+                "Finding the long run steady state took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Construct the "expectation vectors" for all outcomes at all ages
+        t0 = time()
+        E_vecs = {}
+        for j in range(J):
+            name = outcomes[j]
+            E_temp = [[SS_outcomes[name][a].copy()] for a in range(T_age)]
+            for t in range(1, T_age):
+                for a in range(T_age - t):
+                    S = survival_by_age[a]
+                    E_temp[a].append(np.dot(S * LR_trans[a], E_temp[a + 1][-1]))
+            E_vecs[name] = E_temp
+        t1 = time()
+
+        # Rearrange the expectation vectors for better access later
+        E_curly = [
+            np.stack(
+                [
+                    np.stack([E_vecs[name][a][t] for name in outcomes])
+                    for t in range(T_age - a)
+                ]
+            )
+            for a in range(T_age)
+        ]
+
+        if verbose:
+            print(
+                "Constructing expectation vectors took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Each entry of the E_vecs dictionary is a nested list. The outer index of the
+        # list is a, the age at t=0, and the inner index is time period t. The elements
+        # in the nested list are expectation vectors: the expected value of the outcome
+        # in period t conditional on being age a and at state space gridpoint n at t=0.
+
+        # Initialize the fake news matrices for each output
+        fake_news_array = np.zeros((J, T_age, T_age, T_age))
+        # Dimensions of fake news arrays:
+        # dim 0 --> j: index of outcome variable
+        # dim 1 --> a: age in period t
+        # dim 2 --> t: periods since news arrived
+        # dim 3 --> s: periods ahead about which the news arrived
+
+        # Loop over ages of the model and have the news shock apply at each one;
+        # k is the age index at which the shock arrives
+        t0 = time()
+        for k in reversed(range(T_age)):
+            # Adjust the timing for "offset" shocks
+            l = k - int(offset)
+            shock_val_orig = getattr(agent, shock)[l]
+            shock_val_new = shock_val_orig + eps
+
+            # Perturb the shock variable at age k, which corresponds to "solver period" l
+            if l >= 0:
+                getattr(agent, shock)[l] = shock_val_new
+
+                # Solve the model backwards from age l
+                if construct:
+                    agent.construct()
+                agent.solve(from_solution=LR_soln[l + 1], from_t=l + 1)
+            else:
+                agent.solution = LR_soln
+
+            # Build transitions and outcomes up to age k. Don't use "fake news timing" option!
+            agent.initialize_sym()
+            X = agent._simulator  # for easier typing
+            if l < 0:
+                setattr(X.periods[0], shock, shock_val_new)
+            X.make_transition_matrices(grids, norm, for_t=range(k + 1))
+            shocked_trans = deepcopy(X.trans_arrays)
+            shocked_outcomes = []
+            for var in outcomes:
+                temp_outcomes = []
+                for a in range(k + 1):
+                    temp_outcomes.append(X.periods[a].matrices[var])
+                shocked_outcomes.append(temp_outcomes)
+
+            # Update the t=0 row of the fake news matrices
+            for j in range(J):
+                for a in range(k + 1):
+                    temp = np.dot(
+                        SS_dstn[a], shocked_outcomes[j][a] - LR_outcomes[j][a]
+                    )
+                    fake_news_array[j, a, 0, k - a] += np.dot(temp, outcome_grids[j][a])
+
+            # Update the other t rows of the fake news matrices
+            for a in range(k + 1):
+                if a >= T_age - 1:
+                    continue
+                S = survival_by_age[a]
+                D_dstn_news = (
+                    np.dot(S * shocked_trans[a].T, SS_dstn[a]) - SS_dstn[a + 1]
+                )
+                update_FN_mats(
+                    fake_news_array, E_curly[a + 1], D_dstn_news, T_age, a, k
+                )
+
+            # Reset the shock variable at age l
+            if l >= 0:
+                getattr(agent, shock)[l] = shock_val_orig
+
+        t1 = time()
+        if verbose:
+            print(
+                "Making fake news arrays for each period of the problem took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
+
+        t0 = time()
+        # Pad out the fake news array with zeros
+        FN_pad = np.zeros((J, T_age, T_max, T_max))
+        FN_pad[:, :, :T_age, :T_age] = fake_news_array
+
+        # Construct age-specific Jacobian matrices
+        SSJ_by_age = FN_pad.copy()
+        for t in range(1, T_max):
+            SSJ_by_age[:, :, 1:, t] += SSJ_by_age[:, :, :-1, t - 1]
+
+        # Apply normalization factors
+        SSJ_by_age *= np.reshape(trend_adj_cum, (1, T_age, 1, 1))
+        SSJ_by_age /= pop_sum * eps
+
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing the sequence space Jacobians took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Structure and return outputs, aggregating by age if requested
+        SSJ = [SSJ_by_age[j, :, :, :] for j in range(J)]
+        if age_agg:
+            for j in range(J):
+                SSJ[j] = np.sum(SSJ[j], axis=0)
+        if no_list:
+            return SSJ[0]
+        else:
+            return SSJ
+
+    finally:
+        # Make sure the agent wasn't unexpectedly mutated in this method
+        _restore_agent(agent, LR_soln, simulator_backup)
+        if shock_was_time_inv:
+            setattr(agent, shock, original_shock_value)
+            agent.del_from_time_vary(shock)
+            agent.add_to_time_inv(shock)
+
+
+def calc_shock_response_manually(
+    agent,
+    shock,
+    outcomes,
+    grids,
+    s=0,
+    eps=1e-4,
+    T_max=300,
+    norm=None,
+    solved=False,
+    construct=[],
+    offset=False,
+    verbose=False,
+):
+    """
+    Compute an AgentType instance's timepath of outcome responses to learning at
+    t=0 that the named shock variable will be perturbed at t=s. This is equivalent
+    to calculating only the s-th column of the SSJs *manually*, rather than using
+    the fake news algorithm. This function can be used to verify and/or debug the
+    output of the fake news SSJ algorithm.
+
+    Important: Mortality (or death and replacement generally) should be turned
+    off in the model (via parameter values) for this to work properly. Or does it?
+
+    Parameters
+    ----------
+    agent : AgentType
+        Agent for which the response(s) should be calculated. Must have T_cycle=1
+        and cycles=0, or the function will throw an error. Must have a model
+        file defined or this won't work at all.
+    shock : str
+        Name of the variable that the response will be computed with respect to.
+        It does not need to be a "shock" in a modeling sense, but it must be a
+        single-valued parameter (possibly a singleton list) that can be changed.
+    outcomes : str or [str]
+        Names of outcome variables of interest; an SSJ matrix will be constructed
+        for each variable named here. If a single string is passed, the output
+        will be a single np.array. If a list of strings are passed, the output
+        will be a list of dYdX vectors in the order specified here.
+    grids : dict
+        Dictionary of dictionaries with discretizing grid information. The grids
+        should include all arrival variables other than those that are normalized
+        out. They should also include all variables named in outcomes, except
+        outcomes that are continuation variables that remap to arrival variables.
+        Grid specification must include number of nodes N, should also include
+        min and max if the variable is continuous.
+    s : int
+        Period in which the shock variable is perturbed, relative to current t=0.
+        The default is 0.
+    eps : float
+        Amount by which to perturb the shock variable. The default is 1e-4.
+    T_max : int
+        The length of the simulation for this exercise. The default is 300.
+    norm : str or None
+        Name of the model variable to normalize by for Harmenberg aggregation,
+        if any. For many HARK models, this should be 'PermShk', which enables
+        the grid over permanent income to be omitted as an explicit state.
+    solved : bool
+        Whether the agent's model has already been solved. If False (default),
+        it will be solved as the very first step.
+    construct : [str]
+        List of constructed objects that will be changed by perturbing shock.
+        These should all share an "offset status" (True or False). Default is [].
+    offset : bool
+        Whether the shock variable is "offset in time" for the solver, with a
+        default of False. This should be set to True if the named shock variable
+        (or the constructed model input that it affects) is indexed by t+1 from
+        the perspective of the solver. For example, the period t solver for the
+        ConsIndShock model takes in risk free interest factor Rfree as an argument,
+        but it represents the value of R that will occur at the start of t+1.
+    verbose : bool
+        Whether to display timing/progress to screen. The default is False.
+
+    Returns
+    -------
+    dYdX : np.array or [np.array]
+        One or more vectors of length T_max.
+    """
+    setup = _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose)
+    outcomes = setup["outcomes"]
+    no_list = setup["no_list"]
+    simulator_backup = setup["simulator_backup"]
+    LR_soln = setup["LR_soln"]
+    X = setup["X"]
+    LR_outcomes = setup["LR_outcomes"]
+    outcome_grids = setup["outcome_grids"]
+    SS_dstn = setup["SS_dstn"]
+
+    SS_outcomes = [np.dot(mat.T, SS_dstn) for mat in LR_outcomes]
+    SS_avgs = [np.dot(ss, grid) for ss, grid in zip(SS_outcomes, outcome_grids)]
+
+    try:
+        # Make a temporary agent to construct the perturbed constructed objects
+        t0 = time()
+        temp_agent = deepcopy(agent)
+        base_shock_value, shock_is_list = _perturb_shock(agent, shock)
+        if shock_is_list:
+            temp_value = [base_shock_value + eps]
+        else:
+            temp_value = base_shock_value + eps
+        temp_dict = {shock: temp_value}
+        temp_agent.assign_parameters(**temp_dict)
+        if len(construct) > 0:
+            temp_agent.update()
+        for var in construct:
+            temp_dict[var] = getattr(temp_agent, var)
+
+        # Build the finite horizon version of this agent
+        FH_agent = deepcopy(agent)
+        FH_agent.del_param("solution")
+        FH_agent.del_param("_simulator")
+        FH_agent.del_from_time_vary("solution")
+        FH_agent.del_from_time_inv(shock)
+        FH_agent.add_to_time_vary(shock)
+        FH_agent.del_from_time_inv(*construct)
+        FH_agent.add_to_time_vary(*construct)
+        finite_dict = {"T_cycle": T_max, "cycles": 1}
+        for var in FH_agent.time_vary:
+            if var in construct:
+                sequence = [deepcopy(getattr(agent, var)[0]) for t in range(T_max)]
+                sequence[s] = deepcopy(getattr(temp_agent, var)[0])
+            else:
+                sequence = T_max * [deepcopy(getattr(agent, var)[0])]
+            finite_dict[var] = sequence
+        shock_seq = T_max * [base_shock_value]
+        shock_seq[s] = base_shock_value + eps
+        finite_dict[shock] = shock_seq
+        FH_agent.assign_parameters(**finite_dict)
+        del temp_agent
+        t1 = time()
+        if verbose:
+            print(
+                "Building the finite horizon agent took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Solve the finite horizon agent
+        t0 = time()
+        FH_agent.solve(from_solution=LR_soln)
+        t1 = time()
+        if verbose:
+            print(
+                "Solving the "
+                + str(T_max)
+                + " period problem took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Build transition matrices for the finite horizon problem
+        t0 = time()
+        FH_agent.initialize_sym()
+        FH_agent._simulator.make_transition_matrices(
+            grids, norm=norm, fake_news_timing=True
+        )
+        t1 = time()
+        if verbose:
+            print(
+                "Constructing transition matrices took {:.3f}".format(t1 - t0)
+                + " seconds."
+            )
+
+        # Use grid simulation to find the timepath of requested variables, and compute
+        # the derivative with respect to baseline outcomes
+        t0 = time()
+        FH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
+        dYdX = []
+        for j, var in enumerate(outcomes):
+            diff_path = (FH_agent._simulator.history_avg[var] - SS_avgs[j]) / eps
+            if offset:
+                dYdX.append(diff_path[1:])
+            else:
+                dYdX.append(diff_path[:-1])
+        t1 = time()
+        if verbose:
+            print(
+                "Calculating impulse responses by grid simulation took {:.3f}".format(
+                    t1 - t0
+                )
+                + " seconds."
+            )
+
+        del FH_agent
+        if no_list:
+            return dYdX[0]
+        else:
+            return dYdX
+    finally:
+        _restore_agent(agent, LR_soln, simulator_backup)
+
+
+@njit
+def calc_derivs_of_state_dstns(T, J, trans_by_t, trans_LR, SS_dstn):  # pragma: no cover
+    """
+    Numba-compatible helper function to calculate the derivative of the state
+    distribution by period.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    J : int
+        Number of outcomes of interest.
+    trans_by_t : np.array
+        Array of shape (T,K,K) representing the transition matrix in each period.
+    trans_LR : np.array
+        Array of shape (K,K) representing the long run transition matrix.
+    SS_dstn : np.array
+        Array of size K representing the long run steady state distribution.
+
+    Returns
+    -------
+    D_dstn_news : np.array
+        Array of shape (T,K) representing dD_1^s from the SSJ paper, where K
+        is the number of arrival state space nodes.
+
+    """
+    K = SS_dstn.size
+    D_dstn_news = np.empty((T, K))  # this is dD_1^s in the SSJ paper (equation 24)
+    for t in range(T - 1, -1, -1):
+        D_dstn_news[T - t - 1, :] = np.dot((trans_by_t[t, :, :] - trans_LR).T, SS_dstn)
+    return D_dstn_news
+
+
+@njit
+def calc_derivs_of_policy_funcs(T, Y_by_t, Y_LR, Y_grid, SS_dstn):  # pragma: no cover
+    """
+    Numba-compatible helper function to calculate the derivative of an outcome
+    function in each period.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    Y_by_t : np.array
+        Array of shape (T,K,N) with the stochastic outcome, mapping from K arrival
+        state space nodes to N outcome space nodes, for each of the T periods.
+    Y_LR : np.array
+        Array of shape (K,N) representing the stochastic outcome in the long run.
+    Y_grid : np.array
+        Array of size N representing outcome space gridpoints.
+    SS_dstn : np.array
+        Array of size K representing the long run steady state distribution.
+
+    Returns
+    -------
+    dY_news : np.array
+        Array of size T representing the change in average outcome in each period
+        when the shock arrives unexpectedly in that period.
+    """
+    dY_news = np.empty(T)  # this is dY_0^s in the SSJ paper (equation 24)
+    for t in range(T - 1, -1, -1):
+        temp = (Y_by_t[t, :, :] - Y_LR).T
+        dY_news[T - t - 1] = np.dot(np.dot(temp, SS_dstn), Y_grid)
+    return dY_news
+
+
+@njit
+def make_fake_news_matrices(T, J, dY, D_dstn, trans_LR, E):  # pragma: no cover
+    """
+    Numba-compatible function to calculate the fake news array from first order
+    perturbation information.
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon for the fake news algorithm.
+    J : int
+        Number of outcomes of interest.
+    dY : int
+        Array shape (T,J) representing dY_0 from the SSJ paper.
+    D_dstn : np.array
+        Array of shape (T,K) representing dD_1^s from the SSJ paper, where K
+        is the number of arrival state space nodes.
+    trans_LR : np.array
+        Array of shape (K,K) representing the transpose of the long run transition matrix.
+    E : np.array
+        Initial expectation vectors combined into a single array of shape (J,K).
+
+    Returns
+    -------
+    FN : np.array
+        Fake news array of shape (J,T,T).
+    """
+    FN = np.empty((J, T, T))
+    FN[:, 0, :] = dY.T  # Fill in row zero
+    for t in range(1, T):  # Loop over other rows
+        for s in range(T):
+            FN[:, t, s] = np.dot(E, D_dstn[s, :])
+        E = np.dot(E, trans_LR)
+    return FN
+
+
+@njit
+def update_FN_mats(FN_mats, evecs, dD1, A, a, k):  # pragma: no cover
+    """
+    This is adapted from Mateo's code.
+
+    FN_mats: (J, A, A, A)
+    evecs : (T, J, G)
+    dD1   : (G,)
+    """
+    J = FN_mats.shape[0]
+    G = dD1.shape[0]
+
+    for j in range(J):
+        for t in range(1, A - a):
+            # compute dot(evecs[t-1, j, :], dD1) by hand
+            v = 0.0
+            for g in range(G):
+                v += evecs[t - 1, j, g] * dD1[g]
+            FN_mats[j, a + t, t, k - a] += v

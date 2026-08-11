@@ -101,11 +101,11 @@ def combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn):
         shocks, and risky returns. Has one element per period of the agent's cycle.
     """
     # Create placeholder distributions
-    if hasattr(RiskyDstn, "__getitem__"):
+    try:
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn[t]) for t in range(T_cycle)
         ]
-    else:
+    except:
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn) for t in range(T_cycle)
         ]
@@ -169,7 +169,7 @@ def calc_ShareLimit_for_CRRA(T_cycle, RiskyDstn, CRRA, Rfree):
 
             def temp_f(s):
                 return -((1.0 - CRRA) ** -1) * np.dot(
-                    (Rfree_t + s * (RiskyDstn_t.atoms - Rfree_t)) ** (1.0 - CRRA),
+                    (Rfree_t + s * (RiskyDstn_t.atoms[0] - Rfree_t)) ** (1.0 - CRRA),
                     RiskyDstn_t.pmv,
                 )
 
@@ -181,7 +181,7 @@ def calc_ShareLimit_for_CRRA(T_cycle, RiskyDstn, CRRA, Rfree):
 
         def temp_f(s):
             return -((1.0 - CRRA) ** -1) * np.dot(
-                (Rfree + s * (RiskyDstn.atoms - Rfree)) ** (1.0 - CRRA),
+                (Rfree + s * (RiskyDstn.atoms[0] - Rfree)) ** (1.0 - CRRA),
                 RiskyDstn.pmv,
             )
 

@@ -16,14 +16,16 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    PerfForesightConsumerType,
     make_basic_CRRA_solution_terminal,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
-from HARK.distributions import MarkovProcess, Uniform, expected
+from HARK.distributions import MarkovProcess, Uniform, expected, DiscreteDistribution
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
     LowerEnvelope,
+    IndexedInterp,
     MargMargValueFuncCRRA,
     MargValueFuncCRRA,
     ValueFuncCRRA,
@@ -145,6 +147,29 @@ def make_ratchet_markov(T_cycle, Mrkv_ratchet_probs):
     return MrkvArray
 
 
+def make_MrkvInitDstn(MrkvPrbsInit, RNG):
+    """
+    The constructor function for MrkvInitDstn, the distribution of Markov states
+    at model birth.
+
+    Parameters
+    ----------
+    MrkvPrbsInit : np.array
+        Stochastic vector specifying the distribution of initial discrete states.
+    RNG : np.random.RandomState
+        Agent's internal random number generator.
+
+    Returns
+    -------
+    MrkvInitDstn : DiscreteDistribution
+        Distribution from which discrete states at birth can be drawn.
+    """
+    seed = RNG.integers(0, 2**31 - 1)
+    vals = np.arange(MrkvPrbsInit.size, dtype=int)
+    MrkvInitDstn = DiscreteDistribution(pmv=MrkvPrbsInit, atoms=vals, seed=seed)
+    return MrkvInitDstn
+
+
 ###############################################################################
 
 
@@ -182,6 +207,7 @@ def make_markov_solution_terminal(CRRA, MrkvArray):
         MPCmin=np.ones(N),
         MPCmax=np.ones(N),
     )
+    solution_terminal.cFuncX = IndexedInterp(solution_terminal.cFunc)
     return solution_terminal
 
 
@@ -431,8 +457,9 @@ def solve_one_period_ConsMarkov(
 
             # Construct the end-of-period value function
             aNrm_temp = np.insert(aNrmNext, 0, BoroCnstNat)
-            BegOfPrd_vNvrsFunc = CubicInterp(
-                aNrm_temp, BegOfPrd_vNvrsNext, BegOfPrd_vNvrsPnext
+            BegOfPrd_vNvrsFunc = LinearInterp(
+                aNrm_temp,
+                BegOfPrd_vNvrsNext,
             )
             BegOfPrd_vFunc = ValueFuncCRRA(BegOfPrd_vNvrsFunc, CRRA)
             BegOfPrd_vFunc_list.append(BegOfPrd_vFunc)
@@ -617,10 +644,10 @@ def solve_one_period_ConsMarkov(
                 vNvrsP_now, 0, MPCmaxEff[i] ** (-CRRA / (1.0 - CRRA))
             )
             # MPCminNvrs = MPCminNow[i] ** (-CRRA / (1.0 - CRRA))
-            vNvrsFuncNow = CubicInterp(
+            vNvrsFuncNow = LinearInterp(
                 mNrm_temp,
                 vNvrs_now,
-                vNvrsP_now,
+                # vNvrsP_now,
             )  # MPCminNvrs * hNrmNow_i, MPCminNvrs)
             # The bounding function for the pseudo-inverse value function is incorrect.
             # TODO: Resolve this strange issue; extrapolation is suppressed for now.
@@ -649,6 +676,7 @@ def solve_one_period_ConsMarkov(
     solution.hNrm = hNrmNow
     solution.MPCmin = MPCminNow
     solution.MPCmax = MPCmaxNow
+    solution.cFuncX = IndexedInterp(solution.cFunc)
     return solution
 
 
@@ -663,6 +691,23 @@ markov_constructor_dict = {
     "aXtraGrid": make_assets_grid,
     "MrkvArray": make_simple_binary_markov,
     "solution_terminal": make_markov_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
+    "MrkvInitDstn": make_MrkvInitDstn,
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+default_kNrmInitDstn_params = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+default_pLvlInitDstn_params = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
@@ -705,9 +750,11 @@ init_indshk_markov = {
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": markov_constructor_dict,  # See dictionary above
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "global_markov": False,  # Whether the Markov state is shared across agents
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": np.array([1.03, 1.03]),  # Interest factor on retained assets
+    "Rfree": [np.array([1.03, 1.03])],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [np.array([0.98, 0.98])],  # Survival probability after each period
     "PermGroFac": [np.array([0.99, 1.03])],  # Permanent income growth factor
@@ -718,10 +765,6 @@ init_indshk_markov = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     "MrkvPrbsInit": np.array([1.0, 0.0]),  # Initial distribution of discrete state
     # (The portion of PermGroFac attributable to aggregate productivity growth)
@@ -734,6 +777,8 @@ init_indshk_markov = {
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
 init_indshk_markov.update(default_MrkvArray_params)
+init_indshk_markov.update(default_kNrmInitDstn_params)
+init_indshk_markov.update(default_pLvlInitDstn_params)
 
 
 class MarkovConsumerType(IndShockConsumerType):
@@ -749,32 +794,20 @@ class MarkovConsumerType(IndShockConsumerType):
     # Mrkv is both a shock and a state
     shock_vars_ = IndShockConsumerType.shock_vars_ + ["Mrkv"]
     state_vars = IndShockConsumerType.state_vars + ["Mrkv"]
-
-    def __init__(self, **kwds):
-        params = init_indshk_markov.copy()
-        params.update(kwds)
-
-        super().__init__(**params)
-        self.solve_one_period = solve_one_period_ConsMarkov
-
-        if not hasattr(self, "global_markov"):
-            self.global_markov = False
-
-    def update(self):
-        """
-        Update the Markov array, the income process, the assets grid, and
-        the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.construct("MrkvArray")
-        super().update()
+    default_ = {
+        "params": init_indshk_markov,
+        "solver": solve_one_period_ConsMarkov,
+        "model": "ConsMarkov.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl", "Mrkv"],
+    }
+    distributions = [
+        "IncShkDstn",
+        "PermShkDstn",
+        "TranShkDstn",
+        "kNrmInitDstn",
+        "pLvlInitDstn",
+        "MrkvInitDstn",
+    ]
 
     def check_markov_inputs(self):
         """
@@ -792,10 +825,13 @@ class MarkovConsumerType(IndShockConsumerType):
         StateCount = self.MrkvArray[0].shape[0]
 
         # Check that arrays are the right shape
-        if not isinstance(self.Rfree, np.ndarray) or self.Rfree.shape != (StateCount,):
-            raise ValueError(
-                "Rfree not the right shape, it should be an array of Rfree of all the states."
-            )
+        for t in range(self.T_cycle):
+            if not isinstance(self.Rfree[t], np.ndarray) or self.Rfree[t].shape != (
+                StateCount,
+            ):
+                raise ValueError(
+                    "Rfree[t] not the right shape, it should be an array of Rfree of all the states."
+                )
 
         # Check that arrays in lists are the right shape
         for MrkvArray_t in self.MrkvArray:
@@ -825,7 +861,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # at a particular point in time.
         for IncShkDstn_t in self.IncShkDstn:
             if not isinstance(IncShkDstn_t, list):
-                raise ValueError(
+                raise TypeError(
                     "self.IncShkDstn is time varying and so must be a list"
                     + "of lists of Distributions, one per Markov State. Found "
                     + f"{self.IncShkDstn} instead"
@@ -850,43 +886,20 @@ class MarkovConsumerType(IndShockConsumerType):
         """
         AgentType.pre_solve(self)
         self.check_markov_inputs()
-        self.update_solution_terminal()
+        self.construct("solution_terminal")
 
     def initialize_sim(self):
         self.shocks["Mrkv"] = np.zeros(self.AgentCount, dtype=int)
         IndShockConsumerType.initialize_sim(self)
-        if (
-            self.global_markov
-        ):  # Need to initialize markov state to be the same for all agents
+
+        # Need to initialize markov state to be the same for all agents
+        if self.global_markov:
             base_draw = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(1)
             Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
             self.shocks["Mrkv"] = np.ones(self.AgentCount) * np.searchsorted(
                 Cutoffs, base_draw
             ).astype(int)
         self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
-
-    def reset_rng(self):
-        """
-        Extended method that ensures random shocks are drawn from the same sequence
-        on each simulation, which is important for structural estimation.  This
-        method is called automatically by initialize_sim().
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        PerfForesightConsumerType.reset_rng(self)
-
-        # Reset IncShkDstn if it exists (it might not because reset_rng is called at init)
-        if hasattr(self, "IncShkDstn"):
-            T = len(self.IncShkDstn)
-            for t in range(T):
-                for dstn in self.IncShkDstn[t]:
-                    dstn.reset()
 
     def sim_death(self):
         """
@@ -930,18 +943,13 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        IndShockConsumerType.sim_birth(
-            self, which_agents
-        )  # Get initial assets and permanent income
-        if (
-            not self.global_markov
-        ):  # Markov state is not changed if it is set at the global level
+        # Get initial assets and permanent income
+        IndShockConsumerType.sim_birth(self, which_agents)
+
+        # Markov state is not changed if it is set at the global level
+        if not self.global_markov:
             N = np.sum(which_agents)
-            base_draws = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(N)
-            Cutoffs = np.cumsum(np.array(self.MrkvPrbsInit))
-            self.shocks["Mrkv"][which_agents] = np.searchsorted(
-                Cutoffs, base_draws
-            ).astype(int)
+            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N)
 
     def get_markov_states(self):
         """
@@ -956,9 +964,8 @@ class MarkovConsumerType(IndShockConsumerType):
         -------
         None
         """
-        dont_change = (
-            self.t_age == 0
-        )  # Don't change Markov state for those who were just born (unless global_markov)
+        # Don't change Markov state for those who were just born (unless global_markov)
+        dont_change = self.t_age == 0
         if self.t_sim == 0:  # Respect initial distribution of Markov states
             dont_change[:] = True
 
@@ -1015,9 +1022,29 @@ class MarkovConsumerType(IndShockConsumerType):
                         IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
                     TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+
+        # Fix shocks for newborns
         newborn = self.t_age == 0
-        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
+        if np.any(newborn):
+            for j in range(self.MrkvArray[0].shape[0]):
+                idx = np.logical_and(j == MrkvNow, newborn)
+                if not np.any(idx):
+                    continue
+                N = np.sum(idx)
+
+                # set current income distribution
+                IncShkDstnNow = self.IncShkDstn[0][j]
+                PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
+
+                # Get random draws of income shocks from the discrete distribution
+                EventDraws = IncShkDstnNow.draw_events(N)
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+        if not self.NewbornTransShk:
+            TranShkNow[newborn] = 1.0
+
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
@@ -1036,9 +1063,10 @@ class MarkovConsumerType(IndShockConsumerType):
         IndShockConsumerType.read_shocks_from_history(self)
         self.shocks["Mrkv"] = self.shocks["Mrkv"].astype(int)
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
         Returns an array of size self.AgentCount with interest factor that varies with discrete state.
+        This represents the portfolio return in this model.
 
         Parameters
         ----------
@@ -1049,7 +1077,10 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow : np.array
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
-        RfreeNow = self.Rfree[self.shocks["Mrkv"]]
+        RfreeNow = np.zeros(self.AgentCount)
+        for t in range(self.T_cycle):
+            these = self.t_cycle == t
+            RfreeNow[these] = self.Rfree[t][self.shocks["Mrkv"][these]]
         return RfreeNow
 
     def get_controls(self):
@@ -1088,55 +1119,14 @@ class MarkovConsumerType(IndShockConsumerType):
         super().get_poststates()
         self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
 
-    def calc_bounding_values(self):
-        """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.  Results are all
-        np.array with elements corresponding to each Markov state.
-
-        NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
+    def calc_bounding_values(self):  # pragma: nocover
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
-        """
-        Creates a "normalized Euler error" function for this instance, mapping
-        from market resources to "consumption error per dollar of consumption."
-        Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncShkDstn
-        or to use a (temporary) very dense approximation.
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
+        raise NotImplementedError()
 
-        NOT YET IMPLEMENTED FOR THIS CLASS
+    def check_conditions(self, verbose=None):  # pragma: nocover
+        raise NotImplementedError()
 
-        Parameters
-        ----------
-        mMax : float
-            Maximum normalized market resources for the Euler error function.
-        approx_inc_dstn : Boolean
-            Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncShkDstn[0], or to use a very accurate
-            discrete approximation instead.  When True, uses approximation in
-            IncShkDstn; when False, makes and uses a very dense approximation.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
-        """
+    def calc_limiting_values(self):  # pragma: nocover
         raise NotImplementedError()
