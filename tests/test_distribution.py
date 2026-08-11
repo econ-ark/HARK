@@ -1,10 +1,12 @@
 import unittest
+import warnings
 
 import numpy as np
 import xarray as xr
 
 from HARK.distributions import (
     Bernoulli,
+    calc_expectation,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
@@ -19,6 +21,7 @@ from HARK.distributions import (
     combine_indep_dstns,
     distr_of_function,
     expected,
+    expected_with_loop,
     approx_beta,
     make_markov_approx_to_normal,
     make_markov_approx_to_normal_by_monte_carlo,
@@ -947,3 +950,17 @@ class test_MVNormalApprox(unittest.TestCase):
 
         Sig_3D = expected(vcov_fun, self.dist3D_approx, self.mu3, vectorized=False)
         self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))
+
+
+class CalcExpectationDeprecatedAlias(unittest.TestCase):
+    """calc_expectation (renamed in 0.17.2) survives as a warning-bearing
+    alias that delegates exactly to expected_with_loop."""
+
+    def test_alias_delegates_and_warns(self):
+        dd = DiscreteDistribution(np.array([0.25, 0.75]), np.array([2.0, 4.0]), seed=0)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            got = calc_expectation(dd, lambda x: x * x)
+        self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
+        expected = expected_with_loop(dd, lambda x: x * x)
+        np.testing.assert_allclose(got, expected)
