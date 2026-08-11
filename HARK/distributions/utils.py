@@ -461,9 +461,8 @@ def calc_expectation(dstn, func=None, *args, **kwargs):
     It will be removed in a future release; new code should call
     :func:`expected_with_loop` directly.
     """
-    import warnings
 
-    warnings.warn(
+    warn(
         "calc_expectation was renamed to expected_with_loop in HARK 0.17.2 "
         "and this alias will be removed in a future release.",
         DeprecationWarning,

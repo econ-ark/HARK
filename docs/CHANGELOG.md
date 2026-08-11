@@ -25,7 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
-- Restores `calc_expectation` as a `DeprecationWarning`-bearing alias of `expected_with_loop` (renamed in 0.17.2), preserving import compatibility for downstream code pinned to earlier versions — including frozen reproduction archives that cannot be edited. Slated for removal in a future release. [#1800](https://github.com/econ-ark/HARK/pull/1800)
+- Restores `calc_expectation` as a `DeprecationWarning`-bearing alias of `expected_with_loop` (renamed in 0.17.2), preserving import compatibility for downstream code pinned to earlier versions - including frozen reproduction archives that cannot be edited. Slated for removal in a future release. [#1800](https://github.com/econ-ark/HARK/pull/1800)
 - future item
 - future item
 - future item

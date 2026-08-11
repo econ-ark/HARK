@@ -1,10 +1,12 @@
 import unittest
+import warnings
 
 import numpy as np
 import xarray as xr
 
 from HARK.distributions import (
     Bernoulli,
+    calc_expectation,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
@@ -19,6 +21,7 @@ from HARK.distributions import (
     combine_indep_dstns,
     distr_of_function,
     expected,
+    expected_with_loop,
     approx_beta,
     make_markov_approx_to_normal,
     make_markov_approx_to_normal_by_monte_carlo,
@@ -954,9 +957,6 @@ class CalcExpectationDeprecatedAlias(unittest.TestCase):
     alias that delegates exactly to expected_with_loop."""
 
     def test_alias_delegates_and_warns(self):
-        import warnings
-
-        from HARK.distributions import calc_expectation, expected_with_loop
 
         dd = DiscreteDistribution(np.array([0.25, 0.75]), np.array([2.0, 4.0]), seed=0)
         with warnings.catch_warnings(record=True) as caught:
