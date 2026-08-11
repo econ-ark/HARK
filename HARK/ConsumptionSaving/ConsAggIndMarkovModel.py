@@ -1,6 +1,6 @@
 """
 General-purpose consumer type with combined aggregate and idiosyncratic
-discrete Markov states — the "hierarchical Markov" pattern.
+discrete Markov states - the "hierarchical Markov" pattern.
 
 Both Krusell-Smith (1998) and the HAFiscal aggregate-demand model share
 a common structure: agents face discrete *macro* (aggregate) states that
@@ -13,11 +13,11 @@ single integer index:
 
 This module provides:
 
-* ``make_hierarchical_mrkv_array`` — builds the full (M*N) x (M*N) Markov
+* ``make_hierarchical_mrkv_array`` - builds the full (M*N) x (M*N) Markov
   transition matrix from an M x M aggregate matrix and M conditional N x N
   micro matrices.
 
-* ``AggIndMrkvConsumerType`` — a ``MarkovConsumerType`` subclass that implements
+* ``AggIndMrkvConsumerType`` - a ``MarkovConsumerType`` subclass that implements
   two-step Markov draws (macro from economy, micro per-agent) each period.
 
 Design note
@@ -33,10 +33,46 @@ This class was created in response to the prompt:
 The prompt was executed by Claude Opus 4.6 (Anthropic, 2025).
 """
 
+import warnings
+
 import numpy as np
 
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.distributions.base import MarkovProcess
+
+# Sentinel written into the micro-state buffer before the drawing loops run, so
+# that an agent no loop wrote to is detectable instead of holding stale memory.
+_UNSET_MICRO = -1
+
+
+def _zero_transition_msg(macro_prev, macro_next, micro_prev, n_agents):
+    """Message for a macro transition that carries agents but no probability.
+
+    Parameters
+    ----------
+    macro_prev : int or None
+        Source macro state, or None for the simple (destination-conditioned)
+        ``CondMrkvArrays`` format, which does not condition on the source.
+    macro_next : int
+        Destination macro state.
+    micro_prev : int
+        Source micro state whose conditional row sums to zero.
+    n_agents : int
+        Number of agents assigned this transition.
+    """
+    if macro_prev is None:
+        cell = f"CondMrkvArrays[{macro_next}]"
+        which = f"macro state {macro_next}"
+    else:
+        cell = f"CondMrkvArrays[{macro_prev}][{macro_next}]"
+        which = f"macro transition ({macro_prev}, {macro_next})"
+    return (
+        f"{n_agents} agents were assigned {which}, but row {micro_prev} of "
+        f"{cell} sums to zero, so there is no micro transition to draw.  The "
+        "macro state reached a zero-probability transition: either "
+        "MacroMrkvArray forbids it, or the macro states supplied to this agent "
+        "type are inconsistent with the conditional arrays it was given."
+    )
 
 
 # =============================================================================
@@ -169,8 +205,8 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
     (income shocks, state-dependent parameters, solver, simulation) and adds
     a two-step Markov draw:
 
-        1. ``get_macro_markov_states()`` — reads aggregate state
-        2. ``get_micro_markov_states()`` — draws idiosyncratic states
+        1. ``get_macro_markov_states()`` - reads aggregate state
+        2. ``get_micro_markov_states()`` - draws idiosyncratic states
         3. Combines: ``shocks["Mrkv"] = num_micro_states * MacroMrkv + MicroMrkv``
 
     When ``num_macro_states`` / ``num_micro_states`` are not set, the class
@@ -182,8 +218,8 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
 
     Subclasses override:
 
-    - ``get_macro_markov_states`` — how to read macro state (economy sow, etc.)
-    - ``get_micro_markov_states`` — how to draw micro states (searchsorted, etc.)
+    - ``get_macro_markov_states`` - how to read macro state (economy sow, etc.)
+    - ``get_micro_markov_states`` - how to draw micro states (searchsorted, etc.)
     """
 
     def __init__(self, num_macro_states=None, num_micro_states=None, **kwds):
@@ -274,17 +310,29 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
 
         When ``markov_shuffle`` is True, uses
         :class:`~HARK.distributions.base.MarkovProcess` with ``shuffle=True``
-        per (macro, source-micro) cell — analogous to ``get_markov_states``
+        per (macro, source-micro) cell - analogous to ``get_markov_states``
         on a flat Markov chain; with ``balanced_transitions``, systematic
         sampling by pLvl within each cell.  Default remains iid
         ``RNG.choice`` per cell.
 
         Override entirely for custom logic (e.g. Krusell-Smith exact-match
         employment permutations).
+
+        Raises
+        ------
+        ValueError
+            If agents are assigned a macro transition whose conditional row
+            sums to zero.  ``extract_cond_mrkv_arrays`` returns a zero matrix
+            where the macro probability is zero, so this means the macro
+            states supplied to the agent contradict the conditional arrays it
+            was given; there is no distribution to draw from.
         """
         N = self.num_micro_states
         micro_prev = self.micro_from_combined(self.shocks["Mrkv"])
-        new_micro = np.empty(self.AgentCount, dtype=int)
+        # Sentinel fill rather than np.empty: any agent left unwritten by the
+        # loops below is caught at the end instead of carrying whatever was in
+        # the allocation into shocks["Mrkv"] and indexing the solution arrays.
+        new_micro = np.full(self.AgentCount, _UNSET_MICRO, dtype=int)
 
         first = self.CondMrkvArrays[0]
         general = isinstance(first, (list, tuple)) or (
@@ -292,6 +340,21 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         )
 
         if getattr(self, "markov_shuffle", False):
+            # Checked here rather than at the top of the method: the default
+            # branch below never consults a sort key, so warning there would
+            # describe a fallback that does not apply.
+            balanced = getattr(self, "balanced_transitions", False)
+            if balanced and "pLvl" not in self.state_now:
+                warnings.warn(
+                    "balanced_transitions=True, but state_now has no 'pLvl' to "
+                    "sort on; micro transitions fall back to unbalanced "
+                    "shuffling.  Set balanced_transitions=False to silence "
+                    "this, or use an agent type that tracks pLvl.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                balanced = False
+
             macro_next = np.asarray(self.MacroMrkvNow, dtype=int)
             macro_prev = self.macro_from_combined(self.shocks["Mrkv"])
 
@@ -307,15 +370,13 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
                         if n == 0:
                             continue
                         if cond[mi, :].sum() <= 0.0:
-                            continue
+                            raise ValueError(_zero_transition_msg(mp_i, mn_i, mi, n))
                         mp_proc = MarkovProcess(
                             cond, seed=int(self.RNG.integers(0, 2**31 - 1))
                         )
                         idx = np.flatnonzero(mask)
                         sort_key = None
-                        if getattr(self, "balanced_transitions", False) and (
-                            "pLvl" in self.state_now
-                        ):
+                        if balanced:
                             sort_key = np.asarray(self.state_now["pLvl"])[idx]
                         new_micro[idx] = mp_proc.draw(
                             np.full(n, mi, dtype=int),
@@ -333,15 +394,13 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
                         if n == 0:
                             continue
                         if cond[mi, :].sum() <= 0.0:
-                            continue
+                            raise ValueError(_zero_transition_msg(None, mn_i, mi, n))
                         mp_proc = MarkovProcess(
                             cond, seed=int(self.RNG.integers(0, 2**31 - 1))
                         )
                         idx = np.flatnonzero(mask)
                         sort_key = None
-                        if getattr(self, "balanced_transitions", False) and (
-                            "pLvl" in self.state_now
-                        ):
+                        if balanced:
                             sort_key = np.asarray(self.state_now["pLvl"])[idx]
                         new_micro[idx] = mp_proc.draw(
                             np.full(n, mi, dtype=int),
@@ -366,6 +425,15 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
                     probs = cond[mi, :]
                     probs = probs / probs.sum()
                     new_micro[mask] = self.RNG.choice(N, size=n, p=probs)
+
+        unset = new_micro == _UNSET_MICRO
+        if unset.any():
+            raise RuntimeError(
+                f"get_micro_markov_states left {int(unset.sum())} of "
+                f"{self.AgentCount} agents without a micro state.  This is a "
+                "bug in the drawing loops, not a modelling error; please report "
+                "it with the CondMrkvArrays and macro state that produced it."
+            )
         self.MicroMrkvNow = new_micro
 
     # ----- Convenience helpers -----------------------------------------------

@@ -1,15 +1,20 @@
 """Tests for AggIndMrkvConsumerType hierarchical Markov + shuffle wiring."""
 
 import unittest
+import warnings
 from copy import deepcopy
 
 import numpy as np
 
+import HARK.ConsumptionSaving.ConsAggIndMarkovModel as agg_ind_mrkv_module
 from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
     AggIndMrkvConsumerType,
     make_hierarchical_mrkv_array,
 )
-from HARK.ConsumptionSaving.ConsMarkovModel import init_indshk_markov
+from HARK.ConsumptionSaving.ConsMarkovModel import (
+    MarkovConsumerType,
+    init_indshk_markov,
+)
 from HARK.distributions import DiscreteDistributionLabeled
 
 
@@ -144,12 +149,207 @@ class testAggIndMarkovShuffle(unittest.TestCase):
             )
 
 
+class testGeneralFormatShuffle(unittest.TestCase):
+    """The general ``CondMrkvArrays[i][j]`` format under ``markov_shuffle``.
+
+    The simple format conditions micro transitions on the *destination* macro
+    state alone; the general format conditions on the (source, destination)
+    pair.  These tests keep two distinct pairs live in the same call, with
+    deliberately asymmetric arrays, so that reading the pair in the wrong
+    order is visible in the per-cell counts.
+    """
+
+    # Rows chosen so that CondMrkvArrays[0][1] is the transpose-in-index of
+    # CondMrkvArrays[1][0]: swapping (mp, mn) swaps 75/25 for 25/75.
+    COND_01 = np.array([[0.75, 0.25], [0.25, 0.75]])
+    COND_10 = np.array([[0.25, 0.75], [0.75, 0.25]])
+    # Diagonal cells are never exercised by these tests, but must be present
+    # and row-stochastic for the array to be a well-formed general format.
+    COND_DIAG = np.array([[1.0, 0.0], [0.0, 1.0]])
+
+    def _make_agent(self, cond, macro_prev, macro_next, micro_prev, seed=0):
+        """Build a bare agent with the hierarchical attributes set by hand.
+
+        Bypasses ``__init__`` because ``get_micro_markov_states`` reads only
+        these attributes, and a full agent would drag in a solver and an
+        income process irrelevant to the transition arithmetic.
+        """
+        agent = AggIndMrkvConsumerType.__new__(AggIndMrkvConsumerType)
+        agent.num_macro_states = len(cond)
+        agent.num_micro_states = cond[0][0].shape[0]
+        agent.AgentCount = macro_prev.size
+        agent.CondMrkvArrays = cond
+        agent.markov_shuffle = True
+        agent.state_now = {}
+        agent.RNG = np.random.default_rng(seed)
+        N = agent.num_micro_states
+        agent.shocks = {"Mrkv": (N * macro_prev + micro_prev).astype(int)}
+        agent.MacroMrkvNow = macro_next.astype(int)
+        return agent
+
+    def _two_pair_setup(self):
+        """200 agents in macro transition (0,1) and 200 in (1,0).
+
+        Within each, 100 start in micro state 0 and 100 in micro state 1, so
+        every one of the four (pair, source-micro) cells is populated.
+        """
+        cond = [
+            [self.COND_DIAG, self.COND_01],
+            [self.COND_10, self.COND_DIAG],
+        ]
+        macro_prev = np.repeat([0, 1], 200)
+        macro_next = np.repeat([1, 0], 200)
+        micro_prev = np.tile(np.repeat([0, 1], 100), 2)
+        return cond, macro_prev, macro_next, micro_prev
+
+    def test_general_format_per_cell_counts(self):
+        """Each (macro_prev, macro_next, micro_prev) cell draws its own row.
+
+        ``MarkovProcess.draw(shuffle=True)`` is quota-exact, so with 100
+        agents per cell the destination counts are deterministic and equal to
+        100 times the conditional row.  Reading ``CondMrkvArrays[mn][mp]``
+        instead of ``[mp][mn]`` swaps the two off-diagonal cells and flips
+        every count below.
+        """
+        cond, macro_prev, macro_next, micro_prev = self._two_pair_setup()
+        agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        agent.get_micro_markov_states()
+        new_micro = agent.MicroMrkvNow
+
+        expected = {
+            # (macro_prev, macro_next, micro_prev): [count to 0, count to 1]
+            (0, 1, 0): [75, 25],
+            (0, 1, 1): [25, 75],
+            (1, 0, 0): [25, 75],
+            (1, 0, 1): [75, 25],
+        }
+        for (mp, mn, mi), counts in expected.items():
+            mask = (macro_prev == mp) & (macro_next == mn) & (micro_prev == mi)
+            self.assertEqual(int(mask.sum()), 100)
+            observed = np.bincount(new_micro[mask], minlength=2)
+            np.testing.assert_array_equal(
+                observed,
+                np.array(counts),
+                err_msg=(
+                    f"cell (macro_prev={mp}, macro_next={mn}, "
+                    f"micro_prev={mi}) drew {observed.tolist()}, expected "
+                    f"{counts}.  A mismatch that swaps this cell with "
+                    f"(macro_prev={mn}, macro_next={mp}) means the general "
+                    f"format is being indexed as CondMrkvArrays[mn][mp]."
+                ),
+            )
+
+    def test_general_format_all_agents_assigned(self):
+        """Every agent leaves with a micro state in range.
+
+        The drawing loops fill a sentinel-initialised buffer, so an agent that
+        no loop covers is detectable; before the sentinel it carried whatever
+        was in the allocation.
+        """
+        cond, macro_prev, macro_next, micro_prev = self._two_pair_setup()
+        agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        agent.get_micro_markov_states()
+        new_micro = agent.MicroMrkvNow
+        self.assertEqual(new_micro.size, macro_prev.size)
+        self.assertTrue(
+            np.all((new_micro >= 0) & (new_micro < 2)),
+            msg=f"out-of-range micro states drawn: {np.unique(new_micro)}",
+        )
+
+    def test_zero_probability_macro_transition_raises(self):
+        """A macro transition with no probability mass is an error, not a draw.
+
+        ``extract_cond_mrkv_arrays`` returns a zero matrix where the macro
+        probability is zero.  If agents are nonetheless assigned that
+        transition, there is no row to draw from, and the model that produced
+        the macro states contradicts the conditional arrays.
+        """
+        cond = [
+            [self.COND_DIAG, np.zeros((2, 2))],
+            [self.COND_10, self.COND_DIAG],
+        ]
+        macro_prev = np.zeros(50, dtype=int)
+        macro_next = np.ones(50, dtype=int)
+        micro_prev = np.zeros(50, dtype=int)
+        agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        with self.assertRaises(ValueError) as cm:
+            agent.get_micro_markov_states()
+        message = str(cm.exception)
+        self.assertIn("CondMrkvArrays[0][1]", message)
+        self.assertIn("zero-probability transition", message)
+
+    def test_zero_probability_simple_format_raises(self):
+        """Same guarantee for the simple (destination-conditioned) format."""
+        cond = [self.COND_DIAG, np.zeros((2, 2))]
+        macro_prev = np.zeros(50, dtype=int)
+        macro_next = np.ones(50, dtype=int)
+        micro_prev = np.zeros(50, dtype=int)
+        agent = self._make_agent(
+            [[c, c] for c in cond], macro_prev, macro_next, micro_prev
+        )
+        agent.CondMrkvArrays = cond
+        with self.assertRaises(ValueError) as cm:
+            agent.get_micro_markov_states()
+        self.assertIn("CondMrkvArrays[1]", str(cm.exception))
+
+    def test_balanced_transitions_without_pLvl_warns(self):
+        """Balancing silently does nothing without pLvl, so it must say so."""
+        cond, macro_prev, macro_next, micro_prev = self._two_pair_setup()
+        agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        agent.balanced_transitions = True
+        with self.assertWarns(RuntimeWarning) as cm:
+            agent.get_micro_markov_states()
+        self.assertIn("pLvl", str(cm.warning))
+
+    def test_balanced_transitions_sorts_within_cell_by_pLvl(self):
+        """pLvl reaches the draw as a sort key, spacing the destinations evenly.
+
+        Systematic sampling assigns the minority destination at a fixed stride
+        in pLvl rank, so within the 100-agent cell that sends 25 agents to
+        micro state 1 the ranks of those agents are exactly 4 apart.  Without
+        the sort key the same cell draws them in a clumped iid pattern and the
+        gaps vary.  No warning may be issued, since pLvl is present.
+        """
+        cond, macro_prev, macro_next, micro_prev = self._two_pair_setup()
+        agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        agent.balanced_transitions = True
+        pLvl = np.linspace(0.5, 2.0, macro_prev.size)
+        agent.state_now = {"pLvl": pLvl}
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            agent.get_micro_markov_states()
+
+        mask = (macro_prev == 0) & (macro_next == 1) & (micro_prev == 0)
+        order = np.argsort(pLvl[mask])
+        destinations = agent.MicroMrkvNow[mask][order]
+        ranks = np.flatnonzero(destinations == 1)
+        self.assertEqual(ranks.size, 25)
+        np.testing.assert_array_equal(
+            np.diff(ranks),
+            np.full(24, 4),
+            err_msg=(
+                "minority destinations are not evenly spaced in pLvl rank, so "
+                "state_now['pLvl'] is not reaching MarkovProcess.draw as "
+                "sort_key and balanced_transitions is a no-op"
+            ),
+        )
+
+    def test_unset_sentinel_cannot_be_a_valid_micro_state(self):
+        """The sentinel must stay outside the range of real micro states.
+
+        Nothing in the current drawing loops can leave an agent unwritten, so
+        the end-of-method check is an instrument rather than a live guard.  It
+        only works while the sentinel is unreachable: setting it to 0 would
+        make a genuinely unwritten agent indistinguishable from one drawn into
+        micro state 0, which is exactly the silent failure it exists to stop.
+        """
+        self.assertLess(agg_ind_mrkv_module._UNSET_MICRO, 0)
+
+
 class testMakeShockHistoryShuffleFlag(unittest.TestCase):
     """make_shock_history(shuffle=True) restores income_shuffle / markov_shuffle."""
 
     def test_restores_flags_after_shuffle_true(self):
-        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-
         agent = MarkovConsumerType(
             MrkvArray=[np.array([[0.9, 0.1], [0.1, 0.9]])],
             AgentCount=200,

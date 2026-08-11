@@ -1590,7 +1590,7 @@ class KrusellSmithType(AggIndMrkvConsumerType):
         self.simulate(1)
 
     def sim_death(self):
-        """KS has no death — bypass MarkovConsumerType.sim_death."""
+        """KS has no death - bypass MarkovConsumerType.sim_death."""
         return np.zeros(self.AgentCount, dtype=bool)
 
     def initialize_sim(self):

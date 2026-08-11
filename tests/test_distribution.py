@@ -616,7 +616,7 @@ class MarkovProcessTests(unittest.TestCase):
         contaminates row 1's permutation and this assertion fails for
         most seeds.
         """
-        # 7 agents in each source state — small enough to exercise
+        # 7 agents in each source state - small enough to exercise
         # leftover-slot assignment, large enough that the permutation
         # drift is clearly visible across seeds.
         state = np.array([0] * 7 + [1] * 7, dtype=int)
@@ -626,7 +626,7 @@ class MarkovProcessTests(unittest.TestCase):
         TM_a = np.array([[0.50, 0.50], [0.30, 0.70]])
         TM_b = np.array([[5.0 / 7.0, 2.0 / 7.0], [0.30, 0.70]])
 
-        # Check across multiple seeds — the naive implementation fails
+        # Check across multiple seeds - the naive implementation fails
         # for the majority of seeds, while the sub-RNG-isolated
         # implementation passes for all of them.
         for seed in range(20):
@@ -654,13 +654,13 @@ class MarkovProcessTests(unittest.TestCase):
 
         The default shuffle (no draws=) uses a random permutation
         independent of any per-agent input, so agent-by-agent it
-        does NOT match iid even at large N — typically agreeing only
+        does NOT match iid even at large N - typically agreeing only
         on the trivial "stay-in-same-target" mass.
         """
         P = np.array([[0.95, 0.05], [0.30, 0.70]])
         N = 10_000
         rng = np.random.default_rng(seed=42)
-        # Half emp, half unemp — exercises both rows of P.
+        # Half emp, half unemp - exercises both rows of P.
         state = np.repeat([0, 1], N // 2)
         u = rng.uniform(size=N)
 
@@ -1142,6 +1142,8 @@ class CalcExpectationDeprecatedAlias(unittest.TestCase):
         self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
         expected = expected_with_loop(dd, lambda x: x * x)
         np.testing.assert_allclose(got, expected)
+
+
 class StreamInvarianceGoldens(unittest.TestCase):
     """Default-path RNG-stream pins captured on main at a25d3ae0, before
     the shuffle/draws/replicates additions.

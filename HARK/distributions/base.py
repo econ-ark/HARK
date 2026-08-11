@@ -286,7 +286,7 @@ class MarkovProcess(Distribution):
         This guarantees that two calls with the same starting RNG state but
         different transition matrices produce identical random permutations
         for any source state whose transition row and agent set are the same
-        — a correctness requirement for common random numbers in scenario
+        - a correctness requirement for common random numbers in scenario
         comparisons (e.g., counterfactual experiments where the policy-period
         transition matrix differs from the baseline).  Without this isolation,
         the RNG state drift from earlier source states' leftover-slot

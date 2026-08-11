@@ -245,7 +245,7 @@ class DiscreteDistribution(Distribution):
             Tolerance for checking whether 1/p_j is close to an integer.
         max_J_min : int
             Maximum allowed J_min.  If the computed J_min exceeds this,
-            a ValueError is raised — this indicates that at least one
+            a ValueError is raised - this indicates that at least one
             conditional shock probability is finer than 1/max_J_min
             (e.g. < 0.01%), making shuffled draws impractical.
 
