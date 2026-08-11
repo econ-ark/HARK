@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- `make_hierarchical_mrkv_array` auto-detects a general nested `[i][j]` conditional-matrix format (source-and-destination conditioning, Krusell-Smith style) alongside the existing flat destination-conditioned format (unchanged for existing callers); adds its inverse `extract_cond_mrkv_arrays`; `KrusellSmithEconomy.make_MrkvArray` now also stores `MacroMrkvArray`/`CondMrkvArrays` and the KS agent's `market_vars` distributes them (additive plumbing for the hierarchical refactor). [#1796](https://github.com/econ-ark/HARK/pull/1796)
 - future item
 - future item
 - future item
