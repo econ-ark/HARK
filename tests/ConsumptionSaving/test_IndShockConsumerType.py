@@ -1258,3 +1258,65 @@ class testCubicSolutionSerialization(unittest.TestCase):
     def test_pickle_solution(self):
         restored = pickle.loads(pickle.dumps(self.agent.solution[0]))
         self.check_solution(restored)
+class testMarkovTransitionShuffle(unittest.TestCase):
+    """Tests for the markov_shuffle parameter on MarkovConsumerType."""
+
+    def test_markov_shuffle_state_counts(self):
+        """With markov_shuffle=True, state counts should match deterministic targets."""
+        from HARK.distributions.base import MarkovProcess
+
+        TM = np.array([[0.95, 0.05], [0.5, 0.5]])
+        mp = MarkovProcess(TM, seed=42)
+
+        # Start with 9500 in state 0, 500 in state 1
+        state = np.array([0] * 9500 + [1] * 500)
+        new_state = mp.draw(state, shuffle=True)
+
+        # Expected: 9500*0.95=9025 stay in 0, 9500*0.05=475 go to 1
+        #           500*0.5=250 go to 0, 500*0.5=250 stay in 1
+        count_0_to_0 = np.sum((state == 0) & (new_state == 0))
+        count_0_to_1 = np.sum((state == 0) & (new_state == 1))
+        count_1_to_0 = np.sum((state == 1) & (new_state == 0))
+        count_1_to_1 = np.sum((state == 1) & (new_state == 1))
+
+        # With shuffle, counts should be within ±1 of deterministic target
+        self.assertAlmostEqual(count_0_to_0, 9025, delta=1)
+        self.assertAlmostEqual(count_0_to_1, 475, delta=1)
+        self.assertAlmostEqual(count_1_to_0, 250, delta=1)
+        self.assertAlmostEqual(count_1_to_1, 250, delta=1)
+
+    def test_markov_shuffle_consistent_over_time(self):
+        """markov_shuffle=True produces correct counts over multiple periods."""
+        from HARK.distributions.base import MarkovProcess
+
+        TM = np.array([[0.95, 0.05], [0.5, 0.5]])
+        mp = MarkovProcess(TM, seed=123)
+        state = np.zeros(10000, dtype=int)
+
+        for _ in range(100):
+            state = mp.draw(state, shuffle=True)
+            total = len(state)
+            n0 = np.sum(state == 0)
+            n1 = np.sum(state == 1)
+            self.assertEqual(n0 + n1, total)
+
+        # After 100 steps, should be near steady state: pi_0 = 0.5/0.55 ≈ 0.909
+        ss_0 = 0.5 / (0.05 + 0.5)
+        empirical_0 = np.sum(state == 0) / len(state)
+        np.testing.assert_allclose(empirical_0, ss_0, atol=0.02)
+
+    def test_markov_consumer_shuffle(self):
+        """MarkovConsumerType with markov_shuffle=True completes simulation."""
+        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+
+        agent = MarkovConsumerType(
+            MrkvArray=[np.array([[0.9, 0.1], [0.1, 0.9]])],
+            AgentCount=1000,
+            T_sim=20,
+            markov_shuffle=True,
+        )
+        agent.cycles = 0
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(agent.shocks["Mrkv"].shape, (1000,))
