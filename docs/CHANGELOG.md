@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Makes `CubicHermiteInterp` `deepcopy`-able and picklable independent of scipy internals: the wrapped scipy spline is excluded from serialized state and deterministically rebuilt on restore, so attribute caching like scipy 1.18.0's unpicklable module objects (scipy issue #25489) can no longer break serialization of HARK solutions. [#1802](https://github.com/econ-ark/HARK/pull/1802)
 - future item
 - future item
 - future item
