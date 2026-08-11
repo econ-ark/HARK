@@ -45,6 +45,18 @@ class DiscreteDistributionTests(unittest.TestCase):
             0,
         )
 
+    def test_draw_events_shuffle_matches_shuffle_draw_indices(self):
+        """draw_events(..., shuffle=True) returns the same multiset of indices as draw(..., shuffle=True)."""
+        pmv = np.array([0.95, 0.05])
+        atoms = np.array([0.0, 1.0])
+        d = DiscreteDistribution(pmv, atoms, seed=12345)
+        N = 10_000
+        idx_shuffle = d.draw_events(N, shuffle=True)
+        draws = d.draw(N, shuffle=True, atoms=np.arange(2, dtype=int))
+        self.assertTrue(np.array_equal(np.sort(idx_shuffle), np.sort(draws)))
+        self.assertEqual(np.bincount(idx_shuffle, minlength=2)[0], 9500)
+        self.assertEqual(np.bincount(idx_shuffle, minlength=2)[1], 500)
+
     def test_distr_of_function(self):
         # Function 1 -> 1
         # Approximate the lognormal expectation
@@ -583,6 +595,135 @@ class MarkovProcessTests(unittest.TestCase):
 
         self.assertEqual(new_state.sum(), 45)
 
+    def test_shuffle_crn_across_matrices(self):
+        """Source states with identical transition rows should produce
+        identical draws across two calls with the same seed, even when
+        other source states have different rows that consume different
+        amounts of RNG state.
+
+        This is the common-random-numbers guarantee needed for scenario
+        comparison experiments (e.g., counterfactual policy evaluation):
+        agents whose transition probabilities are unchanged between two
+        matrices must see identical state assignments so that the
+        treatment-effect variance is driven only by the rows that
+        actually differ.
+
+        The test uses row 0 probabilities that produce different
+        leftover-slot counts and different permutation consumption
+        between the two matrices, then checks that row 1's output (with
+        identical probabilities) is identical across multiple seeds.
+        Without per-source-state sub-RNG isolation, row 0's RNG drift
+        contaminates row 1's permutation and this assertion fails for
+        most seeds.
+        """
+        # 7 agents in each source state — small enough to exercise
+        # leftover-slot assignment, large enough that the permutation
+        # drift is clearly visible across seeds.
+        state = np.array([0] * 7 + [1] * 7, dtype=int)
+
+        # Row 0 differs between matrices (TM_a: K=[3,3] M=1;
+        # TM_b: K=[5,2] M=0).  Row 1 is identical in both.
+        TM_a = np.array([[0.50, 0.50], [0.30, 0.70]])
+        TM_b = np.array([[5.0 / 7.0, 2.0 / 7.0], [0.30, 0.70]])
+
+        # Check across multiple seeds — the naive implementation fails
+        # for the majority of seeds, while the sub-RNG-isolated
+        # implementation passes for all of them.
+        for seed in range(20):
+            mp_a = MarkovProcess(TM_a, seed=seed)
+            mp_b = MarkovProcess(TM_b, seed=seed)
+            new_a = mp_a.draw(state, shuffle=True)
+            new_b = mp_b.draw(state, shuffle=True)
+            source_1 = state == 1
+            np.testing.assert_array_equal(
+                new_a[source_1],
+                new_b[source_1],
+                err_msg=(
+                    f"seed={seed}: source-1 draws differ between two "
+                    f"calls with identical row-1 probabilities. This "
+                    f"indicates that RNG state from row 0's processing "
+                    f"contaminated row 1's permutation (CRN violation)."
+                ),
+            )
+
+    def test_shuffle_with_draws_converges_to_iid(self):
+        """The new draws= argument should produce per-agent assignments
+        that converge to per-agent iid as N -> infinity (Glivenko-
+        Cantelli).  At N=10000 with a 2-state chain, per-agent match
+        rate between iid and draws=-shuffle should be > 99%.
+
+        The default shuffle (no draws=) uses a random permutation
+        independent of any per-agent input, so agent-by-agent it
+        does NOT match iid even at large N — typically agreeing only
+        on the trivial "stay-in-same-target" mass.
+        """
+        P = np.array([[0.95, 0.05], [0.30, 0.70]])
+        N = 10_000
+        rng = np.random.default_rng(seed=42)
+        # Half emp, half unemp — exercises both rows of P.
+        state = np.repeat([0, 1], N // 2)
+        u = rng.uniform(size=N)
+
+        # Per-agent iid via searchsorted on cumulative cond_mrkv.
+        cdf = np.cumsum(P, axis=1)
+        new_iid = np.empty(N, dtype=int)
+        for j in range(2):
+            mask = state == j
+            new_iid[mask] = np.searchsorted(cdf[j, :], u[mask])
+
+        # New mode: rank-based stratified inverse-CDF with shared draws.
+        mp_strat = MarkovProcess(P, seed=42)
+        new_strat = mp_strat.draw(state, shuffle=True, draws=u)
+
+        match_strat = (new_iid == new_strat).mean()
+        self.assertGreater(
+            match_strat,
+            0.99,
+            f"draws=-shuffle should match iid agent-by-agent at >99% "
+            f"for N={N}; got {match_strat:.4f}",
+        )
+
+    def test_shuffle_with_draws_preserves_quotas(self):
+        """The new draws= argument must preserve the quota-exact
+        target counts that are the original purpose of shuffle.  Each
+        per-source-state target count K[j,k] should equal
+        floor(N_j * P[j,k]) plus at most ±1 from leftover allocation.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 1000
+        rng = np.random.default_rng(seed=1)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        mp = MarkovProcess(P, seed=0)
+        new_state = mp.draw(state, shuffle=True, draws=u)
+
+        for j in range(2):
+            N_j = (state == j).sum()
+            for k in range(2):
+                count = int(((state == j) & (new_state == k)).sum())
+                expected = N_j * P[j, k]
+                self.assertLessEqual(
+                    abs(count - expected),
+                    1,
+                    f"source {j} -> target {k}: count {count} not within "
+                    f"±1 of expected quota {expected:.1f}",
+                )
+
+    def test_shuffle_draws_and_sort_key_mutually_exclusive(self):
+        """draws= and sort_key= specify mutually exclusive assignment
+        modes; passing both should raise ValueError.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 100
+        rng = np.random.default_rng(seed=0)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        mp = MarkovProcess(P, seed=0)
+        with self.assertRaises(ValueError):
+            mp.draw(state, shuffle=True, draws=u, sort_key=u)
+
 
 class LogNormalToNormalTests(unittest.TestCase):
     """
@@ -1001,3 +1142,31 @@ class CalcExpectationDeprecatedAlias(unittest.TestCase):
         self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
         expected = expected_with_loop(dd, lambda x: x * x)
         np.testing.assert_allclose(got, expected)
+class StreamInvarianceGoldens(unittest.TestCase):
+    """Default-path RNG-stream pins captured on main at a25d3ae0, before
+    the shuffle/draws/replicates additions.
+
+    These sequences must never change while the new parameters keep their
+    defaults: downstream reproducibility depends on the exact draw stream,
+    not just its distribution (cf. the #1719 release note).
+    """
+
+    def test_markov_process_default_stream_unchanged(self):
+        mp = MarkovProcess(np.array([[0.7, 0.3], [0.4, 0.6]]), seed=12345)
+        states = np.array([0, 1, 0, 1, 0, 0, 1, 1, 0, 1])
+        seq1 = mp.draw(states.copy())
+        seq2 = mp.draw(seq1.copy())
+        self.assertEqual(list(seq1), [0, 0, 1, 1, 0, 0, 1, 0, 0, 1])
+        self.assertEqual(list(seq2), [0, 1, 1, 0, 0, 1, 1, 0, 1, 0])
+
+    def test_discrete_distribution_default_streams_unchanged(self):
+        dd = DiscreteDistribution(
+            np.array([0.2, 0.3, 0.5]), np.array([1.0, 2.0, 3.0]), seed=98765
+        )
+        ev = dd.draw_events(12)
+        dr = dd.draw(12)
+        self.assertEqual(list(ev), [0, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 1])
+        self.assertEqual(
+            [float(x) for x in dr],
+            [2.0, 3.0, 3.0, 1.0, 2.0, 1.0, 3.0, 2.0, 2.0, 1.0, 1.0, 3.0],
+        )
