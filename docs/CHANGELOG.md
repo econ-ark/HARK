@@ -8,6 +8,27 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
+### 0.17.3 (dev)
+
+Release Date: TBD
+
+#### Release Notes
+
+(None yet)
+
+#### Major Changes
+
+- future item
+- future item
+- future item
+
+#### Minor Changes
+
+- future item
+- future item
+- future item
+
+
 ### 0.17.2
 
 Release Date: May 1, 2026
@@ -69,6 +90,7 @@ There are some breaking changes:
 - `HARK.simulator` and experimental Monte Carlo submodule refactored to reduce repetition. #1766
 - `HARK.distributions` refactored to reduce repetition and improve structures. #1767
 - Additional refactoring in `Labeled`, `SSJutils`, `utilities`, and `metric` to reduce code repetition. #1768
+
 
 ### 0.17.1
 
