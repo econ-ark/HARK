@@ -1260,6 +1260,8 @@ class testCubicSolutionSerialization(unittest.TestCase):
     def test_pickle_solution(self):
         restored = pickle.loads(pickle.dumps(self.agent.solution[0]))
         self.check_solution(restored)
+
+
 class testMarkovTransitionShuffle(unittest.TestCase):
     """Tests for the markov_shuffle parameter on MarkovConsumerType."""
 
@@ -1280,7 +1282,7 @@ class testMarkovTransitionShuffle(unittest.TestCase):
         count_1_to_0 = np.sum((state == 1) & (new_state == 0))
         count_1_to_1 = np.sum((state == 1) & (new_state == 1))
 
-        # With shuffle, counts should be within ±1 of deterministic target
+        # With shuffle, counts should be within +/-1 of deterministic target
         self.assertAlmostEqual(count_0_to_0, 9025, delta=1)
         self.assertAlmostEqual(count_0_to_1, 475, delta=1)
         self.assertAlmostEqual(count_1_to_0, 250, delta=1)
@@ -1300,7 +1302,7 @@ class testMarkovTransitionShuffle(unittest.TestCase):
             n1 = np.sum(state == 1)
             self.assertEqual(n0 + n1, total)
 
-        # After 100 steps, should be near steady state: pi_0 = 0.5/0.55 ≈ 0.909
+        # After 100 steps, should be near steady state: pi_0 = 0.5/0.55 is about 0.909
         ss_0 = 0.5 / (0.05 + 0.5)
         empirical_0 = np.sum(state == 0) / len(state)
         np.testing.assert_allclose(empirical_0, ss_0, atol=0.02)

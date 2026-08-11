@@ -1260,6 +1260,8 @@ class CalcExpectationDeprecatedAlias(unittest.TestCase):
         self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
         expected = expected_with_loop(dd, lambda x: x * x)
         np.testing.assert_allclose(got, expected)
+
+
 class StreamInvarianceGoldens(unittest.TestCase):
     """Default-path RNG-stream pins captured on main at a25d3ae0, before
     the shuffle/draws/replicates additions.
