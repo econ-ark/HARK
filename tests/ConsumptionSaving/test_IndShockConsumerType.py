@@ -1258,6 +1258,8 @@ class testCubicSolutionSerialization(unittest.TestCase):
     def test_pickle_solution(self):
         restored = pickle.loads(pickle.dumps(self.agent.solution[0]))
         self.check_solution(restored)
+
+
 class testIncomeShuffleIndShock(unittest.TestCase):
     """Tests for the income_shuffle parameter on IndShockConsumerType."""
 
