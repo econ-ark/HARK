@@ -1284,6 +1284,31 @@ class CubicHermiteInterp(HARKinterpolator1D):
             temp = np.array([intercept_limit, slope_limit, gap, 0])
         self.coeffs = np.vstack((self.coeffs, temp))
 
+    def __getstate__(self):
+        """
+        Return the instance state without the scipy spline stored in ``_chs``.
+
+        scipy 1.18.0 caches array-namespace module objects on spline instances
+        (scipy issue #25489), and module objects cannot be pickled or
+        deepcopied. Excluding ``_chs`` here and rebuilding it in
+        ``__setstate__`` keeps this class serializable regardless of what
+        scipy stores on its spline objects.
+        """
+        state = self.__dict__.copy()
+        state.pop("_chs", None)
+        return state
+
+    def __setstate__(self, state):
+        """
+        Restore instance state, rebuilding the scipy spline that
+        ``__getstate__`` excluded from its defining data. The reconstruction
+        is deterministic, so the rebuilt spline is identical to the original.
+        """
+        self.__dict__.update(state)
+        self._chs = CubicHermiteSpline(
+            self.x_list, self.y_list, self.dydx_list, extrapolate=None
+        )
+
     def out_of_bounds(self, x):
         out_bot = x < self.x_list[0]
         out_top = x > self.x_list[-1]
