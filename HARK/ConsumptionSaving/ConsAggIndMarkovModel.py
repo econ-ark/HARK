@@ -51,9 +51,16 @@ def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
     ----------
     MacroMrkvArray : np.ndarray, shape (M, M)
         Aggregate Markov transition matrix.
-    CondMrkvArrays : list of np.ndarray, each shape (N, N)
-        ``CondMrkvArrays[j][mi, mj]`` is ``Pr(micro'=mj | micro=mi, macro'=j)``.
-        There must be M such matrices (one per destination macro state).
+    CondMrkvArrays : list of np.ndarray or list of list of np.ndarray
+        Conditional micro transition matrices, auto-detected between two
+        formats.  Simple: a flat list of M arrays, each (N, N), where
+        ``CondMrkvArrays[j][mi, mj]`` is ``Pr(micro'=mj | micro=mi,
+        macro'=j)`` (micro transitions depend only on the destination
+        macro state).  General: a nested M x M list of (N, N) arrays,
+        where ``CondMrkvArrays[i][j]`` conditions on both the source and
+        destination macro state (Krusell-Smith style).  Detection: if
+        ``CondMrkvArrays[0]`` is a 2-D ndarray, the simple format is
+        used.
 
     Returns
     -------
@@ -62,14 +69,23 @@ def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
         ``combined = N * macro + micro``.
     """
     M = MacroMrkvArray.shape[0]
-    N = CondMrkvArrays[0].shape[0]
+    first = CondMrkvArrays[0]
+    general = isinstance(first, (list, tuple)) or (
+        isinstance(first, np.ndarray) and first.ndim != 2
+    )
+
+    if general:
+        N = CondMrkvArrays[0][0].shape[0]
+    else:
+        N = first.shape[0]
+
     full_size = M * N
     MrkvArray = np.zeros((full_size, full_size))
 
     for i in range(M):
         for j in range(M):
             p_macro = MacroMrkvArray[i, j]
-            cond_micro = CondMrkvArrays[j]
+            cond_micro = CondMrkvArrays[i][j] if general else CondMrkvArrays[j]
             MrkvArray[N * i : N * (i + 1), N * j : N * (j + 1)] = p_macro * cond_micro
 
     return MrkvArray
@@ -78,6 +94,71 @@ def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
 # =============================================================================
 # AggIndMarkovConsumerType
 # =============================================================================
+
+
+def extract_cond_mrkv_arrays(MrkvIndArray, MacroMrkvArray, N):
+    """
+    Extract conditional micro transition arrays in the general ``[i][j]``
+    format from a combined (M*N) x (M*N) transition matrix.
+
+    Each (N x N) block ``MrkvIndArray[N*i:N*(i+1), N*j:N*(j+1)]`` equals
+    ``MacroMrkvArray[i,j] * CondMrkvArrays[i][j]``.  This function recovers
+    ``CondMrkvArrays[i][j]`` by dividing each block by the corresponding
+    macro probability.
+
+    Parameters
+    ----------
+    MrkvIndArray : np.ndarray, shape (M*N, M*N)
+        Full combined Markov transition matrix.
+    MacroMrkvArray : np.ndarray, shape (M, M)
+        Aggregate Markov transition matrix.
+    N : int
+        Number of micro states.
+
+    Returns
+    -------
+    list of list of np.ndarray
+        ``result[i][j]`` is an (N, N) conditional micro transition matrix.
+        Blocks whose macro probability is zero come back as zero matrices.
+
+    Raises
+    ------
+    ValueError
+        If ``MrkvIndArray`` is not (M*N) x (M*N), or if any block is not
+        ``MacroMrkvArray[i,j]`` times a row-stochastic matrix.  The latter
+        condition is necessary and sufficient for the extracted arrays to
+        be valid transition matrices, so an unchecked input would return
+        rows that silently fail to sum to one.
+    """
+    M = MacroMrkvArray.shape[0]
+    expected_shape = (M * N, M * N)
+    if MrkvIndArray.shape != expected_shape:
+        raise ValueError(
+            f"MrkvIndArray has shape {MrkvIndArray.shape}, but "
+            f"M={M} macro states and N={N} micro states require "
+            f"{expected_shape}."
+        )
+
+    CondMrkvArrays = []
+    for i in range(M):
+        row = []
+        for j in range(M):
+            block = MrkvIndArray[N * i : N * (i + 1), N * j : N * (j + 1)]
+            p_macro = MacroMrkvArray[i, j]
+            block_sums = block.sum(axis=1)
+            if not np.allclose(block_sums, p_macro):
+                raise ValueError(
+                    f"Block ({i},{j}) of MrkvIndArray is not hierarchical: "
+                    f"its rows sum to {block_sums}, but MacroMrkvArray[{i},{j}]"
+                    f" = {p_macro}.  Each block must be the macro probability "
+                    "times a row-stochastic micro transition matrix."
+                )
+            if p_macro > 0:
+                row.append(block / p_macro)
+            else:
+                row.append(np.zeros((N, N)))
+        CondMrkvArrays.append(row)
+    return CondMrkvArrays
 
 
 class AggIndMarkovConsumerType(AgentType):
