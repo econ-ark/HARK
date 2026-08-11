@@ -4,6 +4,10 @@ This file implements unit tests for core HARK functionality.
 
 import unittest
 
+# HARK exports a callable named `warnings`, which shadows the stdlib module
+# at this module's scope, so the standard library is bound under an alias.
+import warnings as std_warnings
+
 import numpy as np
 import pytest
 from copy import deepcopy
@@ -17,6 +21,7 @@ from HARK.core import (
     AgentPopulation,
     AgentType,
     Parameters,
+    _resolve_solve_one_period,
     distribute_params,
 )
 from HARK import (
@@ -1362,6 +1367,82 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
         self.assertEqual(agent_pop.agent_type_count, 5)
         self.assertIn("CRRA", agent_pop.discrete_distributions)
 
+    def test_time_var_unhandled_type_is_omitted_with_warning(self):
+        """A time_var value of an unsupported type is dropped, and says so.
+
+        Before the helpers were extracted, the time_var branch assigned a
+        shared local unconditionally after its if/elif chain, so this input
+        raised UnboundLocalError or silently reused the previous key's value.
+        Omitting the key is a deliberate change, so it must be announced.
+        """
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # ndarray falls past the int/float, list and DataArray branches.
+        params["Rfree"] = np.array([1.02, 1.03])
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with pytest.warns(UserWarning, match="Rfree.*declared time-varying"):
+            agent_pop.__parse_parameters__()
+
+        for agent_params in agent_pop.population_parameters:
+            self.assertNotIn("Rfree", agent_params)
+
+    def test_time_var_unhandled_dataarray_dims_is_omitted_with_warning(self):
+        """A DataArray whose leading dim is neither agent nor age is dropped."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["Rfree"] = DataArray([1.02, 1.03], dims=("mrkv",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with pytest.warns(UserWarning, match="Rfree.*declared time-varying"):
+            agent_pop.__parse_parameters__()
+
+        for agent_params in agent_pop.population_parameters:
+            self.assertNotIn("Rfree", agent_params)
+
+    def test_unclassified_unhandled_value_is_omitted_silently(self):
+        """Unclassified keys fall through by design and must not warn.
+
+        Ordinary parameters such as constructors (a dict) and unset options
+        (None) hit this path on every run, so warning here would bury the
+        time_var case in noise.
+        """
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with std_warnings.catch_warnings(record=True) as caught:
+            std_warnings.simplefilter("always")
+            agent_pop.__parse_parameters__()
+
+        omitted = [
+            key
+            for key in params
+            if key not in agent_pop.population_parameters[0]
+            and key not in agent_pop.time_var
+        ]
+        self.assertTrue(omitted, "expected at least one unclassified fall-through")
+        self.assertEqual(
+            [
+                str(w.message)
+                for w in caught
+                if "omitted from every agent" in str(w.message)
+            ],
+            [],
+        )
+
+    def test_slice_dataarray_distinguishes_none_from_unhandled(self):
+        """A legitimate None value must not be read as an unrecognized layout."""
+        sentinel = AgentPopulation._UNHANDLED
+
+        legitimate_none = DataArray(
+            np.array([None, 5.0], dtype=object), dims=("agent",)
+        )
+        self.assertIsNone(AgentPopulation._slice_dataarray_param(legitimate_none, 0))
+
+        unrecognized = DataArray(np.zeros((2, 3)), dims=("wrong", "dims"))
+        self.assertIs(AgentPopulation._slice_dataarray_param(unrecognized, 0), sentinel)
+
 
 class test_export_to_df(unittest.TestCase):
     def setUp(self):
@@ -1440,3 +1521,65 @@ class test_export_to_df(unittest.TestCase):
         self.assertRaises(
             KeyError, self.agent.export_to_df, var="aNrm", by_age=True, sym=True
         )
+
+
+class testIsIdioState(unittest.TestCase):
+    """Both branches of AgentType._is_idio_state.
+
+    Every existing caller uses an agent whose state_now entries are all
+    per-agent ndarrays, so the False branch -- the entire reason the helper
+    exists, keeping newborns from overwriting Market-set aggregates -- is
+    otherwise never reached.
+    """
+
+    def setUp(self):
+        self.agent = AgentType()
+        self.agent.AgentCount = 3
+
+    def test_per_agent_array_is_idiosyncratic(self):
+        self.agent.state_now = {"aNrm": np.zeros(3)}
+        self.assertTrue(self.agent._is_idio_state("aNrm"))
+
+    def test_scalar_aggregate_is_not_idiosyncratic(self):
+        self.agent.state_now = {"AggAsset": 1.5}
+        self.assertFalse(self.agent._is_idio_state("AggAsset"))
+
+    def test_wrong_length_array_is_not_idiosyncratic(self):
+        self.agent.state_now = {"AggHist": np.zeros(7)}
+        self.assertFalse(self.agent._is_idio_state("AggHist"))
+
+    def test_non_array_sequence_is_not_idiosyncratic(self):
+        """A list of the right length is still not a per-agent ndarray."""
+        self.agent.state_now = {"weird": [0.0, 0.0, 0.0]}
+        self.assertFalse(self.agent._is_idio_state("weird"))
+
+
+class testResolveSolveOnePeriod(unittest.TestCase):
+    """Both branches of _resolve_solve_one_period.
+
+    The per-period-sequence branch is user-facing API but is not exercised
+    anywhere in HARK itself, so a regression there would be silent.
+    """
+
+    def test_single_callable_reused_for_every_period(self):
+        agent = AgentType()
+        agent.solve_one_period = lambda vary_1: None
+
+        for k in (0, 1, 5):
+            solver, args = _resolve_solve_one_period(agent, k)
+            self.assertIs(solver, agent.solve_one_period)
+            self.assertEqual(list(args), ["vary_1"])
+
+    def test_sequence_of_solvers_selects_by_period(self):
+        agent = AgentType()
+        first = lambda alpha: None
+        second = lambda beta: None
+        agent.solve_one_period = [first, second]
+
+        solver0, args0 = _resolve_solve_one_period(agent, 0)
+        solver1, args1 = _resolve_solve_one_period(agent, 1)
+
+        self.assertIs(solver0, first)
+        self.assertIs(solver1, second)
+        self.assertEqual(list(args0), ["alpha"])
+        self.assertEqual(list(args1), ["beta"])
