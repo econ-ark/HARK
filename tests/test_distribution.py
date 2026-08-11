@@ -957,7 +957,6 @@ class CalcExpectationDeprecatedAlias(unittest.TestCase):
     alias that delegates exactly to expected_with_loop."""
 
     def test_alias_delegates_and_warns(self):
-
         dd = DiscreteDistribution(np.array([0.25, 0.75]), np.array([2.0, 4.0]), seed=0)
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
