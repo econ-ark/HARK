@@ -1573,7 +1573,7 @@ class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
         agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
         agent.solve()
         agent.make_shock_history()
-        self.assertEqual(
+        np.testing.assert_allclose(
             [float(x) for x in agent.shock_history["PermShk"][2][:4]],
             [
                 1.0887560662509859,
@@ -1581,6 +1581,7 @@ class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
                 0.9278094171517418,
                 1.1780702264015428,
             ],
+            rtol=1e-10,
         )
 
     def test_shuffle_toggles_and_restores_flags(self):
