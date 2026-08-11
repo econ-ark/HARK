@@ -166,7 +166,7 @@ class AggIndMarkovConsumerType(AgentType):
     A consumer with two-level hierarchical discrete Markov states.
 
     * **M** aggregate (macro) states — common to all agents, received from
-      an economy each period via the sow variable ``"Mrkv"``.
+      an economy each period via the sow variable ``"MrkvAgg"``.
     * **N** idiosyncratic (micro) states — drawn per-agent each period,
       conditional on the new macro state.
 
@@ -190,7 +190,7 @@ class AggIndMarkovConsumerType(AgentType):
     * ``MrkvCombined`` (np.ndarray of int): per-agent combined-state indices.
     """
 
-    shock_vars_ = ["Mrkv"]
+    shock_vars_ = ["MrkvAgg"]
 
     def __init__(self, num_macro_states, num_micro_states, **kwds):
         self.num_macro_states = num_macro_states
@@ -208,8 +208,8 @@ class AggIndMarkovConsumerType(AgentType):
         self.MrkvCombined = N * self.MacroMrkvNow + self.MicroMrkvNow
 
     def get_macro_markov_states(self):
-        """Read the scalar macro state sowed by the economy as ``"Mrkv"``."""
-        self.MacroMrkvNow = int(self.shocks["Mrkv"])
+        """Read the scalar macro state sowed by the economy as ``"MrkvAgg"``."""
+        self.MacroMrkvNow = int(self.shocks["MrkvAgg"])
 
     def get_micro_markov_states(self):
         """

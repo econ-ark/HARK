@@ -54,7 +54,7 @@ The `KrusellSmithType` class represents individual agents in the Krusell-Smith e
 ```python
 time_inv_ = ["DiscFac", "CRRA", "aGrid", "ProbArray", "mNextArray", "MnextArray", "RnextArray"]
 state_vars = ["aNow", "mNow", "EmpNow"]  # Current state: assets, market resources, employment
-shock_vars_ = ["Mrkv"]  # Markov state shock
+shock_vars_ = ["MrkvAgg"]  # Aggregate Markov state shock
 ```
 
 **Initialization:**
@@ -81,9 +81,9 @@ The `KrusellSmithEconomy` class represents the macroeconomic environment in whic
 **Tracked Variables:**
 
 ```python
-sow_vars = ["Mnow", "Aprev", "Mrkv", "Rnow", "Wnow"]  # Variables distributed to agents
+sow_vars = ["Mnow", "Aprev", "MrkvAgg", "Rnow", "Wnow"]  # Variables distributed to agents
 reap_vars = ["aNow", "EmpNow"]  # Variables collected from agents
-track_vars = ["Mrkv", "Aprev", "Mnow", "Urate"]  # Variables tracked in history
+track_vars = ["MrkvAgg", "Aprev", "Mnow", "Urate"]  # Variables tracked in history
 dyn_vars = ["AFunc"]  # Dynamic rules that evolve during solution
 ```
 

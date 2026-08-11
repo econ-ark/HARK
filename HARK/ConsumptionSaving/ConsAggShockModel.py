@@ -1539,7 +1539,7 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         "Mgrid",
     ]
     time_vary_ = []
-    shock_vars_ = ["Mrkv"]
+    shock_vars_ = ["MrkvAgg"]
     state_vars = ["aNow", "mNow", "EmpNow"]
     market_vars = [
         "act_T",
@@ -1590,7 +1590,7 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         self.simulate(1)
 
     def initialize_sim(self):
-        self.shocks["Mrkv"] = self.MrkvInit
+        self.shocks["MrkvAgg"] = self.MrkvInit
         self.MacroMrkvNow = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
@@ -1608,7 +1608,7 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         if N == 0:
             return
 
-        S = self.shocks["Mrkv"]
+        S = self.shocks["MrkvAgg"]
         Urate = [self.UrateB, self.UrateG]
         unemp_N = int(np.round(Urate[S] * N))
         emp_N = self.AgentCount - unemp_N
@@ -1626,7 +1626,7 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         Two-step hierarchical Markov draw, then sync employment states.
 
         Uses the AggIndMarkovConsumerType machinery:
-        1. Read macro state from economy (via self.shocks["Mrkv"])
+        1. Read macro state from economy (via self.shocks["MrkvAgg"])
         2. Draw micro states via exact-match permutations
         3. Compute combined state index
         """
@@ -2773,9 +2773,9 @@ class KrusellSmithEconomy(Market):
             self,
             agents=agents,
             tolerance=tolerance,
-            sow_vars=["Mnow", "Aprev", "Mrkv", "Rnow", "Wnow"],
+            sow_vars=["Mnow", "Aprev", "MrkvAgg", "Rnow", "Wnow"],
             reap_vars=["aNow", "EmpNow"],
-            track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
+            track_vars=["MrkvAgg", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
             **params,
         )
@@ -2814,7 +2814,7 @@ class KrusellSmithEconomy(Market):
         self.sow_init["Wnow"] = self.WSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
-        self.sow_init["Mrkv"] = 0
+        self.sow_init["MrkvAgg"] = 0
         self.make_MrkvArray()
 
     def reset(self):
