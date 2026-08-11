@@ -18,6 +18,7 @@ Release Date: TBD
 
 #### Major Changes
 
+- Raises the minimum supported Python to 3.12 and adds 3.14, following [SPEC 0](https://scientific-python.org/specs/spec-0000/), which drops a Python version three years after release. Python 3.11 left that window in October 2025, and numpy and scipy both already require 3.12 or newer, so installing HARK on 3.10 or 3.11 resolved a dependency stack from two years ago rather than the one HARK is developed against. The CI matrix now sweeps 3.12, 3.13 and 3.14 on Linux and covers 3.13 on macOS and Windows.
 - future item
 - future item
 - future item
@@ -25,7 +26,10 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
-- Adds an opt-in `death_shuffle` parameter (`PerfForesightConsumerType.sim_death`, mirrored in `MarkovConsumerType`): deterministic floor-plus-remainder death counts with random agent assignment, removing binomial noise in mortality. Default False; the default RNG path is preserved verbatim and pinned by a behavior-golden test. [#1790](https://github.com/econ-ark/HARK/pull/1790)
+- Restores `calc_expectation` as a `DeprecationWarning`-bearing alias of `expected_with_loop` (renamed in 0.17.2), preserving import compatibility for downstream code pinned to earlier versions - including frozen reproduction archives that cannot be edited. Slated for removal in a future release. [#1800](https://github.com/econ-ark/HARK/pull/1800)
+- Exports `KrusellSmithType`, `KrusellSmithEconomy`, `init_KS_agents`, `init_KS_economy` in `HARK.ConsumptionSaving.ConsAggShockModel.__all__` (they were defined but unlisted); fixes a stale sentence in the KrusellSmithType example notebook. [#1795](https://github.com/econ-ark/HARK/pull/1795)
+- Adds `AgentType.post_state_hook()`: a no-op extension point invoked by `sim_one_period` between `get_states()` and `get_controls()`, for mixins that adjust states before controls are computed (e.g. variance-reduction normalization). Default behavior is bit-identical (pinned by a behavior-golden test). [#1787](https://github.com/econ-ark/HARK/pull/1787)
+- Adds an opt-in `death_shuffle` parameter (`PerfForesightConsumerType.sim_death`, mirrored in `MarkovConsumerType`): for each distinct death probability, the number of deaths is set by floor-plus-remainder and the agents who die are drawn uniformly at random from that group. Each agent's marginal death probability is still `DiePrb` and the expected number of deaths is unchanged; deaths within a group become negatively correlated (`-1/(N-1)`), which is what removes the binomial noise. The reduction scales with `N_group * DiePrb`, so it is exact only for a single large group with `T_age=None` (death count constant at every period) and partial otherwise: on a 65-age lifecycle calibration the variance falls 34% at `AgentCount=1000` and 96% at `AgentCount=20000`, and with `T_age` set, old-age deaths are added afterward and are not de-noised. Default False; the default RNG path is preserved verbatim and pinned by a behavior-golden test. [#1790](https://github.com/econ-ark/HARK/pull/1790)
 - future item
 - future item
 - future item
