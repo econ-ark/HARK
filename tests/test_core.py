@@ -1563,6 +1563,8 @@ class test_post_state_hook(unittest.TestCase):
         agent.initialize_sim()
         agent.simulate()
         self.assertEqual(len(calls), 5)
+
+
 class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
     """make_shock_history(shuffle=) thin wrapper: default delegates to the
     unchanged original body; shuffle=True toggles the opt-in draw-mode
