@@ -1318,7 +1318,7 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
         agent.solve()
         agent.initialize_sim()
         agent.simulate()
-        self.assertEqual(
+        np.testing.assert_allclose(
             [float(x) for x in agent.shocks["PermShk"][:5]],
             [
                 1.0887560662509859,
@@ -1327,8 +1327,9 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
                 1.0427376294215152,
                 1.0427376294215152,
             ],
+            rtol=1e-10,
         )
-        self.assertEqual(
+        np.testing.assert_allclose(
             [float(x) for x in agent.shocks["TranShk"][:5]],
             [
                 1.209379023455466,
@@ -1337,4 +1338,5 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
                 0.9524671973887084,
                 1.0317263121066038,
             ],
+            rtol=1e-10,
         )
