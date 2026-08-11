@@ -5,7 +5,7 @@ from HARK.ConsumptionSaving.ConsHealthModel import BasicHealthConsumerType
 
 class testBasicHealthConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = BasicHealthConsumerType(cycles=10)
+        self.agent = BasicHealthConsumerType(cycles=10, T_age=10)
         self.agent.solve()
 
     def test_solution(self):
@@ -23,3 +23,11 @@ class testBasicHealthConsumerType(unittest.TestCase):
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_invalid(self):
+        ThisType = BasicHealthConsumerType()
+        ThisType.DeprRteMean = [0.05, 0.06]
+        self.assertRaises(ValueError, ThisType.construct)
+        ThisType.DeprRteMean = [0.05]
+        ThisType.DeprRteSpread = [0.05, 0.06]
+        self.assertRaises(ValueError, ThisType.construct)

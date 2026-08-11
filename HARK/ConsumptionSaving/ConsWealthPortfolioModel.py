@@ -29,97 +29,15 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     make_simple_ShareGrid,
     make_AdjustDstn,
 )
+from HARK.ConsumptionSaving.ConsWealthUtilityModel import (
+    make_ChiFromOmega_function,
+)
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
+)
 from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import NullFunc, make_assets_grid
-
-
-class ChiFromOmegaFunction:
-    """
-    A class for representing a function that takes in values of omega = EndOfPrdvP / aNrm
-    and returns the corresponding optimal chi = cNrm / aNrm. The only parameters
-    that matter for this transformation are the coefficient of relative risk
-    aversion rho and the share of wealth in the Cobb-Douglas aggregator delta.
-
-    Parameters
-    ----------
-    rho : float
-        Coefficient of relative risk aversion.
-    delta : float
-        Share for wealth in the Cobb-Douglas aggregator in CRRA utility function.
-    N : int, optional
-        Number of interpolating gridpoints to use (default 501).
-    z_bound : float, optional
-        Absolute value on the auxiliary variable z's boundary (default 15).
-        z represents values that are input into a logit transformation
-        scaled by the upper bound of chi, which yields chi values.
-    """
-
-    def __init__(self, CRRA, WealthShare, N=501, z_bound=15):
-        self.CRRA = CRRA
-        self.WealthShare = WealthShare
-        self.N = N
-        self.z_bound = z_bound
-        self.update()
-
-    def f(self, x):
-        """
-        Define the relationship between chi and omega, and evaluate on the vector
-        """
-        return x ** (1 - self.WealthShare) * (
-            (1 - self.WealthShare) * x ** (-self.WealthShare)
-            - self.WealthShare * x ** (1 - self.WealthShare)
-        ) ** (-1 / self.CRRA)
-
-    def update(self):
-        """
-        Construct the underlying interpolation of log(omega) on z.
-        """
-        # Make vectors of chi and z
-        chi_limit = (1.0 - self.WealthShare) / self.WealthShare
-        z_vec = np.linspace(-self.z_bound, self.z_bound, self.N)
-        exp_z = np.exp(z_vec)
-        chi_vec = chi_limit * exp_z / (1 + exp_z)
-
-        omega_vec = self.f(chi_vec)
-        log_omega_vec = np.log(omega_vec)
-
-        # Construct the interpolant
-        zFromLogOmegaFunc = LinearInterp(log_omega_vec, z_vec, lower_extrap=True)
-
-        # Store the function and limit as attributes
-        self.func = zFromLogOmegaFunc
-        self.limit = chi_limit
-
-    def __call__(self, omega):
-        """
-        Calculate optimal values of chi = cNrm / aNrm from values of omega.
-
-        Parameters
-        ----------
-        omega : np.array
-            One or more values of omega = EndOfPrdvP / aNrm.
-
-        Returns
-        -------
-        chi : np.array
-            Identically shaped array with optimal chi values.
-        """
-        z = self.func(np.log(omega))
-        exp_z = np.exp(z)
-        chi = self.limit * exp_z / (1 + exp_z)
-        return np.nan_to_num(chi)
-
-
-# Trivial constructor function
-def make_ChiFromOmega_function(CRRA, WealthShare, ChiFromOmega_N, ChiFromOmega_bound):
-    if WealthShare == 0.0:
-        return NullFunc()
-    return ChiFromOmegaFunction(
-        CRRA, WealthShare, N=ChiFromOmega_N, z_bound=ChiFromOmega_bound
-    )
-
-
-###############################################################################
 
 
 def utility(c, a, CRRA, share=0.0, intercept=0.0):
@@ -130,76 +48,6 @@ def utility(c, a, CRRA, share=0.0, intercept=0.0):
 def dudc(c, a, CRRA, share=0.0, intercept=0.0):
     u = utility(c, a, CRRA, share, intercept)
     return u * (1 - CRRA) * (1 - share) / c
-
-
-def duda(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * share / (a + intercept)
-
-
-def du2dc2(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    return u * (1 - CRRA) * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
-
-
-def du2dadc(c, a, CRRA, share=0.0, intercept=0.0):
-    u = utility(c, a, CRRA, share, intercept)
-    w = a + intercept
-    return u * (1 - CRRA) * share * (share - 1) * (CRRA - 1) / (c * w)
-
-
-def du_diff(c, a, CRRA, share=0.0, intercept=0.0):
-    ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
-    dudc = ufac * (1 - share) / c
-
-    if share == 0:
-        return dudc
-    else:
-        duda = ufac * share / (a + intercept)
-
-    return dudc - duda
-
-
-def du2_diff(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
-    ufac = utility(c, a, CRRA, share, intercept) * (1 - CRRA)
-    w = a + intercept
-
-    dudcdc = ufac * (share - 1) * ((1 - CRRA) * (share - 1) + 1) / c**2
-    dudadc = ufac * share * (share - 1) * (CRRA - 1) / (c * w)
-
-    return dudcdc - dudadc
-
-
-def du2_jac(c, a, CRRA, share, intercept, vp_a):
-    du2_diag = du2_diff(c, a, CRRA, share, intercept, vp_a)
-    return np.diag(du2_diag)
-
-
-def chi_ratio(c, a, intercept):
-    return c / (a + intercept)
-
-
-def chi_func(chi, CRRA, share):
-    return chi ** (1 - share) * (
-        (1 - share) * chi ** (-share) - share * chi ** (1 - share)
-    ) ** (-1 / CRRA)
-
-
-def euler(c, a, CRRA, share, intercept, vp_a):
-    dufac = du_diff(c, a, CRRA, share, intercept)
-    return dufac - vp_a
-
-
-def euler2(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
-    return euler(c, a, CRRA, share, intercept, vp_a) ** 2
-
-
-def euler2_diff(c, a=None, CRRA=None, share=None, intercept=None, vp_a=None):
-    return (
-        2
-        * euler(c, a, CRRA, share, intercept, vp_a)
-        * du2_diff(c, a, CRRA, share, intercept)
-    )
 
 
 def calc_m_nrm_next(shocks, b_nrm, perm_gro_fac):
@@ -218,34 +66,6 @@ def calc_dvdm_next(shocks, b_nrm, perm_gro_fac, crra, vp_func):
     m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
     perm_shk_fac = shocks["PermShk"] * perm_gro_fac
     return perm_shk_fac ** (-crra) * vp_func(m_nrm)
-
-
-def calc_end_dvda(shocks, a_nrm, share, rfree, dvdb_func):
-    """
-    Compute end-of-period marginal value of assets at values a, conditional
-    on risky asset return S and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    rport = rfree + share * ex_ret  # Portfolio return
-    b_nrm = rport * a_nrm
-
-    # Calculate and return dvda
-    return rport * dvdb_func(b_nrm)
-
-
-def calc_end_dvds(shocks, a_nrm, share, rfree, dvdb_func):
-    """
-    Compute end-of-period marginal value of risky share at values a,
-    conditional on risky asset return S and risky share z.
-    """
-    # Calculate future realizations of bank balances bNrm
-    ex_ret = shocks - rfree  # Excess returns
-    rport = rfree + share * ex_ret  # Portfolio return
-    b_nrm = rport * a_nrm
-
-    # Calculate and return dvds (second term is all zeros)
-    return ex_ret * a_nrm * dvdb_func(b_nrm)
 
 
 def calc_end_dvdx(shocks, a_nrm, share, rfree, dvdb_func):
@@ -275,7 +95,6 @@ def calc_end_v(shocks, a_nrm, share, rfree, v_func):
     ex_ret = shocks - rfree
     rport = rfree + share * ex_ret
     b_nrm = rport * a_nrm
-
     return v_func(b_nrm)
 
 
@@ -300,6 +119,61 @@ def solve_one_period_WealthPortfolio(
     WealthShift,
     ChiFunc,
 ):
+    """
+    Solves one period of the wealth-in-utility model with portfolio choice.
+
+    Parameters
+    ----------
+    solution_next : PortfolioSolution
+        Representation of the succeeding period's solution.
+    IncShkDstn : Distribution
+        Discrete distribution of permanent income shocks and transitory income
+        shocks. This is only used if the input IndepDstnBool is True, indicating
+        that income and return distributions are independent.
+    RiskyDstn : Distribution
+       Distribution of risky asset returns. This is only used if the input
+       IndepDstnBool is True, indicating that income and return distributions
+       are independent.
+    LivPrb : float
+        Survival probability; likelihood of being alive at the beginning of
+        the succeeding period.
+    DiscFac : float
+        Intertemporal discount factor for future utility.
+    CRRA : float
+        Coefficient of relative risk aversion.
+    Rfree : float
+        Risk free interest factor on end-of-period assets.
+    PermGroFac : float
+        Expected permanent income growth factor at the end of this period.
+    BoroCnstArt: float or None
+        Borrowing constraint for the minimum allowable assets to end the
+        period with.  In this model, it is *required* to be zero.
+    aXtraGrid: np.array
+        Array of "extra" end-of-period asset values-- assets above the
+        absolute minimum acceptable level.
+    ShareGrid : np.array
+        Array of risky portfolio shares on which to define the interpolation
+        of the consumption function when Share is fixed. Also used when the
+        risky share choice is specified as discrete rather than continuous.
+    ShareLimit : float
+        Limiting lower bound of risky portfolio share as mNrm approaches infinity.
+    vFuncBool: bool
+        An indicator for whether the value function should be computed and
+        included in the reported solution.
+    WealthShare : float
+        Cobb-Douglas share for wealth (assets a_t) in the utility function.
+        Complementary share is for consumption.
+    WealthShift : float
+        Non-negative additive shifter for wealth in the utility function.
+    ChiFunc : function
+        Mapping from omega = EndOfPrdvPnvrs / aNrm to the optimal chi = cNrm / aNrm.
+
+    Returns
+    -------
+    solution_now : PortfolioSolution
+        Representation of the solution to this period's problem, including the
+        consumption function cFuncAdj and the risky share function ShareFuncAdj.
+    """
     # Make sure the individual is liquidity constrained.  Allowing a consumer to
     # borrow *and* invest in an asset with unbounded (negative) returns is a bad mix.
     if BoroCnstArt != 0.0:
@@ -467,7 +341,7 @@ def solve_one_period_WealthPortfolio(
         end_v = DiscFacEff * expected(
             calc_end_v,
             RiskyDstn,
-            args=(aNrmNow, ShareNext, PermGroFac, CRRA, med_v_func),
+            args=(aNrmNow, ShareNext, Rfree, med_v_func),
         )
         end_v_nvrs = uFunc.inv(end_v)
 
@@ -523,6 +397,8 @@ WealthPortfolioConsumerType_constructors_default = {
     "ShareGrid": make_simple_ShareGrid,
     "ChiFunc": make_ChiFromOmega_function,
     "AdjustDstn": make_AdjustDstn,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
     "solution_terminal": make_portfolio_solution_terminal,
 }
 
@@ -562,7 +438,21 @@ WealthPortfolioConsumerType_ShareGrid_default = {
 # Default parameters to make ChiFunc with make_ChiFromOmega_function
 WealthPortfolioConsumerType_ChiFunc_default = {
     "ChiFromOmega_N": 501,  # Number of gridpoints in chi-from-omega function
-    "ChiFromOmega_bound": 15,  # Highest gridpoint to use for it
+    "ChiFromOmega_bound": 15.0,  # Highest gridpoint to use for it
+}
+
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+WealthPortfolioConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+WealthPortfolioConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
 }
 
 # Make a dictionary to specify a risky asset consumer type
@@ -581,23 +471,19 @@ WealthPortfolioConsumerType_solving_default = {
     "WealthShare": 0.5,  # Share of wealth in Cobb-Douglas aggregator in utility function
     "WealthShift": 0.1,  # Shifter for wealth in utility function
     "DiscreteShareBool": False,  # Whether risky asset share is restricted to discrete values
-    "PortfolioBool": True,  # Whether there is portfolio choice
     "PortfolioBisect": False,  # This is a mystery parameter
     "IndepDstnBool": True,  # Whether income and return shocks are independent
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
     "AdjustPrb": 1.0,  # Probability that the agent can update their risky portfolio share each period
+    "ShareAugFac": 0,  # Number of times to "zoom in" for an "augmented" search for optimal risky share
+    "RiskyShareFixed": None,  # This just needs to exist because of inheritance, does nothing
     "sim_common_Rrisky": True,  # Whether risky returns have a shared/common value across agents
 }
 WealthPortfolioConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -626,14 +512,51 @@ WealthPortfolioConsumerType_default.update(
     WealthPortfolioConsumerType_RiskyDstn_default
 )
 WealthPortfolioConsumerType_default.update(WealthPortfolioConsumerType_ChiFunc_default)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_kNrmInitDstn_default
+)
+WealthPortfolioConsumerType_default.update(
+    WealthPortfolioConsumerType_pLvlInitDstn_default
+)
 init_wealth_portfolio = WealthPortfolioConsumerType_default
 
 ###############################################################################
 
 
 class WealthPortfolioConsumerType(PortfolioConsumerType):
-    """
-    TODO: This docstring is missing and needs to be written.
+    r"""
+    A class for representing consumers who face idiosyncratic shocks to their labor
+    income (permanent and transitory) and can invest in a risky and a risk-free asset,
+    allocating their wealth as they choose. Unlike most HARK models, these consumers
+    have wealth as an argument directly in their utility function, as a Cobb-Douglas
+    aggregation with consumption.
+
+    The model is thus a combination of RiskyAssetConsumerType (or PortfolioConsumerType)
+    with WealthUtilityConsumerType.
+
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\LivPrb}{\mathsf{S}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \newcommand{\WealthShare}{\alpha}
+        \newcommand{\WealthShift}{\xi}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\Risky}{\mathfrak{R}}
+
+        \begin{align*}
+        \text{v}_t(m_t) &= \max_{c_t, s_t} \frac{c_t^{1-\CRRA}}{1-\CRRA} + \LivPrb_t \DiscFac \mathbb{E} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA}\text{v}_{t+1}(m_{t+1}) \right] \\
+        &\text{s.t.} \\
+        a_t &= m_t - c_t, \\
+        a_t &\geq 0, \\
+        s_t &\in [0,1], \\
+        m_{t+1} &= a_t R_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
+        R_{t+1} &= s_t \Risky_{t+1} + (1-s_t) \Rfree_{t+1}, \\
+        (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+        \Risky_{t+1} &\sim G, \\
+        \mathbb{E}[\psi] &= 1. \\
+        \end{align*}
     """
 
     time_inv_ = deepcopy(PortfolioConsumerType.time_inv_)
@@ -647,6 +570,7 @@ class WealthPortfolioConsumerType(PortfolioConsumerType):
         "params": init_wealth_portfolio,
         "solver": solve_one_period_WealthPortfolio,
         "model": "ConsRiskyAsset.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "Share", "pLvl"],
     }
 
     def pre_solve(self):

@@ -4,7 +4,7 @@ from warnings import warn
 import numpy as np
 from scipy import stats
 
-from HARK.distributions.base import TimeVaryingDiscreteDistribution
+from HARK.distributions.base import IndexDistribution
 from HARK.distributions.discrete import (
     DiscreteDistribution,
     DiscreteDistributionLabeled,
@@ -13,7 +13,7 @@ from HARK.distributions.continuous import Normal
 
 
 # TODO: This function does not generate the limit attribute
-def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=0):
+def approx_lognormal_gauss_hermite(N, mu=0.0, sigma=1.0, seed=None):
     d = Normal(mu, sigma).discretize(N, method="hermite")
     return DiscreteDistribution(d.pmv, np.exp(d.atoms), seed=seed)
 
@@ -214,33 +214,76 @@ def make_tauchen_ar1(N, sigma=1.0, ar_1=0.9, bound=3.0, inflendpoint=True):
     yN = bound * sigma / ((1 - ar_1**2) ** 0.5)
     y = np.linspace(-yN, yN, N)
     d = y[1] - y[0]
-    trans_matrix = np.ones((N, N))
+    cuts = (y[1:] + y[:-1]) / 2.0
     if inflendpoint:
-        for j in range(N):
-            for k_1 in range(N - 2):
-                k = k_1 + 1
-                trans_matrix[j, k] = stats.norm.cdf(
-                    (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-                ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-            trans_matrix[j, 0] = stats.norm.cdf((y[0] + d / 2.0 - ar_1 * y[j]) / sigma)
-            trans_matrix[j, N - 1] = 1.0 - stats.norm.cdf(
-                (y[N - 1] - d / 2.0 - ar_1 * y[j]) / sigma
-            )
+        cuts = np.concatenate(([-np.inf], cuts, [np.inf]))
     else:
-        for j in range(N):
-            for k in range(N):
-                trans_matrix[j, k] = stats.norm.cdf(
-                    (y[k] + d / 2.0 - ar_1 * y[j]) / sigma
-                ) - stats.norm.cdf((y[k] - d / 2.0 - ar_1 * y[j]) / sigma)
-        ## normalize: each row sums to 1
-        trans_matrix = trans_matrix / trans_matrix.sum(axis=1)[:, np.newaxis]
-
+        cuts = np.concatenate(([y[0] - d / 2], cuts, [y[-1] + d / 2]))
+    dist = np.reshape(cuts, (1, N + 1)) - np.reshape(ar_1 * y, (N, 1))
+    dist /= sigma
+    cdf_array = stats.norm.cdf(dist)
+    sf_array = stats.norm.sf(dist)
+    trans = cdf_array[:, 1:] - cdf_array[:, :-1]
+    trans_alt = sf_array[:, :-1] - sf_array[:, 1:]
+    trans_matrix = np.maximum(trans, trans_alt)
+    trans_matrix /= np.sum(trans_matrix, axis=1, keepdims=True)
     return y, trans_matrix
 
 
 # ================================================================================
 # ==================== Functions for manipulating discrete distributions =========
 # ================================================================================
+
+
+def _bounds_with_added_atom(distribution, x, atoms):
+    """
+    Compute (infimum, supremum) for a distribution after a new atom ``x`` is added.
+
+    Falls back to taking min/max over the augmented atoms array when the source
+    distribution does not expose ``infimum``/``supremum`` in its ``limit`` dict.
+    """
+    temp_x = np.array(x, ndmin=1)
+    try:
+        infimum = np.array(
+            [
+                np.minimum(temp_x[i], distribution.limit["infimum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except KeyError:
+        infimum = np.min(atoms, axis=-1, keepdims=True)
+    try:
+        supremum = np.array(
+            [
+                np.maximum(temp_x[i], distribution.limit["supremum"][i])
+                for i in range(temp_x.size)
+            ]
+        )
+    except KeyError:
+        supremum = np.max(atoms, axis=-1, keepdims=True)
+    return infimum, supremum
+
+
+def _finalize_with_added_atom(distribution, atoms, x, p, method, sort):
+    """Build the new ``DiscreteDistribution`` after a value ``x`` (probability ``p``)
+    has been spliced onto ``distribution``. Shared by ``add_discrete_outcome`` and
+    ``add_discrete_outcome_constant_mean``.
+    """
+    pmv = np.append(p, distribution.pmv * (1 - p))
+    if sort:
+        indices = np.argsort(atoms)
+        atoms = atoms[indices]
+        pmv = pmv[indices]
+    infimum, supremum = _bounds_with_added_atom(distribution, x, atoms)
+    limit = {
+        "dist": distribution,
+        "method": method,
+        "x": x,
+        "p": p,
+        "infimum": infimum,
+        "supremum": supremum,
+    }
+    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
 
 
 def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
@@ -265,56 +308,24 @@ def add_discrete_outcome_constant_mean(distribution, x, p, sort=False):
         Probability associated with each point in array of discrete
         points for discrete probability mass function.
     """
-    if type(distribution) == TimeVaryingDiscreteDistribution:
+    if (
+        isinstance(distribution, IndexDistribution)
+        and hasattr(distribution, "distributions")
+        and distribution.distributions
+    ):
         # apply recursively on all the internal distributions
-        return TimeVaryingDiscreteDistribution(
-            [
-                add_discrete_outcome_constant_mean(d, x, p)
+        return IndexDistribution(
+            distributions=[
+                add_discrete_outcome_constant_mean(d, x, p, sort=sort)
                 for d in distribution.distributions
             ],
             seed=distribution.seed,
         )
 
-    else:
-        atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
-        pmv = np.append(p, distribution.pmv * (1 - p))
-
-        if sort:
-            indices = np.argsort(atoms)
-            atoms = atoms[indices]
-            pmv = pmv[indices]
-
-        # Update infimum and supremum
-        temp_x = np.array(x, ndmin=1)
-        try:
-            infimum = np.array(
-                [
-                    np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except:
-            infimum = np.min(atoms, axis=-1, keepdims=True)
-        try:
-            supremum = np.array(
-                [
-                    np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                    for i in range(temp_x.size)
-                ]
-            )
-        except:
-            supremum = np.max(atoms, axis=-1, keepdims=True)
-
-        limit = {
-            "dist": distribution,
-            "method": "add_discrete_outcome_constant_mean",
-            "x": x,
-            "p": p,
-            "infimum": infimum,
-            "supremum": supremum,
-        }
-
-        return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    atoms = np.append(x, distribution.atoms * (1 - p * x) / (1 - p))
+    return _finalize_with_added_atom(
+        distribution, atoms, x, p, "add_discrete_outcome_constant_mean", sort
+    )
 
 
 def add_discrete_outcome(distribution, x, p, sort=False):
@@ -339,47 +350,12 @@ def add_discrete_outcome(distribution, x, p, sort=False):
     """
 
     atoms = np.append(x, distribution.atoms)
-    pmv = np.append(p, distribution.pmv * (1 - p))
-
-    if sort:
-        indices = np.argsort(atoms)
-        atoms = atoms[indices]
-        pmv = pmv[indices]
-
-    # Update infimum and supremum
-    temp_x = np.array(x, ndmin=1)
-    try:
-        infimum = np.array(
-            [
-                np.minimum(temp_x[i], distribution.limit["infimum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except:
-        infimum = np.min(atoms, axis=-1, keepdims=True)
-    try:
-        supremum = np.array(
-            [
-                np.maximum(temp_x[i], distribution.limit["supremum"][i])
-                for i in range(temp_x.size)
-            ]
-        )
-    except:
-        supremum = np.max(atoms, axis=-1, keepdims=True)
-
-    limit = {
-        "dist": distribution,
-        "method": "add_discrete_outcome",
-        "x": x,
-        "p": p,
-        "infimum": infimum,
-        "supremum": supremum,
-    }
-
-    return DiscreteDistribution(pmv, atoms, seed=distribution.seed, limit=limit)
+    return _finalize_with_added_atom(
+        distribution, atoms, x, p, "add_discrete_outcome", sort
+    )
 
 
-def combine_indep_dstns(*distributions, seed=0):
+def combine_indep_dstns(*distributions, seed=None):
     """
     Given n independent vector-valued discrete distributions, construct their joint discrete distribution.
     Can take multivariate discrete distributions as inputs.
@@ -474,24 +450,36 @@ def combine_indep_dstns(*distributions, seed=0):
     return combined_dstn
 
 
-def calc_expectation(dstn, func=lambda x: x, *args):
+def expected_with_loop(dstn, func=None, *args, **kwargs):
     """
     Expectation of a function, given an array of configurations of its inputs
     along with a DiscreteDistribution object that specifies the probability
-    of each configuration.
+    of each configuration. Computation is performed by looping over each atom
+    of the distribution and evaluating function one at a time. This approach is
+    broadly compatible with any function, but is slow because of the loop.
+
+    If func is relatively simple, and particularly if it does not involve array
+    operations like tiling, reshaping, or logical indexing, consider using expected
+    instead of expected_with_loop. That function evaluates all atoms simultaneously,
+    avoiding the costly loop, but with reduced compatibility with "complex" operations.
 
     Parameters
     ----------
-    dstn : DiscreteDistribution
+    dstn : DiscreteDistribution or DiscreteDistributionLabeled
         The distribution over which the function is to be evaluated.
-    func : function
-        The function to be evaluated.
-        This function should take an array of shape dstn.dim() and return
-        either arrays of arbitrary shape or scalars.
-        It may also take other arguments \\*args.
+    func : function or None
+        The function to be evaluated. If dstn is a DiscreteDistribution, then this
+        function should take an array of shape dstn.dim() and return either arrays
+        of arbitrary shape or scalars. If dstn is a DiscreteDistributionLabeled, then
+        the function should take an dictionary-like object (like an xr.dataset) and
+        index into it with variable names. In either case, the function may also
+        take other arguments \\*args. Defaults to identity function.
     \\*args :
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at ``f(dstn, *args)``.
+        The expectation is computed at ``f(dstn, *args, **kwargs)``.
+    \\*kwargs :
+        Other keyword inputs for func, representing the non-stochastic arguments.
+        The expectation is computed at ``f(dstn, *args, **kwargs)``.
 
     Returns
     -------
@@ -499,8 +487,19 @@ def calc_expectation(dstn, func=lambda x: x, *args):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
+    func = func or (lambda x: x)
 
-    f_query = [func(dstn.atoms[..., i], *args) for i in range(len(dstn.pmv))]
+    if hasattr(dstn, "dataset"):  # cheap test for DiscreteDistributionLabeled
+        f_query = []
+        for i in range(len(dstn.pmv)):
+            temp_dict = {
+                key: float(dstn.variables[key][i]) for key in dstn.variables.keys()
+            }
+            f_query.append(func(temp_dict, *args, **kwargs))
+    else:
+        f_query = [
+            func(dstn.atoms[..., i], *args, **kwargs) for i in range(len(dstn.pmv))
+        ]
 
     f_query = np.stack(f_query, axis=-1)
 
@@ -547,34 +546,39 @@ def distr_of_function(dstn, func=lambda x: x, *args):
     return f_dstn
 
 
-def expected(func=None, dist=None, args=(), **kwargs):
+def expected(func=None, dstn=None, args=(), vectorized=True, **kwargs):
     """
-    Expectation of a function, given an array of configurations of its inputs
-    along with a DiscreteDistribution(atomsRA) object that specifies the probability
+    Compute the expectation of a function, given an array of configurations of its
+    inputs along with a DiscreteDistribution object that specifies the probability
     of each configuration.
+
+    If the function you want to evaluate uses complex array operations, such as
+    tiling or logical indexing, pass `vectorized=False`. In that case, expectations
+    are calculated by looping over each atom in the distribution. Otherwise, this
+    function uses array operations and tries to compute all atoms simultaneously.
 
     Parameters
     ----------
     func : function
-        The function to be evaluated.
-        This function should take the full array of distribution values
-        and return either arrays of arbitrary shape or scalars.
+        The function to be evaluated. This function should take the full array of
+        distribution values and return either arrays of arbitrary shape or scalars.
         It may also take other arguments ``*args``.
-        This function differs from the standalone `calc_expectation`
-        method in that it uses numpy's vectorization and broadcasting
-        rules to avoid costly iteration.
-        Note: If you need to use a function that acts on single outcomes
-        of the distribution, consier `distribution.calc_expectation`.
-    dist : DiscreteDistribution or DiscreteDistributionLabeled
+    dstn : DiscreteDistribution or DiscreteDistributionLabeled
         The distribution over which the function is to be evaluated.
     args : tuple
         Other inputs for func, representing the non-stochastic arguments.
-        The the expectation is computed at ``f(dstn, *args)``.
-    labels : bool
-        If True, the function should use labeled indexing instead of integer
-        indexing using the distribution's underlying rv coordinates. For example,
-        if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
-        the function can be `lambda x: x["a"] + x["b"]`.
+        The expectation is computed at ``f(dstn, *args)``.
+    vectorized : bool, optional
+        Whether func is vectorizable (True, default) or requires looped evaluation.
+    labels : bool, optional
+        For ``DiscreteDistributionLabeled`` only.  If True (default), func
+        receives a dict of labeled arrays.  If False, func receives the raw
+        numpy atoms array, making DDL compatible with functions written for
+        ``DiscreteDistribution``.
+    **kwargs :
+        Additional keyword arguments forwarded to ``dist.expected()``.
+        For ``DiscreteDistributionLabeled``, these are passed through to
+        the user-supplied *func* along with the xarray Dataset.
 
     Returns
     -------
@@ -582,11 +586,25 @@ def expected(func=None, dist=None, args=(), **kwargs):
         The expectation of the function at the queried values.
         Scalar if only one value.
     """
+    if not isinstance(dstn, DiscreteDistribution):
+        raise TypeError(
+            f"expected(): 'dstn' must be a DiscreteDistribution or "
+            f"DiscreteDistributionLabeled, got {type(dstn).__name__}."
+        )
 
     if not isinstance(args, tuple):
         args = (args,)
 
-    if isinstance(dist, DiscreteDistributionLabeled):
-        return dist.expected(func, *args, **kwargs)
-    elif isinstance(dist, DiscreteDistribution):
-        return dist.expected(func, *args)
+    if not vectorized:
+        loop_kwargs = kwargs.copy()
+        loop_kwargs.pop("labels", None)
+        return expected_with_loop(dstn, func, *args, **loop_kwargs)
+
+    if args:
+        if kwargs:
+            return dstn.expected(func, *args, **kwargs)
+        return dstn.expected(func, *args)
+
+    if kwargs:
+        return dstn.expected(func, **kwargs)
+    return dstn.expected(func)

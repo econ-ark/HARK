@@ -14,7 +14,7 @@ cons_shocks = {
     "agg_gro": Aggregate(MeanOneLogNormal(1)),
     "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
     "theta": MeanOneLogNormal(1),
-    "live": Bernoulli(p=0.98),
+    "live": Bernoulli(p=1.0),
 }
 
 cons_pre = {
@@ -61,9 +61,9 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
         self.block = DBlock(
             **{
                 "shocks": {
-                    "theta": MeanOneLogNormal(1),
-                    "agg_R": Aggregate(MeanOneLogNormal(1)),
-                    "live": Bernoulli(p=0.98),
+                    "theta": MeanOneLogNormal(1, seed=303030),
+                    "agg_R": Aggregate(MeanOneLogNormal(1, seed=202020)),
+                    "live": Bernoulli(p=1.0, seed=101010),
                 },
                 "dynamics": {
                     "b": lambda agg_R, G, a: agg_R * G * a,
@@ -84,7 +84,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.initialize_sim()
@@ -105,7 +105,7 @@ class test_AgentTypeMonteCarloSimulator(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.make_shock_history()
@@ -130,7 +130,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
                 "shocks": {
                     "theta": MeanOneLogNormal(1),
                     "agg_R": Aggregate(MeanOneLogNormal(1)),
-                    "live": Bernoulli(p=0.98),
+                    "live": Bernoulli(p=1.0),
                     "psi": IndexDistribution(MeanOneLogNormal, {"sigma": [1.0, 1.1]}),
                 },
                 "dynamics": {
@@ -151,7 +151,7 @@ class test_AgentTypeMonteCarloSimulatorAgeVariance(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.initialize_sim()
@@ -193,7 +193,7 @@ class test_MonteCarloSimulator(unittest.TestCase):
             self.block,
             self.dr,
             self.initial,
-            agent_count=3,
+            agent_count=30,
         )
 
         self.simulator.initialize_sim()

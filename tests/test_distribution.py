@@ -14,15 +14,18 @@ from HARK.distributions import (
     Normal,
     Uniform,
     Weibull,
-    calc_expectation,
     calc_lognormal_style_pars_from_normal_pars,
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,
     distr_of_function,
     expected,
+    approx_beta,
+    make_markov_approx_to_normal,
+    make_markov_approx_to_normal_by_monte_carlo,
     make_tauchen_ar1,
     MultivariateNormal,
     MultivariateLogNormal,
+    approx_lognormal_gauss_hermite,
 )
 from tests import HARK_PRECISION
 
@@ -45,14 +48,14 @@ class DiscreteDistributionTests(unittest.TestCase):
         sig = 0.05
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
-        exp = calc_expectation(my_logn)
-        self.assertAlmostEqual(float(exp), 1.0)
+        exp = expected(None, my_logn)
+        self.assertAlmostEqual(exp[0], 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).discretize(5, method="hermite")
         moments = distr_of_function(norm, lambda x: np.array([x, x**2]))
-        exp = calc_expectation(moments).flatten()
+        exp = expected(None, moments).flatten()
         self.assertAlmostEqual(exp[0], 0.0)
         self.assertAlmostEqual(exp[1], 1.0)
 
@@ -64,7 +67,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5, method="hermite")
         binorm = combine_indep_dstns(norm_a, norm_b)
         mysum = distr_of_function(binorm, lambda x: np.sum(x))
-        exp = calc_expectation(mysum)
+        exp = expected(None, mysum)
         self.assertAlmostEqual(exp[0], mu_a + mu_b)
 
         # Function n -> m
@@ -73,39 +76,42 @@ class DiscreteDistributionTests(unittest.TestCase):
             binorm,
             lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
         )
-        exp = calc_expectation(moments)
+        exp = expected(None, moments)
         self.assertAlmostEqual(exp[0], mu_a)
         self.assertAlmostEqual(exp[1], si_a**2)
         self.assertAlmostEqual(exp[2], mu_b)
         self.assertAlmostEqual(exp[3], si_b**2)
 
-    def test_calc_expectation(self):
+    def test_expected_with_loop(self):
         dd_0_1_20 = Normal().discretize(20, method="hermite")
         dd_1_1_40 = Normal(mu=1).discretize(40, method="hermite")
         dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100, method="hermite")
 
-        ce1 = calc_expectation(dd_0_1_20)
-        ce2 = calc_expectation(dd_1_1_40)
-        ce3 = calc_expectation(dd_10_10_100)
+        ce1 = expected(None, dd_0_1_20, vectorized=False)
+        ce2 = expected(None, dd_1_1_40, vectorized=False)
+        ce3 = expected(None, dd_10_10_100, vectorized=False)
 
         self.assertAlmostEqual(ce1[0], 0.0)
         self.assertAlmostEqual(ce2[0], 1.0)
         self.assertAlmostEqual(ce3[0], 10.0)
 
-        ce4 = calc_expectation(dd_0_1_20, lambda x: 2**x)
+        ce4 = expected(lambda x: 2**x, dd_0_1_20, vectorized=False)
 
         self.assertAlmostEqual(ce4[0], 1.27154, places=HARK_PRECISION)
 
-        ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
+        ce5 = expected(lambda x: 2 * x, dd_1_1_40, vectorized=False)
 
         self.assertAlmostEqual(ce5[0], 2.0)
 
-        ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
+        ce6 = expected(lambda x, y: 2 * x + y, dd_10_10_100, 20, vectorized=False)
 
         self.assertAlmostEqual(ce6[0], 40.0)
 
-        ce7 = calc_expectation(
-            dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
+        ce7 = expected(
+            lambda x, y: x + y,
+            dd_0_1_20,
+            np.hstack(np.array([0, 1, 2, 3, 4, 5])),
+            vectorized=False,
         )
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
@@ -114,15 +120,18 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = calc_expectation(IncShkDstn, lambda atoms: atoms[0] + atoms[1])
+        ce8 = expected(lambda atoms: atoms[0] + atoms[1], IncShkDstn, vectorized=False)
 
         self.assertAlmostEqual(ce8, 2.0)
 
-        ce9 = calc_expectation(
-            IncShkDstn,
+        ce9 = expected(
             lambda atoms, a, r: r / atoms[0] * a + atoms[1],
-            np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
-            1.05,  # an interest rate?
+            IncShkDstn,
+            (
+                np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
+                1.05,
+            ),  # an interest rate?
+            vectorized=False,
         )
 
         self.assertAlmostEqual(ce9[3], 9.51802, places=HARK_PRECISION)
@@ -132,9 +141,9 @@ class DiscreteDistributionTests(unittest.TestCase):
         dd_1_1_40 = Normal(mu=1).discretize(40, method="hermite")
         dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100, method="hermite")
 
-        ce1 = expected(dist=dd_0_1_20)
-        ce2 = expected(dist=dd_1_1_40)
-        ce3 = expected(dist=dd_10_10_100)
+        ce1 = expected(dstn=dd_0_1_20)
+        ce2 = expected(dstn=dd_1_1_40)
+        ce3 = expected(dstn=dd_10_10_100)
 
         self.assertAlmostEqual(ce1[0], 0.0)
         self.assertAlmostEqual(ce2[0], 1.0)
@@ -144,7 +153,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce4[0], 1.27154, places=HARK_PRECISION)
 
-        ce5 = expected(func=lambda x: 2 * x, dist=dd_1_1_40)
+        ce5 = expected(func=lambda x: 2 * x, dstn=dd_1_1_40)
 
         self.assertAlmostEqual(ce5[0], 2.0)
 
@@ -154,7 +163,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         ce7 = expected(
             func=lambda x, y: x + y,
-            dist=dd_0_1_20,
+            dstn=dd_0_1_20,
             args=(np.hstack([0, 1, 2, 3, 4, 5])),
         )
 
@@ -164,13 +173,13 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = expected(lambda atoms: atoms[0] + atoms[1], dist=IncShkDstn)
+        ce8 = expected(lambda atoms: atoms[0] + atoms[1], dstn=IncShkDstn)
 
         self.assertAlmostEqual(ce8, 2.0)
 
         ce9 = expected(
             func=lambda atoms, a, r: r / atoms[0] * a + atoms[1],
-            dist=IncShkDstn,
+            dstn=IncShkDstn,
             args=(
                 np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
                 1.05,  # an interest rate?
@@ -186,7 +195,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = norm.dist_of_func(lambda x: np.exp(x))
         exp = my_logn.expected()
-        self.assertAlmostEqual(float(exp), 1.0)
+        self.assertAlmostEqual(exp[0], 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -220,6 +229,52 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(exp[2], mu_b)
         self.assertAlmostEqual(exp[3], si_b**2)
 
+    def test_shuffle(self):
+        X = np.arange(5)
+        P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
+        F = DiscreteDistribution(P, X, seed=0)
+        data = F.draw(1000, shuffle=True)
+
+        counts = np.zeros(5)
+        for j in range(5):
+            counts[j] = np.sum(data == j)
+
+        self.assertTrue(counts[0] == 100)
+        self.assertTrue(counts[1] == 200)
+        self.assertTrue(counts[2] >= 233)
+        self.assertTrue(counts[3] >= 233)
+        self.assertTrue(counts[4] >= 233)
+        self.assertTrue(counts[2] <= 234)
+        self.assertTrue(counts[3] <= 234)
+        self.assertTrue(counts[4] <= 234)
+
+    def test_repr(self):
+        X = np.arange(5)
+        P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
+        F = DiscreteDistribution(P, X, seed=0)
+
+        desc = str(F)
+        self.assertTrue(
+            desc == "DiscreteDistribution with 5 atoms, inf=0, sup=4, seed=0"
+        )
+
+    def test_calc_exp_labeled(self):
+        F = DiscreteDistributionLabeled(
+            atoms=np.array([[1.0, 2.0, 3.0, 4.0, 5.0], [0.3, 0.8, -0.2, 0.0, 9.0]]),
+            pmv=np.array([0.2, 0.2, 0.2, 0.2, 0.2]),
+            name="test distribution",
+            var_names=["x", "y"],
+        )
+
+        def my_func(S, z):
+            return S["x"] + 2 * S["y"] + 3 * z
+
+        self.assertAlmostEqual(
+            expected(my_func, F, z=3.0),
+            expected(my_func, F, z=3.0, vectorized=False),
+            places=HARK_PRECISION,
+        )
+
 
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
@@ -252,7 +307,7 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
 
     def test_expected(self):
         # Expectation without transformation
-        exp = calc_expectation(self.mat_distr)
+        exp = expected(None, self.mat_distr)
 
         # Check the expectation is of the shape we want
         self.assertTrue(exp.shape[0] == self.draw_1.shape[0])
@@ -262,7 +317,7 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
         self.assertTrue(np.allclose(exp, 0.0))
 
         # Expectation of the sum
-        exp = calc_expectation(self.mat_distr, func=np.sum)
+        exp = expected(np.sum, self.mat_distr, vectorized=False)
         self.assertTrue(float(exp) == 0.0)
 
     def test_distr_of_fun(self):
@@ -296,6 +351,17 @@ class DistributionClassTests(unittest.TestCase):
 
         dist.draw(1)[0]
 
+    def test_Lognormal_hermite_discretizer(self):
+        dstn = Lognormal(mu=0.5, sigma=0.2)
+        discrete_dstn = dstn.discretize(9, method="hermite")
+        exp_discrete = np.dot(discrete_dstn.pmv, discrete_dstn.atoms.T)
+        self.assertAlmostEqual(dstn.mean(), exp_discrete)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+    def test_Lognormal_from_mean_std(self):
+        dstn = Lognormal(mean=1.3, std=0.4)
+        self.assertAlmostEqual(1.3, dstn.mean())
+
     def test_Normal(self):
         dist = Normal()
 
@@ -307,25 +373,53 @@ class DistributionClassTests(unittest.TestCase):
         dist.draw(1)[0]
 
     def test_MultivariateNormal(self):
-        # Are these tests generator/backend specific?
         dist = MultivariateNormal()
-
-        # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
-        # )
-
         dist.draw(100)
         dist.reset()
-
-        # self.assertTrue(
-        #    np.allclose(dist.draw(1)[0], np.array([2.76405, 1.40016]))
-        # )
 
     def test_MultivariateLogNormal(self):
-        dist = MultivariateLogNormal()
+        dstn = MultivariateLogNormal(mu=[-0.2, 0.3], Sigma=[[1.0, 0.3], [0.3, 1.0]])
+        X = np.random.rand(100, 2)
 
-        dist.draw(100)
-        dist.reset()
+        dstn.draw(100)
+        dstn.reset()
+
+        cdf_vals = dstn._cdf(X)
+        self.assertTrue(np.all(cdf_vals <= 1.0))
+        self.assertTrue(np.all(cdf_vals >= 0.0))
+        self.assertRaises(ValueError, dstn._cdf, X.T)
+
+        pdf_vals = dstn._pdf(X)
+        self.assertTrue(np.all(pdf_vals >= 0.0))
+
+        marg_pdf = dstn._marginal(X, dim=0)
+        self.assertTrue(np.all(marg_pdf >= 0.0))
+
+        marg_cdf = dstn._marginal_cdf(X, dim=1)
+        self.assertTrue(np.all(marg_cdf <= 1.0))
+        self.assertTrue(np.all(marg_cdf >= 0.0))
+
+        discrete_dstn = dstn.discretize(9)
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = dstn.discretize(9, endpoints=True)
+
+        discrete_dstn = dstn.discretize(9, decomp="sqrt")
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = dstn.discretize(9, decomp="eig")
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        discrete_dstn = MultivariateLogNormal().discretize(9)
+        self.assertAlmostEqual(discrete_dstn.atoms.shape[1], 81)
+        self.assertAlmostEqual(np.sum(discrete_dstn.pmv), 1.0)
+
+        self.assertRaises(
+            NotImplementedError, dstn.discretize, 7, decomp="well hello there"
+        )
 
     def test_Weibull(self):
         Weibull().draw(1)[0]
@@ -336,7 +430,7 @@ class DistributionClassTests(unittest.TestCase):
         Uniform().draw(1)[0]
 
         self.assertAlmostEqual(
-            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            expected(None, uni.discretize(10, method="equiprobable"))[0],
             0.5,
         )
 
@@ -345,12 +439,53 @@ class DistributionClassTests(unittest.TestCase):
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
         self.assertAlmostEqual(
-            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            expected(None, uni.discretize(10, method="equiprobable"))[0],
             0.5,
         )
 
     def test_Bernoulli(self):
         Bernoulli().draw(1)[0]
+
+    def test_Bernoulli_combine_indep_dstns(self):
+        """Test that combine_indep_dstns works with Bernoulli distributions"""
+        # Test 1: Single Bernoulli distribution
+        b = Bernoulli(p=0.3)
+        result = combine_indep_dstns(b)
+
+        # Result should be essentially the same as the input
+        self.assertEqual(len(result.pmv), 2)
+        self.assertAlmostEqual(result.pmv[0], 0.7)  # P(0)
+        self.assertAlmostEqual(result.pmv[1], 0.3)  # P(1)
+
+        # Test 2: Two independent Bernoulli distributions
+        b1 = Bernoulli(p=0.3)
+        b2 = Bernoulli(p=0.4)
+        result = combine_indep_dstns(b1, b2)
+
+        # Should have 4 outcomes: (0,0), (0,1), (1,0), (1,1)
+        self.assertEqual(len(result.pmv), 4)
+        self.assertEqual(result.atoms.shape, (2, 4))  # 2 variables, 4 outcomes
+
+        # Check probabilities
+        expected_probs = [
+            0.7 * 0.6,
+            0.7 * 0.4,
+            0.3 * 0.6,
+            0.3 * 0.4,
+        ]  # P(0,0), P(0,1), P(1,0), P(1,1)
+        for i, expected_prob in enumerate(expected_probs):
+            self.assertAlmostEqual(result.pmv[i], expected_prob, places=5)
+
+    def test_Bernoulli_labeled_combine_indep_dstns(self):
+        """Test that combine_indep_dstns works with labeled Bernoulli distributions"""
+        b = Bernoulli(p=0.5)
+        bl = DiscreteDistributionLabeled.from_unlabeled(b, var_names="b")
+        result = combine_indep_dstns(bl)
+
+        # Result should be essentially the same as the input
+        self.assertEqual(len(result.pmv), 2)
+        self.assertAlmostEqual(result.pmv[0], 0.5)  # P(0)
+        self.assertAlmostEqual(result.pmv[1], 0.5)  # P(1)
 
 
 class IndexDistributionClassTests(unittest.TestCase):
@@ -360,7 +495,7 @@ class IndexDistributionClassTests(unittest.TestCase):
     """
 
     def test_IndexDistribution(self):
-        cd = IndexDistribution(Bernoulli, {"p": [0.01, 0.5, 0.99]})
+        cd = IndexDistribution(Bernoulli, {"p": [0.01, 0.5, 0.99]}, seed=0)
 
         conditions = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])
 
@@ -372,7 +507,7 @@ class IndexDistributionClassTests(unittest.TestCase):
 
     def test_IndexDistribution_approx(self):
         cd = IndexDistribution(
-            Lognormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}
+            Lognormal, {"mu": [0.01, 0.5, 0.99], "sigma": [0.05, 0.05, 0.05]}, seed=0
         )
 
         approx = cd.discretize(10)
@@ -398,7 +533,7 @@ class MarkovProcessTests(unittest.TestCase):
     def test_draw(self):
         mrkv_array = np.array([[0.75, 0.25], [0.1, 0.9]])
 
-        mp = MarkovProcess(mrkv_array)
+        mp = MarkovProcess(mrkv_array, seed=0)
 
         new_state = mp.draw(np.zeros(100).astype(int))
 
@@ -526,14 +661,14 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         ce1 = expected(
             func=lambda dist: 1 / dist["perm_shk"] + dist["tran_shk"],
-            dist=IncShkDstn,
+            dstn=IncShkDstn,
         )
 
         self.assertAlmostEqual(ce1, 3.70413, places=HARK_PRECISION)
 
         ce2 = expected(
             func=lambda dist, a, r: r / dist["perm_shk"] * a + dist["tran_shk"],
-            dist=IncShkDstn,
+            dstn=IncShkDstn,
             args=(
                 np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
                 1.05,  # an interest rate?
@@ -541,6 +676,48 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
+
+    def test_labels_parameter(self):
+        """Test that labels=True uses dict indexing and labels=False uses integer indexing."""
+        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
+        IncShkDstn = DiscreteDistributionLabeled.from_unlabeled(
+            IncShkDstn,
+            name="Income shocks",
+            var_names=["perm_shk", "tran_shk"],
+        )
+
+        # labels=True (default): func receives dict with named keys
+        ce_labeled = IncShkDstn.expected(lambda d: d["perm_shk"] + d["tran_shk"])
+
+        # labels=True explicit: same result
+        ce_labeled_explicit = IncShkDstn.expected(
+            lambda d: d["perm_shk"] + d["tran_shk"], labels=True
+        )
+
+        # labels=False: func receives raw numpy atoms (integer indexing)
+        ce_unlabeled = IncShkDstn.expected(lambda x: x[0] + x[1], labels=False)
+
+        self.assertAlmostEqual(ce_labeled, ce_labeled_explicit, places=HARK_PRECISION)
+        self.assertAlmostEqual(ce_labeled, ce_unlabeled, places=HARK_PRECISION)
+
+        # labels=False with args
+        ce_with_args = IncShkDstn.expected(
+            lambda x, k: x[0] * k + x[1], 2.0, labels=False
+        )
+        ce_with_args_labeled = IncShkDstn.expected(
+            lambda d, k: d["perm_shk"] * k + d["tran_shk"], 2.0, labels=True
+        )
+        self.assertAlmostEqual(
+            ce_with_args, ce_with_args_labeled, places=HARK_PRECISION
+        )
+
+        # labels parameter should not leak to func (issue #1487)
+        ce_no_leak = IncShkDstn.expected(
+            lambda d: d["perm_shk"] + d["tran_shk"], labels=True
+        )
+        self.assertAlmostEqual(ce_no_leak, ce_labeled, places=HARK_PRECISION)
 
     def test_getters_setters(self):
         # Create some dummy dsnt
@@ -651,9 +828,6 @@ class labeled_transition_tests(unittest.TestCase):
         exp1 = base_dist.expected(transition, state=state_grid)
         # Expectation after transformation
         new_state_dstn = base_dist.dist_of_func(transition, state=state_grid)
-        # TODO: needs a cluncky identity function with an extra argument because
-        # DDL.expected() behavior is very different with and without kwargs.
-        # Fix!
         exp2 = new_state_dstn.expected(lambda x, unused: x, unused=0)
 
         assert np.all(exp1["m"] == exp2["m"]).item()
@@ -693,3 +867,83 @@ class TestTauchenAR1(unittest.TestCase):
                         alternative[1][:, i] * standard[1][:, i - 1],
                     )
                 )
+
+
+class test_assorted_functions(unittest.TestCase):
+    def test_approx_beta(self):
+        dstn = approx_beta(15, 0.5, 2.0)
+        self.assertTrue(isinstance(dstn, DiscreteDistribution))
+        self.assertAlmostEqual(np.sum(dstn.pmv), 1.0)
+
+    def test_make_markov_approx_to_normal(self):
+        X = np.linspace(-4.0, 6.0, 50)
+        vec = make_markov_approx_to_normal(X, 0.9, 1.3)
+        self.assertAlmostEqual(np.sum(vec), 1.0)
+        self.assertAlmostEqual(np.dot(X, vec), 0.9)
+
+    def test_make_markov_approx_to_normal_by_MC(self):
+        X = np.linspace(-4.0, 6.0, 25)
+        vec = make_markov_approx_to_normal_by_monte_carlo(X, 0.9, 1.3)
+        self.assertAlmostEqual(np.sum(vec), 1.0)
+        self.assertAlmostEqual(vec.size, 25)
+
+
+class testsForDCEGM(unittest.TestCase):
+    def setUp(self):
+        # setup the parameters to loop over
+        self.mu_normals = np.linspace(-3.0, 2.0, 50)
+        self.std_normals = np.linspace(0.01, 2.0, 50)
+
+    def test_mu_normal(self):
+        for mu_normal in self.mu_normals:
+            for std_normal in self.std_normals:
+                d = Normal(mu_normal).discretize(40, method="hermite")
+                self.assertTrue(sum(d.pmv * d.atoms[0, :]) - mu_normal < 1e-12)
+
+    def test_mu_lognormal_from_normal(self):
+        for mu_normal in self.mu_normals:
+            for std_normal in self.std_normals:
+                d = approx_lognormal_gauss_hermite(40, mu_normal, std_normal)
+                self.assertTrue(
+                    abs(
+                        sum(d.pmv * d.atoms[0, :])
+                        - calc_lognormal_style_pars_from_normal_pars(
+                            mu_normal, std_normal
+                        )[0]
+                    )
+                    < 1e-12
+                )
+
+
+class test_MVNormalApprox(unittest.TestCase):
+    def setUp(self):
+        N = 5
+
+        # 2-D distribution
+        self.mu2 = np.array([5, -10])
+        self.Sigma2 = np.array([[2, -0.6], [-0.6, 1]])
+        self.dist2D = MultivariateNormal(self.mu2, self.Sigma2)
+        self.dist2D_approx = self.dist2D.discretize(N, method="hermite")
+
+        # 3-D Distribution
+        self.mu3 = np.array([5, -10, 0])
+        self.Sigma3 = np.array([[2, -0.6, 0.1], [-0.6, 1, 0.2], [0.1, 0.2, 3]])
+        self.dist3D = MultivariateNormal(self.mu3, self.Sigma3)
+        self.dist3D_approx = self.dist3D.discretize(N, method="hermite")
+
+    def test_means(self):
+        mu_2D = expected(None, self.dist2D_approx)
+        self.assertTrue(np.allclose(mu_2D, self.mu2, rtol=1e-5))
+
+        mu_3D = expected(None, self.dist3D_approx)
+        self.assertTrue(np.allclose(mu_3D, self.mu3, rtol=1e-5))
+
+    def test_VCOV(self):
+        def vcov_fun(X, mu):
+            return np.outer(X - mu, X - mu)
+
+        Sig_2D = expected(vcov_fun, self.dist2D_approx, self.mu2, vectorized=False)
+        self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
+
+        Sig_3D = expected(vcov_fun, self.dist3D_approx, self.mu3, vectorized=False)
+        self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))

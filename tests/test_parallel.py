@@ -1,7 +1,7 @@
 import unittest
 
 from HARK.ConsumptionSaving.ConsIndShockModel import PerfForesightConsumerType
-from HARK.parallel import (
+from HARK.core import (
     multi_thread_commands,
     multi_thread_commands_fake,
     run_commands,

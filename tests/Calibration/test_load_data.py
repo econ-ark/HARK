@@ -5,6 +5,10 @@ from HARK.Calibration.cpi.us.CPITools import cpi_deflator
 from HARK.Calibration.SCF.WealthIncomeDist.SCFDistTools import (
     income_wealth_dists_from_scf,
 )
+from HARK.Calibration.life_tables.us_ssa.SSATools import (
+    get_ssa_life_tables,
+    parse_ssa_life_table,
+)
 
 
 class test_load_SCF_wealth_weights(unittest.TestCase):
@@ -35,6 +39,9 @@ class test_cpi_deflators(unittest.TestCase):
         # Different year test
         defl_diff_year = cpi_deflator(1998, 2019)
         self.assertAlmostEqual(defl_diff_year[0], 1.57202505)
+
+    def test_invalid_years(self):
+        self.assertRaises(KeyError, cpi_deflator, 1756, 2058)
 
 
 # %% Tests for Survey of Consumer finances initial distributions
@@ -93,3 +100,25 @@ class test_SCF_dists(unittest.TestCase):
         self.assertAlmostEqual(Coll["aNrmInitStd"], 1.2685135110865389)
         self.assertAlmostEqual(Coll["pLvlInitMean"], 4.278905678818748)
         self.assertAlmostEqual(Coll["pLvlInitStd"], 1.0776403992280614)
+
+
+class test_get_ssa_life_tables(unittest.TestCase):
+    def test_func(self):
+        output = get_ssa_life_tables()
+
+
+class test_parse_ssa_life_table(unittest.TestCase):
+    def setUp(self):
+        basic_params = {
+            "min_age": 25,
+            "max_age": 90,
+        }
+        self.base = basic_params
+
+    def test_failures(self):
+        bad_cross_sec = {"cross_sec": True}
+        bad_cross_sec.update(self.base)
+        self.assertRaises(TypeError, parse_ssa_life_table, **bad_cross_sec)
+        bad_non_cross = {"cross_sec": False}
+        bad_non_cross.update(self.base)
+        self.assertRaises(TypeError, parse_ssa_life_table, **bad_non_cross)

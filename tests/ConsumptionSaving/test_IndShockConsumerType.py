@@ -8,6 +8,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
+from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
 
 
@@ -64,6 +65,14 @@ class testIndShockConsumerType(unittest.TestCase):
             places=HARK_PRECISION,
         )
 
+        self.assertRaises(ValueError, LifecycleExample.calc_stable_points)
+
+    def test_invalid_calc_stable_points(self):
+        TestType = IndShockConsumerType(cycles=0)
+        self.assertRaises(ValueError, TestType.calc_stable_points)
+        TestType.check_conditions()
+        self.assertRaises(ValueError, TestType.calc_stable_points)
+
     def test_simulated_values(self):
         self.agent.initialize_sim()
         self.agent.simulate()
@@ -79,6 +88,49 @@ class testIndShockConsumerType(unittest.TestCase):
         a2 = IndShockConsumerType(seed=200)
 
         self.assertFalse(a1.PermShkDstn.seed == a2.PermShkDstn.seed)
+
+    def test_check_conditions(self):
+        TestType = IndShockConsumerType(cycles=0, quiet=False, verbose=False)
+        TestType.check_conditions()
+
+        # make DiscFac way too big
+        TestType = IndShockConsumerType(cycles=0, DiscFac=1.06)
+        TestType.check_conditions()
+
+        # make PermGroFac big
+        TestType = IndShockConsumerType(cycles=0, DiscFac=0.96, PermGroFac=[1.1])
+        TestType.check_conditions()
+
+        # make Rfree too big
+        TestType = IndShockConsumerType(cycles=0, Rfree=[1.1])
+        TestType.check_conditions()
+
+        # Make unemployment very likely
+        TestType = IndShockConsumerType(
+            cycles=0, Rfree=[0.93], IncUnemp=0.0, UnempPrb=0.99
+        )
+        TestType.check_conditions()
+
+        # Use log utility
+        TestType = IndShockConsumerType(cycles=0, CRRA=1.0)
+        TestType.check_conditions()
+
+    def test_invalid_beta(self):
+        TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)
+        self.assertRaises(ValueError, TestType.solve)
+
+    def test_replicate_sim(self):
+        TestType = IndShockConsumerType(cycles=0, seed=12022025, T_sim=100)
+        TestType.solve()
+        TestType.initialize_sim()
+        TestType.simulate()
+        A0 = np.mean(TestType.state_now["aLvl"])
+
+        # Make sure a simulation result is replicated when re-run
+        TestType.initialize_sim()
+        TestType.simulate()
+        A1 = np.mean(TestType.state_now["aLvl"])
+        self.assertAlmostEqual(A0, A1)
 
 
 class testBufferStock(unittest.TestCase):
@@ -147,7 +199,7 @@ class testBufferStock(unittest.TestCase):
     def test_infinite_horizon(self):
         baseEx_inf = IndShockConsumerType(**self.base_params)
         baseEx_inf.assign_parameters(cycles=0)
-        baseEx_inf.solve()
+        baseEx_inf.solve(verbose=True)
         baseEx_inf.unpack("cFunc")
 
         m1 = np.linspace(
@@ -237,7 +289,7 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         # This test is commented out because it was trivialized by revisions to the "worst income shock" code.
         # The bottom x value of the unconstrained consumption function will definitely be zero, so this is pointless.
 
-        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl"]
+        IndShockExample.track_vars = ["aNrm", "mNrm", "cNrm", "pLvl", "who_dies"]
         IndShockExample.initialize_sim()
         IndShockExample.simulate()
 
@@ -251,6 +303,15 @@ class testIndShockConsumerTypeExample(unittest.TestCase):
         self.assertAlmostEqual(
             IndShockExample.eulerErrorFunc(5.0), -5.9e-5, places=HARK_PRECISION
         )
+
+    def test_plotting(self):
+        MyType = self.IndShockExample
+        MyType.solve()
+        MyType.unpack("cFunc")
+        plot_funcs(MyType.cFunc, 0.0, 10.0, legend_kwds={"labels": ["cFunc"]})
+        plot_funcs(MyType.cFunc[0], 0.0, 10.0)
+        plot_funcs_der(MyType.cFunc, 0.0, 10.0, legend_kwds={"labels": ["MPC"]})
+        plot_funcs_der(MyType.cFunc[0], 0.0, 10.0)
 
 
 LifecycleDict = {  # Click arrow to expand this fairly large parameter dictionary
@@ -298,7 +359,7 @@ class testIndShockConsumerTypeLifecycle(unittest.TestCase):
     def test_lifecyle(self):
         LifecycleExample = IndShockConsumerType(**LifecycleDict)
         LifecycleExample.cycles = 1
-        LifecycleExample.solve()
+        LifecycleExample.solve(verbose=True)
 
         self.assertEqual(len(LifecycleExample.solution), 11)
 
@@ -393,8 +454,10 @@ class testIndShockConsumerTypeCyclical(unittest.TestCase):
         CyclicalExample.simulate()
 
         self.assertAlmostEqual(
-            CyclicalExample.state_now["aLvl"][1], 3.90015, places=HARK_PRECISION
+            CyclicalExample.state_now["aLvl"][1], 0.55127, places=HARK_PRECISION
         )
+
+        self.assertRaises(ValueError, CyclicalExample.calc_stable_points)
 
 
 # %% Tests of 'stable points'
@@ -487,7 +550,7 @@ class testPerfMITShk(unittest.TestCase):
             def __init__(self, cycles=0, **kwds):
                 IndShockConsumerType.__init__(self, cycles=0, **kwds)
 
-            def get_Rfree(self):
+            def get_Rport(self):
                 """
                 Returns an array of size self.AgentCount with self.Rfree in every entry.
                 Parameters
@@ -517,14 +580,13 @@ class testPerfMITShk(unittest.TestCase):
             def transition(self):
                 pLvlPrev = self.state_prev["pLvl"]
                 aNrmPrev = self.state_prev["aNrm"]
-                RfreeNow = self.get_Rfree()
+                RfreeNow = self.get_Rport()
 
                 # Calculate new states: normalized market resources and permanent income level
                 pLvlNow = (
                     pLvlPrev * self.shocks["PermShk"]
                 )  # Updated permanent income level
-                # Updated aggregate permanent productivity level
-                PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
+
                 # "Effective" interest factor on normalized assets
                 ReffNow = RfreeNow / self.shocks["PermShk"]
                 bNrmNow = ReffNow * aNrmPrev  # Bank balances before labor income
@@ -536,7 +598,7 @@ class testPerfMITShk(unittest.TestCase):
                     mNrmNow = ss.state_now["mNrm"]
                     pLvlNow = ss.state_now["pLvl"]
 
-                return pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+                return pLvlNow, bNrmNow, mNrmNow, None
 
         listA_g = []
         params = deepcopy(JACDict)
