@@ -24,6 +24,7 @@ Release Date: TBD
 
 #### Minor Changes
 
+- Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
 - Adds `HARK.interpolation_jax`: opt-in JAX counterparts to core interpolation primitives (new module + tests only; no existing file's behavior changes). [#1777](https://github.com/econ-ark/HARK/pull/1777)
 - future item
 - future item
