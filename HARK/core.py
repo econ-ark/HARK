@@ -144,16 +144,24 @@ class Parameters:
         # Apply explicit overrides
         for param in time_inv_override:
             if param in self._parameters:
-                self._invariant_params.add(param)
-                self._varying_params.discard(param)
+                self._mark_invariant(param)
 
         for param in time_vary_override:
             if param in self._parameters:
-                self._varying_params.add(param)
-                self._invariant_params.discard(param)
+                self._mark_varying(param)
 
         # Freeze if requested
         self._frozen = frozen
+
+    def _mark_invariant(self, key: str) -> None:
+        """Tag ``key`` as time-invariant; ensure it is not also marked varying."""
+        self._invariant_params.add(key)
+        self._varying_params.discard(key)
+
+    def _mark_varying(self, key: str) -> None:
+        """Tag ``key`` as time-varying; ensure it is not also marked invariant."""
+        self._varying_params.add(key)
+        self._invariant_params.discard(key)
 
     def __getitem__(self, item_or_key: Union[int, str]) -> Union["Parameters", Any]:
         """
@@ -244,11 +252,9 @@ class Parameters:
         # Check for 2D numpy arrays with time-varying first dimension
         if isinstance(value, np.ndarray) and value.ndim >= 2:
             if value.shape[0] == self._length:
-                self._varying_params.add(key)
-                self._invariant_params.discard(key)
+                self._mark_varying(key)
             else:
-                self._invariant_params.add(key)
-                self._varying_params.discard(key)
+                self._mark_invariant(key)
         elif isinstance(
             value,
             (
@@ -262,20 +268,16 @@ class Parameters:
                 MetricObject,
             ),
         ):
-            self._invariant_params.add(key)
-            self._varying_params.discard(key)
+            self._mark_invariant(key)
         elif isinstance(value, (list, tuple)):
             if len(value) == 1:
                 value = value[0]
-                self._invariant_params.add(key)
-                self._varying_params.discard(key)
+                self._mark_invariant(key)
             elif self._length is None or self._length == 1:
                 self._length = len(value)
-                self._varying_params.add(key)
-                self._invariant_params.discard(key)
+                self._mark_varying(key)
             elif len(value) == self._length:
-                self._varying_params.add(key)
-                self._invariant_params.discard(key)
+                self._mark_varying(key)
             else:
                 raise ValueError(
                     f"Parameter {key} must have length 1 or {self._length}, not {len(value)}"
@@ -437,8 +439,7 @@ class Parameters:
         """
         for param in params:
             if param in self._parameters:
-                self._varying_params.add(param)
-                self._invariant_params.discard(param)
+                self._mark_varying(param)
             else:
                 warn(
                     f"Parameter '{param}' does not exist and cannot be added to time_vary."
@@ -455,8 +456,7 @@ class Parameters:
         """
         for param in params:
             if param in self._parameters:
-                self._invariant_params.add(param)
-                self._varying_params.discard(param)
+                self._mark_invariant(param)
             else:
                 warn(
                     f"Parameter '{param}' does not exist and cannot be added to time_inv."
@@ -1537,13 +1537,7 @@ class AgentType(Model):
             for var_name in self.state_now:
                 # Check that we are actually given a value for the variable
                 if var_name in self.newborn_init_history.keys():
-                    # Copy only array-like idiosyncratic states. Aggregates should
-                    # not be set by newborns
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
+                    if self._is_idio_state(var_name):
                         self.state_now[var_name] = self.newborn_init_history[var_name][
                             0
                         ]
@@ -1777,6 +1771,50 @@ class AgentType(Model):
             else:
                 return self._export_single_t_by_time(history, var_list, t, dtype)
 
+    def _is_idio_state(self, var_name):
+        """Whether ``state_now[var_name]`` is a per-agent (idiosyncratic) array.
+
+        Anything that is not an ndarray of length ``self.AgentCount`` counts as
+        aggregate here (typically a scalar set by the Market or shared across
+        agents, but the check admits any non-ndarray value); only idiosyncratic
+        state arrays should be replaced from newborn histories.
+        """
+        value = self.state_now[var_name]
+        return isinstance(value, np.ndarray) and len(value) == self.AgentCount
+
+    def _sim_period_prologue(self):
+        """Shared ``sim_one_period`` setup: validate, mortality, rotate states, shocks.
+
+        Subclasses with a non-default state/control structure (e.g. staged
+        models) call this prologue and the matching ``_sim_period_epilogue``
+        instead of duplicating the boilerplate.
+
+        In the state-rotation loop, every entry is carried into ``state_prev``
+        but only ndarray entries are reset to empty. Non-array entries are
+        aggregates, probably being set by the Market, so leaving them in place
+        is deliberate rather than an oversight.
+        """
+        if not hasattr(self, "solution"):
+            raise Exception(
+                "Model instance does not have a solution stored. To simulate,"
+                " it is necessary to run the `solve()` method first."
+            )
+        self.get_mortality()
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            if isinstance(self.state_now[var], np.ndarray):
+                self.state_now[var] = np.empty(self.AgentCount)
+        if self.read_shocks:
+            self.read_shocks_from_history()
+        else:
+            self.get_shocks()
+
+    def _sim_period_epilogue(self):
+        """Advance ``t_age``/``t_cycle`` after ``sim_one_period`` body finishes."""
+        self.t_age = self.t_age + 1
+        self.t_cycle = self.t_cycle + 1
+        self.t_cycle[self.t_cycle == self.T_cycle] = 0
+
     def sim_one_period(self):
         """
         Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
@@ -1792,40 +1830,12 @@ class AgentType(Model):
         -------
         None
         """
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method first."
-            )
-
-        # Mortality adjusts the agent population
-        self.get_mortality()  # Replace some agents with "newborns"
-
-        # state_{t-1}
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
-
-        if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.read_shocks_from_history()
-        else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.get_shocks()
-        self.get_states()  # Determine each agent's state at decision time
+        self._sim_period_prologue()
+        self.get_states()
         self.post_state_hook()  # Extension point: adjust states before controls
-        self.get_controls()  # Determine each agent's choice or control variables based on states
-        self.get_poststates()  # Calculate variables that come *after* decision-time
-
-        # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = (
-            0  # Resetting to zero for those who have reached the end
-        )
+        self.get_controls()
+        self.get_poststates()
+        self._sim_period_epilogue()
 
     def post_state_hook(self):
         """
@@ -1964,13 +1974,7 @@ class AgentType(Model):
             if who_dies.any():
                 for var_name in self.state_now:
                     if var_name in self.newborn_init_history.keys():
-                        # Copy only array-like idiosyncratic states. Aggregates should
-                        # not be set by newborns
-                        idio = (
-                            isinstance(self.state_now[var_name], np.ndarray)
-                            and len(self.state_now[var_name]) == self.AgentCount
-                        )
-                        if idio:
+                        if self._is_idio_state(var_name):
                             self.state_now[var_name][who_dies] = (
                                 self.newborn_init_history[var_name][
                                     self.t_sim, who_dies
@@ -2383,6 +2387,40 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
     return solution
 
 
+def _resolve_solve_one_period(agent, k):
+    """
+    Resolve which single-period solver and argument list apply at period ``k``.
+
+    Returns ``(solve_one_period, these_args)``.  When ``agent.solve_one_period``
+    is itself a sequence of solvers (one per period), ``solve_one_period[k]``
+    is selected; otherwise the same callable is reused for every period.
+    """
+    if hasattr(agent.solve_one_period, "__getitem__"):
+        solve_one_period = agent.solve_one_period[k]
+    else:
+        solve_one_period = agent.solve_one_period
+
+    if hasattr(solve_one_period, "solver_args"):
+        these_args = solve_one_period.solver_args
+    else:
+        these_args = get_arg_names(solve_one_period)
+    return solve_one_period, these_args
+
+
+def _cycle_period_indices(T, cycles):
+    """
+    Return the order in which periods within one cycle should be solved.
+
+    One-shot lifecycle (``cycles == 1``): solve from ``T - 1`` down to ``0``.
+    Otherwise, which covers both ``cycles == 0`` (infinite horizon) and
+    ``cycles > 1`` (a finite sequence experienced more than once): solve
+    period ``0`` first, then ``T - 1`` down to ``1``.
+    """
+    if cycles == 1:
+        return range(T - 1, -1, -1)
+    return [0] + list(range(T - 1, 0, -1))
+
+
 def solve_one_cycle(agent, solution_last, from_t):
     """
     Solve one "cycle" of the dynamic model for one agent type.  This function
@@ -2409,84 +2447,49 @@ def solve_one_cycle(agent, solution_last, from_t):
         microeconomic model.
     """
 
-    # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
-    # if so, take advantage of it. Else, use the old method
-    if hasattr(agent, "parameters") and isinstance(agent.parameters, Parameters):
+    use_parameters_obj = hasattr(agent, "parameters") and isinstance(
+        agent.parameters, Parameters
+    )
+
+    if use_parameters_obj:
         T = agent.parameters._length if from_t is None else from_t
-
-        # Initialize the solution for this cycle, then iterate on periods
-        solution_cycle = []
-        solution_next = solution_last
-
-        cycles_range = [0] + list(range(T - 1, 0, -1))
-        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-            # Update which single period solver to use (if it depends on time)
-            if hasattr(agent.solve_one_period, "__getitem__"):
-                solve_one_period = agent.solve_one_period[k]
-            else:
-                solve_one_period = agent.solve_one_period
-
-            if hasattr(solve_one_period, "solver_args"):
-                these_args = solve_one_period.solver_args
-            else:
-                these_args = get_arg_names(solve_one_period)
-
-            # Make a temporary dictionary for this period
-            temp_pars = agent.parameters[k]
-            temp_dict = {
-                name: solution_next if name == "solution_next" else temp_pars[name]
-                for name in these_args
-            }
-
-            # Solve one period, add it to the solution, and move to the next period
-            solution_t = solve_one_period(**temp_dict)
-            solution_cycle.insert(0, solution_t)
-            solution_next = solution_t
-
+        solve_dict = None
     else:
-        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        # Calculate number of periods per cycle, defaults to 1 if all variables
+        # are time invariant.
         if len(agent.time_vary) > 0:
             T = agent.T_cycle if from_t is None else from_t
         else:
             T = 1
-
         solve_dict = {
             parameter: agent.__dict__[parameter] for parameter in agent.time_inv
         }
         solve_dict.update({parameter: None for parameter in agent.time_vary})
 
-        # Initialize the solution for this cycle, then iterate on periods
-        solution_cycle = []
-        solution_next = solution_last
+    solution_cycle = []
+    solution_next = solution_last
 
-        cycles_range = [0] + list(range(T - 1, 0, -1))
-        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-            # Update which single period solver to use (if it depends on time)
-            if hasattr(agent.solve_one_period, "__getitem__"):
-                solve_one_period = agent.solve_one_period[k]
-            else:
-                solve_one_period = agent.solve_one_period
+    for k in _cycle_period_indices(T, agent.cycles):
+        solve_one_period, these_args = _resolve_solve_one_period(agent, k)
 
-            if hasattr(solve_one_period, "solver_args"):
-                these_args = solve_one_period.solver_args
-            else:
-                these_args = get_arg_names(solve_one_period)
-
-            # Update time-varying single period inputs
+        if use_parameters_obj:
+            temp_pars = agent.parameters[k]
+            temp_dict = {
+                name: solution_next if name == "solution_next" else temp_pars[name]
+                for name in these_args
+            }
+        else:
             for name in agent.time_vary:
                 if name in these_args:
                     solve_dict[name] = agent.__dict__[name][k]
             solve_dict["solution_next"] = solution_next
-
-            # Make a temporary dictionary for this period
             temp_dict = {name: solve_dict[name] for name in these_args}
 
-            # Solve one period, add it to the solution, and move to the next period
-            solution_t = solve_one_period(**temp_dict)
-            solution_cycle.insert(0, solution_t)
-            solution_next = solution_t
+        # Solve one period, add it to the solution, and move to the next period.
+        solution_t = solve_one_period(**temp_dict)
+        solution_cycle.insert(0, solution_t)
+        solution_next = solution_t
 
-    # Return the list of per-period solutions
     return solution_cycle
 
 
@@ -3067,6 +3070,87 @@ class AgentPopulation:
 
         self.__infer_counts__()
 
+    @staticmethod
+    def _slice_list_param(param, agent):
+        """
+        Slice a list parameter for one agent.
+
+        If ``param`` is a list of lists, return the sub-list for ``agent``;
+        otherwise return ``param`` unchanged (treated as shared across agents
+        or as a per-period series that is not agent-specific).
+        """
+        if isinstance(param[0], list):
+            return param[agent]
+        return param
+
+    _UNHANDLED = object()
+
+    @classmethod
+    def _slice_dataarray_param(cls, param, agent):
+        """
+        Slice an ``xarray.DataArray`` parameter for one agent.
+
+        Dispatches on the leading dimension: ``"agent"`` returns the agent's
+        slice (as a list when an ``"age"`` axis is present, otherwise as a
+        scalar); ``"age"`` returns the shared per-period list. Returns the
+        ``_UNHANDLED`` sentinel if the layout is unrecognized.
+
+        The sentinel is returned rather than ``None`` because ``.item()`` on an
+        object-dtype array legitimately yields ``None``; conflating the two
+        would silently drop a parameter whose value really is ``None``.
+        """
+        if param.dims[0] == "agent":
+            if len(param.dims) > 1 and param.dims[-1] == "age":
+                return param[agent].values.tolist()
+            return param[agent].item()
+        if param.dims[0] == "age":
+            return param.values.tolist()
+        return cls._UNHANDLED
+
+    def _extract_param_for_agent(self, key, param, agent):
+        """
+        Return this agent's view of ``param``, dispatched by classification.
+
+        Returns the sentinel ``_UNHANDLED`` for parameter values whose type or
+        ``DataArray`` layout is not recognized in the relevant branch; the
+        caller omits those keys and warns once per key.
+
+        For the ``time_inv`` and unclassified branches this matches the
+        pre-refactor behaviour, which assigned inside each ``elif`` and so left
+        an unrecognized value unassigned. The ``time_var`` branch differs
+        deliberately: the original assigned a shared local unconditionally
+        after its ``if``/``elif`` chain, so an unrecognized value either raised
+        ``UnboundLocalError`` or silently reused the value computed for a
+        previous key. Omitting the key is a deliberate change from that.
+        """
+        if key in self.time_var:
+            # Parameters that vary over time must be expanded to length term_age.
+            if isinstance(param, (int, float)):
+                return [param] * self.term_age
+            if isinstance(param, list):
+                return self._slice_list_param(param, agent)
+            if isinstance(param, DataArray):
+                return self._slice_dataarray_param(param, agent)
+            return self._UNHANDLED
+
+        if key in self.time_inv:
+            if isinstance(param, (int, float)):
+                return param
+            if isinstance(param, list):
+                return self._slice_list_param(param, agent)
+            if isinstance(param, DataArray) and param.dims[0] == "agent":
+                return param[agent].item()
+            return self._UNHANDLED
+
+        # Unclassified: infer from the value structure.
+        if isinstance(param, (int, float)):
+            return param  # assume time inv
+        if isinstance(param, list):
+            return self._slice_list_param(param, agent)
+        if isinstance(param, DataArray):
+            return self._slice_dataarray_param(param, agent)
+        return self._UNHANDLED
+
     def __parse_parameters__(self) -> None:
         """
         Creates distributed dictionaries of parameters for each ex-ante
@@ -3075,60 +3159,30 @@ class AgentPopulation:
         the parameters for one agent. Expands parameters that vary over time
         to a list of length `term_age`.
         """
-
-        population_parameters = []  # container for dictionaries of each agent subgroup
+        population_parameters = []
+        dropped_keys = set()
         for agent in range(self.agent_type_count):
             agent_parameters = {}
             for key, param in self.parameters.items():
-                if key in self.time_var:
-                    # parameters that vary over time have to be repeated
-                    if isinstance(param, (int, float)):
-                        parameter_per_t = [param] * self.term_age
-                    elif isinstance(param, list):
-                        if isinstance(param[0], list):
-                            parameter_per_t = param[agent]
-                        else:
-                            parameter_per_t = param
-                    elif isinstance(param, DataArray):
-                        if param.dims[0] == "agent":
-                            if len(param.dims) > 1 and param.dims[-1] == "age":
-                                parameter_per_t = param[agent].values.tolist()
-                            else:
-                                parameter_per_t = param[agent].item()
-                        elif param.dims[0] == "age":
-                            parameter_per_t = param.values.tolist()
-
-                    agent_parameters[key] = parameter_per_t
-
-                elif key in self.time_inv:
-                    if isinstance(param, (int, float)):
-                        agent_parameters[key] = param
-                    elif isinstance(param, list):
-                        if isinstance(param[0], list):
-                            agent_parameters[key] = param[agent]
-                        else:
-                            agent_parameters[key] = param
-                    elif isinstance(param, DataArray) and param.dims[0] == "agent":
-                        agent_parameters[key] = param[agent].item()
-
+                value = self._extract_param_for_agent(key, param, agent)
+                if value is self._UNHANDLED:
+                    dropped_keys.add(key)
                 else:
-                    if isinstance(param, (int, float)):
-                        agent_parameters[key] = param  # assume time inv
-                    elif isinstance(param, list):
-                        if isinstance(param[0], list):
-                            agent_parameters[key] = param[agent]  # assume agent vary
-                        else:
-                            agent_parameters[key] = param  # assume time vary
-                    elif isinstance(param, DataArray):
-                        if param.dims[0] == "agent":
-                            if len(param.dims) > 1 and param.dims[-1] == "age":
-                                agent_parameters[key] = param[agent].values.tolist()
-                            else:
-                                agent_parameters[key] = param[agent].item()
-                        elif param.dims[0] == "age":
-                            agent_parameters[key] = param.values.tolist()
-
+                    agent_parameters[key] = value
             population_parameters.append(agent_parameters)
+
+        # Warn only for time_var, the one branch whose behaviour changed. The
+        # time_inv and unclassified branches always omitted unhandled keys
+        # silently, and warning on those would flag unchanged behaviour and
+        # bury the case that matters in noise.
+        for key in sorted(dropped_keys):
+            if key in self.time_var:
+                warn(
+                    f"Parameter '{key}' was declared time-varying, but its "
+                    f"type ({type(self.parameters[key]).__name__}) or "
+                    "DataArray layout is not supported; it was omitted from "
+                    "every agent's parameter dictionary."
+                )
 
         self.population_parameters = population_parameters
 

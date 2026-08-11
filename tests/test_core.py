@@ -4,6 +4,10 @@ This file implements unit tests for core HARK functionality.
 
 import unittest
 
+# HARK exports a callable named `warnings`, which shadows the stdlib module
+# at this module's scope, so the standard library is bound under an alias.
+import warnings as std_warnings
+
 import numpy as np
 import pytest
 from copy import deepcopy
@@ -1361,6 +1365,82 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
         self.assertEqual(agent_pop.agent_type_count, 5)
         self.assertIn("CRRA", agent_pop.discrete_distributions)
+
+    def test_time_var_unhandled_type_is_omitted_with_warning(self):
+        """A time_var value of an unsupported type is dropped, and says so.
+
+        Before the helpers were extracted, the time_var branch assigned a
+        shared local unconditionally after its if/elif chain, so this input
+        raised UnboundLocalError or silently reused the previous key's value.
+        Omitting the key is a deliberate change, so it must be announced.
+        """
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # ndarray falls past the int/float, list and DataArray branches.
+        params["Rfree"] = np.array([1.02, 1.03])
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with pytest.warns(UserWarning, match="Rfree.*declared time-varying"):
+            agent_pop.__parse_parameters__()
+
+        for agent_params in agent_pop.population_parameters:
+            self.assertNotIn("Rfree", agent_params)
+
+    def test_time_var_unhandled_dataarray_dims_is_omitted_with_warning(self):
+        """A DataArray whose leading dim is neither agent nor age is dropped."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["Rfree"] = DataArray([1.02, 1.03], dims=("mrkv",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with pytest.warns(UserWarning, match="Rfree.*declared time-varying"):
+            agent_pop.__parse_parameters__()
+
+        for agent_params in agent_pop.population_parameters:
+            self.assertNotIn("Rfree", agent_params)
+
+    def test_unclassified_unhandled_value_is_omitted_silently(self):
+        """Unclassified keys fall through by design and must not warn.
+
+        Ordinary parameters such as constructors (a dict) and unset options
+        (None) hit this path on every run, so warning here would bury the
+        time_var case in noise.
+        """
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with std_warnings.catch_warnings(record=True) as caught:
+            std_warnings.simplefilter("always")
+            agent_pop.__parse_parameters__()
+
+        omitted = [
+            key
+            for key in params
+            if key not in agent_pop.population_parameters[0]
+            and key not in agent_pop.time_var
+        ]
+        self.assertTrue(omitted, "expected at least one unclassified fall-through")
+        self.assertEqual(
+            [
+                str(w.message)
+                for w in caught
+                if "omitted from every agent" in str(w.message)
+            ],
+            [],
+        )
+
+    def test_slice_dataarray_distinguishes_none_from_unhandled(self):
+        """A legitimate None value must not be read as an unrecognized layout."""
+        sentinel = AgentPopulation._UNHANDLED
+
+        legitimate_none = DataArray(
+            np.array([None, 5.0], dtype=object), dims=("agent",)
+        )
+        self.assertIsNone(AgentPopulation._slice_dataarray_param(legitimate_none, 0))
+
+        unrecognized = DataArray(np.zeros((2, 3)), dims=("wrong", "dims"))
+        self.assertIs(AgentPopulation._slice_dataarray_param(unrecognized, 0), sentinel)
 
 
 class test_export_to_df(unittest.TestCase):

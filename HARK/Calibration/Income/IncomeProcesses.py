@@ -21,6 +21,118 @@ from HARK.interpolation import IdentityFunction, LinearInterp
 from HARK.utilities import get_percentiles, make_polynomial_params
 
 
+def _split_lifecycle_lengths(T_cycle, T_retire):
+    """Return ``(normal_length, retire_length)`` for a lifecycle income process."""
+    if T_retire > 0:
+        return T_retire, T_cycle - T_retire
+    return T_cycle, 0
+
+
+def _build_lifecycle_unemployment_lists(
+    normal_length,
+    retire_length,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+):
+    """
+    Build per-period unemployment probability and income lists.
+
+    Accepts either scalar (float/int/None) values that change only at
+    retirement, or pre-built lists of length ``T_cycle``. Raises with a
+    descriptive message otherwise.
+    """
+    scalars = [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
+    if all(isinstance(x, (float, int)) or x is None for x in scalars):
+        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
+        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
+    elif all(isinstance(x, list) for x in [UnempPrb, IncUnemp]):
+        UnempPrb_list = UnempPrb
+        IncUnemp_list = IncUnemp
+    else:
+        raise Exception(
+            "Unemployment must be specified either using floats for UnempPrb, "
+            "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
+            "unemployment probability and income change only with retirement, or "
+            "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
+            "each feature at every age."
+        )
+    return UnempPrb_list, IncUnemp_list
+
+
+def _build_lifecycle_conditional(
+    T_cycle,
+    T_retire,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+    PermShkStd,
+    TranShkStd,
+    PermShkCount,
+    TranShkCount,
+    neutral_measure,
+):
+    """Build the ``conditional`` dict for ``IndexDistribution`` from raw inputs.
+
+    Shared by ``construct_lognormal_income_process_unemployment`` and
+    ``construct_HANK_lognormal_income_process_unemployment``.
+    """
+    normal_length, retire_length = _split_lifecycle_lengths(T_cycle, T_retire)
+    UnempPrb_list, IncUnemp_list = _build_lifecycle_unemployment_lists(
+        normal_length, retire_length, UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet
+    )
+    PermShkCount_list, TranShkCount_list, neutral_measure_list = (
+        _build_lifecycle_shock_count_lists(
+            normal_length, retire_length, PermShkCount, TranShkCount, neutral_measure
+        )
+    )
+    return {
+        "sigma_Perm": PermShkStd,
+        "sigma_Tran": TranShkStd,
+        "n_approx_Perm": PermShkCount_list,
+        "n_approx_Tran": TranShkCount_list,
+        "neutral_measure": neutral_measure_list,
+        "UnempPrb": UnempPrb_list,
+        "IncUnemp": IncUnemp_list,
+    }
+
+
+def _expand_expense_shock_schedule(shock_groups):
+    """Build the per-age expense shock distribution list.
+
+    ``shock_groups`` holds 9 shock distributions, one per age band of the
+    source data (51-55, 56-60, 61-65, 66-70, 71-75, 76-80, 81-85, 86-90, 91+).
+    Positions 0-49 of the result are ``None``; each of the first eight groups
+    then fills 5 consecutive positions and the last fills 31, for a total
+    length of 121.
+
+    The band labels are the source data's age ranges, not position indices:
+    the offset between list position and calendar age follows the caller's
+    age convention.
+    """
+    out = 50 * [None]
+    for shks in shock_groups[:-1]:
+        out += 5 * [np.array(shks)]
+    out += 31 * [np.array(shock_groups[-1])]
+    return out
+
+
+def _build_lifecycle_shock_count_lists(
+    normal_length,
+    retire_length,
+    PermShkCount,
+    TranShkCount,
+    neutral_measure,
+):
+    """Build per-period shock count and neutral-measure lists for the lifecycle."""
+    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
+    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
+    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
+    return PermShkCount_list, TranShkCount_list, neutral_measure_list
+
+
 class BinaryIncShkDstn(DiscreteDistribution):
     """
     A one period income shock distribution (transitory, permanent, or other)
@@ -495,54 +607,125 @@ def construct_lognormal_income_process_unemployment(
         A list with T_cycle elements, each of which is a
         discrete approximation to the income process in a period.
     """
-    if T_retire > 0:
-        normal_length = T_retire
-        retire_length = T_cycle - T_retire
-    else:
-        normal_length = T_cycle
-        retire_length = 0
-
-    if all(
-        [
-            isinstance(x, (float, int)) or (x is None)
-            for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
-        ]
-    ):
-        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
-        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
-
-    elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
-        UnempPrb_list = UnempPrb
-        IncUnemp_list = IncUnemp
-
-    else:
-        raise Exception(
-            "Unemployment must be specified either using floats for UnempPrb,"
-            + "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
-            + "unemployment probability and income change only with retirement, or "
-            + "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
-            + "each feature at every age."
-        )
-
-    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
-    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
-    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
-
     IncShkDstn = IndexDistribution(
         engine=BufferStockIncShkDstn,
-        conditional={
-            "sigma_Perm": PermShkStd,
-            "sigma_Tran": TranShkStd,
-            "n_approx_Perm": PermShkCount_list,
-            "n_approx_Tran": TranShkCount_list,
-            "neutral_measure": neutral_measure_list,
-            "UnempPrb": UnempPrb_list,
-            "IncUnemp": IncUnemp_list,
-        },
+        conditional=_build_lifecycle_conditional(
+            T_cycle,
+            T_retire,
+            UnempPrb,
+            IncUnemp,
+            UnempPrbRet,
+            IncUnempRet,
+            PermShkStd,
+            TranShkStd,
+            PermShkCount,
+            TranShkCount,
+            neutral_measure,
+        ),
         RNG=RNG,
         seed=RNG.integers(0, 2**31 - 1),
     )
     return IncShkDstn
+
+
+def _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp):
+    """Check that all four inputs agree on K, the number of discrete states.
+
+    Returns ``K``, taken from ``PermShkStd.shape[1]``. Raises if any input is
+    not array-like or disagrees on that dimension.
+    """
+    try:
+        K = PermShkStd.shape[1]
+        TranShkStd_K = TranShkStd.shape[1]
+        UnempPrb_K = UnempPrb.shape[-1]
+        IncUnemp_K = IncUnemp.shape[-1]
+        assert K == TranShkStd_K
+        assert K == UnempPrb_K
+        assert K == IncUnemp_K
+    except (AttributeError, AssertionError, IndexError) as exc:
+        raise Exception(
+            "The last dimension of PermShkStd, TranShkStd, IncUnemp,"
+            " and UnempPrb must all be K, the number of discrete states."
+        ) from exc
+    return K
+
+
+def _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet):
+    """Check the retirement unemployment inputs against the state count ``K``.
+
+    A no-op when ``T_retire <= 0``, since the retirement arrays are unused in
+    that case. Otherwise raises unless both have size ``K``.
+    """
+    if T_retire <= 0:
+        return
+    try:
+        assert K == UnempPrbRet.size
+        assert K == IncUnempRet.size
+    except (AttributeError, AssertionError) as exc:
+        raise Exception(
+            "When T_retire is not zero, UnempPrbRet and IncUnempRet"
+            " must be specified as arrays of size K, the number of "
+            "discrete Markov states."
+        ) from exc
+
+
+def _validate_markov_unemployment_ndim(
+    UnempPrb, IncUnemp, T_retire, UnempPrbRet, IncUnempRet
+):
+    """Check that the unemployment inputs share one dimensionality.
+
+    Returns their common ``ndim`` (1 or 2). The retirement arrays participate
+    only when ``T_retire > 0``. Raises if the inputs disagree, or if the
+    shared dimensionality is neither 1 nor 2.
+    """
+    try:
+        D = UnempPrb.ndim
+        assert D == IncUnemp.ndim
+        if T_retire > 0:
+            assert D == UnempPrbRet.ndim
+            assert D == IncUnempRet.ndim
+    except (AttributeError, AssertionError) as exc:
+        raise Exception(
+            "If any of UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet "
+            "are 2D arrays, then they must *all* be 2D arrays."
+        ) from exc
+    if D not in (1, 2):
+        raise Exception(
+            "UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet must "
+            "all be 1D or 2D arrays."
+        )
+    return D
+
+
+def _markov_unemployment_lists(
+    D,
+    k,
+    T_retire,
+    normal_length,
+    retire_length,
+    UnempPrb,
+    IncUnemp,
+    UnempPrbRet,
+    IncUnempRet,
+):
+    """Build per-period unemployment probability and income lists for state ``k``.
+
+    When ``D == 2`` the inputs already carry an age profile per state, so
+    column ``k`` is used directly. When ``D == 1`` the scalar for state ``k``
+    is repeated across ``normal_length`` working periods, followed by the
+    retirement value across ``retire_length`` periods when ``T_retire > 0``.
+
+    Returns ``(UnempPrb_list, IncUnemp_list)``.
+    """
+    if D == 2:
+        return UnempPrb[:, k].tolist(), IncUnemp[:, k].tolist()
+    if T_retire > 0:
+        UnempPrb_list = [UnempPrb[k]] * normal_length + [UnempPrbRet[k]] * retire_length
+        IncUnemp_list = [IncUnemp[k]] * normal_length + [IncUnempRet[k]] * retire_length
+    else:
+        UnempPrb_list = [UnempPrb[k]] * normal_length
+        IncUnemp_list = [IncUnemp[k]] * normal_length
+    return UnempPrb_list, IncUnemp_list
 
 
 def construct_markov_lognormal_income_process_unemployment(
@@ -618,86 +801,33 @@ def construct_markov_lognormal_income_process_unemployment(
         A list with T_cycle elements, each of which is a discrete approximation
         to the income process in a period.
     """
-    if T_retire > 0:
-        normal_length = T_retire
-        retire_length = T_cycle - T_retire
-    else:
-        normal_length = T_cycle
-        retire_length = 0
+    normal_length, retire_length = _split_lifecycle_lengths(T_cycle, T_retire)
 
-    # Check dimensions of inputs
-    try:
-        PermShkStd_K = PermShkStd.shape[1]
-        TranShkStd_K = TranShkStd.shape[1]
-        if UnempPrb.ndim == 2:
-            UnempPrb_K = UnempPrb.shape[1]
-        else:
-            UnempPrb_K = UnempPrb.shape[0]
-        if IncUnemp.ndim == 2:
-            IncUnemp_K = IncUnemp.shape[1]
-        else:
-            IncUnemp_K = IncUnemp.shape[0]
-        K = PermShkStd_K
-        assert K == TranShkStd_K
-        assert K == UnempPrb_K
-        assert K == IncUnemp_K
-    except:
-        raise Exception(
-            "The last dimension of PermShkStd, TranShkStd, IncUnemp,"
-            + " and UnempPrb must all be K, the number of discrete states."
-        )
-    try:
-        if T_retire > 0:
-            assert K == UnempPrbRet.size
-            assert K == IncUnempRet.size
-    except:
-        raise Exception(
-            "When T_retire is not zero, UnempPrbRet and IncUnempRet"
-            + " must be specified as arrays of size K, the number of "
-            + "discrete Markov states."
-        )
-    try:
-        D = UnempPrb.ndim
-        assert D == IncUnemp.ndim
-        if T_retire > 0:
-            assert D == UnempPrbRet.ndim
-            assert D == IncUnempRet.ndim
-    except:
-        raise Exception(
-            "If any of UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet "
-            + "are 2D arrays, then they must *all* be 2D arrays."
-        )
-    try:
-        assert D == 1 or D == 2
-    except:
-        raise Exception(
-            "UnempPrb, IncUnemp, or UnempPrbRet, or IncUnempRet must "
-            + "all be 1D or 2D arrays."
-        )
+    K = _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp)
+    _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet)
+    D = _validate_markov_unemployment_ndim(
+        UnempPrb, IncUnemp, T_retire, UnempPrbRet, IncUnempRet
+    )
 
-    # Prepare lists that don't vary by Markov state
-    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
-    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
-    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
+    PermShkCount_list, TranShkCount_list, neutral_measure_list = (
+        _build_lifecycle_shock_count_lists(
+            normal_length, retire_length, PermShkCount, TranShkCount, neutral_measure
+        )
+    )
 
-    # Loop through the Markov states, constructing the lifecycle income process for each one
     IncShkDstn_by_Mrkv = []
     for k in range(K):
-        if D == 1:  # Unemployment parameters don't vary by age other than retirement
-            if T_retire > 0:
-                UnempPrb_list = [UnempPrb[k]] * normal_length + [
-                    UnempPrbRet[k]
-                ] * retire_length
-                IncUnemp_list = [IncUnemp[k]] * normal_length + [
-                    IncUnempRet[k]
-                ] * retire_length
-            else:
-                UnempPrb_list = [UnempPrb[k]] * normal_length
-                IncUnemp_list = [IncUnemp[k]] * normal_length
-        else:  # Unemployment parameters vary by age
-            UnempPrb_list = UnempPrb[:, k].tolist()
-            IncUnemp_list = IncUnemp[:, k].tolist()
-
+        UnempPrb_list, IncUnemp_list = _markov_unemployment_lists(
+            D,
+            k,
+            T_retire,
+            normal_length,
+            retire_length,
+            UnempPrb,
+            IncUnemp,
+            UnempPrbRet,
+            IncUnempRet,
+        )
         PermShkStd_k = PermShkStd[:, k].tolist()
         TranShkStd_k = TranShkStd[:, k].tolist()
 
@@ -808,49 +938,22 @@ def construct_HANK_lognormal_income_process_unemployment(
         A list with T_cycle elements, each of which
         a discrete approximation to the transitory income shocks.
     """
-    if T_retire > 0:
-        normal_length = T_retire
-        retire_length = T_cycle - T_retire
-    else:
-        normal_length = T_cycle
-        retire_length = 0
-
-    if all(
-        [
-            isinstance(x, (float, int)) or (x is None)
-            for x in [UnempPrb, IncUnemp, UnempPrbRet, IncUnempRet]
-        ]
-    ):
-        UnempPrb_list = [UnempPrb] * normal_length + [UnempPrbRet] * retire_length
-        IncUnemp_list = [IncUnemp] * normal_length + [IncUnempRet] * retire_length
-
-    elif all([isinstance(x, list) for x in [UnempPrb, IncUnemp]]):
-        UnempPrb_list = UnempPrb
-        IncUnemp_list = IncUnemp
-
-    else:
-        raise Exception(
-            "Unemployment must be specified either using floats for UnempPrb,"
-            + "IncUnemp, UnempPrbRet, and IncUnempRet, in which case the "
-            + "unemployment probability and income change only with retirement, or "
-            + "using lists of length T_cycle for UnempPrb and IncUnemp, specifying "
-            + "each feature at every age."
-        )
-
-    PermShkCount_list = [PermShkCount] * normal_length + [1] * retire_length
-    TranShkCount_list = [TranShkCount] * normal_length + [1] * retire_length
-    neutral_measure_list = [neutral_measure] * len(PermShkCount_list)
-
     IncShkDstn = IndexDistribution(
         engine=IncShkDstn_HANK,
         conditional={
-            "sigma_Perm": PermShkStd,
-            "sigma_Tran": TranShkStd,
-            "n_approx_Perm": PermShkCount_list,
-            "n_approx_Tran": TranShkCount_list,
-            "neutral_measure": neutral_measure_list,
-            "UnempPrb": UnempPrb_list,
-            "IncUnemp": IncUnemp_list,
+            **_build_lifecycle_conditional(
+                T_cycle,
+                T_retire,
+                UnempPrb,
+                IncUnemp,
+                UnempPrbRet,
+                IncUnempRet,
+                PermShkStd,
+                TranShkStd,
+                PermShkCount,
+                TranShkCount,
+                neutral_measure,
+            ),
             "wage": wage,
             "tax_rate": tax_rate,
             "labor": labor,
@@ -960,50 +1063,33 @@ def construct_lognormal_income_process_with_mvg_medical_expenses(
     equiprobable_one_seventh = np.ones(7) / 7.0
     if CollegeBool:
         # Copy Mateo's college-educated expense shock distribution
-        exp_shks_51_to_55 = np.array([0.000, 0.003, 0.007, 0.012, 0.021, 0.039, 0.121])
-        exp_shks_56_to_60 = np.array([0.001, 0.005, 0.010, 0.016, 0.027, 0.049, 0.163])
-        exp_shks_61_to_65 = np.array([0.002, 0.007, 0.014, 0.023, 0.040, 0.078, 0.227])
-        exp_shks_66_to_70 = np.array([0.003, 0.010, 0.019, 0.031, 0.050, 0.089, 0.227])
-        exp_shks_71_to_75 = np.array([0.004, 0.013, 0.024, 0.039, 0.060, 0.103, 0.262])
-        exp_shks_76_to_80 = np.array([0.004, 0.015, 0.028, 0.047, 0.074, 0.123, 0.294])
-        exp_shks_81_to_85 = np.array([0.004, 0.017, 0.033, 0.054, 0.089, 0.155, 0.410])
-        exp_shks_86_to_90 = np.array([0.002, 0.015, 0.033, 0.057, 0.100, 0.191, 0.719])
-        exp_shks_91_plus = np.array([0.000, 0.015, 0.039, 0.075, 0.160, 0.389, 1.485])
-        exp_shks_all = (
-            50 * [None]
-            + 5 * [exp_shks_51_to_55]
-            + 5 * [exp_shks_56_to_60]
-            + 5 * [exp_shks_61_to_65]
-            + 5 * [exp_shks_66_to_70]
-            + 5 * [exp_shks_71_to_75]
-            + 5 * [exp_shks_76_to_80]
-            + 5 * [exp_shks_81_to_85]
-            + 5 * [exp_shks_86_to_90]
-            + 31 * [exp_shks_91_plus]
+        exp_shks_all = _expand_expense_shock_schedule(
+            [
+                [0.000, 0.003, 0.007, 0.012, 0.021, 0.039, 0.121],  # 51-55
+                [0.001, 0.005, 0.010, 0.016, 0.027, 0.049, 0.163],  # 56-60
+                [0.002, 0.007, 0.014, 0.023, 0.040, 0.078, 0.227],  # 61-65
+                [0.003, 0.010, 0.019, 0.031, 0.050, 0.089, 0.227],  # 66-70
+                [0.004, 0.013, 0.024, 0.039, 0.060, 0.103, 0.262],  # 71-75
+                [0.004, 0.015, 0.028, 0.047, 0.074, 0.123, 0.294],  # 76-80
+                [0.004, 0.017, 0.033, 0.054, 0.089, 0.155, 0.410],  # 81-85
+                [0.002, 0.015, 0.033, 0.057, 0.100, 0.191, 0.719],  # 86-90
+                [0.000, 0.015, 0.039, 0.075, 0.160, 0.389, 1.485],  # 91+
+            ]
         )
-
     else:
         # Copy Mateo's high school-educated expense shock distribution
-        exp_shks_51_to_55 = np.array([0.000, 0.004, 0.010, 0.019, 0.033, 0.064, 0.205])
-        exp_shks_56_to_60 = np.array([0.000, 0.005, 0.013, 0.023, 0.040, 0.077, 0.245])
-        exp_shks_61_to_65 = np.array([0.000, 0.008, 0.018, 0.032, 0.055, 0.104, 0.290])
-        exp_shks_66_to_70 = np.array([0.001, 0.011, 0.023, 0.038, 0.064, 0.111, 0.264])
-        exp_shks_71_to_75 = np.array([0.002, 0.014, 0.028, 0.046, 0.074, 0.126, 0.293])
-        exp_shks_76_to_80 = np.array([0.001, 0.015, 0.031, 0.053, 0.084, 0.143, 0.346])
-        exp_shks_81_to_85 = np.array([0.001, 0.016, 0.033, 0.059, 0.096, 0.168, 0.433])
-        exp_shks_86_to_90 = np.array([0.000, 0.016, 0.036, 0.066, 0.110, 0.229, 0.849])
-        exp_shks_91_plus = np.array([0.000, 0.011, 0.034, 0.069, 0.131, 0.301, 1.479])
-        exp_shks_all = (
-            50 * [None]
-            + 5 * [exp_shks_51_to_55]
-            + 5 * [exp_shks_56_to_60]
-            + 5 * [exp_shks_61_to_65]
-            + 5 * [exp_shks_66_to_70]
-            + 5 * [exp_shks_71_to_75]
-            + 5 * [exp_shks_76_to_80]
-            + 5 * [exp_shks_81_to_85]
-            + 5 * [exp_shks_86_to_90]
-            + 31 * [exp_shks_91_plus]
+        exp_shks_all = _expand_expense_shock_schedule(
+            [
+                [0.000, 0.004, 0.010, 0.019, 0.033, 0.064, 0.205],  # 51-55
+                [0.000, 0.005, 0.013, 0.023, 0.040, 0.077, 0.245],  # 56-60
+                [0.000, 0.008, 0.018, 0.032, 0.055, 0.104, 0.290],  # 61-65
+                [0.001, 0.011, 0.023, 0.038, 0.064, 0.111, 0.264],  # 66-70
+                [0.002, 0.014, 0.028, 0.046, 0.074, 0.126, 0.293],  # 71-75
+                [0.001, 0.015, 0.031, 0.053, 0.084, 0.143, 0.346],  # 76-80
+                [0.001, 0.016, 0.033, 0.059, 0.096, 0.168, 0.433],  # 81-85
+                [0.000, 0.016, 0.036, 0.066, 0.110, 0.229, 0.849],  # 86-90
+                [0.000, 0.011, 0.034, 0.069, 0.131, 0.301, 1.479],  # 91+
+            ]
         )
 
     # Incorporate the expense shock distribution into the transitory income shock distribution
