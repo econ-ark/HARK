@@ -1,131 +1,180 @@
-'''
-Functions for estimating structural models, including optimization methods
+"""Functions for estimating structural models, including optimization methods
 and bootstrapping tools.
-'''
-import numpy as np                                      # Numerical Python
-from time import time                                   # Used to time execution
-from copy import deepcopy                               # For replicating complex objects
-from scipy.optimize import fmin, fmin_powell            # Minimizers
-import warnings
+"""
+
 import csv
 import multiprocessing
+import warnings
+from copy import deepcopy  # For replicating complex objects
+from time import time  # Used to time execution
+
+import estimagic as em
+import numpy as np  # Numerical Python
 from joblib import Parallel, delayed
+from scipy.optimize import fmin, fmin_powell  # off-the-shelf minimizers
 
-__all__ = ['minimizeNelderMead', 'minimizePowell', 'bootstrapSampleFromData', 'parallelNelderMead']
+from HARK.core import AgentType
 
-def minimizeNelderMead(objectiveFunction, parameter_guess, verbose=False, which_vars=None, **kwargs):
-    '''
-    Minimizes the objective function using the Nelder-Mead simplex algorithm,
+__all__ = [
+    "minimize_nelder_mead",
+    "minimize_powell",
+    "bootstrap_sample_from_data",
+    "parallelNelderMead",
+]
+
+
+def minimize_nelder_mead(
+    objective_func,
+    parameter_guess,
+    verbose=False,
+    which_vars=None,
+    **kwargs,
+):
+    """Minimizes the objective function using the Nelder-Mead simplex algorithm,
     starting from an initial parameter guess.
-    
+
     Parameters
     ----------
-    objectiveFunction : function
+    objective_func : function
         The function to be minimized.  It should take only a single argument, which
         should be a list representing the parameters to be estimated.
     parameter_guess : [float]
         A starting point for the Nelder-Mead algorithm, which must be a valid
-        input for objectiveFunction.
+        input for objective_func.
     which_vars : np.array or None
         Array of booleans indicating which parameters should be estimated.  When
         not provided, estimation is performed on all parameters.
     verbose : boolean
         A flag for the amount of output to print.
-        
+
     Returns
     -------
     xopt : [float]
-        The values that minimize objectiveFunction.
-    '''
+        The values that minimize objective_func.
+
+    """
     # Specify a temporary "modified objective function" that restricts parameters to be estimated
     if which_vars is None:
-        which_vars = np.ones(len(parameter_guess),dtype=bool)
-    def objectiveFunctionMod(params):
+        which_vars = np.ones(len(parameter_guess), dtype=bool)
+
+    def objective_func_mod(params):
         params_full = np.copy(parameter_guess)
         params_full[which_vars] = params
-        out = objectiveFunction(params_full)
+        out = objective_func(params_full)
         return out
+
     # convert parameter guess to np array to slice it with boolean array
     parameter_guess_mod = np.array(parameter_guess)[which_vars]
 
     # Execute the minimization, starting from the given parameter guess
-    t0 = time() # Time the process
-    OUTPUT = fmin(objectiveFunctionMod, parameter_guess_mod, full_output=1, disp=verbose, **kwargs)
+    t0 = time()  # Time the process
+    OUTPUT = fmin(
+        objective_func_mod,
+        parameter_guess_mod,
+        full_output=1,
+        disp=verbose,
+        **kwargs,
+    )
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameters that minimize function.
-    fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
-    optiter = OUTPUT[2]     # Number of iterations performed.
-    funcalls = OUTPUT[3]    # Number of function calls made.
-    warnflag = OUTPUT[4]    # warnflag : int
-                            #   1 : Maximum number of function evaluations made.
-                            #   2 : Maximum number of iterations reached.
+    xopt = OUTPUT[0]  # Parameters that minimize function.
+    fopt = OUTPUT[1]  # Value of function at minimum: ``fopt = func(xopt)``.
+    optiter = OUTPUT[2]  # Number of iterations performed.
+    funcalls = OUTPUT[3]  # Number of function calls made.
+    warnflag = OUTPUT[4]  # warnflag : int
+    #   1 : Maximum number of function evaluations made.
+    #   2 : Maximum number of iterations reached.
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + 
-                      ', optiter=' + str(optiter) +', funcalls=' + str(funcalls) +
-                      ', warnflag=' + str(warnflag))
+        warnings.warn(
+            "Minimization failed! xopt="
+            + str(xopt)
+            + ", fopt="
+            + str(fopt)
+            + ", optiter="
+            + str(optiter)
+            + ", funcalls="
+            + str(funcalls)
+            + ", warnflag="
+            + str(warnflag),
+        )
     xopt_full = np.copy(parameter_guess)
     xopt_full[which_vars] = xopt
 
     # Display and return the results:
     if verbose:
-        print("Time to estimate is " + str(t1-t0) +  " seconds.")
+        print("Time to estimate is " + str(t1 - t0) + " seconds.")
     return xopt_full
 
 
-def minimizePowell(objectiveFunction, parameter_guess, verbose=False):
-    '''
-    Minimizes the objective function using a derivative-free Powell algorithm,
+def minimize_powell(objective_func, parameter_guess, verbose=False):
+    """Minimizes the objective function using a derivative-free Powell algorithm,
     starting from an initial parameter guess.
 
     Parameters
     ----------
-    objectiveFunction : function
+    objective_func : function
         The function to be minimized.  It should take only a single argument, which
         should be a list representing the parameters to be estimated.
     parameter_guess : [float]
         A starting point for the Powell algorithm, which must be a valid
-        input for objectiveFunction.
+        input for objective_func.
     verbose : boolean
         A flag for the amount of output to print.
 
     Returns
     -------
     xopt : [float]
-        The values that minimize objectiveFunction.
-    '''
+        The values that minimize objective_func.
 
+    """
     # Execute the minimization, starting from the given parameter guess
-    t0 = time()   # Time the process
-    OUTPUT = fmin_powell(objectiveFunction, parameter_guess, full_output=1, maxiter=1000, disp=verbose)
+    t0 = time()  # Time the process
+    OUTPUT = fmin_powell(
+        objective_func,
+        parameter_guess,
+        full_output=1,
+        maxiter=1000,
+        disp=verbose,
+    )
     t1 = time()
 
     # Extract values from optimization output:
-    xopt = OUTPUT[0]        # Parameters that minimize function.
-    fopt = OUTPUT[1]        # Value of function at minimum: ``fopt = func(xopt)``.
+    xopt = OUTPUT[0]  # Parameters that minimize function.
+    fopt = OUTPUT[1]  # Value of function at minimum: ``fopt = func(xopt)``.
     direc = OUTPUT[2]
-    optiter = OUTPUT[3]     # Number of iterations performed.
-    funcalls = OUTPUT[4]    # Number of function calls made.
-    warnflag = OUTPUT[5]    # warnflag : int
+    optiter = OUTPUT[3]  # Number of iterations performed.
+    funcalls = OUTPUT[4]  # Number of function calls made.
+    warnflag = OUTPUT[5]  # warnflag : int
     #                           1 : Maximum number of function evaluations made.
     #                           2 : Maximum number of iterations reached.
 
     # Check that optimization succeeded:
     if warnflag != 0:
-        warnings.warn("Minimization failed! xopt=" + str(xopt) + ', fopt=' + str(fopt) + ', direc=' + str(direc) +
-                      ', optiter=' + str(optiter) + ', funcalls=' + str(funcalls) + ', warnflag=' + str(warnflag))
+        warnings.warn(
+            "Minimization failed! xopt="
+            + str(xopt)
+            + ", fopt="
+            + str(fopt)
+            + ", direc="
+            + str(direc)
+            + ", optiter="
+            + str(optiter)
+            + ", funcalls="
+            + str(funcalls)
+            + ", warnflag="
+            + str(warnflag),
+        )
 
     # Display and return the results:
     if verbose:
-        print("Time to estimate is " + str(t1-t0) + " seconds.")
+        print("Time to estimate is " + str(t1 - t0) + " seconds.")
     return xopt
 
 
-def bootstrapSampleFromData(data, weights=None, seed=0):
-    '''
-    Samples rows from the input array of data, generating a new data array with
+def bootstrap_sample_from_data(data, weights=None, seed=0):
+    """Samples rows from the input array of data, generating a new data array with
     an equal number of rows (records).  Rows are drawn with equal probability
     by default, but probabilities can be specified with weights (must sum to 1).
 
@@ -142,9 +191,10 @@ def bootstrapSampleFromData(data, weights=None, seed=0):
     -------
     new_data : np.array
         A resampled version of input data.
-    '''
+
+    """
     # Set up the random number generator
-    RNG = np.random.RandomState(seed)
+    RNG = np.random.default_rng(seed)
     N = data.shape[0]
 
     # Set up weights
@@ -157,17 +207,317 @@ def bootstrapSampleFromData(data, weights=None, seed=0):
     indices = np.searchsorted(cutoffs, RNG.uniform(size=N))
 
     # Create a bootstrapped sample
-    new_data = deepcopy(data[indices, ])
+    new_data = deepcopy(data[indices,])
     return new_data
 
 
+def _initialize_nelder_mead(guess, perturb):
+    """Construct the initial simplex and related bookkeeping when starting fresh.
+
+    Parameters
+    ----------
+    guess : np.array
+        Initial starting point for the simplex.
+    perturb : np.array or None
+        Perturbation vector for the simplex.  If None, each parameter is
+        perturbed by 10% of its value (or by 0.1 when the value is zero).
+
+    Returns
+    -------
+    simplex : np.array
+        The initial simplex of shape (N, K).
+    fvals : np.array
+        Array of NaN values of length N, to be filled by evaluation.
+    dim_count : int
+        Number of parameters being optimized.
+    N : int
+        Number of points in the simplex (dim_count + 1).
+    K : int
+        Total number of parameters in guess.
+    iters : int
+        Initial iteration counter (0).
+    evals : int
+        Initial evaluation counter (0).
+
+    """
+    if perturb is None:  # Default: perturb each parameter by 10%
+        perturb = 0.1 * guess
+        perturb[guess == 0] = 0.1
+
+    params_to_opt = np.where(perturb != 0)[0]  # Indices of which parameters to optimize
+    dim_count = params_to_opt.size  # Number of parameters to search over
+    N = dim_count + 1  # Number of points in simplex
+    K = guess.size  # Total number of parameters
+    simplex = np.tile(guess, (N, 1))
+    for j in range(
+        dim_count,
+    ):  # Perturb each parameter to optimize by the specified distance
+        simplex[j + 1, params_to_opt[j]] = (
+            simplex[j + 1, params_to_opt[j]] + perturb[params_to_opt[j]]
+        )
+
+    # Initialize iteration and evaluation counts, plus a 1D array of function values
+    fvals = np.zeros(dim_count + 1) + np.nan
+
+    iters = 0
+    evals = 0
+
+    return simplex, fvals, dim_count, N, K, iters, evals
+
+
+def _evaluate_and_sort_initial_simplex(
+    obj_func, simplex, fvals, N, parallel, use_parallel, verbose, savefreq, name
+):
+    """Evaluate the objective function at each vertex of the initial simplex and
+    sort the simplex by function value from best to worst.
+
+    Parameters
+    ----------
+    obj_func : function
+        The objective function to be minimized.
+    simplex : np.array
+        The initial simplex of shape (N, K).
+    fvals : np.array
+        Placeholder array of function values (filled here).
+    N : int
+        Number of points in the simplex.
+    parallel : joblib.Parallel
+        Configured Parallel object for parallel evaluation.
+    use_parallel : bool
+        Whether to use parallel evaluation.
+    verbose : int
+        Verbosity level; messages are printed when verbose > 0.
+    savefreq : int or None
+        Save frequency in iterations; saves immediately after initialization
+        when not None.
+    name : str or None
+        Filename stem for saving progress.
+
+    Returns
+    -------
+    simplex : np.array
+        The sorted simplex (best vertex first).
+    fvals : np.array
+        Function values at each vertex, sorted to match simplex.
+
+    """
+    temp_simplex = list(simplex)  # Evaluate the initial simplex
+    if use_parallel:
+        fvals = np.array(parallel(delayed(obj_func)(params) for params in temp_simplex))
+    else:
+        fvals = np.array([obj_func(params) for params in temp_simplex])
+
+    # Reorder the initial simplex
+    order = np.argsort(fvals)
+    fvals = fvals[order]
+    simplex = simplex[order, :]
+    fmin = fvals[0]
+    f_dist = np.abs(fmin - fvals[-1])
+    x_dist = np.max(
+        np.sqrt(np.sum((simplex - np.tile(simplex[0, :], (N, 1))) ** 2.0, axis=1)),
+    )
+    if verbose > 0:
+        print(
+            "Evaluated the initial simplex: fmin="
+            + str(fmin)
+            + ", f_dist="
+            + str(f_dist)
+            + ", x_dist="
+            + str(x_dist),
+        )
+    if savefreq is not None:
+        save_nelder_mead_data(name, simplex, fvals, 0, N)
+        if verbose > 0:
+            print("Saved search progress in " + name + ".txt")
+
+    return simplex, fvals
+
+
+def _nelder_mead_iteration(
+    obj_func,
+    simplex,
+    fvals,
+    N,
+    K,
+    P,
+    j_list,
+    opt_params,
+    s_param,
+    parallel,
+    use_parallel,
+    verbose,
+):
+    """Perform one iteration of the parallel Nelder-Mead algorithm.
+
+    Attempts to update the P worst vertices of the simplex.  When every
+    attempted update leaves the subsimplex unchanged, a shrink step is
+    performed instead, re-evaluating all vertices except the best one.
+
+    Parameters
+    ----------
+    obj_func : function
+        The objective function to be minimized.
+    simplex : np.array
+        The current simplex of shape (N, K).
+    fvals : np.array
+        Function values at each vertex, sorted best to worst.
+    N : int
+        Number of points in the simplex.
+    K : int
+        Total number of parameters.
+    P : int
+        Degree of parallelization (number of worst vertices to update).
+    j_list : range
+        Indices of the vertices to attempt updating (range(N - P, N)).
+    opt_params : list
+        Three-element list [r_param, c_param, e_param] for reflection,
+        contraction, and expansion.
+    s_param : float
+        Shrink parameter.
+    parallel : joblib.Parallel
+        Configured Parallel object for parallel evaluation.
+    use_parallel : bool
+        Whether to use parallel evaluation.
+    verbose : int
+        Verbosity level; messages are printed when verbose > 0.
+
+    Returns
+    -------
+    simplex : np.array
+        The updated and re-sorted simplex.
+    fvals : np.array
+        Updated function values sorted to match simplex.
+    new_evals : int
+        Number of objective function evaluations performed this iteration.
+
+    """
+    # Update the P worst points of the simplex
+    if use_parallel:
+        output = parallel(
+            delayed(parallel_nelder_mead_worker)(
+                obj_func,
+                simplex,
+                fvals,
+                j,
+                P,
+                opt_params,
+            )
+            for j in j_list
+        )
+    else:
+        output = [
+            parallel_nelder_mead_worker(obj_func, simplex, fvals, j, P, opt_params)
+            for j in j_list
+        ]
+
+    # Extract the output for each node
+    new_subsimplex = np.zeros((P, K)) + np.nan
+    new_vals = np.zeros(P) + np.nan
+    new_evals = 0
+    for i in range(P):
+        new_subsimplex[i, :] = output[i][0]
+        new_vals[i] = output[i][1]
+        new_evals += output[i][2]
+
+    # Check whether any updates actually happened
+    old_subsimplex = simplex[(N - P) : N, :]
+    if np.max(np.abs(new_subsimplex - old_subsimplex)) == 0:
+        if verbose > 0:
+            print("Updated the simplex, but must perform a shrink step.")
+        # If every attempted update was unsuccessful, must shrink the simplex
+        simplex = s_param * np.tile(simplex[0, :], (N, 1)) + (1.0 - s_param) * simplex
+        temp_simplex = list(simplex[1:N, :])
+        if use_parallel:
+            fvals = np.array(
+                [fvals[0]]
+                + parallel(delayed(obj_func)(params) for params in temp_simplex),
+            )
+        else:
+            fvals = np.array([fvals[0]] + [obj_func(params) for params in temp_simplex])
+        new_evals += N - 1
+    else:
+        if verbose > 0:
+            print("Updated the simplex successfully.")
+        # Otherwise, update the simplex with the new results
+        simplex[(N - P) : N, :] = new_subsimplex
+        fvals[(N - P) : N] = new_vals
+
+    # Reorder the simplex from best to worst
+    order = np.argsort(fvals)
+    fvals = fvals[order]
+    simplex = simplex[order, :]
+
+    return simplex, fvals, new_evals
+
+
+def _check_nm_termination(
+    iters, evals, fvals, simplex, N, maxiter, maxeval, ftol, xtol
+):
+    """Check whether any Nelder-Mead terminal condition has been satisfied.
+
+    Parameters
+    ----------
+    iters : int
+        Number of completed iterations.
+    evals : int
+        Cumulative number of function evaluations.
+    fvals : np.array
+        Current function values, sorted best to worst.
+    simplex : np.array
+        Current simplex of shape (N, K).
+    N : int
+        Number of points in the simplex.
+    maxiter : int
+        Maximum allowed iterations.
+    maxeval : int
+        Maximum allowed function evaluations.
+    ftol : float
+        Absolute function-value tolerance for convergence.
+    xtol : float
+        Absolute parameter-space tolerance for convergence.
+
+    Returns
+    -------
+    go : bool
+        False when at least one terminal condition is satisfied.
+    fmin : float
+        Best objective function value found so far.
+    f_dist : float
+        Absolute difference between the best and worst function values.
+    x_dist : float
+        Maximum Euclidean distance from the best vertex to any other vertex.
+
+    """
+    fmin = fvals[0]
+    f_dist = np.abs(fmin - fvals[-1])
+    x_dist = np.max(
+        np.sqrt(np.sum((simplex - np.tile(simplex[0, :], (N, 1))) ** 2.0, axis=1)),
+    )
+
+    go = True
+    if iters >= maxiter:
+        go = False
+        print("Maximum iterations reached, terminating unsuccessfully.")
+    if evals >= maxeval:
+        go = False
+        print("Maximum evaluations reached, terminating unsuccessfully.")
+    if f_dist < ftol:
+        go = False
+        print("Function tolerance reached, terminating successfully.")
+    if x_dist < xtol:
+        go = False
+        print("Parameter tolerance reached, terminating successfully.")
+
+    return go, fmin, f_dist, x_dist
+
+
 def parallelNelderMead(
-    objFunc,
+    obj_func,
     guess,
     perturb=None,
     P=1,
-    ftol=0.000001,
-    xtol=0.00000001,
+    ftol=1e-8,
+    xtol=1e-8,
     maxiter=np.inf,
     maxeval=np.inf,
     r_param=1.0,
@@ -180,23 +530,21 @@ def parallelNelderMead(
     savefreq=None,
     verbose=1,
 ):
-    """
-
-    A parallel implementation of the Nelder-Mead minimization algorithm, as
+    """A parallel implementation of the Nelder-Mead minimization algorithm, as
     described in Lee and Wiswall.  For long optimization procedures, it can
     save progress between iterations and resume later.
-    
+
     Parameters
     ----------
-    objFunc : function
+    obj_func : function
         The objective function to be minimized. Takes a single 1D array as input.
     guess : np.array
-        Initial starting point for the simplex, representing an input for objFunc.
+        Initial starting point for the simplex, representing an input for obj_func.
     perturb : np.array
         Perturbation vector for the simplex, of the same length as an input to
-        objFunc.  If perturb[j] is non-zero, a simplex point will be created
+        obj_func.  If perturb[j] is non-zero, a simplex point will be created
         that perturbs the j-th element of guess by perturb[j]; if it is zero,
-        then the j-th parameter of objFunc will not be optimized over.  By
+        then the j-th parameter of obj_func will not be optimized over.  By
         default, perturb=None, indicating that all parameters should be optimized,
         with an initial perturbation of 0.1*guess.
     P : int
@@ -214,7 +562,7 @@ def parallelNelderMead(
         Maximum number of Nelder-Mead iterations; reaching iters=maxiter is
         reported as an "unsuccessful" minimization.
     maxeval : int
-        Maximum number of evaluations of objFunc (across all processes); reaching
+        Maximum number of evaluations of obj_func (across all processes); reaching
         evals=maxeval is reported as an "unsuccessful" minimization.
     r_param: float
         Parameter indicating magnitude of the reflection point calculation.
@@ -240,58 +588,39 @@ def parallelNelderMead(
     verbose : int
         Indicator for the verbosity of the optimization routine.  Higher values
         generate more text output; verbose=0 produces no text output.
-        
+
     Returns
     -------
     min_point : np.array
-        The input that minimizes objFunc, as found by the minimization.
+        The input that minimizes obj_func, as found by the minimization.
     fmin : float
-        The minimum of objFunc; fmin = objFunc(min_point).
+        The minimum of obj_func; fmin = obj_func(min_point).
+
     """
-    # If this is a resumed search, load the data
+    # Setup: resume from saved state or build the initial simplex from scratch
     if resume:
-        simplex, fvals, iters, evals = loadNelderMeadData(name)
+        simplex, fvals, iters, evals = load_nelder_mead_data(name)
         dim_count = fvals.size - 1
         N = dim_count + 1  # Number of points in simplex
         K = simplex.shape[1]  # Total number of parameters
-
-    # Otherwise, construct the initial simplex and array of function values
     else:
-        if perturb is None:  # Default: perturb each parameter by 10%
-            perturb = 0.1 * guess
-            guess[guess == 0] = 0.1
-
-        params_to_opt = np.where(perturb != 0)[
-            0
-        ]  # Indices of which parameters to optimize
-        dim_count = params_to_opt.size  # Number of parameters to search over
-        N = dim_count + 1  # Number of points in simplex
-        K = guess.size  # Total number of parameters
-        simplex = np.tile(guess, (N, 1))
-        for j in range(
-            dim_count
-        ):  # Perturb each parameter to optimize by the specified distance
-            simplex[j + 1, params_to_opt[j]] = (
-                simplex[j + 1, params_to_opt[j]] + perturb[params_to_opt[j]]
-            )
-
-        # Initialize iteration and evaluation counts, plus a 1D array of function values
-        fvals = np.zeros(dim_count + 1) + np.nan
-
-        iters = 0
-        evals = 0
+        simplex, fvals, dim_count, N, K, iters, evals = _initialize_nelder_mead(
+            guess, perturb
+        )
 
     # Make sure degree of parallelization is not illegal
     if P > N - 1:
-        print(
+        warnings.warn(
             "Requested degree of simplex parallelization is "
             + str(P)
             + ", but dimension of optimization problem is only "
             + str(N - 1)
-            + "."
+            + ".",
         )
-        print("Degree of parallelization has been reduced to " + str(N - 1) + ".")
-        P = N - 1
+        warnings.warn(
+            "Degree of parallelization has been reduced to " + str(N - 1) + "."
+        )
+        P = N - 2
 
     # Create the pool of worker processes
     cpu_cores = multiprocessing.cpu_count()  # Total number of available CPU cores
@@ -299,43 +628,22 @@ def parallelNelderMead(
     if maxthreads is not None:  # Cap the number of cores if desired
         cores_to_use = min(cores_to_use, maxthreads)
     parallel = Parallel(n_jobs=cores_to_use)
+    use_parallel = cores_to_use > 1
 
-    # Begin a new Nelder-Mead search
+    # Evaluate the initial simplex when starting fresh; otherwise just report status
     if not resume:
-        temp_simplex = list(simplex)  # Evaluate the initial simplex
-        fvals = np.array(parallel(delayed(objFunc)(params) for params in temp_simplex))
-        evals += N
-        # Reorder the initial simplex
-        order = np.argsort(fvals)
-        fvals = fvals[order]
-        simplex = simplex[order, :]
-        fmin = fvals[0]
-        f_dist = np.abs(fmin - fvals[-1])
-        x_dist = np.max(
-            np.sqrt(np.sum((simplex - np.tile(simplex[0, :], (N, 1))) ** 2.0, axis=1))
+        simplex, fvals = _evaluate_and_sort_initial_simplex(
+            obj_func, simplex, fvals, N, parallel, use_parallel, verbose, savefreq, name
         )
-        if verbose > 0:
-            print(
-                "Evaluated the initial simplex: fmin="
-                + str(fmin)
-                + ", f_dist="
-                + str(f_dist)
-                + ", x_dist="
-                + str(x_dist)
-            )
-        if savefreq is not None:
-            saveNelderMeadData(name, simplex, fvals, iters, evals)
-            if verbose > 0:
-                print("Saved search progress in " + name + ".txt")
-    else:  # Resume an existing search that was cut short
-        if verbose > 0:
-            print(
-                "Resuming search after "
-                + str(iters)
-                + " iterations and "
-                + str(evals)
-                + " function evaluations."
-            )
+        evals += N
+    elif verbose > 0:
+        print(
+            "Resuming search after "
+            + str(iters)
+            + " iterations and "
+            + str(evals)
+            + " function evaluations.",
+        )
 
     # Initialize some inputs for the multithreader
     j_list = range(N - P, N)
@@ -349,52 +657,26 @@ def parallelNelderMead(
         if verbose > 0:
             print("Beginning iteration #" + str(iters) + " now.")
 
-        # Update the P worst points of the simplex
-        output = parallel(
-            delayed(parallelNelderMeadWorker)(objFunc, simplex, fvals, j, P, opt_params)
-            for j in j_list
+        simplex, fvals, new_evals = _nelder_mead_iteration(
+            obj_func,
+            simplex,
+            fvals,
+            N,
+            K,
+            P,
+            j_list,
+            opt_params,
+            s_param,
+            parallel,
+            use_parallel,
+            verbose,
         )
-        new_subsimplex = np.zeros((P, K)) + np.nan
-        new_vals = np.zeros(P) + np.nan
-        new_evals = 0
-        for i in range(P):
-            new_subsimplex[i, :] = output[i][0]
-            new_vals[i] = output[i][1]
-            new_evals += output[i][2]
         evals += new_evals
 
-        # Check whether any updates actually happened
-        old_subsimplex = simplex[(N - P) : N, :]
-        if np.max(np.abs(new_subsimplex - old_subsimplex)) == 0:
-            if verbose > 0:
-                print("Updated the simplex, but must perform a shrink step.")
-            # If every attempted update was unsuccessful, must shrink the simplex
-            simplex = (
-                s_param * np.tile(simplex[0, :], (N, 1)) + (1.0 - s_param) * simplex
-            )
-            temp_simplex = list(simplex[1:N, :])
-            fvals = np.array(
-                [fvals[0]]
-                + parallel(delayed(objFunc)(params) for params in temp_simplex)
-            )
-            new_evals += N - 1
-            evals += N - 1
-        else:
-            if verbose > 0:
-                print("Updated the simplex successfully.")
-            # Otherwise, update the simplex with the new results
-            simplex[(N - P) : N, :] = new_subsimplex
-            fvals[(N - P) : N] = new_vals
-
-        # Reorder the simplex from best to worst
-        order = np.argsort(fvals)
-        fvals = fvals[order]
-        simplex = simplex[order, :]
-        fmin = fvals[0]
-        f_dist = np.abs(fmin - fvals[-1])
-        x_dist = np.max(
-            np.sqrt(np.sum((simplex - np.tile(simplex[0, :], (N, 1))) ** 2.0, axis=1))
+        go, fmin, f_dist, x_dist = _check_nm_termination(
+            iters, evals, fvals, simplex, N, maxiter, maxeval, ftol, xtol
         )
+
         t_end = time()
         if verbose > 0:
             t_iter = t_end - t_start
@@ -407,7 +689,7 @@ def parallelNelderMead(
                 + str(evals)
                 + " cumulative) in "
                 + str(t_iter)
-                + " seconds."
+                + " seconds.",
             )
             print(
                 "Simplex status: fmin="
@@ -415,40 +697,25 @@ def parallelNelderMead(
                 + ", f_dist="
                 + str(f_dist)
                 + ", x_dist="
-                + str(x_dist)
+                + str(x_dist),
             )
-
-        # Check for terminal conditions
-        if iters >= maxiter:
-            go = False
-            print("Maximum iterations reached, terminating unsuccessfully.")
-        if evals >= maxeval:
-            go = False
-            print("Maximum evaluations reached, terminating unsuccessfully.")
-        if f_dist < ftol:
-            go = False
-            print("Function tolerance reached, terminating successfully.")
-        if x_dist < xtol:
-            go = False
-            print("Parameter tolerance reached, terminating successfully.")
 
         # Save the progress of the estimation if desired
         if savefreq is not None:
             if (iters % savefreq) == 0:
-                saveNelderMeadData(name, simplex, fvals, iters, evals)
+                save_nelder_mead_data(name, simplex, fvals, iters, evals)
                 if verbose > 0:
                     print("Saved search progress in " + name + ".txt")
 
     # Return the results
     xopt = simplex[0, :]
-    return xopt, fmin
+    return xopt
 
 
-def saveNelderMeadData(name, simplex, fvals, iters, evals):
-    """
-    Stores the progress of a parallel Nelder-Mead search in a text file so that
+def save_nelder_mead_data(name, simplex, fvals, iters, evals):
+    """Stores the progress of a parallel Nelder-Mead search in a text file so that
     it can be resumed later (after manual termination or a crash).
-    
+
     Parameters
     ----------
     name : string
@@ -461,15 +728,15 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
         The number of completed Nelder-Mead iterations.
     evals : int
         The cumulative number of function evaluations in the search process.
-        
+
     Returns
     -------
     None
+
     """
     N = simplex.shape[0]  # Number of points in simplex
-    K = simplex.shape[1]  # Total number of parameters
 
-    with open(name + ".txt", "w") as f:
+    with open(name + ".txt", "w", newline="") as f:
         my_writer = csv.writer(f, delimiter=",")
         my_writer.writerow(simplex.shape)
         my_writer.writerow([iters, evals])
@@ -478,16 +745,15 @@ def saveNelderMeadData(name, simplex, fvals, iters, evals):
         my_writer.writerow(fvals)
 
 
-def loadNelderMeadData(name):
-    """
-    Reads the progress of a parallel Nelder-Mead search from a text file, as
-    created by saveNelderMeadData().
-    
+def load_nelder_mead_data(name):
+    """Reads the progress of a parallel Nelder-Mead search from a text file, as
+    created by save_nelder_mead_data().
+
     Parameters
     ----------
     name : string
         Name of the txt file from which to read search progress.
-        
+
     Returns
     -------
     simplex : np.array
@@ -498,62 +764,63 @@ def loadNelderMeadData(name):
         The number of completed Nelder-Mead iterations.
     evals : int
         The cumulative number of function evaluations in the search process.
+
     """
     # Open the Nelder-Mead progress file
-    with open(name + ".txt", "r") as f:
+    with open(name + ".txt", newline="") as f:
         my_reader = csv.reader(f, delimiter=",")
 
         # Get the shape of the simplex and initialize it
-        my_shape_txt = my_reader.next()
+        my_shape_txt = my_reader.__next__()
         N = int(my_shape_txt[0])
         K = int(my_shape_txt[1])
         simplex = np.zeros((N, K)) + np.nan
 
         # Get number of iterations and cumulative evaluations from the next line
-        my_nums_txt = my_reader.next()
+        my_nums_txt = my_reader.__next__()
         iters = int(my_nums_txt[0])
         evals = int(my_nums_txt[1])
 
         # Read one line per point of the simplex
         for n in range(N):
-            simplex[n, :] = np.array(my_reader.next(), dtype=float)
+            simplex[n, :] = np.array(my_reader.__next__(), dtype=float)
 
         # Read the final line to get function values
-        fvals = np.array(my_reader.next(), dtype=float)
+        fvals = np.array(my_reader.__next__(), dtype=float)
 
     return simplex, fvals, iters, evals
 
 
-def parallelNelderMeadWorker(objFunc, simplex, f_vals, j, P, opt_params):
-    """
-    A worker process for the parallel Nelder-Mead algorithm.  Updates one point
+def parallel_nelder_mead_worker(obj_func, simplex, f_vals, j, P, opt_params):
+    """A worker process for the parallel Nelder-Mead algorithm.  Updates one point
     in the simplex, returning its function value as well.  Should basically
     never be called directly, only by parallelNelderMead().
-    
+
     Parameters
     ----------
-    objFunc : function
+    obj_func : function
         The function to be minimized; takes a single 1D array as input.
     simplex : numpy.array
-        The current simplex for minimization; simplex[k,:] is an input for objFunc.
+        The current simplex for minimization; simplex[k,:] is an input for obj_func.
     f_vals : numpy.array
         The values of the objective function at each point of the simplex:
-        f_vals[k] = objFunc(simplex[k,:])
+        f_vals[k] = obj_func(simplex[k,:])
     j : int
         Index of the point in the simplex to update: simplex[j,:]
     P : int
         Degree of parallelization of the algorithm.
     opt_params : numpy.array
         Three element array with parameters for reflection, contraction, expansion.
-        
+
     Returns
     -------
     new_point : numpy.array
         An updated point for the simplex; might be the same as simplex[j,:].
     new_val : float
-        The value of the objective function at the new point: objFunc(new_point).
+        The value of the objective function at the new point: obj_func(new_point).
     evals : int
-        Number of evaluations of objFunc by this worker.
+        Number of evaluations of obj_func by this worker.
+
     """
     # Unpack the input parameters
     alpha = opt_params[0]  # reflection parameter
@@ -571,13 +838,13 @@ def parallelNelderMeadWorker(objFunc, simplex, f_vals, j, P, opt_params):
 
     # Calculate the reflection point and its function value
     r_point = centroid + alpha * (centroid - my_point)
-    r_val = objFunc(r_point)
+    r_val = obj_func(r_point)
     evals += 1
 
     # Case 1: the reflection point is better than best point
     if r_val < best_val:
         e_point = r_point + gamma * (r_point - centroid)
-        e_val = objFunc(e_point)  # Calculate expansion point
+        e_val = obj_func(e_point)  # Calculate expansion point
         evals += 1
         if e_val < r_val:
             new_point = e_point
@@ -598,7 +865,7 @@ def parallelNelderMeadWorker(objFunc, simplex, f_vals, j, P, opt_params):
             temp_point = my_point
             temp_val = my_val
         c_point = temp_point + beta * (centroid - temp_point)
-        c_val = objFunc(c_point)  # Calculate contraction point
+        c_val = obj_func(c_point)  # Calculate contraction point
         evals += 1
         if c_val < temp_val:
             new_point = c_point
@@ -609,3 +876,32 @@ def parallelNelderMeadWorker(objFunc, simplex, f_vals, j, P, opt_params):
 
     # Return the outputs
     return new_point, new_val, evals
+
+
+def estimate_msm(
+    agent: AgentType,
+    params: dict,
+    empirical_moments: dict,
+    moments_cov: dict | np.ndarray,
+    simulate_moments: callable,
+    optimize_options: dict,
+    simulate_moments_kwargs: dict = None,
+    weights: str = "diagonal",
+    estimagic_options: dict = {},
+):
+    """Use the method of simulated moments to estimate a model."""
+    simulate_moments_kwargs = simulate_moments_kwargs or {}
+    simulate_moments_kwargs.setdefault("agent", agent)
+
+    res = em.estimate_msm(
+        simulate_moments,
+        empirical_moments,
+        moments_cov,
+        params,
+        optimize_options=optimize_options,
+        simulate_moments_kwargs=simulate_moments_kwargs,
+        weights=weights,
+        **estimagic_options,
+    )
+
+    return res

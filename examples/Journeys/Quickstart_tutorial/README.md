@@ -16,4 +16,4 @@ Structure:
       - Learn advanced plots
 
 To use the notebook you need a jupyter notebook with nbextension ([check](https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/install.html) for the installation instructions).
-After the installation, you need to enable the packages: [exercise](https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/exercise/readme.html) and [rubberband](https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/rubberband/readme.html).    
+After the installation, you need to enable the packages: [exercise](https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/exercise/readme.html) and [rubberband](https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/rubberband/readme.html).

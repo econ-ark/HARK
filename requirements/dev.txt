@@ -1,0 +1,6 @@
+nbval
+pre-commit
+pytest
+pytest-cov
+pytest-xdist
+ruff
