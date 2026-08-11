@@ -1,0 +1,35 @@
+name: Build Wheel and Release
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+jobs:
+  dist:
+    name: Build & inspect package.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hynek/build-and-inspect-python-package@v2
+
+  publish:
+    needs: [dist]
+    name: Publish release to PyPI
+    if: github.repository_owner == 'econ-ark' && github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: Packages
+          path: dist
+      - name: Generate artifact attestation for sdist and wheel
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: "dist/*"
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

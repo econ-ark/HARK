@@ -126,6 +126,6 @@ def cpi_deflator(from_year, to_year, base_month=None):
         message = (
             "Could not find a CPI value for the requested " + "year-month combinations."
         )
-        raise Exception(message).with_traceback(e.__traceback__)
+        raise KeyError(message).with_traceback(e.__traceback__)
 
     return deflator

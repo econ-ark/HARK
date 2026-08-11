@@ -23,7 +23,7 @@ CubicBool = (
 )
 vFuncBool = False  # Whether to calculate the value function during solution
 
-Rfree = 1.03  # Interest factor on assets
+Rfree = [1.03]  # Interest factor on assets
 PermShkCount = (
     7  # Number of points in discrete approximation to permanent income shocks
 )
@@ -433,7 +433,7 @@ seed = 31382  # Just an integer to seed the estimation
 # Dictionary that can be passed to ConsumerType to instantiate
 init_consumer_objects = {
     "CRRA": CRRA_start,
-    "Rfree": Rfree,
+    "Rfree": TT * Rfree,
     "PermGroFac": PermGroFac,
     "BoroCnstArt": BoroCnstArt,
     "PermShkStd": PermShkStd,

@@ -5,7 +5,9 @@ from numba import njit
 
 
 @njit
-def ravel_index(ind_mat: np.ndarray, dims: np.ndarray) -> np.ndarray:
+def ravel_index(
+    ind_mat: np.ndarray, dims: np.ndarray
+) -> np.ndarray:  # pragma: no cover
     """
     This function takes a matrix of indices, and a vector of dimensions, and
     returns a vector of corresponding flattened indices
@@ -23,7 +25,7 @@ def ravel_index(ind_mat: np.ndarray, dims: np.ndarray) -> np.ndarray:
 @njit
 def multidim_get_lower_index(
     points: np.ndarray, grids: List[np.ndarray], dims: np.ndarray
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Get the lower index for each point in a multidimensional grid.
 
@@ -53,7 +55,7 @@ def multidim_get_lower_index(
 @njit
 def fwd_and_bwd_diffs(
     points: np.ndarray, grids: List[np.ndarray], inds: np.ndarray
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Computes backward and forward differences for each point in points for each grid in grids.
 
@@ -86,7 +88,7 @@ def fwd_and_bwd_diffs(
 @njit
 def sum_weights(
     weights: np.ndarray, dims: np.ndarray, add_inds: np.ndarray
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Sums the weights that correspond to each point in the grid.
 
@@ -115,7 +117,9 @@ def sum_weights(
 
 
 @njit
-def denominators(inds: np.ndarray, grids: List[np.ndarray]) -> np.ndarray:
+def denominators(
+    inds: np.ndarray, grids: List[np.ndarray]
+) -> np.ndarray:  # pragma: no cover
     """
     This function computes the denominators of the interpolation weights,
     which are the areas of the hypercubes of the grid that contain the points.
@@ -140,7 +144,7 @@ def denominators(inds: np.ndarray, grids: List[np.ndarray]) -> np.ndarray:
 
 
 @njit
-def get_combinations(ndim: int) -> np.ndarray:
+def get_combinations(ndim: int) -> np.ndarray:  # pragma: no cover
     """
     Produces an array with all the 2**ndim possible combinations of 0s and 1s.
     This is used later to generate all the possible combinations of backward and forward differences.
@@ -166,7 +170,7 @@ def get_combinations(ndim: int) -> np.ndarray:
 @njit
 def numerators(
     diffs: np.ndarray, comb_inds: np.ndarray, ndims: int, npoints: int
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Finds the numerators of the interpolation weights, which are the areas of the hypercubes
     formed by the points and the grid points that contain them.
@@ -199,7 +203,7 @@ def numerators(
 @njit
 def mass_to_grid(
     points: np.ndarray, mass: np.ndarray, grids: List[np.ndarray]
-) -> np.ndarray:
+) -> np.ndarray:  # pragma: no cover
     """
     Distributes the mass of a set of R^n points to a rectangular R^n grid,
     following the 'lottery' method.

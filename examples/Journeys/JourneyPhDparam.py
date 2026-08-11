@@ -15,10 +15,10 @@ DiscFac = 0.96  # Intertemporal discount factor
 LivPrb = [1.0]  # Survival probability
 PermGroFac = [1.0]  # Permanent income growth factor
 AgentCount = 10000  # Number of agents of this type (only matters for simulation)
-aNrmInitMean = 0.0  # Mean of log initial assets (only matters for simulation)
-aNrmInitStd = 1.0  # Standard deviation of log initial assets (only for simulation)
-pLvlInitMean = 0.0  # Mean of log initial permanent income (only matters for simulation)
-pLvlInitStd = 0.0  # Standard deviation of log initial permanent income (only matters for simulation)
+kLogInitMean = 0.0  # Mean of log initial assets (only matters for simulation)
+kLogInitStd = 1.0  # Standard deviation of log initial assets (only for simulation)
+pLogInitMean = 0.0  # Mean of log initial permanent income (only matters for simulation)
+pLogInitStd = 0.0  # Standard deviation of log initial permanent income (only matters for simulation)
 PermGroFacAgg = (
     1.0  # Aggregate permanent income growth factor (only matters for simulation)
 )
@@ -33,10 +33,10 @@ init_perfect_foresight = {
     "LivPrb": LivPrb,
     "PermGroFac": PermGroFac,
     "AgentCount": AgentCount,
-    "aNrmInitMean": aNrmInitMean,
-    "aNrmInitStd": aNrmInitStd,
-    "pLvlInitMean": pLvlInitMean,
-    "pLvlInitStd": pLvlInitStd,
+    "kLogInitMean": kLogInitMean,
+    "kLogInitStd": kLogInitStd,
+    "pLogInitMean": pLogInitMean,
+    "pLogInitStd": pLogInitStd,
     "PermGroFacAgg": PermGroFacAgg,
     "T_age": T_age,
     "T_cycle": T_cycle,
@@ -104,10 +104,10 @@ init_idiosyncratic_shocks = {
     "vFuncBool": vFuncBool,
     "CubicBool": CubicBool,
     "T_retire": T_retire,
-    "aNrmInitMean": aNrmInitMean,
-    "aNrmInitStd": aNrmInitStd,
-    "pLvlInitMean": pLvlInitMean,
-    "pLvlInitStd": pLvlInitStd,
+    "kLogInitMean": kLogInitMean,
+    "kLogInitStd": kLogInitStd,
+    "pLogInitMean": pLogInitMean,
+    "pLogInitStd": pLogInitStd,
     "PermGroFacAgg": PermGroFacAgg,
     "T_age": T_age,
     "T_cycle": T_cycle,
@@ -132,7 +132,7 @@ TranShkAggCount = (
 )
 PermShkAggStd = 0.00  # Standard deviation of log aggregate permanent shocks
 TranShkAggStd = 0.00  # Standard deviation of log aggregate transitory shocks
-DeprFac = 0.025  # Capital depreciation rate
+DeprRte = 0.025  # Capital depreciation rate
 CapShare = 0.36  # Capital's share of income
 DiscFacPF = DiscFac  # Discount factor of perfect foresight calibration
 CRRAPF = CRRA  # Coefficient of relative risk aversion of perfect foresight calibration
@@ -163,7 +163,7 @@ init_cobb_douglas = {
     "TranShkAggCount": TranShkAggCount,
     "PermShkAggStd": PermShkAggStd,
     "TranShkAggStd": TranShkAggStd,
-    "DeprFac": DeprFac,
+    "DeprRte": DeprRte,
     "CapShare": CapShare,
     "DiscFac": DiscFacPF,
     "CRRA": CRRAPF,

@@ -1,0 +1,261 @@
+import unittest
+
+import numpy as np
+
+from HARK import distribute_params
+from HARK.ConsumptionSaving.ConsAggShockModel import (
+    AggShockConsumerType,
+    AggShockMarkovConsumerType,
+    CobbDouglasEconomy,
+    CobbDouglasMarkovEconomy,
+    SmallOpenMarkovEconomy,
+    KrusellSmithEconomy,
+    KrusellSmithType,
+)
+from HARK.distributions import Uniform
+from tests import HARK_PRECISION
+
+
+class testAggShockConsumerType(unittest.TestCase):
+    def setUp(self):
+        agent = AggShockConsumerType(seed=0, AgentCount=900, cycles=0)
+
+        # Make agents heterogeneous in their discount factor
+        self.agents = distribute_params(
+            agent,
+            "DiscFac",
+            3,
+            Uniform(bot=0.90, top=0.94),  # Impatient agents
+        )
+
+        # Make an economy with those agents living in it
+        # Short simulation history; give up quickly for the sake of time
+        self.economy = CobbDouglasEconomy(
+            agents=self.agents, seed=0, act_T=400, max_loops=3
+        )
+        self.economy.give_agent_params()
+
+    def test_distribute_params(self):
+        self.assertEqual(self.agents[1].AgentCount, 300)
+
+    def test_agent(self):
+        # Have one consumer type inherit relevant objects from the economy,
+        # then solve their microeconomic problem
+        self.agents[0].solve()
+        self.assertAlmostEqual(
+            self.agents[0].solution[0].cFunc(10.0, self.economy.MSS),
+            3.24364,
+            places=HARK_PRECISION,
+        )
+
+    def test_macro(self):
+        self.economy.make_AggShkHist()  # Simulate a history of aggregate shocks
+        self.economy.verbose = True  # Turn on printed messages
+        self.economy.solve()  # Solve for the general equilibrium of the economy
+
+        self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertAlmostEqual(self.economy.AFunc.slope, 1.05855, places=HARK_PRECISION)
+
+        # simulation test -- seed/generator specific
+        # self.assertAlmostEqual(self.economy.history["MaggNow"][10], 7.45632, place = HARK_PRECISION)
+
+
+class testAggShockMarkovConsumerType(unittest.TestCase):
+    def setUp(self):
+        # Make one agent type and an economy for it to live in
+        self.agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
+        self.economy = CobbDouglasMarkovEconomy(agents=[self.agent], seed=0)
+        self.economy.give_agent_params()
+
+    def test_agent(self):
+        # Have one consumer type inherit relevant objects from the economy,
+        # then solve their microeconomic problem
+        self.agent.solve()
+        self.assertAlmostEqual(
+            self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
+            2.57365,
+            places=HARK_PRECISION,
+        )
+
+    def test_economy(self):
+        # Adjust the economy so that it (fake) solves quickly
+        self.economy.act_T = 500  # Short simulation history
+        self.economy.max_loops = 3  # Just quit solving early
+        self.economy.verbose = False  # Turn off printed messages
+
+        self.economy.make_AggShkHist()  # Make a simulated history of aggregate shocks
+        self.economy.solve()  # Solve for the general equilibrium of the economy
+
+        self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertAlmostEqual(
+            self.economy.AFunc[0].slope, 1.05654, places=HARK_PRECISION
+        )
+
+    def test_small_open_economy(self):
+        SOE = SmallOpenMarkovEconomy(agents=[self.agent], Rfree=1.02, wRte=1.0)
+        SOE.give_agent_params()
+        SOE.make_AggShkHist()  # Make a simulated history of aggregate shocks
+        SOE.max_loops = 3
+        SOE.solve()
+
+
+class KrusellSmithTestCase(unittest.TestCase):
+    def setUp(self):
+        # Make one agent type and an economy for it to live in
+        self.agent = KrusellSmithType()
+        self.agent.cycles = 0
+        self.agent.AgentCount = 1000  # Low number of simulated agents
+        self.economy = KrusellSmithEconomy(
+            agents=[self.agent],
+            act_T=1100,
+            discard_periods=100,
+            verbose=False,
+            max_loops=2,
+        )
+        self.economy.give_agent_params()
+
+    def teardown(self):
+        self.agent = None
+        self.economy = None
+
+
+class KrusellSmithAgentTestCase(KrusellSmithTestCase):
+    def test_agent(self):
+        self.agent.solve()
+        self.assertAlmostEqual(
+            self.agent.solution[0].cFunc[0](10.0, self.economy.MSS),
+            1.24280,
+            places=HARK_PRECISION,
+        )
+
+
+class KrusellSmithMethodsTestCase(KrusellSmithTestCase):
+    def test_methods(self):
+        self.agent.get_market_params(self.economy)
+
+        self.agent.construct()
+
+        self.assertAlmostEqual(self.agent.AFunc[0].slope, 1.0)
+
+        self.assertAlmostEqual(self.agent.AFunc[1].slope, 1.0)
+
+        self.agent.reset()
+        self.economy.reset()
+
+        self.agent.track_vars += ["EmpNow"]
+
+        self.assertEqual(
+            np.sum(self.agent.state_now["EmpNow"] & self.agent.state_now["EmpNow"][-1]),
+            900,
+        )
+
+        self.assertEqual(
+            np.sum(
+                self.agent.state_now["EmpNow"][:-1] & self.agent.state_now["EmpNow"][1:]
+            ),
+            810,
+        )
+
+        self.economy.make_Mrkv_history()  # Make a simulated history of aggregate shocks
+
+        # simulation test -- seed/generator specific
+        # self.assertAlmostEqual(
+        #    np.mean(self.economy.MrkvNow_hist),
+        #    0.48182
+        # )
+
+        # object attributes that are conditions
+        # for precompute_arrays
+        self.assertEqual(self.agent.aGrid.size, 32)
+        self.assertAlmostEqual(self.agent.aGrid[5], 0.34260, places=HARK_PRECISION)
+
+        self.economy.solve_agents()
+
+        # testing precompute_arrays()
+        self.assertAlmostEqual(
+            self.agent.mNextArray[5, 2, 3, 0], 0.35541, places=HARK_PRECISION
+        )
+
+        # testing make_grid()
+        self.assertAlmostEqual(self.agent.aGrid[1], 0.05532, places=HARK_PRECISION)
+
+        self.assertAlmostEqual(self.economy.MSS, 13.32723, places=HARK_PRECISION)
+
+        # testing update_solution_terminal()
+        self.assertEqual(
+            self.agent.solution_terminal.cFunc[0](10, self.economy.MSS), 10
+        )
+
+        self.assertAlmostEqual(
+            self.economy.agents[0].solution[0].cFunc[0](10, self.economy.MSS).tolist(),
+            1.24280,
+            places=4,
+        )
+
+        self.assertAlmostEqual(self.agent.AFunc[1].slope, 1.0)
+
+        self.economy.make_history()
+
+        emp_totals = np.sum(self.agent.history["EmpNow"], axis=0)
+
+        new_dynamics = self.economy.update_dynamics()
+
+        self.assertAlmostEqual(
+            new_dynamics.AFunc[0].slope, 1.04015, places=HARK_PRECISION
+        )
+
+        self.assertAlmostEqual(
+            new_dynamics.AFunc[1].slope, 1.04527, places=HARK_PRECISION
+        )
+
+
+class KrusellSmithEconomyTestCase(KrusellSmithTestCase):
+    def test_economy(self):
+        self.assertAlmostEqual(self.economy.AFunc[0].slope, 1.0)
+
+        self.assertAlmostEqual(self.economy.AFunc[1].slope, 1.0)
+
+        self.economy.make_Mrkv_history()  # Make a simulated history of aggregate shocks
+        self.economy.solve()  # Solve for the general equilibrium of the economy
+
+        self.economy.AFunc = self.economy.dynamics.AFunc
+        self.assertAlmostEqual(
+            self.economy.AFunc[0].slope, 1.04417, places=HARK_PRECISION
+        )
+
+
+class StateJumperTest(unittest.TestCase):
+    def test_partitioned_jumper(self):
+        # Test a "partitioned" state space, which needs to be doubled to work
+        agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
+        economy = CobbDouglasMarkovEconomy(agents=[agent], seed=0)
+        new_mrkv_array = np.array(
+            [
+                [0.95, 0.05, 0.0, 0.0],
+                [0.05, 0.95, 0.0, 0.0],
+                [0.0, 0.0, 0.95, 0.05],
+                [0.0, 0.0, 0.05, 0.95],
+            ]
+        )
+        economy.MrkvArray = new_mrkv_array
+
+        economy.make_Mrkv_history()
+        self.assertEqual(economy.act_T, economy.act_T_orig * 2)
+        self.assertEqual(economy.act_T, len(economy.MrkvNow_hist))
+
+    def test_rare_jumper(self):
+        # Test a state space with a "rare" state that is hard to visit
+        agent = AggShockMarkovConsumerType(cycles=0, AgentCount=1000, seed=0)
+        economy = CobbDouglasMarkovEconomy(agents=[agent], seed=0)
+        new_mrkv_array = np.array(
+            [
+                [0.95, 0.04, 0.01],
+                [0.04, 0.95, 0.01],
+                [0.5, 0.5, 0.0],
+            ]
+        )
+        economy.MrkvArray = new_mrkv_array
+
+        economy.make_Mrkv_history()
+        self.assertTrue(economy.act_T > economy.act_T_orig * 2)
+        # Should take more than one additional pass

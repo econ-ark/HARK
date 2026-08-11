@@ -9,7 +9,6 @@ productivity shocks.  Agents choose their quantities of labor and consumption af
 observing both of these shocks, so the transitory shock is a state variable.
 """
 
-import sys
 from copy import copy
 
 import matplotlib.pyplot as plt
@@ -22,6 +21,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    make_lognormal_kNrm_init_dstn,
+    make_lognormal_pLvl_init_dstn,
 )
 from HARK.interpolation import (
     BilinearInterp,
@@ -36,6 +37,8 @@ from HARK.metric import MetricObject
 from HARK.rewards import CRRAutilityP, CRRAutilityP_inv
 from HARK.utilities import make_assets_grid
 
+plt.ion()
+
 
 class ConsumerLaborSolution(MetricObject):
     """
@@ -48,13 +51,13 @@ class ConsumerLaborSolution(MetricObject):
         bank balances and the transitory productivity shock: cNrm = cFunc(bNrm,TranShk).
     LbrFunc : function
         The labor supply function for this period, defined over normalized
-        bank balances 0.751784276198: Lbr = LbrFunc(bNrm,TranShk).
+        bank balances: Lbr = LbrFunc(bNrm,TranShk).
     vFunc : function
         The beginning-of-period value function for this period, defined over
-        normalized bank balances 0.751784276198: v = vFunc(bNrm,TranShk).
+        normalized bank balances: v = vFunc(bNrm,TranShk).
     vPfunc : function
         The beginning-of-period marginal value (of bank balances) function for
-        this period, defined over normalized bank balances 0.751784276198: vP = vPfunc(bNrm,TranShk).
+        this period, defined over normalized bank balances: vP = vPfunc(bNrm,TranShk).
     bNrmMin: float
         The minimum allowable bank balances for this period, as a function of
         the transitory shock. cFunc, LbrFunc, etc are undefined for bNrm < bNrmMin(TranShk).
@@ -76,9 +79,12 @@ class ConsumerLaborSolution(MetricObject):
 
 
 def make_log_polynomial_LbrCost(T_cycle, LbrCostCoeffs):
-    """
+    r"""
     Construct the age-varying cost of working LbrCost using polynomial coefficients
     (over t_cycle) for (log) LbrCost.
+
+    .. math::
+        \text{LbrCost}_{t}=\exp(\sum \text{LbrCostCoeffs}_n t^{n})
 
     Parameters
     ----------
@@ -241,8 +247,8 @@ def solve_ConsLaborIntMarg(
     WageRte: float
         Wage rate per unit of labor supplied.
     LbrCost: float
-        Cost parameter for supplying labor: u_t = U(x_t), x_t = c_t*z_t^LbrCost,
-        where z_t is leisure = 1 - Lbr_t.
+        Cost parameter for supplying labor: :math:`u_t = U(x_t)`, :math:`x_t = c_t z_t^{LbrCost}`,
+        where :math:`z_t` is leisure :math:`= 1 - Lbr_t`.
 
     Returns
     -------
@@ -254,19 +260,16 @@ def solve_ConsLaborIntMarg(
         of the transitory productivity shock.
     """
     # Make sure the inputs for this period are valid: CRRA > LbrCost/(1+LbrCost)
-    # and CubicBool = False.  CRRA condition is met automatically when CRRA >= 1.
+    # and CubicBool = False. CRRA condition is met automatically when CRRA >= 1.
     frac = 1.0 / (1.0 + LbrCost)
     if CRRA <= frac * LbrCost:
-        print(
-            "Error: make sure CRRA coefficient is strictly greater than alpha/(1+alpha)."
-        )
-        sys.exit()
+        raise ValueError("CRRA must be strictly greater than alpha/(1+alpha).")
     if BoroCnstArt is not None:
-        print("Error: Model cannot handle artificial borrowing constraint yet. ")
-        sys.exit()
-    if vFuncBool or CubicBool is True:
-        print("Error: Model cannot handle cubic interpolation yet.")
-        sys.exit()
+        raise ValueError("Model cannot handle artificial borrowing constraint yet.")
+    if CubicBool is True:
+        raise ValueError("Model cannot handle cubic interpolation yet.")
+    if vFuncBool is True:
+        raise ValueError("Model cannot compute the value function yet.")
 
     # Unpack next period's solution and the productivity shock distribution, and define the inverse (marginal) utilty function
     vPfunc_next = solution_next.vPfunc
@@ -457,7 +460,7 @@ def solve_ConsLaborIntMarg(
 
 
 # Make a dictionary of constructors for the intensive margin labor model
-labor_int_constructor_dict = {
+LaborIntMargConsumerType_constructors_default = {
     "IncShkDstn": construct_lognormal_income_process_unemployment,
     "PermShkDstn": get_PermShkDstn_from_IncShkDstn,
     "TranShkDstn": get_TranShkDstn_from_IncShkDstn,
@@ -465,10 +468,27 @@ labor_int_constructor_dict = {
     "LbrCost": make_log_polynomial_LbrCost,
     "TranShkGrid": get_TranShkGrid_from_TranShkDstn,
     "solution_terminal": make_labor_intmarg_solution_terminal,
+    "kNrmInitDstn": make_lognormal_kNrm_init_dstn,
+    "pLvlInitDstn": make_lognormal_pLvl_init_dstn,
 }
 
+# Make a dictionary with parameters for the default constructor for kNrmInitDstn
+LaborIntMargConsumerType_kNrmInitDstn_default = {
+    "kLogInitMean": -12.0,  # Mean of log initial capital
+    "kLogInitStd": 0.0,  # Stdev of log initial capital
+    "kNrmInitCount": 15,  # Number of points in initial capital discretization
+}
+
+# Make a dictionary with parameters for the default constructor for pLvlInitDstn
+LaborIntMargConsumerType_pLvlInitDstn_default = {
+    "pLogInitMean": 0.0,  # Mean of log permanent income
+    "pLogInitStd": 0.0,  # Stdev of log permanent income
+    "pLvlInitCount": 15,  # Number of points in initial capital discretization
+}
+
+
 # Default parameters to make IncShkDstn using construct_lognormal_income_process_unemployment
-default_IncShkDstn_params = {
+LaborIntMargConsumerType_IncShkDstn_default = {
     "PermShkStd": [0.1],  # Standard deviation of log permanent income shocks
     "PermShkCount": 16,  # Number of points in discrete approximation to permanent income shocks
     "TranShkStd": [0.1],  # Standard deviation of log transitory income shocks
@@ -481,7 +501,7 @@ default_IncShkDstn_params = {
 }
 
 # Default parameters to make aXtraGrid using make_assets_grid
-default_aXtraGrid_params = {
+LaborIntMargConsumerType_aXtraGrid_default = {
     "aXtraMin": 0.001,  # Minimum end-of-period "assets above minimum" value
     "aXtraMax": 80.0,  # Maximum end-of-period "assets above minimum" value
     "aXtraNestFac": 3,  # Exponential nesting factor for aXtraGrid
@@ -490,21 +510,20 @@ default_aXtraGrid_params = {
 }
 
 # Default parameter to make LbrCost using make_log_polynomial_LbrCost
-defualt_LbrCost_params = {
-    "LbrCostCoeffs": [
-        -1.0
-    ]  # Polynomial coefficients (for age) on log labor utility cost
+LaborIntMargConsumerType_LbrCost_default = {
+    "LbrCostCoeffs": [-1.0]  # Polynomial age coeffs on log labor utility cost
 }
 
 # Make a dictionary to specify an intensive margin labor supply choice consumer type
-init_labor_intensive = {
+LaborIntMargConsumerType_solving_default = {
     # BASIC HARK PARAMETERS REQUIRED TO SOLVE THE MODEL
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
-    "constructors": labor_int_constructor_dict,  # See dictionary above
+    "pseudo_terminal": False,  # Terminal period really does exist
+    "constructors": LaborIntMargConsumerType_constructors_default,  # See dictionary above
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
     "CRRA": 2.0,  # Coefficient of relative risk aversion
-    "Rfree": 1.03,  # Interest factor on retained assets
+    "Rfree": [1.03],  # Interest factor on retained assets
     "DiscFac": 0.96,  # Intertemporal discount factor
     "LivPrb": [0.98],  # Survival probability after each period
     "PermGroFac": [1.01],  # Permanent income growth factor
@@ -513,13 +532,11 @@ init_labor_intensive = {
     "vFuncBool": False,  # Whether to calculate the value function during solution
     "CubicBool": False,  # Whether to use cubic spline interpolation when True
     # (Uses linear spline interpolation for cFunc when False)
+}
+LaborIntMargConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
     "AgentCount": 10000,  # Number of agents of this type
     "T_age": None,  # Age after which simulated agents are automatically killed
-    "aNrmInitMean": 0.0,  # Mean of log initial assets
-    "aNrmInitStd": 1.0,  # Standard deviation of log initial assets
-    "pLvlInitMean": 0.0,  # Mean of log initial permanent income
-    "pLvlInitStd": 0.0,  # Standard deviation of log initial permanent income
     "PermGroFacAgg": 1.0,  # Aggregate permanent income growth factor
     # (The portion of PermGroFac attributable to aggregate productivity growth)
     "NewbornTransShk": False,  # Whether Newborns have transitory shock
@@ -528,61 +545,163 @@ init_labor_intensive = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
 }
-init_labor_intensive.update(default_IncShkDstn_params)
-init_labor_intensive.update(default_aXtraGrid_params)
-init_labor_intensive.update(defualt_LbrCost_params)
+LaborIntMargConsumerType_default = {}
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_IncShkDstn_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_aXtraGrid_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_LbrCost_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_solving_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_simulation_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_kNrmInitDstn_default)
+LaborIntMargConsumerType_default.update(LaborIntMargConsumerType_pLvlInitDstn_default)
+init_labor_intensive = LaborIntMargConsumerType_default
 
 
 class LaborIntMargConsumerType(IndShockConsumerType):
-    """
+    r"""
     A class representing agents who make a decision each period about how much
     to consume vs save and how much labor to supply (as a fraction of their time).
-    They get CRRA utility from a composite good x_t = c_t*z_t^alpha, and discount
+    They get CRRA utility from a composite good :math:`x_t = c_t*z_t^alpha`, and discount
     future utility flows at a constant factor.
 
-    See init_labor_intensive for a dictionary of the keywords that should be
-    passed to the constructor.
+    .. math::
+        \newcommand{\CRRA}{\rho}
+        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\PermGroFac}{\Gamma}
+        \newcommand{\Rfree}{\mathsf{R}}
+        \newcommand{\DiscFac}{\beta}
+        \begin{align*}
+        v_t(b_t,\theta_{t}) &= \max_{c_t,L_{t}}u_{t}(c_t,L_t) + \DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(b_{t+1},\theta_{t+1}) \right], \\
+        & \text{s.t.}  \\
+        m_{t} &= b_{t} + L_{t}\theta_{t} \text{WageRte}_{t}, \\
+        a_t &= m_t - c_t, \\
+        b_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}), \\
+        (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+        \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
+        u_{t}(c,L) &= \frac{(c (1-L)^{\alpha_t})^{1-\CRRA}}{1-\CRRA} \\
+        \end{align*}
+
+
+    Constructors
+    ------------
+    IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
+        The agent's income shock distributions.
+
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+    aXtraGrid: Constructor
+        The agent's asset grid.
+
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
+    LbrCost: Constructor, :math:`\alpha`
+        The agent's labor cost function.
+
+        Its default constructor is :func:`HARK.ConsumptionSaving.ConsLaborModel.make_log_polynomial_LbrCost`
+
+    Solving Parameters
+    ------------------
+    cycles: int
+        0 specifies an infinite horizon model, 1 specifies a finite model.
+    T_cycle: int
+        Number of periods in the cycle for this agent type.
+    CRRA: float, default=2.0, :math:`\rho`
+        Coefficient of Relative Risk Aversion. Must be greater than :math:`\max_{t}({\frac{\alpha_t}{\alpha_t+1}})`
+    Rfree: float or list[float], time varying, :math:`\mathsf{R}`
+        Risk Free interest rate. Pass a list of floats to make Rfree time varying.
+    DiscFac: float, :math:`\beta`
+        Intertemporal discount factor.
+    LivPrb: list[float], time varying, :math:`1-\mathsf{D}`
+        Survival probability after each period.
+    WageRte: list[float], time varying
+        Wage rate paid on labor income.
+    PermGroFac: list[float], time varying, :math:`\Gamma`
+        Permanent income growth factor.
+
+    Simulation Parameters
+    ---------------------
+    AgentCount: int
+        Number of agents of this kind that are created during simulations.
+    T_age: int
+        Age after which to automatically kill agents, None to ignore.
+    T_sim: int, required for simulation
+        Number of periods to simulate.
+    track_vars: list[strings]
+        List of variables that should be tracked when running the simulation.
+        For this agent, the options are 'Lbr', 'PermShk', 'TranShk', 'aLvl', 'aNrm', 'bNrm', 'cNrm', 'mNrm', 'pLvl', and 'who_dies'.
+
+        PermShk is the agent's permanent income shock
+
+        TranShk is the agent's transitory income shock
+
+        aLvl is the nominal asset level
+
+        aNrm is the normalized assets
+
+        bNrm is the normalized resources without this period's labor income
+
+        cNrm is the normalized consumption
+
+        mNrm is the normalized market resources
+
+        pLvl is the permanent income level
+
+        Lbr is the share of the agent's time spent working
+
+        who_dies is the array of which agents died
+    aNrmInitMean: float
+        Mean of Log initial Normalized Assets.
+    aNrmInitStd: float
+        Std of Log initial Normalized Assets.
+    pLvlInitMean: float
+        Mean of Log initial permanent income.
+    pLvlInitStd: float
+        Std of Log initial permanent income.
+    PermGroFacAgg: float
+        Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
+    PerfMITShk: boolean
+        Do Perfect Foresight MIT Shock (Forces Newborns to follow solution path of the agent they replaced if True).
+    NewbornTransShk: boolean
+        Whether Newborns have transitory shock.
+
+    Attributes
+    ----------
+    solution: list[Consumer solution object]
+        Created by the :func:`.solve` method. Finite horizon models create a list with T_cycle+1 elements, for each period in the solution.
+        Infinite horizon solutions return a list with T_cycle elements for each period in the cycle.
+
+        Visit :class:`HARK.ConsumptionSaving.ConsLaborModel.ConsumerLaborSolution` for more information about the solution.
+
+    history: Dict[Array]
+        Created by running the :func:`.simulate()` method.
+        Contains the variables in track_vars. Each item in the dictionary is an array with the shape (T_sim,AgentCount).
+        Visit :class:`HARK.core.AgentType.simulate` for more information.
     """
 
+    IncShkDstn_default = LaborIntMargConsumerType_IncShkDstn_default
+    aXtraGrid_default = LaborIntMargConsumerType_aXtraGrid_default
+    LbrCost_default = LaborIntMargConsumerType_LbrCost_default
+    solving_default = LaborIntMargConsumerType_solving_default
+    simulation_default = LaborIntMargConsumerType_simulation_default
+
+    default_ = {
+        "params": LaborIntMargConsumerType_default,
+        "solver": solve_ConsLaborIntMarg,
+        "model": "ConsLaborIntMarg.yaml",
+        "track_vars": ["aNrm", "cNrm", "Lbr", "mNrm", "pLvl"],
+    }
+
     time_vary_ = copy(IndShockConsumerType.time_vary_)
-    time_vary_ += ["WageRte"]
+    time_vary_ += ["WageRte", "LbrCost", "TranShkGrid"]
     time_inv_ = copy(IndShockConsumerType.time_inv_)
 
-    def __init__(self, **kwds):
-        params = init_labor_intensive.copy()
-        params.update(kwds)
+    def pre_solve(self):
+        self.construct("solution_terminal")
 
-        IndShockConsumerType.__init__(self, **params)
-
-        self.pseudo_terminal = False
-        self.solve_one_period = solve_ConsLaborIntMarg
-        self.update()
-
-    def update(self):
-        """
-        Update the income process, the assets grid, and the terminal solution.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        self.update_income_process()
-        self.construct("LbrCost", "TranShkGrid")
-        self.add_to_time_vary("LbrCost", "TranShkGrid")
-        self.update_assets_grid()
-        self.update_solution_terminal()
-
-    def calc_bounding_values(self):
+    def calc_bounding_values(self):  # pragma: nocover
         """
         NOT YET IMPLEMENTED FOR THIS CLASS
         """
         raise NotImplementedError()
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         NOT YET IMPLEMENTED FOR THIS CLASS
         """
@@ -650,21 +769,20 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         -------
         None
         """
-        mNrmNow = np.zeros(self.AgentCount) + np.nan
-        aNrmNow = np.zeros(self.AgentCount) + np.nan
+        # Make an array of wage rates by age
+        Wage = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = t == self.t_cycle
-            mNrmNow[these] = (
-                self.state_now["bNrm"][these]
-                + self.controls["Lbr"][these] * self.shocks["TranShk"][these]
-            )  # mNrm = bNrm + yNrm
-            aNrmNow[these] = (
-                mNrmNow[these] - self.controls["cNrm"][these]
-            )  # aNrm = mNrm - cNrm
+            Wage[these] = self.WageRte[t]
+        LbrEff = self.controls["Lbr"] * self.shocks["TranShk"]
+        yNrmNow = LbrEff * Wage
+        mNrmNow = self.state_now["bNrm"] + yNrmNow
+        aNrmNow = mNrmNow - self.controls["cNrm"]
+
+        self.state_now["LbrEff"] = LbrEff
         self.state_now["mNrm"] = mNrmNow
         self.state_now["aNrm"] = aNrmNow
-
-        # moves now to prev
+        self.state_now["yNrm"] = yNrmNow
         super().get_poststates()
 
     def plot_cFunc(self, t, bMin=None, bMax=None, ShkSet=None):
@@ -694,22 +812,17 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
         for j in range(len(ShkSet)):
             TranShk = ShkSet[j]
-            if bMin is None:
-                bMin_temp = self.solution[t].bNrmMin(TranShk)
-            else:
-                bMin_temp = bMin
-            if bMax is None:
-                bMax_temp = bMin_temp + 20.0
-            else:
-                bMax_temp = bMax
+            bMin_temp = self.solution[t].bNrmMin(TranShk) if bMin is None else bMin
+            bMax_temp = bMin_temp + 20.0 if bMax is None else bMax
 
             B = np.linspace(bMin_temp, bMax_temp, 300)
             C = self.solution[t].cFunc(B, TranShk * np.ones_like(B))
             plt.plot(B, C)
-        plt.xlabel("Beginning of period bank balances")
-        plt.ylabel("Normalized consumption level")
+        plt.xlabel(r"Beginning of period normalized bank balances $b_t$")
+        plt.ylabel(r"Normalized consumption level $c_t$")
         plt.ylim([0.0, None])
-        plt.show()
+        plt.xlim(bMin, bMax)
+        plt.show(block=False)
 
     def plot_LbrFunc(self, t, bMin=None, bMax=None, ShkSet=None):
         """
@@ -738,22 +851,23 @@ class LaborIntMargConsumerType(IndShockConsumerType):
 
         for j in range(len(ShkSet)):
             TranShk = ShkSet[j]
-            if bMin is None:
-                bMin_temp = self.solution[t].bNrmMin(TranShk)
-            else:
-                bMin_temp = bMin
-            if bMax is None:
-                bMax_temp = bMin_temp + 20.0
-            else:
-                bMax_temp = bMax
+            bMin_temp = self.solution[t].bNrmMin(TranShk) if bMin is None else bMin
+            bMax_temp = bMin_temp + 20.0 if bMax is None else bMax
 
             B = np.linspace(bMin_temp, bMax_temp, 300)
             L = self.solution[t].LbrFunc(B, TranShk * np.ones_like(B))
             plt.plot(B, L)
-        plt.xlabel("Beginning of period bank balances")
-        plt.ylabel("Labor supply")
+        plt.xlabel(r"Beginning of period normalized bank balances $b_t$")
+        plt.ylabel(r"Labor supply $\ell_t$")
         plt.ylim([-0.001, 1.001])
-        plt.show()
+        plt.xlim(bMin, bMax)
+        plt.show(block=False)
+
+    def check_conditions(self, verbose=None):
+        raise NotImplementedError()  # pragma: nocover
+
+    def calc_limiting_values(self):
+        raise NotImplementedError()  # pragma: nocover
 
 
 ###############################################################################
@@ -798,6 +912,7 @@ init_labor_lifecycle["WageRte"] = [
     1.0,
     1.0,
 ]  # Wage rate in a lifecycle
+init_labor_lifecycle["Rfree"] = 10 * [1.03]
 # Assume labor cost coeffs is a polynomial of degree 1
 init_labor_lifecycle["LbrCostCoeffs"] = np.array([-2.0, 0.4])
 init_labor_lifecycle["T_cycle"] = 10
