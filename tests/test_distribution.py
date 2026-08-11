@@ -616,7 +616,7 @@ class MarkovProcessTests(unittest.TestCase):
         contaminates row 1's permutation and this assertion fails for
         most seeds.
         """
-        # 7 agents in each source state — small enough to exercise
+        # 7 agents in each source state - small enough to exercise
         # leftover-slot assignment, large enough that the permutation
         # drift is clearly visible across seeds.
         state = np.array([0] * 7 + [1] * 7, dtype=int)
@@ -626,7 +626,7 @@ class MarkovProcessTests(unittest.TestCase):
         TM_a = np.array([[0.50, 0.50], [0.30, 0.70]])
         TM_b = np.array([[5.0 / 7.0, 2.0 / 7.0], [0.30, 0.70]])
 
-        # Check across multiple seeds — the naive implementation fails
+        # Check across multiple seeds - the naive implementation fails
         # for the majority of seeds, while the sub-RNG-isolated
         # implementation passes for all of them.
         for seed in range(20):
@@ -654,13 +654,13 @@ class MarkovProcessTests(unittest.TestCase):
 
         The default shuffle (no draws=) uses a random permutation
         independent of any per-agent input, so agent-by-agent it
-        does NOT match iid even at large N — typically agreeing only
+        does NOT match iid even at large N - typically agreeing only
         on the trivial "stay-in-same-target" mass.
         """
         P = np.array([[0.95, 0.05], [0.30, 0.70]])
         N = 10_000
         rng = np.random.default_rng(seed=42)
-        # Half emp, half unemp — exercises both rows of P.
+        # Half emp, half unemp - exercises both rows of P.
         state = np.repeat([0, 1], N // 2)
         u = rng.uniform(size=N)
 
@@ -687,7 +687,7 @@ class MarkovProcessTests(unittest.TestCase):
         """The new draws= argument must preserve the quota-exact
         target counts that are the original purpose of shuffle.  Each
         per-source-state target count K[j,k] should equal
-        floor(N_j * P[j,k]) plus at most ±1 from leftover allocation.
+        floor(N_j * P[j,k]) plus at most +/-1 from leftover allocation.
         """
         P = np.array([[0.7, 0.3], [0.4, 0.6]])
         N = 1000
@@ -707,7 +707,7 @@ class MarkovProcessTests(unittest.TestCase):
                     abs(count - expected),
                     1,
                     f"source {j} -> target {k}: count {count} not within "
-                    f"±1 of expected quota {expected:.1f}",
+                    f"+/-1 of expected quota {expected:.1f}",
                 )
 
     def test_shuffle_draws_and_sort_key_mutually_exclusive(self):
@@ -723,6 +723,124 @@ class MarkovProcessTests(unittest.TestCase):
         mp = MarkovProcess(P, seed=0)
         with self.assertRaises(ValueError):
             mp.draw(state, shuffle=True, draws=u, sort_key=u)
+
+    def test_shuffle_unbiased_when_quotas_are_fractional(self):
+        """Shuffled transitions must satisfy E[count_k] == N_j * P[j,k].
+
+        The quota tests above all use populations where N_j * P[j,k] is
+        already an integer, so ``floor`` allocates every slot, M is zero and
+        the leftover-allocation path never runs.  That is exactly the regime
+        where the two implementations of the floor-plus-leftover algorithm
+        agreed, and it is why a biased allocator lived in
+        ``_draw_shuffled`` while the copy in ``DiscreteDistribution.draw``
+        was being fixed.  Allocating the leftover proportional to P instead
+        of to the fractional remainders overweights the modal target and
+        starves the rare one.
+
+        N=13 against [0.7, 0.2, 0.1] is analytic rather than noisy: K =
+        [9, 2, 1] leaves exactly M=1 slot, whose correct destination
+        probabilities are the remainders [0.1, 0.6, 0.3].  Allocating it
+        proportional to P instead sends it to state 0 with probability
+        0.696, giving E[count_0] = 9.696 against a target of 9.1.  The
+        tolerance below is far tighter than that 0.6 error and far looser
+        than the Monte Carlo standard error at this many repetitions.
+        """
+        row = np.array([0.7, 0.2, 0.1])
+        N, reps = 13, 6000
+        TM = np.tile(row, (len(row), 1))
+
+        mp = MarkovProcess(TM, seed=0)
+        state = np.zeros(N, dtype=int)
+        total = np.zeros(len(row))
+        for _ in range(reps):
+            total += np.bincount(mp.draw(state, shuffle=True), minlength=len(row))
+
+        realized = total / reps
+        np.testing.assert_allclose(realized, N * row, atol=0.06)
+
+    def test_shuffle_ignored_arguments_warn(self):
+        """sort_key= and draws= do nothing without shuffle=True.
+
+        Silently ignoring them lets a caller believe a variance reduction is
+        in effect when the draw is plain iid, which is the failure mode that
+        is hardest to notice: the run completes and the numbers look fine.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 50
+        rng = np.random.default_rng(seed=0)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        for kwargs in ({"sort_key": u}, {"draws": u}, {"sort_key": u, "draws": u}):
+            mp = MarkovProcess(P, seed=0)
+            with self.assertWarns(UserWarning):
+                mp.draw(state, **kwargs)
+
+        # The default path must stay silent.
+        mp = MarkovProcess(P, seed=0)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            mp.draw(state)
+        self.assertEqual([str(w.message) for w in caught], [])
+
+
+class ReplicatesTests(unittest.TestCase):
+    """Tests for DiscreteDistribution.draw(replicates=...)."""
+
+    def test_replicates_gives_exact_counts(self):
+        P = np.array([1 / 3, 1 / 6, 1 / 2])
+        dstn = DiscreteDistribution(P, np.arange(3), seed=0)
+        drawn = dstn.draw(replicates=2)
+        self.assertEqual(len(drawn), 12)
+        counts = np.bincount(drawn.astype(int), minlength=3)
+        np.testing.assert_array_equal(counts, [4, 2, 6])
+
+    def test_replicates_allows_zero_probability_atoms(self):
+        """A zero-mass atom is legitimate and must not be refused.
+
+        It simply gets zero slots.  Requiring every atom count to be
+        strictly positive rejected the whole request instead.
+        """
+        P = np.array([0.5, 0.0, 0.5])
+        dstn = DiscreteDistribution(P, np.arange(3), seed=0)
+        drawn = dstn.draw(replicates=3)
+        counts = np.bincount(drawn.astype(int), minlength=3)
+        np.testing.assert_array_equal(counts, [3, 0, 3])
+
+    def test_replicates_must_be_a_positive_integer(self):
+        """Zero or negative replicates used to return an empty array."""
+        dstn = DiscreteDistribution(np.array([0.25, 0.75]), np.arange(2), seed=0)
+        for bad in (0, -1, 1.5):
+            with self.assertRaises(ValueError):
+                dstn.draw(replicates=bad)
+
+    def test_replicates_rejects_N_and_replicates_together(self):
+        dstn = DiscreteDistribution(np.array([0.25, 0.75]), np.arange(2), seed=0)
+        with self.assertRaises(ValueError):
+            dstn.draw(4, replicates=1)
+
+    def test_replicates_warns_only_when_J_min_exceeds_the_rarest_atom(self):
+        """The warning must key on something that means what it says.
+
+        Covering an atom of probability p_min needs ceil(1/p_min) draws no
+        matter what, so a two-point [0.05, 0.95] needing J_min=20 is
+        arithmetic, not a surprise.  An earlier version warned whenever some
+        1/p_j was non-integral, which is true of nearly every non-uniform
+        pmv, so it fired on essentially every realistic income grid.  The
+        case worth flagging is the LCM blowing up past that floor.
+        """
+        quiet = DiscreteDistribution(np.array([0.05, 0.95]), np.arange(2), seed=0)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            quiet.draw(replicates=1)
+        self.assertEqual([str(w.message) for w in caught], [])
+
+        # 0.07 unemployment crossed with 7 equiprobable employed states:
+        # the rarest atom needs 100 draws, but the LCM needs 700.
+        P = np.concatenate([[0.07], np.full(7, 0.93 / 7)])
+        loud = DiscreteDistribution(P, np.arange(8), seed=0)
+        with self.assertWarns(UserWarning):
+            loud.draw(replicates=1)
 
 
 class LogNormalToNormalTests(unittest.TestCase):

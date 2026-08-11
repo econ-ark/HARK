@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from copy import deepcopy
+from fractions import Fraction
 from math import gcd
 from functools import reduce
 import warnings
@@ -11,7 +12,7 @@ from scipy import stats
 from scipy.stats import rv_discrete
 from scipy.stats._distn_infrastructure import rv_discrete_frozen
 
-from HARK.distributions.base import Distribution
+from HARK.distributions.base import Distribution, allocate_remainder_slots
 
 
 def _weighted_mean_var(var, pmv):
@@ -222,30 +223,29 @@ class DiscreteDistribution(Distribution):
 
         return indices
 
-    def _resolve_replicates(
-        self, replicates: int, tol: float = 1e-9, max_J_min: int = 10_000
-    ):
+    def _resolve_replicates(self, replicates: int, max_J_min: int = 10_000):
         """Compute N from replicates and the minimal full-coverage sample size.
 
         The minimal sample size J_min is the smallest positive integer such
-        that ``J_min * p_j`` is a positive integer for every atom j.  This
-        equals the LCM of the denominators when each probability is expressed
-        as a fraction in lowest terms.
+        that ``J_min * p_j`` is an integer for every atom j, and a positive
+        integer for every atom that carries mass.  This equals the LCM of the
+        denominators when each probability is expressed as a fraction in
+        lowest terms.  Atoms with ``p_j == 0`` are legitimate and simply get
+        zero slots.
 
         For a joint distribution built from independent shocks, J_min equals
         the product of the inverse conditional probabilities at each level.
-        For example, with unemployment probability 0.05 and 3 × 3 equiprobable
-        employment shocks: J_min = LCM(20, 180) = 180 = 20 × 3 × 3.
+        For example, with unemployment probability 0.05 and 3 x 3 equiprobable
+        employment shocks: J_min = LCM(20, 180) = 180 = 20 x 3 x 3.
 
         Parameters
         ----------
         replicates : int
-            Number of copies of the minimal full-coverage sample.
-        tol : float
-            Tolerance for checking whether 1/p_j is close to an integer.
+            Number of copies of the minimal full-coverage sample.  Must be
+            a positive integer.
         max_J_min : int
             Maximum allowed J_min.  If the computed J_min exceeds this,
-            a ValueError is raised — this indicates that at least one
+            a ValueError is raised; this indicates that at least one
             conditional shock probability is finer than 1/max_J_min
             (e.g. < 0.01%), making shuffled draws impractical.
 
@@ -256,7 +256,11 @@ class DiscreteDistribution(Distribution):
         shuffle : bool
             Always True (replicates implies shuffle).
         """
-        from fractions import Fraction
+        if int(replicates) != replicates or replicates < 1:
+            raise ValueError(
+                f"replicates must be a positive integer; got {replicates!r}. "
+                f"A non-positive value would silently return an empty sample."
+            )
 
         P = self.pmv
 
@@ -269,11 +273,20 @@ class DiscreteDistribution(Distribution):
         denoms = [f.denominator for f in fracs]
         J_min = reduce(lambda a, b: a * b // gcd(a, b), denoms)
 
-        # Verify that J_min * p_j is a positive integer for every atom.
+        # Verify that J_min * p_j is an integer for every atom, and nonzero
+        # wherever the atom actually carries mass.  A zero-probability atom is
+        # legitimate (it just never gets drawn), so it is exempt from the
+        # positivity requirement rather than a reason to refuse the request.
         counts = [J_min * f for f in fracs]
-        if not all(c.denominator == 1 and c > 0 for c in counts):
+        bad = [
+            (j, float(P[j]))
+            for j, c in enumerate(counts)
+            if c.denominator != 1 or (c == 0 and P[j] > 0)
+        ]
+        if bad:
             raise ValueError(
                 f"Could not find exact integer atom counts with J_min={J_min}. "
+                f"Offending (atom index, probability) pairs: {bad}. "
                 f"The distribution's probabilities may not be cleanly "
                 f"representable as rational numbers. Consider using "
                 f"equiprobable shock approximations."
@@ -293,17 +306,27 @@ class DiscreteDistribution(Distribution):
                 f"intentional."
             )
 
-        # Info-level note when the distribution is a joint (non-integer 1/p_j).
-        inv_p = 1.0 / P
-        rounded_inv = np.round(inv_p).astype(int)
-        not_clean = np.abs(inv_p - rounded_inv) > tol
-        if np.any(not_clean):
-            warnings.warn(
-                f"Joint distribution detected (not all 1/p_j are integers). "
-                f"Computed J_min={J_min} via rational decomposition "
-                f"(product of conditional inverses).",
-                stacklevel=3,
-            )
+        # Warn only when J_min is much larger than the rarest atom alone
+        # requires.  Covering an atom of probability p_min needs at least
+        # ceil(1/p_min) draws no matter what, so that part is arithmetic and
+        # not worth a warning: an earlier version warned whenever some 1/p_j
+        # was non-integral, which is true of nearly every non-uniform pmv and
+        # so fired on essentially every realistic income grid.  What is worth
+        # flagging is the LCM blowing up beyond that floor, which is the
+        # actual signature of a joint distribution over several shocks.
+        positive = P[P > 0]
+        if positive.size:
+            floor_N = int(np.ceil(1.0 / positive.min()))
+            if J_min > 2 * floor_N:
+                warnings.warn(
+                    f"Minimal full-coverage sample J_min={J_min} is much "
+                    f"larger than the {floor_N} draws the rarest atom "
+                    f"(p={positive.min():.4g}) requires on its own, so each "
+                    f"replicate is bigger than the atom probabilities alone "
+                    f"suggest. This is the expected signature of a joint "
+                    f"distribution over several independent shocks.",
+                    stacklevel=3,
+                )
 
         return int(replicates * J_min), True
 
@@ -369,29 +392,10 @@ class DiscreteDistribution(Distribution):
             K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
             M = N - np.sum(K)  # number of unallocated slots
             J = P.size
-            Q = K_exact - K  # "missing" slots, fractional; these sum to M
 
-            # Allocate the M leftover slots by systematic sampling on Q, which
-            # makes P(atom j gets an extra slot) exactly Q[j], hence
-            # E[count_j] == N * P[j]. Drawing them one at a time proportional
-            # to the remaining Q instead is successive sampling, whose
-            # inclusion probabilities are not proportional to Q, and that
-            # biases the result whenever M >= 2.
-            # M uniforms are drawn although systematic sampling needs only the
-            # first, so that this consumes exactly as many random numbers as
-            # the previous implementation and every downstream draw stays put.
-            draws = self._rng.random(M)
-            if M > 0:
-                edges = np.cumsum(Q)
-                # The final edge is unbounded rather than sum(Q). Queries run up
-                # to draws[0] + M - 1, which is below M in exact arithmetic but
-                # rounds to exactly M once draws[0] is within an ulp of 1, while
-                # cumsum drift can leave sum(Q) a few ulp below M. Either alone
-                # puts the last query at or past the last edge, and searchsorted
-                # would then return J and index out of bounds.
-                edges[-1] = np.inf
-                picks = np.searchsorted(edges, draws[0] + np.arange(M), side="right")
-                np.add.at(K, picks, 1)
+            # Unbiased allocation of the leftover slots; shared with
+            # MarkovProcess._draw_shuffled so the two cannot drift apart.
+            K = allocate_remainder_slots(K_exact, K, M, self._rng)
 
             # Make an array of atom indices based on the final slot counts
             nested_events = [K[j] * [j] for j in range(J)]
