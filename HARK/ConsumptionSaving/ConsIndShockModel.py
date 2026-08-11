@@ -1164,6 +1164,7 @@ PerfForesightConsumerType_simulation_defaults = {
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
 }
 PerfForesightConsumerType_defaults = {}
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_solving_defaults)
@@ -1402,13 +1403,52 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
-            N=self.AgentCount
-        )
-        which_agents = DeathShks < DiePrb
+        if getattr(self, "death_shuffle", False):
+            which_agents = self._sim_death_shuffled(DiePrb)
+        else:
+            DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
+                N=self.AgentCount
+            )
+            which_agents = DeathShks < DiePrb
         if self.T_age is not None:  # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
             which_agents = np.logical_or(which_agents, too_old)
+        return which_agents
+
+    def _sim_death_shuffled(self, DiePrb):
+        """Deterministic death counts with random agent assignment.
+
+        For each unique death probability in DiePrb, compute the number
+        of deaths using floor-plus-remainder (so the expected count is
+        unbiased) and randomly select which agents in that group die.
+        This reduces binomial noise in death counts while preserving
+        the expected number of deaths exactly.
+
+        Parameters
+        ----------
+        DiePrb : float or np.array
+            Death probability for each agent (scalar or per-agent array).
+
+        Returns
+        -------
+        which_agents : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        """
+        which_agents = np.zeros(self.AgentCount, dtype=bool)
+        DiePrb = np.broadcast_to(np.asarray(DiePrb), self.AgentCount)
+
+        for p in np.unique(DiePrb):
+            group = np.where(DiePrb == p)[0]
+            N_group = len(group)
+            # Floor-plus-remainder: unbiased expected death count
+            K_exact = N_group * p
+            how_many_die = int(np.floor(K_exact))
+            remainder = K_exact - how_many_die
+            if remainder > 0 and self.RNG.random() < remainder:
+                how_many_die += 1
+            if how_many_die > 0:
+                die_indices = self.RNG.choice(group, size=how_many_die, replace=False)
+                which_agents[die_indices] = True
         return which_agents
 
     def get_shocks(self):
@@ -1992,6 +2032,7 @@ IndShockConsumerType_simulation_default = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
+    "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
 }
 
 IndShockConsumerType_defaults = {}
