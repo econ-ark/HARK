@@ -258,8 +258,15 @@ class DiscreteDistribution(Distribution):
             draws = self._rng.random(M)
             if M > 0:
                 edges = np.cumsum(Q)
+                # The final edge is unbounded rather than sum(Q). Queries run up
+                # to draws[0] + M - 1, which is below M in exact arithmetic but
+                # rounds to exactly M once draws[0] is within an ulp of 1, while
+                # cumsum drift can leave sum(Q) a few ulp below M. Either alone
+                # puts the last query at or past the last edge, and searchsorted
+                # would then return J and index out of bounds.
+                edges[-1] = np.inf
                 picks = np.searchsorted(edges, draws[0] + np.arange(M), side="right")
-                np.add.at(K, np.minimum(picks, J - 1), 1)
+                np.add.at(K, picks, 1)
 
             # Make an array of atom indices based on the final slot counts
             nested_events = [K[j] * [j] for j in range(J)]
