@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Adds an opt-in `init_shuffle` parameter (`PerfForesightConsumerType.sim_birth`, mirrored for `MarkovConsumerType`'s initial Markov states): exact-marginal initial-state draws via `DiscreteDistribution.draw(shuffle=True)`, removing sampling noise in the initial cross-section. Default False; the kwarg is passed only when enabled, so duck-typed continuous init distributions keep working; pinned by a behavior-golden test. [#1791](https://github.com/econ-ark/HARK/pull/1791)
 - future item
 - future item
 - future item

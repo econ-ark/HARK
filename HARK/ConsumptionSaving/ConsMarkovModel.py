@@ -949,7 +949,8 @@ class MarkovConsumerType(IndShockConsumerType):
         # Markov state is not changed if it is set at the global level
         if not self.global_markov:
             N = np.sum(which_agents)
-            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N)
+            _kw = {"shuffle": True} if getattr(self, "init_shuffle", False) else {}
+            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N, **_kw)
 
     def get_markov_states(self):
         """
