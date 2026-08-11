@@ -774,6 +774,7 @@ init_indshk_markov = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
@@ -1042,7 +1043,7 @@ class MarkovConsumerType(IndShockConsumerType):
                         )
                         TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
                     else:
-                        # Original RNG path — preserved bit-for-bit.
+                        # Original RNG path, preserved bit-for-bit.
                         EventDraws = IncShkDstnNow.draw_events(N)
                         PermShkNow[these] = (
                             IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
@@ -1068,7 +1069,7 @@ class MarkovConsumerType(IndShockConsumerType):
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
                 else:
-                    # Original RNG path — preserved bit-for-bit.
+                    # Original RNG path, preserved bit-for-bit.
                     EventDraws = IncShkDstnNow.draw_events(N)
                     PermShkNow[idx] = (
                         IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
