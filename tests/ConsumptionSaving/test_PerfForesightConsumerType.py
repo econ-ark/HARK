@@ -49,6 +49,34 @@ class testPerfForesightConsumerType(unittest.TestCase):
         self.assertTrue(self.agent_infinite.conditions["RIC"])
         self.assertTrue(self.agent_infinite.conditions["FHWC"])
 
+    def test_failed_conditions(self):
+        TestType = PerfForesightConsumerType(cycles=0, quiet=False, verbose=False)
+        TestType.check_conditions()
+
+        # make DiscFac way too big
+        TestType = PerfForesightConsumerType(cycles=0, DiscFac=1.06)
+        TestType.check_conditions()
+
+        # make PermGroFac big
+        TestType = PerfForesightConsumerType(cycles=0, DiscFac=0.96, PermGroFac=[1.1])
+        TestType.check_conditions()
+
+        # make Rfree too big
+        TestType = PerfForesightConsumerType(cycles=0, Rfree=[1.1])
+        TestType.check_conditions()
+
+        # test constrained outcomes
+        TestType = PerfForesightConsumerType(cycles=0, Rfree=[0.9], BoroCnstArt=0.0)
+        TestType.check_conditions()
+        TestType = PerfForesightConsumerType(
+            cycles=0, PermGroFac=[0.9], BoroCnstArt=0.0
+        )
+        TestType.check_conditions()
+        TestType = PerfForesightConsumerType(
+            cycles=0, Rfree=[0.9], PermGroFac=[0.9], BoroCnstArt=0.0
+        )
+        TestType.check_conditions()
+
     def test_simulation(self):
         self.agent_infinite.solve()
 

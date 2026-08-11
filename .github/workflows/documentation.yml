@@ -69,7 +69,7 @@ jobs:
 
       - name: Deploy to GitHub Pages
         # Only deploy to Pages on pushes to HEAD
-        if: (github.repository_owner == 'Econ-ARK') && (github.event_name == 'push') && (github.ref_name == 'master')
+        if: (github.repository_owner == 'Econ-ARK') && (github.event_name == 'push') && (github.ref_name == 'main')
         run: >
           git push
           --force

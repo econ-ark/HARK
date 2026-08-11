@@ -5,6 +5,7 @@ __pycache__/
 
 # Virtual Environments
 venv/
+.venv*/
 econ-ark/
 
 # C extensions
@@ -292,3 +293,19 @@ spyproject
 
 # 20240608: CDC added *private* to avoid accidentally uploading private material
 *private*
+uv.lock
+.cursor*
+.specstory/
+.cursorignore
+.cursorindexingignore
+
+# Generated test artifacts
+test.jpg
+test.pdf
+test.png
+test.svg
+test_progress.txt
+sims-about/**
+
+# Code-duplication scan artifacts
+.jscpd-report/

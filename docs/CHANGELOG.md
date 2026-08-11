@@ -8,9 +8,201 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.16.1 (in development)
+### 0.17.3 (dev)
 
 Release Date: TBD
+
+#### Release Notes
+
+(None yet)
+
+#### Major Changes
+
+- future item
+- future item
+- future item
+
+#### Minor Changes
+
+- future item
+- future item
+- future item
+
+
+### 0.17.2
+
+Release Date: May 1, 2026
+
+#### Release Notes
+
+This is a moderately sized release with several exciting new features, as well as many small improvements and fixes.
+Most of the breaking changes (see below) are very small adjustments to parameter names or formats; two functions also had their name change.
+The only significant breaking change is a reworking of the interaction between `AgentType` instances and their associated `Market` with respect to aggregate-level parameters.
+
+The new features are headlined by the addition of two models with consumption habits in the new `ConsHabitModel` module.
+Additionally, HARK's automatic HA-SSJ construction method has been extended to life-cycle models, rather than only infinite horizon models.
+
+There are some breaking changes:
+
+- `AgentType` subclasses that had a `get_economy_data` method now use the general `AgentType.get_market_params` method, which exactly replicates their prior operation. See #1719
+- As a consequence of the above, random seeds on the distributions of some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
+- Parameter `PortfolioBool` has been deprecated. To allow portfolio choice for `RiskyAssetConsumerType`, just set `RiskyShareFixed=None`. #1740
+- The parameter `BeqCRRA` has been deprecated; agents with a warm glow bequest motive must use the same CRRA as their ordinary utility function. #1758
+- "Terminal bequest parameters" have been deprecated; agents have the same bequest motive in period T as they do in all other periods. #1758
+- `calc_expectation` has been renamed to `expected_with_loop`; use `expected` and pass `vectorized=False` for this functionality. #1763
+- The argument `dist` in `expected` has been renamed to `dstn`. #1763
+- The function `make_exponential_grid` has been renamed to `make_polynomial_grid` to reduce confusion with `make_grid_exp_mult`. #1762
+
+#### Major Changes
+
+- The new way to set up `AgentType` instances with an associated `Market` is to create them (with the agents in the `Market`'s `agents` attribute), then invoke the `Market`'s new `give_agent_params()` method. #1719
+- The above method calls each `agent`'s `get_market_params()` method, which references the `market_vars` class attribute for the names of objects to take from the associated `Market`.
+- All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
+- New consumption-saving model with habit formation has been added; extends IndShockConsumerType model. #1739
+- Added habit-formation model with portfolio allocation, along with example notebooks. #1748
+- Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
+- Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
+- The `make_basic_SSJ` method can now handle life-cycle models (`cycles=1`) as well as standard infinite horizon models. #1718
+
+#### Minor Changes
+
+- The special constructor `get_it_from` can now interpret the referenced attribute being a single value (any numeric or string) and will simply copy it to the new name. #1719
+- A `Market`'s `calc_dynamics` function/method can now use arguments other than those named in `track_vars`; HARK will look for those names as attributes of the `Market`. #1719
+- The _derY method for `LowerEnvelope2D` and `LowerEnvelope3D` were previously bugged and returned nonsense, now fixed. #1723
+- Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
+- Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
+- Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
+- Refactoring of representative agent model solver and the "labeled" submodule. #1727
+- Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740
+- Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
+- The `labels` argument now works as intended with `distribution.expected`. #1742
+- Example notebook `Transition_Matrix_Example.ipynb` has been cleaned up and expanded. #1744
+- `AggIndMarkovConsumerType` added for models with both aggregate (shared) and idiosyncratic discrete states; `KrusellSmithType` refactored to extend it. #1747
+- Light safety fixes to the new `HabitConsumerType`. #1753
+- Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
+- Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
+- Handling of income shocks for model "newborns" has been made consistent across models, with transitory shocks optional. #1760
+- Tests added to handle a variety of unusual corner cases. #1761
+- Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1763
+- Matrix transition methods (including HA-SSJ) now support multi-exponential grids, as well as fully custom grids. #1762
+- `HARK.interpolation` refactored to reduce repetition and code clutter. #1765
+- Small documentation notebook for life-cycle HA-SSJ construction has been added. #1718
+- `HARK.simulator` and experimental Monte Carlo submodule refactored to reduce repetition. #1766
+- `HARK.distributions` refactored to reduce repetition and improve structures. #1767
+- Additional refactoring in `Labeled`, `SSJutils`, `utilities`, and `metric` to reduce code repetition. #1768
+
+
+### 0.17.1
+
+Release Date: February 2, 2026
+
+#### Release Notes
+
+This is a relatively small release that includes various adjustments and improvements (see Minor Changes), as well as several new features and an algebraic revision to some models (Major Changes).
+
+There are some breaking changes:
+
+- The `exact_match` option for `DiscreteDistribution.draw` has been renamed to `shuffle`, and its behavior has changed slightly. See #1691.
+- Both `AgentType` subclasses in ConsPrefShockModel have had their utility function adjusted, moving the preference shock inside the CRRA term. See #1708.
+- If `calc_expectation` is used with a `DiscreteDistributionLabeled`, the function must reference indices of the distribution by name, not position number. See #1713.
+- Method `NewKeynesianConsumerType.compute_steady_state` has been renamed to `compute_pe_steady_state`. See #1711.
+
+#### Major Changes
+
+- Added `find_target` method to `AgentType`, automating search for target value of state variables. [#1698](https://github.com/econ-ark/HARK/pull/1698)
+- Utility function for `PrefShockConsumerType` and `KinkyPrefConsumerType` was algebraically rearranged. There is no functional difference, but the scale of preference shocks that yields a given level of consumption variation will be different. [#1708](https://github.com/econ-ark/HARK/pull/1708/)
+- The format of the utility function for `MedShockConsumerType` has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
+- The policy function representation for `MedShockConsumerType` has been revised, and old classes have been moved to LegacyOOsolvers.
+- The utility function for `MedShockConsumerType` has been algebraically rearranged, moving MedShk inside of the second CRRA term and adding a new parameter MedShift (default near zero). [#1706](https://github.com/econ-ark/HARK/pull/1706)
+- Function `plot_func_slices` has been added to `HARK.utilities` for convenient in-line plotting of multivariate functions [#1695](https://github.com/econ-ark/HARK/pull/1695)
+- New method `AgentType.export_to_df` added to flexibly export simulated `history` to a `pandas.DataFrame`. [#1712](https://github.com/econ-ark/HARK/pull/1712)
+
+#### Minor Changes
+
+- Revised `exact_match` option for `DiscreteDistribution.draw` to `shuffle` to be more robust to population draw size. [#1691](https://github.com/econ-ark/HARK/pull/1691)
+- multi_thread_commands[_fake] no longer requires empty parentheses to be included with each method name (now optional). [#1692](https://github.com/econ-ark/HARK/pull/1692)
+- Added __repr__ method for DiscreteDistribution (and subclasses) to display basic information about itself.
+- All AgentTypes now have sensible defaults for track_vars if none is provided. [#1693](https://github.com/econ-ark/HARK/pull/1693)
+- `AgentType.unpack` and the new simulation structure appropriately handle solutions represented as dictionaries. [#1709](https://github.com/econ-ark/HARK/pull/1709)
+- `calc_expectation` now works with `DiscreteDistributionLabeled` instances when `func` references RVs by name, but *not* by position numbers. [#1713](https://github.com/econ-ark/HARK/pull/1713)
+- Repository now includes AI prompts to aid users when updating their project code from one version of HARK to another. [#1696](https://github.com/econ-ark/HARK/pull/1696)
+- 2D, 3D, and 4D interpolator classes no longer require that their arguments have the same size/shape; now they must only be jointly broadcastable. [#1701](https://github.com/econ-ark/HARK/pull/1701)
+- Method name change for `NewKeynesianConsumerType`: `compute_steady_state` is now `compute_pe_steady_state`. [#1711](https://github.com/econ-ark/HARK/pull/1711)
+- Life-cycle parameter calibrations from Carroll 1997 (QJE) have been added to `ConsIndShockModel`. [#1715](https://github.com/econ-ark/HARK/pull/1715)
+
+
+### 0.17.0
+
+Release Date: January 4, 2026
+
+#### Release Notes
+
+This release has many small improvements and fixes to existing HARK capabilities, listed below under Minor Changes. It also includes expanded and improved documentation/learning materials in examples/Gentle-Intro. To copy those example notebooks into a local working directory for easy use, simply execute these two commands in a Python environment and then follow the prompts:
+
+`from HARK import install_examples`
+`install_examples()`
+
+Four new consumption-saving models have been added, listed below under Major Changes.
+
+There are some breaking changes:
+
+- TimeVaryingDiscreteDistribution has been removed; use IndexDistribution instead, and see #1592.
+- FixedPortfolioShareRiskyAssetConsumerType is removed, but now incorporated as RiskyAssetConsumerType with PortfolioBool=False. Default behavior of latter class is unchanged; see #1607.
+- The content of HARK.parallel has been moved to HARK.core, and the former is deprecated. Import from HARK.core and see #1614.
+- parse_ssa_life_table now returns one fewer survival probability by default, to match output length of parse_income_spec; pass terminal=True to restore old behavior. Argument min_age has been renamed to age_min for consistency. See #1629.
+- The parameter tau in RiskyContribModel has been renamed to WithdrawTax to match HARK notation style; see #1639.
+- Simulation method get_Rfree() has been renamed to get_Rport(), but no functional changes; see #1646.
+- The parameter DeprFac has been renamed to DeprRte to reflect its actual usage.
+- All distributions now default to using a random seed if none is provided. If your code relied on HARK defaulting to a specific seed, it will not reproduce exactly. See #1641.
+- The function apply_flat_income_tax has been removed, but it has not been used at all since 2016.
+- Content from ConsLabeledModel has been split up into files in the Labeled submodule. See #1684.
+
+#### Major Changes
+
+- Basic health investment model added in new module ConsHealthModel. [#1567](https://github.com/econ-ark/HARK/pull/1567)
+- Extensive margin medical care choice model added to ConsMedModel. [#1595](https://github.com/econ-ark/HARK/pull/1595)
+- TRP-style wealth-in-utility model *without* portfolio choice added in new module ConsWealthUtilityModel. [#1634](https://github.com/econ-ark/HARK/pull/1634)
+- "Capitalist spirit" style wealth-in-utility model added in new module ConsWealthUtilityModel. [#1634](https://github.com/econ-ark/HARK/pull/1634)
+
+#### Minor Changes
+
+- Fixed terminal solution initialization in IndShockConsumerTypeFast for proper numba compatibility, added CRRA=1 validation with clear error message, and expanded test coverage. [#1649](https://github.com/econ-ark/HARK/pull/1649)
+- Turns off use_infimum feature in ConsIndShock solver because it did not work properly when vFunc=True [#1589](https://github.com/econ-ark/HARK/pull/1589)
+- Consolidates `TimeVaryingDiscreteDistribution` into `IndexDistribution`. For time-varying discrete behavior, use `IndexDistribution(distributions=[...])`. [#1592](https://github.com/econ-ark/HARK/pull/1592)
+- Krusell-Smith model guide added to documentation. [#1594](https://github.com/econ-ark/HARK/pull/1594)
+- Added additional options and simplified syntax for non-default constructors when instantiating agents. [#1591](https://github.com/econ-ark/HARK/pull/1591)
+- Added options for custom indexer and pre-computation of coefficients to LinearInterp. [#1593](https://github.com/econ-ark/HARK/pull/1593)
+- Fixed bug that prevented combine_indep_dstn from working with Bernoulli distributions. [#1581](https://github.com/econ-ark/HARK/pull/1581)
+- Introductory / instructional notebooks significantly expanded. [#1597](https://github.com/econ-ark/HARK/pull/1597)
+- Lognormal discrete approximation math has been simplified. [#1598](https://github.com/econ-ark/HARK/pull/1598)
+- Directory structure for consumption-saving examples regularized. [#1596](https://github.com/econ-ark/HARK/pull/1596)
+- Fixed share model has been combined with RiskyAssetConsumerType's PortfolioBool=False option. [#1607](https://github.com/econ-ark/HARK/pull/1607)
+- Deprecate HARK.parallel, moving the three functions there to HARK.core. [#1614](https://github.com/econ-ark/HARK/pull/1614)
+- Test coverage expanded to cover almost all content #1606 #1610 #1617 #1619 #1623 #1624 #1625 #1626 #1628 #1684
+- Consumption-saving models now aliased at HARK.models and HARK.ConsumptionSaving; some calibration tools also aliased at HARK.Calibration [#1629](https://github.com/econ-ark/HARK/pull/1629)
+- AgentType.solve() can be passed postsolve=False to skip post-processing call to post_solve(). [#1631](https://github.com/econ-ark/HARK/pull/1631)
+- The /examples directory can be copied to a directory of user's choice with HARK.install_examples() [#1630](https://github.com/econ-ark/HARK/pull/1630)
+- Improved and expanded features for Parameters class in HARK.core [#1627](https://github.com/econ-ark/HARK/pull/1627)
+- Fixed the representation of the terminal period solution in ConsPrefShock [#1638](https://github.com/econ-ark/HARK/pull/1638)
+- Renamed tau to WithdrawTax in RiskyContribModel [#1639](https://github.com/econ-ark/HARK/pull/1639)
+- Valid bounds checking on make_grid_exp_mult [#1640](https://github.com/econ-ark/HARK/pull/1640)
+- Ensure utility functions return NaN for negative consumption [#1640](https://github.com/econ-ark/HARK/pull/1640)
+- Fixed a bug with resetting the RNG of IndexDistributions, restoring replicability of simulations [#1643](https://github.com/econ-ark/HARK/pull/1643)
+- Legacy simulation methods now use get_Rport() instead of get_Rfree() [#1646](https://github.com/econ-ark/HARK/pull/1646)
+- Fixed a bug that occured when changing an AgentType's AgentCount attribute after simulating [#1647](https://github.com/econ-ark/HARK/pull/1647)
+- Add describe_distance() method to MetricObject, generating text description of how "distance" is calculated for an object [#1648](https://github.com/econ-ark/HARK/pull/1648)
+- Default behavior of seeds for distribution classes has been revised. [#1641](https://github.com/econ-ark/HARK/pull/1641)
+- Terminal solution representation for the "fast" solvers (using numba) has been cleaned up. [#1649](https://github.com/econ-ark/HARK/pull/1649)
+- Refactored ConsLabeledModel to use new HARK.Labeled subpackage with modular architecture (config, factories, transitions, solvers, solution, agents). Added comprehensive input validation, runtime warnings for numerical issues, and expanded test coverage. [#1650](https://github.com/econ-ark/HARK/pull/1650)
+
+
+### 0.16.1
+
+Release Date: July 24, 2025
+
+This release includes various small changes and improvements, as well as one significant new feature: (almost) all AgentType subclasses can now construct HA-SSJs (for use with the sequence_jacobian toolkit) in standard infinite horizon problems for arbitrary shock variables and arbitrary model outputs. This capability is powered by a new simulation structure that uses YAML-based model files to define dynamics, which in turn can be used to automatically transform HARK's model solution representations (policy functions over continuous spaces) into the grid-based representation needed for efficient computation of the fake news algorithm. Don't worry, that all happens under the hood.
+
+See documentation notebooks in /examples/SequenceSpaceJacobians/ . The capabilities of our SSJ calculator will be expanded in the near future to include lifecycle models.
 
 #### Major Changes
 
@@ -26,6 +218,10 @@ Release Date: TBD
 - Constructor make_grid_exp_mult allows linearly spaced grid with timestonest=-1 [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Adds documentation for new simulator structure and basic SSJ calculator [#1545](https://github.com/econ-ark/HARK/pull/1545)
 - Fixed a rare bug that could occur with unusual constructor dependencies resulting in incomplete updates. [#1575](https://github.com/econ-ark/HARK/pull/1575/)
+- Added a reference to a trivial constructor that was missing from the WealthPortfolio model. [#1583](https://github.com/econ-ark/HARK/pull/1583)
+- Documentation files have been moved from /Documentation/ to /docs/ [#1579](https://github.com/econ-ark/HARK/pull/1579)
+- All tests have been consolidated into a single directory, rather than being scattered about. [#1578](https://github.com/econ-ark/HARK/pull/1578)
+- Add a special README so that the robots know we're on their side when the singularity arrives. [#1577](https://github.com/econ-ark/HARK/pull/1577)
 
 
 ### 0.16.0

@@ -13,7 +13,7 @@ from numba import njit
 
 
 @njit("Tuple((float64,float64))(float64[:], float64[:], float64[:])", cache=True)
-def calc_linear_crossing(x, left_y, right_y):
+def calc_linear_crossing(x, left_y, right_y):  # pragma: no cover
     """
     Computes the intersection between two line segments, defined by two common
     x points, and the values of both segments at both x points. The intercept
@@ -62,7 +62,7 @@ def calc_linear_crossing(x, left_y, right_y):
 @njit(
     "Tuple((float64[:,:],int64[:,:]))(float64[:], float64[:,:], int64[:])", cache=True
 )
-def calc_cross_points(x_grid, cond_ys, opt_idx):
+def calc_cross_points(x_grid, cond_ys, opt_idx):  # pragma: no cover
     """
     Given a grid of x values, a matrix with the values of different line segments
     evaluated on the x grid, and a vector indicating the choice of a segment
@@ -166,7 +166,7 @@ def calc_cross_points(x_grid, cond_ys, opt_idx):
 
 
 @njit("Tuple((int64[:],int64[:]))(float64[:], float64[:])", cache=True)
-def calc_nondecreasing_segments(x, y):
+def calc_nondecreasing_segments(x, y):  # pragma: no cover
     """
     Given a sequence of (x,y) points, this function finds the start and end
     indices of its largest non-decreasing segments.

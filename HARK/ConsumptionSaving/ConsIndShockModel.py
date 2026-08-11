@@ -13,7 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
-from copy import copy, deepcopy
+from copy import copy
 
 import numpy as np
 from HARK.Calibration.Income.IncomeTools import (
@@ -77,6 +77,9 @@ __all__ = [
     "init_kinked_R",
     "init_lifecycle",
     "init_cyclical",
+    "buffer_stock_lifecycle_unskilled",
+    "buffer_stock_lifecycle_operative",
+    "buffer_stock_lifecycle_manager",
 ]
 
 utility = CRRAutility
@@ -460,7 +463,7 @@ def solve_one_period_ConsPF(
     return solution_now
 
 
-def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
+def calc_worst_inc_prob(inc_shk_dstn, use_infimum=False):
     """Calculate the probability of the worst income shock.
 
     Args:
@@ -478,7 +481,7 @@ def calc_worst_inc_prob(inc_shk_dstn, use_infimum=True):
 
 
 def calc_boro_const_nat(
-    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=True
+    m_nrm_min_next, inc_shk_dstn, rfree, perm_gro_fac, use_infimum=False
 ):
     """Calculate the natural borrowing constraint.
 
@@ -866,8 +869,7 @@ def solve_one_period_ConsKinkedR(
         An indicator for whether the value function should be computed and
         included in the reported solution.
     CubicBool: boolean
-        An indicator for whether the solver should use cubic or linear inter-
-        polation.
+        An indicator for whether the solver should use cubic or linear interpolation.
 
     Returns
     -------
@@ -1247,13 +1249,13 @@ class PerfForesightConsumerType(AgentType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -1280,22 +1282,12 @@ class PerfForesightConsumerType(AgentType):
         "params": PerfForesightConsumerType_defaults,
         "solver": solve_one_period_ConsPF,
         "model": "ConsPerfForesight.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
-    # Define some universal values for all consumer types
-    cFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 1.0])  # c=m in terminal period
-    vFunc_terminal_ = LinearInterp([0.0, 1.0], [0.0, 0.0])  # This is overwritten
-    solution_terminal_ = ConsumerSolution(
-        cFunc=cFunc_terminal_,
-        vFunc=vFunc_terminal_,
-        mNrmMin=0.0,
-        hNrm=0.0,
-        MPCmin=1.0,
-        MPCmax=1.0,
-    )
     time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
     time_inv_ = ["CRRA", "DiscFac", "MaxKinks", "BoroCnstArt"]
-    state_vars = ["kNrm", "pLvl", "PlvlAgg", "bNrm", "mNrm", "aNrm", "aLvl"]
+    state_vars = ["kNrm", "pLvl", "bNrm", "mNrm", "aNrm", "aLvl"]
     shock_vars_ = []
     distributions = ["kNrmInitDstn", "pLvlInitDstn"]
 
@@ -1306,26 +1298,9 @@ class PerfForesightConsumerType(AgentType):
         constraint and MaxKinks attribute (only relevant in constrained, infinite
         horizon problems).
         """
+        self.check_restrictions()
         self.construct("solution_terminal")  # Solve the terminal period problem
-        if not self.quiet:
-            self.check_conditions(verbose=self.verbose)
-
-        # Fill in BoroCnstArt and MaxKinks if they're not specified or are irrelevant.
-        # If no borrowing constraint specified...
-        if not hasattr(self, "BoroCnstArt"):
-            self.BoroCnstArt = None  # ...assume the user wanted none
-
-        if not hasattr(self, "MaxKinks"):
-            if self.cycles > 0:  # If it's not an infinite horizon model...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
-            elif self.BoroCnstArt is None:  # If there's no borrowing constraint...
-                self.MaxKinks = np.inf  # ...there's no need to set MaxKinks
-            else:
-                raise (
-                    AttributeError(
-                        "PerfForesightConsumerType requires the attribute MaxKinks to be specified when BoroCnstArt is not None and cycles == 0."
-                    )
-                )
+        self.check_conditions(verbose=self.verbose)
 
     def post_solve(self):
         """
@@ -1349,29 +1324,7 @@ class PerfForesightConsumerType(AgentType):
         A method to check that various restrictions are met for the model class.
         """
         if self.DiscFac < 0:
-            raise Exception("DiscFac is below zero with value: " + str(self.DiscFac))
-
-        return
-
-    def unpack_cFunc(self):
-        """DEPRECATED: Use solution.unpack('cFunc') instead.
-        "Unpacks" the consumption functions into their own field for easier access.
-        After the model has been solved, the consumption functions reside in the
-        attribute cFunc of each element of ConsumerType.solution.  This method
-        creates a (time varying) attribute cFunc that contains a list of consumption
-        functions.
-        Parameters
-        ----------
-        none
-        Returns
-        -------
-        none
-        """
-        _log.critical(
-            "unpack_cFunc is deprecated and it will soon be removed, "
-            "please use unpack('cFunc') instead."
-        )
-        self.unpack("cFunc")
+            raise ValueError("DiscFac is below zero with value: " + str(self.DiscFac))
 
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
@@ -1382,7 +1335,7 @@ class PerfForesightConsumerType(AgentType):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
-        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        are drawn from lognormal distributions given by kLogInitMean and kLogInitStd (etc).
 
         Parameters
         ----------
@@ -1396,9 +1349,8 @@ class PerfForesightConsumerType(AgentType):
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
         self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(N)
-        self.state_now["pLvl"][which_agents] = (
-            self.pLvlInitDstn.draw(N) * self.state_now["PlvlAgg"]
-        )
+        self.state_now["pLvl"][which_agents] = self.pLvlInitDstn.draw(N)
+        self.state_now["pLvl"][which_agents] *= self.state_now["PlvlAgg"]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
 
         # Because of the timing of the simulation system, kNrm gets written to
@@ -1469,9 +1421,10 @@ class PerfForesightConsumerType(AgentType):
         # self.shocks["PermShk"][self.t_cycle == 0] = 1. # Add this at some point
         self.shocks["TranShk"] = np.ones(self.AgentCount)
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
-        Returns an array of size self.AgentCount with Rfree in every entry.
+        Returns an array of size self.AgentCount with Rfree in every entry,
+        representing the risk-free portfolio return
 
         Parameters
         ----------
@@ -1483,25 +1436,23 @@ class PerfForesightConsumerType(AgentType):
              Array of size self.AgentCount with risk free interest rate for each agent.
         """
         Rfree_array = np.array(self.Rfree)
-        return Rfree_array[self.t_cycle]
+        return Rfree_array[self.t_cycle - 1]
 
     def transition(self):
         pLvlPrev = self.state_prev["pLvl"]
         kNrm = self.state_prev["aNrm"]
-        RfreeNow = self.get_Rfree()
+        RportNow = self.get_Rport()
 
         # Calculate new states: normalized market resources and permanent income level
         # Updated permanent income level
         pLvlNow = pLvlPrev * self.shocks["PermShk"]
-        # Updated aggregate permanent productivity level
-        PlvlAggNow = self.state_prev["PlvlAgg"] * self.PermShkAggNow
         # "Effective" interest factor on normalized assets
-        ReffNow = RfreeNow / self.shocks["PermShk"]
+        ReffNow = RportNow / self.shocks["PermShk"]
         bNrmNow = ReffNow * kNrm  # Bank balances before labor income
         # Market resources after income
         mNrmNow = bNrmNow + self.shocks["TranShk"]
 
-        return kNrm, pLvlNow, PlvlAggNow, bNrmNow, mNrmNow, None
+        return kNrm, pLvlNow, bNrmNow, mNrmNow, None
 
     def get_controls(self):
         """
@@ -1527,7 +1478,6 @@ class PerfForesightConsumerType(AgentType):
 
         # MPCnow is not really a control
         self.MPCnow = MPCnow
-        return None
 
     def get_poststates(self):
         """
@@ -1543,6 +1493,8 @@ class PerfForesightConsumerType(AgentType):
         """
         self.state_now["aNrm"] = self.state_now["mNrm"] - self.controls["cNrm"]
         self.state_now["aLvl"] = self.state_now["aNrm"] * self.state_now["pLvl"]
+        # Update aggregate permanent productivity level
+        self.state_now["PlvlAgg"] = self.state_prev["PlvlAgg"] * self.PermShkAggNow
 
     def log_condition_result(self, name, result, message, verbose):
         """
@@ -1858,7 +1810,7 @@ class PerfForesightConsumerType(AgentType):
         elif self.conditions["FHWC"]:
             GIC_message = "\nBecause the GICRaw is violated but the FHWC is satisfied, the ratio of individual wealth to permanent income is expected to rise toward infinity."
         else:
-            pass
+            pass  # pragma: nocover
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
 
@@ -1888,27 +1840,23 @@ class PerfForesightConsumerType(AgentType):
             return
 
         infinite_horizon = self.cycles == 0
-        single_period = self.T_cycle = 1
+        single_period = self.T_cycle == 1
         if not infinite_horizon:
-            _log.warning(
+            raise ValueError(
                 "The calc_stable_points method works only for infinite horizon models."
             )
-            return
         if not single_period:
-            _log.warning(
+            raise ValueError(
                 "The calc_stable_points method works only with a single infinitely repeated period."
             )
-            return
         if not hasattr(self, "conditions"):
-            _log.warning(
-                "The calc_limiting_values method must be run before the calc_stable_points method."
+            raise ValueError(
+                "The check_conditions method must be run before the calc_stable_points method."
             )
-            return
         if not hasattr(self, "solution"):
-            _log.warning(
+            raise ValueError(
                 "The solve method must be run before the calc_stable_points method."
             )
-            return
 
         # Extract balanced growth and delta m_t+1 = 0 functions
         BalGroFunc = self.bilt["BalGroFunc"]
@@ -2005,8 +1953,7 @@ IndShockConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
 }
 IndShockConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -2035,26 +1982,26 @@ class IndShockConsumerType(PerfForesightConsumerType):
     r"""
     A consumer type with idiosyncratic shocks to permanent and transitory income.
     Their problem is defined by a sequence of income distributions, survival probabilities
-    (:math:`1-\mathsf{D}`), and permanent income growth rates (:math:`\Gamma`), as well
+    (:math:`\mathsf{S}`), and permanent income growth rates (:math:`\Gamma`), as well
     as time invariant values for risk aversion (:math:`\rho`), discount factor (:math:`\beta`),
     the interest rate (:math:`\mathsf{R}`), the grid of end-of-period assets, and an artificial
     borrowing constraint (:math:`\underline{a}`).
 
     .. math::
         \newcommand{\CRRA}{\rho}
-        \newcommand{\DiePrb}{\mathsf{D}}
+        \newcommand{\LivPrb}{\mathsf{S}}
         \newcommand{\PermGroFac}{\Gamma}
         \newcommand{\Rfree}{\mathsf{R}}
         \newcommand{\DiscFac}{\beta}
         \begin{align*}
-        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac (1 - \DiePrb_{t+1}) \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
+        v_t(m_t) &= \max_{c_t}u(c_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1} \psi_{t+1})^{1-\CRRA} v_{t+1}(m_{t+1}) \right], \\
         & \text{s.t.}  \\
         a_t &= m_t - c_t, \\
         a_t &\geq \underline{a}, \\
         m_{t+1} &= a_t \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) + \theta_{t+1}, \\
         (\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
         \mathbb{E}[\psi]=\mathbb{E}[\theta] &= 1, \\
-        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}
+        u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA}.
         \end{align*}
 
 
@@ -2063,11 +2010,11 @@ class IndShockConsumerType(PerfForesightConsumerType):
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
 
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
 
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
@@ -2121,13 +2068,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -2157,6 +2104,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "params": IndShockConsumerType_defaults,
         "solver": solve_one_period_ConsIndShock,
         "model": "ConsIndShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2197,19 +2145,15 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        NewbornTransShk = (
-            self.NewbornTransShk
-        )  # Whether Newborns have transitory shock. The default is False.
+        # Whether Newborns have transitory shock. The default is False.
+        NewbornTransShk = self.NewbornTransShk
 
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
-        for t in np.unique(self.t_cycle):
-            idx = self.t_cycle == t
-
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
+        for s in np.unique(self.t_cycle):
+            idx = self.t_cycle == s
+            t = s - 1
 
             N = np.sum(idx)
             if N > 0:
@@ -2240,7 +2184,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
             )  # permanent "shock" includes expected growth
             TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
-        #        PermShkNow[newborn] = 1.0
+
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
@@ -2353,6 +2297,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         self.eulerErrorFunc = eulerErrorFunc
 
     def pre_solve(self):
+        self.check_restrictions()
         self.construct("solution_terminal")
         if not self.quiet:
             self.check_conditions(verbose=self.verbose)
@@ -2773,8 +2718,6 @@ class KinkedRconsumerType(IndShockConsumerType):
     interest rates for saving (:math:`\mathsf{R}_{save}`) and borrowing
     (:math:`\mathsf{R}_{boro}`).
 
-    Solver for this class is currently only compatible with linear spline interpolation.
-
     .. math::
         \newcommand{\CRRA}{\rho}
         \newcommand{\DiePrb}{\mathsf{D}}
@@ -2797,17 +2740,14 @@ class KinkedRconsumerType(IndShockConsumerType):
         u(c) &= \frac{c^{1-\CRRA}}{1-\CRRA} \\
         \end{align*}
 
-
     Constructors
     ------------
     IncShkDstn: Constructor, :math:`\psi`, :math:`\theta`
         The agent's income shock distributions.
-
-        It's default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
+        Its default constructor is :func:`HARK.Calibration.Income.IncomeProcesses.construct_lognormal_income_process_unemployment`
     aXtraGrid: Constructor
         The agent's asset grid.
-
-        It's default constructor is :func:`HARK.utilities.make_assets_grid`
+        Its default constructor is :func:`HARK.utilities.make_assets_grid`
 
     Solving Parameters
     ------------------
@@ -2863,13 +2803,13 @@ class KinkedRconsumerType(IndShockConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -2899,6 +2839,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         "params": KinkedRconsumerType_defaults,
         "solver": solve_one_period_ConsKinkedR,
         "model": "ConsKinkedR.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
@@ -2923,16 +2864,18 @@ class KinkedRconsumerType(IndShockConsumerType):
         None
         """
         # Unpack the income distribution and get average and worst outcomes
-        PermShkValsNext = self.IncShkDstn[0][1]
-        TranShkValsNext = self.IncShkDstn[0][2]
-        ShkPrbsNext = self.IncShkDstn[0][0]
-        Ex_IncNext = expected(lambda trans, perm: trans * perm, self.IncShkDstn)
+        PermShkValsNext = self.IncShkDstn[0].atoms[0]
+        TranShkValsNext = self.IncShkDstn[0].atoms[1]
+        ShkPrbsNext = self.IncShkDstn[0].pmv
+        IncNext = PermShkValsNext * TranShkValsNext
+        Ex_IncNext = np.dot(ShkPrbsNext, IncNext)
         PermShkMinNext = np.min(PermShkValsNext)
         TranShkMinNext = np.min(TranShkValsNext)
         WorstIncNext = PermShkMinNext * TranShkMinNext
-        WorstIncPrb = np.sum(
-            ShkPrbsNext[(PermShkValsNext * TranShkValsNext) == WorstIncNext]
-        )
+        WorstIncPrb = np.sum(ShkPrbsNext[IncNext == WorstIncNext])
+        # TODO: Check the math above. I think it fails for non-independent shocks
+
+        BoroCnstArt = np.inf if self.BoroCnstArt is None else self.BoroCnstArt
 
         # Calculate human wealth and the infinite horizon natural borrowing constraint
         hNrm = (Ex_IncNext * self.PermGroFac[0] / self.Rsave) / (
@@ -2947,7 +2890,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         PatFacBot = (self.DiscFac * self.LivPrb[0] * self.Rboro) ** (
             1.0 / self.CRRA
         ) / self.Rboro
-        if BoroCnstNat < self.BoroCnstArt:
+        if BoroCnstNat < BoroCnstArt:
             MPCmax = 1.0  # if natural borrowing constraint is overridden by artificial one, MPCmax is 1
         else:
             MPCmax = 1.0 - WorstIncPrb ** (1.0 / self.CRRA) * PatFacBot
@@ -2958,7 +2901,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         self.MPCmin = MPCmin
         self.MPCmax = MPCmax
 
-    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):
+    def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
         """
         Creates a "normalized Euler error" function for this instance, mapping
         from market resources to "consumption error per dollar of consumption."
@@ -2981,18 +2924,14 @@ class KinkedRconsumerType(IndShockConsumerType):
         Returns
         -------
         None
-
-        Notes
-        -----
-        This method is not used by any other code in the library. Rather, it is here
-        for expository and benchmarking purposes.
         """
         raise NotImplementedError()
 
-    def get_Rfree(self):
+    def get_Rport(self):
         """
-        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in each entry, based
-        on whether self.aNrmNow >< 0.
+        Returns an array of size self.AgentCount with self.Rboro or self.Rsave in
+        each entry, based on whether self.aNrmNow >< 0. This represents the risk-
+        free portfolio return in this model.
 
         Parameters
         ----------
@@ -3021,48 +2960,10 @@ class KinkedRconsumerType(IndShockConsumerType):
         -------
         None
         """
-        # raise NotImplementedError()
-
         pass
 
 
-def apply_flat_income_tax(
-    IncShkDstn, tax_rate, T_retire, unemployed_indices=None, transitory_index=2
-):
-    """
-    Applies a flat income tax rate to all employed income states during the working
-    period of life (those before T_retire).  Time runs forward in this function.
-
-    Parameters
-    ----------
-    IncShkDstn : [distribution.Distribution]
-        The discrete approximation to the income distribution in each time period.
-    tax_rate : float
-        A flat income tax rate to be applied to all employed income.
-    T_retire : int
-        The time index after which the agent retires.
-    unemployed_indices : [int]
-        Indices of transitory shocks that represent unemployment states (no tax).
-    transitory_index : int
-        The index of each element of IncShkDstn representing transitory shocks.
-
-    Returns
-    -------
-    IncShkDstn_new : [distribution.Distribution]
-        The updated income distributions, after applying the tax.
-    """
-    unemployed_indices = (
-        unemployed_indices if unemployed_indices is not None else list()
-    )
-    IncShkDstn_new = deepcopy(IncShkDstn)
-    i = transitory_index
-    for t in range(len(IncShkDstn)):
-        if t < T_retire:
-            for j in range((IncShkDstn[t][i]).size):
-                if j not in unemployed_indices:
-                    IncShkDstn_new[t][i][j] = IncShkDstn[t][i][j] * (1 - tax_rate)
-    return IncShkDstn_new
-
+###############################################################################
 
 # Make a dictionary to specify a lifecycle consumer with a finite horizon
 
@@ -3091,7 +2992,7 @@ dist_params = income_wealth_dists_from_scf(
 # We need survival probabilities only up to death_age-1, because survival
 # probability at death_age is 1.
 liv_prb = parse_ssa_life_table(
-    female=False, cross_sec=True, year=2004, min_age=birth_age, max_age=death_age - 1
+    female=False, cross_sec=True, year=2004, age_min=birth_age, age_max=death_age
 )
 
 # Parameters related to the number of periods implied by the calibration
@@ -3115,3 +3016,53 @@ init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["LivPrb"] = 4 * [0.98]
 init_cyclical["Rfree"] = 4 * [1.03]
 init_cyclical["T_cycle"] = 4
+
+# Make dictionaries based on Carroll QJE (1997) lifecycle specifications
+buffer_stock_lifecycle_base = {
+    "CRRA": 2.0,
+    "DiscFac": 0.96,
+    "PermGroFacAgg": 1.02,
+    "kLogInitMean": -1000.0,
+    "kLogInitStd": 0.0,
+    "pLogInitStd": 0.0,
+    "Rfree": 49 * [1.00],
+    "PermShkStd": 40 * [0.1] + 9 * [0.0],
+    "TranShkStd": 40 * [0.1] + 9 * [0.0],
+    "UnempPrb": 0.005,
+    "IncUnemp": 0.0,
+    "UnempPrbRet": 0.0005,
+    "IncUnempRet": 0.0,
+    "LivPrb": 49 * [1.0],
+    "T_cycle": 49,
+    "T_retire": 40,
+    "T_age": 50,
+    "AgentCount": 10000,
+    "cycles": 1,
+}
+
+unskilled_update = {
+    "pLogInitMean": np.log(1 / 1.03),
+    "PermGroFac": 14 * [1.03] + 25 * [1.0] + [0.7] + 9 * [1.0],
+}
+
+operative_update = {
+    "pLogInitMean": np.log(1 / 1.025),
+    "PermGroFac": 24 * [1.025] + 15 * [1.01] + [0.7] + 9 * [1.0],
+}
+
+manager_update = {
+    "pLogInitMean": np.log(1 / 1.03),
+    "PermGroFac": 29 * [1.03] + 10 * [0.99] + [0.7] + 9 * [1.0],
+}
+
+# Carroll QJE (1997) life-cycle calibration for unskilled workers
+buffer_stock_lifecycle_unskilled = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_unskilled.update(unskilled_update)
+
+# Carroll QJE (1997) life-cycle calibration for operative workers
+buffer_stock_lifecycle_operative = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_operative.update(operative_update)
+
+# Carroll QJE (1997) life-cycle calibration for managerial workers
+buffer_stock_lifecycle_manager = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_manager.update(manager_update)

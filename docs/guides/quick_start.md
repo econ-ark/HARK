@@ -22,6 +22,15 @@ We've prepared a set of 30-second Elevator Spiels describing the project, tailor
 
 To start learning HARK we recommend working through the [Overview and Examples](https://docs.econ-ark.org/docs/overview/index.html) section starting with [A Gentle Introduction to HARK](https://docs.econ-ark.org/examples/Gentle-Intro/Gentle-Intro-To-HARK.html).
 
+Those example notebooks can be copied to a local working directory. From within a Python environment, simply do:
+
+```python
+from HARK import install_examples
+install_examples()
+```
+
+You will be prompted to choose a local directory into which an examples subdirectory will be created. Once you have done that, we recommend starting with /examples/Gentle-Introduction/A-Gentle-Intro-to-HARK.ipynb. The bottom of that notebook has links to the other introductory notebooks.
+
 :::{dropdown} For people without a technical/scientific/computing background
 :color: secondary
 :icon: info

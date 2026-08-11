@@ -544,8 +544,8 @@ def parse_income_spec(
     income_params : dict
         Dictionary with entries:
             - P0: initial level of permanent income.
-            - pLvlInitMean: mean of the distribution of log-permanent income.
-                np.log(P0) = pLvlInitMean
+            - pLogInitMean: mean of the distribution of log-permanent income.
+                np.log(P0) = pLogInitMean
             - PermGroFac : list of deterministic growth factors for permanent
                 income.
             - PermShkStd: list of standard deviations of shocks to
@@ -554,6 +554,7 @@ def parse_income_spec(
                 to income.
             - PermGroFacAgg: if a yearly trend in income is provided, this will
                 be the aggregate level of growth in permanent incomes.
+            - T_retire : period of the agent's problem after which they retire.
 
         This dictionary has the names and formats that various models in HARK
         expect, so that it can be directly updated into other parameter
@@ -673,7 +674,8 @@ def parse_income_spec(
 
     P0 = P0 * defl
     income_params["P0"] = P0
-    income_params["pLvlInitMean"] = np.log(P0)
+    income_params["pLogInitMean"] = np.log(P0)
+    income_params["T_retire"] = N_work_periods
 
     return income_params
 

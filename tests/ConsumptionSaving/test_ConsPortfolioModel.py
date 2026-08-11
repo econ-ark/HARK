@@ -9,15 +9,14 @@ from tests import HARK_PRECISION
 class PortfolioConsumerTypeTestCase(unittest.TestCase):
     def setUp(self):
         # Create portfolio choice consumer type
-        self.pcct = cpm.PortfolioConsumerType()
-        self.pcct.cycles = 0
+        self.pcct = cpm.PortfolioConsumerType(cycles=0)
 
         # Solve the model under the given parameters
 
         self.pcct.solve()
 
 
-class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
+class TestPortfolioConsumerType(PortfolioConsumerTypeTestCase):
     def test_RiskyShareFunc(self):
         self.assertAlmostEqual(
             self.pcct.solution[0].ShareFuncAdj(8).tolist(),
@@ -42,6 +41,9 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
             places=HARK_PRECISION,
         )
 
+    def test_null_solution(self):
+        soln = cpm.PortfolioSolution()
+
     def test_sim_one_period(self):
         self.pcct.T_sim = 30
         self.pcct.AgentCount = 10
@@ -49,18 +51,6 @@ class UnitsPortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
         self.pcct.initialize_sim()
 
         self.assertFalse(np.any(self.pcct.shocks["Adjust"]))
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.state_now["pLvl"][0], 1.0)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.state_now["aNrm"][0], 7.25703, place = HARK_PRECISION)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.Rfree[0], 1.03)
-
-        # simulation test -- seed/generator specific
-        # self.assertAlmostEqual(self.pcct.state_now["PlvlAgg"], 1.0)
 
         self.pcct.sim_one_period()
 
@@ -159,17 +149,27 @@ class SimulatePortfolioConsumerTypeTestCase(PortfolioConsumerTypeTestCase):
 
 
 class testPortfolioConsumerTypeSticky(unittest.TestCase):
-    def test_sticky(self):
+    def setUp(self):
         # Make another example type, but this one can only update their risky portfolio
         # share in any particular period with 15% probability.
-        init_sticky_share = cpm.init_portfolio.copy()
-        init_sticky_share["AdjustPrb"] = 0.15
-
-        # Create portfolio choice consumer type
-        self.sticky = cpm.PortfolioConsumerType(**init_sticky_share)
+        self.sticky = cpm.PortfolioConsumerType(AdjustPrb=0.15, cycles=0)
 
         # Solve the model under the given parameters
         self.sticky.solve()
+
+    def test_cFunc(self):
+        self.assertAlmostEqual(
+            self.sticky.solution[0].cFuncAdj(10).tolist(),
+            1.69911,
+            places=HARK_PRECISION,
+        )
+
+    def test_ShareFunc(self):
+        self.assertAlmostEqual(
+            self.sticky.solution[0].ShareFuncAdj(10).tolist(),
+            0.86173,
+            places=HARK_PRECISION,
+        )
 
 
 class testPortfolioConsumerTypeDiscrete(unittest.TestCase):
@@ -214,6 +214,50 @@ class testPortfolioConsumerTypeDiscreteAndJoint(unittest.TestCase):
 
         # Solve model under given parameters
         self.discrete_and_joint.solve()
+
+
+class testPortfolioConsumerTypeDiscreteJointSticky(unittest.TestCase):
+    def test_unusual(self):
+        # Make example of an agent who choosese share on grid, can only change
+        # portfolio sometimes, and treats income dstn as correlated with returns
+        WeirdType = cpm.PortfolioConsumerType(
+            DiscreteShareBool=True,
+            vFuncBool=True,
+            IndepDstnBool=False,
+            AdjustPrb=0.3,
+        )
+        WeirdType.solve()
+
+
+class testPortfolioConsumerTypeZeroIncShk(unittest.TestCase):
+    def setUp(self):
+        self.agent = cpm.PortfolioConsumerType(IncUnemp=0.0)
+        self.agent.solve()
+        self.agent.unpack("cFuncAdj")
+        self.agent.unpack("ShareFuncAdj")
+
+    def test_cFunc(self):
+        self.assertAlmostEqual(
+            self.agent.cFuncAdj[0](2.0), 1.29675, places=HARK_PRECISION
+        )
+
+    def test_ShareFunc(self):
+        self.assertAlmostEqual(
+            self.agent.ShareFuncAdj[0](2.0), 0.34962, places=HARK_PRECISION
+        )
+
+
+class testInvalidPortfolioConsumerType(unittest.TestCase):
+    def setUp(self):
+        self.agent = cpm.PortfolioConsumerType()
+
+    def test_invalid(self):
+        self.agent.BoroCnstArt = -1.0
+        self.assertRaises(ValueError, self.agent.solve)
+
+        self.agent.BoroConstArt = 0.0
+        self.agent.DiscreteShareBool = True
+        self.assertRaises(ValueError, self.agent.solve)
 
 
 class testRiskyReturnDim(PortfolioConsumerTypeTestCase):

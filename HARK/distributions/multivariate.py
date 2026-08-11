@@ -28,7 +28,7 @@ class MultivariateNormal(multivariate_normal_frozen, Distribution):
         Seed for random number generator.
     """
 
-    def __init__(self, mu=[1, 1], Sigma=[[1, 0], [0, 1]], seed=0):
+    def __init__(self, mu=[1, 1], Sigma=[[1, 0], [0, 1]], seed=None):
         self.mu = np.asarray(mu)
         self.Sigma = np.asarray(Sigma)
         self.M = self.mu.size
@@ -89,7 +89,7 @@ class MultivariateNormal(multivariate_normal_frozen, Distribution):
         return DiscreteDistribution(
             pmv,
             atoms.T,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
 
@@ -130,6 +130,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
 
         multi_rv_frozen.__init__(self)
         Distribution.__init__(self, seed=seed)
+        self.dstn = MultivariateNormal(mu=self.mu, Sigma=self.Sigma)
 
     def mean(self):
         """
@@ -159,11 +160,9 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-
         if (x.shape != self.M) & (x.shape[1] != self.M):
             raise ValueError(f"x must be and {self.M}-dimensional input")
-
-        return MultivariateNormal(mu=self.mu, Sigma=self.Sigma).cdf(np.log(x))
+        return self.dstn.cdf(np.log(x))
 
     def _pdf(self, x: Union[list, np.ndarray]):
         """
@@ -194,12 +193,11 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         rank_sigma = linalg.matrix_rank(self.Sigma)
 
         pd = np.multiply(
-            (1 / np.prod(x, axis=1)),
+            (1 / np.prod(x, axis=1, keepdims=True)),
             (2 * np.pi) ** (-rank_sigma / 2)
             * pseudo_det ** (-0.5)
             * np.exp(-(1 / 2) * np.multiply(np.log(x) @ inverse_sigma, np.log(x))),
         )
-
         return pd
 
     def _marginal(self, x: Union[np.ndarray, float, list], dim: int):
@@ -211,7 +209,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         x : Union[np.ndarray, float]
             Point at which to evaluate the marginal distribution.
         dim : int
-            Which of the random variables to evaluate (1 or 2).
+            Which of the random variables to evaluate.
 
         Returns
         -------
@@ -220,11 +218,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-
-        x_dim = Lognormal(
-            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
-        )
-
+        x_dim = Lognormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
         return x_dim.pdf(x)
 
     def _marginal_cdf(self, x: Union[np.ndarray, float, list], dim: int):
@@ -236,7 +230,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         x : Union[np.ndarray, float]
             Point at which to evaluate the marginal CDF.
         dim : int
-            Which of the random variables to evaluate (1 or 2).
+            Which of the random variables to evaluate.
 
         Returns
         -------
@@ -245,11 +239,7 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         """
 
         x = np.asarray(x)
-
-        x_dim = Lognormal(
-            mu=self.mu[dim - 1], sigma=np.sqrt(self.Sigma[dim - 1, dim - 1])
-        )
-
+        x_dim = Lognormal(mu=self.mu[dim], sigma=np.sqrt(self.Sigma[dim, dim]))
         return x_dim.cdf(x)
 
     def rvs(self, size: int = 1, random_state=None):
@@ -268,31 +258,173 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         np.ndarray
             Random sample from the distribution.
         """
+        return np.exp(self.dstn.rvs(size, random_state=random_state))
 
-        Z = MultivariateNormal(mu=self.mu, Sigma=self.Sigma)
+    @staticmethod
+    def _make_inners(N: int, tail_N: int) -> np.ndarray:
+        """Build the per-dimension ``inners`` index vector used for tail tagging."""
+        inners = np.zeros(N + 2 * tail_N)
+        if tail_N > 0:
+            inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
+            inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
+        return inners
 
-        return np.exp(Z.rvs(size, random_state=random_state))
+    def _fill_interiors_row(
+        self,
+        interiors: np.ndarray,
+        inners: np.ndarray,
+        N: int,
+        tail_N: int,
+        i: int,
+    ) -> None:
+        """Populate ``interiors[i]`` by tiling ``inners`` for dimension ``i``."""
+        inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
+        interiors[i] = np.repeat([*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1)))
+
+    def _diagonal_atoms(self, N, tail_N, tail_bound, endpoints):
+        """Build the atoms tensor for the case where Sigma is diagonal."""
+        ind_atoms = np.empty((self.M, N + 2 * tail_N))
+        for i in range(self.M):
+            if self.Sigma[i, i] == 0.0:
+                ind_atoms[i] = np.repeat(np.exp(self.mu[i]), N + 2 * tail_N)
+            else:
+                ind_atoms[i] = (
+                    Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
+                    ._approx_equiprobable(
+                        N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints
+                    )
+                    .atoms
+                )
+        atoms_list = [ind_atoms[i] for i in range(self.M)]
+        return np.stack(
+            [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
+        ).T
+
+    @staticmethod
+    def _compute_z_bins(N, tail_N, tail_bound):
+        """Return ``(z_bins, int_prob, tail_bound)`` shared by Cholesky/eig decomposition branches.
+
+        ``tail_bound`` is returned in normalized list form so that the caller
+        can store the consistent value in ``limit`` metadata.
+        """
+        if tail_bound is not None:
+            if isinstance(tail_bound, (float, np.floating)):
+                tail_bound = [tail_bound, 1 - tail_bound]
+            if tail_bound[0] < 0 or tail_bound[1] > 1:
+                raise ValueError("Tail bounds must be between 0 and 1")
+            cdf_cuts = np.linspace(tail_bound[0], tail_bound[1], N + 1)
+            int_prob = tail_bound[1] - tail_bound[0]
+        else:
+            cdf_cuts = np.linspace(0, 1, N + 1)
+            int_prob = 1.0
+
+        Z = Normal()
+        z_cuts = np.empty(2 * tail_N + N + 1)
+        if tail_N > 0:
+            z_cuts[0:tail_N] = Z.ppf(cdf_cuts[0])
+            z_cuts[-tail_N:] = Z.ppf(cdf_cuts[-1])
+        z_cuts[tail_N : tail_N + N + 1] = Z.ppf(cdf_cuts)
+        z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N + 2 * tail_N)]
+        return z_bins, int_prob, tail_bound
+
+    @staticmethod
+    def _eval_atom_density(params, z, N, int_prob):
+        """Compute the integral of the lognormal density over a multidimensional z bin."""
+        inds = []
+        excl = []
+        for j in range(len(z)):
+            if z[j, 0] == z[j, 1]:
+                excl.append(j)
+            elif params[j] != 0.0:
+                inds.append(j)
+
+        dim = len(inds)
+        if dim > 0:
+            p = np.repeat(params[inds], 2).reshape(dim, 2)
+            Z = np.multiply(p, z[inds])
+            bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
+            x_exp = np.prod(
+                -0.5
+                * np.exp(np.square(params[inds]) / 2)
+                * (special.erf(bounds[1]) - special.erf(bounds[0]))
+            )
+        else:
+            x_exp = 1
+
+        if len(excl) > 0:
+            x_others = np.prod(np.exp(np.multiply(params[excl], z[excl, 1])))
+        else:
+            x_others = 1
+
+        return x_exp * x_others * (N / int_prob) ** dim
+
+    def _fill_decomp_atoms(
+        self, decomp, atoms, interiors, inners, z_bins, N, tail_N, int_prob
+    ):
+        """Fill the atoms tensor for non-diagonal Sigma using the chosen decomposition."""
+        if decomp == "cholesky":
+            L = np.linalg.cholesky(self.Sigma)
+            for i in range(self.M):
+                params = L[i, 0 : i + 1]
+                num_z_dims = i + 1
+                xi_atoms = self._row_atoms(
+                    self.mu[i], params, z_bins, num_z_dims, N, int_prob
+                )
+                self._fill_interiors_row(interiors, inners, N, tail_N, i)
+                atoms[i] = np.repeat(xi_atoms, (N + 2 * tail_N) ** (self.M - (i + 1)))
+        else:
+            Lambda, Q = np.linalg.eig(self.Sigma)
+            A = Q @ np.diag(np.sqrt(Lambda))
+            if decomp == "sqrt":
+                A = A @ Q.T
+            for i in range(self.M):
+                params = A[i]
+                xi_atoms = self._row_atoms(
+                    self.mu[i], params, z_bins, self.M, N, int_prob
+                )
+                self._fill_interiors_row(interiors, inners, N, tail_N, i)
+                atoms[i] = xi_atoms
+
+    @classmethod
+    def _row_atoms(cls, mu_i, params, z_bins, num_z_dims, N, int_prob):
+        """Compute the per-row xi atoms by integrating the density over each z bin."""
+        Z_bins = [np.array(x) for x in product(*([z_bins] * num_z_dims))]
+        return [
+            np.exp(mu_i) * cls._eval_atom_density(params, z_bin, N, int_prob)
+            for z_bin in Z_bins
+        ]
 
     def _approx_equiprobable(
         self,
         N: int,
-        tail_bound: Union[float, list, tuple] = None,
         endpoints: bool = False,
+        tail_bound: Union[float, list, tuple] = None,
         decomp: str = "cholesky",
     ):
         """
-        Makes a discrete approximation using the equiprobable method to this multivariate lognormal distribution.
+        Makes a discrete approximation using the equiprobable method to this multi-
+        variate lognormal distribution.
 
         Parameters
         ----------
         N : int
             The number of points in the discrete approximation.
         tail_bound : Union[float, list, tuple], optional
-            The values of the CDF according to which the distribution is truncated. If only a single number is specified, it is the lower tail bound and a symmetric upper bound is chosen. Can make one-tailed approximations with 0.0 or 1.0 as the lower and upper bound respectively. By default the distribution is not truncated.
+            The values of the CDF according to which the distribution is truncated.
+            If only a single number is specified, it is the lower tail bound and a
+            symmetric upper bound is chosen. Can make one-tailed approximations
+            with 0.0 or 1.0 as the lower and upper bound respectively. By default
+            the distribution is not truncated.
         endpoints : bool
-            If endpoints is True, then atoms at the corner points of the truncated region are included. By default, endpoints is False, which is when only the interior points are included.
+            If endpoints is True, then atoms at the corner points of the truncated
+            region are included. By default, endpoints is False, which is when only
+            the interior points are included.
         decomp : str in ["cholesky", "sqrt", "eig"], optional
-            The method of decomposing the covariance matrix. Available options are the Cholesky decomposition, the positive-definite square root, and the eigendecomposition. By default the Cholesky decomposition is used. NOTE: The method of decomposition might affect the expectations of the discretized distribution along each dimension dfferently.
+            The method of decomposing the covariance matrix. Available options are
+            the Cholesky decomposition, the positive-definite square root, and the
+            eigendecomposition. By default the Cholesky decomposition is used.
+            NOTE: The method of decomposition might affect the expectations of the
+            discretized distribution along each dimension dfferently.
 
         Returns
         -------
@@ -301,179 +433,26 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
             points for discrete probability mass function.
         """
 
-        if endpoints:
-            tail_N = 1
-        else:
-            tail_N = 0
+        tail_N = 1 if endpoints else 0
 
         if decomp not in ["cholesky", "sqrt", "eig"]:
             raise NotImplementedError(
                 "Decomposition method must be 'cholesky', 'sqrt' or 'eig'"
             )
 
+        interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
+        inners = self._make_inners(N, tail_N)
+
         if np.array_equal(self.Sigma, np.diag(np.diag(self.Sigma))):
-            ind_atoms = np.empty((self.M, N + 2 * tail_N))
-
+            atoms = self._diagonal_atoms(N, tail_N, tail_bound, endpoints)
             for i in range(self.M):
-                if self.Sigma[i, i] == 0.0:
-                    x_atoms = np.repeat(np.exp(self.mu[i]), N + 2 * tail_N)
-                    ind_atoms[i] = x_atoms
-                else:
-                    x_atoms = (
-                        Lognormal(mu=self.mu[i], sigma=np.sqrt(self.Sigma[i, i]))
-                        ._approx_equiprobable(
-                            N, tail_N=tail_N, tail_bound=tail_bound, endpoints=endpoints
-                        )
-                        .atoms
-                    )
-                    ind_atoms[i] = x_atoms
-
-            atoms_list = [ind_atoms[i] for i in range(self.M)]
-            atoms = np.stack(
-                [ar.flatten() for ar in list(np.meshgrid(*atoms_list))], axis=1
-            ).T
-
-            interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
-
-            inners = np.zeros(N + 2 * tail_N)
-
-            if tail_N > 0:
-                inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
-                inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
-
-            for i in range(self.M):
-                inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
-
-                interiors[i] = np.repeat(
-                    [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
-                )
-
+                self._fill_interiors_row(interiors, inners, N, tail_N, i)
         else:
-            if tail_bound is not None:
-                if type(tail_bound) is float:
-                    tail_bound = [tail_bound, 1 - tail_bound]
-
-                if tail_bound[0] < 0 or tail_bound[1] > 1:
-                    raise ValueError("Tail bounds must be between 0 and 1")
-
-                cdf_cuts = np.linspace(tail_bound[0], tail_bound[1], N + 1)
-                int_prob = tail_bound[1] - tail_bound[0]
-
-            else:
-                cdf_cuts = np.linspace(0, 1, N + 1)
-                int_prob = 1.0
-
-            Z = Normal()
-
-            z_cuts = np.empty(2 * tail_N + N + 1)
-            if tail_N > 0:
-                z_cuts[0:tail_N] = Z.ppf(cdf_cuts[0])
-                z_cuts[-tail_N:] = Z.ppf(cdf_cuts[-1])
-
-            z_cuts[tail_N : tail_N + N + 1] = Z.ppf(cdf_cuts)
-            z_bins = [(z_cuts[i], z_cuts[i + 1]) for i in range(N + 2 * tail_N)]
-
+            z_bins, int_prob, tail_bound = self._compute_z_bins(N, tail_N, tail_bound)
             atoms = np.empty([self.M, (N + (2 * tail_N)) ** self.M])
-
-            interiors = np.empty([self.M, (N + 2 * tail_N) ** (self.M)])
-
-            inners = np.zeros(N + 2 * tail_N)
-
-            if tail_N > 0:
-                inners[:tail_N] = [(tail_N - i) for i in range(tail_N)]
-                inners[-tail_N:] = [(i + 1) for i in range(tail_N)]
-
-            def eval(params, z):
-                inds = []
-                excl = []
-
-                for j in range(len(z)):
-                    if z[j, 0] == z[j, 1]:
-                        excl.append(j)
-                    elif params[j] != 0.0:
-                        inds.append(j)
-
-                dim = len(inds)
-
-                p = np.repeat(params[inds], 2).reshape(dim, 2)
-
-                Z = np.multiply(p, z[inds])
-
-                bounds = ((p**2 - Z) / (np.sqrt(2) * p)).T
-
-                if len(inds) > 0:
-                    x_exp = np.prod(
-                        -0.5
-                        * np.exp(np.square(params[inds]) / 2)
-                        * (special.erf(bounds[1]) - special.erf(bounds[0]))
-                    )
-                else:
-                    x_exp = 1
-
-                if len(excl) > 0:
-                    x_others = np.prod(np.exp(np.multiply(params[excl], z[excl, 1])))
-                else:
-                    x_others = 1
-
-                return x_exp * x_others * (N / int_prob) ** dim
-
-            if decomp == "cholesky":
-                L = np.linalg.cholesky(self.Sigma)
-
-                for i in range(self.M):
-                    mui = self.mu[i]
-                    params = L[i, 0 : i + 1]
-
-                    Z_list = [z_bins for _ in range(i + 1)]
-
-                    Z_bins = [np.array(x) for x in list(product(*Z_list))]
-
-                    xi_atoms = []
-
-                    for z_bin in Z_bins:
-                        atom = np.exp(mui) * eval(params, z_bin)
-                        xi_atoms.append(atom)
-
-                    xi_atoms_arr = np.repeat(
-                        xi_atoms, (N + 2 * tail_N) ** (self.M - (i + 1))
-                    )
-
-                    inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
-
-                    interiors[i] = np.repeat(
-                        [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
-                    )
-
-                    atoms[i] = xi_atoms_arr
-            else:
-                Λ, Q = np.linalg.eig(self.Sigma)
-
-                A = Q @ np.diag(np.sqrt(Λ))
-
-                if decomp == "sqrt":
-                    A = A @ Q.T
-
-                for i in range(self.M):
-                    mui = self.mu[i]
-                    params = A[i]
-
-                    Z_list = [z_bins for _ in range(self.M)]
-
-                    Z_bins = [np.array(x) for x in list(product(*Z_list))]
-
-                    xi_atoms = []
-
-                    for z_bin in Z_bins:
-                        atom = np.exp(mui) * eval(params, z_bin)
-                        xi_atoms.append(atom)
-
-                    inners_i = [inners for _ in range((N + 2 * tail_N) ** i)]
-
-                    interiors[i] = np.repeat(
-                        [*inners_i], (N + 2 * tail_N) ** (self.M - (i + 1))
-                    )
-
-                    atoms[i] = xi_atoms
+            self._fill_decomp_atoms(
+                decomp, atoms, interiors, inners, z_bins, N, tail_N, int_prob
+            )
 
         max_locs = np.argmax(np.abs(interiors), axis=0)
 
@@ -503,6 +482,6 @@ class MultivariateLogNormal(multi_rv_frozen, Distribution):
         return DiscreteDistribution(
             pmv=pmv,
             atoms=atoms,
-            seed=self._rng.integers(0, 2**31 - 1, dtype="int32"),
+            seed=self.random_seed(),
             limit=limit,
         )
