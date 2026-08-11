@@ -1557,6 +1557,39 @@ class PerfForesightConsumerType(AgentType):
         _log.info(message)
         self.bilt["conditions_report"] += message + "\n"
 
+    def _emit_conditions_report(self):
+        """Emit the accumulated conditions report unless ``self.quiet`` is set."""
+        if not self.quiet:
+            _log.info(self.bilt["conditions_report"])
+
+    def _setup_condition_check(self, verbose):
+        """Initialize the conditions report and run the supported-cycle gate.
+
+        Returns ``(verbose, should_continue)``: ``verbose`` is resolved against
+        the instance default, and ``should_continue`` is False when the model
+        is outside the infinite-horizon, single-period-cycle regime supported
+        by ``check_conditions``. In that case the trivial-skip message has
+        already been logged.
+        """
+        self.conditions = {}
+        self.bilt["conditions_report"] = ""
+        self.degenerate = False
+        verbose = self.verbose if verbose is None else verbose
+        if self.cycles != 0 or self.T_cycle > 1:
+            self.log_condition_result(
+                None,
+                None,
+                "No conditions report was produced because this functionality"
+                " is only supported for infinite horizon models with a cycle"
+                " length of 1.",
+                verbose,
+            )
+            self._emit_conditions_report()
+            return verbose, False
+        self.calc_limiting_values()
+        self.log_condition_result(None, None, self.describe_parameters(), verbose)
+        return verbose, True
+
     def check_AIC(self, verbose=None):
         """
         Evaluate and report on the Absolute Impatience Condition.
@@ -1761,24 +1794,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        self.conditions = {}
-        self.bilt["conditions_report"] = ""
-        self.degenerate = False
-        verbose = self.verbose if verbose is None else verbose
-
-        # This method only checks for the conditions for infinite horizon models
-        # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.cycles != 0 or self.T_cycle > 1:
-            trivial_message = "No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1."
-            self.log_condition_result(None, None, trivial_message, verbose)
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+        verbose, should_continue = self._setup_condition_check(verbose)
+        if not should_continue:
             return
-
-        # Calculate some useful quantities that will be used in the condition checks
-        self.calc_limiting_values()
-        param_desc = self.describe_parameters()
-        self.log_condition_result(None, None, param_desc, verbose)
 
         # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
@@ -1794,8 +1812,7 @@ class PerfForesightConsumerType(AgentType):
 
         # Exit now if verbose output was not requested.
         if not verbose:
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the degeneracy of the consumption function solution
@@ -1832,8 +1849,7 @@ class PerfForesightConsumerType(AgentType):
         if (
             degenerate
         ):  # All of the other checks are meaningless if the solution is degenerate
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the consequences of the Absolute Impatience Condition
@@ -1853,8 +1869,7 @@ class PerfForesightConsumerType(AgentType):
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
 
-        if not self.quiet:
-            _log.info(self.bilt["conditions_report"])
+        self._emit_conditions_report()
 
     def calc_stable_points(self, force=False):
         """
@@ -2609,24 +2624,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        self.conditions = {}
-        self.bilt["conditions_report"] = ""
-        self.degenerate = False
-        verbose = self.verbose if verbose is None else verbose
-
-        # This method only checks for the conditions for infinite horizon models
-        # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.cycles != 0 or self.T_cycle > 1:
-            trivial_message = "No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1."
-            self.log_condition_result(None, None, trivial_message, verbose)
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+        verbose, should_continue = self._setup_condition_check(verbose)
+        if not should_continue:
             return
-
-        # Calculate some useful quantities that will be used in the condition checks
-        self.calc_limiting_values()
-        param_desc = self.describe_parameters()
-        self.log_condition_result(None, None, param_desc, verbose)
 
         # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
@@ -2643,8 +2643,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Exit now if verbose output was not requested.
         if not verbose:
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the degeneracy of the consumption function solution
@@ -2662,8 +2661,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Stop here if the solution is degenerate
         if degenerate:
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the limiting behavior of the consumption function as m goes to infinity
@@ -2708,11 +2706,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.conditions["GICHrm"]:
             GICHrm_message = "\nBecause the GICHrm is satisfied, there exists a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         else:
-            GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure.."
+            GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         self.log_condition_result(None, None, GICHrm_message, verbose)
 
-        if not self.quiet:
-            _log.info(self.bilt["conditions_report"])
+        self._emit_conditions_report()
 
 
 ###############################################################################

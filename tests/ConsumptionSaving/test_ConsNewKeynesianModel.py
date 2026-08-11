@@ -55,3 +55,34 @@ class test_Jacobian_methods(unittest.TestCase):
         self.assertAlmostEqual(CJAC_Perm.T[30][29], -0.10503, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][30], 0.10316, places=HARK_PRECISION)
         self.assertAlmostEqual(CJAC_Perm.T[30][31], 0.09059, places=HARK_PRECISION)
+
+
+class test_assign_dist_mGrid(unittest.TestCase):
+    """Branches of _assign_dist_mGrid that the transition-matrix tests miss.
+
+    Every existing caller invokes define_distribution_grid() with no
+    arguments, so dist_mGrid is None and m_density is 0 -- the prespecified
+    grid branch and the densification loop never run.
+    """
+
+    def setUp(self):
+        self.agent = NewKeynesianConsumerType()
+        self.agent.cycles = 0
+
+    def test_prespecified_grid_is_used_directly(self):
+        my_grid = np.array([0.1, 0.5, 1.0, 2.0])
+        self.agent.define_distribution_grid(dist_mGrid=my_grid)
+        np.testing.assert_array_equal(self.agent.dist_mGrid, my_grid)
+
+    def test_m_density_inserts_midpoints(self):
+        self.agent.define_distribution_grid(m_density=0)
+        base = self.agent.dist_mGrid.copy()
+
+        self.agent.define_distribution_grid(m_density=1)
+        dense = self.agent.dist_mGrid
+
+        # One densification pass adds a midpoint per existing gridpoint.
+        self.assertEqual(len(dense), 2 * len(base))
+        self.assertTrue(np.all(np.diff(dense) >= 0.0), "grid must stay sorted")
+        # Every original point survives densification.
+        self.assertTrue(np.all(np.isin(base, dense)))
