@@ -117,3 +117,36 @@ def test_compute_mean_plvl_degenerate_case():
         pLogInitStd = 0.0
 
     assert np.isclose(compute_mean_pLvl(Stub()), 1.0)
+
+
+def test_cache_flag_leaves_p_stream_bit_identical():
+    """The _cache_base_shock_draws flag records draws without touching
+    the P-stream: identical histories, plus the recorded dict."""
+    plain = _small_agent(IndShockConsumerType)
+    cached = _small_agent(IndShockConsumerType)
+    cached._cache_base_shock_draws = True
+    plain.initialize_sim()
+    plain.simulate()
+    cached.initialize_sim()
+    cached.simulate()
+    for var in ("cNrm", "pLvl"):
+        assert np.array_equal(plain.history[var], cached.history[var]), var
+    assert hasattr(cached, "_base_shock_draws")
+    assert not hasattr(plain, "_base_shock_draws")
+
+
+def test_dual_mode_consumes_recorded_draws_exactly():
+    """With a DEGENERATE permanent shock, Q == P distribution, so when the
+    Q side inverts the recorded P uniforms it must reproduce the P shocks
+    exactly — an end-to-end equality proof of the wiring."""
+    agent = DualIndShock(AgentCount=300, T_sim=10, seed=31382)
+    agent.PermShkStd = [0.0]
+    agent.update_income_process()
+    agent.track_vars = ["cNrm", "pLvl"]
+    agent.solve()
+    agent.setup_Q_measure()
+    agent._cache_base_shock_draws = True
+    agent.initialize_sim()
+    agent.simulate()
+    np.testing.assert_array_equal(agent.shocks_Q["TranShk"], agent.shocks["TranShk"])
+    np.testing.assert_array_equal(agent.shocks_Q["PermShk"], agent.shocks["PermShk"])

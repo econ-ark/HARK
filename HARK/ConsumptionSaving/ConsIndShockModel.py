@@ -2226,6 +2226,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
+        _cache = getattr(self, "_cache_base_shock_draws", False)
+        base_draws_dict = {}
         for s in np.unique(self.t_cycle):
             idx = self.t_cycle == s
             t = s - 1
@@ -2241,6 +2243,17 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
+                elif _cache:
+                    # Same uniforms and same inversion as draw_events —
+                    # the P-stream is unchanged; the draws are recorded
+                    # for dual-measure Q-CDF inversion.
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[s] = base_draws
+                    EventDraws = np.searchsorted(
+                        np.cumsum(IncShkDstnNow.pmv), base_draws
+                    )
+                    PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
                 else:
                     # Original RNG path — preserved bit-for-bit.
                     IncShks = IncShkDstnNow.draw(N)
@@ -2263,6 +2276,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
                 PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                 TranShkNow[idx] = ShockDraws[1]
+            elif _cache:
+                base_draws = IncShkDstnNow._rng.uniform(size=N)
+                base_draws_dict["newborn"] = base_draws
+                EventDraws = np.searchsorted(np.cumsum(IncShkDstnNow.pmv), base_draws)
+                PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
             else:
                 # Original RNG path — preserved bit-for-bit.
                 EventDraws = IncShkDstnNow.draw_events(N)
@@ -2274,6 +2293,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
+
+        if _cache:
+            self._base_shock_draws = base_draws_dict
 
         # Store the shocks in self
         self.shocks["PermShk"] = PermShkNow
