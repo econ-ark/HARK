@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Exports `KrusellSmithType`, `KrusellSmithEconomy`, `init_KS_agents`, `init_KS_economy` in `HARK.ConsumptionSaving.ConsAggShockModel.__all__` (they were defined but unlisted); fixes a stale sentence in the KrusellSmithType example notebook. [#1795](https://github.com/econ-ark/HARK/pull/1795)
 - future item
 - future item
 - future item

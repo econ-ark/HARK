@@ -68,10 +68,14 @@ __all__ = [
     "SmallOpenMarkovEconomy",
     "AggregateSavingRule",
     "AggShocksDynamicRule",
+    "KrusellSmithType",
+    "KrusellSmithEconomy",
     "init_agg_shocks",
     "init_agg_mrkv_shocks",
     "init_cobb_douglas",
     "init_mrkv_cobb_douglas",
+    "init_KS_agents",
+    "init_KS_economy",
 ]
 
 utility = CRRAutility
