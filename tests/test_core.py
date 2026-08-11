@@ -1520,3 +1520,46 @@ class test_export_to_df(unittest.TestCase):
         self.assertRaises(
             KeyError, self.agent.export_to_df, var="aNrm", by_age=True, sym=True
         )
+
+
+class test_post_state_hook(unittest.TestCase):
+    """The sim_one_period extension point added between get_states() and
+    get_controls(): default is a no-op; overrides fire at the right moment."""
+
+    def test_default_behavior_unchanged_golden(self):
+        # Behavior golden captured on main at a25d3ae0 (pre-hook): the
+        # default no-op hook must leave simulations bit-identical.
+        agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
+        agent.track_vars = ["cNrm", "pLvl"]
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        np.testing.assert_allclose(
+            [float(x) for x in agent.history["cNrm"][3, :4]],
+            [
+                1.1070787532288362,
+                0.9087055494949798,
+                1.1694416325917305,
+                0.9579870570215201,
+            ],
+            rtol=1e-10,
+        )
+        self.assertAlmostEqual(
+            float(np.nansum(agent.history["cNrm"])), 1582.2122805244605, places=9
+        )
+
+    def test_override_fires_between_states_and_controls(self):
+        calls = []
+
+        class HookedAgent(IndShockConsumerType):
+            def post_state_hook(self):
+                # states for this period are already populated at call time
+                assert isinstance(self.state_now["pLvl"], np.ndarray)
+                assert np.isfinite(self.state_now["pLvl"]).all()
+                calls.append(self.t_sim)
+
+        agent = HookedAgent(AgentCount=25, T_sim=5, seed=7)
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(len(calls), 5)

@@ -71,10 +71,14 @@ __all__ = [
     "SmallOpenMarkovEconomy",
     "AggregateSavingRule",
     "AggShocksDynamicRule",
+    "KrusellSmithType",
+    "KrusellSmithEconomy",
     "init_agg_shocks",
     "init_agg_mrkv_shocks",
     "init_cobb_douglas",
     "init_mrkv_cobb_douglas",
+    "init_KS_agents",
+    "init_KS_economy",
 ]
 
 utility = CRRAutility
@@ -1504,10 +1508,9 @@ class KrusellSmithType(AggIndMarkovConsumerType):
     of the code from HARK's other HA-macro models can be used.
 
     This class inherits from AggIndMarkovConsumerType, which provides the
-    generic two-level hierarchical Markov state machinery:
-        - 2 macro states: bad (0), good (1)
-        - 2 micro states: unemployed (0), employed (1)
-        - Combined index: 0=BU, 1=BE, 2=GU, 3=GE
+    generic two-level hierarchical Markov state machinery: 2 macro states,
+    bad (0) and good (1); 2 micro states, unemployed (0) and employed (1);
+    combined index 0=BU, 1=BE, 2=GU, 3=GE.
 
     The micro-state transitions use exact-match permutation arrays to maintain
     precise unemployment rates each period (overrides the default stochastic
