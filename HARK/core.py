@@ -1832,9 +1832,34 @@ class AgentType(Model):
         """
         self._sim_period_prologue()
         self.get_states()
+        self.post_state_hook()  # Extension point: adjust states before controls
         self.get_controls()
         self.get_poststates()
         self._sim_period_epilogue()
+
+    def post_state_hook(self):
+        """
+        Extension point invoked by sim_one_period() between get_states() and
+        get_controls().  The default implementation does nothing.
+
+        Mixins and subclasses can override this to adjust state variables
+        after they are determined but before controls are computed (e.g.
+        cross-sectional moment normalization for variance reduction).
+
+        Note: classes that override sim_one_period() itself without calling
+        super() (e.g. ConsRiskyContribModel, the Monte Carlo simulators) do
+        not invoke this hook; overrides intended for such classes must be
+        wired into their own pipelines.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        pass
 
     def make_shock_history(self):
         """
