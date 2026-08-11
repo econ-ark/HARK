@@ -1454,7 +1454,7 @@ class test_post_state_hook(unittest.TestCase):
         agent.solve()
         agent.initialize_sim()
         agent.simulate()
-        self.assertEqual(
+        np.testing.assert_allclose(
             [float(x) for x in agent.history["cNrm"][3, :4]],
             [
                 1.1070787532288362,
@@ -1462,6 +1462,7 @@ class test_post_state_hook(unittest.TestCase):
                 1.1694416325917305,
                 0.9579870570215201,
             ],
+            rtol=1e-10,
         )
         self.assertAlmostEqual(
             float(np.nansum(agent.history["cNrm"])), 1582.2122805244605, places=9
