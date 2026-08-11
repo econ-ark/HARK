@@ -251,6 +251,43 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertTrue(counts[3] <= 234)
         self.assertTrue(counts[4] <= 234)
 
+    def test_shuffle_unbiased_at_small_N(self):
+        """Shuffled draws must satisfy E[count_j] == N * pmv[j] at every N.
+
+        The test above draws N=1000, where floor(N*P) already allocates
+        almost every slot and any error in distributing the remainder is
+        invisible. The error is O(M/N), so it only shows up when N is small
+        relative to the number of atoms, which is the regime sim_birth hits
+        when it redraws a cohort of newly born agents.
+        """
+        P = np.array([0.55, 0.25, 0.15, 0.05])
+        X = np.arange(4)
+        N, reps = 6, 6000
+
+        F = DiscreteDistribution(P, X, seed=0)
+        counts = np.zeros(4)
+        for _ in range(reps):
+            data = F.draw(N, shuffle=True)
+            for j in range(4):
+                counts[j] += np.sum(data == j)
+
+        realized = counts / counts.sum()
+        # 0.01 is roughly 5 standard errors here, and the failure this guards
+        # against is about 0.023, so the gap is not a matter of tuning.
+        for j in range(4):
+            self.assertAlmostEqual(realized[j], P[j], delta=0.01)
+
+    def test_shuffle_draws_nothing_when_N_is_zero(self):
+        """N=0 must return an empty array rather than raising.
+
+        sim_birth runs every period and asks for zero draws in any period
+        where nobody died, so this is reachable in ordinary simulation.
+        """
+        F = DiscreteDistribution(np.array([0.7, 0.2, 0.1]), np.arange(3), seed=0)
+        for zero in (0, np.int64(0)):
+            data = F.draw(zero, shuffle=True)
+            self.assertEqual(data.shape, (0,))
+
     def test_repr(self):
         X = np.arange(5)
         P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
@@ -957,7 +994,6 @@ class CalcExpectationDeprecatedAlias(unittest.TestCase):
     alias that delegates exactly to expected_with_loop."""
 
     def test_alias_delegates_and_warns(self):
-
         dd = DiscreteDistribution(np.array([0.25, 0.75]), np.array([2.0, 4.0]), seed=0)
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
