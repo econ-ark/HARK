@@ -288,3 +288,81 @@ class testInvalid(unittest.TestCase):
         ThisType = MarkovConsumerType()
         ThisType.IncShkDstn[0] = 2 * ThisType.IncShkDstn[0]
         self.assertRaises(ValueError, ThisType.check_markov_inputs)
+
+
+class testDeathShuffleMarkov(unittest.TestCase):
+    """Tests for the death_shuffle parameter on MarkovConsumerType.
+
+    MarkovConsumerType overrides sim_death, so it needs its own coverage: these
+    exercise sim_death() rather than _sim_death_shuffled() directly, which pins
+    the dispatch as well as the draw.
+    """
+
+    @staticmethod
+    def _make_agent(LivPrb, death_shuffle, seed, AgentCount=4000, T_sim=25):
+        params = deepcopy(init_indshk_markov)
+        params["MrkvArray"] = [np.array([[0.9, 0.1], [0.2, 0.8]])]
+        params["constructors"] = dict(params["constructors"])
+        params["constructors"]["MrkvArray"] = None
+        params["LivPrb"] = [np.array(LivPrb)]
+        params.update(
+            AgentCount=AgentCount,
+            T_sim=T_sim,
+            seed=seed,
+            death_shuffle=death_shuffle,
+            T_age=None,  # no old-age deaths, so mortality is the only killer
+        )
+        agent = MarkovConsumerType(**params)
+        agent.cycles = 0
+        agent.IncShkDstn = [[agent.IncShkDstn[0][0]] * 2]
+        agent.solve()
+        return agent
+
+    def test_deaths_constant_over_simulation(self):
+        """With one DiePrb shared by both states, every period kills the same number."""
+        agent = self._make_agent([0.98, 0.98], True, seed=4321)
+        agent.track_vars = ["who_dies"]
+        agent.initialize_sim()
+        agent.simulate()
+
+        expected_deaths = round(agent.AgentCount * 0.02)
+        history = np.asarray(agent.history["who_dies"], dtype=float)
+        # The final row is never written by simulate(), so drop unfilled rows.
+        recorded = history[~np.isnan(history).all(axis=1)]
+        self.assertGreater(recorded.shape[0], 1)
+        counts = recorded.sum(axis=1)
+        self.assertEqual(set(counts.tolist()), {float(expected_deaths)})
+
+    def test_deaths_grouped_by_markov_state(self):
+        """Mortality is de-noised within each state when DiePrb varies by state."""
+        agent = self._make_agent([0.99, 0.90], True, seed=808)
+        agent.initialize_sim()
+        # Pin an even split so each state's group size, and hence its death
+        # count, is fixed across the repeated draws below.
+        Mrkv = np.zeros(agent.AgentCount, dtype=int)
+        Mrkv[agent.AgentCount // 2 :] = 1
+        agent.shocks["Mrkv"] = Mrkv
+        in_state = [Mrkv == 0, Mrkv == 1]
+        DiePrb = [0.01, 0.10]
+
+        reps = 200
+        deaths_by_agent = np.zeros(agent.AgentCount)
+        counts = set()
+        for _ in range(reps):
+            who_dies = agent.sim_death()
+            deaths_by_agent += who_dies
+            counts.add(int(who_dies.sum()))
+
+        # Both groups have an integral N*DiePrb here, so the total is exact.
+        expected = sum(
+            round(mask.sum() * p) for mask, p in zip(in_state, DiePrb, strict=True)
+        )
+        self.assertEqual(counts, {expected})
+        # And each state's agents die at that state's rate, not a pooled one.
+        for mask, p in zip(in_state, DiePrb, strict=True):
+            self.assertAlmostEqual(
+                deaths_by_agent[mask].sum() / (reps * mask.sum()), p, places=6
+            )
+
+    def test_death_shuffle_default_false(self):
+        self.assertFalse(MarkovConsumerType().death_shuffle)
