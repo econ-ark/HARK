@@ -1816,6 +1816,7 @@ class AgentType(Model):
         else:  # Otherwise, draw shocks as usual according to subclass-specific method
             self.get_shocks()
         self.get_states()  # Determine each agent's state at decision time
+        self.post_state_hook()  # Extension point: adjust states before controls
         self.get_controls()  # Determine each agent's choice or control variables based on states
         self.get_poststates()  # Calculate variables that come *after* decision-time
 
@@ -1825,6 +1826,30 @@ class AgentType(Model):
         self.t_cycle[self.t_cycle == self.T_cycle] = (
             0  # Resetting to zero for those who have reached the end
         )
+
+    def post_state_hook(self):
+        """
+        Extension point invoked by sim_one_period() between get_states() and
+        get_controls().  The default implementation does nothing.
+
+        Mixins and subclasses can override this to adjust state variables
+        after they are determined but before controls are computed (e.g.
+        cross-sectional moment normalization for variance reduction).
+
+        Note: classes that override sim_one_period() itself without calling
+        super() (e.g. ConsRiskyContribModel, the Monte Carlo simulators) do
+        not invoke this hook; overrides intended for such classes must be
+        wired into their own pipelines.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        pass
 
     def make_shock_history(self):
         """

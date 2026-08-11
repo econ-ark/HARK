@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Adds `AgentType.post_state_hook()`: a no-op extension point invoked by `sim_one_period` between `get_states()` and `get_controls()`, for mixins that adjust states before controls are computed (e.g. variance-reduction normalization). Default behavior is bit-identical (pinned by a behavior-golden test). [#1787](https://github.com/econ-ark/HARK/pull/1787)
 - future item
 - future item
 - future item
