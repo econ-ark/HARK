@@ -2033,6 +2033,7 @@ IndShockConsumerType_simulation_default = {
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
 
 IndShockConsumerType_defaults = {}
@@ -2203,6 +2204,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
+        When ``income_shuffle`` is True (default False), draws use
+        ``DiscreteDistribution.draw(N, shuffle=True)`` — exact
+        floor-plus-leftover shock frequencies with random assignment —
+        eliminating cross-sectional sampling noise in the shock
+        composition.  The default path is the original iid RNG code,
+        preserved verbatim.
+
         Parameters
         ----------
         NewbornTransShk : boolean, optional
@@ -2228,13 +2236,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow = self.IncShkDstn[t]
                 # and permanent growth factor
                 PermGroFacNow = self.PermGroFac[t]
-                # Get random draws of income shocks from the discrete distribution
-                IncShks = IncShkDstnNow.draw(N)
-
-                PermShkNow[idx] = (
-                    IncShks[0, :] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShks[1, :]
+                # Draw income shocks from the discrete distribution
+                if getattr(self, "income_shuffle", False):
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                else:
+                    # Original RNG path — preserved bit-for-bit.
+                    IncShks = IncShkDstnNow.draw(N)
+                    PermShkNow[idx] = (
+                        IncShks[0, :] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShks[1, :]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2245,12 +2258,18 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[idx] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-            )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            # Draw income shocks from the discrete distribution
+            if getattr(self, "income_shuffle", False):
+                ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                TranShkNow[idx] = ShockDraws[1]
+            else:
+                # Original RNG path — preserved bit-for-bit.
+                EventDraws = IncShkDstnNow.draw_events(N)
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
