@@ -2205,8 +2205,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         each period in the cycle.
 
         When ``income_shuffle`` is True (default False), draws use
-        ``DiscreteDistribution.draw(N, shuffle=True)`` — exact
-        floor-plus-leftover shock frequencies with random assignment —
+        ``DiscreteDistribution.draw(N, shuffle=True)`` (exact
+        floor-plus-leftover shock frequencies with random assignment),
         eliminating cross-sectional sampling noise in the shock
         composition.  The default path is the original iid RNG code,
         preserved verbatim.
@@ -2242,7 +2242,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
                 else:
-                    # Original RNG path — preserved bit-for-bit.
+                    # Original RNG path, preserved bit-for-bit.
                     IncShks = IncShkDstnNow.draw(N)
                     PermShkNow[idx] = (
                         IncShks[0, :] * PermGroFacNow
@@ -2264,7 +2264,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                 TranShkNow[idx] = ShockDraws[1]
             else:
-                # Original RNG path — preserved bit-for-bit.
+                # Original RNG path, preserved bit-for-bit.
                 EventDraws = IncShkDstnNow.draw_events(N)
                 PermShkNow[idx] = (
                     IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow

@@ -1028,7 +1028,7 @@ class MarkovConsumerType(IndShockConsumerType):
                         PermShkNow[these] = ShockDraws[0] * PermGroFacNow
                         TranShkNow[these] = ShockDraws[1]
                     else:
-                        # Original RNG path — preserved bit-for-bit.
+                        # Original RNG path, preserved bit-for-bit.
                         EventDraws = IncShkDstnNow.draw_events(N)
                         PermShkNow[these] = (
                             IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
@@ -1054,7 +1054,7 @@ class MarkovConsumerType(IndShockConsumerType):
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
                 else:
-                    # Original RNG path — preserved bit-for-bit.
+                    # Original RNG path, preserved bit-for-bit.
                     EventDraws = IncShkDstnNow.draw_events(N)
                     PermShkNow[idx] = (
                         IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow

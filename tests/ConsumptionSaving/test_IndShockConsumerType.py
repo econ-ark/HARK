@@ -10,6 +10,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
 
@@ -1258,6 +1259,8 @@ class testCubicSolutionSerialization(unittest.TestCase):
     def test_pickle_solution(self):
         restored = pickle.loads(pickle.dumps(self.agent.solution[0]))
         self.check_solution(restored)
+
+
 class testIncomeShuffleIndShock(unittest.TestCase):
     """Tests for the income_shuffle parameter on IndShockConsumerType."""
 
@@ -1301,10 +1304,14 @@ class testIncomeShuffleIndShock(unittest.TestCase):
         for atom in unique_perm:
             expected_freq = np.sum(pmv[np.isclose(perm_atoms, atom, rtol=1e-10)])
             empirical_freq = np.mean(np.isclose(perm_shks, atom, rtol=1e-10))
+            # The tolerance has to sit below iid sampling noise or the test
+            # passes whether or not income_shuffle is honored.  Measured at
+            # this AgentCount over 40 seeds: worst per-atom deviation is
+            # 0.01306 for iid draws and 0.00214 with shuffling.
             np.testing.assert_allclose(
                 empirical_freq,
                 expected_freq,
-                atol=0.02,
+                atol=0.005,
                 err_msg=f"Frequency mismatch for PermShk atom {atom}",
             )
 
@@ -1345,20 +1352,61 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
 class testIncomeShuffleMarkov(unittest.TestCase):
     """Tests for the income_shuffle parameter on MarkovConsumerType."""
 
-    def test_markov_shuffle_runs(self):
-        """MarkovConsumerType with income_shuffle=True completes simulation."""
-        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
-
-        init_markov = {
+    @staticmethod
+    def make_markov_agent(**kwargs):
+        params = {
             "MrkvArray": [np.array([[0.9, 0.1], [0.1, 0.9]])],
             "AgentCount": 500,
             "T_sim": 10,
-            "income_shuffle": True,
         }
-        agent = MarkovConsumerType(**init_markov)
+        params.update(kwargs)
+        agent = MarkovConsumerType(**params)
         agent.cycles = 0
         agent.solve()
+        return agent
+
+    def test_markov_shuffle_runs(self):
+        """MarkovConsumerType with income_shuffle=True completes simulation."""
+        agent = self.make_markov_agent(income_shuffle=True)
         agent.initialize_sim()
         agent.simulate()
         self.assertEqual(agent.shocks["PermShk"].shape, (500,))
         self.assertTrue(np.all(agent.shocks["PermShk"] > 0))
+
+    def test_markov_shuffle_beats_iid_within_state(self):
+        """income_shuffle must actually change the Markov draws.
+
+        Within each discrete state the realized shock counts should track
+        that state's pmv far more closely than iid draws do.  A smoke test
+        that only checks shapes passes with the flag ignored, so this
+        compares the two paths against each other rather than against a
+        fixed tolerance.
+        """
+        worst = {}
+        for flag in (False, True):
+            agent = self.make_markov_agent(income_shuffle=flag, T_sim=1)
+            dev = 0.0
+            for seed in range(20):
+                agent.initialize_sim()
+                for j, dstn in enumerate(agent.IncShkDstn[0]):
+                    dstn._rng = np.random.default_rng(1000 * j + seed)
+                agent.simulate()
+                mrkv = agent.shocks["Mrkv"]
+                for j, dstn in enumerate(agent.IncShkDstn[0]):
+                    these = mrkv == j
+                    if np.sum(these) < 200:
+                        continue
+                    shks = agent.shocks["PermShk"][these] / agent.PermGroFac[0][j]
+                    for atom in np.unique(dstn.atoms[0]):
+                        expected = np.sum(
+                            dstn.pmv[np.isclose(dstn.atoms[0], atom, rtol=1e-10)]
+                        )
+                        empirical = np.mean(np.isclose(shks, atom, rtol=1e-10))
+                        dev = max(dev, abs(empirical - expected))
+            worst[flag] = dev
+        self.assertLess(
+            worst[True],
+            worst[False] / 2.0,
+            f"income_shuffle worst per-atom deviation {worst[True]:.5f} should be "
+            f"well under the iid {worst[False]:.5f}; the flag looks ignored",
+        )
