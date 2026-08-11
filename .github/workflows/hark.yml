@@ -1,10 +1,18 @@
 name: HARK build on MacOS, Ubuntu and Windows
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    # Never cancel a run on main. Consecutive merges were cancelling each
-    # other, so main's build almost never reached a conclusion and a real
-    # test failure sat unreported. Feature branches still supersede.
+    # Every commit on main gets its own concurrency group, so no run on main is
+    # ever superseded. cancel-in-progress: false is not enough on its own:
+    # GitHub still allows only one running plus one PENDING run per group, and
+    # a third arrival discards the pending one. Five merges in half an hour
+    # therefore left most commits on main with no build at all, and the ones
+    # that did run reported "cancelled" with zero jobs, which reads like a
+    # failure rather than like never having started. A genuine test failure sat
+    # unreported for hours behind this.
+    #
+    # Feature branches keep one group per ref and still supersede, which is
+    # what you want while iterating on a PR.
+    group: ${{ github.workflow }}-${{ github.ref }}${{ github.ref == 'refs/heads/main' && format('-{0}', github.sha) || '' }}
     cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 on:
