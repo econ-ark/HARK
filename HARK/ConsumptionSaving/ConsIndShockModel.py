@@ -13,6 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
+import warnings
 from copy import copy
 
 import numpy as np
@@ -89,6 +90,31 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+def warn_if_shuffle_voids_base_draw_cache(agent):
+    """Warn when income_shuffle and the base-draw cache are both requested.
+
+    The shuffled path picks atom counts directly rather than inverting a
+    uniform per agent, so there are no base draws to record and the cache
+    comes back empty.  Anything reading it, the dual-measure Q-pipeline in
+    particular, then falls back to drawing independently, which is silent
+    and undoes the point of the cache.  Returns True when both are set.
+    """
+    if not getattr(agent, "_cache_base_shock_draws", False):
+        return False
+    if not getattr(agent, "income_shuffle", False):
+        return False
+    warnings.warn(
+        "income_shuffle=True and _cache_base_shock_draws=True are both set on "
+        f"{type(agent).__name__}. The shuffled draw records no base uniforms, "
+        "so _base_shock_draws will be empty and any consumer of it (such as "
+        "the dual-measure Q-pipeline) will draw independently instead of "
+        "sharing the P-measure draws. Turn one of the two off.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+    return True
 
 
 # =====================================================================
@@ -1330,6 +1356,11 @@ class PerfForesightConsumerType(AgentType):
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now["PlvlAgg"] = 1.0
+        # Drop base draws cached by an earlier run. They are keyed by
+        # t_cycle, so a consumer reading them after the flag is turned off,
+        # or after AgentCount changes, would silently pair this period's
+        # agents with a previous run's uniforms.
+        self._base_shock_draws = {}
         super().initialize_sim()
 
     def sim_birth(self, which_agents):
@@ -2227,6 +2258,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
         _cache = getattr(self, "_cache_base_shock_draws", False)
+        warn_if_shuffle_voids_base_draw_cache(self)
         base_draws_dict = {}
         for s in np.unique(self.t_cycle):
             idx = self.t_cycle == s
@@ -2244,7 +2276,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
                 elif _cache:
-                    # Same uniforms and same inversion as draw_events —
+                    # Same uniforms and same inversion as draw_events:
                     # the P-stream is unchanged; the draws are recorded
                     # for dual-measure Q-CDF inversion.
                     base_draws = IncShkDstnNow._rng.uniform(size=N)

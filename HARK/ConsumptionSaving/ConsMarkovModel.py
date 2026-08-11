@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
+    warn_if_shuffle_voids_base_draw_cache,
 )
 from HARK.distributions import MarkovProcess, Uniform, expected, DiscreteDistribution
 from HARK.interpolation import (
@@ -1011,6 +1012,7 @@ class MarkovConsumerType(IndShockConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         _cache = getattr(self, "_cache_base_shock_draws", False)
+        warn_if_shuffle_voids_base_draw_cache(self)
         base_draws_dict = {}
         for t in range(self.T_cycle):
             for j in range(self.MrkvArray[t].shape[0]):
@@ -1030,7 +1032,7 @@ class MarkovConsumerType(IndShockConsumerType):
                         PermShkNow[these] = ShockDraws[0] * PermGroFacNow
                         TranShkNow[these] = ShockDraws[1]
                     elif _cache:
-                        # Same uniforms and inversion as draw_events —
+                        # Same uniforms and inversion as draw_events:
                         # P-stream unchanged; draws recorded for the
                         # dual-measure Q-CDF inversion, keyed (t, j).
                         base_draws = IncShkDstnNow._rng.uniform(size=N)

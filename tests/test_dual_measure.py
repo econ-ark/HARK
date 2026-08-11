@@ -1,18 +1,19 @@
 """Tests for HARK.dual_measure (Harmenberg neutral-measure parallel tracking).
 
 Covers:
-1. ``make_Q_measure_dstn`` — correct psi/E[psi] reweighting, atoms unchanged.
-2. ``_cdf_invert`` — deterministic CDF inversion.
-3. **Default-path invariance** — composing ``DualMeasureMixin`` without
+1. ``make_Q_measure_dstn``: correct psi/E[psi] reweighting, atoms unchanged.
+2. ``_cdf_invert``: deterministic CDF inversion.
+3. **Default-path invariance**: composing ``DualMeasureMixin`` without
    enabling it leaves a simulation bit-identical to the plain agent
    (the non-disruption guarantee for this pure-addition module).
-4. Dual-mode smoke — Q-side states/history exist, are finite, and the
+4. Dual-mode smoke: Q-side states/history exist, are finite, and the
    Q-measure aggregate of cNrm tracks the P-measure aggregate of
    cLvl/E[pLvl] (the Harmenberg identity) within sampling tolerance.
-5. ``compute_mean_pLvl`` — closed-form degenerate case.
+5. ``compute_mean_pLvl``: closed-form degenerate case.
 """
 
 import numpy as np
+import pytest
 
 from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
 from HARK.distributions.discrete import DiscreteDistribution
@@ -131,14 +132,16 @@ def test_cache_flag_leaves_p_stream_bit_identical():
     cached.simulate()
     for var in ("cNrm", "pLvl"):
         assert np.array_equal(plain.history[var], cached.history[var]), var
-    assert hasattr(cached, "_base_shock_draws")
-    assert not hasattr(plain, "_base_shock_draws")
+    assert cached._base_shock_draws
+    # initialize_sim clears the cache, so the unflagged agent ends with an
+    # empty dict rather than no attribute at all.
+    assert plain._base_shock_draws == {}
 
 
 def test_dual_mode_consumes_recorded_draws_exactly():
     """With a DEGENERATE permanent shock, Q == P distribution, so when the
     Q side inverts the recorded P uniforms it must reproduce the P shocks
-    exactly — an end-to-end equality proof of the wiring."""
+    exactly, an end-to-end equality proof of the wiring."""
     agent = DualIndShock(AgentCount=300, T_sim=10, seed=31382)
     agent.PermShkStd = [0.0]
     agent.update_income_process()
@@ -150,3 +153,56 @@ def test_dual_mode_consumes_recorded_draws_exactly():
     agent.simulate()
     np.testing.assert_array_equal(agent.shocks_Q["TranShk"], agent.shocks["TranShk"])
     np.testing.assert_array_equal(agent.shocks_Q["PermShk"], agent.shocks["PermShk"])
+
+
+def test_setup_q_measure_arms_the_base_draw_cache():
+    """setup_Q_measure must switch the cache on and register IncShkDstn_Q.
+
+    Without the flag the Q side draws independently; without the
+    registration reset_rng leaves the Q generators where the previous run
+    left them.  Either omission decouples P from Q, so both are asserted
+    here and the correlation is checked across repeated initialize_sim()
+    calls rather than only on the first run.
+    """
+    agent = _small_agent(DualIndShock, t_sim=6)
+    agent.setup_Q_measure()
+    assert agent._cache_base_shock_draws is True
+    assert "IncShkDstn_Q" in agent.distributions
+
+    corrs = []
+    for _ in range(4):
+        agent.initialize_sim()
+        agent.simulate()
+        p = np.asarray(agent.state_now["pLvl"], dtype=float)
+        q = np.asarray(agent.state_now_Q["pLvl"], dtype=float)
+        corrs.append(np.corrcoef(p, q)[0, 1])
+    assert min(corrs) > 0.9, f"P/Q coupling decayed across runs: {corrs}"
+    assert max(corrs) - min(corrs) < 1e-12, f"runs not reproducible: {corrs}"
+
+
+def test_income_shuffle_with_cache_warns_and_empties_the_cache():
+    """The two flags are mutually exclusive, and must say so out loud."""
+    agent = _small_agent(DualIndShock, t_sim=3)
+    agent.income_shuffle = True
+    agent.setup_Q_measure()
+    agent.initialize_sim()
+    with pytest.warns(RuntimeWarning, match="income_shuffle"):
+        agent.simulate()
+    assert agent._base_shock_draws == {}
+
+
+def test_initialize_sim_clears_stale_base_draws():
+    """A cached run followed by an uncached one must not reuse the old
+    uniforms; before this was cleared the reader silently paired the new
+    period's agents with the previous run's draws."""
+    agent = _small_agent(IndShockConsumerType, t_sim=3)
+    agent._cache_base_shock_draws = True
+    agent.initialize_sim()
+    agent.simulate()
+    assert agent._base_shock_draws
+
+    agent._cache_base_shock_draws = False
+    agent.initialize_sim()
+    assert agent._base_shock_draws == {}
+    agent.simulate()
+    assert agent._base_shock_draws == {}
