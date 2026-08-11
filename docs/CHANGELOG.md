@@ -24,6 +24,7 @@ Release Date: TBD
 
 #### Minor Changes
 
+- Adds `HARK.interpolation_jax`: opt-in JAX counterparts to core interpolation primitives (new module + tests only; no existing file's behavior changes). [#1777](https://github.com/econ-ark/HARK/pull/1777)
 - future item
 - future item
 - future item
