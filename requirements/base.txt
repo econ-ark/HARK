@@ -1,0 +1,16 @@
+interpolation>=2.2.3
+joblib>=1.2
+legacy-cgi; python_version >= '3.13'
+matplotlib>=3.6
+networkx>=3
+numba
+numpy
+optimagic
+pandas>=1.5
+pyyaml>=6.0
+quantecon
+scipy>=1.10
+seaborn>=0.12
+sequence-jacobian
+statsmodels>=0.14.2
+xarray>=2023

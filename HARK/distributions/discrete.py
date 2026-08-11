@@ -1,0 +1,694 @@
+from typing import Any, Callable, Dict, List, Optional, Union
+
+from copy import deepcopy
+import numpy as np
+import xarray as xr
+from scipy import stats
+from scipy.stats import rv_discrete
+from scipy.stats._distn_infrastructure import rv_discrete_frozen
+
+from HARK.distributions.base import Distribution
+
+
+def _weighted_mean_var(var, pmv):
+    """Compute weighted mean of a single DataArray over its ``atom`` dimension.
+
+    If *var* is not an :class:`xr.DataArray` or lacks an ``atom`` dimension it
+    is returned unchanged.  This pass-through is intentional: variables without
+    an atom dimension (e.g. scalar metadata or grid coordinates) are preserved
+    as-is when called from :func:`_weighted_mean`.
+    """
+    if not isinstance(var, xr.DataArray) or "atom" not in var.dims:
+        return var
+    atom_axis = var.dims.index("atom")
+    avg = np.tensordot(pmv, var.values, axes=([0], [atom_axis]))
+    remaining_dims = tuple(d for d in var.dims if d != "atom")
+    if remaining_dims:
+        remaining_coords = {d: var.coords[d] for d in remaining_dims if d in var.coords}
+        return xr.DataArray(avg, dims=remaining_dims, coords=remaining_coords)
+    return float(avg) if np.ndim(avg) == 0 else avg
+
+
+def _weighted_mean(data, pmv):
+    """Compute weighted mean over the ``atom`` dimension using numpy.
+
+    Used in the kwargs path of ``DDL.expected()`` when the caller passes
+    xarray-compatible keyword arguments.  Replaces the slow
+    ``Dataset.weighted(prob).mean("atom")`` with ``np.tensordot`` per
+    variable.  The common no-kwargs path uses a separate ``np.dot`` on
+    the cached ``_wrapped_atoms`` dict and does not call this function.
+
+    Returns an :class:`xr.Dataset` when *data* is a Dataset or dict,
+    an :class:`xr.DataArray` or scalar when *data* is a DataArray.
+    Raises :class:`TypeError` for other types.
+    """
+    if isinstance(data, xr.Dataset):
+        return xr.Dataset(
+            {name: _weighted_mean_var(var, pmv) for name, var in data.data_vars.items()}
+        )
+    elif isinstance(data, dict):
+        return xr.Dataset(
+            {
+                name: _weighted_mean_var(val, pmv)
+                if isinstance(val, xr.DataArray)
+                else val
+                for name, val in data.items()
+            }
+        )
+    elif isinstance(data, xr.DataArray):
+        return _weighted_mean_var(data, pmv)
+    raise TypeError(
+        f"_weighted_mean: unsupported data type '{type(data).__name__}'. "
+        "Expected xr.Dataset, xr.DataArray, or dict. "
+        "Ensure the function passed to expected() returns one of these types "
+        "when keyword arguments are used."
+    )
+
+
+class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
+    """
+    Parameterized discrete distribution from scipy.stats with seed management.
+    """
+
+    def __init__(
+        self, dist: rv_discrete, *args: Any, seed: int = None, **kwds: Any
+    ) -> None:
+        """
+        Parameterized discrete distribution from scipy.stats with seed management.
+
+        Parameters
+        ----------
+        dist : rv_discrete
+            Discrete distribution from scipy.stats.
+        seed : int, optional
+            Seed for random number generator, by default 0
+        """
+
+        rv_discrete_frozen.__init__(self, dist, *args, **kwds)
+        Distribution.__init__(self, seed=seed)
+
+
+class Bernoulli(DiscreteFrozenDistribution):
+    """
+    A Bernoulli distribution.
+
+    Parameters
+    ----------
+    p : float or [float]
+        Probability or probabilities of the event occurring (True).
+
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(self, p=0.5, seed=None):
+        self.p = np.asarray(p)
+        # Set up the RNG
+        super().__init__(stats.bernoulli, p=self.p, seed=seed)
+
+        self.pmv = np.array([1 - self.p, self.p])
+        self.atoms = np.array(
+            [[0, 1]]
+        )  # Ensure atoms is properly shaped like other distributions
+        self.limit = {
+            "dist": self,
+            "infimum": np.array([0.0]),
+            "supremum": np.array([1.0]),
+        }
+        self.infimum = np.array([0.0])
+        self.supremum = np.array([1.0])
+
+    def dim(self):
+        """
+        Last dimension of self.atoms indexes "atom."
+        """
+        return self.atoms.shape[:-1]
+
+
+class DiscreteDistribution(Distribution):
+    """
+    A representation of a discrete probability distribution.
+
+    Parameters
+    ----------
+    pmv : np.array
+        An array of floats representing a probability mass function.
+    atoms : np.array
+        Discrete point values for each probability mass.
+        For multivariate distributions, the last dimension of atoms must index
+        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
+    limit : dict
+        Dictionary with information about the continuous distribution from which
+        this distribution was generated. The reference distribution is in the entry
+        called 'dist'.
+    seed : int
+        Seed for random number generator.
+    """
+
+    def __init__(
+        self,
+        pmv: np.ndarray,
+        atoms: np.ndarray,
+        seed: int = None,
+        limit: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(seed=seed)
+
+        self.pmv = np.asarray(pmv)
+        self.atoms = np.atleast_2d(atoms)
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
+            }
+        self.limit = limit
+
+        # Check that pmv and atoms have compatible dimensions.
+        if not self.pmv.size == self.atoms.shape[-1]:
+            raise ValueError(
+                "Provided pmv and atoms arrays have incompatible dimensions. "
+                + "The length of the pmv must be equal to that of atoms's last dimension."
+            )
+
+    def __repr__(self):
+        out = self.__class__.__name__ + " with " + str(self.pmv.size) + " atoms, "
+        if self.atoms.shape[0] > 1:
+            out += "inf=" + str(tuple(self.limit["infimum"])) + ", "
+            out += "sup=" + str(tuple(self.limit["supremum"])) + ", "
+        else:
+            out += "inf=" + str(self.limit["infimum"][0]) + ", "
+            out += "sup=" + str(self.limit["supremum"][0]) + ", "
+        out += "seed=" + str(self.seed)
+        return out
+
+    def dim(self) -> int:
+        """
+        Last dimension of self.atoms indexes "atom."
+        """
+        return self.atoms.shape[:-1]
+
+    def draw_events(self, N: int) -> np.ndarray:
+        """
+        Draws N 'events' from the distribution PMF.
+        These events are indices into atoms.
+        """
+        # Generate a cumulative distribution
+        base_draws = self._rng.uniform(size=N)
+        cum_dist = np.cumsum(self.pmv)
+
+        # Convert the basic uniform draws into discrete draws
+        indices = cum_dist.searchsorted(base_draws)
+
+        return indices
+
+    def draw(
+        self,
+        N: int,
+        atoms: Union[None, int, np.ndarray] = None,
+        shuffle: bool = False,
+    ) -> np.ndarray:
+        """
+        Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
+
+        Parameters
+        ----------
+        N : int
+            Number of draws to simulate.
+        atoms : None, int, or np.array
+            If None, then use this distribution's atoms for point values.
+            If an int, then the index of atoms for the point values.
+            If an np.array, use the array for the point values.
+        shuffle : boolean
+            Whether the draws should "shuffle" the discrete distribution, matching
+            proportions of outcomes as closely as possible to the probabilities given
+            finite draws.  When True, returned draws are a random permutation of the
+            N-length list that best fits the discrete distribution. When False
+            (default), each draw is independent from the others and the result could
+            deviate from the probabilities.
+
+        Returns
+        -------
+        draws : np.array
+            An array of draws from the discrete distribution; each element is a value in atoms.
+        """
+        if atoms is None:
+            atoms = self.atoms
+        elif isinstance(atoms, int):
+            atoms = self.atoms[atoms]
+
+        # "Shuffle" an almost-exact population of draws based on the pmv
+        if shuffle:
+            P = self.pmv
+            K_exact = N * P  # slots per outcome in real numbers
+            K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
+            M = N - np.sum(K)  # number of unallocated slots
+            J = P.size
+            eps = 1.0 / N
+            Q = K_exact - eps * K  # "missing" probability mass
+            draws = self._rng.random(M)  # uniform draws for "extra" slots
+
+            # Fill in each unallocated slot, one by one
+            for m in range(M):
+                Q_adj = Q / np.sum(Q)  # probabilities for this pass
+                Q_sum = np.cumsum(Q_adj)
+                j = np.searchsorted(Q_sum, draws[m])  # find index for this draw
+                K[j] += 1  # increment its allocated slots
+                Q[j] = 0.0  # zero out its probability because we used it
+
+            # Make an array of atom indices based on the final slot counts
+            nested_events = [K[j] * [j] for j in range(J)]
+            events = np.array([i for sublist in nested_events for i in sublist])
+
+            # Draw a random permutation of the indices
+            indices = self._rng.permutation(events)
+
+        # Draw event indices randomly from the discrete distribution
+        else:
+            indices = self.draw_events(N)
+
+        # Create and fill in the output array of draws based on the output of event indices
+        draws = atoms[..., indices]
+
+        # TODO: some models expect univariate draws to just be a 1d vector. Fix those models.
+        if len(draws.shape) == 2 and draws.shape[0] == 1:
+            draws = draws.flatten()
+
+        return draws
+
+    def expected(
+        self, func: Optional[Callable] = None, *args: np.ndarray
+    ) -> np.ndarray:
+        """
+        Expected value of a function, given an array of configurations of its
+        inputs along with a DiscreteDistribution object that specifies the
+        probability of each configuration.
+
+        If no function is provided, it's much faster to go straight to dot
+        product instead of calling the dummy function.
+
+        If a function is provided, we need to add one more dimension,
+        the atom dimension, to any inputs that are n-dim arrays.
+        This allows numpy to easily broadcast the function's output.
+        For more information on broadcasting, see:
+        https://numpy.org/doc/stable/user/basics.broadcasting.html#general-broadcasting-rules
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values
+            and return either arrays of arbitrary shape or scalars.
+            It may also take other arguments \\*args.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
+        \\*args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at ``f(dstn, *args)``.
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+
+        if func is None:
+            return np.dot(self.atoms, self.pmv)
+        return self._dot_with_pmv(func, self.atoms, args)
+
+    def _dot_with_pmv(self, func, source, args):
+        """Apply ``func`` to ``source`` and the broadcast-prepared ``*args``,
+        then take the dot product with ``self.pmv``.
+
+        This helper centralizes the broadcast-expansion step used by
+        ``expected`` before weighting the result by the distribution's
+        probability mass vector.
+        """
+        if args:
+            args = [
+                np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+                for arg in args
+            ]
+            return np.dot(func(source, *args), self.pmv)
+        return np.dot(func(source), self.pmv)
+
+    def dist_of_func(
+        self, func: Callable[..., float] = lambda x: x, *args: Any
+    ) -> "DiscreteDistribution":
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable atoms, Y=f(atoms).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values.
+            It may also take other arguments \\*args.
+        \\*args :
+            Additional non-stochastic arguments for func,
+            The function is computed as ``f(dstn, *args)``.
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution
+            The distribution of func(dstn).
+        """
+        # we need to add one more dimension,
+        # the atom dimension, to any inputs that are n-dim arrays.
+        # This allows numpy to easily broadcast the function's output.
+        args = [
+            np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
+            for arg in args
+        ]
+        f_query = func(self.atoms, *args)
+
+        f_dstn = DiscreteDistribution(list(self.pmv), f_query, seed=self.seed)
+
+        return f_dstn
+
+    def discretize(self, N: int, *args: Any, **kwargs: Any) -> "DiscreteDistribution":
+        """
+        `DiscreteDistribution` is already an approximation, so this method
+        returns a copy of the distribution.
+
+        TODO: print warning message?
+        """
+        return self
+
+    def make_univariate(self, dim_to_keep, seed=0):
+        """
+        Make a univariate discrete distribution from this distribution, keeping
+        only the specified dimension.
+
+        Parameters
+        ----------
+        dim_to_keep : int
+            Index of the distribution to be kept. Any other dimensions will be
+            "collapsed" into the univariate atoms, combining probabilities.
+        seed : int, optional
+            Seed for random number generator of univariate distribution
+
+        Returns
+        -------
+        univariate_dstn : DiscreteDistribution
+            Univariate distribution with only the specified index.
+        """
+        # Do basic validity and triviality checks
+        if (self.atoms.shape[0] == 1) and (dim_to_keep == 0):
+            return deepcopy(self)  # Return copy of self if only one dimension
+        if dim_to_keep >= self.atoms.shape[0]:
+            raise ValueError("dim_to_keep exceeds dimensionality of distribution.")
+
+        # Construct values and probabilities for univariate distribution
+        atoms_temp = self.atoms[dim_to_keep]
+        vals_to_keep = np.unique(atoms_temp)
+        probs_to_keep = np.zeros_like(vals_to_keep)
+        for i in range(vals_to_keep.size):
+            val = vals_to_keep[i]
+            these = atoms_temp == val
+            probs_to_keep[i] = np.sum(self.pmv[these])
+
+        # Make and return the univariate distribution
+        univariate_dstn = DiscreteDistribution(
+            pmv=probs_to_keep, atoms=vals_to_keep, seed=seed
+        )
+        return univariate_dstn
+
+
+class DiscreteDistributionLabeled(DiscreteDistribution):
+    """
+    A representation of a discrete probability distribution stored in an underlying `xarray.Dataset`.
+
+    Parameters
+    ----------
+    pmv : np.array
+        An array of values representing a probability mass function.
+    data : np.array
+        Discrete point values for each probability mass.
+        For multivariate distributions, the last dimension of atoms must index
+        "atom" or the random realization. For instance, if atoms.shape == (2,6,4),
+        the random variable has 4 possible realizations and each of them has shape (2,6).
+    seed : int
+        Seed for random number generator.
+    name : str
+        Name of the distribution.
+    attrs : dict
+        Attributes for the distribution.
+    var_names : list of str
+        Names of the variables in the distribution.
+    var_attrs : list of dict
+        Attributes of the variables in the distribution.
+    """
+
+    def __init__(
+        self,
+        pmv: np.ndarray,
+        atoms: np.ndarray,
+        seed: int = None,
+        limit: Optional[Dict[str, Any]] = None,
+        name: str = "DiscreteDistributionLabeled",
+        attrs: Optional[Dict[str, Any]] = None,
+        var_names: Optional[List[str]] = None,
+        var_attrs: Optional[List[Optional[Dict[str, Any]]]] = None,
+    ):
+        super().__init__(pmv, atoms, seed=seed, limit=limit)
+
+        # vector-value distributions
+
+        if self.atoms.ndim > 2:
+            raise NotImplementedError(
+                "Only vector-valued distributions are supported for now."
+            )
+
+        attrs = {} if attrs is None else attrs
+        if limit is None:
+            limit = {
+                "infimum": np.min(self.atoms, axis=-1),
+                "supremum": np.max(self.atoms, axis=-1),
+            }
+            self.limit = limit
+        attrs.update(limit)
+        attrs["name"] = name
+
+        n_var = self.atoms.shape[0]
+
+        # give dummy names to variables if none are provided
+        if var_names is None:
+            var_names = ["var_" + str(i) for i in range(n_var)]
+
+        assert len(var_names) == n_var, (
+            "Number of variable names does not match number of variables."
+        )
+
+        # give dummy attributes to variables if none are provided
+        if var_attrs is None:
+            var_attrs = [None] * n_var
+
+        # a DiscreteDistributionLabeled is an xr.Dataset where the only
+        # dimension is "atom", which indexes the random realizations.
+        self.dataset = xr.Dataset(
+            {
+                var_names[i]: xr.DataArray(
+                    self.atoms[i],
+                    dims=("atom"),
+                    attrs=var_attrs[i],
+                )
+                for i in range(n_var)
+            },
+            attrs=attrs,
+        )
+
+        # the probability mass values are stored in
+        # a DataArray with dimension "atom"
+        self.probability = xr.DataArray(self.pmv, dims=("atom"))
+
+        # cache for fast labeled access in expected()
+        self._var_names = var_names
+        self._wrapped_atoms = dict(zip(var_names, self.atoms))
+
+    @classmethod
+    def from_unlabeled(
+        cls,
+        dist,
+        name="DiscreteDistributionLabeled",
+        attrs=None,
+        var_names=None,
+        var_attrs=None,
+    ):
+        ldd = cls(
+            dist.pmv,
+            dist.atoms,
+            seed=dist.seed,
+            limit=dist.limit,
+            name=name,
+            attrs=attrs,
+            var_names=var_names,
+            var_attrs=var_attrs,
+        )
+
+        return ldd
+
+    @classmethod
+    def from_dataset(cls, x_obj, pmf):
+        ldd = cls.__new__(cls)
+
+        if isinstance(x_obj, xr.Dataset):
+            ldd.dataset = x_obj
+        elif isinstance(x_obj, xr.DataArray):
+            ldd.dataset = xr.Dataset({x_obj.name: x_obj})
+        elif isinstance(x_obj, dict):
+            ldd.dataset = xr.Dataset(x_obj)
+        else:
+            raise TypeError(
+                f"from_dataset: 'x_obj' must be an xr.Dataset, xr.DataArray, "
+                f"or dict, got {type(x_obj).__name__}."
+            )
+
+        ldd.probability = pmf
+        ldd.pmv = np.asarray(pmf)
+        ldd._var_names = list(ldd.dataset.data_vars)
+
+        # Derive atoms from dataset variables that have the "atom" dimension.
+        atom_vars = [
+            v
+            for v in ldd._var_names
+            if "atom" in ldd.dataset[v].dims and ldd.dataset[v].ndim == 1
+        ]
+        if atom_vars:
+            ldd.atoms = np.stack([ldd.dataset[v].values for v in atom_vars])
+        else:
+            ldd.atoms = np.atleast_2d(np.zeros(len(ldd.pmv)))
+
+        ldd.limit = {
+            "infimum": np.min(ldd.atoms, axis=-1),
+            "supremum": np.max(ldd.atoms, axis=-1),
+        }
+        # No seed argument available; default to 0 for consistency.
+        ldd.seed = 0
+        ldd._rng = np.random.default_rng(0)
+        # cache for fast labeled access in expected()
+        ldd._wrapped_atoms = dict(zip(atom_vars, ldd.atoms))
+
+        return ldd
+
+    @property
+    def variables(self):
+        """
+        A dict-like container of DataArrays corresponding to
+        the variables of the distribution.
+        """
+        return self.dataset.data_vars
+
+    @property
+    def name(self):
+        """
+        The distribution's name.
+        """
+        return self.dataset.name
+
+    @property
+    def attrs(self):
+        """
+        The distribution's attributes.
+        """
+
+        return self.dataset.attrs
+
+    def dist_of_func(
+        self, func: Callable = lambda x: x, *args, **kwargs
+    ) -> DiscreteDistribution:
+        """
+        Finds the distribution of a random variable Y that is a function
+        of discrete random variable atoms, Y=f(atoms).
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            This function should take the full array of distribution values.
+            It may also take other arguments \\*args.
+        \\*args :
+            Additional non-stochastic arguments for func,
+            The function is computed as ``f(dstn, *args)``.
+        \\*\\*kwargs :
+            Additional keyword arguments for func. Must be xarray compatible
+            in order to work with xarray broadcasting.
+
+        Returns
+        -------
+        f_dstn : DiscreteDistribution or DiscreteDistributionLabeled
+            The distribution of func(dstn).
+        """
+
+        def func_wrapper(x: np.ndarray, *args: Any) -> np.ndarray:
+            """
+            Wrapper function for `func` that handles labeled indexing.
+            """
+
+            idx = self.variables.keys()
+            wrapped = dict(zip(idx, x))
+
+            return func(wrapped, *args)
+
+        if len(kwargs):
+            f_query = func(self.dataset, **kwargs)
+            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
+
+            return ldd
+
+        return super().dist_of_func(func_wrapper, *args)
+
+    def expected(
+        self, func: Optional[Callable] = None, *args: Any, **kwargs: Any
+    ) -> Union[float, np.ndarray]:
+        """
+        Expectation of a function, given an array of configurations of its inputs
+        along with a DiscreteDistributionLabeled object that specifies the probability
+        of each configuration.
+
+        Parameters
+        ----------
+        func : function
+            The function to be evaluated.
+            By default, func receives a dict mapping variable names to numpy
+            arrays, e.g. ``{"perm_shk": array(...), "tran_shk": array(...)}``.
+            When ``labels=False``, func receives the raw numpy atoms array
+            instead (integer indexing, like ``DiscreteDistribution``).
+            When extra keyword arguments are passed, func receives the full
+            ``xr.Dataset``.
+            It may also take other arguments \\*args.
+            Note: If you need to use a function that acts on single outcomes
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
+        \\*args :
+            Other inputs for func, representing the non-stochastic arguments.
+            The the expectation is computed at ``f(dstn, *args)``.
+        labels : bool, optional
+            If True (default), func receives a dict of labeled arrays.
+            If False, func receives the raw numpy atoms array, making DDL
+            compatible with functions written for ``DiscreteDistribution``.
+
+        Returns
+        -------
+        f_exp : np.array or scalar
+            The expectation of the function at the queried values.
+            Scalar if only one value.
+        """
+        labels = kwargs.pop("labels", True)
+
+        if kwargs:
+            if func is None:
+                return _weighted_mean(self.dataset, self.pmv)
+            f_query = func(self.dataset, *args, **kwargs)
+            return _weighted_mean(f_query, self.pmv)
+
+        if func is None:
+            return np.dot(self.atoms, self.pmv)
+        # labels=False: pass raw numpy atoms, like DiscreteDistribution.
+        # Otherwise use cached _wrapped_atoms (a {var_name: np.ndarray} dict)
+        # to avoid xarray overhead in the hot path.
+        source = self.atoms if not labels else self._wrapped_atoms
+        return self._dot_with_pmv(func, source, args)

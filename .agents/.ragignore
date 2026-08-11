@@ -1,0 +1,182 @@
+# Canonical .ragignore file for Econ-ARK repositories
+# This file is automatically distributed to repositories that don't have a .ragignore file
+# Defines indexing rules for RAG systems
+
+# Priority order for file extensions (highest priority first)
+source_priority:
+  - .md          # Markdown files (highest priority)
+  - .ipynb       # Jupyter notebooks
+  - .py          # Python source code
+  - .tex         # LaTeX documents
+  - .html        # HTML files
+  - .txt         # Plain text files
+  - .yml         # YAML configuration files
+  - .yaml        # YAML configuration files
+  - .rst         # Sphinx documentation
+  - .json        # JSON files
+
+# Files and directories to ignore during indexing
+ignore_patterns:
+  # Generated/compiled files
+#  - "*.pdf"
+  - "*.pyc"
+  - "__pycache__/"
+  - "*.aux"
+  - "*.log"
+  - "*.out"
+  - "*.toc"
+  - "*.bbl"
+  - "*.blg"
+  - "*.fdb_latexmk"
+  - "*.fls"
+  - "*.synctex.gz"
+
+  # Build artifacts
+  - "build/"
+  - "dist/"
+  - "*.egg-info/"
+  - "*.egg"
+  - "*.whl"
+  - "*.tar.gz"
+  - "*.zip"
+
+  # Temporary/system files
+  - ".DS_Store"
+  - "Thumbs.db"
+  - "*.swp"
+  - "*.swo"
+  - "*~"
+  - "*.bak"
+  - ".vscode/"
+  - ".idea/"
+  - ".pytest_cache/"
+  - ".coverage"
+
+  # Large binary files
+  - "*.png"
+  - "*.jpg"
+  - "*.jpeg"
+  - "*.gif"
+  - "*.svg"
+  - "*.mp3"
+  - "*.mp4"
+  - "*.avi"
+  - "*.mov"
+  - "*.wav"
+
+  # Sensitive files
+  - ".env"
+  - "*.key"
+  - "*.pem"
+  - "secrets.*"
+  - "TODO.md"
+  - "notes.md"
+  - "personal_*.md"
+  - "private/"
+
+  # Test and sample data
+  - "test_data/"
+  - "sample_data/"
+  - "mock_data/"
+  - "tests/"
+  - "test_*"
+  - "*_test.py"
+
+  # Documentation builds
+  - "_build/"
+  - "_site/"
+  - ".jekyll-cache/"
+  - "docs/_build/"
+
+  # Node.js dependencies
+  - "node_modules/"
+  - "package-lock.json"
+  - "yarn.lock"
+
+  # Standard ignore patterns
+  - ".git/"
+  - "*.log"
+  - ".gitignore"
+  - ".gitmodules"
+
+# Master/source files that should be indexed more thoroughly
+# These files are the canonical source of truth and should receive
+# much higher priority in search results and more detailed indexing
+master_files:
+  # Main documentation files
+  - "README.md"
+  - "*.md"
+  # Jupyter notebooks with important content
+  - "*.ipynb"
+  # Python source code
+  - "*.py"
+  # Configuration files
+  - "*.yml"
+  - "*.yaml"
+  - "pyproject.toml"
+  - "setup.py"
+  - "requirements.txt"
+
+# Source file relationships (files that generate other files)
+# This helps prioritize source files over their generated outputs
+source_relationships:
+  # Markdown files generate various output formats
+  - source: "*.md"
+    generates:
+      - "*.pdf"
+      - "*.html"
+      - "*.docx"
+      - "*.tex"
+  # Python files generate compiled bytecode
+  - source: "*.py"
+    generates:
+      - "*.pyc"
+      - "__pycache__/*"
+  # LaTeX files generate various outputs
+  - source: "*.tex"
+    generates:
+#      - "*.pdf"
+      - "*.aux"
+      - "*.log"
+      - "*.out"
+      - "*.toc"
+      - "*.bbl"
+      - "*.blg"
+  # Jupyter notebooks can generate various outputs
+  - source: "*.ipynb"
+    generates:
+      - "*.html"
+      - "*.pdf"
+      - "*.py"
+
+# Content requiring careful processing
+careful_processing:
+  # Configuration files (process but with low priority)
+  config_files:
+    patterns:
+      - "*.yml"
+      - "*.yaml"
+      - "*.toml"
+      - "*.ini"
+      - "*.cfg"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "requirements.txt"
+      - "setup.py"
+      - "pyproject.toml"
+    max_size_kb: 100
+
+  # Data files (process only if small)
+  data_files:
+    patterns:
+      - "*.csv"
+      - "*.json"
+      - "*.xlsx"
+      - "*.xls"
+    max_size_kb: 50
+
+  # Import-heavy files (skip if mostly imports)
+  code_files:
+    import_threshold: 0.8
+    skip_generated: true
+    skip_templates: false
