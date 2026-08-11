@@ -24,6 +24,7 @@ API Reference
    :caption: Models
    :maxdepth: 1
 
+   ConsumptionSaving/ConsAggIndMarkovModel
    ConsumptionSaving/ConsAggShockModel
    ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
