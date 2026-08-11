@@ -6,6 +6,7 @@ import numpy as np
 
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
+    PerfForesightConsumerType,
     init_idiosyncratic_shocks,
     init_lifecycle,
 )
@@ -909,6 +910,127 @@ class testLCMortalityReadShocks(unittest.TestCase):
         # (the exception from before should not happen
         # because we are killing agents before T_cycle)
         self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
+
+
+class testDeathShuffle(unittest.TestCase):
+    """Tests for the death_shuffle parameter on IndShockConsumerType.
+
+    These exercise sim_death() rather than _sim_death_shuffled() directly, so
+    that they also pin the dispatch: if sim_death stopped consulting
+    death_shuffle, the death counts below would go back to being binomial and
+    every determinism assertion here would fail.
+    """
+
+    def test_deaths_constant_over_simulation(self):
+        """Over a full simulation, each period kills exactly AgentCount*DiePrb."""
+        agent = IndShockConsumerType(
+            AgentCount=5000,
+            T_sim=25,
+            seed=1234,
+            death_shuffle=True,
+            T_age=None,  # no old-age deaths, so mortality is the only killer
+        )
+        agent.track_vars = ["who_dies"]
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+        DiePrb = 1.0 - np.asarray(agent.LivPrb)[-1]
+        expected_deaths = round(agent.AgentCount * DiePrb)
+        history = np.asarray(agent.history["who_dies"], dtype=float)
+        # The final row is never written by simulate(), so drop unfilled rows.
+        recorded = history[~np.isnan(history).all(axis=1)]
+        self.assertGreater(recorded.shape[0], 1)
+        counts = recorded.sum(axis=1)
+        self.assertEqual(set(counts.tolist()), {float(expected_deaths)})
+
+    def test_exact_count_when_Np_integral(self):
+        """Repeated sim_death draws kill the same number of agents every time.
+
+        The count is exactly floor(N*DiePrb) only when N*DiePrb is an integer;
+        otherwise the fractional part is resolved by a coin flip and the count
+        alternates between floor and floor+1 (see the next test).  Keep this
+        calibration integral, or assert on the expectation instead.
+        """
+        agent = IndShockConsumerType(
+            AgentCount=5000, T_sim=2, seed=2, death_shuffle=True, T_age=None
+        )
+        agent.solve()
+        agent.initialize_sim()
+
+        DiePrb = 1.0 - np.asarray(agent.LivPrb)[-1]
+        N_times_p = agent.AgentCount * DiePrb
+        # Guard the assumption this test's exact-count assertion rests on.
+        self.assertAlmostEqual(N_times_p, round(N_times_p), places=9)
+
+        counts = {int(agent.sim_death().sum()) for _ in range(30)}
+        self.assertEqual(counts, {round(N_times_p)})
+
+    def test_unbiased_when_Np_fractional(self):
+        """With a fractional remainder the count straddles floor and floor+1.
+
+        The contract is an unbiased expected number of deaths and a marginal
+        death probability of DiePrb for every agent, not a fixed count.
+        """
+        agent = IndShockConsumerType(
+            AgentCount=5001, T_sim=2, seed=20260811, death_shuffle=True, T_age=None
+        )
+        agent.solve()
+        agent.initialize_sim()
+
+        DiePrb = 1.0 - np.asarray(agent.LivPrb)[-1]
+        N_times_p = agent.AgentCount * DiePrb
+        self.assertGreater(N_times_p - np.floor(N_times_p), 0.0)
+
+        reps = 1000
+        deaths_by_agent = np.zeros(agent.AgentCount)
+        counts = np.empty(reps)
+        for i in range(reps):
+            who_dies = agent.sim_death()
+            deaths_by_agent += who_dies
+            counts[i] = who_dies.sum()
+
+        # Only two counts are reachable, and they bracket N*DiePrb.
+        self.assertEqual(
+            set(counts.tolist()),
+            {float(np.floor(N_times_p)), float(np.floor(N_times_p) + 1)},
+        )
+        # Expected number of deaths is preserved (5 standard errors).
+        se_count = np.sqrt(DiePrb * (1.0 - DiePrb) / reps)
+        self.assertLess(abs(counts.mean() - N_times_p), 5.0 * se_count)
+
+        # Every agent faces the same death probability: no bias by index, which
+        # is what a remainder handed out in index order would produce.
+        rates = deaths_by_agent[:5000].reshape(10, 500).mean(axis=1) / reps
+        se_rate = np.sqrt(DiePrb * (1.0 - DiePrb) / (reps * 500))
+        self.assertLess(np.abs(rates - DiePrb).max(), 5.0 * se_rate)
+
+    def test_death_shuffle_default_false(self):
+        """death_shuffle defaults to False on every type that consults it."""
+        for agent in (PerfForesightConsumerType(), IndShockConsumerType()):
+            self.assertFalse(agent.death_shuffle)
+
+
+class testDeathShuffleStreamInvariance(unittest.TestCase):
+    """Default-path behavior golden captured on main at a25d3ae0: with
+    death_shuffle at its default, simulations are bit-identical."""
+
+    def test_default_sim_unchanged(self):
+        agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
+        agent.track_vars = ["cNrm"]
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        np.testing.assert_allclose(
+            [float(x) for x in agent.history["cNrm"][3, :4]],
+            [
+                1.1070787532288362,
+                0.9087055494949798,
+                1.1694416325917305,
+                0.9579870570215201,
+            ],
+            rtol=1e-10,
+        )
 
 
 class testCubicSolutionSerialization(unittest.TestCase):
