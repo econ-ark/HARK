@@ -89,6 +89,26 @@ class test_(unittest.TestCase):
         fin_cont_agent.initialize_sim()
         fin_cont_agent.simulate()
 
+        # This type is the only AgentType subclass that overrides
+        # sim_one_period, so it is the only caller of _sim_period_prologue and
+        # _sim_period_epilogue outside the base class. Without these checks a
+        # reordered or dropped stage in either helper leaves the test green.
+        T_sim = self.par_finite["T_sim"]
+        AgentCount = self.par_finite["AgentCount"]
+        for var in ["cNrm", "Share", "aNrm"]:
+            self.assertEqual(
+                fin_cont_agent.history[var].shape, (T_sim, AgentCount), var
+            )
+            self.assertTrue(np.all(np.isfinite(fin_cont_agent.history[var])), var)
+
+        # Consumption must be strictly positive for every simulated agent.
+        self.assertTrue(np.all(fin_cont_agent.history["cNrm"] > 0.0))
+
+        # The epilogue advances t_age and t_cycle and wraps t_cycle at T_cycle.
+        self.assertTrue(np.all(fin_cont_agent.t_cycle < fin_cont_agent.T_cycle))
+        self.assertTrue(np.all(fin_cont_agent.t_age >= 0))
+        self.assertTrue(np.all(fin_cont_agent.t_age <= self.par_finite["T_age"]))
+
         # General correlated solver
         fin_cont_agent.joint_dist_solver = True
         fin_cont_agent.solve()
