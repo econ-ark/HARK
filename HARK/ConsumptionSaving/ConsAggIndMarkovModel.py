@@ -120,14 +120,39 @@ def extract_cond_mrkv_arrays(MrkvIndArray, MacroMrkvArray, N):
     list of list of np.ndarray
         ``result[i][j]`` is an (N, N) conditional micro transition matrix.
         Blocks whose macro probability is zero come back as zero matrices.
+
+    Raises
+    ------
+    ValueError
+        If ``MrkvIndArray`` is not (M*N) x (M*N), or if any block is not
+        ``MacroMrkvArray[i,j]`` times a row-stochastic matrix.  The latter
+        condition is necessary and sufficient for the extracted arrays to
+        be valid transition matrices, so an unchecked input would return
+        rows that silently fail to sum to one.
     """
     M = MacroMrkvArray.shape[0]
+    expected_shape = (M * N, M * N)
+    if MrkvIndArray.shape != expected_shape:
+        raise ValueError(
+            f"MrkvIndArray has shape {MrkvIndArray.shape}, but "
+            f"M={M} macro states and N={N} micro states require "
+            f"{expected_shape}."
+        )
+
     CondMrkvArrays = []
     for i in range(M):
         row = []
         for j in range(M):
             block = MrkvIndArray[N * i : N * (i + 1), N * j : N * (j + 1)]
             p_macro = MacroMrkvArray[i, j]
+            block_sums = block.sum(axis=1)
+            if not np.allclose(block_sums, p_macro):
+                raise ValueError(
+                    f"Block ({i},{j}) of MrkvIndArray is not hierarchical: "
+                    f"its rows sum to {block_sums}, but MacroMrkvArray[{i},{j}]"
+                    f" = {p_macro}.  Each block must be the macro probability "
+                    "times a row-stochastic micro transition matrix."
+                )
             if p_macro > 0:
                 row.append(block / p_macro)
             else:

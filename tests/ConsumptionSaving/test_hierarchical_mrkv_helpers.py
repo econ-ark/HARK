@@ -10,6 +10,7 @@ from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
     extract_cond_mrkv_arrays,
     make_hierarchical_mrkv_array,
 )
+from HARK.ConsumptionSaving.ConsAggShockModel import KrusellSmithEconomy
 
 
 class testHierarchicalMrkvHelpers(unittest.TestCase):
@@ -69,11 +70,37 @@ class testHierarchicalMrkvHelpers(unittest.TestCase):
         np.testing.assert_array_equal(recovered[0][1], np.zeros((2, 2)))
         np.testing.assert_allclose(recovered[1][0], cond[0])
 
+    def test_extract_rejects_non_hierarchical_input(self):
+        """A block that is not the macro probability times a row-stochastic
+        matrix is rejected rather than silently returning rows that do not
+        sum to one."""
+        cond = [
+            [self.micro_a, self.micro_b],
+            [self.micro_b, self.micro_a],
+        ]
+        full = make_hierarchical_mrkv_array(self.macro, cond)
+        full[0:2, 0:2] = np.array([[0.1, 0.2], [0.05, 0.3]])
+        with self.assertRaises(ValueError) as cm:
+            extract_cond_mrkv_arrays(full, self.macro, 2)
+        self.assertIn("(0,0)", str(cm.exception))
+
+    def test_extract_rejects_wrong_micro_state_count(self):
+        """An N inconsistent with the array shape is rejected rather than
+        silently slicing mis-sized blocks."""
+        cond = [
+            [self.micro_a, self.micro_b],
+            [self.micro_b, self.micro_a],
+        ]
+        full = make_hierarchical_mrkv_array(self.macro, cond)
+        for N_wrong in [1, 3]:
+            with self.subTest(N=N_wrong):
+                with self.assertRaises(ValueError) as cm:
+                    extract_cond_mrkv_arrays(full, self.macro, N_wrong)
+                self.assertIn("shape", str(cm.exception))
+
 
 class testKSEconomyStoresHierarchicalPieces(unittest.TestCase):
     def test_make_mrkv_array_stores_macro_and_cond(self):
-        from HARK.ConsumptionSaving.ConsAggShockModel import KrusellSmithEconomy
-
         economy = KrusellSmithEconomy()
         economy.make_MrkvArray()
         np.testing.assert_array_equal(economy.MacroMrkvArray, economy.MrkvAggArray)
