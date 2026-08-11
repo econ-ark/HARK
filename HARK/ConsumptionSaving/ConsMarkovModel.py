@@ -1021,12 +1021,18 @@ class MarkovConsumerType(IndShockConsumerType):
                         j
                     ]  # and permanent growth factor
 
-                    # Get random draws of income shocks from the discrete distribution
-                    EventDraws = IncShkDstnNow.draw_events(N)
-                    PermShkNow[these] = (
-                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                    )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    # Draw income shocks from the discrete distribution
+                    if getattr(self, "income_shuffle", False):
+                        ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                        PermShkNow[these] = ShockDraws[0] * PermGroFacNow
+                        TranShkNow[these] = ShockDraws[1]
+                    else:
+                        # Original RNG path — preserved bit-for-bit.
+                        EventDraws = IncShkDstnNow.draw_events(N)
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )  # permanent "shock" includes expected growth
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
 
         # Fix shocks for newborns
         newborn = self.t_age == 0
@@ -1041,12 +1047,18 @@ class MarkovConsumerType(IndShockConsumerType):
                 IncShkDstnNow = self.IncShkDstn[0][j]
                 PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
 
-                # Get random draws of income shocks from the discrete distribution
-                EventDraws = IncShkDstnNow.draw_events(N)
-                PermShkNow[idx] = (
-                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                # Draw income shocks from the discrete distribution
+                if getattr(self, "income_shuffle", False):
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                else:
+                    # Original RNG path — preserved bit-for-bit.
+                    EventDraws = IncShkDstnNow.draw_events(N)
+                    PermShkNow[idx] = (
+                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
         if not self.NewbornTransShk:
             TranShkNow[newborn] = 1.0
 

@@ -1340,3 +1340,25 @@ class testIncomeShuffleStreamInvariance(unittest.TestCase):
             ],
             rtol=1e-10,
         )
+
+
+class testIncomeShuffleMarkov(unittest.TestCase):
+    """Tests for the income_shuffle parameter on MarkovConsumerType."""
+
+    def test_markov_shuffle_runs(self):
+        """MarkovConsumerType with income_shuffle=True completes simulation."""
+        from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+
+        init_markov = {
+            "MrkvArray": [np.array([[0.9, 0.1], [0.1, 0.9]])],
+            "AgentCount": 500,
+            "T_sim": 10,
+            "income_shuffle": True,
+        }
+        agent = MarkovConsumerType(**init_markov)
+        agent.cycles = 0
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(agent.shocks["PermShk"].shape, (500,))
+        self.assertTrue(np.all(agent.shocks["PermShk"] > 0))
