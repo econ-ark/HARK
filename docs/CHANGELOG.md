@@ -18,6 +18,7 @@ Release Date: TBD
 
 #### Major Changes
 
+- Raises the minimum supported Python to 3.12 and adds 3.14, following [SPEC 0](https://scientific-python.org/specs/spec-0000/), which drops a Python version three years after release. Python 3.11 left that window in October 2025, and numpy and scipy both already require 3.12 or newer, so installing HARK on 3.10 or 3.11 resolved a dependency stack from two years ago rather than the one HARK is developed against. The CI matrix now sweeps 3.12, 3.13 and 3.14 on Linux and covers 3.13 on macOS and Windows.
 - future item
 - future item
 - future item

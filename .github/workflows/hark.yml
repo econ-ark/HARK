@@ -2,7 +2,10 @@ name: HARK build on MacOS, Ubuntu and Windows
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    # Never cancel a run on main. Consecutive merges were cancelling each
+    # other, so main's build almost never reached a conclusion and a real
+    # test failure sat unreported. Feature branches still supersede.
+    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 on:
   push:
@@ -23,9 +26,28 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 5
+      # One failing cell used to cancel every other cell, which leaves a
+      # single data point and invites the wrong diagnosis.
+      fail-fast: false
+      # SPEC 0 (scientific-python.org/specs/spec-0000) drops a Python version
+      # 3 years after release, so the window is currently 3.12 / 3.13 / 3.14.
+      # numpy and scipy both require >= 3.12, so testing anything older tested
+      # a dependency stack HARK does not ship against rather than HARK itself.
+      # Sweep the window on Linux; the other two platforms cover the middle,
+      # since cross-OS breakage here is path and newline related, not version
+      # specific.
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: ubuntu-latest
+            python-version: "3.14"
+          - os: macos-latest
+            python-version: "3.13"
+          - os: windows-latest
+            python-version: "3.13"
 
     steps:
       - uses: actions/checkout@v4
