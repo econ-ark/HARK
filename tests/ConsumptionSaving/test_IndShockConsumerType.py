@@ -908,3 +908,73 @@ class testLCMortalityReadShocks(unittest.TestCase):
         # (the exception from before should not happen
         # because we are killing agents before T_cycle)
         self.assertTrue(np.all(hist["t_age"] == hist["t_cycle"]))
+
+
+class testDeathShuffle(unittest.TestCase):
+    """Tests for death_shuffle parameter on IndShockConsumerType."""
+
+    def test_death_shuffle_runs(self):
+        """death_shuffle=True should solve and simulate without error."""
+        agent = IndShockConsumerType(
+            AgentCount=1000,
+            T_sim=50,
+            death_shuffle=True,
+        )
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+
+    def test_death_shuffle_deterministic_count(self):
+        """With death_shuffle, number of deaths per period should be deterministic."""
+        agent = IndShockConsumerType(
+            AgentCount=5000,
+            T_sim=100,
+            death_shuffle=True,
+            T_age=None,
+        )
+        agent.solve()
+        agent.initialize_sim()
+
+        # Run several periods and check that death counts are constant
+        DiePrb = 1.0 - np.asarray(agent.LivPrb[0])
+        expected_deaths = int(round(5000 * DiePrb))
+        death_counts = []
+        for _ in range(20):
+            agent.sim_one_period()
+            # Count deaths by checking who was just born (t_age == 0 after birth)
+        # Instead, call sim_death directly and count
+        agent.initialize_sim()
+        counts = set()
+        for _ in range(50):
+            DiePrb_arr = np.full(agent.AgentCount, DiePrb)
+            who_dies = agent._sim_death_shuffled(DiePrb_arr)
+            counts.add(who_dies.sum())
+        # All death counts should be identical (deterministic)
+        self.assertEqual(len(counts), 1)
+        self.assertEqual(counts.pop(), expected_deaths)
+
+    def test_death_shuffle_default_false(self):
+        """Default death_shuffle should be False."""
+        agent = IndShockConsumerType()
+        self.assertFalse(getattr(agent, "death_shuffle", False))
+
+
+class testDeathShuffleStreamInvariance(unittest.TestCase):
+    """Default-path behavior golden captured on main at a25d3ae0: with
+    death_shuffle at its default, simulations are bit-identical."""
+
+    def test_default_sim_unchanged(self):
+        agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
+        agent.track_vars = ["cNrm"]
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(
+            [float(x) for x in agent.history["cNrm"][3, :4]],
+            [
+                1.1070787532288362,
+                0.9087055494949798,
+                1.1694416325917305,
+                0.9579870570215201,
+            ],
+        )

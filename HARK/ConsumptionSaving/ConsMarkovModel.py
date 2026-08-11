@@ -920,10 +920,13 @@ class MarkovConsumerType(IndShockConsumerType):
             self.t_cycle - 1, self.shocks["Mrkv"]
         ]  # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
-            N=self.AgentCount
-        )
-        which_agents = DeathShks < DiePrb
+        if getattr(self, "death_shuffle", False):
+            which_agents = self._sim_death_shuffled(DiePrb)
+        else:
+            DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
+                N=self.AgentCount
+            )
+            which_agents = DeathShks < DiePrb
         if self.T_age is not None:  # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
             which_agents = np.logical_or(which_agents, too_old)

@@ -25,6 +25,7 @@ Release Date: TBD
 #### Minor Changes
 
 - Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Adds an opt-in `death_shuffle` parameter (`PerfForesightConsumerType.sim_death`, mirrored in `MarkovConsumerType`): deterministic floor-plus-remainder death counts with random agent assignment, removing binomial noise in mortality. Default False; the default RNG path is preserved verbatim and pinned by a behavior-golden test. [#1790](https://github.com/econ-ark/HARK/pull/1790)
 - future item
 - future item
 - future item
