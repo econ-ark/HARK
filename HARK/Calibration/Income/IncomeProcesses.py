@@ -102,9 +102,15 @@ def _build_lifecycle_conditional(
 def _expand_expense_shock_schedule(shock_groups):
     """Build the per-age expense shock distribution list.
 
-    ``shock_groups`` is a 9-element list with one shock distribution per age band:
-    [51-55, 56-60, 61-65, 66-70, 71-75, 76-80, 81-85, 86-90, 91+]. Each band
-    spans 5 ages except the last, which spans 31. Ages 0-49 receive ``None``.
+    ``shock_groups`` holds 9 shock distributions, one per age band of the
+    source data (51-55, 56-60, 61-65, 66-70, 71-75, 76-80, 81-85, 86-90, 91+).
+    Positions 0-49 of the result are ``None``; each of the first eight groups
+    then fills 5 consecutive positions and the last fills 31, for a total
+    length of 121.
+
+    The band labels are the source data's age ranges, not position indices:
+    the offset between list position and calendar age follows the caller's
+    age convention.
     """
     out = 50 * [None]
     for shks in shock_groups[:-1]:
@@ -623,6 +629,11 @@ def construct_lognormal_income_process_unemployment(
 
 
 def _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp):
+    """Check that all four inputs agree on K, the number of discrete states.
+
+    Returns ``K``, taken from ``PermShkStd.shape[1]``. Raises if any input is
+    not array-like or disagrees on that dimension.
+    """
     try:
         K = PermShkStd.shape[1]
         TranShkStd_K = TranShkStd.shape[1]
@@ -640,6 +651,11 @@ def _validate_markov_state_dims(PermShkStd, TranShkStd, UnempPrb, IncUnemp):
 
 
 def _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet):
+    """Check the retirement unemployment inputs against the state count ``K``.
+
+    A no-op when ``T_retire <= 0``, since the retirement arrays are unused in
+    that case. Otherwise raises unless both have size ``K``.
+    """
     if T_retire <= 0:
         return
     try:
@@ -656,6 +672,12 @@ def _validate_markov_retirement(T_retire, K, UnempPrbRet, IncUnempRet):
 def _validate_markov_unemployment_ndim(
     UnempPrb, IncUnemp, T_retire, UnempPrbRet, IncUnempRet
 ):
+    """Check that the unemployment inputs share one dimensionality.
+
+    Returns their common ``ndim`` (1 or 2). The retirement arrays participate
+    only when ``T_retire > 0``. Raises if the inputs disagree, or if the
+    shared dimensionality is neither 1 nor 2.
+    """
     try:
         D = UnempPrb.ndim
         assert D == IncUnemp.ndim
@@ -686,6 +708,15 @@ def _markov_unemployment_lists(
     UnempPrbRet,
     IncUnempRet,
 ):
+    """Build per-period unemployment probability and income lists for state ``k``.
+
+    When ``D == 2`` the inputs already carry an age profile per state, so
+    column ``k`` is used directly. When ``D == 1`` the scalar for state ``k``
+    is repeated across ``normal_length`` working periods, followed by the
+    retirement value across ``retire_length`` periods when ``T_retire > 0``.
+
+    Returns ``(UnempPrb_list, IncUnemp_list)``.
+    """
     if D == 2:
         return UnempPrb[:, k].tolist(), IncUnemp[:, k].tolist()
     if T_retire > 0:

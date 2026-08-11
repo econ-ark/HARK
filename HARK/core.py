@@ -1774,9 +1774,10 @@ class AgentType(Model):
     def _is_idio_state(self, var_name):
         """Whether ``state_now[var_name]`` is a per-agent (idiosyncratic) array.
 
-        Aggregate variables (set by the Market or shared across agents) are
-        scalars or arrays whose length differs from ``self.AgentCount``; only
-        idiosyncratic state arrays should be replaced from newborn histories.
+        Anything that is not an ndarray of length ``self.AgentCount`` counts as
+        aggregate here (typically a scalar set by the Market or shared across
+        agents, but the check admits any non-ndarray value); only idiosyncratic
+        state arrays should be replaced from newborn histories.
         """
         value = self.state_now[var_name]
         return isinstance(value, np.ndarray) and len(value) == self.AgentCount
@@ -1787,6 +1788,11 @@ class AgentType(Model):
         Subclasses with a non-default state/control structure (e.g. staged
         models) call this prologue and the matching ``_sim_period_epilogue``
         instead of duplicating the boilerplate.
+
+        In the state-rotation loop, every entry is carried into ``state_prev``
+        but only ndarray entries are reset to empty. Non-array entries are
+        aggregates, probably being set by the Market, so leaving them in place
+        is deliberate rather than an oversight.
         """
         if not hasattr(self, "solution"):
             raise Exception(
@@ -2380,8 +2386,10 @@ def _cycle_period_indices(T, cycles):
     """
     Return the order in which periods within one cycle should be solved.
 
-    Finite-horizon (``cycles == 1``): solve from ``T - 1`` down to ``0``.
-    Infinite-horizon: solve period ``0`` first, then ``T - 1`` down to ``1``.
+    One-shot lifecycle (``cycles == 1``): solve from ``T - 1`` down to ``0``.
+    Otherwise, which covers both ``cycles == 0`` (infinite horizon) and
+    ``cycles > 1`` (a finite sequence experienced more than once): solve
+    period ``0`` first, then ``T - 1`` down to ``1``.
     """
     if cycles == 1:
         return range(T - 1, -1, -1)
@@ -3050,15 +3058,21 @@ class AgentPopulation:
             return param[agent]
         return param
 
-    @staticmethod
-    def _slice_dataarray_param(param, agent):
+    _UNHANDLED = object()
+
+    @classmethod
+    def _slice_dataarray_param(cls, param, agent):
         """
         Slice an ``xarray.DataArray`` parameter for one agent.
 
         Dispatches on the leading dimension: ``"agent"`` returns the agent's
         slice (as a list when an ``"age"`` axis is present, otherwise as a
-        scalar); ``"age"`` returns the shared per-period list. Returns
-        ``None`` if the layout is unrecognized.
+        scalar); ``"age"`` returns the shared per-period list. Returns the
+        ``_UNHANDLED`` sentinel if the layout is unrecognized.
+
+        The sentinel is returned rather than ``None`` because ``.item()`` on an
+        object-dtype array legitimately yields ``None``; conflating the two
+        would silently drop a parameter whose value really is ``None``.
         """
         if param.dims[0] == "agent":
             if len(param.dims) > 1 and param.dims[-1] == "age":
@@ -3066,17 +3080,23 @@ class AgentPopulation:
             return param[agent].item()
         if param.dims[0] == "age":
             return param.values.tolist()
-        return None
-
-    _UNHANDLED = object()
+        return cls._UNHANDLED
 
     def _extract_param_for_agent(self, key, param, agent):
         """
         Return this agent's view of ``param``, dispatched by classification.
 
-        Returns the sentinel ``_UNHANDLED`` for parameter values whose type is
-        not recognized in the relevant branch, mirroring the original code's
-        behaviour of omitting such keys from each agent's parameter dict.
+        Returns the sentinel ``_UNHANDLED`` for parameter values whose type or
+        ``DataArray`` layout is not recognized in the relevant branch; the
+        caller omits those keys and warns once per key.
+
+        For the ``time_inv`` and unclassified branches this matches the
+        pre-refactor behaviour, which assigned inside each ``elif`` and so left
+        an unrecognized value unassigned. The ``time_var`` branch differs
+        deliberately: the original assigned a shared local unconditionally
+        after its ``if``/``elif`` chain, so an unrecognized value either raised
+        ``UnboundLocalError`` or silently reused the value computed for a
+        previous key. Omitting the key is a deliberate change from that.
         """
         if key in self.time_var:
             # Parameters that vary over time must be expanded to length term_age.
@@ -3085,8 +3105,7 @@ class AgentPopulation:
             if isinstance(param, list):
                 return self._slice_list_param(param, agent)
             if isinstance(param, DataArray):
-                sliced = self._slice_dataarray_param(param, agent)
-                return sliced if sliced is not None else self._UNHANDLED
+                return self._slice_dataarray_param(param, agent)
             return self._UNHANDLED
 
         if key in self.time_inv:
@@ -3104,8 +3123,7 @@ class AgentPopulation:
         if isinstance(param, list):
             return self._slice_list_param(param, agent)
         if isinstance(param, DataArray):
-            sliced = self._slice_dataarray_param(param, agent)
-            return sliced if sliced is not None else self._UNHANDLED
+            return self._slice_dataarray_param(param, agent)
         return self._UNHANDLED
 
     def __parse_parameters__(self) -> None:
@@ -3117,13 +3135,29 @@ class AgentPopulation:
         to a list of length `term_age`.
         """
         population_parameters = []
+        dropped_keys = set()
         for agent in range(self.agent_type_count):
             agent_parameters = {}
             for key, param in self.parameters.items():
                 value = self._extract_param_for_agent(key, param, agent)
-                if value is not self._UNHANDLED:
+                if value is self._UNHANDLED:
+                    dropped_keys.add(key)
+                else:
                     agent_parameters[key] = value
             population_parameters.append(agent_parameters)
+
+        # Warn only for time_var, the one branch whose behaviour changed. The
+        # time_inv and unclassified branches always omitted unhandled keys
+        # silently, and warning on those would flag unchanged behaviour and
+        # bury the case that matters in noise.
+        for key in sorted(dropped_keys):
+            if key in self.time_var:
+                warn(
+                    f"Parameter '{key}' was declared time-varying, but its "
+                    f"type ({type(self.parameters[key]).__name__}) or "
+                    "DataArray layout is not supported; it was omitted from "
+                    "every agent's parameter dictionary."
+                )
 
         self.population_parameters = population_parameters
 

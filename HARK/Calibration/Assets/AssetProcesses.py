@@ -105,7 +105,14 @@ def combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn):
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn[t]) for t in range(T_cycle)
         ]
-    except (TypeError, IndexError, KeyError):
+    except (TypeError, IndexError, KeyError, ValueError, AttributeError):
+        # Wide on purpose. This replaced a bare ``except:``, whose real fault
+        # was swallowing KeyboardInterrupt/SystemExit; those derive from
+        # BaseException and are excluded by any Exception tuple. Narrowing
+        # further would newly propagate the ValueError/AttributeError that
+        # combine_indep_dstns raises when RiskyDstn is subscriptable but its
+        # elements are not distributions, breaking inputs that used to fall
+        # through to the scalar-RiskyDstn path below.
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn) for t in range(T_cycle)
         ]
