@@ -30,6 +30,9 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
+from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
+    extract_cond_mrkv_arrays,
+)
 from HARK.distributions import (
     MarkovProcess,
     MeanOneLogNormal,
@@ -1552,6 +1555,8 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         "ProdG",
         "MrkvIndArray",
         "MrkvAggArray",
+        "MacroMrkvArray",
+        "CondMrkvArrays",
         "MrkvInit",
     ]
     default_ = {
@@ -1802,13 +1807,13 @@ class CobbDouglasEconomy(Market):
             1.0 + self.CapShare * self.kSS ** (self.CapShare - 1.0) - self.DeprRte
         )
         self.MSS = self.kSS * self.RfreeSS + self.wRteSS
-        self.convertKtoY = lambda KtoY: KtoY ** (
-            1.0 / (1.0 - self.CapShare)
+        self.convertKtoY = lambda KtoY: (
+            KtoY ** (1.0 / (1.0 - self.CapShare))
         )  # converts K/Y to K/L
         self.Rfunc = lambda k: (
             1.0 + self.CapShare * k ** (self.CapShare - 1.0) - self.DeprRte
         )
-        self.wFunc = lambda k: ((1.0 - self.CapShare) * k ** (self.CapShare))
+        self.wFunc = lambda k: (1.0 - self.CapShare) * k ** (self.CapShare)
 
         self.sow_init["KtoLnow"] = self.kSS
         self.sow_init["MaggNow"] = self.kSS
@@ -2797,11 +2802,11 @@ class KrusellSmithEconomy(Market):
             1.0 + self.CapShare * self.KtoLSS ** (self.CapShare - 1.0) - self.DeprRte
         )
         self.MSS = self.KSS * self.RSS + self.WSS * self.LbrInd
-        self.convertKtoY = lambda KtoY: KtoY ** (
-            1.0 / (1.0 - self.CapShare)
+        self.convertKtoY = lambda KtoY: (
+            KtoY ** (1.0 / (1.0 - self.CapShare))
         )  # converts K/Y to K/L
         self.rFunc = lambda k: self.CapShare * k ** (self.CapShare - 1.0)
-        self.Wfunc = lambda k: ((1.0 - self.CapShare) * k ** (self.CapShare))
+        self.Wfunc = lambda k: (1.0 - self.CapShare) * k ** (self.CapShare)
         self.sow_init["KtoLnow"] = self.KtoLSS
         self.sow_init["Mnow"] = self.MSS
         self.sow_init["Aprev"] = self.KSS
@@ -2870,7 +2875,9 @@ class KrusellSmithEconomy(Market):
             "Invalid idiosyncratic transition probabilities!"
         )
         self.MrkvAggArray = MrkvAggArray
+        self.MacroMrkvArray = MrkvAggArray
         self.MrkvIndArray = MrkvIndArray
+        self.CondMrkvArrays = extract_cond_mrkv_arrays(MrkvIndArray, MrkvAggArray, 2)
 
     def make_Mrkv_history(self):
         """
