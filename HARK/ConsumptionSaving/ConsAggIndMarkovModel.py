@@ -343,11 +343,19 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
             # Checked here rather than at the top of the method: the default
             # branch below never consults a sort key, so warning there would
             # describe a fallback that does not apply.
+            #
+            # state_prev, not state_now: this method runs inside get_shocks,
+            # which _sim_period_prologue calls *after* blanking every ndarray
+            # in state_now with np.empty.  Sorting on state_now["pLvl"] there
+            # sorts by uninitialized memory, which never raises and never
+            # produces NaN.  The key is present either way, so testing
+            # membership in state_now would not catch it.
+            pLvl_prev = getattr(self, "state_prev", {}).get("pLvl")
             balanced = getattr(self, "balanced_transitions", False)
-            if balanced and "pLvl" not in self.state_now:
+            if balanced and pLvl_prev is None:
                 warnings.warn(
-                    "balanced_transitions=True, but state_now has no 'pLvl' to "
-                    "sort on; micro transitions fall back to unbalanced "
+                    "balanced_transitions=True, but state_prev has no 'pLvl' "
+                    "to sort on; micro transitions fall back to unbalanced "
                     "shuffling.  Set balanced_transitions=False to silence "
                     "this, or use an agent type that tracks pLvl.",
                     RuntimeWarning,
@@ -377,7 +385,7 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
                         idx = np.flatnonzero(mask)
                         sort_key = None
                         if balanced:
-                            sort_key = np.asarray(self.state_now["pLvl"])[idx]
+                            sort_key = np.asarray(pLvl_prev)[idx]
                         new_micro[idx] = mp_proc.draw(
                             np.full(n, mi, dtype=int),
                             shuffle=True,
@@ -401,7 +409,7 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
                         idx = np.flatnonzero(mask)
                         sort_key = None
                         if balanced:
-                            sort_key = np.asarray(self.state_now["pLvl"])[idx]
+                            sort_key = np.asarray(pLvl_prev)[idx]
                         new_micro[idx] = mp_proc.draw(
                             np.full(n, mi, dtype=int),
                             shuffle=True,

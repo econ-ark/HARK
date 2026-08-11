@@ -15,7 +15,7 @@ from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
 )
-from HARK.distributions import DiscreteDistributionLabeled
+from HARK.distributions import DiscreteDistributionLabeled, MarkovProcess
 
 
 class testAggIndMarkovShuffle(unittest.TestCase):
@@ -116,6 +116,7 @@ class testAggIndMarkovShuffle(unittest.TestCase):
                 ).astype(int)
             }
             agent.state_now = {}
+            agent.state_prev = {}
             agent.markov_shuffle = True
             return agent
 
@@ -181,6 +182,7 @@ class testGeneralFormatShuffle(unittest.TestCase):
         agent.CondMrkvArrays = cond
         agent.markov_shuffle = True
         agent.state_now = {}
+        agent.state_prev = {}
         agent.RNG = np.random.default_rng(seed)
         N = agent.num_micro_states
         agent.shocks = {"Mrkv": (N * macro_prev + micro_prev).astype(int)}
@@ -314,7 +316,7 @@ class testGeneralFormatShuffle(unittest.TestCase):
         agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
         agent.balanced_transitions = True
         pLvl = np.linspace(0.5, 2.0, macro_prev.size)
-        agent.state_now = {"pLvl": pLvl}
+        agent.state_prev = {"pLvl": pLvl}
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
             agent.get_micro_markov_states()
@@ -329,10 +331,31 @@ class testGeneralFormatShuffle(unittest.TestCase):
             np.full(24, 4),
             err_msg=(
                 "minority destinations are not evenly spaced in pLvl rank, so "
-                "state_now['pLvl'] is not reaching MarkovProcess.draw as "
+                "state_prev['pLvl'] is not reaching MarkovProcess.draw as "
                 "sort_key and balanced_transitions is a no-op"
             ),
         )
+
+    def test_balanced_transitions_ignores_state_now_pLvl(self):
+        """A pLvl in state_now must not satisfy the balanced path.
+
+        This method runs inside ``get_shocks``, which
+        ``AgentType._sim_period_prologue`` calls after replacing every ndarray
+        in ``state_now`` with ``np.empty``.  Measured during a live
+        simulation, ``state_now["pLvl"]`` at this point held values like
+        6.6e-310 and a stale 1.178 left over from a previous allocation, while
+        ``state_prev["pLvl"]`` held the real previous-period levels.  Sorting
+        on the former never raises and never produces NaN, so only an explicit
+        check catches it.
+        """
+        cond, macro_prev, macro_next, micro_prev = self._two_pair_setup()
+        agent = self._make_agent(cond, macro_prev, macro_next, micro_prev)
+        agent.balanced_transitions = True
+        agent.state_now = {"pLvl": np.linspace(0.5, 2.0, macro_prev.size)}
+        agent.state_prev = {}
+        with self.assertWarns(RuntimeWarning) as cm:
+            agent.get_micro_markov_states()
+        self.assertIn("state_prev", str(cm.warning))
 
     def test_unset_sentinel_cannot_be_a_valid_micro_state(self):
         """The sentinel must stay outside the range of real micro states.
@@ -344,6 +367,104 @@ class testGeneralFormatShuffle(unittest.TestCase):
         micro state 0, which is exactly the silent failure it exists to stop.
         """
         self.assertLess(agg_ind_mrkv_module._UNSET_MICRO, 0)
+
+
+class testBalancedSortKeyDuringSimulation(unittest.TestCase):
+    """The balanced sort key comes from state_prev during a live simulation.
+
+    ``MarkovConsumerType.get_markov_states`` runs inside ``get_shocks``, which
+    ``AgentType._sim_period_prologue`` calls after replacing every ndarray in
+    ``state_now`` with ``np.empty``.  Reading ``state_now["pLvl"]`` there sorts
+    agents by uninitialized memory: it never raises, never produces NaN, and
+    varies with the allocator, so no assertion elsewhere in the suite notices.
+    This test drives a real simulation and captures the sort key actually
+    handed to ``MarkovProcess.draw``.
+    """
+
+    def _run_and_capture_sort_keys(self):
+        init = dict(init_indshk_markov)
+        init["cycles"] = 0
+        init["MrkvArray"] = [np.array([[0.9, 0.1], [0.1, 0.9]])]
+        init["constructors"] = dict(init_indshk_markov["constructors"])
+        init["constructors"]["MrkvArray"] = None
+        init["Rfree"] = [np.array([1.03, 1.03])]
+        init["LivPrb"] = [np.array([0.98, 0.98])]
+        init["PermGroFac"] = [np.array([1.01, 1.01])]
+        init["AgentCount"] = 100
+        init["T_sim"] = 3
+        init["markov_shuffle"] = True
+        init["balanced_transitions"] = True
+
+        agent = MarkovConsumerType(**init)
+        agent.solve()
+
+        captured = []
+        real_draw = MarkovProcess.draw
+
+        def spy(self, state_now_indices, shuffle=False, sort_key=None):
+            captured.append(None if sort_key is None else np.array(sort_key))
+            return real_draw(
+                self, state_now_indices, shuffle=shuffle, sort_key=sort_key
+            )
+
+        MarkovProcess.draw = spy
+        try:
+            agent.initialize_sim()
+            prev_snapshots = []
+            real_get = type(agent).get_markov_states
+
+            def record(self):
+                prev_snapshots.append(np.array(self.state_prev["pLvl"]))
+                return real_get(self)
+
+            type(agent).get_markov_states = record
+            try:
+                agent.simulate()
+            finally:
+                type(agent).get_markov_states = real_get
+        finally:
+            MarkovProcess.draw = real_draw
+        return captured, prev_snapshots
+
+    def test_sort_key_matches_previous_period_pLvl(self):
+        captured, prev_snapshots = self._run_and_capture_sort_keys()
+        self.assertTrue(captured, "no sort key reached MarkovProcess.draw")
+        self.assertEqual(len(captured), len(prev_snapshots))
+        for period, (sort_key, pLvl_prev) in enumerate(zip(captured, prev_snapshots)):
+            self.assertIsNotNone(sort_key, f"period {period}: sort key was None")
+            np.testing.assert_array_equal(
+                sort_key,
+                pLvl_prev,
+                err_msg=(
+                    f"period {period}: the sort key handed to "
+                    f"MarkovProcess.draw is not state_prev['pLvl'].  If it "
+                    f"came from state_now it is uninitialized memory at this "
+                    f"point in the simulation loop."
+                ),
+            )
+
+    def test_sort_key_holds_no_uninitialized_values(self):
+        """Independent check that does not depend on the state_prev snapshot.
+
+        Permanent income is strictly positive and O(1) here, so a denormal or
+        a zero is a direct signature of a blanked ``np.empty`` buffer.
+        """
+        captured, _ = self._run_and_capture_sort_keys()
+        for period, sort_key in enumerate(captured):
+            self.assertIsNotNone(sort_key)
+            self.assertTrue(
+                np.all(np.isfinite(sort_key)),
+                msg=f"period {period}: non-finite sort key {sort_key}",
+            )
+            self.assertGreater(
+                float(np.min(sort_key)),
+                1e-6,
+                msg=(
+                    f"period {period}: sort key contains values at or below "
+                    f"1e-6 (min {float(np.min(sort_key))!r}); permanent income "
+                    f"cannot be that small, so this is uninitialized memory"
+                ),
+            )
 
 
 class testMakeShockHistoryShuffleFlag(unittest.TestCase):

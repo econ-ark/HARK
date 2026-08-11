@@ -992,8 +992,11 @@ class MarkovConsumerType(IndShockConsumerType):
             # NOTE: Do NOT use aNrm or wealth as sort key - it creates a
             # feedback loop where low-wealth agents are repeatedly selected
             # for adverse transitions, trapping them in poverty.
+            # state_prev, not state_now: this runs inside get_shocks, which
+            # _sim_period_prologue calls after blanking state_now with
+            # np.empty, so state_now["pLvl"] here is uninitialized memory.
             if getattr(self, "balanced_transitions", False):
-                sort_key = self.state_now["pLvl"][right_age]
+                sort_key = self.state_prev["pLvl"][right_age]
             else:
                 sort_key = None
             MrkvNow[right_age] = markov_process.draw(
