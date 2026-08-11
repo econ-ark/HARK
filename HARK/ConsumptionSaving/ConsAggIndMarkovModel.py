@@ -17,7 +17,7 @@ This module provides:
   transition matrix from an M x M aggregate matrix and M conditional N x N
   micro matrices.
 
-* ``AggIndMarkovConsumerType`` — an ``AgentType`` subclass that implements
+* ``AggIndMrkvConsumerType`` — a ``MarkovConsumerType`` subclass that implements
   two-step Markov draws (macro from economy, micro per-agent) each period.
 
 Design note
@@ -25,7 +25,7 @@ Design note
 This class was created in response to the prompt:
 
     "Create a comprehensive, self-contained prompt document that will guide
-    creation of a new general-purpose HARK class (AggIndMarkovConsumerType)
+    creation of a new general-purpose HARK class (AggIndMrkvConsumerType)
     and companion AggIndMarkovEconomy that unify the patterns currently
     implemented ad-hoc in HARK's KrusellSmithType and HAFiscal's
     AggFiscalType."
@@ -35,7 +35,7 @@ The prompt was executed by Claude Opus 4.6 (Anthropic, 2025).
 
 import numpy as np
 
-from HARK import AgentType
+from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 
 
 # =============================================================================
@@ -92,7 +92,7 @@ def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
 
 
 # =============================================================================
-# AggIndMarkovConsumerType
+# AggIndMrkvConsumerType
 # =============================================================================
 
 
@@ -161,85 +161,179 @@ def extract_cond_mrkv_arrays(MrkvIndArray, MacroMrkvArray, N):
     return CondMrkvArrays
 
 
-class AggIndMarkovConsumerType(AgentType):
+class AggIndMrkvConsumerType(MarkovConsumerType):
     """
-    A consumer with two-level hierarchical discrete Markov states.
+    A MarkovConsumerType with built-in hierarchical macro+micro Markov
+    decomposition.  Inherits all of MarkovConsumerType's functionality
+    (income shocks, state-dependent parameters, solver, simulation) and adds
+    a two-step Markov draw:
 
-    * **M** aggregate (macro) states — common to all agents, received from
-      an economy each period via the sow variable ``"MrkvAgg"``.
-    * **N** idiosyncratic (micro) states — drawn per-agent each period,
-      conditional on the new macro state.
+        1. ``get_macro_markov_states()`` — reads aggregate state
+        2. ``get_micro_markov_states()`` — draws idiosyncratic states
+        3. Combines: ``shocks["Mrkv"] = num_micro_states * MacroMrkv + MicroMrkv``
 
-    The combined state index is ``N * macro + micro``.
+    When ``num_macro_states`` / ``num_micro_states`` are not set, the class
+    falls back to standard MarkovConsumerType behavior (pure clone).
 
-    This class does **not** bundle a solver; subclasses must set one
-    via ``default_["solver"]``.
+    Models that don't need MarkovConsumerType's income-shock / lifecycle
+    infrastructure (e.g. Krusell-Smith) should pass ``construct=False`` and
+    supply their own solver via ``default_["solver"]``.
 
-    Subclass hooks
-    --------------
-    * ``get_micro_markov_states()`` — override for exact-match or other
-      custom micro-state draws (default: stochastic draw from
-      ``CondMrkvArrays``).
-    * ``get_states()``, ``get_controls()``, ``get_poststates()`` — the
-      usual model-specific economics.
+    Subclasses override:
 
-    Attributes set each period
-    --------------------------
-    * ``MacroMrkvNow`` (int): current macro state (scalar, from economy).
-    * ``MicroMrkvNow`` (np.ndarray of int): per-agent micro states.
-    * ``MrkvCombined`` (np.ndarray of int): per-agent combined-state indices.
+    - ``get_macro_markov_states`` — how to read macro state (economy sow, etc.)
+    - ``get_micro_markov_states`` — how to draw micro states (searchsorted, etc.)
     """
 
-    shock_vars_ = ["MrkvAgg"]
+    def __init__(self, num_macro_states=None, num_micro_states=None, **kwds):
+        """
+        Parameters
+        ----------
+        num_macro_states : int or None
+            Number of aggregate (macro) Markov states M.  If None, the class
+            behaves as a plain MarkovConsumerType.
+        num_micro_states : int or None
+            Number of idiosyncratic (micro) Markov states N.  If None, the
+            class behaves as a plain MarkovConsumerType.
+        **kwds
+            All other keyword arguments are passed through to
+            ``MarkovConsumerType.__init__``.
+        """
+        if num_macro_states is not None:
+            kwds["num_macro_states"] = num_macro_states
+        if num_micro_states is not None:
+            kwds["num_micro_states"] = num_micro_states
+        MarkovConsumerType.__init__(self, **kwds)
+        if not hasattr(self, "num_macro_states"):
+            self.num_macro_states = None
+        if not hasattr(self, "num_micro_states"):
+            self.num_micro_states = None
 
-    def __init__(self, num_macro_states, num_micro_states, **kwds):
-        self.num_macro_states = num_macro_states
-        self.num_micro_states = num_micro_states
-        self.CondMrkvArrays = None  # set by economy or subclass
-        AgentType.__init__(self, **kwds)
+    @property
+    def _hierarchical(self):
+        """True when both ``num_macro_states`` and ``num_micro_states`` are set."""
+        return self.num_micro_states is not None and self.num_macro_states is not None
 
-    # ----- Hierarchical Markov draw machinery --------------------------------
+    # ----- Simulation setup --------------------------------------------------
+
+    def initialize_sim(self):
+        MarkovConsumerType.initialize_sim(self)
+        if self._hierarchical:
+            self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
+            self.MicroMrkvNow = self.micro_from_combined(self.shocks["Mrkv"])
+
+    # ----- Markov state drawing ----------------------------------------------
 
     def get_markov_states(self):
-        """Two-step draw: macro (from economy), then micro (per-agent)."""
+        """Two-step hierarchical draw when configured; otherwise parent draw."""
+        if not self._hierarchical:
+            MarkovConsumerType.get_markov_states(self)
+            return
+
         self.get_macro_markov_states()
         self.get_micro_markov_states()
+
         N = self.num_micro_states
-        self.MrkvCombined = N * self.MacroMrkvNow + self.MicroMrkvNow
+
+        if getattr(self, "global_markov", False):
+            self.shocks["Mrkv"] = (N * self.MacroMrkvNow + self.MicroMrkvNow).astype(
+                int
+            )
+        else:
+            dont_change = self.t_age == 0
+            if self.t_sim == 0:
+                dont_change[:] = True
+            MrkvPrev = self.shocks["Mrkv"].copy()
+            self.shocks["Mrkv"] = (N * self.MacroMrkvNow + self.MicroMrkvNow).astype(
+                int
+            )
+            self.shocks["Mrkv"][dont_change] = MrkvPrev[dont_change]
+            self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
+            self.MicroMrkvNow = self.micro_from_combined(self.shocks["Mrkv"])
 
     def get_macro_markov_states(self):
-        """Read the scalar macro state sowed by the economy as ``"MrkvAgg"``."""
-        self.MacroMrkvNow = int(self.shocks["MrkvAgg"])
+        """Read the aggregate Markov state.  Override in subclasses.
+
+        Default lookup order: ``self.EconomyMrkvNow``, then
+        ``self.shocks["MrkvAgg"]``, then derived from the combined state.
+        """
+        if hasattr(self, "EconomyMrkvNow") and self.EconomyMrkvNow is not None:
+            self.MacroMrkvNow = int(self.EconomyMrkvNow) * np.ones(
+                self.AgentCount, dtype=int
+            )
+        elif "MrkvAgg" in self.shocks:
+            self.MacroMrkvNow = int(self.shocks["MrkvAgg"]) * np.ones(
+                self.AgentCount, dtype=int
+            )
+        else:
+            self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
 
     def get_micro_markov_states(self):
-        """
-        Draw idiosyncratic micro states conditional on the current macro state.
+        """Draw micro states from ``CondMrkvArrays``.
 
-        Default implementation: stochastic draw from ``self.CondMrkvArrays``.
-        Override for exact-match permutation logic (e.g. Krusell-Smith).
+        Draws are iid ``RNG.choice`` per (macro, source-micro) cell.
+
+        Override entirely for custom logic (e.g. Krusell-Smith exact-match
+        employment permutations).
         """
         N = self.num_micro_states
-        MacroNow = self.MacroMrkvNow
-        micro_prev = self.MicroMrkvNow.copy()
+        micro_prev = self.micro_from_combined(self.shocks["Mrkv"])
+        new_micro = np.empty(self.AgentCount, dtype=int)
 
-        new_micro = np.empty_like(micro_prev)
-        for mi in range(N):
-            mask = micro_prev == mi
-            n_agents = mask.sum()
-            if n_agents == 0:
-                continue
-            probs = self.CondMrkvArrays[MacroNow][mi, :]
-            probs = probs / probs.sum()
-            draws = self.RNG.choice(N, size=n_agents, p=probs)
-            new_micro[mask] = draws
+        first = self.CondMrkvArrays[0]
+        general = isinstance(first, (list, tuple)) or (
+            isinstance(first, np.ndarray) and first.ndim != 2
+        )
+
+        for macro in np.unique(self.MacroMrkvNow):
+            macro_mask = self.MacroMrkvNow == macro
+            cond = self.CondMrkvArrays[int(macro)]
+            if general and not isinstance(cond, np.ndarray):
+                raise NotImplementedError(
+                    "AggIndMrkvConsumerType default get_micro_markov_states with "
+                    "general CondMrkvArrays[i][j] requires "
+                    "or a subclass override."
+                )
+            for mi in range(N):
+                mask = np.logical_and(macro_mask, micro_prev == mi)
+                n = mask.sum()
+                if n == 0:
+                    continue
+                probs = cond[mi, :]
+                probs = probs / probs.sum()
+                new_micro[mask] = self.RNG.choice(N, size=n, p=probs)
         self.MicroMrkvNow = new_micro
 
-    # ----- Convenience -------------------------------------------------------
+    # ----- Convenience helpers -----------------------------------------------
 
     def macro_from_combined(self, mrkv):
-        """Extract the macro state from a combined-state index."""
-        return mrkv // self.num_micro_states
+        """Extract the macro state index from a combined Markov index.
+
+        Parameters
+        ----------
+        mrkv : int or np.ndarray
+            Combined Markov state index (= N * macro + micro).
+
+        Returns
+        -------
+        int or np.ndarray
+            Macro state index.
+        """
+        result = np.asarray(mrkv, dtype=int) // self.num_micro_states
+        return int(result) if np.ndim(mrkv) == 0 else result
 
     def micro_from_combined(self, mrkv):
-        """Extract the micro state from a combined-state index."""
-        return mrkv % self.num_micro_states
+        """Extract the micro state index from a combined Markov index.
+
+        Parameters
+        ----------
+        mrkv : int or np.ndarray
+            Combined Markov state index (= N * macro + micro).
+
+        Returns
+        -------
+        int or np.ndarray
+            Micro state index.
+        """
+        result = np.asarray(mrkv, dtype=int) % self.num_micro_states
+        return int(result) if np.ndim(mrkv) == 0 else result
