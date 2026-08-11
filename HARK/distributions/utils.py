@@ -450,6 +450,27 @@ def combine_indep_dstns(*distributions, seed=None):
     return combined_dstn
 
 
+def calc_expectation(dstn, func=None, *args, **kwargs):
+    """
+    Deprecated alias for :func:`expected_with_loop`.
+
+    ``calc_expectation`` was renamed to ``expected_with_loop`` in HARK
+    0.17.2.  This shim preserves import compatibility for downstream code
+    written against earlier versions (including frozen reproduction
+    archives that cannot be edited), emitting a ``DeprecationWarning``.
+    It will be removed in a future release; new code should call
+    :func:`expected_with_loop` directly.
+    """
+
+    warn(
+        "calc_expectation was renamed to expected_with_loop in HARK 0.17.2 "
+        "and this alias will be removed in a future release.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return expected_with_loop(dstn, func, *args, **kwargs)
+
+
 def expected_with_loop(dstn, func=None, *args, **kwargs):
     """
     Expectation of a function, given an array of configurations of its inputs
