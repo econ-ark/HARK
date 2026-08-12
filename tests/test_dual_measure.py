@@ -562,8 +562,16 @@ def _cyclical_agent(cls, seed=4242, agent_count=4000, t_sim=8):
     ``IncShkDstn`` is a one-element list and indices 0 and -1 name the same
     object.  That makes any period-indexing error in the Q pipeline
     unobservable.  The two periods here carry deliberately different
-    ``PermShkStd`` and ``PermGroFac`` so picking the wrong one shows up in
-    both the dispersion and the mean.
+    ``PermShkStd`` and ``PermGroFac``.
+
+    The ``PermGroFac`` asymmetry is the load-bearing one and must not be
+    simplified away. Both quantities differ, but the assertion in
+    ``test_q_draws_use_the_same_period_as_p_in_a_cyclical_model`` reads only
+    the cross-sectional MEAN, and only the growth channel moves it far
+    enough to leave the pass band. Measured: with the bug restored and
+    ``PermGroFac=[1.00, 1.50]`` the ratios are [0.6728, 1.5595] and the test
+    rejects; with ``PermGroFac=[1.0, 1.0]`` they are [1.0020, 1.0397] and it
+    does not. That test asserts the two differ, so this cannot rot silently.
     """
     params = deepcopy(init_idiosyncratic_shocks)
     params.update(
@@ -611,7 +619,18 @@ def test_q_draws_use_the_same_period_as_p_in_a_cyclical_model():
     # E[psi^2]/E[psi]^2. That is at most 1 + max(PermShkStd)^2 = 1.04 here.
     # The bug made Q use the other period's factor, sending the ratio to
     # 1.50 or 0.67.
-    worst = 1.0
+    # The two periods must differ in PermGroFac, not merely in PermShkStd.
+    # All of this test's power comes from the growth channel: with uniform
+    # growth the buggy ratios are [1.0020, 1.0397] (measured), entirely
+    # inside the band below, and the test goes silent. The PermShkStd
+    # asymmetry contributes nothing to the assertion, which reads only the
+    # mean.
+    assert agent.PermGroFac[0] != agent.PermGroFac[1], (
+        "this test detects the bug through the growth channel; with uniform "
+        "PermGroFac the buggy ratios sit inside the band"
+    )
+
+    worst = 0.0
     for _ in range(6):
         agent.sim_one_period()
         for t in np.unique(agent.t_cycle):
