@@ -36,6 +36,7 @@ from HARK.distributions import (
     MeanOneLogNormal,
     Uniform,
     add_discrete_outcome_constant_mean,
+    cdf_invert,
     combine_indep_dstns,
     expected,
 )
@@ -2291,9 +2292,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     # for dual-measure Q-CDF inversion.
                     base_draws = IncShkDstnNow._rng.uniform(size=N)
                     base_draws_dict[s] = base_draws
-                    EventDraws = np.searchsorted(
-                        np.cumsum(IncShkDstnNow.pmv), base_draws
-                    )
+                    EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
                     PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
                 else:
@@ -2321,7 +2320,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             elif _cache:
                 base_draws = IncShkDstnNow._rng.uniform(size=N)
                 base_draws_dict["newborn"] = base_draws
-                EventDraws = np.searchsorted(np.cumsum(IncShkDstnNow.pmv), base_draws)
+                EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
                 PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                 TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
             else:

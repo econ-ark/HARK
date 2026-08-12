@@ -15,6 +15,38 @@ from scipy.stats._distn_infrastructure import rv_discrete_frozen
 from HARK.distributions.base import Distribution, allocate_remainder_slots
 
 
+def cdf_invert(base_draws, pmv):
+    """Map uniform draws to atom indices by inverting the CDF.
+
+    Lives here, next to the distribution it inverts, because four places
+    were spelling it out independently: ``DiscreteDistribution.draw_events``
+    itself, the base-draw-cache branches in ``IndShockConsumerType.get_shocks``
+    and ``MarkovConsumerType.get_shocks``, and ``HARK.dual_measure``'s Q-side
+    draws.  The P and Q pipelines have to agree on this map exactly -- the
+    whole shared-uniform design rests on inverting one recorded draw through
+    two different CDFs -- so it should not be four transcriptions that
+    happen to match.
+
+    Note the boundary convention is ``searchsorted``'s default ``side="left"``,
+    which all four copies used.  Changing it here changes which atom a draw
+    landing exactly on a cumulative boundary selects, in both measures at
+    once, which is the point.
+
+    Parameters
+    ----------
+    base_draws : np.ndarray of shape (N,)
+        Uniform [0, 1) random numbers.
+    pmv : np.ndarray
+        Probability mass vector.
+
+    Returns
+    -------
+    np.ndarray of int
+        Indices into the atom arrays.
+    """
+    return np.searchsorted(np.cumsum(pmv), base_draws)
+
+
 def _weighted_mean_var(var, pmv):
     """Compute weighted mean of a single DataArray over its ``atom`` dimension.
 
@@ -214,14 +246,9 @@ class DiscreteDistribution(Distribution):
             atom_indices = np.arange(J, dtype=int)
             return self.draw(N, shuffle=True, atoms=atom_indices)
 
-        # Generate a cumulative distribution
+        # Generate a cumulative distribution and invert it
         base_draws = self._rng.uniform(size=N)
-        cum_dist = np.cumsum(self.pmv)
-
-        # Convert the basic uniform draws into discrete draws
-        indices = cum_dist.searchsorted(base_draws)
-
-        return indices
+        return cdf_invert(base_draws, self.pmv)
 
     def _resolve_replicates(self, replicates: int, max_J_min: int = 10_000):
         """Compute N from replicates and the minimal full-coverage sample size.

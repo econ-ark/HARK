@@ -37,7 +37,11 @@ import warnings
 
 import numpy as np
 
-from HARK.distributions.discrete import DiscreteDistribution
+from HARK.distributions.discrete import DiscreteDistribution, cdf_invert
+
+#: Kept as a module-level alias: this module defined `_cdf_invert` before
+#: it moved next to the distribution it inverts, and tests import it here.
+_cdf_invert = cdf_invert
 
 __all__ = [
     "make_Q_measure_dstn",
@@ -97,24 +101,6 @@ def make_Q_measure_dstn(dstn, warn=True):
     Q_pmv = dstn.pmv * perm_atoms / E_perm
     Q_pmv /= Q_pmv.sum()
     return DiscreteDistribution(Q_pmv, dstn.atoms, seed=dstn.seed)
-
-
-def _cdf_invert(base_draws, pmv):
-    """Map uniform draws to atom indices via CDF inversion.
-
-    Parameters
-    ----------
-    base_draws : np.ndarray of shape (N,)
-        Uniform [0, 1) random numbers.
-    pmv : np.ndarray
-        Probability mass vector.
-
-    Returns
-    -------
-    np.ndarray of int
-        Indices into the atom arrays.
-    """
-    return np.searchsorted(np.cumsum(pmv), base_draws)
 
 
 class DualMeasureMixin:

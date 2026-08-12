@@ -23,7 +23,13 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_pLvl_init_dstn,
     warn_if_shuffle_voids_base_draw_cache,
 )
-from HARK.distributions import MarkovProcess, Uniform, expected, DiscreteDistribution
+from HARK.distributions import (
+    cdf_invert,
+    MarkovProcess,
+    Uniform,
+    expected,
+    DiscreteDistribution,
+)
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -1104,9 +1110,7 @@ class MarkovConsumerType(IndShockConsumerType):
                         # dual-measure Q-CDF inversion, keyed (t, j).
                         base_draws = IncShkDstnNow._rng.uniform(size=N)
                         base_draws_dict[(t, j)] = base_draws
-                        EventDraws = np.searchsorted(
-                            np.cumsum(IncShkDstnNow.pmv), base_draws
-                        )
+                        EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
                         PermShkNow[these] = (
                             IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                         )
@@ -1144,9 +1148,7 @@ class MarkovConsumerType(IndShockConsumerType):
                     # to match the (t, j) convention of the main loop.
                     base_draws = IncShkDstnNow._rng.uniform(size=N)
                     base_draws_dict[("newborn", j)] = base_draws
-                    EventDraws = np.searchsorted(
-                        np.cumsum(IncShkDstnNow.pmv), base_draws
-                    )
+                    EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
                     PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
                 else:
