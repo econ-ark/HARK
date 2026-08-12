@@ -1324,6 +1324,43 @@ class testDrawShuffledRejectsUnknownSourceStates(unittest.TestCase):
             mp.draw(np.array([0, 1, 5, 5, 5, 0]), shuffle=True)
         self.assertIn("3 of 6", str(cm.exception))
 
+    def test_the_iid_path_rejects_the_same_inputs(self):
+        """The default path must not silently wrap a negative state.
+
+        `shuffle=False` indexes `transition_matrix[state]` directly, and numpy
+        raises for a state past the last row but NOT for a negative one: -1
+        resolves to the last row. Those agents were transitioned from a
+        different Markov state's row, in range and plausible, with nothing to
+        distinguish them -- and unlike the shuffled path's uninitialized
+        memory, it can never come back out of range and blow up downstream.
+
+        Measured on [[0.99, 0.01], [0.50, 0.50]]: agents marked -1 moved to
+        state 1 at frequency 0.50, the last row's rate, where their own row 0
+        gives 0.01.
+        """
+        for bad_state in (2, -1, -3):
+            state = np.array([0, 1, 0, bad_state, 1])
+            with self.assertRaises(IndexError, msg=f"state {bad_state}"):
+                MarkovProcess(self.T, seed=0).draw(state)
+
+    def test_both_paths_reject_identical_inputs(self):
+        """Whether a source state is legal must not depend on `shuffle`."""
+        for state in ([0, 1, 0, 1], [0, 1, 2], [0, 1, -1], [0, -2, 1]):
+            arr = np.array(state)
+            outcomes = []
+            for shuffle in (False, True):
+                try:
+                    MarkovProcess(self.T, seed=0).draw(arr, shuffle=shuffle)
+                    outcomes.append("ok")
+                except IndexError:
+                    outcomes.append("IndexError")
+            self.assertEqual(
+                outcomes[0],
+                outcomes[1],
+                f"state {state}: shuffle=False gave {outcomes[0]} but "
+                f"shuffle=True gave {outcomes[1]}",
+            )
+
     def test_valid_states_are_unaffected(self):
         """The guard must not disturb the ordinary path."""
         state = np.array([0, 1, 0, 1, 0, 1, 0, 1])

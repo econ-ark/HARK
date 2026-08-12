@@ -357,7 +357,7 @@ def test_pLvl_normalization_preserves_level_quantities():
 
         for var, level_before in before.items():
             level_after = agent.state_now[var] * agent.state_now["pLvl"]
-            assert np.allclose(level_before, level_after, atol=1e-12, rtol=0.0), (
+            assert np.allclose(level_before, level_after, rtol=1e-12, atol=0.0), (
                 f"{var} level quantity moved across post_state_hook: max "
                 f"|diff| {np.nanmax(np.abs(level_after - level_before)):.3e}. "
                 "The pLvl shift was applied without the compensating rescale, "
@@ -369,7 +369,11 @@ def test_pLvl_normalization_preserves_level_quantities():
         agent.get_poststates()
         agent._sim_period_epilogue()
 
-    assert checked >= 4, f"only {checked} level comparisons ran"
+    assert checked >= 8, (
+        f"only {checked} level comparisons ran; both mNrm and bNrm must be "
+        "exercised across four periods, so anything under 8 means one of "
+        "them silently left state_now"
+    )
 
 
 def test_pLvl_normalization_actually_moves_pLvl():

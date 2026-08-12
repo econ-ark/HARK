@@ -308,7 +308,44 @@ class MarkovProcess(Distribution):
         -------
         new_state : int or nd.array
             New states.
+
+        Raises
+        ------
+        IndexError
+            If any source state is outside the transition matrix's rows.
+            Both paths reject the same inputs; see the note below on why the
+            unshuffled path cannot be left to numpy.
         """
+        # Validated here rather than in _draw_shuffled, so both paths agree.
+        # The unshuffled path indexes transition_matrix[state] directly, and
+        # numpy raises for a state past the last row but NOT for a negative
+        # one: -1 resolves to the last row and the agent is silently
+        # transitioned from a different Markov state, in range and plausible,
+        # with nothing to distinguish it. Measured on
+        # [[0.99, 0.01], [0.50, 0.50]]: agents marked -1 moved to state 1 at
+        # frequency 0.50, the last row's rate, where their own row 0 gives
+        # 0.01. Unlike the shuffled path's uninitialized memory, this can
+        # never come back out of range and blow up downstream.
+        #
+        # -1 is not hypothetical: ConsAggIndMarkovModel._UNSET_MICRO is
+        # exactly -1, and MarkovConsumerType.get_markov_states passes
+        # shocks["Mrkv"] straight in with no check of its own. In the
+        # combined = N * macro + micro encoding, the last row is the highest
+        # macro and highest micro state, so a stray sentinel lands on the
+        # most favourable cell in the chain.
+        state_arr = np.asarray(state)
+        J_src = self.transition_matrix.shape[0]
+        out_of_range = (state_arr < 0) | (state_arr >= J_src)
+        if np.any(out_of_range):
+            bad = np.unique(state_arr[out_of_range])
+            raise IndexError(
+                f"source states {bad.tolist()} are outside the transition "
+                f"matrix's {J_src} rows, for {int(np.sum(out_of_range))} of "
+                f"{state_arr.size} agents. Negative states are rejected "
+                "rather than wrapped: numpy would resolve -1 to the last "
+                "row and transition those agents from the wrong state."
+            )
+
         if not shuffle:
             ignored = [
                 name
