@@ -117,8 +117,11 @@ class DualMeasureMixin:
 
     **Zero impact on base classes**: ``AgentType``, ``IndShockConsumerType``,
     and ``MarkovConsumerType`` are not modified.  The mixin overrides
-    ``sim_one_period`` and ``simulate`` via MRO, calling ``super()`` for the
-    P-pipeline.
+    ``sim_one_period`` and ``simulate`` via MRO.  Neither reimplements the
+    P-pipeline: ``simulate`` delegates each period to ``super().simulate(1)``,
+    and ``sim_one_period`` runs the base class's own
+    :meth:`~HARK.core.AgentType._sim_period_prologue` and
+    :meth:`~HARK.core.AgentType._sim_period_epilogue` around the Q-step.
     """
 
     dual_measure = False
@@ -245,32 +248,15 @@ class DualMeasureMixin:
     def sim_one_period(self):
         """Run the P-pipeline, then the Q-pipeline before time advancement.
 
-        We cannot simply call ``super().sim_one_period()`` and append the
-        Q-step, because the base class increments ``t_age`` and ``t_cycle``
-        at the end.  The Q-pipeline needs these at their pre-increment values
-        (same as the P-pipeline used).  So we replicate the base-class logic
-        with the Q-step inserted before the time advancement.
+        Calling ``super().sim_one_period()`` and appending the Q-step does not
+        work: the base class advances ``t_age`` and ``t_cycle`` at the end,
+        and the Q-pipeline needs them at the pre-increment values the
+        P-pipeline used.  That is why the base class exposes the two halves
+        separately, so the Q-step can sit between them.  Everything before
+        and after it is the base class's own code, reached through the MRO,
+        not a copy of it living here.
         """
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. "
-                "To simulate, run the `solve()` method first."
-            )
-
-        # --- P-pipeline (mirrors AgentType.sim_one_period) ---
-        self.get_mortality()
-
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                pass
-
-        if self.read_shocks:
-            self.read_shocks_from_history()
-        else:
-            self.get_shocks()
+        self._sim_period_prologue()
         self.get_states()
         self.post_state_hook()
         self.get_controls()
@@ -280,10 +266,7 @@ class DualMeasureMixin:
         if self.dual_measure:
             self._step_Q_measure()
 
-        # --- Advance time (same as AgentType.sim_one_period) ---
-        self.t_age = self.t_age + 1
-        self.t_cycle = self.t_cycle + 1
-        self.t_cycle[self.t_cycle == self.T_cycle] = 0
+        self._sim_period_epilogue()
 
     # ------------------------------------------------------------------
     # Q-measure one-period pipeline
