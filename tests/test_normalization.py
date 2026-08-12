@@ -311,3 +311,85 @@ def test_composition_with_dual_measure():
     composed = _agent(DualNormalized)
     for var in ("pLvl", "cNrm"):
         assert np.array_equal(plain.history[var], composed.history[var]), var
+
+
+def test_pLvl_normalization_preserves_level_quantities():
+    """The advertised contract: mLvl = mNrm * pLvl survives the rescale.
+
+    `PermanentIncomeNormalizationMixin`'s class docstring says "Normalized
+    state variables (``mNrm``, ``bNrm``) are rescaled inversely so that level
+    quantities (``mLvl = mNrm * pLvl``) are preserved." That is the whole
+    point of the `_pLvl_norm_adjust_vars` loop: shifting `pLvl` without
+    rescaling the normalized states would silently change every agent's
+    wealth in level terms.
+
+    Nothing tested it. Disabling that loop entirely leaves all 13 other tests
+    in this file green, because none of them tracks `mNrm` or `bNrm` or
+    asserts on any level quantity. So the failure mode was silent corruption
+    of every simulation with `normalize_pLvl=True`, with no error and no
+    warning.
+
+    Measured across the hook rather than across a whole simulation, because
+    the hook is where the invariant has to hold: `post_state_hook` adjusts
+    `pLvl` and the normalized states together, and any later period's
+    transition legitimately changes levels.
+    """
+    agent = NormalizedIndShock(AgentCount=600, T_sim=6, seed=20260810)
+    agent.normalize_pLvl = True
+    agent.track_vars = ["pLvl", "cNrm"]
+    agent.solve()
+    agent.initialize_sim()
+
+    checked = 0
+    for _ in range(4):
+        # Run a period up to the point the hook is about to fire, by hand,
+        # so the before/after snapshot brackets exactly the rescale.
+        agent._sim_period_prologue()
+        agent.get_states()
+
+        before = {}
+        for var in ("mNrm", "bNrm"):
+            if var in agent.state_now and isinstance(agent.state_now[var], np.ndarray):
+                before[var] = agent.state_now[var] * agent.state_now["pLvl"]
+        assert before, "neither mNrm nor bNrm present; the test would be vacuous"
+
+        agent.post_state_hook()
+
+        for var, level_before in before.items():
+            level_after = agent.state_now[var] * agent.state_now["pLvl"]
+            assert np.allclose(level_before, level_after, atol=1e-12, rtol=0.0), (
+                f"{var} level quantity moved across post_state_hook: max "
+                f"|diff| {np.nanmax(np.abs(level_after - level_before)):.3e}. "
+                "The pLvl shift was applied without the compensating rescale, "
+                "so every agent's wealth in level terms changed."
+            )
+            checked += 1
+
+        agent.get_controls()
+        agent.get_poststates()
+        agent._sim_period_epilogue()
+
+    assert checked >= 4, f"only {checked} level comparisons ran"
+
+
+def test_pLvl_normalization_actually_moves_pLvl():
+    """Guard for the test above: the rescale must have something to undo.
+
+    If `normalize_pLvl` left `pLvl` untouched, the level-preservation
+    assertion would hold trivially and prove nothing.
+    """
+    agent = NormalizedIndShock(AgentCount=600, T_sim=6, seed=20260810)
+    agent.normalize_pLvl = True
+    agent.track_vars = ["pLvl", "cNrm"]
+    agent.solve()
+    agent.initialize_sim()
+
+    agent._sim_period_prologue()
+    agent.get_states()
+    pLvl_before = agent.state_now["pLvl"].copy()
+    agent.post_state_hook()
+    moved = np.nanmax(np.abs(agent.state_now["pLvl"] - pLvl_before))
+    assert moved > 1e-9, (
+        f"post_state_hook moved pLvl by at most {moved:.3e}, so the "
+        "level-preservation test above would pass vacuously"
+    )
