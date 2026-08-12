@@ -25,7 +25,10 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_idiosyncratic_shocks,
+)
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
@@ -548,3 +551,85 @@ def test_markov_base_draw_cache_leaves_the_p_stream_alone():
             "is not consuming the same randomness as the default path"
         )
     assert off.RNG.bit_generator.state == on.RNG.bit_generator.state
+
+
+def _cyclical_agent(cls, seed=4242, agent_count=4000, t_sim=8):
+    """An infinite-horizon agent with a genuinely 2-period cycle.
+
+    Every other fixture in this file has ``T_cycle == 1``, where
+    ``IncShkDstn`` is a one-element list and indices 0 and -1 name the same
+    object.  That makes any period-indexing error in the Q pipeline
+    unobservable.  The two periods here carry deliberately different
+    ``PermShkStd`` and ``PermGroFac`` so picking the wrong one shows up in
+    both the dispersion and the mean.
+    """
+    params = deepcopy(init_idiosyncratic_shocks)
+    params.update(
+        T_cycle=2,
+        PermShkStd=[0.05, 0.20],
+        TranShkStd=[0.10, 0.10],
+        LivPrb=[0.98, 0.98],
+        PermGroFac=[1.00, 1.50],
+        Rfree=[1.03, 1.03],
+        AgentCount=agent_count,
+        T_sim=t_sim,
+        seed=seed,
+    )
+    agent = cls(**params)
+    agent.cycles = 0
+    agent.track_vars = ["cNrm", "pLvl"]
+    agent.solve()
+    return agent
+
+
+def test_q_draws_use_the_same_period_as_p_in_a_cyclical_model():
+    """P and Q must index the income process with the same offset.
+
+    `_draw_Q_shocks_indshock` used `t - 1 if cycles == 1 else t`, while the P
+    side (`IndShockConsumerType.get_shocks`) uses `t - 1` unconditionally and
+    so does the Markov Q path.  At `cycles=0, T_cycle=2` that put Q a period
+    ahead of P in both `IncShkDstn_Q` and `PermGroFac`, so the two measures
+    were drawing from different periods' income processes within the same
+    simulated period -- which also breaks the shared-base-draw coupling the
+    module exists for, since Q inverted period t-1's uniforms through period
+    t's CDF.
+
+    The two periods differ in PermGroFac (1.00 vs 1.50), so getting the offset
+    wrong shifts the Q permanent-shock mean by about 50%.
+    """
+    agent = _cyclical_agent(DualIndShock)
+    agent.setup_Q_measure()
+    agent.initialize_sim()
+
+    # Compared as a Q/P ratio rather than against PermGroFac[t - 1] directly.
+    # `t_cycle` is advanced by `_sim_period_epilogue` after the draw, so
+    # reconstructing the draw-time index from the post-step value is off by
+    # one -- and the ratio does not need it. Both sides fold in the same
+    # growth factor, so it cancels, leaving only the Q reweighting factor
+    # E[psi^2]/E[psi]^2. That is at most 1 + max(PermShkStd)^2 = 1.04 here.
+    # The bug made Q use the other period's factor, sending the ratio to
+    # 1.50 or 0.67.
+    worst = 1.0
+    for _ in range(6):
+        agent.sim_one_period()
+        for t in np.unique(agent.t_cycle):
+            cell = agent.t_cycle == t
+            if cell.sum() < 100:
+                continue
+            mean_p = np.mean(agent.shocks["PermShk"][cell])
+            mean_q = np.mean(agent.shocks_Q["PermShk"][cell])
+            ratio = mean_q / mean_p
+            worst = max(worst, abs(ratio - 1.0))
+            assert 0.95 < ratio < 1.15, (
+                f"t_cycle={t}: mean Q PermShk / mean P PermShk = {ratio:.4f}. "
+                "Both measures fold in the same PermGroFac, so this ratio can "
+                "only be the Q reweighting factor (<= 1.04 in this "
+                "calibration). A value near 1.5 or 0.67 means Q indexed a "
+                "different period's income process than P did."
+            )
+    # Guard against the assertion above passing vacuously on a calibration
+    # where the two periods happen to agree: the reweighting must be visible.
+    assert worst > 1e-3, (
+        "the Q reweighting is not measurable in this fixture, so the bound "
+        "above would pass even if Q and P shared no periods at all"
+    )

@@ -349,7 +349,15 @@ class DualMeasureMixin:
 
         for t in np.unique(self.t_cycle):
             idx = self.t_cycle == t
-            t_key = t - 1 if self.cycles == 1 else t
+            # t - 1 unconditionally, matching IndShockConsumerType.get_shocks
+            # (`t = s - 1`) and _draw_Q_shocks_markov (`IncShkDstn_Q[t - 1]`).
+            # This was `t - 1 if self.cycles == 1 else t`, which put Q one
+            # period ahead of P in both the shock distribution and the growth
+            # factor whenever cycles != 1 and T_cycle > 1 -- including
+            # cycles=0, this module's own documented usage. It was invisible
+            # because at T_cycle == 1 the list has one element and indices 0
+            # and -1 name it.
+            t_key = t - 1
             N = np.sum(idx)
             if N > 0:
                 IncShkDstnQ = self.IncShkDstn_Q[t_key]
