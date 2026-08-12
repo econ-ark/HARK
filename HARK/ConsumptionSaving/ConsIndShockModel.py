@@ -1190,6 +1190,7 @@ PerfForesightConsumerType_simulation_defaults = {
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
 }
 PerfForesightConsumerType_defaults = {}

@@ -776,6 +776,7 @@ init_indshk_markov = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
     "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
