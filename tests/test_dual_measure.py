@@ -721,3 +721,44 @@ def test_make_q_measure_dstn_still_warns_by_default():
         warnings.simplefilter("always")
         make_Q_measure_dstn(dstn, warn=False)
     assert not caught
+
+
+def test_setup_q_measure_refuses_models_whose_get_Rport_reads_p_side_state():
+    """A Q agent must not be priced at the P agent's portfolio return.
+
+    `_transition_Q` calls `self.get_Rport()`. That is sound when the return
+    depends only on model constants or on state both measures share, and
+    unsound when `get_Rport` reads state the Q pipeline never mirrors:
+
+      KinkedRconsumerType   picks Rboro vs Rsave from state_prev["aNrm"]
+      KinkyPrefConsumerType delegates to KinkedRconsumerType.get_Rport
+      ConsRiskyAssetModel   builds the return from controls["Share"], the
+                            P agent's realized portfolio choice, for which
+                            no Q-side counterpart exists at all
+
+    Composing any of those produces a wrong number rather than a degraded
+    one, so this refuses instead of warning. KinkyPref is in the list on
+    purpose: inspecting only its own one-line body reports it clean, which
+    is why the check follows one level of delegation.
+    """
+    from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+    from HARK.ConsumptionSaving.ConsPrefShockModel import KinkyPrefConsumerType
+    from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+
+    for base in (KinkedRconsumerType, KinkyPrefConsumerType, RiskyAssetConsumerType):
+        cls = type("Dual" + base.__name__, (DualMeasureMixin, base), {})
+        agent = cls(AgentCount=50, T_sim=3, seed=1)
+        agent.track_vars = ["cNrm"]
+        agent.solve()
+        with pytest.raises(NotImplementedError, match="get_Rport"):
+            agent.setup_Q_measure()
+
+
+def test_setup_q_measure_admits_models_whose_get_Rport_is_measure_neutral():
+    """The guard must not shut out the models the mixin is built for."""
+    for agent in (
+        _small_agent(DualIndShock, t_sim=3),
+        _markov_agent(DualMarkov, 200, 3),
+    ):
+        agent.setup_Q_measure()
+        assert agent.dual_measure is True

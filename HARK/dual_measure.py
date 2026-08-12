@@ -169,6 +169,31 @@ class DualMeasureMixin:
         reduction.  ``dual_measure`` is still set: the Q pipeline is well
         defined in that case, just not useful.
         """
+        # _transition_Q calls self.get_Rport() to price the Q agent's assets.
+        # That is fine when get_Rport is a model constant or depends only on
+        # state the two measures share, which covers IndShock (Rfree by
+        # t_cycle), Markov (indexed by the shared shocks["Mrkv"]) and AggShock
+        # (a scalar RfreeNow). It is unsound when get_Rport reads state the Q
+        # pipeline does not mirror: KinkedRconsumerType picks Rboro vs Rsave
+        # from state_prev["aNrm"], KinkyPrefConsumerType delegates to it, and
+        # ConsRiskyAssetModel builds the return from controls["Share"], the P
+        # agent's realized portfolio choice, for which there is no Q-side
+        # counterpart at all. Composing those gives the Q agent the P agent's
+        # return: a wrong number, not a degraded one, so this refuses rather
+        # than warns.
+        p_side = _get_Rport_reads_p_side(type(self).get_Rport)
+        if p_side:
+            raise NotImplementedError(
+                f"{type(self).__name__}.get_Rport reads "
+                f"{sorted(p_side)}, which the Q pipeline does not mirror, so "
+                "the Q measure would be priced at the P agent's portfolio "
+                "return. DualMeasureMixin requires a get_Rport that depends "
+                "only on model constants or on state shared by both measures "
+                "(as in IndShockConsumerType, MarkovConsumerType and "
+                "AggShockConsumerType). Kinked-R and portfolio-choice models "
+                "need a Q-aware get_Rport before they can be composed."
+            )
+
         # warn=False here, and the degenerate periods are counted instead.
         # Mapping over a lifecycle hits legitimately degenerate periods as a
         # matter of course: retirement periods are constructed with
@@ -681,6 +706,45 @@ class DualMeasureMixin:
 # ======================================================================
 # Standalone aggregation helpers
 # ======================================================================
+
+
+#: Names that mean "P-side" when read inside ``get_Rport``.  The Q pipeline
+#: mirrors ``shocks`` into ``shocks_Q`` and states into ``state_now_Q``, but
+#: nothing mirrors these, so a ``get_Rport`` that reads them returns the P
+#: agent's answer no matter which measure is asking.
+_P_SIDE_NAMES = frozenset({"state_prev", "state_now", "controls"})
+
+
+def _get_Rport_reads_p_side(fn, depth=2, seen=None):
+    """Names from ``_P_SIDE_NAMES`` that ``fn`` reads, following delegation.
+
+    Static inspection of ``co_names``, the same technique
+    ``HARK.simulation.normalization._warn_if_hook_unreachable`` uses to detect
+    a ``sim_one_period`` that never reaches ``post_state_hook``.  One level of
+    ``return OtherClass.get_Rport(self)`` is followed, because
+    ``KinkyPrefConsumerType`` is exactly that and inspecting only its own body
+    reports it clean.
+
+    This is a heuristic and is honest about being one: it sees names, not
+    dataflow, so a subclass that reaches P-side state through a helper several
+    frames down slips past.  It is a backstop against the compositions that
+    exist today, not a proof of safety for compositions that do not.
+    """
+    if seen is None:
+        seen = set()
+    if fn is None or depth < 0 or fn in seen:
+        return set()
+    seen.add(fn)
+    code = getattr(fn, "__code__", None)
+    if code is None:
+        return set()
+    names = set(code.co_names)
+    hits = names & _P_SIDE_NAMES
+    for name in names:
+        delegate = getattr(fn.__globals__.get(name), "get_Rport", None)
+        if delegate is not None:
+            hits |= _get_Rport_reads_p_side(delegate, depth - 1, seen)
+    return hits
 
 
 def _cohort_mass_normalizer(LivPrb, T_age):
