@@ -5,6 +5,8 @@ include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
 
+import warnings
+
 import numpy as np
 
 from HARK import AgentType, NullFunc
@@ -52,6 +54,54 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+def resolve_balanced_sort_key(agent):
+    """The pLvl array to systematically sample Markov transitions by, or None.
+
+    ``None`` means draw unbalanced, and covers two cases: ``balanced_transitions``
+    is off, or it is on but the agent has no ``pLvl`` to sort by.  The second
+    warns rather than raising.  Falling back to an unbalanced shuffle still
+    simulates the right model, it just keeps the sampling noise that
+    ``balanced_transitions`` exists to remove, so refusing to run would be a
+    harsher response than the situation calls for.
+
+    Reads ``state_prev``, never ``state_now``.  Every caller runs inside
+    ``get_shocks``, which ``_sim_period_prologue`` invokes *after* blanking
+    each ndarray in ``state_now`` with ``np.empty``.  Sorting on
+    ``state_now["pLvl"]`` there sorts by uninitialized memory, which neither
+    raises nor produces NaN, so finding the key present in ``state_now``
+    is not evidence that its contents mean anything.
+
+    Do not substitute ``aNrm`` or wealth for ``pLvl`` here.  That creates a
+    feedback loop in which low-wealth agents are repeatedly selected for
+    adverse transitions and get trapped there.
+
+    Parameters
+    ----------
+    agent : AgentType
+        The agent whose ``balanced_transitions`` flag and ``state_prev`` are
+        consulted.
+
+    Returns
+    -------
+    np.ndarray or None
+        The full per-agent ``pLvl`` array; callers index it with their own
+        cell mask.  ``None`` to draw unbalanced.
+    """
+    if not getattr(agent, "balanced_transitions", False):
+        return None
+    pLvl_prev = getattr(agent, "state_prev", {}).get("pLvl")
+    if pLvl_prev is None:
+        warnings.warn(
+            "balanced_transitions=True, but state_prev has no 'pLvl' to sort "
+            f"on for {type(agent).__name__}; Markov transitions fall back to "
+            "unbalanced shuffling. Set balanced_transitions=False to silence "
+            "this, or use an agent type that tracks pLvl.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+    return pLvl_prev
 
 
 ###############################################################################
@@ -983,25 +1033,22 @@ class MarkovConsumerType(IndShockConsumerType):
         MrkvPrev = self.shocks["Mrkv"]
         MrkvNow = np.zeros(self.AgentCount, dtype=int)
 
+        # Resolved once rather than per period: the answer cannot change
+        # inside the loop, and asking per period would emit one identical
+        # warning per element of T_cycle when pLvl is missing.
+        pLvl_prev = resolve_balanced_sort_key(self)
+
         # Draw new Markov states for each agent
         for t in range(self.T_cycle):
             markov_process = MarkovProcess(
                 self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
-            # When balanced_transitions is enabled, pass pLvl as sort key
-            # so that agents selected for each transition are systematically
-            # sampled across the permanent income distribution.
-            # NOTE: Do NOT use aNrm or wealth as sort key - it creates a
-            # feedback loop where low-wealth agents are repeatedly selected
-            # for adverse transitions, trapping them in poverty.
-            # state_prev, not state_now: this runs inside get_shocks, which
-            # _sim_period_prologue calls after blanking state_now with
-            # np.empty, so state_now["pLvl"] here is uninitialized memory.
-            if getattr(self, "balanced_transitions", False):
-                sort_key = self.state_prev["pLvl"][right_age]
-            else:
-                sort_key = None
+            # Sorting by pLvl systematically samples the agents chosen for
+            # each transition across the permanent income distribution
+            # instead of clumping them.  See resolve_balanced_sort_key for
+            # why the key is pLvl, and why it is read from state_prev.
+            sort_key = None if pLvl_prev is None else pLvl_prev[right_age]
             MrkvNow[right_age] = markov_process.draw(
                 MrkvPrev[right_age],
                 shuffle=getattr(self, "markov_shuffle", False),

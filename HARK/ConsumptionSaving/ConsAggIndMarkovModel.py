@@ -14,8 +14,9 @@ single integer index:
 This module provides:
 
 * ``make_hierarchical_mrkv_array`` - builds the full (M*N) x (M*N) Markov
-  transition matrix from an M x M aggregate matrix and M conditional N x N
-  micro matrices.
+  transition matrix from an M x M aggregate matrix and either M conditional
+  N x N micro matrices (destination-conditioned) or, in the general format,
+  M x M of them keyed by source and destination macro state.
 
 * ``AggIndMrkvConsumerType`` - a ``MarkovConsumerType`` subclass that implements
   two-step Markov draws (macro from economy, micro per-agent) each period.
@@ -33,11 +34,12 @@ This class was created in response to the prompt:
 The prompt was executed by Claude Opus 4.6 (Anthropic, 2025).
 """
 
-import warnings
-
 import numpy as np
 
-from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.ConsumptionSaving.ConsMarkovModel import (
+    MarkovConsumerType,
+    resolve_balanced_sort_key,
+)
 from HARK.distributions.base import MarkovProcess
 
 # Sentinel written into the micro-state buffer before the drawing loops run, so
@@ -317,10 +319,15 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
 
         When ``markov_shuffle`` is True, uses
         :class:`~HARK.distributions.base.MarkovProcess` with ``shuffle=True``
-        per (macro, source-micro) cell - analogous to ``get_markov_states``
-        on a flat Markov chain; with ``balanced_transitions``, systematic
-        sampling by pLvl within each cell.  Default remains iid
-        ``RNG.choice`` per cell.
+        per cell - analogous to ``get_markov_states`` on a flat Markov chain;
+        with ``balanced_transitions``, systematic sampling by pLvl within
+        each cell.  Default remains iid ``RNG.choice`` per cell.
+
+        What counts as a cell depends on the ``CondMrkvArrays`` format.  The
+        simple format conditions only on the destination macro state, giving
+        (destination-macro, source-micro) cells; the general format also
+        conditions on the source, giving the finer partition
+        (source-macro, destination-macro, source-micro).
 
         Override entirely for custom logic (e.g. Krusell-Smith exact-match
         employment permutations).
@@ -347,28 +354,11 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         )
 
         if getattr(self, "markov_shuffle", False):
-            # Checked here rather than at the top of the method: the default
+            # Resolved here rather than at the top of the method: the default
             # branch below never consults a sort key, so warning there would
             # describe a fallback that does not apply.
-            #
-            # state_prev, not state_now: this method runs inside get_shocks,
-            # which _sim_period_prologue calls *after* blanking every ndarray
-            # in state_now with np.empty.  Sorting on state_now["pLvl"] there
-            # sorts by uninitialized memory, which never raises and never
-            # produces NaN.  The key is present either way, so testing
-            # membership in state_now would not catch it.
-            pLvl_prev = getattr(self, "state_prev", {}).get("pLvl")
-            balanced = getattr(self, "balanced_transitions", False)
-            if balanced and pLvl_prev is None:
-                warnings.warn(
-                    "balanced_transitions=True, but state_prev has no 'pLvl' "
-                    "to sort on; micro transitions fall back to unbalanced "
-                    "shuffling.  Set balanced_transitions=False to silence "
-                    "this, or use an agent type that tracks pLvl.",
-                    RuntimeWarning,
-                    stacklevel=2,
-                )
-                balanced = False
+            pLvl_prev = resolve_balanced_sort_key(self)
+            balanced = pLvl_prev is not None
 
             macro_next = np.asarray(self.MacroMrkvNow, dtype=int)
             macro_prev = self.macro_from_combined(self.shocks["Mrkv"])
