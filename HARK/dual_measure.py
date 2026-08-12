@@ -71,11 +71,7 @@ def make_Q_measure_dstn(dstn):
     if E_perm <= 0 or np.std(perm_atoms) < 1e-12:
         warnings.warn(
             "make_Q_measure_dstn: the permanent shock has "
-            + (
-                f"non-positive mean ({E_perm:.6g})"
-                if E_perm <= 0
-                else "no dispersion"
-            )
+            + (f"non-positive mean ({E_perm:.6g})" if E_perm <= 0 else "no dispersion")
             + ", so no neutral-measure reweighting is possible; returning the "
             "P-measure distribution unchanged. Q-measure results will equal "
             "P-measure results for this distribution.",
@@ -460,9 +456,7 @@ class DualMeasureMixin:
                 else:
                     indices_Q = IncShkDstnQ_0.draw_events(N_new)
 
-                PermShkQ[these_nb] = (
-                    IncShkDstnQ_0.atoms[0][indices_Q] * PermGroFacNow
-                )
+                PermShkQ[these_nb] = IncShkDstnQ_0.atoms[0][indices_Q] * PermGroFacNow
                 TranShkQ[these_nb] = IncShkDstnQ_0.atoms[1][indices_Q]
 
             if not getattr(self, "NewbornTransShk", False):

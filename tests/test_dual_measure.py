@@ -1,15 +1,23 @@
 """Tests for HARK.dual_measure (Harmenberg neutral-measure parallel tracking).
 
 Covers:
-1. ``make_Q_measure_dstn``: correct psi/E[psi] reweighting, atoms unchanged.
+1. ``make_Q_measure_dstn``: correct psi/E[psi] reweighting, atoms unchanged,
+   and a warning rather than a silent pass-through when there is nothing to
+   reweight.
 2. ``_cdf_invert``: deterministic CDF inversion.
 3. **Default-path invariance**: composing ``DualMeasureMixin`` without
-   enabling it leaves a simulation bit-identical to the plain agent
-   (the non-disruption guarantee for this pure-addition module).
-4. Dual-mode smoke: Q-side states/history exist, are finite, and the
-   Q-measure aggregate of cNrm tracks the P-measure aggregate of
-   cLvl/E[pLvl] (the Harmenberg identity) within sampling tolerance.
-5. ``compute_mean_pLvl``: closed-form degenerate case.
+   enabling it leaves a simulation bit-identical to the plain agent, RNG
+   stream included (the non-disruption guarantee for this pure-addition
+   module); and enabling it does not change what the P pipeline records.
+4. Dual-mode correctness: the realized Q sample carries the Q measure's own
+   mean permanent shock, checked against the analytical E[psi^2]/E[psi]^2
+   with a Q-equals-P control that must fail the same assertion.  The
+   Harmenberg aggregation identity is checked separately, and is documented
+   there as a check on ``aggregate_Q``'s bookkeeping rather than on the
+   reweighting, because in this calibration it holds either way.
+5. Q-state integrity: the states in ``history_Q`` satisfy the transition
+   arithmetic that defines them, and an unwritten Q state reads as NaN.
+6. ``compute_mean_pLvl``: closed-form degenerate case.
 """
 
 from copy import deepcopy
@@ -135,9 +143,9 @@ def test_setup_q_measure_is_quiet_when_reweighting_is_possible(recwarn):
     agent = _small_agent(DualIndShock, t_sim=3)
     agent.setup_Q_measure()
     messages = [str(w.message) for w in recwarn]
-    assert not [
-        m for m in messages if "neutral measure" in m or "dispersion" in m
-    ], messages
+    assert not [m for m in messages if "neutral measure" in m or "dispersion" in m], (
+        messages
+    )
 
 
 def test_cdf_invert_known_case():
