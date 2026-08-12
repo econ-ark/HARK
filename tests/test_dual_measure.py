@@ -20,6 +20,7 @@ Covers:
 6. ``compute_mean_pLvl``: closed-form degenerate case.
 """
 
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -28,6 +29,7 @@ import pytest
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_idiosyncratic_shocks,
+    init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
@@ -674,3 +676,48 @@ def test_cohort_mass_normalizer_matches_the_formulas_it_replaced():
             got = norm(LivPrb, T_age)
             assert got == pytest.approx(old_C_norm, rel=1e-15)
             assert got == pytest.approx(old_delta_eff, rel=1e-15)
+
+
+def test_lifecycle_setup_does_not_warn_once_per_retirement_period():
+    """Degenerate periods are normal in a lifecycle, so they must not shout.
+
+    Retirement periods are built with ``n_approx_Perm = 1``, so the permanent
+    shock is a point mass and P equals Q there by construction, not by
+    accident. A stock ``init_lifecycle`` has 25 such periods out of 65, and
+    warning per period emitted 25 identical messages from a single
+    ``setup_Q_measure()`` call. The cost is not the noise itself: it buries
+    the aggregate warning, which is the one that means the caller enabled
+    dual mode and will get nothing for it.
+    """
+    agent = DualIndShock(**deepcopy(init_lifecycle))
+    agent.track_vars = ["cNrm"]
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        agent.setup_Q_measure()
+    degenerate_warnings = [
+        str(w.message) for w in caught if "no dispersion" in str(w.message)
+    ]
+    assert not degenerate_warnings, (
+        f"{len(degenerate_warnings)} per-period warnings on a stock lifecycle"
+    )
+
+    # The information is still available, just not shouted.
+    assert len(agent.Q_degenerate_periods) == 25
+    assert agent.Q_degenerate_periods == sorted(agent.Q_degenerate_periods)
+    # ...and 40 periods really did reweight, which is why the aggregate
+    # warning below must stay silent here.
+    assert agent._any_reweighting_happened()
+
+
+def test_make_q_measure_dstn_still_warns_by_default():
+    """Suppression is opt-in, so a direct caller keeps the diagnostic."""
+    dstn = DiscreteDistribution(
+        np.array([0.5, 0.5]), [np.array([1.0, 1.0]), np.array([0.7, 1.3])], seed=0
+    )
+    with pytest.warns(RuntimeWarning, match="no dispersion"):
+        make_Q_measure_dstn(dstn)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        make_Q_measure_dstn(dstn, warn=False)
+    assert not caught

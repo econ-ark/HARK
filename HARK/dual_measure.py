@@ -47,7 +47,7 @@ __all__ = [
 ]
 
 
-def make_Q_measure_dstn(dstn):
+def make_Q_measure_dstn(dstn, warn=True):
     """Reweight a DiscreteDistribution by psi/E[psi] (Harmenberg neutral measure).
 
     Parameters
@@ -55,6 +55,16 @@ def make_Q_measure_dstn(dstn):
     dstn : DiscreteDistribution
         Joint (PermShk, TranShk) distribution under the physical measure.
         ``dstn.atoms[0]`` must be the permanent shock values.
+    warn : bool
+        Whether to warn when no reweighting is possible.  Callers reweighting
+        a single distribution want the warning and get it by default.
+        ``setup_Q_measure`` passes False because it maps this over every
+        period of a lifecycle, where degenerate periods are the normal case
+        rather than a symptom: retirement periods are built with
+        ``n_approx_Perm = 1``, so P equals Q there by construction.  Warning
+        once per period made a stock ``init_lifecycle`` emit 25 identical
+        warnings from one call, which buries the aggregate warning that does
+        mean something.  It reports the count instead.
 
     Returns
     -------
@@ -62,22 +72,27 @@ def make_Q_measure_dstn(dstn):
         New distribution with Q-measure probabilities and the same atoms.
         If the permanent shock has zero variance, or a non-positive mean,
         there is no neutral measure to construct and the original
-        distribution is returned unchanged, with a ``RuntimeWarning``: the
-        caller gets a Q measure identical to P, which is a silent no-op
-        rather than the variance reduction the reweighting is asked for.
+        distribution is returned unchanged: the caller gets a Q measure
+        identical to P, which is a no-op rather than the variance reduction
+        the reweighting is asked for.
     """
     perm_atoms = dstn.atoms[0]
     E_perm = np.dot(dstn.pmv, perm_atoms)
     if E_perm <= 0 or np.std(perm_atoms) < 1e-12:
-        warnings.warn(
-            "make_Q_measure_dstn: the permanent shock has "
-            + (f"non-positive mean ({E_perm:.6g})" if E_perm <= 0 else "no dispersion")
-            + ", so no neutral-measure reweighting is possible; returning the "
-            "P-measure distribution unchanged. Q-measure results will equal "
-            "P-measure results for this distribution.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
+        if warn:
+            warnings.warn(
+                "make_Q_measure_dstn: the permanent shock has "
+                + (
+                    f"non-positive mean ({E_perm:.6g})"
+                    if E_perm <= 0
+                    else "no dispersion"
+                )
+                + ", so no neutral-measure reweighting is possible; returning "
+                "the P-measure distribution unchanged. Q-measure results will "
+                "equal P-measure results for this distribution.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         return dstn
     Q_pmv = dstn.pmv * perm_atoms / E_perm
     Q_pmv /= Q_pmv.sum()
@@ -154,12 +169,29 @@ class DualMeasureMixin:
         reduction.  ``dual_measure`` is still set: the Q pipeline is well
         defined in that case, just not useful.
         """
+        # warn=False here, and the degenerate periods are counted instead.
+        # Mapping over a lifecycle hits legitimately degenerate periods as a
+        # matter of course: retirement periods are constructed with
+        # n_approx_Perm = 1, so P equals Q there by design. A stock
+        # init_lifecycle emits 25 of those from a single call, which trains
+        # the reader to filter the module and so hides the aggregate warning
+        # below, which is the one that means something.
         self.IncShkDstn_Q = []
         for period_dstn in self.IncShkDstn:
             if isinstance(period_dstn, (list, tuple)):
-                self.IncShkDstn_Q.append([make_Q_measure_dstn(d) for d in period_dstn])
+                self.IncShkDstn_Q.append(
+                    [make_Q_measure_dstn(d, warn=False) for d in period_dstn]
+                )
             else:
-                self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn))
+                self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn, warn=False))
+
+        # Recorded rather than warned: inspectable after the fact without
+        # costing anything on the healthy path.
+        self.Q_degenerate_periods = [
+            t
+            for t, (p, q) in enumerate(zip(self.IncShkDstn, self.IncShkDstn_Q))
+            if p is q
+        ]
 
         if not self._any_reweighting_happened():
             warnings.warn(
