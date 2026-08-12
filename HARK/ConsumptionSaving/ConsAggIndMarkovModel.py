@@ -43,6 +43,12 @@ from HARK import AgentType
 # =============================================================================
 
 
+__all__ = [
+    "make_hierarchical_mrkv_array",
+    "extract_cond_mrkv_arrays",
+    "AggIndMarkovConsumerType",
+]
+
 def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
     """
     Build a full (M*N) x (M*N) Markov transition matrix.

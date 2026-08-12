@@ -5,3 +5,8 @@ Simulation
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: HARK.simulation.normalization
+   :members:
+   :undoc-members:
+   :show-inheritance:
