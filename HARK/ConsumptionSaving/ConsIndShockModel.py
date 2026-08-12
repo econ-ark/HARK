@@ -13,6 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
+import warnings
 from copy import copy
 
 import numpy as np
@@ -89,6 +90,31 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+def warn_if_shuffle_voids_base_draw_cache(agent):
+    """Warn when income_shuffle and the base-draw cache are both requested.
+
+    The shuffled path picks atom counts directly rather than inverting a
+    uniform per agent, so there are no base draws to record and the cache
+    comes back empty.  Anything reading it, the dual-measure Q-pipeline in
+    particular, then falls back to drawing independently, which is silent
+    and undoes the point of the cache.  Returns True when both are set.
+    """
+    if not getattr(agent, "_cache_base_shock_draws", False):
+        return False
+    if not getattr(agent, "income_shuffle", False):
+        return False
+    warnings.warn(
+        "income_shuffle=True and _cache_base_shock_draws=True are both set on "
+        f"{type(agent).__name__}. The shuffled draw records no base uniforms, "
+        "so _base_shock_draws will be empty and any consumer of it (such as "
+        "the dual-measure Q-pipeline) will draw independently instead of "
+        "sharing the P-measure draws. Turn one of the two off.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+    return True
 
 
 # =====================================================================
@@ -1330,6 +1356,11 @@ class PerfForesightConsumerType(AgentType):
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now["PlvlAgg"] = 1.0
+        # Drop base draws cached by an earlier run. They are keyed by
+        # t_cycle, so a consumer reading them after the flag is turned off,
+        # or after AgentCount changes, would silently pair this period's
+        # agents with a previous run's uniforms.
+        self._base_shock_draws = {}
         super().initialize_sim()
 
     def sim_birth(self, which_agents):
@@ -2033,6 +2064,7 @@ IndShockConsumerType_simulation_default = {
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
 
 IndShockConsumerType_defaults = {}
@@ -2203,6 +2235,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
+        When ``income_shuffle`` is True (default False), draws use
+        ``DiscreteDistribution.draw(N, shuffle=True)`` (exact
+        floor-plus-leftover shock frequencies with random assignment),
+        eliminating cross-sectional sampling noise in the shock
+        composition.  The default path is the original iid RNG code,
+        preserved verbatim.
+
         Parameters
         ----------
         NewbornTransShk : boolean, optional
@@ -2218,6 +2257,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
+        _cache = getattr(self, "_cache_base_shock_draws", False)
+        warn_if_shuffle_voids_base_draw_cache(self)
+        base_draws_dict = {}
         for s in np.unique(self.t_cycle):
             idx = self.t_cycle == s
             t = s - 1
@@ -2228,13 +2270,29 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow = self.IncShkDstn[t]
                 # and permanent growth factor
                 PermGroFacNow = self.PermGroFac[t]
-                # Get random draws of income shocks from the discrete distribution
-                IncShks = IncShkDstnNow.draw(N)
-
-                PermShkNow[idx] = (
-                    IncShks[0, :] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShks[1, :]
+                # Draw income shocks from the discrete distribution
+                if getattr(self, "income_shuffle", False):
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                elif _cache:
+                    # Same uniforms and same inversion as draw_events:
+                    # the P-stream is unchanged; the draws are recorded
+                    # for dual-measure Q-CDF inversion.
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[s] = base_draws
+                    EventDraws = np.searchsorted(
+                        np.cumsum(IncShkDstnNow.pmv), base_draws
+                    )
+                    PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                else:
+                    # Original RNG path, preserved bit-for-bit.
+                    IncShks = IncShkDstnNow.draw(N)
+                    PermShkNow[idx] = (
+                        IncShks[0, :] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShks[1, :]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2245,16 +2303,31 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[idx] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-            )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            # Draw income shocks from the discrete distribution
+            if getattr(self, "income_shuffle", False):
+                ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                TranShkNow[idx] = ShockDraws[1]
+            elif _cache:
+                base_draws = IncShkDstnNow._rng.uniform(size=N)
+                base_draws_dict["newborn"] = base_draws
+                EventDraws = np.searchsorted(np.cumsum(IncShkDstnNow.pmv), base_draws)
+                PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            else:
+                # Original RNG path, preserved bit-for-bit.
+                EventDraws = IncShkDstnNow.draw_events(N)
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
+
+        if _cache:
+            self._base_shock_draws = base_draws_dict
 
         # Store the shocks in self
         self.shocks["PermShk"] = PermShkNow
