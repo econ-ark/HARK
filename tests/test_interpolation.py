@@ -3,6 +3,7 @@ This file implements unit tests for interpolation methods
 """
 
 from HARK.interpolation import (
+    _iter_unique_pairs,
     IdentityFunction,
     LinearInterp,
     CubicInterp,
@@ -1107,3 +1108,57 @@ class TestInterpolation2DBroadcasting(unittest.TestCase):
         result_array = lioi(np.array([2.0, 2.0, 2.0]), y)
 
         np.testing.assert_array_almost_equal(result_scalar, result_array)
+
+
+class TestIterUniquePairs(unittest.TestCase):
+    """The integer packing in _iter_unique_pairs and its overflow fallback."""
+
+    @staticmethod
+    def _collect(*positions):
+        return sorted(
+            (tuple(idx), tuple(np.flatnonzero(mask)))
+            for *idx, mask in _iter_unique_pairs(*positions)
+        )
+
+    @staticmethod
+    def _reference(*positions):
+        """What np.unique(axis=0) produced before the packing was introduced."""
+        combos, inverse = np.unique(
+            np.column_stack(positions), axis=0, return_inverse=True
+        )
+        inverse = inverse.reshape(-1)
+        return sorted(
+            (tuple(int(v) for v in combo), tuple(np.flatnonzero(inverse == k)))
+            for k, combo in enumerate(combos)
+        )
+
+    def test_matches_unique_axis0_on_one_two_and_three_axes(self):
+        rng = np.random.default_rng(0)
+        for n_axes in (1, 2, 3):
+            pos = [rng.integers(0, 7, size=500) for _ in range(n_axes)]
+            self.assertEqual(self._collect(*pos), self._reference(*pos), n_axes)
+
+    def test_empty_and_single_cell(self):
+        self.assertEqual(self._collect(np.array([], dtype=int)), [])
+        self.assertEqual(self._collect(np.zeros(4, dtype=int)), [((0,), (0, 1, 2, 3))])
+
+    def test_overflow_falls_back_and_stays_correct(self):
+        # Constructed so the packed key genuinely COLLIDES without the guard,
+        # not merely so the guard's condition is true. With three axes of
+        # stride 2**22, key = a * 2**44 + b * 2**22 + c, so the row
+        # (2**20, 0, 0) packs to 2**64, which wraps to exactly 0 and merges
+        # with (0, 0, 0). An earlier version of this test used rows whose
+        # wrapped keys stayed distinct, so it passed with the guard removed.
+        top = 2**22 - 1  # present in each axis, so every stride is 2**22
+        pos = [
+            np.array([0, 2**20, top]),
+            np.array([0, 0, top]),
+            np.array([0, 0, top]),
+        ]
+        self.assertGreater(2**66 - 1, np.iinfo(np.int64).max)
+
+        got = self._collect(*pos)
+        self.assertEqual(got, self._reference(*pos))
+        # Three distinct rows must remain three distinct cells; under the
+        # wrapped key the first two merge into one.
+        self.assertEqual(len(got), 3)
