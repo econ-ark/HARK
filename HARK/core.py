@@ -1790,9 +1790,14 @@ class AgentType(Model):
         instead of duplicating the boilerplate.
 
         In the state-rotation loop, every entry is carried into ``state_prev``
-        but only ndarray entries are reset to empty. Non-array entries are
+        but only ndarray entries are blanked. Non-array entries are
         aggregates, probably being set by the Market, so leaving them in place
         is deliberate rather than an oversight.
+
+        Blanking fills with ``nan`` rather than ``np.empty``: a state that no
+        later step writes then surfaces as ``nan`` instead of as whatever the
+        freed buffer held, which is usually the previous period's values and so
+        reads as plausible data. See issue #1809.
         """
         if not hasattr(self, "solution"):
             raise Exception(
@@ -1803,7 +1808,7 @@ class AgentType(Model):
         for var in self.state_now:
             self.state_prev[var] = self.state_now[var]
             if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
+                self.state_now[var] = np.full(self.AgentCount, np.nan)
         if self.read_shocks:
             self.read_shocks_from_history()
         else:
