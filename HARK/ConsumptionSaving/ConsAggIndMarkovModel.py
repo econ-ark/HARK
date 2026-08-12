@@ -49,6 +49,7 @@ __all__ = [
     "AggIndMrkvConsumerType",
 ]
 
+
 def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
     """
     Build a full (M*N) x (M*N) Markov transition matrix.
