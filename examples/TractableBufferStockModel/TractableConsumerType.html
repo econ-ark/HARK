@@ -1,0 +1,940 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tractable Buffer Stock Model &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/TractableBufferStockModel/TractableConsumerType';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/TractableBufferStockModel/TractableConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Representative Agent Models" href="../ConsRepAgentModel/RepAgentConsumerType.html" />
+    <link rel="prev" title="Perfect Foresight Model" href="../ConsIndShockModel/PerfForesightConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i><span class="visually-hidden">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i><span class="visually-hidden">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i><span class="visually-hidden">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i><span class="visually-hidden">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-lifecycle.html">HA-SSJs in Life-Cycle Models</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockMarkovConsumerType.html">Aggregate Productivity Shocks with a Discrete State</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/KrusellSmithType.html">Krusell-Smith Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/BequestWarmGlowConsumerType.html">Warm Glow Bequest Motives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/BequestWarmGlowPortfolioType.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHabitModel/HabitConsumerType.html">Habit Formation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/WealthPortfolioConsumerType.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHabitModel/HabitPortfolioConsumerType.html">Habit Formation with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsLaborModel/LaborIntMargConsumerType.html">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Transition Matrix vs Monte Carlo Methods for Heterogeneous-Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Tractable Buffer Stock Model</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/TractableBufferStockModel/TractableConsumerType.ipynb">examples/TractableBufferStockModel/TractableConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/TractableBufferStockModel/TractableConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="TractableConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Tractable-Buffer-Stock-Model">
+<h1>Tractable Buffer Stock Model<a class="headerlink" href="#Tractable-Buffer-Stock-Model" title="Link to this heading">#</a></h1>
+<p>HARK’s primary focus is on heterogeneous agents models that are plausibly related to the real world, and can be used to investigate and understand empirical observations. However, it also includes a relatively simple model that is intended only for teaching and learning about the mechanisms underlying consumption-saving models, the <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code> based on Chris Carroll’s “tractable buffer stock model” (see extensive lecture notes
+<a class="reference external" href="https://llorracc.github.io/TractableBufferStock/">here</a>).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import needed tools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>  <span class="c1"># timing utility</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>  <span class="c1"># numeric Python</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarkovConsumerType</span><span class="p">,</span> <span class="n">TractableConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.distributions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiscreteDistributionLabeled</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_funcs</span>  <span class="c1"># basic plotting tools</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">{:.4f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<section id="Statement-of-Tractable-Buffer-Stock-Model">
+<h2>Statement of Tractable Buffer Stock Model<a class="headerlink" href="#Statement-of-Tractable-Buffer-Stock-Model" title="Link to this heading">#</a></h2>
+<p>While most models in HARK are designed to be compatible with both infinite horizon and life-cycle specification, the tractable buffer stock model is <em>only</em> an infinite horizon model. The key feature that makes it somewhat “tractable” is that the nature of risk is <em>very</em> specific. The agent begins employed, and their income grows at a constant rate while they remain employed. The only risk is a constant probability that they will become unemployed and <em>never</em> receive labor income again.</p>
+<p>An agent who will never again receive non-capital income is faced with a “cake-eating problem”; with CRRA preferences, the optimal solution is to consume a constant fraction of remaining wealth (with a simple closed form MPC). The crux of the problem is to find optimal consumption when still employed. The fact that there are only <em>two</em> possible future state realizations greatly aids in characterizing optimal behavior under risk.</p>
+<p><span class="math notranslate nohighlight">\(\newcommand{\UnempPrb}{\mho}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\CRRA}{\rho}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\DiscFac}{\beta}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PermGroFac}{\Gamma}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PermGroFacBase}{G}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Rfree}{\mathsf{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Reff}{\mathcal{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PFMPC}{\overline{\kappa}}\)</span></p>
+<p>While still employed, the (income-normalized) model can be written in Bellman form as:</p>
+<p><span class="math">\begin{align*}
+\text{v}_e({m}_t) &= \max_{{c}_t \leq m_t} ~ \frac{c_t^{1-\CRRA}}{1-\CRRA} + \DiscFac \left( \overbrace{\UnempPrb \text{v}_{u}(m_{t+1})}^{\text{unemployed}} + \overbrace{(1-\UnempPrb) \PermGroFac^{1-\CRRA} \text{v}_{e}(m_{t+1})}^{\text{employed}} \right) \\
+& \text{s.t.}  \\
+{m}_{t+1} &= \begin{cases}
+\Rfree(m_{t}-c_{t})/\PermGroFac + 1 & \text{if employed} \\
+\Rfree(m_{t}-c_{t}) & \text{if unemployed} \\
+\end{cases}.
+\end{align*}</span></p>
+<p>Once unemployed, the model is simply:</p>
+<p><span class="math">\begin{align*}
+\text{v}_u({m}_t) &= \max_{{c}_t \leq m_t} ~ \frac{c_t^{1-\CRRA}}{1-\CRRA} + \DiscFac \text{v}_{u}(m_{t+1})\\
+& \text{s.t.}  \\
+{m}_{t+1} &= \Rfree (m_{t}-c_{t}).
+\end{align*}</span></p>
+<p>The permanent income growth factor <span class="math notranslate nohighlight">\(\PermGroFac\)</span> is <em>risk-compensated</em> from a base value of <span class="math notranslate nohighlight">\(\PermGroFacBase\)</span>, so that <span class="math notranslate nohighlight">\(\PermGroFac = \PermGroFacBase / (1 - \UnempPrb)\)</span>. This parameterization lets us separate the <em>riskiness</em> of a higher unemployment rate from a change in human wealth (from fewer expected future periods with labor income).</p>
+</section>
+<section id="Solving-the-Tractable-Buffer-Stock-Model">
+<h2>Solving the Tractable Buffer Stock Model<a class="headerlink" href="#Solving-the-Tractable-Buffer-Stock-Model" title="Link to this heading">#</a></h2>
+<p>Most consumption-saving models in HARK are solved using the endogenous grid method (EGM), but the tractable buffer stock model permits a different solution method that Chris Carroll calls “backshooting”. Please see his careful lecture notes for a full treatment.</p>
+<p>First, he shows that a unique “target” market-resources-to-income ratio exists, conditional on parameter restrictions. The target <span class="math notranslate nohighlight">\(\hat{m}\)</span> represents the market resources ratio at which <span class="math notranslate nohighlight">\(m_{t+1} = m_t\)</span> as long as the agent remains employed; above <span class="math notranslate nohighlight">\(\hat{m}\)</span>, they will spend down toward it, and below <span class="math notranslate nohighlight">\(\hat{m}\)</span> they will save up to it. Importantly, Chris shows that <span class="math notranslate nohighlight">\(\hat{m}\)</span> can be found in closed form.</p>
+<p>Next, he characterizes the (employed) consumption function at <span class="math notranslate nohighlight">\(\hat{m}\)</span> in terms of its level <span class="math notranslate nohighlight">\(\hat{c}\)</span> and first three derivatives: the marginal propensity to consumpe (MPC), the marginal marginal propensity to consume (MMPC), and the marginal marginal marginal propensity to consume (MMMPC). Trivially, we also know that <span class="math notranslate nohighlight">\(c_t = 0\)</span> if <span class="math notranslate nohighlight">\(m_t = 0\)</span>, and Chris derives the limit of the MPC as <span class="math notranslate nohighlight">\(m_t \rightarrow 0\)</span>.</p>
+<p>The level and derivatives of the consumption function at <span class="math notranslate nohighlight">\(\hat{m}\)</span> generate a Taylor approximation to the employed consumption function that is <em>very</em> accurate nearby to <span class="math notranslate nohighlight">\(\hat{m}\)</span>. The Taylor approximation is used to generate a few more points on the consumption function slightly above and below <span class="math notranslate nohighlight">\(\hat{m}\)</span>, perturbing by some fairly small <span class="math notranslate nohighlight">\(\epsilon\)</span>.</p>
+<p>The idea of backshooting is that if we know some point on the employed consumption function <span class="math notranslate nohighlight">\((m_t, c_t)\)</span>, and we also know the unemployed consumption function in closed form (i.e. consume linearly at the perfect foresight marginal propensity to consume <span class="math notranslate nohighlight">\(\PFMPC\)</span>), then we can deduce what the <em>prior</em> employed consumption value <span class="math notranslate nohighlight">\(c_{t-1}\)</span> must have been if the agent acted optimally; reversing the model’s dynamics recovers the <span class="math notranslate nohighlight">\(m_{t-1}\)</span> from which it was chosen.</p>
+<p>Specifically, the first order condition when employed says:</p>
+<p><span class="math">\begin{align*}
+c_t^{-\CRRA} - \DiscFac \Rfree \left( \UnempPrb \text{v}'_u(\Rfree(m_t - c_t)) + (1-\UnempPrb) \PermGroFac^{-\CRRA} \text{v}'_e(\Rfree(m_t - c_t)/\PermGroFac + 1) \right) = 0 \\
+\Longrightarrow c_t^{-\CRRA} = \DiscFac \Rfree \left( \UnempPrb \text{v}'_u(\Rfree(m_t - c_t)) + (1-\UnempPrb) \PermGroFac^{-\CRRA} \text{v}'_e(\Rfree(m_t - c_t)/\PermGroFac + 1) \right).
+\end{align*}</span></p>
+<p>When backshooting, we know <span class="math notranslate nohighlight">\(m_{t+1}^e = \Rfree(m_t - c_t)/\PermGroFac + 1\)</span> and the associated <span class="math notranslate nohighlight">\(c_{t+1}^e\)</span>, as previously discovered point on the employed consumption function. From these values, it is easy to calculate what market resources <em>would have been</em> had we become unemployed this period instead, <span class="math notranslate nohighlight">\(m_{t+1}^u\)</span>. Because the unemployed consumption function is linear, we can also calculate what our consumption <em>would have been</em> had we become unemployed, <span class="math notranslate nohighlight">\(c_{t+1}^u\)</span>.</p>
+<p>The envelope condition says that marginal value of market resources equals the marginal utility of consumption at that <span class="math notranslate nohighlight">\(m_t\)</span>, whether employed or unemployed. Substituting the envelope condition into the first order condition yields:</p>
+<p><span class="math">\begin{align*}
+c_t^{-\CRRA} &= \DiscFac \Rfree \left( \UnempPrb (c_{t+1}^u)^{-\CRRA} + (1-\UnempPrb) (\PermGroFac c_{t+1}^e)^{-\CRRA} \right) \\
+\Longrightarrow c_t &= \left( \DiscFac \Rfree \left( \UnempPrb (c_{t+1}^u)^{-\CRRA} + (1-\UnempPrb) (\PermGroFac c_{t+1}^e)^{-\CRRA} \right) \right)^{-1/\CRRA}.
+\end{align*}</span></p>
+<p>We can thus recover what employed consumption <em>must have been</em> last period if the agent acted optimally and ended that period with <span class="math notranslate nohighlight">\(a_t = m_t - c_t\)</span> in retained assets. That asset level is easily known given that we started with a <span class="math notranslate nohighlight">\(m_{t+1}^e\)</span> value, so we can invert the dynamics to recover <span class="math notranslate nohighlight">\(m_t\)</span> as well. Thus we have “shot backward” in time along the consumption function, finding a new point that can in turn be used to shoot back further.</p>
+<p>In HARK’s solver, this process starts from several points slightly above and below target market resources <span class="math notranslate nohighlight">\(\hat{m}\)</span>. For each initial point on the consumption function, the backshooting iteration stops when the implied <span class="math notranslate nohighlight">\(m_t\)</span> goes below zero or above some high limit. The overall employed consumption function is constructed as a linear interpolation of all discovered points, as well as the lower bound at <span class="math notranslate nohighlight">\((m,c) = (0,0)\)</span>.</p>
+</section>
+<section id="Example-Parameter-Values-for-TractableConsumerType">
+<h2>Example Parameter Values for <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code><a class="headerlink" href="#Example-Parameter-Values-for-TractableConsumerType" title="Link to this heading">#</a></h2>
+<p>Because of its simplicity, there are many fewer parameters to specify a <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code> relative to other HARK models. Note that you must leave the default <code class="docutils literal notranslate"><span class="pre">cycles=0</span></code>, or the model might do unexpected things.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\DiscFac\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.975\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\CRRA\)</span></p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Rfree\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.01\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\PermGroFacBase\)</span></p></td>
+<td><p>Uncompensated permanent income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0025\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\UnempPrb\)</span></p></td>
+<td><p>Probability of becoming permanently unemployed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.00625\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="Example-Implementation-of-TractableConsumerType">
+<h2>Example Implementation of <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code><a class="headerlink" href="#Example-Implementation-of-TractableConsumerType" title="Link to this heading">#</a></h2>
+<p>The default parameters can be used right off the shelf to solve an example model, so let’s do that.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a tractable consumer type</span>
+<span class="n">ExampleType</span> <span class="o">=</span> <span class="n">TractableConsumerType</span><span class="p">()</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">ExampleType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving a tractable consumption-savings model took &quot;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving a tractable consumption-savings model took 0.0120 seconds.
+</pre></div></div>
+</div>
+<p>That was fast! Indeed, the tractable buffer stock model is very specialized, so the infinite horizon solution can be found in hardly any time at all. Let’s plot the consumption function when (un)employed.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function</span>
+<span class="n">m_upper</span> <span class="o">=</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">mTarg</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">([</span><span class="n">ExampleType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">,</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc_U</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">m_upper</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_TractableBufferStockModel_TractableConsumerType_13_0.png" src="../../_images/examples_TractableBufferStockModel_TractableConsumerType_13_0.png" />
+</div>
+</div>
+<p>The concave blue curve represents the consumption function when employed, and the linear orange plot is the consumption function when unemployed.</p>
+</section>
+<section id="Doing-it-the-Long-Way">
+<h2>Doing it the Long Way<a class="headerlink" href="#Doing-it-the-Long-Way" title="Link to this heading">#</a></h2>
+<p>One way to verify this incredibly fast solution method is to compare it to the solution produced when solving by backward induction. We can use the <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code> to represent agents with two discrete states, employed and unemployed. We’ll have to overwrite the default income process in order to make the unemployed state have zero income.</p>
+<p>We’ll make a parameter dictionary that reproduces the tractable buffer stock model using <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make a parameter dictionary for the Markov model</span>
+<span class="n">my_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;CRRA&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># Coefficient of relative risk aversion</span>
+    <span class="s2">&quot;Mrkv_p11&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">UnempPrb</span><span class="p">],</span>  <span class="c1"># Probability of remaining employed</span>
+    <span class="s2">&quot;Mrkv_p22&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span>  <span class="c1"># Probability of remaining unemployed</span>
+    <span class="s2">&quot;DiscFac&quot;</span><span class="p">:</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">DiscFac</span><span class="p">,</span>  <span class="c1"># Intertemporal discount factor</span>
+    <span class="s2">&quot;PermGroFac&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ExampleType</span><span class="o">.</span><span class="n">PermGroFacCmp</span><span class="p">,</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">PermGroFacCmp</span><span class="p">])],</span>
+    <span class="s2">&quot;Rfree&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ExampleType</span><span class="o">.</span><span class="n">Rfree</span><span class="p">,</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">Rfree</span><span class="p">])],</span>  <span class="c1"># Constant interest</span>
+    <span class="s2">&quot;LivPrb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])],</span>  <span class="c1"># No mortality in this model</span>
+    <span class="s2">&quot;BoroCnstArt&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># Artificial borrowing constraint</span>
+    <span class="s2">&quot;PermShkStd&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]]),</span>  <span class="c1"># Permanent shock standard deviation</span>
+    <span class="s2">&quot;PermShkCount&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Number of shocks in discrete permanent shock distribution</span>
+    <span class="s2">&quot;TranShkStd&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]]),</span>  <span class="c1"># Transitory shock standard deviation</span>
+    <span class="s2">&quot;TranShkCount&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Number of shocks in discrete permanent shock distribution</span>
+    <span class="s2">&quot;CubicBool&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># Use cubic spline interpolation</span>
+    <span class="s2">&quot;T_cycle&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># Number of periods in cycle</span>
+    <span class="s2">&quot;cycles&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># Infinite horizon</span>
+    <span class="s2">&quot;constructors&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;IncShkDstn&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;PermShkDstn&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;TranShkDstn&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+    <span class="s2">&quot;tolerance&quot;</span><span class="p">:</span> <span class="mf">1e-8</span><span class="p">,</span>  <span class="c1"># Be very discerning about convergence</span>
+<span class="p">}</span>
+<span class="n">MarkovType</span> <span class="o">=</span> <span class="n">MarkovConsumerType</span><span class="p">(</span><span class="o">**</span><span class="n">my_params</span><span class="p">)</span>  <span class="c1"># Make a Markov consumer type</span>
+</pre></div>
+</div>
+</div>
+<p>Because we canceled the construction of <code class="docutils literal notranslate"><span class="pre">IncShkDstn</span></code> (etc), we need to manually fill in that attribute. In this case, it’s a list with two elements: a trivial employed distribution and a trivial unemployed distribution.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Manually override the income shock process</span>
+
+<span class="c1"># Income distribution when employed</span>
+<span class="n">employed_income_dist</span> <span class="o">=</span> <span class="n">DiscreteDistributionLabeled</span><span class="p">(</span>
+    <span class="n">pmv</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">atoms</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]]),</span>
+    <span class="n">var_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span> <span class="s2">&quot;TranShk&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Income distribution when permanently unemployed</span>
+<span class="n">unemployed_income_dist</span> <span class="o">=</span> <span class="n">DiscreteDistributionLabeled</span><span class="p">(</span>
+    <span class="n">pmv</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">atoms</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]]),</span>
+    <span class="n">var_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;PermShk&quot;</span><span class="p">,</span> <span class="s2">&quot;TranShk&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Set the income distribution in each state</span>
+<span class="n">MarkovType</span><span class="o">.</span><span class="n">IncShkDstn</span> <span class="o">=</span> <span class="p">[[</span><span class="n">employed_income_dist</span><span class="p">,</span> <span class="n">unemployed_income_dist</span><span class="p">]]</span>
+</pre></div>
+</div>
+</div>
+<p>Now we can solve our <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Solve the &quot;Markov TBS&quot; model</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MarkovType</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">MarkovType</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Solving the same model &quot;the long way&quot; took &#39;</span> <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving the same model &#34;the long way&#34; took 1.6874 seconds.
+</pre></div></div>
+</div>
+<p>It’s still quick in absolute terms, but it takes hundreds of times longer to solve the same model using <code class="docutils literal notranslate"><span class="pre">MarkovConsumerType</span></code> than with the specialized solver for the tractable buffer stock model. Did we get the same solution? Let’s find out!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">MarkovType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">m_upper</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_TractableBufferStockModel_TractableConsumerType_22_0.png" src="../../_images/examples_TractableBufferStockModel_TractableConsumerType_22_0.png" />
+</div>
+</div>
+<p>It <em>looks</em> the same, but let’s plot the difference between employed consumption functions just to be sure.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">diffFunc</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">ExampleType</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">-</span> <span class="n">MarkovType</span><span class="o">.</span><span class="n">cFunc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">](</span><span class="n">m</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Normalized market resources $m_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Difference between consumption functions&quot;</span><span class="p">)</span>
+<span class="n">plot_funcs</span><span class="p">(</span><span class="n">diffFunc</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">m_upper</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_TractableBufferStockModel_TractableConsumerType_24_0.png" src="../../_images/examples_TractableBufferStockModel_TractableConsumerType_24_0.png" />
+</div>
+</div>
+<p>That’s a pretty tight match!</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsIndShockModel/PerfForesightConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Perfect Foresight Model</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsRepAgentModel/RepAgentConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Representative Agent Models</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Statement-of-Tractable-Buffer-Stock-Model">Statement of Tractable Buffer Stock Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Tractable-Buffer-Stock-Model">Solving the Tractable Buffer Stock Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Parameter-Values-for-TractableConsumerType">Example Parameter Values for <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Implementation-of-TractableConsumerType">Example Implementation of <code class="docutils literal notranslate"><span class="pre">TractableConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Doing-it-the-Long-Way">Doing it the Long Way</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

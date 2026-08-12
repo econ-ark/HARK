@@ -1,0 +1,1110 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Simulation &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'docs/reference/tools/simulation';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/docs/reference/tools/simulation.html" />
+    <link rel="icon" href="../../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Utilities" href="utilities.html" />
+    <link rel="prev" title="Rewards" href="rewards.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  
+    
+    <script src="../../../_static/searchtools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <script src="../../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i><span class="visually-hidden">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i><span class="visually-hidden">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i><span class="visually-hidden">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i><span class="visually-hidden">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Tools</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="core.html">Core</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dcegm.html">dcegm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distribution.html">Distribution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dual_measure.html">Dual-measure simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="econforgeinterp.html">Econforgeinterp</a></li>
+<li class="toctree-l1"><a class="reference internal" href="estimation.html">Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helpers.html">Helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interpolation.html">Interpolation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="incomeprocess.html">Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model.html">Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="numba_tools.html">Numba Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rewards.html">Rewards</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utilities.html">Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validators.html">Validators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Models</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsAggIndMarkovModel.html">ConsAggIndMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsAggShockModel.html">ConsAggShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsBequestModel.html">ConsBequestModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsGenIncProcessModel.html">ConsGenIncProcessModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsHabitModel.html">ConsHabitModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsHealthModel.html">ConsHealthModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsIndShockModel.html">ConsIndShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsIndShockModelFast.html">ConsIndShockModelFast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsLaborModel.html">ConsLaborModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsMarkovModel.html">ConsMarkovModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsMedModel.html">ConsMedModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsNewKeynesianModel.html">ConsNewKeynesianModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsPortfolioModel.html">ConsPortfolioModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsPrefShockModel.html">ConsPrefShockModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRepAgentModel.html">ConsRepAgentModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRiskyAssetModel.html">ConsRiskyAssetModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/ConsRiskyContribModel.html">ConsRiskyContribModel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsumptionSaving/TractableBufferStockModel.html">TractableBufferStockModel</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Simulation</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-HARK.simulation.monte_carlo">
+<span id="simulation"></span><h1>Simulation<a class="headerlink" href="#module-HARK.simulation.monte_carlo" title="Link to this heading">#</a></h1>
+<p>Functions to support Monte Carlo simulation of models.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.draw_shocks">
+<span class="sig-prename descclassname"><span class="pre">HARK.simulation.monte_carlo.</span></span><span class="sig-name descname"><span class="pre">draw_shocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="distribution.html#HARK.distributions.Distribution" title="HARK.distributions.base.Distribution"><span class="pre">Distribution</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.draw_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Draw from each shock distribution values, subject to given conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shocks</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference internal" href="distribution.html#HARK.distributions.Distribution" title="HARK.distributions.Distribution"><em>Distribution</em></a><em>]</em>) – A dictionary-like mapping from shock names to distributions from which to draw.</p></li>
+<li><p><strong>conditions</strong> (<em>Sequence</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – An array of conditions, one for each agent.
+Typically these will be agent ages.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>draws</strong> – A mapping from shock names to drawn shock values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Mapping[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, Sequence]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.calibration_by_age">
+<span class="sig-prename descclassname"><span class="pre">HARK.simulation.monte_carlo.</span></span><span class="sig-name descname"><span class="pre">calibration_by_age</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calibration</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.calibration_by_age" title="Link to this definition">#</a></dt>
+<dd><p>Returns calibration for this model, but with vectorized
+values which map age-varying values to agent ages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ages</strong> (<em>np.array</em>) – An array of agent ages.</p></li>
+<li><p><strong>calibration</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>) – A calibration dictionary</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>aged_calibration</strong> – A dictionary of parameter values.
+If a parameter is age-varying, the value is a vector
+corresponding to the values for each input age.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.Simulator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.simulation.monte_carlo.</span></span><span class="sig-name descname"><span class="pre">Simulator</span></span><a class="headerlink" href="#HARK.simulation.monte_carlo.Simulator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for Monte Carlo simulators.</p>
+<p>Subclasses must set the following instance attributes before calling any
+of the methods defined here:</p>
+<blockquote>
+<div><p>self.vars          – list of variable names tracked in the simulation
+self.T_sim         – int, number of periods to simulate
+self.agent_count   – int, number of agents
+self.seed          – int, random seed
+self.history       – dict, populated by clear_history / simulate
+self.vars_now      – dict, current-period variable values per agent
+self.newborn_init_history – dict, initial values for newborn agents
+self.t_sim         – int, current simulation time step</p>
+</div></blockquote>
+<p>Subclasses must also implement <code class="docutils literal notranslate"><span class="pre">sim_one_period</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.Simulator.reset_rng">
+<span class="sig-name descname"><span class="pre">reset_rng</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.Simulator.reset_rng" title="Link to this definition">#</a></dt>
+<dd><p>Reset the random number generator for this type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.Simulator.clear_history">
+<span class="sig-name descname"><span class="pre">clear_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.Simulator.clear_history" title="Link to this definition">#</a></dt>
+<dd><p>Clears the histories.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.Simulator.simulate">
+<span class="sig-name descname"><span class="pre">simulate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_periods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.Simulator.simulate" title="Link to this definition">#</a></dt>
+<dd><p>Simulate for a given number of periods, defaulting to <code class="docutils literal notranslate"><span class="pre">self.T_sim</span></code>.</p>
+<p>Records histories of attributes named in <code class="docutils literal notranslate"><span class="pre">self.vars</span></code> in
+<code class="docutils literal notranslate"><span class="pre">self.history[var_name]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sim_periods</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>, </em><em>optional</em>) – Number of periods to simulate.  If <code class="docutils literal notranslate"><span class="pre">None</span></code>, simulate for
+<code class="docutils literal notranslate"><span class="pre">self.T_sim</span></code> periods.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>history</strong> – The history tracked during the simulation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.simulation.monte_carlo.</span></span><span class="sig-name descname"><span class="pre">AgentTypeMonteCarloSimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calibration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="model.html#HARK.model.DBlock" title="HARK.model.DBlock"><span class="pre">DBlock</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.simulation.monte_carlo.Simulator" title="HARK.simulation.monte_carlo.Simulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Simulator</span></code></a></p>
+<p>A Monte Carlo simulation engine based on the HARK.core.AgentType framework.</p>
+<p>Unlike HARK.core.AgentType, this class does not do any model solving,
+and depends on dynamic equations, shocks, and decision rules passed into it.</p>
+<p>The purpose of this class is to provide a way to simulate models without
+relying on inheritance from the AgentType class.</p>
+<p>This simulator makes assumptions about population birth and mortality which
+are not generic. All agents are replaced with newborns when they expire.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>calibration</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>)</p></li>
+<li><p><strong>block</strong> (<a class="reference internal" href="model.html#HARK.model.DBlock" title="HARK.model.DBlock"><em>DBlock</em></a>) – Has shocks, dynamics, and rewards</p></li>
+<li><p><strong>dr</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Callable</em><em>]</em>)</p></li>
+<li><p><strong>initial</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – A seed for this instance’s random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>agent_count</strong> (<em>int</em>) – The number of agents of this type to use in simulation.</p></li>
+<li><p><strong>T_sim</strong> (<em>int</em>) – The number of periods to simulate.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.state_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.initialize_sim" title="Link to this definition">#</a></dt>
+<dd><p>Prepares for a new simulation.  Resets the internal random number generator,
+makes initial states for all agents (using sim_birth), clears histories of tracked variables.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.sim_one_period">
+<span class="sig-name descname"><span class="pre">sim_one_period</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.sim_one_period" title="Link to this definition">#</a></dt>
+<dd><p>Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
+read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
+AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
+instead) and read_shocks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.make_shock_history">
+<span class="sig-name descname"><span class="pre">make_shock_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.make_shock_history" title="Link to this definition">#</a></dt>
+<dd><p>Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
+in self.shock, a mapping from shock names to distributions.  This method runs a subset
+of the standard simulation loop by simulating only mortality and shocks; each variable named
+in shocks is stored in a T_sim x agent_count array in history dictionary self.history[X].
+Automatically sets self.read_shocks to True so that these pre-specified shocks are used for
+all subsequent calls to simulate().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>shock_history</strong> – The subset of simulation history that are the shocks for each agent and time.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.get_mortality">
+<span class="sig-name descname"><span class="pre">get_mortality</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.get_mortality" title="Link to this definition">#</a></dt>
+<dd><p>Simulates mortality or agent turnover.
+Agents die when their states <cite>live</cite> is less than or equal to zero.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.sim_birth" title="Link to this definition">#</a></dt>
+<dd><p>Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
+agent indices are to be “born”.  Does nothing by default, must be overwritten by a subclass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.agent_count indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.MonteCarloSimulator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.simulation.monte_carlo.</span></span><span class="sig-name descname"><span class="pre">MonteCarloSimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calibration</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="model.html#HARK.model.DBlock" title="HARK.model.DBlock"><span class="pre">DBlock</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.MonteCarloSimulator" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#HARK.simulation.monte_carlo.Simulator" title="HARK.simulation.monte_carlo.Simulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Simulator</span></code></a></p>
+<p>A Monte Carlo simulation engine based.</p>
+<p>Unlike the AgentTypeMonteCarloSimulator HARK.core.AgentType,
+this class does make any assumptions about aging or mortality.
+It operates only on model information passed in as blocks.</p>
+<p>It also does not have read_shocks functionality;
+it is a strict subset of the AgentTypeMonteCarloSimulator functionality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>calibration</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>)</p></li>
+<li><p><strong>block</strong> (<a class="reference internal" href="model.html#HARK.model.DBlock" title="HARK.model.DBlock"><em>DBlock</em></a>) – Has shocks, dynamics, and rewards</p></li>
+<li><p><strong>dr</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>Callable</em><em>]</em>)</p></li>
+<li><p><strong>initial</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a>)</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – A seed for this instance’s random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attributes<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>agent_count</strong> (<em>int</em>) – The number of agents of this type to use in simulation.</p></li>
+<li><p><strong>T_sim</strong> (<em>int</em>) – The number of periods to simulate.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.MonteCarloSimulator.state_vars">
+<span class="sig-name descname"><span class="pre">state_vars</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[]</span></span><a class="headerlink" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.state_vars" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.MonteCarloSimulator.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.initialize_sim" title="Link to this definition">#</a></dt>
+<dd><p>Prepares for a new simulation.  Resets the internal random number generator,
+makes initial states for all agents (using sim_birth), clears histories of tracked variables.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.MonteCarloSimulator.sim_one_period">
+<span class="sig-name descname"><span class="pre">sim_one_period</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.sim_one_period" title="Link to this definition">#</a></dt>
+<dd><p>Simulates one period for this type.  Calls the methods get_mortality(), get_shocks() or
+read_shocks, get_states(), get_controls(), and get_poststates().  These should be defined for
+AgentType subclasses, except get_mortality (define its components sim_death and sim_birth
+instead) and read_shocks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.monte_carlo.MonteCarloSimulator.sim_birth">
+<span class="sig-name descname"><span class="pre">sim_birth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">which_agents</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.sim_birth" title="Link to this definition">#</a></dt>
+<dd><p>Makes new agents for the simulation.  Takes a boolean array as an input, indicating which
+agent indices are to be “born”.  Does nothing by default, must be overwritten by a subclass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>which_agents</strong> (<em>np.array</em><em>(</em><em>Bool</em><em>)</em>) – Boolean array of size self.agent_count indicating which agents should be “born”.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-HARK.simulation.normalization">Mixins for simulation variance reduction via moment normalization.</p>
+<p>These mixins adjust cross-sectional distributions during simulation so that
+empirical moments match their analytical values, eliminating sampling noise
+in aggregates without requiring special population sizes.</p>
+<p>Both mixins are strictly opt-in: composing them into a class and leaving
+their switches at the defaults (<code class="docutils literal notranslate"><span class="pre">normalize_shocks=False</span></code>,
+<code class="docutils literal notranslate"><span class="pre">normalize_pLvl=False</span></code>) changes nothing about a simulation.</p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">HARK.ConsumptionSaving.ConsIndShockModel</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndShockConsumerType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.simulation.normalization</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PermanentIncomeNormalizationMixin</span><span class="p">,</span>
+    <span class="n">ShockNormalizationMixin</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">NormalizedIndShock</span><span class="p">(</span>
+    <span class="n">ShockNormalizationMixin</span><span class="p">,</span>
+    <span class="n">PermanentIncomeNormalizationMixin</span><span class="p">,</span>
+    <span class="n">IndShockConsumerType</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">pass</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">NormalizedIndShock</span><span class="p">(</span><span class="n">normalize_pLvl</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">normalize_shocks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Both mixins hook into HARK’s own extension points: <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code> (via
+<code class="docutils literal notranslate"><span class="pre">super()</span></code>) and <code class="docutils literal notranslate"><span class="pre">AgentType.post_state_hook</span></code>, the no-op invoked by
+<code class="docutils literal notranslate"><span class="pre">sim_one_period</span></code> between <code class="docutils literal notranslate"><span class="pre">get_states()</span></code> and <code class="docutils literal notranslate"><span class="pre">get_controls()</span></code>. Neither
+overrides <code class="docutils literal notranslate"><span class="pre">sim_one_period</span></code> itself, so a model with its own
+<code class="docutils literal notranslate"><span class="pre">sim_one_period</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">ConsRiskyContribConsumerType</span></code>, whose staged
+structure forces one) is not shadowed. Such a model may not call
+<code class="docutils literal notranslate"><span class="pre">post_state_hook</span></code> at all, and <code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> warns when that is the
+case rather than letting normalization silently never run.</p>
+<section id="growth-is-inside-the-permanent-shock">
+<h2>Growth is inside the permanent shock<a class="headerlink" href="#growth-is-inside-the-permanent-shock" title="Link to this heading">#</a></h2>
+<p>HARK folds the expected growth factor into the permanent shock array:
+<code class="docutils literal notranslate"><span class="pre">PermShkNow</span> <span class="pre">=</span> <span class="pre">psi</span> <span class="pre">*</span> <span class="pre">PermGroFac</span></code>, with psi the mean-one innovation (see
+<code class="docutils literal notranslate"><span class="pre">IndShockConsumerType.get_shocks</span></code>, and <code class="docutils literal notranslate"><span class="pre">ConsMarkovModel</span></code> per discrete
+state). The cross-sectional mean of <code class="docutils literal notranslate"><span class="pre">shocks[&quot;PermShk&quot;]</span></code> is therefore
+<code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code>, not 1.0, and <code class="docutils literal notranslate"><span class="pre">ShockNormalizationMixin</span></code> targets that.
+Rescaling <code class="docutils literal notranslate"><span class="pre">PermShk</span></code> to 1.0 would delete permanent income growth rather
+than sampling noise, because <code class="docutils literal notranslate"><span class="pre">transition()</span></code> applies the array directly as
+<code class="docutils literal notranslate"><span class="pre">pLvl</span> <span class="pre">=</span> <span class="pre">pLvlPrev</span> <span class="pre">*</span> <span class="pre">PermShk</span></code>. Transitory shocks genuinely are mean-one, so
+1.0 remains the target there.</p>
+</section>
+<section id="age-awareness">
+<h2>Age awareness<a class="headerlink" href="#age-awareness" title="Link to this heading">#</a></h2>
+<p>Targets are computed period by period from the income process actually used
+in each simulated period, so life-cycle calibrations with age-varying
+<code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> and <code class="docutils literal notranslate"><span class="pre">PermShkDstn</span></code> (HARK ships several) get the right
+profile rather than period 0’s parameters extrapolated. The indexing
+mirrors <code class="docutils literal notranslate"><span class="pre">get_shocks</span></code>: an agent at <code class="docutils literal notranslate"><span class="pre">t_cycle</span> <span class="pre">==</span> <span class="pre">j</span></code> draws from index
+<code class="docutils literal notranslate"><span class="pre">(j</span> <span class="pre">-</span> <span class="pre">1)</span> <span class="pre">%</span> <span class="pre">T_cycle</span></code>, except in its birth period, which is special-cased to
+index 0.</p>
+</section>
+<section id="design-notes">
+<h2>Design notes<a class="headerlink" href="#design-notes" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Markov-capable.</strong> Models whose per-period growth factor is a <em>vector</em>
+over discrete (Markov) states are supported: the analytical drift uses
+the stationary-distribution-weighted mean log growth, and the moment
+targeting automatically degrades to MEAN-ONLY (see below).</p></li>
+<li><p><strong>Why mean-only under state-dependent growth.</strong> With heterogeneous
+growth histories (e.g. employed vs unemployed spells), the cross-
+sectional variance of <code class="docutils literal notranslate"><span class="pre">log</span> <span class="pre">pLvl</span></code> at a given age exceeds the pure
+shock-accumulation term by the variance contributed by heterogeneous
+Markov paths. The simple analytical variance formula used here counts
+only the shock term, so rescaling the cross-sectional spread to it
+would <em>shrink genuine heterogeneity</em>. Shifting the mean is exact and
+safe; therefore <code class="docutils literal notranslate"><span class="pre">pLvl_norm_moments=&quot;auto&quot;</span></code> applies mean-and-std for
+scalar-growth models and mean-only for vector-growth models. Models
+with a correct model-specific variance target can override
+<code class="docutils literal notranslate"><span class="pre">_analytical_log_pLvl_moments</span></code> and set
+<code class="docutils literal notranslate"><span class="pre">pLvl_norm_moments=&quot;mean_and_std&quot;</span></code>.</p></li>
+<li><p><strong>Stationarity caveat.</strong> The stationary-weighted drift is the exact
+population drift only once the discrete state has reached its stationary
+distribution. In a life-cycle Markov model (<code class="docutils literal notranslate"><span class="pre">T_cycle</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> with vector
+growth) young cohorts have not, so the mean target is approximate and
+<code class="docutils literal notranslate"><span class="pre">initialize_sim</span></code> warns.</p></li>
+</ul>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.ShockNormalizationMixin">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.simulation.normalization.</span></span><span class="sig-name descname"><span class="pre">ShockNormalizationMixin</span></span><a class="headerlink" href="#HARK.simulation.normalization.ShockNormalizationMixin" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_NormalizationIndexMixin</span></code></p>
+<p>Opt-in normalization of income shocks to pin cross-sectional means.</p>
+<p>After <code class="docutils literal notranslate"><span class="pre">get_shocks()</span></code> draws <code class="docutils literal notranslate"><span class="pre">PermShk</span></code> and <code class="docutils literal notranslate"><span class="pre">TranShk</span></code> for the
+population, rescales each so that the cross-sectional mean equals its
+theoretical value: <code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code> for <code class="docutils literal notranslate"><span class="pre">PermShk</span></code> (HARK folds growth
+into that array; see the module docstring) and 1.0 for <code class="docutils literal notranslate"><span class="pre">TranShk</span></code>.
+This makes the aggregate effect of sampling noise exact in every
+period, regardless of population size, without touching the
+deterministic growth trend.</p>
+<p>Agents are grouped by the income process they actually drew from –
+the period index from <code class="xref py py-meth docutils literal notranslate"><span class="pre">_income_dstn_index()</span></code> and, when the model
+carries one, the discrete (Markov) state – and normalized within
+group, since only within a group is the target common.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>normalize_shocks</strong> (<em>bool</em>) – When True, shock normalization is applied. Default False (no
+behavior change).</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.ShockNormalizationMixin.normalize_shocks">
+<span class="sig-name descname"><span class="pre">normalize_shocks</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#HARK.simulation.normalization.ShockNormalizationMixin.normalize_shocks" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.ShockNormalizationMixin.get_shocks">
+<span class="sig-name descname"><span class="pre">get_shocks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.normalization.ShockNormalizationMixin.get_shocks" title="Link to this definition">#</a></dt>
+<dd><p>Draw shocks, then normalize cross-sectional means if enabled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.ShockNormalizationMixin.read_shocks_from_history">
+<span class="sig-name descname"><span class="pre">read_shocks_from_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.normalization.ShockNormalizationMixin.read_shocks_from_history" title="Link to this definition">#</a></dt>
+<dd><p>Replay stored shocks, warning that normalization is bypassed.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.PermanentIncomeNormalizationMixin">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">HARK.simulation.normalization.</span></span><span class="sig-name descname"><span class="pre">PermanentIncomeNormalizationMixin</span></span><a class="headerlink" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_NormalizationIndexMixin</span></code></p>
+<p>Opt-in per-cohort <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> normalization for variance reduction.</p>
+<p>Within each age cohort <code class="docutils literal notranslate"><span class="pre">k</span></code>, adjusts <code class="docutils literal notranslate"><span class="pre">log(pLvl)</span></code> so that its
+cross-sectional moments match analytical values. The affine transform
+in log space preserves the rank ordering of agents’ permanent incomes,
+so within-cohort wealth-income correlations are unaffected. Each cohort
+gets a different affine map, so a correlation pooled across ages is not
+guaranteed to be preserved exactly where age is itself correlated with
+wealth. Normalized state
+variables (<code class="docutils literal notranslate"><span class="pre">mNrm</span></code>, <code class="docutils literal notranslate"><span class="pre">bNrm</span></code>) are rescaled inversely so that level
+quantities (<code class="docutils literal notranslate"><span class="pre">mLvl</span> <span class="pre">=</span> <span class="pre">mNrm</span> <span class="pre">*</span> <span class="pre">pLvl</span></code>) are preserved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>normalize_pLvl</strong> (<em>bool</em>) – When True, normalization runs each simulated period. Default
+False (no behavior change).</p></li>
+<li><p><strong>pLvl_norm_moments</strong> (<em>str</em>) – <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> (default): mean-and-std for scalar-growth models,
+mean-only for vector-(Markov-)growth models. <code class="docutils literal notranslate"><span class="pre">&quot;mean_and_std&quot;</span></code>
+or <code class="docutils literal notranslate"><span class="pre">&quot;mean&quot;</span></code> force the respective behavior. See the module
+docstring for why mean-only is the safe default under
+state-dependent growth.</p></li>
+<li><p><strong>_pLvl_norm_adjust_vars</strong> (<em>tuple of str</em>) – Normalized state variables rescaled by the inverse <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> change,
+so that the level quantities they imply are preserved. Default
+<code class="docutils literal notranslate"><span class="pre">(&quot;mNrm&quot;,</span> <span class="pre">&quot;bNrm&quot;)</span></code>. Override on a model carrying a different set
+of normalized states; a normalized state left out of this tuple
+keeps its old value while its <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> moves, which silently
+changes the level it stands for.</p></li>
+<li><p><strong>_pLvl_norm_min_cohort</strong> (<em>int</em>) – Smallest cohort that gets normalized. Default 5. Cohorts below it
+are skipped and reported through the <code class="docutils literal notranslate"><span class="pre">small_cohort</span></code> warning,
+whose text points here.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.PermanentIncomeNormalizationMixin.normalize_pLvl">
+<span class="sig-name descname"><span class="pre">normalize_pLvl</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.normalize_pLvl" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.PermanentIncomeNormalizationMixin.pLvl_norm_moments">
+<span class="sig-name descname"><span class="pre">pLvl_norm_moments</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'auto'</span></span><a class="headerlink" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.pLvl_norm_moments" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.PermanentIncomeNormalizationMixin.post_sim_normalize_pLvl">
+<span class="sig-name descname"><span class="pre">post_sim_normalize_pLvl</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.post_sim_normalize_pLvl" title="Link to this definition">#</a></dt>
+<dd><p>Normalize <code class="docutils literal notranslate"><span class="pre">pLvl</span></code> to the analytical per-cohort log-moments.</p>
+<p>Applies the resolved moments mode per age cohort, then rescales
+the variables in <code class="docutils literal notranslate"><span class="pre">_pLvl_norm_adjust_vars</span></code> by the inverse pLvl
+ratio so level quantities are preserved. Cohorts smaller than
+<code class="docutils literal notranslate"><span class="pre">_pLvl_norm_min_cohort</span></code>, and cohorts whose members disagree about
+<code class="docutils literal notranslate"><span class="pre">t_cycle</span></code> (so their income history is not the one
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_income_dstn_index_history()</span></code> reconstructs), are left alone
+with a warning rather than normalized to a target that does not
+apply to them.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.PermanentIncomeNormalizationMixin.initialize_sim">
+<span class="sig-name descname"><span class="pre">initialize_sim</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.initialize_sim" title="Link to this definition">#</a></dt>
+<dd><p>Reset the moment cache and check that the hook will actually fire.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="HARK.simulation.normalization.PermanentIncomeNormalizationMixin.post_state_hook">
+<span class="sig-name descname"><span class="pre">post_state_hook</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.post_state_hook" title="Link to this definition">#</a></dt>
+<dd><p>Run the normalization; chain to any base-class hook first.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="rewards.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Rewards</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="utilities.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Utilities</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.draw_shocks"><code class="docutils literal notranslate"><span class="pre">draw_shocks()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.calibration_by_age"><code class="docutils literal notranslate"><span class="pre">calibration_by_age()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.Simulator"><code class="docutils literal notranslate"><span class="pre">Simulator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.Simulator.reset_rng"><code class="docutils literal notranslate"><span class="pre">Simulator.reset_rng()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.Simulator.clear_history"><code class="docutils literal notranslate"><span class="pre">Simulator.clear_history()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.Simulator.simulate"><code class="docutils literal notranslate"><span class="pre">Simulator.simulate()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.state_vars"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator.state_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.initialize_sim"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator.initialize_sim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.sim_one_period"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator.sim_one_period()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.make_shock_history"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator.make_shock_history()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.get_mortality"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator.get_mortality()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.AgentTypeMonteCarloSimulator.sim_birth"><code class="docutils literal notranslate"><span class="pre">AgentTypeMonteCarloSimulator.sim_birth()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.MonteCarloSimulator"><code class="docutils literal notranslate"><span class="pre">MonteCarloSimulator</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.state_vars"><code class="docutils literal notranslate"><span class="pre">MonteCarloSimulator.state_vars</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.initialize_sim"><code class="docutils literal notranslate"><span class="pre">MonteCarloSimulator.initialize_sim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.sim_one_period"><code class="docutils literal notranslate"><span class="pre">MonteCarloSimulator.sim_one_period()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.monte_carlo.MonteCarloSimulator.sim_birth"><code class="docutils literal notranslate"><span class="pre">MonteCarloSimulator.sim_birth()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#growth-is-inside-the-permanent-shock">Growth is inside the permanent shock</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#age-awareness">Age awareness</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#design-notes">Design notes</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.ShockNormalizationMixin"><code class="docutils literal notranslate"><span class="pre">ShockNormalizationMixin</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.ShockNormalizationMixin.normalize_shocks"><code class="docutils literal notranslate"><span class="pre">ShockNormalizationMixin.normalize_shocks</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.ShockNormalizationMixin.get_shocks"><code class="docutils literal notranslate"><span class="pre">ShockNormalizationMixin.get_shocks()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.ShockNormalizationMixin.read_shocks_from_history"><code class="docutils literal notranslate"><span class="pre">ShockNormalizationMixin.read_shocks_from_history()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin"><code class="docutils literal notranslate"><span class="pre">PermanentIncomeNormalizationMixin</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.normalize_pLvl"><code class="docutils literal notranslate"><span class="pre">PermanentIncomeNormalizationMixin.normalize_pLvl</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.pLvl_norm_moments"><code class="docutils literal notranslate"><span class="pre">PermanentIncomeNormalizationMixin.pLvl_norm_moments</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.post_sim_normalize_pLvl"><code class="docutils literal notranslate"><span class="pre">PermanentIncomeNormalizationMixin.post_sim_normalize_pLvl()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.initialize_sim"><code class="docutils literal notranslate"><span class="pre">PermanentIncomeNormalizationMixin.initialize_sim()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#HARK.simulation.normalization.PermanentIncomeNormalizationMixin.post_state_hook"><code class="docutils literal notranslate"><span class="pre">PermanentIncomeNormalizationMixin.post_state_hook()</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

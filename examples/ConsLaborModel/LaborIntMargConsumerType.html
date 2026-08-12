@@ -1,0 +1,1155 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Intensive Margin Labor Supply Choice &#8212; HARK latest documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=90905a2f556bf617f1a9" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/override-nbsphinx-gallery.css" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../../_static/scripts/fontawesome.js?digest=90905a2f556bf617f1a9"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9" />
+
+    <script src="../../_static/documentation_options.js?v=91d07486"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/ConsLaborModel/LaborIntMargConsumerType';</script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="canonical" href="https://docs.econ-ark.org/examples/ConsLaborModel/LaborIntMargConsumerType.html" />
+    <link rel="icon" href="../../_static/econ-ark-logo.png"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Preference Shocks to Consumption Utility" href="../ConsPrefShockModel/PrefShockConsumerType.html" />
+    <link rel="prev" title="Habit Formation with Portfolio Choice" href="../ConsHabitModel/HabitPortfolioConsumerType.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="latest" />
+  
+    
+    <script src="../../_static/searchtools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script src="../../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-light" alt="HARK latest documentation - Home"/>
+    <img src="../../_static/econ-ark-logo.png" class="logo__image only-dark pst-js-only" alt="HARK latest documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i><span class="visually-hidden">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i><span class="visually-hidden">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/guides/index.html">
+    Guides
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../docs/overview/index.html">
+    Overview & Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../docs/reference/index.html">
+    Reference
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<div class="theme-switch-container dropdown pst-js-only" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Color mode">
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button dropdown-toggle" aria-label="Color mode" data-bs-toggle="dropdown">
+    <i class="theme-switch fa-solid fa-sun fa-lg fa-fw" data-mode="light" title="Light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg fa-fw" data-mode="dark" title="Dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg fa-fw" data-mode="auto" title="System Settings"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg fa-fw me-1"></i>System Settings</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="light"><i class="fa-solid fa-sun fa-lg fa-fw me-1"></i>Light</button></li>
+    <li><button class="dropdown-item d-flex align-items-center theme-change-button" data-mode="dark"><i class="fa-solid fa-moon fa-lg fa-fw me-1"></i>Dark</button></li>
+  </ul>
+</div></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/Econ-ARK/HARK" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i><span class="visually-hidden">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://twitter.com/econ_ark" title="Twitter" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-twitter fa-lg" aria-hidden="true"></i><span class="visually-hidden">Twitter</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://pypi.org/project/econ-ark/" title="PyPI" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-solid fa-box fa-lg" aria-hidden="true"></i><span class="visually-hidden">PyPI</span></a>
+        </li>
+        <li class="nav-item">
+            
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://econ-ark.org" title="Econ-ARK" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><img src="../../_static/econ-ark-logo.png" class="icon-link-image" alt="Econ-ARK"/></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar">
+  <svg class="pst-icon" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><p aria-level="2" class="caption" role="heading"><span class="caption-text">Introduction to HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/introduction.html">Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/overview/ARKitecture.html">ARKitecture of Econ-ARK</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Learning About HARK</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Gentle-Intro-To-HARK.html">A Gentle Introduction to HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Simulation-Intro.html">Simulating Microeconomic Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Cycles-Intro.html">The Nature of Time for <code class="docutils literal notranslate"><span class="pre">AgentType</span></code>s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Constructors-Intro.html">Constructed Attributes and Model Defaults</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Advanced-Intro.html">Advanced and Uncommon HARK Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Methods-Intro.html">Numeric Methods Commonly Used in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Model-List.html">Directory of Consumption-Saving Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/AgentType-Intro.html">Elements of an <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> Subclass</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Gentle-Intro/Market-Intro.html">“Macroeconomic” Models: the <code class="docutils literal notranslate"><span class="pre">Market</span></code> Class</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ_explanation.html">The Sequence Space Jacobian (SSJ) method</a></li>
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-tutorial.html">Making HA-SSJ Matrices with HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-advanced-examples.html">Advanced Examples of HA-SSJ’s</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/SSJ-lifecycle.html">HA-SSJs in Life-Cycle Models</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Consumption-Saving Models</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/PerfForesightConsumerType.html">Perfect Foresight Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TractableBufferStockModel/TractableConsumerType.html">Tractable Buffer Stock Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRepAgentModel/RepAgentConsumerType.html">Representative Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/IndShockConsumerType.html">Permanent and Transitory Income Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsIndShockModel/KinkedRconsumerType.html">Higher Interest Rate to Borrow than Save</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMarkovModel/MarkovConsumerType.html">Discrete State with Markov Transitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsGenIncProcessModel/GenIncProcessConsumerType.html">Generalized Income Process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockConsumerType.html">Aggregate Productivity Shocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/AggShockMarkovConsumerType.html">Aggregate Productivity Shocks with a Discrete State</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsAggShockModel/KrusellSmithType.html">Krusell-Smith Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/BequestWarmGlowConsumerType.html">Warm Glow Bequest Motives</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsBequestModel/BequestWarmGlowPortfolioType.html">Warm-Glow Bequest Motive and Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/WealthUtilityConsumerType.html">Wealth-in-Utility Multiplicatively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthUtilityModel/CapitalistSpiritConsumerType.html">Wealth-in-Utility Additively with Consumption</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHabitModel/HabitConsumerType.html">Habit Formation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/RiskyAssetConsumerType.html">Assets with Risky Returns: Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/PortfolioConsumerType.html">Advanced Options for Portfolio Allocation Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsWealthPortfolioModel/WealthPortfolioConsumerType.html">Multiplicative Wealth-in-Utility with Portfolio Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPortfolioModel/SequentialPortfolioConsumerType.html">Portfolio Allocation with “Sequential Solvers”</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHabitModel/HabitPortfolioConsumerType.html">Habit Formation with Portfolio Choice</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Intensive Margin Labor Supply Choice</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsPrefShockModel/PrefShockConsumerType.html">Preference Shocks to Consumption Utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsHealthModel/BasicHealthConsumerType.html">Basic Health Investment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedShockConsumerType.html">Medical Care on the Intensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsMedModel/MedExtMargConsumerType.html">Medical Care on the Extensive Margin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ConsRiskyContribModel/RiskyContribConsumerType.html">“Risky Contribution” Model</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../LifecycleModel/LifecycleModel.html">A Life Cycle Model: The Distribution of Assets By Age</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Transition_Matrix_Example.html">Transition Matrix vs Monte Carlo Methods for Heterogeneous-Agent Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/Jacobian_Example.html">Computing Heterogenous Agent Sequence Space Jacobians in HARK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/KS-HARK-presentation.html">Solving Krusell Smith Model with HARK and SSJ</a></li>
+
+
+<li class="toctree-l1"><a class="reference internal" href="../SequenceSpaceJacobians/HANKFiscal_example.html">HARK and the Sequence Space Jacobian (SSJ) Method</a></li>
+
+
+
+
+
+<li class="toctree-l1"><a class="reference internal" href="../Journeys/Journey-PhD.html">Journey: Economics PhD Student</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../docs/CHANGELOG.html">Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../docs/license.html">License</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../docs/overview/index.html" class="nav-link">Overview</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Intensive Margin Labor Supply Choice</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <div class="admonition note">
+  This page was generated from
+  <a class="reference external" href="https://github.com/econ-ark/HARK/tree/main/examples/ConsLaborModel/LaborIntMargConsumerType.ipynb">examples/ConsLaborModel/LaborIntMargConsumerType.ipynb</a>.
+  <br />
+  Interactive online version:
+  <span style="white-space: nowrap;"><a href="https://mybinder.org/v2/gh/econ-ark/HARK/main?filepath=examples/ConsLaborModel/LaborIntMargConsumerType.ipynb"><img alt="Binder badge" src="https://mybinder.org/badge_logo.svg" style="vertical-align:text-bottom"></a>.</span>
+  <a href="LaborIntMargConsumerType.ipynb" class="reference download internal" download>Download notebook</a>.
+</div><section id="Intensive-Margin-Labor-Supply-Choice">
+<h1>Intensive Margin Labor Supply Choice<a class="headerlink" href="#Intensive-Margin-Labor-Supply-Choice" title="Link to this heading">#</a></h1>
+<p>Most models in HARK assume that labor is supplied exogenously and inelastically. In fact, most don’t even have any measure of “how much” labor an individual is providing; they simply receive labor income according to some stochastic process.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code> is HARK’s first <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclass in which labor supply is modeled as a control variable for the consumers. Working more generates more income to be spent on consumption, but is dispreferred in the present because the agents value leisure. In this model, the agent can choose labor as a <em>continuous</em> variable on the intensive margin (including not working at all).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">HARK.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">LaborIntMargConsumerType</span>
+
+<span class="n">mystr</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">number</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">number</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># Format numbers as strings</span>
+</pre></div>
+</div>
+</div>
+<p><span class="math notranslate nohighlight">\(\newcommand{\CRRA}{\rho}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\LivPrb}{\mathsf{S}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\PermGroFac}{\Gamma}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Rfree}{\mathsf{R}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\DiscFac}{\beta}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\LbrCost}{\alpha}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\WageRte}{\mathsf{w}}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Lbr}{\ell}\)</span> <span class="math notranslate nohighlight">\(\newcommand{\Lsr}{z}\)</span></p>
+<section id="Intensive-Margin-Labor-Supply-Model-Statement">
+<h2>Intensive Margin Labor Supply Model Statement<a class="headerlink" href="#Intensive-Margin-Labor-Supply-Model-Statement" title="Link to this heading">#</a></h2>
+<p>Each period, the agent chooses how much to consume <span class="math notranslate nohighlight">\(c_t\)</span> versus save in assets <span class="math notranslate nohighlight">\(a_t\)</span>, as well as how much to work as labor <span class="math notranslate nohighlight">\(\Lbr_t\)</span>. They have a fixed time budget of <span class="math notranslate nohighlight">\(1\)</span> unit, and any time not spent on labor is allocated to leisure <span class="math notranslate nohighlight">\(z_t\)</span> instead. They have CRRA risk preferences over consumption, but their “effective consumption” is scaled down based on their leisure time– consumption is only fun if you have the time to enjoy it! As in most HARK models, the agent
+can save in a single risk-free asset.</p>
+<p>The agent’s labor productivity is subject to permanent <span class="math notranslate nohighlight">\(\psi_t\)</span> and transitory <span class="math notranslate nohighlight">\(\theta_t\)</span> shocks. The model assumes that the labor market is perfectly competitive, so the agent is paid income <span class="math notranslate nohighlight">\(y_t\)</span> based on their “effective labor units” supplied at wage rate <span class="math notranslate nohighlight">\(\WageRte_t\)</span>. Under these assumptions, the model is homothetic with respect to permanent labor productivity, so it can be “normalized out” of the model.</p>
+<p>The normalized model can be expressed in Bellman form as:</p>
+<p><span class="math">\begin{align*}
+\text{v}_t(b_t, \theta_t) &= \max_{c_t, \Lbr_t} u(x_t) + \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} \text{v}_{t+1}(b_{t+1}, \theta_{t+1}) \right] \\
+&\text{s.t.} \\
+y_t &= \Lbr_t \theta_t \WageRte_t, \\
+m_t &= b_t + y_t, \\
+a_t &= m_t - c_t, \\
+a_t &\geq 0, \\
+\Lsr_t &= 1 - \Lbr_t, \\
+x_t &= \Lsr_t^{\LbrCost_t} c_t, \\
+\Lbr_t &\geq 0, \\
+b_{t+1} &= \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t, \\
+(\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}, \\
+\mathbb{E}[\psi] &= 1, \\
+u(x) &= \frac{x^{1-\rho}}{1-\rho}.
+\end{align*}</span></p>
+<p>In this model, the decision-time state includes current bank balances <span class="math notranslate nohighlight">\(b_t\)</span> as well as the <em>transitory</em> productivity shock <span class="math notranslate nohighlight">\(\theta_t\)</span>. That is, their current productivity is informative about how much they will earn from supplying marginal labor; the <em>permanent</em> component of the shock has already been incorporated into their normalized state. Market resources <span class="math notranslate nohighlight">\(m_t\)</span> are usually the decision-time state variable in other HARK models, but in this model it is merely an
+“intermediate” state used for accounting purposes and comparability to other models.</p>
+<p><strong>NB:</strong> The borrowing constraint <span class="math notranslate nohighlight">\(a_t \geq 0\)</span> is currently hardwired into this model, but this restriction will be lifted in the future. Until this is resolved, please ensure that there is a positive probability of <span class="math notranslate nohighlight">\(\theta_t = 0\)</span> in your calibration, so that the natural borrowing constraint is also <span class="math notranslate nohighlight">\(a_t \geq 0\)</span>.</p>
+<p>“Effective consumption” <span class="math notranslate nohighlight">\(x_t\)</span> is ordinary consumption <span class="math notranslate nohighlight">\(c_t\)</span> scaled down by the factor <span class="math notranslate nohighlight">\(\Lsr_t^{\LbrCost_t}\)</span>. The parameter <span class="math notranslate nohighlight">\(\LbrCost_t\)</span> represents how costly providing labor is from a utility standpoint. Because <span class="math notranslate nohighlight">\(\Lbr_t \in [0,1]\)</span>, for any <span class="math notranslate nohighlight">\(\LbrCost_t &gt; 0\)</span>, the scaling factor <span class="math notranslate nohighlight">\(\Lsr_t^{\LbrCost_t}\)</span> is also on the unit interval: consumption is <em>less valuable</em> when the agent has little leisure time to enjoy it.</p>
+</section>
+<section id="Solving-the-Labor-Supply-Model">
+<h2>Solving the Labor Supply Model<a class="headerlink" href="#Solving-the-Labor-Supply-Model" title="Link to this heading">#</a></h2>
+<p>As usual in HARK, the intensive margin labor supply model is solved by the endogenous grid method (EGM).</p>
+</section>
+<section id="End-of-period-(marginal)-value">
+<h2>End of period (marginal) value<a class="headerlink" href="#End-of-period-(marginal)-value" title="Link to this heading">#</a></h2>
+<p>To start, we define the end-of-period value function. The model has two controls, but only one relevant end-of-period state: assets <span class="math notranslate nohighlight">\(a_t\)</span>.</p>
+<p><span class="math">\begin{align*}
+\mathfrak{v}_t(a_t) &= \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1}\psi_{t+1})^{1-\CRRA} \text{v}_{t+1}(b_{t+1}, \theta_{t+1}) \right] \\
+&\text{s.t.} \\
+b_{t+1} &= \Rfree_{t+1}/(\PermGroFac_{t+1} \psi_{t+1}) a_t, \\
+(\psi_{t+1},\theta_{t+1}) &\sim F_{t+1}. \\
+\end{align*}</span></p>
+<p>Likewise, the marginal value of end-of-period assets is:</p>
+<p><span class="math">\begin{equation*}
+\mathfrak{v}_t'(a_t) = \Rfree_{t+1} \DiscFac \LivPrb_t \mathbb{E}_{t} \left[ (\PermGroFac_{t+1}\psi_{t+1})^{-\CRRA} \text{v}_{t+1}^b(b_{t+1}, \theta_{t+1}) \right].
+\end{equation*}</span></p>
+<p>The end-of-period value function can be substituted into the Bellman form (and some of the “intermediate equations” collapsed) to yield a simplified “EGM form”:</p>
+<p><span class="math">\begin{align*}
+\text{v}_t(b_t, \theta_t) &= \max_{c_t, \Lbr_t} ~ \frac{((1-\Lbr_t)^{\LbrCost_t} c_t)^{1-\rho}}{1-\rho} + \mathfrak{v}_t(a_t) \\
+&\text{s.t.} \\
+a_t &= b_t + \Lbr_t \theta_t \WageRte_t - c_t, \\
+a_t &\geq 0, \\
+\Lbr_t &\geq 0. \\
+\end{align*}</span></p>
+<section id="First-order-conditions:-take-1">
+<h3>First order conditions: take 1<a class="headerlink" href="#First-order-conditions:-take-1" title="Link to this heading">#</a></h3>
+<p>We can now take the derivative of the maximand with respect to each of the controls to yield the first order conditions for optimality (assuming an interior solution):</p>
+<p><span class="math">\begin{align*}
+\text{FOC-c:} ~~ & u^c(c_t,\Lbr_t) - \mathfrak{v}_t'(a_t) = 0. \\
+\text{FOC-l:} ~~ & u^\Lbr(c_t,\Lbr_t) + \theta_t \WageRte_t \mathfrak{v}_t'(a_t) = 0.
+\end{align*}</span></p>
+<p>One approach to solve the model is thus to set a grid of <span class="math notranslate nohighlight">\(a_t\)</span> and a discretization of <span class="math notranslate nohighlight">\(\theta_t\)</span> and then solve this non-linear system of first order conditions. That works, but it turns out there’s an algebraic rearrangement that makes the model easier to solve.</p>
+</section>
+<section id="Restructuring-the-problem">
+<h3>Restructuring the problem<a class="headerlink" href="#Restructuring-the-problem" title="Link to this heading">#</a></h3>
+<p>First, define <span class="math notranslate nohighlight">\(\lambda_t = \frac{1}{1 + \alpha_t}\)</span>, and rearrange the utility function as:</p>
+<p><span class="math">\begin{equation*}
+\hat{u}(c_t,\Lsr_t) \equiv \frac{(\Lsr_t^{1-\lambda_t}c_t^{\lambda_t})^{(1-\CRRA)(1+\alpha_t)}}{1-\CRRA} = \frac{(\Lsr_t^{1-\lambda_t}c_t^{\lambda_t})^{1-(\CRRA - \alpha_t + \CRRA \alpha_t)}}{1-\CRRA}.
+\end{equation*}</span></p>
+<p>The expression inside the exponentiation is an alternative expression for effective consumption <span class="math notranslate nohighlight">\(x_t\)</span> as a Cobb-Douglas aggregation of leisure and consumption. The “effective risk aversion” is rescaled to account for the change of exponents inside the exponentiation.</p>
+<p><strong>NB:</strong> Note that the revised utility function looks like it has a risk aversion coefficient of <span class="math notranslate nohighlight">\(\CRRA - \alpha_t + \CRRA \alpha_t\)</span> over effective consumption <span class="math notranslate nohighlight">\(x_t\)</span>. In order for the model to behave sensibly, the agent <em>must still be risk averse</em> with respect to <span class="math notranslate nohighlight">\(x_t\)</span>, so <span class="math notranslate nohighlight">\(\CRRA - \alpha_t + \CRRA \alpha_t &gt; 0 \Longrightarrow \CRRA(1+\alpha_t) &gt; \alpha_t \Longrightarrow \CRRA &gt; \alpha_t / (1+\alpha_t)\)</span>. This is always satisfied when <span class="math notranslate nohighlight">\(\CRRA \geq 1\)</span>, but is sometimes
+violated for <span class="math notranslate nohighlight">\(\CRRA &lt; 1\)</span>.</p>
+<p>Now rephrase the agent’s problem from deciding how much <em>labor to supply</em> to instead <em>how much leisure to purchase</em>. That is, momentarily assume the agent is supplying <span class="math notranslate nohighlight">\(\Lbr_t = 1\)</span>, and has total market resources of:</p>
+<p><span class="math">\begin{equation*}
+\overline{m}_t = b_t + \theta_t w_t.
+\end{equation*}</span></p>
+<p>The <em>equivalent</em> problem is now to “purchase” consumption <span class="math notranslate nohighlight">\(c_t\)</span> and leisure <span class="math notranslate nohighlight">\(\Lsr_t\)</span> to produce effective consumption, where consumption has a price of 1 and leisure has a price of <span class="math notranslate nohighlight">\(\WageRte_t \theta_t\)</span>– the labor income the agent will forgo.</p>
+<p><span class="math">\begin{align*}
+\text{v}_t(b_t, \theta_t) = \hat{\text{v}}_t(\overline{m}_t, \theta_t) &= \max_{c_t,\Lsr_t} \frac{x_t^{1-(\CRRA - \alpha_t + \CRRA \alpha_t)}}{1-\CRRA} + \mathfrak{v}_t(a_t) \\
+& \text{s.t.} \\
+x_t &= \Lsr_t^{1-\lambda_t}c_t^{\lambda_t}, \\
+a_t &= \overline{m}_t - c_t - \theta_t \WageRte_t \Lsr_t, \\
+a_t &\geq 0, \\
+\Lsr_t &\leq 1.
+\end{align*}</span></p>
+</section>
+<section id="The-cost-minimization-problem-for-effective-consumption">
+<h3>The cost-minimization problem for effective consumption<a class="headerlink" href="#The-cost-minimization-problem-for-effective-consumption" title="Link to this heading">#</a></h3>
+<p>With the problem rearranged in this form, we can now see that the agent’s problem is to make choices to balance the utility of “effective consumption” <span class="math notranslate nohighlight">\(x_t\)</span> today against the value of retaining assets <span class="math notranslate nohighlight">\(a_t\)</span> for the future. However much <span class="math notranslate nohighlight">\(x_t\)</span> the agent chooses, they want to minimize their expenditure on <span class="math notranslate nohighlight">\(x_t\)</span>. Because effective consumption is produced as a Cobb-Douglas aggregation of <span class="math notranslate nohighlight">\(c_t\)</span> and <span class="math notranslate nohighlight">\(\Lsr_t\)</span> and the “prices” are constant, then we know that the agent
+will want to use a <em>constant fraction</em> of their spending on <span class="math notranslate nohighlight">\(c_t\)</span> and <span class="math notranslate nohighlight">\(\Lsr_t\)</span>, and there is a <em>constant marginal cost</em> of acquiring more <span class="math notranslate nohighlight">\(x_t\)</span>.</p>
+<p>In particular, the marginal cost of buying a unit of effective consumption <span class="math notranslate nohighlight">\(x_t\)</span> is:</p>
+<p><span class="math">\begin{equation*}
+\varphi_t = \left(\frac{\WageRte_t \theta_t}{1-\lambda_t} \right)^{1-\lambda_t} \left( \frac{1}{\lambda_t} \right)^{\lambda_t}.
+\end{equation*}</span></p>
+<p>If the agent buys <span class="math notranslate nohighlight">\(x_t\)</span> units of effective consumption, spending <span class="math notranslate nohighlight">\(\varphi_t x_t\)</span> in total, the optimal quantities of <span class="math notranslate nohighlight">\(c_t\)</span> and <span class="math notranslate nohighlight">\(\Lsr_t\)</span> are:</p>
+<p><span class="math">\begin{align*}
+c_t &= \lambda_t \varphi_t x_t, \\
+\Lsr_t &= (1-\lambda_t) \varphi_t x_t / (\theta_t \WageRte_t).
+\end{align*}</span></p>
+</section>
+<section id="Reduced-problem:-Solving-for-optimal-effective-consumption">
+<h3>Reduced problem: Solving for optimal effective consumption<a class="headerlink" href="#Reduced-problem:-Solving-for-optimal-effective-consumption" title="Link to this heading">#</a></h3>
+<p>The two control variable problem is thus reduced to a simple one control variable problem: <span class="math">\begin{align*}
+\hat{\text{v}}_t(\overline{m}_t, \theta_t) &= \max_{x_t} \frac{x_t^{1-(\CRRA - \alpha_t + \CRRA \alpha_t)}}{1-\CRRA} + \mathfrak{v}_t(a_t) \\
+& \text{s.t.} \\
+a_t &= \overline{m}_t - \varphi_t x_t. \\
+\end{align*}</span></p>
+<p>This problem has a single first order condition for optimality:</p>
+<p><span class="math">\begin{equation*}
+\frac{1-(\CRRA - \alpha_t + \CRRA \alpha_t)}{1-\CRRA} x_t^{-(\CRRA - \alpha_t + \CRRA \alpha_t)} - \varphi_t \mathfrak{v}_t'(a_t) = 0.
+\end{equation*}</span></p>
+<p>This expression can be directly solved for <span class="math notranslate nohighlight">\(x_t\)</span>:</p>
+<p><span class="math">\begin{align*}
+x_t &= \left( \frac{\varphi_t(1-\CRRA)}{1-(\CRRA - \alpha_t + \CRRA \alpha_t)} \mathfrak{v}_t'(a_t) \right)^{-1/(\CRRA - \alpha_t + \CRRA \alpha_t)} \\
+\Longrightarrow x_t &= \left( \frac{1-(\CRRA - \alpha_t + \CRRA \alpha_t)}{\varphi_t(1-\CRRA)} \right)^{1/(\CRRA - \alpha_t + \CRRA \alpha_t)} \cdot \mathfrak{v}_t'(a_t)^{-1/(\CRRA - \alpha_t + \CRRA \alpha_t)}.
+\end{align*}</span></p>
+<p>The factoring in the second line makes it clear that inverting the first order conditions for this model is computationally barely more difficult than in the standard <code class="docutils literal notranslate"><span class="pre">ConsIndShockModel</span></code>. Note that the first factor depends <em>only</em> on <span class="math notranslate nohighlight">\(\theta_t\)</span> (through <span class="math notranslate nohighlight">\(\varphi_t\)</span>) and on model parameters; likewise, the second factor depends <em>only</em> on <span class="math notranslate nohighlight">\(a_t\)</span> and model parameters and risk. Thus when solving the model, we can calculate the first factor on a grid of <span class="math notranslate nohighlight">\(\theta_t\)</span> values and
+the second factor on a grid of <span class="math notranslate nohighlight">\(a_t\)</span> values, and then calculate the outer product of the two vectors to generate <span class="math notranslate nohighlight">\(x_t\)</span> for the tensor grid of <span class="math notranslate nohighlight">\((a_t, \theta_t)\)</span> end-of-period states.</p>
+<p>Once <span class="math notranslate nohighlight">\(x_t\)</span> is known for any given <span class="math notranslate nohighlight">\((a_t,\theta_t)\)</span>, the optimal controls can be recovered using the expressions for <span class="math notranslate nohighlight">\(c_t\)</span> and <span class="math notranslate nohighlight">\(\Lsr_t\)</span> above (from the “cost-minimization” problem), as well as the time budget constraint <span class="math notranslate nohighlight">\(\Lbr_t = 1 - \Lsr_t\)</span>. The endogenous <span class="math notranslate nohighlight">\(b_t\)</span> gridpoint from which these controls must have been chosen can then be found by inverting the intraperiod budget constraint:</p>
+<p><span class="math">\begin{equation*}
+b_t = a_t + c_t - \Lbr_t \theta_t \WageRte_t.
+\end{equation*}</span></p>
+</section>
+<section id="%22Leisure-constrained%22-solution">
+<h3>“Leisure-constrained” solution<a class="headerlink" href="#%22Leisure-constrained%22-solution" title="Link to this heading">#</a></h3>
+<p>A savvy reader might notice that we have completely neglected the time budget constraint, and that there is no guarantee that the <span class="math notranslate nohighlight">\(\Lbr_t\)</span> generated from this math will be non-negative (more directly, there is no guarantee that <span class="math notranslate nohighlight">\(\Lsr_t \leq 1\)</span>). For any pairs <span class="math notranslate nohighlight">\((a_t, \theta_t)\)</span> for which the first order conditions imply that <span class="math notranslate nohighlight">\(\Lsr_t &gt; 1\)</span>, we instead set <span class="math notranslate nohighlight">\(\Lsr_t = 1\)</span> and thus <span class="math notranslate nohighlight">\(\Lbr_t = 0\)</span>– the agent <em>did not work</em>.</p>
+<p>When “leisure constrained” like this, there is effectively only one first order condition, for consumption. In fact, when <span class="math notranslate nohighlight">\(\Lbr_t=0\)</span>, the model reduces to the standard consumption-saving problem (but with no income). Substituting <span class="math notranslate nohighlight">\(\Lbr_t = 0\)</span> in the EGM form of the problem and removing it as a control variable, we have:</p>
+<p><span class="math">\begin{align*}
+\text{v}_t(b_t, \theta_t) &= \max_{c_t} ~ \frac{c_t^{1-\rho}}{1-\rho} + \mathfrak{v}_t(a_t) \\
+&\text{s.t.} \\
+a_t &= b_t - c_t, \\
+a_t &\geq 0. \\
+\end{align*}</span></p>
+<p>This simpler problem has the standard EGM solution through the first order condition, and <span class="math notranslate nohighlight">\(\theta_t\)</span> does not enter:</p>
+<p><span class="math">\begin{align*}
+c_t^{-\CRRA} - \mathfrak{v}_t'(a_t) &= 0 \\
+\Longrightarrow c_t &= \mathfrak{v}_t'(a_t)^{-1/\CRRA}, \\
+b_t &= a_t + c_t.
+\end{align*}</span></p>
+<p>Thus we can generate a set of decision-time state space points <span class="math notranslate nohighlight">\((b_t, \theta_t)\)</span> and associated controls <span class="math notranslate nohighlight">\((c_t, \Lbr_t)\)</span> that satisfy the first order conditions. Because <span class="math notranslate nohighlight">\(\theta_t\)</span> is a “transitory state” with no dynamics, the set of state space points generated from an ordinary mesh on <span class="math notranslate nohighlight">\((a_t, \theta_t)\)</span> will be in “rows” in the <span class="math notranslate nohighlight">\(\theta_t\)</span> dimension. Thus to represent the policy functions, we can use HARK’s <code class="docutils literal notranslate"><span class="pre">LinearInterpOnInterp1D</span></code> and <code class="docutils literal notranslate"><span class="pre">VariableLowerBoundFunc2D</span></code>
+classes. That is, we construct a <code class="docutils literal notranslate"><span class="pre">LinearInterp</span></code> over <span class="math notranslate nohighlight">\((b_t-\theta_t \WageRte_t,c_t)\)</span> and <span class="math notranslate nohighlight">\((b_t-\theta_t \WageRte_t,\Lbr_t)\)</span> for each value of <span class="math notranslate nohighlight">\(\theta_t\)</span>, which aligns the lower bound of the first argument at zero. We then compose those <span class="math notranslate nohighlight">\(\theta_t\)</span>-conditional functions into a single object by interpolating between <span class="math notranslate nohighlight">\(\theta_t\)</span> values with <code class="docutils literal notranslate"><span class="pre">LinearInterpOnInterp1D</span></code>, then re-apply the lower bound shift with <code class="docutils literal notranslate"><span class="pre">VariableLowerBoundFunc2D</span></code>.</p>
+</section>
+<section id="Marginal-value-and-the-envelope-condition">
+<h3>Marginal value and the envelope condition<a class="headerlink" href="#Marginal-value-and-the-envelope-condition" title="Link to this heading">#</a></h3>
+<p>Finally, the solution requires a representation of the marginal value of bank balances <span class="math notranslate nohighlight">\(b_t\)</span>, so that end-of-period marginal value of assets <span class="math notranslate nohighlight">\(\mathfrak{v}_t'(a_t)\)</span> can be computed for the prior period. The envelope principle says that when evaluating the marginal value of a state variable, we can <em>ignore</em> the secondary effect through changes in optimal (unconstrained) controls. Here, if <span class="math notranslate nohighlight">\(b_t\)</span> is marginally increased, we can ignore the current period utility effect (through
+changes in <span class="math notranslate nohighlight">\(c_t\)</span> and <span class="math notranslate nohighlight">\(\Lbr_t\)</span>) and find that the marginal value of bank balances is:</p>
+<p><span class="math">\begin{equation*}
+\text{v}^b(b_t, \theta_t) = 0 + \mathfrak{v}_t'(a_t).
+\end{equation*}</span></p>
+<p>Recall the first order condition for optimal consumption (before the problem was transformed to reveal the Cobb-Douglas relationship between leisure and consumption):</p>
+<p><span class="math">\begin{align*}
+u^c(c_t,\Lbr_t) - \mathfrak{v}_t'(a_t) &= 0 \\
+\Longrightarrow u^c(c_t,\Lbr_t) &= \mathfrak{v}_t'(a_t).
+\end{align*}</span></p>
+<p>Substituting into the envelope condition above, we get the standard result that the marginal value of having a bit more money is the same thing as the marginal utility of consuming a bit more:</p>
+<p><span class="math">\begin{equation*}
+\text{v}^b(b_t, \theta_t) = u^c(c_t,\Lbr_t).
+\end{equation*}</span></p>
+</section>
+</section>
+<section id="Example-Parameters-to-Specify-a-LaborIntMargConsumerType">
+<h2>Example Parameters to Specify a <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code><a class="headerlink" href="#Example-Parameters-to-Specify-a-LaborIntMargConsumerType" title="Link to this heading">#</a></h2>
+<p>Like all of HARK’s <code class="docutils literal notranslate"><span class="pre">AgentType</span></code> subclasses, <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code> comes with a full set of default parameters. Almost all of the parameters are shared with the standard <code class="docutils literal notranslate"><span class="pre">IndShockConsumerType</span></code>, with with some new parameters and constructors added.</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Code</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Time-varying?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\DiscFac\)</span></p></td>
+<td><p>Intertemporal discount factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DiscFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.96\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\CRRA\)</span></p></td>
+<td><p>Coefficient of relative risk aversion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CRRA</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\Rfree_t\)</span></p></td>
+<td><p>Risk free interest factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Rfree</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.03]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\LivPrb_t\)</span></p></td>
+<td><p>Survival probability</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LivPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.98]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\PermGroFac_{t}\)</span></p></td>
+<td><p>Permanent income growth factor</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermGroFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.01]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\WageRte_{t}\)</span></p></td>
+<td><p>Wage rate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WageRte</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([1.0]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\sigma_\psi\)</span></p></td>
+<td><p>Standard deviation of log permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.1]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(N_\psi\)</span></p></td>
+<td><p>Number of discrete permanent income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PermShkCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(16\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\sigma_\theta\)</span></p></td>
+<td><p>Standard deviation of log transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkStd</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([0.1]\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(\surd\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(N_\theta\)</span></p></td>
+<td><p>Number of discrete transitory income shocks</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TranShkCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(15\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mho\)</span></p></td>
+<td><p>Probability of being unemployed and getting <span class="math notranslate nohighlight">\(\theta=\underline{\theta}\)</span></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrb</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.05\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\underline{\theta}\)</span></p></td>
+<td><p>Transitory shock when unemployed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncUnemp</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\mho^{Ret}\)</span></p></td>
+<td><p>Probability of being “unemployed” when retired</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">UnempPrbRet</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0005\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\underline{\theta}^{Ret}\)</span></p></td>
+<td><p>Transitory shock when “unemployed” and retired</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IncUnempRet</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Period of the lifecycle model when retirement begins</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_retire</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Minimum value in assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraMin</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.001\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Maximum value in assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraMax</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(80.0\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Number of points in base assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraCount</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(200\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Exponential nesting factor for base assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraNestFac</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(3\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Additional values to add to assets-above-minimum grid</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">aXtraExtra</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\(None\)</span></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((none)\)</span></p></td>
+<td><p>Polynomial age coefficients on log labor utility cost</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LbrCostCoeffs</span></code></p></td>
+<td><p><span class="math notranslate nohighlight">\([-1.0]\)</span></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In the default setup, the age-conditional sequence of wage rates <span class="math notranslate nohighlight">\(\WageRte_t\)</span> is specified directly as a list, but the age-varying <code class="docutils literal notranslate"><span class="pre">LbrCost</span></code> parameters (<span class="math notranslate nohighlight">\(\LbrCost_t\)</span> in the model above) are <em>constructed</em>. The default constructor function is <code class="docutils literal notranslate"><span class="pre">make_log_polynomial_LbrCost</span></code>, which depends only on <code class="docutils literal notranslate"><span class="pre">LbrCostCoeffs</span></code>, an arbitrary-length list of polynomial coefficients.</p>
+<p>Denoting <code class="docutils literal notranslate"><span class="pre">LbrCostCoeffs[n]</span></code> as <span class="math notranslate nohighlight">\(\delta_n\)</span>, <code class="docutils literal notranslate"><span class="pre">LbrCost[t]</span></code> (denoted <span class="math notranslate nohighlight">\(\LbrCost_t\)</span>) is calculated as an (exponentiated) polynomial of model age <span class="math notranslate nohighlight">\(t\)</span>:</p>
+<p><span class="math">\begin{equation*}
+\LbrCost_t = \exp \left( \sum_{n=0}^N \delta_n t^n \right) ~\text{for}~ t= 0, \cdots,T.
+\end{equation*}</span></p>
+<p>In a life-cycle setting, the default constructor thus allows the user to specify a parametric sequence for <span class="math notranslate nohighlight">\(\LbrCost_t\)</span>, perhaps to try to fit the empirical labor supply pattern. By default in the one-period model, we have <code class="docutils literal notranslate"><span class="pre">LbrCostCoeffs</span> <span class="pre">=</span> <span class="pre">[-1.0]</span></code>, a zero-degree polynomial; thus <span class="math notranslate nohighlight">\(\LbrCost_t = \exp(-1) \approx 0.368\)</span>.</p>
+</section>
+<section id="Example-Implementation-of-Intensive-Margin-Labor-Supply-Model">
+<h2>Example Implementation of Intensive Margin Labor Supply Model<a class="headerlink" href="#Example-Implementation-of-Intensive-Margin-Labor-Supply-Model" title="Link to this heading">#</a></h2>
+<p>Let’s solve an an infinite example of the <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code> using the default parameters.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make and solve a labor intensive margin consumer with default parameters</span>
+<span class="n">LaborExample</span> <span class="o">=</span> <span class="n">LaborIntMargConsumerType</span><span class="p">(</span><span class="n">cycles</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">t_start</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="n">LaborExample</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+<span class="n">LaborExample</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;cFunc&quot;</span><span class="p">)</span>
+<span class="n">LaborExample</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s2">&quot;LbrFunc&quot;</span><span class="p">)</span>
+<span class="n">t_end</span> <span class="o">=</span> <span class="n">time</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;Solving an infinite horizon labor intensive margin consumer took &quot;</span>
+    <span class="o">+</span> <span class="n">mystr</span><span class="p">(</span><span class="n">t_end</span> <span class="o">-</span> <span class="n">t_start</span><span class="p">)</span>
+    <span class="o">+</span> <span class="s2">&quot; seconds.&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\ConsumptionSaving\ConsLaborModel.py:147: RuntimeWarning: divide by zero encountered in divide
+  * (bNrmGridTerm / (WageRte_T * TranShkGridTerm) + 1.0),
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\ConsumptionSaving\ConsLaborModel.py:147: RuntimeWarning: invalid value encountered in divide
+  * (bNrmGridTerm / (WageRte_T * TranShkGridTerm) + 1.0),
+C:\Users\Matthew\Documents\GitHub\HARK\HARK\rewards.py:79: RuntimeWarning: divide by zero encountered in power
+  return c**-rho
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Solving an infinite horizon labor intensive margin consumer took 1.0292 seconds.
+</pre></div></div>
+</div>
+<p>The model solves very quickly even though there are two continuous state dimensions because there is only one <em>end-of-period</em> state dimension. That is, we only need to compute future expectations on a 1D grid of <span class="math notranslate nohighlight">\(a_t\)</span> values, not a 2D tensor grid. There are two <em>decision-time</em> state variables, so when we plot the policy functions, we do so at “slices”: fixed values of <span class="math notranslate nohighlight">\(\theta_t\)</span> while varying <span class="math notranslate nohighlight">\(b_t\)</span> on the horizontal axis.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the consumption function at various transitory productivity shocks</span>
+<span class="n">bMin_orig</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">bMax</span> <span class="o">=</span> <span class="mf">20.0</span>
+<span class="n">TranShkSet</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">TranShkGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">bMin</span> <span class="o">=</span> <span class="n">bMin_orig</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">bMax</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="n">bMin</span> <span class="o">=</span> <span class="n">bMin_orig</span>
+<span class="k">for</span> <span class="n">Shk</span> <span class="ow">in</span> <span class="n">TranShkSet</span><span class="p">:</span>
+    <span class="n">B_temp</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">bNrmMin</span><span class="p">(</span><span class="n">Shk</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">Shk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">B_temp</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+    <span class="n">bMin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">B_temp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Beginning of period bank balances $b_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized consumption level $c_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">bMax</span> <span class="o">-</span> <span class="n">bMin_orig</span> <span class="o">+</span> <span class="n">bMin</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsLaborModel_LaborIntMargConsumerType_29_0.png" src="../../_images/examples_ConsLaborModel_LaborIntMargConsumerType_29_0.png" />
+</div>
+</div>
+<p>The consumption function for a <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code> looks a lot like the one for other models in HARK: it has a region with high marginal propensity to consume, a highly concave region, and then approaches linearity at a fairly low MPC.</p>
+<p>The lowest (blue) slice represents when <span class="math notranslate nohighlight">\(\theta_t = 0\)</span>, so the agent earns no income at all. Their consumption function only exists for <span class="math notranslate nohighlight">\(b_t \geq 0\)</span>.</p>
+<p>The other slices are for values of <span class="math notranslate nohighlight">\(\theta_t &gt; 0\)</span>, centered around <span class="math notranslate nohighlight">\(\theta_t=1\)</span> (approximately). When labor productivity is positive, the consumption function exists at <em>negative</em> values of bank balances. Up above, we said that <span class="math notranslate nohighlight">\(a_{t-1} \geq 0\)</span>, so how could we ever attain <span class="math notranslate nohighlight">\(b_t &lt; 0\)</span>? In truth, these states <em>can’t</em> be reached in the ordinary course of the model. But the consumption function can still <em>exist</em> there because there an action that the agent can take and still
+end <em>this</em> period with <span class="math notranslate nohighlight">\(a_t \geq 0\)</span>.</p>
+<p>How far down does the consumption exist? For all <span class="math notranslate nohighlight">\(\theta_t\)</span>, the consumption function is defined down to <span class="math notranslate nohighlight">\(-\WageRte_t \theta_t\)</span>. If the agent <em>somehow</em> had <span class="math notranslate nohighlight">\(b_t = -\WageRte_t \theta_t\)</span> and knew that they <em>had</em> to end the period with <span class="math notranslate nohighlight">\(a_t \geq 0\)</span>, they could choose <span class="math notranslate nohighlight">\(\Lbr_t = 1\)</span> and <span class="math notranslate nohighlight">\(c_t = 0\)</span> (yielding negative infinite utility if <span class="math notranslate nohighlight">\(\CRRA &gt; 1\)</span>). At any <span class="math notranslate nohighlight">\(b_t\)</span> above this threshold, it is possible to work <em>less</em> than <span class="math notranslate nohighlight">\(\Lbr_t = 1\)</span>, consume more than
+zero, and still end the period with strictly positive assets.</p>
+<p>Above, we said that the “natural borrowing constraint” in this model is <span class="math notranslate nohighlight">\(a_t \geq 0\)</span>. What does that mean? From the perspective of the end of period <span class="math notranslate nohighlight">\(t\)</span>, it is possible that <span class="math notranslate nohighlight">\(\theta_{t+1} = 0\)</span>. If that realization attained, the agent would only be in a legal state in <span class="math notranslate nohighlight">\(t+1\)</span> if <span class="math notranslate nohighlight">\(b_{t+1} \geq 0\)</span>. Thus to ensure that <em>no matter what</em>, the agent arrives in period <span class="math notranslate nohighlight">\(t+1\)</span> with a valid action, they will <em>always</em> choose to end period <span class="math notranslate nohighlight">\(t\)</span> with <span class="math notranslate nohighlight">\(a_t \geq 0\)</span>,
+which is the only way to <em>guarantee</em> that <span class="math notranslate nohighlight">\(b_{t+1} \geq 0\)</span>.</p>
+<p>Now let’s plot the labor supply function at those same slices of <span class="math notranslate nohighlight">\(\theta_t\)</span>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the labor function at various transitory productivity shocks</span>
+<span class="n">TranShkSet</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">TranShkGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">bMin</span> <span class="o">=</span> <span class="n">bMin_orig</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bMax</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">Shk</span> <span class="ow">in</span> <span class="n">TranShkSet</span><span class="p">:</span>
+    <span class="n">B_temp</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">bNrmMin</span><span class="p">(</span><span class="n">Shk</span><span class="p">)</span>
+    <span class="n">Lbr</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">LbrFunc</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">Shk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">B_temp</span><span class="p">))</span>
+    <span class="n">bMin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">B_temp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">Lbr</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Beginning of period bank balances $b_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Labor supply $\ell_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">bMax</span> <span class="o">-</span> <span class="n">bMin_orig</span> <span class="o">+</span> <span class="n">bMin</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsLaborModel_LaborIntMargConsumerType_31_0.png" src="../../_images/examples_ConsLaborModel_LaborIntMargConsumerType_31_0.png" />
+</div>
+</div>
+<p>As expected from the prior discussion, we can see that labor supply goes up to <span class="math notranslate nohighlight">\(\Lbr_t = 1\)</span> at the lower boundary of <span class="math notranslate nohighlight">\(b_t\)</span>. Working that much is <em>very</em> unpleasant for the agent, but they’re in desperate straits! The labor supply function for <span class="math notranslate nohighlight">\(\theta_t = 0\)</span> is all the way at the lower boundary, barely visible: <span class="math notranslate nohighlight">\(\Lbr_t = 0\)</span>.</p>
+<p>For reasonable values of <span class="math notranslate nohighlight">\(b_t\)</span> (i.e. those that can actually be attained in the normal course of the model), labor supply is <em>increasing</em> in <span class="math notranslate nohighlight">\(\theta_t\)</span>. This seems reasonable to expect: the agent will work more when it yields more income. At very low levels of <span class="math notranslate nohighlight">\(b_t\)</span> however, the gradient flips. This is merely a product of the lower bound of <span class="math notranslate nohighlight">\(b_t\)</span> being <em>higher</em> for lower <span class="math notranslate nohighlight">\(\theta_t\)</span>: the agent needs to work more just to reach <span class="math notranslate nohighlight">\(a_t = 0\)</span> and still be able to
+consume!</p>
+<p>As a universal property, labor supply is <em>downward sloping</em> in <span class="math notranslate nohighlight">\(b_t\)</span>: the more money the agent already has, the less that they want to work. Phrased differently, the more money the agent has, the <em>more leisure they want to buy</em>. While an increase in <span class="math notranslate nohighlight">\(\theta_t\)</span> has both wealth and income effects, and increase in <span class="math notranslate nohighlight">\(b_t\)</span> is a pure wealth effect. Leisure is a normal good, so the agent demands more of it when they have more money.</p>
+<p>Finally, we can combine the two policy functions to look at <em>saving behavior</em>, mapping <span class="math notranslate nohighlight">\((b_t, \theta_t)\)</span> to <span class="math notranslate nohighlight">\(a_t\)</span>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the saving function at various transitory productivity shocks</span>
+<span class="n">TranShkSet</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">TranShkGrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">bMin</span> <span class="o">=</span> <span class="n">bMin_orig</span>
+<span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">bMax</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">Shk</span> <span class="ow">in</span> <span class="n">TranShkSet</span><span class="p">:</span>
+    <span class="n">B_temp</span> <span class="o">=</span> <span class="n">B</span> <span class="o">+</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">bNrmMin</span><span class="p">(</span><span class="n">Shk</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cFunc</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">Shk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">B_temp</span><span class="p">))</span>
+    <span class="n">Lbr</span> <span class="o">=</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">solution</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">LbrFunc</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">Shk</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">B_temp</span><span class="p">))</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">B_temp</span> <span class="o">+</span> <span class="n">Lbr</span> <span class="o">*</span> <span class="n">LaborExample</span><span class="o">.</span><span class="n">WageRte</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">Shk</span> <span class="o">-</span> <span class="n">C</span>
+    <span class="n">bMin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">B_temp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">B_temp</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Beginning of period bank balances $b_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;End of periods assets $a_t$&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">bMin</span><span class="p">,</span> <span class="n">bMax</span> <span class="o">-</span> <span class="n">bMin_orig</span> <span class="o">+</span> <span class="n">bMin</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">18.0</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/examples_ConsLaborModel_LaborIntMargConsumerType_33_0.png" src="../../_images/examples_ConsLaborModel_LaborIntMargConsumerType_33_0.png" />
+</div>
+</div>
+<p>Despite the significant differences in labor and consumption functions by <span class="math notranslate nohighlight">\(\theta_t\)</span>, the agent doesn’t <em>end</em> the period in very different circumstances depending on their transitory productivity shock. That makes sense: it has no effect on their <em>future</em> prospects!</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../ConsHabitModel/HabitPortfolioConsumerType.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Habit Formation with Portfolio Choice</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../ConsPrefShockModel/PrefShockConsumerType.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Preference Shocks to Consumption Utility</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Intensive-Margin-Labor-Supply-Model-Statement">Intensive Margin Labor Supply Model Statement</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Solving-the-Labor-Supply-Model">Solving the Labor Supply Model</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#End-of-period-(marginal)-value">End of period (marginal) value</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#First-order-conditions:-take-1">First order conditions: take 1</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Restructuring-the-problem">Restructuring the problem</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#The-cost-minimization-problem-for-effective-consumption">The cost-minimization problem for effective consumption</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Reduced-problem:-Solving-for-optimal-effective-consumption">Reduced problem: Solving for optimal effective consumption</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#%22Leisure-constrained%22-solution">“Leisure-constrained” solution</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#Marginal-value-and-the-envelope-condition">Marginal value and the envelope condition</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Parameters-to-Specify-a-LaborIntMargConsumerType">Example Parameters to Specify a <code class="docutils literal notranslate"><span class="pre">LaborIntMargConsumerType</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Example-Implementation-of-Intensive-Margin-Labor-Supply-Model">Example Implementation of Intensive Margin Labor Supply Model</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=90905a2f556bf617f1a9"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=90905a2f556bf617f1a9"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2026, Econ-ARK team.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.20.0.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
