@@ -781,3 +781,48 @@ def test_setup_q_measure_admits_models_whose_get_Rport_is_measure_neutral():
     ):
         agent.setup_Q_measure()
         assert agent.dual_measure is True
+
+
+def test_dual_mode_on_leaves_the_p_history_and_rng_untouched():
+    """Enabling dual mode must not perturb the P measure at all.
+
+    `test_default_off_is_bit_identical_to_plain_agent` covers the mixin being
+    PRESENT but off. This covers it being ON, which is the configuration where
+    `_step_Q_measure` runs and where `sim_one_period` shares
+    `_sim_period_prologue` with the base class. The Q pipeline reads
+    `state_prev`, and the prologue is what populates it, so the two interact
+    precisely here.
+
+    That the P stream survives is not incidental: `setup_Q_measure` arms the
+    base-draw cache, and the Q side inverts the SAME recorded uniforms rather
+    than drawing its own. If it ever drew independently, the RNG would
+    advance and every P value after the first period would move. So this
+    pins the shared-uniform design, not just the delegation.
+    """
+    tracked = ["cNrm", "pLvl", "mNrm", "aNrm", "bNrm", "kNrm", "aLvl"]
+
+    def run(dual):
+        agent = DualIndShock(AgentCount=500, T_sim=20, seed=31382)
+        agent.track_vars = list(tracked)
+        agent.solve()
+        if dual:
+            agent.setup_Q_measure()
+        agent.initialize_sim()
+        agent.simulate()
+        return agent
+
+    off, on = run(False), run(True)
+    assert on.dual_measure is True and off.dual_measure is False
+
+    for var in tracked:
+        assert np.array_equal(off.history[var], on.history[var]), (
+            f"{var} moved when dual mode was enabled, so the Q pipeline is "
+            "consuming randomness the P pipeline used to get"
+        )
+    assert off.RNG.bit_generator.state == on.RNG.bit_generator.state, (
+        "the RNG ended in a different place with dual mode on, so a stream "
+        "was consumed or skipped even though the histories happen to match"
+    )
+    # Not vacuous: dual mode must actually have produced a Q history.
+    assert set(on.history_Q) == set(tracked)
+    assert np.isfinite(on.history_Q["cNrm"]).any()

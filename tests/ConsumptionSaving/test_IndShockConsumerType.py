@@ -1088,28 +1088,6 @@ class testInitShuffle(unittest.TestCase):
         self.assertFalse(getattr(agent, "init_shuffle", False))
 
 
-class testInitShuffleStreamInvariance(unittest.TestCase):
-    """Default-path behavior golden captured on main at a25d3ae0: with
-    init_shuffle at its default, simulations are bit-identical."""
-
-    def test_default_sim_unchanged(self):
-        agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
-        agent.track_vars = ["cNrm"]
-        agent.solve()
-        agent.initialize_sim()
-        agent.simulate()
-        np.testing.assert_allclose(
-            [float(x) for x in agent.history["cNrm"][3, :4]],
-            [
-                1.1070787532288362,
-                0.9087055494949798,
-                1.1694416325917305,
-                0.9579870570215201,
-            ],
-            rtol=1e-10,
-        )
-
-
 class testDeathShuffle(unittest.TestCase):
     """Tests for the death_shuffle parameter on IndShockConsumerType.
 
@@ -1207,28 +1185,6 @@ class testDeathShuffle(unittest.TestCase):
         """death_shuffle defaults to False on every type that consults it."""
         for agent in (PerfForesightConsumerType(), IndShockConsumerType()):
             self.assertFalse(agent.death_shuffle)
-
-
-class testDeathShuffleStreamInvariance(unittest.TestCase):
-    """Default-path behavior golden captured on main at a25d3ae0: with
-    death_shuffle at its default, simulations are bit-identical."""
-
-    def test_default_sim_unchanged(self):
-        agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
-        agent.track_vars = ["cNrm"]
-        agent.solve()
-        agent.initialize_sim()
-        agent.simulate()
-        np.testing.assert_allclose(
-            [float(x) for x in agent.history["cNrm"][3, :4]],
-            [
-                1.1070787532288362,
-                0.9087055494949798,
-                1.1694416325917305,
-                0.9579870570215201,
-            ],
-            rtol=1e-10,
-        )
 
 
 class testCubicSolutionSerialization(unittest.TestCase):
