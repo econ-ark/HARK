@@ -43,6 +43,12 @@ from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
 # =============================================================================
 
 
+__all__ = [
+    "make_hierarchical_mrkv_array",
+    "extract_cond_mrkv_arrays",
+    "AggIndMrkvConsumerType",
+]
+
 def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
     """
     Build a full (M*N) x (M*N) Markov transition matrix.
