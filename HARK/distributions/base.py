@@ -25,8 +25,17 @@ def allocate_remainder_slots(K_exact, K, M, rng):
     ``MarkovProcess._draw_shuffled``; the first copy was fixed in #1808 and
     the second silently kept the bias, because the two copies are in
     different functions and nothing makes a divergence show up as a conflict.
-    Every caller that allocates leftover slots must call this rather than
-    reimplement it.
+    Every caller that spreads leftover slots over ``J >= 2`` atoms must call
+    this rather than reimplement it.
+
+    The qualifier is doing real work.  The bias only exists when ``M >= 2``,
+    since with a single leftover slot successive and systematic sampling
+    are the same draw.  A two-outcome split therefore cannot exhibit it:
+    the two fractional parts sum to an integer, so ``M`` is 0 or 1 and
+    never more.  ``PerfForesightConsumerType._sim_death_shuffled`` is that
+    case, and it resolves its remainder with one Bernoulli draw instead of
+    calling this function.  That is deliberate, not an oversight -- see the
+    comment there.
 
     M uniforms are drawn although systematic sampling needs only the first,
     so that this consumes exactly as many random numbers as the original

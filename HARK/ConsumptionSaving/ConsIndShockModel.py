@@ -1471,7 +1471,17 @@ class PerfForesightConsumerType(AgentType):
         for p in np.unique(DiePrb):
             group = np.where(DiePrb == p)[0]
             N_group = len(group)
-            # Floor-plus-remainder: unbiased expected death count
+            # Floor-plus-remainder: unbiased expected death count.
+            # This deliberately does not call
+            # HARK.distributions.base.allocate_remainder_slots, despite
+            # allocating a leftover slot. That function corrects a bias that
+            # only appears when two or more slots are handed out, and the
+            # die/survive split here can never produce more than one: its two
+            # fractional parts sum to an integer, so exactly one of them is
+            # nonzero. With a single slot, systematic sampling reduces to the
+            # Bernoulli draw below, and routing through the general helper
+            # would mean inventing a second atom for the survivors to make
+            # the shapes fit.
             K_exact = N_group * p
             how_many_die = int(np.floor(K_exact))
             remainder = K_exact - how_many_die
