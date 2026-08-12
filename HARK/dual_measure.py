@@ -33,6 +33,8 @@ Reference: Harmenberg (2021), "Aggregation with a permanent income shock",
            *Journal of Economic Dynamics and Control*.
 """
 
+import warnings
+
 import numpy as np
 
 from HARK.distributions.discrete import DiscreteDistribution
@@ -58,12 +60,28 @@ def make_Q_measure_dstn(dstn):
     -------
     DiscreteDistribution
         New distribution with Q-measure probabilities and the same atoms.
-        If the permanent shock has zero variance the original distribution
-        is returned unchanged.
+        If the permanent shock has zero variance, or a non-positive mean,
+        there is no neutral measure to construct and the original
+        distribution is returned unchanged, with a ``RuntimeWarning``: the
+        caller gets a Q measure identical to P, which is a silent no-op
+        rather than the variance reduction the reweighting is asked for.
     """
     perm_atoms = dstn.atoms[0]
     E_perm = np.dot(dstn.pmv, perm_atoms)
     if E_perm <= 0 or np.std(perm_atoms) < 1e-12:
+        warnings.warn(
+            "make_Q_measure_dstn: the permanent shock has "
+            + (
+                f"non-positive mean ({E_perm:.6g})"
+                if E_perm <= 0
+                else "no dispersion"
+            )
+            + ", so no neutral-measure reweighting is possible; returning the "
+            "P-measure distribution unchanged. Q-measure results will equal "
+            "P-measure results for this distribution.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         return dstn
     Q_pmv = dstn.pmv * perm_atoms / E_perm
     Q_pmv /= Q_pmv.sum()
@@ -130,6 +148,12 @@ class DualMeasureMixin:
         the first run and decays afterwards.  Set
         ``_cache_base_shock_draws = False`` after this call to get
         independent Q draws instead.
+
+        Warns when no distribution admits a neutral measure (every permanent
+        shock degenerate), because dual mode then runs the whole Q pipeline
+        to reproduce the P answer at twice the cost and none of the variance
+        reduction.  ``dual_measure`` is still set: the Q pipeline is well
+        defined in that case, just not useful.
         """
         self.IncShkDstn_Q = []
         for period_dstn in self.IncShkDstn:
@@ -137,10 +161,36 @@ class DualMeasureMixin:
                 self.IncShkDstn_Q.append([make_Q_measure_dstn(d) for d in period_dstn])
             else:
                 self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn))
+
+        if not self._any_reweighting_happened():
+            warnings.warn(
+                "setup_Q_measure: no income distribution admitted a neutral "
+                "measure, so every Q distribution is the P distribution and "
+                "dual mode will reproduce the P results exactly, at roughly "
+                "twice the cost. Leave dual_measure off unless the permanent "
+                "shock has dispersion.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
         if "IncShkDstn_Q" not in self.distributions:
             self.distributions = list(self.distributions) + ["IncShkDstn_Q"]
         self._cache_base_shock_draws = True
         self.dual_measure = True
+
+    def _any_reweighting_happened(self):
+        """True when at least one Q distribution differs from its P source.
+
+        ``make_Q_measure_dstn`` returns its argument unchanged when there is
+        nothing to reweight, so identity of the objects is an exact test.
+        """
+        for p_dstn, q_dstn in zip(self.IncShkDstn, self.IncShkDstn_Q):
+            if isinstance(p_dstn, (list, tuple)):
+                if any(q is not p for p, q in zip(p_dstn, q_dstn)):
+                    return True
+            elif q_dstn is not p_dstn:
+                return True
+        return False
 
     # ------------------------------------------------------------------
     # Initialization
@@ -277,11 +327,19 @@ class DualMeasureMixin:
                 self.state_now_Q[var][who_dies] = val_prev[who_dies]
 
     def _lag_Q_states(self):
-        """Copy ``state_now_Q`` -> ``state_prev_Q``, blank ``state_now_Q``."""
+        """Copy ``state_now_Q`` -> ``state_prev_Q``, blank ``state_now_Q``.
+
+        The blank is NaN rather than ``np.empty``: a state the Q pipeline
+        forgets to write then shows up as NaN in ``history_Q`` instead of as
+        whatever numbers numpy last left in that buffer.  Uninitialized memory
+        reads back as plausible-looking values in exactly the right range for
+        the variable it is masquerading as, which is the failure mode of
+        issue #1809.
+        """
         for var in self.state_now_Q:
             self.state_prev_Q[var] = self.state_now_Q[var]
             if isinstance(self.state_now_Q[var], np.ndarray):
-                self.state_now_Q[var] = np.empty(self.AgentCount)
+                self.state_now_Q[var] = np.full(self.AgentCount, np.nan)
             # scalar (aggregate) vars are kept as-is
 
     @property
@@ -351,6 +409,15 @@ class DualMeasureMixin:
         Base draws are keyed by ``(t_cycle, mrkv_state)`` tuples.
         Markov states are shared between P and Q; only the income shock
         magnitudes differ due to Q-reweighting.
+
+        Newborns mirror ``MarkovConsumerType.get_shocks``: their permanent
+        shock is redrawn from ``IncShkDstn[0][j]`` rather than being the
+        deterministic ``PermGroFac[0][j]``, and ``TranShk`` is pinned to 1
+        only when ``NewbornTransShk`` is off.  ``get_shocks`` does not record
+        base uniforms for its newborn redraw, so the Q side draws its own
+        unless a key ``("newborn", j)`` appears in ``_base_shock_draws``;
+        newborn P and Q permanent shocks are therefore uncoupled, which
+        matters only in the first period of a cohort's life.
         """
         base_draws_dict = getattr(self, "_base_shock_draws", {})
         MrkvNow = self.shocks["Mrkv"]
@@ -377,18 +444,42 @@ class DualMeasureMixin:
                     PermShkQ[these] = IncShkDstnQ.atoms[0][indices_Q] * PermGroFacNow
                     TranShkQ[these] = IncShkDstnQ.atoms[1][indices_Q]
 
-        # Newborns: deterministic PermShk = PermGroFac, TranShk = 1 (same as P)
-        for j in range(self.MrkvArray[0].shape[0]):
-            these_nb = np.logical_and(newborn, j == MrkvNow)
-            if np.any(these_nb):
-                PermShkQ[these_nb] = self.PermGroFac[0][j]
-        TranShkQ[newborn] = 1.0
+        # Newborns: redraw from period 0's distribution, as the P side does.
+        if np.any(newborn):
+            for j in range(self.MrkvArray[0].shape[0]):
+                these_nb = np.logical_and(newborn, j == MrkvNow)
+                N_new = np.sum(these_nb)
+                if N_new == 0:
+                    continue
+                IncShkDstnQ_0 = self.IncShkDstn_Q[0][j]
+                PermGroFacNow = self.PermGroFac[0][j]
+
+                base_new = base_draws_dict.get(("newborn", j))
+                if base_new is not None:
+                    indices_Q = _cdf_invert(base_new, IncShkDstnQ_0.pmv)
+                else:
+                    indices_Q = IncShkDstnQ_0.draw_events(N_new)
+
+                PermShkQ[these_nb] = (
+                    IncShkDstnQ_0.atoms[0][indices_Q] * PermGroFacNow
+                )
+                TranShkQ[these_nb] = IncShkDstnQ_0.atoms[1][indices_Q]
+
+            if not getattr(self, "NewbornTransShk", False):
+                TranShkQ[newborn] = 1.0
 
         self.shocks_Q["PermShk"] = PermShkQ
         self.shocks_Q["TranShk"] = TranShkQ
 
     def _transition_Q(self):
-        """Compute Q-measure states: pLvl_Q, mNrm_Q from Q-shocks."""
+        """Compute Q-measure states from Q-shocks.
+
+        Writes every state this transition defines, in the same order and by
+        the same formulas as ``IndShockConsumerType.transition``: ``kNrm``
+        and ``bNrm`` are stored rather than computed and thrown away, so a
+        caller tracking them gets the Q quantity that carries that name
+        instead of a stale buffer.
+        """
         pLvlPrev = self.state_prev_Q["pLvl"]
         kNrm = self.state_prev_Q["aNrm"]
         RportNow = self.get_Rport()
@@ -398,6 +489,10 @@ class DualMeasureMixin:
         bNrmNow = ReffNow * kNrm
         mNrmNow = bNrmNow + self.shocks_Q["TranShk"]
 
+        if "kNrm" in self.state_now_Q:
+            self.state_now_Q["kNrm"] = kNrm
+        if "bNrm" in self.state_now_Q:
+            self.state_now_Q["bNrm"] = bNrmNow
         self.state_now_Q["pLvl"] = pLvlNow
         self.state_now_Q["mNrm"] = mNrmNow
 
@@ -445,58 +540,67 @@ class DualMeasureMixin:
     # ------------------------------------------------------------------
 
     def simulate(self, sim_periods=None):
-        """Extend: record Q-history alongside P-history each period.
+        """Extend: record Q-history alongside the base class's P-history.
 
-        The base ``simulate()`` calls ``sim_one_period()`` (which now includes
-        ``_step_Q_measure()``) and records P-history.  We override to also
-        record Q-history in the same loop.
+        The P side is delegated to ``super().simulate()`` one period at a
+        time rather than reimplemented here.  An earlier version copied the
+        base recording loop and dropped its final ``else`` branch, so any
+        tracked variable that is a plain attribute instead of a key in
+        ``state_now``/``shocks``/``controls`` (``MPCnow`` is the common one)
+        was silently left as NaN whenever dual mode was on.  Delegating keeps
+        that class of drift from recurring: turning dual mode on cannot
+        change what the P pipeline records, by construction.
         """
         if not self.dual_measure:
             return super().simulate(sim_periods)
 
         if not hasattr(self, "t_sim"):
-            raise Exception("Call initialize_sim() before simulate().")
+            raise Exception(
+                "It seems that the simulation variables were not initialize before "
+                + "calling simulate(). Call initialize_sim() to initialize the "
+                + "variables before calling simulate() again."
+            )
+        if not hasattr(self, "T_sim"):
+            raise Exception(
+                "This agent type instance must have the attribute T_sim set to a "
+                + "positive integer."
+            )
+        if sim_periods is not None and self.T_sim < sim_periods:
+            raise Exception(
+                "To simulate, sim_periods has to be larger than the maximum data "
+                + "set size T_sim."
+            )
+
         if sim_periods is None:
             sim_periods = self.T_sim - self.t_sim
 
-        with np.errstate(
-            divide="ignore", over="ignore", under="ignore", invalid="ignore"
-        ):
-            for t in range(sim_periods):
-                self.sim_one_period()
-
-                # Record P-history (same as AgentType.simulate)
-                for var_name in self.track_vars:
-                    if var_name in self.state_now:
-                        self.history[var_name][self.t_sim, :] = self.state_now[var_name]
-                    elif var_name in self.shocks:
-                        self.history[var_name][self.t_sim, :] = self.shocks[var_name]
-                    elif var_name in self.controls:
-                        self.history[var_name][self.t_sim, :] = self.controls[var_name]
-                    else:
-                        if var_name == "who_dies" and self.t_sim > 1:
-                            self.history[var_name][self.t_sim - 1, :] = getattr(
-                                self, var_name
-                            )
-
-                # Record Q-history
-                for var_name in self.track_vars:
-                    if var_name in self.state_now_Q:
-                        self.history_Q[var_name][self.t_sim, :] = self.state_now_Q[
-                            var_name
-                        ]
-                    elif var_name in self.shocks_Q:
-                        self.history_Q[var_name][self.t_sim, :] = self.shocks_Q[
-                            var_name
-                        ]
-                    elif var_name in self.controls_Q:
-                        self.history_Q[var_name][self.t_sim, :] = self.controls_Q[
-                            var_name
-                        ]
-
-                self.t_sim += 1
+        for _ in range(sim_periods):
+            # One period of the unmodified P pipeline, including its own
+            # history recording and its own t_sim increment.
+            super().simulate(1)
+            self._record_Q_history(self.t_sim - 1)
 
         return self.history
+
+    def _record_Q_history(self, t_rec):
+        """Record the Q-side counterparts of ``track_vars`` at row ``t_rec``.
+
+        Mirrors the base class's P recording, minus its ``who_dies`` special
+        case: mortality is drawn once in the P pipeline and shared, so there
+        is no separate Q death mask to record.  A tracked variable with no
+        Q counterpart is left at NaN rather than being filled from the P side,
+        so ``history_Q`` never reports a P quantity under a Q name.
+        """
+        for var_name in self.track_vars:
+            if var_name in self.state_now_Q:
+                value = self.state_now_Q[var_name]
+            elif var_name in self.shocks_Q:
+                value = self.shocks_Q[var_name]
+            elif var_name in self.controls_Q:
+                value = self.controls_Q[var_name]
+            else:
+                continue
+            self.history_Q[var_name][t_rec, :] = value
 
     # ------------------------------------------------------------------
     # Aggregation utilities
