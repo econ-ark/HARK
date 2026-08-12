@@ -1137,6 +1137,18 @@ class MarkovConsumerType(IndShockConsumerType):
                     ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
                     PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
                     TranShkNow[idx] = ShockDraws[1]
+                elif _cache:
+                    # Same uniforms and inversion as draw_events:
+                    # P-stream unchanged; draws recorded for the
+                    # dual-measure Q-CDF inversion, keyed ("newborn", j)
+                    # to match the (t, j) convention of the main loop.
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[("newborn", j)] = base_draws
+                    EventDraws = np.searchsorted(
+                        np.cumsum(IncShkDstnNow.pmv), base_draws
+                    )
+                    PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
                 else:
                     # Original RNG path, preserved bit-for-bit.
                     EventDraws = IncShkDstnNow.draw_events(N)

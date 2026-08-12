@@ -392,11 +392,12 @@ class DualMeasureMixin:
         Newborns mirror ``MarkovConsumerType.get_shocks``: their permanent
         shock is redrawn from ``IncShkDstn[0][j]`` rather than being the
         deterministic ``PermGroFac[0][j]``, and ``TranShk`` is pinned to 1
-        only when ``NewbornTransShk`` is off.  ``get_shocks`` does not record
-        base uniforms for its newborn redraw, so the Q side draws its own
-        unless a key ``("newborn", j)`` appears in ``_base_shock_draws``;
-        newborn P and Q permanent shocks are therefore uncoupled, which
-        matters only in the first period of a cohort's life.
+        only when ``NewbornTransShk`` is off.  Under
+        ``_cache_base_shock_draws`` the newborn redraw records its uniforms
+        under ``("newborn", j)``, so newborn P and Q permanent shocks share
+        them like every other cell.  The independent draw below is the
+        fallback for when that key is absent, which is any run with the cache
+        off.
         """
         base_draws_dict = getattr(self, "_base_shock_draws", {})
         MrkvNow = self.shocks["Mrkv"]

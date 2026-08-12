@@ -489,3 +489,62 @@ def test_initialize_sim_clears_stale_base_draws():
     assert agent._base_shock_draws == {}
     agent.simulate()
     assert agent._base_shock_draws == {}
+
+
+def test_markov_newborn_draws_reach_the_base_draw_cache():
+    """The newborn cell records its uniforms, like every other cell does.
+
+    ``MarkovConsumerType.get_shocks`` builds ``_base_shock_draws`` keyed
+    ``(t, j)`` for the main loop, and ``_draw_Q_shocks_markov`` looks up
+    ``("newborn", j)`` for the newborn cell.  Nothing wrote that key for a
+    while: the newborn block had only the ``income_shuffle`` and original-RNG
+    branches, so the lookup could never hit and Markov newborns silently drew
+    an independent Q shock instead of sharing the P uniforms.
+
+    Asserting on the keys rather than on the shocks is deliberate.  A test
+    that clears ``_base_shock_draws`` by hand and then checks the Q shocks
+    cannot tell a designed fallback from a cache that is never populated,
+    because both take the same branch.
+    """
+    agent = _markov_agent(DualMarkov, agent_count=600, t_sim=10)
+    agent.setup_Q_measure()
+    assert agent._cache_base_shock_draws, "setup_Q_measure should arm the cache"
+    agent.initialize_sim()
+    agent.simulate()
+
+    keys = agent._base_shock_draws.keys()
+    newborn_keys = sorted(k for k in keys if isinstance(k, tuple) and k[0] == "newborn")
+    assert newborn_keys, (
+        "no ('newborn', j) key was recorded, so _draw_Q_shocks_markov's "
+        f"lookup can never hit; keys present were {sorted(map(str, keys))}"
+    )
+    for _, draws in ((k, agent._base_shock_draws[k]) for k in newborn_keys):
+        assert draws.size > 0
+        assert np.all((draws >= 0.0) & (draws <= 1.0)), "not uniforms"
+
+
+def test_markov_base_draw_cache_leaves_the_p_stream_alone():
+    """Arming the cache must not perturb the P simulation.
+
+    The cache branch draws its uniforms and inverts them exactly as
+    ``draw_events`` does, so turning it on changes what is recorded but not
+    what is simulated.  Without this, the newborn branch added alongside the
+    cache could shift the RNG stream and every P value with it.
+    """
+    tracked = ["cNrm", "pLvl"]
+
+    def run(cache):
+        agent = _markov_agent(DualMarkov, agent_count=600, t_sim=10)
+        agent._cache_base_shock_draws = cache
+        agent.track_vars = list(tracked)
+        agent.initialize_sim()
+        agent.simulate()
+        return agent
+
+    off, on = run(False), run(True)
+    for var in tracked:
+        assert np.array_equal(off.history[var], on.history[var]), (
+            f"{var} differs with the base-draw cache on, so the cache branch "
+            "is not consuming the same randomness as the default path"
+        )
+    assert off.RNG.bit_generator.state == on.RNG.bit_generator.state
