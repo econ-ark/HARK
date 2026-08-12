@@ -1,9 +1,68 @@
 from typing import Any, Optional
 
+import warnings
+
 import numpy as np
 from numpy import random
 
 MAX_INT32 = 2**31 - 1
+
+
+def allocate_remainder_slots(K_exact, K, M, rng):
+    """Hand out the M slots that ``floor`` left unallocated, without bias.
+
+    ``K = floor(K_exact)`` always leaves ``M = sum(K_exact) - sum(K)`` slots
+    unassigned, and how those are handed out decides whether the quota-exact
+    construction is actually unbiased.  Systematic sampling on the fractional
+    remainders ``Q = K_exact - K`` makes ``P(atom j gets an extra slot)``
+    exactly ``Q[j]``, hence ``E[count_j] == K_exact[j]``.  Drawing the M slots
+    one at a time proportional to the remaining Q instead is successive
+    sampling, whose inclusion probabilities are not proportional to Q, and
+    that biases the result whenever ``M >= 2``.
+
+    This lives in one place on purpose.  It was previously written out
+    separately inside ``DiscreteDistribution.draw`` and
+    ``MarkovProcess._draw_shuffled``; the first copy was fixed in #1808 and
+    the second silently kept the bias, because the two copies are in
+    different functions and nothing makes a divergence show up as a conflict.
+    Every caller that allocates leftover slots must call this rather than
+    reimplement it.
+
+    M uniforms are drawn although systematic sampling needs only the first,
+    so that this consumes exactly as many random numbers as the original
+    implementation did and every downstream draw stays put.
+
+    Parameters
+    ----------
+    K_exact : np.ndarray
+        Real-valued slot counts, ``N * P``.
+    K : np.ndarray
+        Integer slot counts, ``floor(K_exact)``.  Modified in place and
+        also returned.
+    M : int
+        Number of unallocated slots, ``N - sum(K)``.
+    rng : np.random.Generator
+        Source of the M uniforms.
+
+    Returns
+    -------
+    K : np.ndarray
+        ``K`` with the M leftover slots added.
+    """
+    draws = rng.random(M)
+    if M > 0:
+        Q = K_exact - K  # "missing" slots, fractional; these sum to M
+        edges = np.cumsum(Q)
+        # The final edge is unbounded rather than sum(Q). Queries run up
+        # to draws[0] + M - 1, which is below M in exact arithmetic but
+        # rounds to exactly M once draws[0] is within an ulp of 1, while
+        # cumsum drift can leave sum(Q) a few ulp below M. Either alone
+        # puts the last query at or past the last edge, and searchsorted
+        # would then return J and index out of bounds.
+        edges[-1] = np.inf
+        picks = np.searchsorted(edges, draws[0] + np.arange(M), side="right")
+        np.add.at(K, picks, 1)
+    return K
 
 
 def random_seed():
@@ -213,8 +272,10 @@ class MarkovProcess(Distribution):
             state are sorted by this key and assigned to target states via
             systematic sampling rather than random permutation.  This makes
             the transitioning subgroup representative of the source population
-            with respect to the sort variable (e.g. pLvl).  Only used when
-            shuffle=True.
+            with respect to the sort variable (e.g. pLvl).  Only meaningful
+            when shuffle=True; passing it with shuffle=False warns, because
+            silently ignoring it would let a caller believe a variance
+            reduction is in effect when the draw is plain iid.
         draws : np.array or None
             When provided (same length as state, values in U[0,1]) AND
             sort_key is None, use rank-based stratified inverse-CDF
@@ -236,6 +297,18 @@ class MarkovProcess(Distribution):
             New states.
         """
         if not shuffle:
+            ignored = [
+                name
+                for name, val in (("sort_key", sort_key), ("draws", draws))
+                if val is not None
+            ]
+            if ignored:
+                warnings.warn(
+                    f"{' and '.join(ignored)} passed with shuffle=False, so "
+                    f"the argument has no effect and the draw is plain iid. "
+                    f"Pass shuffle=True to use the requested assignment mode.",
+                    stacklevel=2,
+                )
             return self._draw_iid(state)
         return self._draw_shuffled(state, sort_key=sort_key, draws=draws)
 
@@ -333,18 +406,9 @@ class MarkovProcess(Distribution):
             K = np.floor(K_exact).astype(int)
             M = N_j - np.sum(K)  # unallocated slots
 
-            if M > 0:
-                eps = 1.0 / N_j
-                Q = K_exact - eps * K  # residual probability mass
-                # Local variable name avoids shadowing the `draws` parameter
-                # used by the rank-based stratified mode below.
-                leftover_draws = sub_rng.random(M)
-                for m in range(M):
-                    Q_adj = Q / np.sum(Q)
-                    Q_sum = np.cumsum(Q_adj)
-                    idx = np.searchsorted(Q_sum, leftover_draws[m])
-                    K[idx] += 1
-                    Q[idx] = 0.0
+            # Unbiased allocation of the leftover slots; shared with
+            # DiscreteDistribution.draw so the two cannot drift apart.
+            K = allocate_remainder_slots(K_exact, K, M, sub_rng)
 
             if sort_key is not None:
                 # Systematic sampling: sort agents by key, then assign

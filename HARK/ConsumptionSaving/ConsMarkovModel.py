@@ -19,6 +19,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
+    warn_if_shuffle_voids_base_draw_cache,
 )
 from HARK.distributions import MarkovProcess, Uniform, expected, DiscreteDistribution
 from HARK.interpolation import (
@@ -776,6 +777,7 @@ init_indshk_markov = {
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
@@ -1028,6 +1030,9 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
+        _cache = getattr(self, "_cache_base_shock_draws", False)
+        warn_if_shuffle_voids_base_draw_cache(self)
+        base_draws_dict = {}
         for t in range(self.T_cycle):
             for j in range(self.MrkvArray[t].shape[0]):
                 these = np.logical_and(t == self.t_cycle, j == MrkvNow)
@@ -1040,12 +1045,31 @@ class MarkovConsumerType(IndShockConsumerType):
                         j
                     ]  # and permanent growth factor
 
-                    # Get random draws of income shocks from the discrete distribution
-                    EventDraws = IncShkDstnNow.draw_events(N)
-                    PermShkNow[these] = (
-                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                    )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    # Draw income shocks from the discrete distribution
+                    if getattr(self, "income_shuffle", False):
+                        ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                        PermShkNow[these] = ShockDraws[0] * PermGroFacNow
+                        TranShkNow[these] = ShockDraws[1]
+                    elif _cache:
+                        # Same uniforms and inversion as draw_events:
+                        # P-stream unchanged; draws recorded for the
+                        # dual-measure Q-CDF inversion, keyed (t, j).
+                        base_draws = IncShkDstnNow._rng.uniform(size=N)
+                        base_draws_dict[(t, j)] = base_draws
+                        EventDraws = np.searchsorted(
+                            np.cumsum(IncShkDstnNow.pmv), base_draws
+                        )
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    else:
+                        # Original RNG path, preserved bit-for-bit.
+                        EventDraws = IncShkDstnNow.draw_events(N)
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )  # permanent "shock" includes expected growth
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
 
         # Fix shocks for newborns
         newborn = self.t_age == 0
@@ -1060,12 +1084,21 @@ class MarkovConsumerType(IndShockConsumerType):
                 IncShkDstnNow = self.IncShkDstn[0][j]
                 PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
 
-                # Get random draws of income shocks from the discrete distribution
-                EventDraws = IncShkDstnNow.draw_events(N)
-                PermShkNow[idx] = (
-                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                # Draw income shocks from the discrete distribution
+                if getattr(self, "income_shuffle", False):
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                else:
+                    # Original RNG path, preserved bit-for-bit.
+                    EventDraws = IncShkDstnNow.draw_events(N)
+                    PermShkNow[idx] = (
+                        IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+        if _cache:
+            self._base_shock_draws = base_draws_dict
+
         if not self.NewbornTransShk:
             TranShkNow[newborn] = 1.0
 
