@@ -8,6 +8,7 @@ API Reference
    tools/core
    tools/dcegm
    tools/distribution
+   tools/dual_measure
    tools/econforgeinterp
    tools/estimation
    tools/helpers
