@@ -25,8 +25,17 @@ def allocate_remainder_slots(K_exact, K, M, rng):
     ``MarkovProcess._draw_shuffled``; the first copy was fixed in #1808 and
     the second silently kept the bias, because the two copies are in
     different functions and nothing makes a divergence show up as a conflict.
-    Every caller that allocates leftover slots must call this rather than
-    reimplement it.
+    Every caller that spreads leftover slots over ``J >= 2`` atoms must call
+    this rather than reimplement it.
+
+    The qualifier is doing real work.  The bias only exists when ``M >= 2``,
+    since with a single leftover slot successive and systematic sampling
+    are the same draw.  A two-outcome split therefore cannot exhibit it:
+    the two fractional parts sum to an integer, so ``M`` is 0 or 1 and
+    never more.  ``PerfForesightConsumerType._sim_death_shuffled`` is that
+    case, and it resolves its remainder with one Bernoulli draw instead of
+    calling this function.  That is deliberate, not an oversight -- see the
+    comment there.
 
     M uniforms are drawn although systematic sampling needs only the first,
     so that this consumes exactly as many random numbers as the original
@@ -266,7 +275,11 @@ class MarkovProcess(Distribution):
             When True, use deterministic target counts per source state
             (floor-plus-leftover algorithm) with random agent assignment.
             This eliminates sampling noise in state transition counts.
-            Falls back to iid when N_j * min(probs) < 1 for a source state.
+            Falls back to iid when N_j * min(probs[probs > 0]) < 1 for a
+            source state.  The minimum is taken over the strictly positive
+            entries: a row with a structural zero would otherwise have
+            min(probs) == 0 and fall back forever, however well supported
+            its reachable targets are.
         sort_key : np.array or None
             When provided (same length as state), agents within each source
             state are sorted by this key and assigned to target states via
@@ -295,7 +308,44 @@ class MarkovProcess(Distribution):
         -------
         new_state : int or nd.array
             New states.
+
+        Raises
+        ------
+        IndexError
+            If any source state is outside the transition matrix's rows.
+            Both paths reject the same inputs; see the note below on why the
+            unshuffled path cannot be left to numpy.
         """
+        # Validated here rather than in _draw_shuffled, so both paths agree.
+        # The unshuffled path indexes transition_matrix[state] directly, and
+        # numpy raises for a state past the last row but NOT for a negative
+        # one: -1 resolves to the last row and the agent is silently
+        # transitioned from a different Markov state, in range and plausible,
+        # with nothing to distinguish it. Measured on
+        # [[0.99, 0.01], [0.50, 0.50]]: agents marked -1 moved to state 1 at
+        # frequency 0.50, the last row's rate, where their own row 0 gives
+        # 0.01. Unlike the shuffled path's uninitialized memory, this can
+        # never come back out of range and blow up downstream.
+        #
+        # -1 is not hypothetical: ConsAggIndMarkovModel._UNSET_MICRO is
+        # exactly -1, and MarkovConsumerType.get_markov_states passes
+        # shocks["Mrkv"] straight in with no check of its own. In the
+        # combined = N * macro + micro encoding, the last row is the highest
+        # macro and highest micro state, so a stray sentinel lands on the
+        # most favourable cell in the chain.
+        state_arr = np.asarray(state)
+        J_src = self.transition_matrix.shape[0]
+        out_of_range = (state_arr < 0) | (state_arr >= J_src)
+        if np.any(out_of_range):
+            bad = np.unique(state_arr[out_of_range])
+            raise IndexError(
+                f"source states {bad.tolist()} are outside the transition "
+                f"matrix's {J_src} rows, for {int(np.sum(out_of_range))} of "
+                f"{state_arr.size} agents. Negative states are rejected "
+                "rather than wrapped: numpy would resolve -1 to the last "
+                "row and transition those agents from the wrong state."
+            )
+
         if not shuffle:
             ignored = [
                 name
@@ -375,7 +425,16 @@ class MarkovProcess(Distribution):
                 "they specify mutually exclusive assignment modes."
             )
         state = np.asarray(state)
-        new_state = np.empty_like(state, dtype=int)
+        # Sentinel rather than np.empty: the loop below only writes agents
+        # whose source state is one of the matrix's rows, so an agent outside
+        # that range is never assigned. With np.empty it keeps whatever the
+        # freed buffer held, which in a running simulation is the previous
+        # period's Mrkv array -- in-range, plausible, and wrong. The
+        # unshuffled path raises IndexError on the same input, so silence
+        # here is also an inconsistency between the two paths. -1 cannot
+        # collide with a real assignment, which is always in range(J).
+        _UNSET = -1
+        new_state = np.full_like(state, _UNSET, dtype=int)
         J = self.transition_matrix.shape[1]
         J_src = self.transition_matrix.shape[0]
 
@@ -386,6 +445,12 @@ class MarkovProcess(Distribution):
         base_entropy = int(self._rng.integers(0, 2**63 - 1))
         sub_seeds = np.random.SeedSequence(base_entropy).spawn(J_src)
 
+        # Aggregated rather than warned per source state: a run with many
+        # thin rows would otherwise emit one warning per row per period and
+        # bury the count that matters.
+        fell_back_states = []
+        fell_back_agents = 0
+
         for j in range(J_src):
             agents_in_j = np.where(state == j)[0]
             N_j = len(agents_in_j)
@@ -395,8 +460,15 @@ class MarkovProcess(Distribution):
             probs = self.transition_matrix[j]
             sub_rng = np.random.default_rng(sub_seeds[j])
 
-            # Fall back to iid when population is too small for deterministic counts
+            # Fall back to iid when population is too small for deterministic
+            # counts. The minimum is over the strictly positive entries: a
+            # transition row with a structural zero has min(probs) == 0, so
+            # an unfiltered minimum would make this test true for every N_j
+            # and pin such rows to the iid path permanently, however well
+            # supported their reachable targets are.
             if N_j * np.min(probs[probs > 0]) < 1:
+                fell_back_states.append(j)
+                fell_back_agents += N_j
                 for idx in agents_in_j:
                     new_state[idx] = sub_rng.choice(J, p=probs)
                 continue
@@ -453,20 +525,39 @@ class MarkovProcess(Distribution):
                 draws_j = draws[agents_in_j]
                 sort_order = np.argsort(draws_j)
                 sorted_agents = agents_in_j[sort_order]
-                offset = 0
-                for jp in range(J):
-                    if K[jp] == 0:
-                        continue
-                    new_state[sorted_agents[offset : offset + K[jp]]] = jp
-                    offset += int(K[jp])
+                # Target j repeated K[j] times, concatenated, is exactly the
+                # rank-to-target map described above: sum(K) == N_j, so the
+                # r-th entry is the target for the agent at rank r.
+                new_state[sorted_agents] = np.repeat(np.arange(J), K)
             else:
                 # Randomly assign agents to target states
-                perm = sub_rng.permutation(agents_in_j)
-                offset = 0
-                for jp in range(J):
-                    new_state[perm[offset : offset + K[jp]]] = jp
-                    offset += K[jp]
+                new_state[sub_rng.permutation(agents_in_j)] = np.repeat(np.arange(J), K)
 
+        if fell_back_states:
+            warnings.warn(
+                f"MarkovProcess.draw(shuffle=True): source states "
+                f"{fell_back_states} have too few agents for deterministic "
+                f"counts (N_j * min positive transition probability < 1), so "
+                f"{fell_back_agents} of {state.size} agents were drawn iid "
+                "instead. Quota-exact transition counts are NOT in effect for "
+                "them, and neither is any variance reduction; raise "
+                "AgentCount or coarsen the state space if exactness is "
+                "needed. The other source states are unaffected.",
+                RuntimeWarning,
+                stacklevel=3,
+            )
+
+        unset = new_state == _UNSET
+        if np.any(unset):
+            bad = np.unique(state[unset])
+            raise IndexError(
+                f"source states {bad.tolist()} are outside the transition "
+                f"matrix's {J_src} rows, so {int(unset.sum())} of "
+                f"{state.size} agents were assigned no target state. "
+                "draw(..., shuffle=False) raises IndexError on the same "
+                "input; this is the shuffled path reporting it rather than "
+                "returning the uninitialized buffer."
+            )
         return new_state
 
 

@@ -1,6 +1,7 @@
 __all__ = [
     "DiscreteDistribution",
     "DiscreteDistributionLabeled",
+    "cdf_invert",
     "Distribution",
     "IndexDistribution",
     "Lognormal",
@@ -46,6 +47,7 @@ from HARK.distributions.discrete import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
+    cdf_invert,
 )
 from HARK.distributions.multivariate import MultivariateLogNormal, MultivariateNormal
 from HARK.distributions.utils import (

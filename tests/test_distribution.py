@@ -1290,3 +1290,103 @@ class StreamInvarianceGoldens(unittest.TestCase):
             [float(x) for x in dr],
             [2.0, 3.0, 3.0, 1.0, 2.0, 1.0, 3.0, 2.0, 2.0, 1.0, 1.0, 3.0],
         )
+
+
+class testDrawShuffledRejectsUnknownSourceStates(unittest.TestCase):
+    """An agent whose source state has no row must not get a silent answer.
+
+    `_draw_shuffled` assigns agents by looping over the transition matrix's
+    rows, so an agent whose state is outside that range is matched by no
+    iteration and never written. The output buffer used to be `np.empty`, so
+    those agents came back holding whatever the freed buffer contained -- in a
+    running simulation, the previous period's Mrkv array, which is in range and
+    plausible. The values then index `solution[t].cFunc[j]` and reach history.
+    """
+
+    def setUp(self):
+        self.T = np.array([[0.6, 0.4], [0.3, 0.7]])
+
+    def test_state_past_the_last_row_raises(self):
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError) as cm:
+            mp.draw(np.array([0, 1, 0, 1, 2, 0]), shuffle=True)
+        self.assertIn("2", str(cm.exception))
+
+    def test_negative_sentinel_state_raises(self):
+        """-1 is ConsAggIndMarkovModel's _UNSET_MICRO, not 'the last state'."""
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError):
+            mp.draw(np.array([0, 1, -1, 1, 0, 0]), shuffle=True)
+
+    def test_the_error_names_how_many_agents_were_affected(self):
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError) as cm:
+            mp.draw(np.array([0, 1, 5, 5, 5, 0]), shuffle=True)
+        self.assertIn("3 of 6", str(cm.exception))
+
+    def test_the_iid_path_rejects_the_same_inputs(self):
+        """The default path must not silently wrap a negative state.
+
+        `shuffle=False` indexes `transition_matrix[state]` directly, and numpy
+        raises for a state past the last row but NOT for a negative one: -1
+        resolves to the last row. Those agents were transitioned from a
+        different Markov state's row, in range and plausible, with nothing to
+        distinguish them -- and unlike the shuffled path's uninitialized
+        memory, it can never come back out of range and blow up downstream.
+
+        Measured on [[0.99, 0.01], [0.50, 0.50]]: agents marked -1 moved to
+        state 1 at frequency 0.50, the last row's rate, where their own row 0
+        gives 0.01.
+        """
+        for bad_state in (2, -1, -3):
+            state = np.array([0, 1, 0, bad_state, 1])
+            with self.assertRaises(IndexError, msg=f"state {bad_state}"):
+                MarkovProcess(self.T, seed=0).draw(state)
+
+    def test_both_paths_reject_identical_inputs(self):
+        """Whether a source state is legal must not depend on `shuffle`."""
+        for state in ([0, 1, 0, 1], [0, 1, 2], [0, 1, -1], [0, -2, 1]):
+            arr = np.array(state)
+            outcomes = []
+            for shuffle in (False, True):
+                try:
+                    MarkovProcess(self.T, seed=0).draw(arr, shuffle=shuffle)
+                    outcomes.append("ok")
+                except IndexError:
+                    outcomes.append("IndexError")
+            self.assertEqual(
+                outcomes[0],
+                outcomes[1],
+                f"state {state}: shuffle=False gave {outcomes[0]} but "
+                f"shuffle=True gave {outcomes[1]}",
+            )
+
+    def test_valid_states_are_unaffected(self):
+        """The guard must not disturb the ordinary path."""
+        state = np.array([0, 1, 0, 1, 0, 1, 0, 1])
+        got = MarkovProcess(self.T, seed=7).draw(state, shuffle=True)
+        self.assertEqual(got.shape, state.shape)
+        self.assertTrue(np.all((got >= 0) & (got < 2)))
+
+
+class test_shuffle_iid_fallback_warns(unittest.TestCase):
+    """A source state too small for exact counts falls back to iid."""
+
+    def test_warns_and_names_the_affected_states(self):
+        # The fallback silently withdrew the quota-exactness the shuffled
+        # path advertises, for part of the population, while the rest kept
+        # it. Both normalization mixins warn on their analogous skips.
+        mrkv = MarkovProcess(np.array([[0.995, 0.005], [0.5, 0.5]]), seed=1)
+        state = np.zeros(100, dtype=int)  # 100 * 0.005 = 0.5 < 1
+        with self.assertWarns(RuntimeWarning) as cm:
+            mrkv.draw(state, shuffle=True)
+        msg = str(cm.warning)
+        self.assertIn("[0]", msg)
+        self.assertIn("100", msg)
+
+    def test_silent_when_every_state_supports_exact_counts(self):
+        mrkv = MarkovProcess(np.array([[0.5, 0.5], [0.5, 0.5]]), seed=1)
+        state = np.zeros(1000, dtype=int)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            mrkv.draw(state, shuffle=True)

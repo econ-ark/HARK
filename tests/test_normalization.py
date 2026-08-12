@@ -28,6 +28,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
 )
+from HARK.dual_measure import DualMeasureMixin
 from HARK.simulation.normalization import (
     PermanentIncomeNormalizationMixin,
     ShockNormalizationMixin,
@@ -311,3 +312,194 @@ def test_composition_with_dual_measure():
     composed = _agent(DualNormalized)
     for var in ("pLvl", "cNrm"):
         assert np.array_equal(plain.history[var], composed.history[var]), var
+
+
+def test_pLvl_normalization_preserves_level_quantities():
+    """The advertised contract: mLvl = mNrm * pLvl survives the rescale.
+
+    `PermanentIncomeNormalizationMixin`'s class docstring says "Normalized
+    state variables (``mNrm``, ``bNrm``) are rescaled inversely so that level
+    quantities (``mLvl = mNrm * pLvl``) are preserved." That is the whole
+    point of the `_pLvl_norm_adjust_vars` loop: shifting `pLvl` without
+    rescaling the normalized states would silently change every agent's
+    wealth in level terms.
+
+    Nothing tested it. Disabling that loop entirely leaves all 13 other tests
+    in this file green, because none of them tracks `mNrm` or `bNrm` or
+    asserts on any level quantity. So the failure mode was silent corruption
+    of every simulation with `normalize_pLvl=True`, with no error and no
+    warning.
+
+    Measured across the hook rather than across a whole simulation, because
+    the hook is where the invariant has to hold: `post_state_hook` adjusts
+    `pLvl` and the normalized states together, and any later period's
+    transition legitimately changes levels.
+    """
+    agent = NormalizedIndShock(AgentCount=600, T_sim=6, seed=20260810)
+    agent.normalize_pLvl = True
+    agent.track_vars = ["pLvl", "cNrm"]
+    agent.solve()
+    agent.initialize_sim()
+
+    checked = 0
+    for _ in range(4):
+        # Run a period up to the point the hook is about to fire, by hand,
+        # so the before/after snapshot brackets exactly the rescale.
+        agent._sim_period_prologue()
+        agent.get_states()
+
+        before = {}
+        for var in ("mNrm", "bNrm"):
+            if var in agent.state_now and isinstance(agent.state_now[var], np.ndarray):
+                before[var] = agent.state_now[var] * agent.state_now["pLvl"]
+        assert before, "neither mNrm nor bNrm present; the test would be vacuous"
+
+        agent.post_state_hook()
+
+        for var, level_before in before.items():
+            level_after = agent.state_now[var] * agent.state_now["pLvl"]
+            assert np.allclose(level_before, level_after, rtol=1e-12, atol=0.0), (
+                f"{var} level quantity moved across post_state_hook: max "
+                f"|diff| {np.nanmax(np.abs(level_after - level_before)):.3e}. "
+                "The pLvl shift was applied without the compensating rescale, "
+                "so every agent's wealth in level terms changed."
+            )
+            checked += 1
+
+        agent.get_controls()
+        agent.get_poststates()
+        agent._sim_period_epilogue()
+
+    assert checked >= 8, (
+        f"only {checked} level comparisons ran; both mNrm and bNrm must be "
+        "exercised across four periods, so anything under 8 means one of "
+        "them silently left state_now"
+    )
+
+
+def test_pLvl_normalization_actually_moves_pLvl():
+    """Guard for the test above: the rescale must have something to undo.
+
+    If `normalize_pLvl` left `pLvl` untouched, the level-preservation
+    assertion would hold trivially and prove nothing.
+    """
+    agent = NormalizedIndShock(AgentCount=600, T_sim=6, seed=20260810)
+    agent.normalize_pLvl = True
+    agent.track_vars = ["pLvl", "cNrm"]
+    agent.solve()
+    agent.initialize_sim()
+
+    agent._sim_period_prologue()
+    agent.get_states()
+    pLvl_before = agent.state_now["pLvl"].copy()
+    agent.post_state_hook()
+    moved = np.nanmax(np.abs(agent.state_now["pLvl"] - pLvl_before))
+    assert moved > 1e-9, (
+        f"post_state_hook moved pLvl by at most {moved:.3e}, so the "
+        "level-preservation test above would pass vacuously"
+    )
+
+
+class _DualNormAgent(ShockNormalizationMixin, DualMeasureMixin, IndShockConsumerType):
+    """Both variance-reduction features at once, which is unsound."""
+
+
+def test_setup_Q_measure_refuses_shock_normalization():
+    # Composing the two silently reverses dual mode's headline result: the
+    # normalization rescales shocks["PermShk"] after the base uniforms the Q
+    # pipeline reads were recorded, so P's cross-sectional mean is pinned
+    # exactly and Q keeps all of its sampling noise. Measured at 2000 agents
+    # over 12 seeds: sd of the period-mean deviation is 2.03e-3 for both
+    # measures with normalization off, and 6.1e-17 (P) against 2.03e-3 (Q)
+    # with it on -- so a user stacking both concludes the neutral measure
+    # increases variance.
+    agent = _DualNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.normalize_shocks = True
+    agent.solve()
+    with pytest.raises(NotImplementedError, match="normalize_shocks"):
+        agent.setup_Q_measure()
+
+
+def test_normalization_refuses_when_dual_mode_set_afterwards():
+    # setup_Q_measure runs first here, so its own guard cannot see the flag.
+    # The check inside _normalize_shock_means is what catches this ordering.
+    agent = _DualNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.solve()
+    agent.setup_Q_measure()
+    agent.normalize_shocks = True
+    agent.initialize_sim()
+    with pytest.raises(NotImplementedError, match="dual_measure"):
+        agent.simulate()
+
+
+def test_zero_mean_guard_is_relative_to_shock_scale():
+    # The guard protects the division by the empirical mean, so what matters
+    # is the mean's size next to the values it came from, not its absolute
+    # size. An absolute 1e-16 cutoff is wrong at both ends.
+    agent = _agent(NormalizedIndShock, agent_count=40, t_sim=1)
+    agent.shocks = {"PermShk": np.full(40, 1e-18), "TranShk": np.ones(40)}
+
+    # Tiny but perfectly well-conditioned: every value is 1e-18, so the
+    # rescale factor is exact. An absolute cutoff would have skipped this.
+    labels = np.zeros(40, dtype=int)
+    agent._shock_group_labels = lambda idx=None: labels
+    agent._perm_shk_mean_target = lambda idx=None: np.full(40, 2e-18)
+    agent._income_dstn_index = lambda: np.zeros(40, dtype=int)
+    agent._normalize_shock_means()
+    # atol=0.0 is load-bearing: allclose's default atol=1e-8 swamps values of
+    # order 1e-18, so this assertion passes against any behavior without it.
+    assert np.allclose(agent.shocks["PermShk"], 2e-18, rtol=1e-12, atol=0.0)
+
+    # Ill-conditioned: mean 1e-10 among values of order 1e6, so the rescale
+    # factor is order 1e16. The absolute cutoff accepted this.
+    big = np.full(40, 1e6)
+    big[::2] = -1e6
+    big[0] = -1e6 + 40 * 1e-10
+    agent.shocks = {"PermShk": big.copy(), "TranShk": np.ones(40)}
+    agent._normalize_shock_means()
+    assert np.allclose(agent.shocks["PermShk"], big), (
+        "an ill-conditioned group was rescaled instead of skipped"
+    )
+
+
+class _DualPNormAgent(
+    PermanentIncomeNormalizationMixin, DualMeasureMixin, IndShockConsumerType
+):
+    """The pLvl half of the same unsound composition."""
+
+
+def test_setup_Q_measure_refuses_pLvl_normalization():
+    # Same class of defect as normalize_shocks, different mechanism: the pLvl
+    # adjustment runs in post_state_hook and the Q pipeline does not mirror
+    # it. Measured at 1000 agents over 10 periods, turning it on moves the P
+    # history by 1.45e-2 and leaves the Q history bit-identical, so sd across
+    # seeds of the final-period mean pLvl falls 9.71e-3 -> 5.91e-4 for P while
+    # Q stays at 1.03e-2.
+    agent = _DualPNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.normalize_pLvl = True
+    agent.solve()
+    with pytest.raises(NotImplementedError, match="normalize_pLvl"):
+        agent.setup_Q_measure()
+
+
+def test_pLvl_normalization_refuses_when_dual_mode_set_afterwards():
+    # setup_Q_measure runs first, so its guard cannot see the flag.
+    agent = _DualPNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.solve()
+    agent.setup_Q_measure()
+    agent.normalize_pLvl = True
+    agent.initialize_sim()
+    with pytest.raises(NotImplementedError, match="normalize_pLvl"):
+        agent.simulate()
+
+
+def test_refusal_names_the_other_flag_as_not_a_workaround():
+    # The guard used to cover normalize_shocks only, and its message told the
+    # user to turn it off -- routing them to the sibling mixin, which had the
+    # same defect unguarded. Both messages now say so explicitly.
+    for flag in ("normalize_shocks", "normalize_pLvl"):
+        agent = _DualNormAgent(AgentCount=50, T_sim=2, quiet=True)
+        setattr(agent, flag, True)
+        agent.solve()
+        with pytest.raises(NotImplementedError, match="not a workaround"):
+            agent.setup_Q_measure()

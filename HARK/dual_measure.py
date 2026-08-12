@@ -37,7 +37,11 @@ import warnings
 
 import numpy as np
 
-from HARK.distributions.discrete import DiscreteDistribution
+from HARK.distributions.discrete import DiscreteDistribution, cdf_invert
+
+#: Kept as a module-level alias: this module defined `_cdf_invert` before
+#: it moved next to the distribution it inverts, and tests import it here.
+_cdf_invert = cdf_invert
 
 __all__ = [
     "make_Q_measure_dstn",
@@ -47,7 +51,7 @@ __all__ = [
 ]
 
 
-def make_Q_measure_dstn(dstn):
+def make_Q_measure_dstn(dstn, warn=True):
     """Reweight a DiscreteDistribution by psi/E[psi] (Harmenberg neutral measure).
 
     Parameters
@@ -55,6 +59,16 @@ def make_Q_measure_dstn(dstn):
     dstn : DiscreteDistribution
         Joint (PermShk, TranShk) distribution under the physical measure.
         ``dstn.atoms[0]`` must be the permanent shock values.
+    warn : bool
+        Whether to warn when no reweighting is possible.  Callers reweighting
+        a single distribution want the warning and get it by default.
+        ``setup_Q_measure`` passes False because it maps this over every
+        period of a lifecycle, where degenerate periods are the normal case
+        rather than a symptom: retirement periods are built with
+        ``n_approx_Perm = 1``, so P equals Q there by construction.  Warning
+        once per period made a stock ``init_lifecycle`` emit 25 identical
+        warnings from one call, which buries the aggregate warning that does
+        mean something.  It reports the count instead.
 
     Returns
     -------
@@ -62,44 +76,97 @@ def make_Q_measure_dstn(dstn):
         New distribution with Q-measure probabilities and the same atoms.
         If the permanent shock has zero variance, or a non-positive mean,
         there is no neutral measure to construct and the original
-        distribution is returned unchanged, with a ``RuntimeWarning``: the
-        caller gets a Q measure identical to P, which is a silent no-op
-        rather than the variance reduction the reweighting is asked for.
+        distribution is returned unchanged: the caller gets a Q measure
+        identical to P, which is a no-op rather than the variance reduction
+        the reweighting is asked for.
     """
     perm_atoms = dstn.atoms[0]
     E_perm = np.dot(dstn.pmv, perm_atoms)
     if E_perm <= 0 or np.std(perm_atoms) < 1e-12:
-        warnings.warn(
-            "make_Q_measure_dstn: the permanent shock has "
-            + (f"non-positive mean ({E_perm:.6g})" if E_perm <= 0 else "no dispersion")
-            + ", so no neutral-measure reweighting is possible; returning the "
-            "P-measure distribution unchanged. Q-measure results will equal "
-            "P-measure results for this distribution.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
+        if warn:
+            warnings.warn(
+                "make_Q_measure_dstn: the permanent shock has "
+                + (
+                    f"non-positive mean ({E_perm:.6g})"
+                    if E_perm <= 0
+                    else "no dispersion"
+                )
+                + ", so no neutral-measure reweighting is possible; returning "
+                "the P-measure distribution unchanged. Q-measure results will "
+                "equal P-measure results for this distribution.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         return dstn
     Q_pmv = dstn.pmv * perm_atoms / E_perm
     Q_pmv /= Q_pmv.sum()
     return DiscreteDistribution(Q_pmv, dstn.atoms, seed=dstn.seed)
 
 
-def _cdf_invert(base_draws, pmv):
-    """Map uniform draws to atom indices via CDF inversion.
+#: Normalization flags that adjust the P side without a Q counterpart, with
+#: the mechanism each one uses. Both are refused by :func:`_refuse_normalization`.
+_NORMALIZATION_FLAGS = (
+    (
+        "normalize_shocks",
+        "rescales shocks['PermShk'] inside get_shocks, after the base uniforms "
+        "the Q pipeline inverts were recorded",
+    ),
+    (
+        "normalize_pLvl",
+        "adjusts state_now['pLvl'] in post_state_hook, which the Q pipeline "
+        "does not mirror",
+    ),
+)
 
-    Parameters
-    ----------
-    base_draws : np.ndarray of shape (N,)
-        Uniform [0, 1) random numbers.
-    pmv : np.ndarray
-        Probability mass vector.
 
-    Returns
-    -------
-    np.ndarray of int
-        Indices into the atom arrays.
+def _refuse_normalization(agent):
+    """Refuse to set up dual mode on an agent that normalizes its P side.
+
+    Both mixins in :mod:`HARK.simulation.normalization` adjust P-side
+    quantities that the Q pipeline never sees, so P's sampling noise is
+    removed and Q's is left intact.
+
+    That is not a coupling nit. Dual mode exists to show that the neutral
+    measure carries *less* noise than P, and either composition reverses the
+    comparison. Measured cross-seed standard deviations:
+
+    ``normalize_shocks``, period-mean shock deviation, 12 seeds at 2000 agents
+        off: 2.03e-3 (P) against 2.03e-3 (Q).  on: 6.1e-17 (P) against
+        2.03e-3 (Q).
+    ``normalize_pLvl``, final-period mean pLvl, 10 seeds at 2000 agents
+        off: 9.71e-3 (P) against 1.03e-2 (Q).  on: 5.91e-4 (P) against
+        1.03e-2 (Q), with the Q history bit-identical either way.
+
+    A user stacking a variance-reduction feature onto dual mode -- the natural
+    thing to try, and what this module's own docstring example does -- would
+    conclude the neutral measure increases variance.
+
+    The damage is not confined to the variance comparison. ``aggregate_Q``
+    multiplies a moment taken from the *P* history by a mean taken from the
+    *Q* history, so under either composition it combines a pinned half with an
+    unpinned one and the level estimate itself is biased. That closes the last
+    reading under which the combination is still useful: it is not merely the
+    comparison that breaks.
+
+    Composing them properly means normalizing the Q side to the Q measure's
+    own targets -- for shocks, ``PermGroFac * E[psi**2] / E[psi]**2`` rather
+    than ``PermGroFac``. That is a design decision about what normalization
+    means under a change of measure, so this refuses rather than guessing.
     """
-    return np.searchsorted(np.cumsum(pmv), base_draws)
+    for flag, mechanism in _NORMALIZATION_FLAGS:
+        if getattr(agent, flag, False):
+            raise NotImplementedError(
+                f"{type(agent).__name__} sets {flag}=True, which {mechanism}. "
+                "The P side would be pinned while Q kept its sampling noise, "
+                "reversing the variance comparison dual mode exists to "
+                "demonstrate and biasing aggregate_Q, which mixes a P-side "
+                f"moment with a Q-side mean. Set {flag}=False to use the "
+                "neutral measure, or drop DualMeasureMixin to use "
+                "normalization; normalizing the Q side to its own targets is "
+                "not implemented. This applies to both normalize_shocks and "
+                "normalize_pLvl, so switching to the other one is not a "
+                "workaround."
+            )
 
 
 class DualMeasureMixin:
@@ -117,8 +184,11 @@ class DualMeasureMixin:
 
     **Zero impact on base classes**: ``AgentType``, ``IndShockConsumerType``,
     and ``MarkovConsumerType`` are not modified.  The mixin overrides
-    ``sim_one_period`` and ``simulate`` via MRO, calling ``super()`` for the
-    P-pipeline.
+    ``sim_one_period`` and ``simulate`` via MRO.  Neither reimplements the
+    P-pipeline: ``simulate`` delegates each period to ``super().simulate(1)``,
+    and ``sim_one_period`` runs the base class's own
+    :meth:`~HARK.core.AgentType._sim_period_prologue` and
+    :meth:`~HARK.core.AgentType._sim_period_epilogue` around the Q-step.
     """
 
     dual_measure = False
@@ -151,12 +221,56 @@ class DualMeasureMixin:
         reduction.  ``dual_measure`` is still set: the Q pipeline is well
         defined in that case, just not useful.
         """
+        # _transition_Q calls self.get_Rport() to price the Q agent's assets.
+        # That is fine when get_Rport is a model constant or depends only on
+        # state the two measures share, which covers IndShock (Rfree by
+        # t_cycle), Markov (indexed by the shared shocks["Mrkv"]) and AggShock
+        # (a scalar RfreeNow). It is unsound when get_Rport reads state the Q
+        # pipeline does not mirror: KinkedRconsumerType picks Rboro vs Rsave
+        # from state_prev["aNrm"], KinkyPrefConsumerType delegates to it, and
+        # ConsRiskyAssetModel builds the return from controls["Share"], the P
+        # agent's realized portfolio choice, for which there is no Q-side
+        # counterpart at all. Composing those gives the Q agent the P agent's
+        # return: a wrong number, not a degraded one, so this refuses rather
+        # than warns.
+        p_side = _get_Rport_reads_p_side(type(self).get_Rport)
+        if p_side:
+            raise NotImplementedError(
+                f"{type(self).__name__}.get_Rport reads "
+                f"{sorted(p_side)}, which the Q pipeline does not mirror, so "
+                "the Q measure would be priced at the P agent's portfolio "
+                "return. DualMeasureMixin requires a get_Rport that depends "
+                "only on model constants or on state shared by both measures "
+                "(as in IndShockConsumerType, MarkovConsumerType and "
+                "AggShockConsumerType). Kinked-R and portfolio-choice models "
+                "need a Q-aware get_Rport before they can be composed."
+            )
+
+        _refuse_normalization(self)
+
+        # warn=False here, and the degenerate periods are counted instead.
+        # Mapping over a lifecycle hits legitimately degenerate periods as a
+        # matter of course: retirement periods are constructed with
+        # n_approx_Perm = 1, so P equals Q there by design. A stock
+        # init_lifecycle emits 25 of those from a single call, which trains
+        # the reader to filter the module and so hides the aggregate warning
+        # below, which is the one that means something.
         self.IncShkDstn_Q = []
         for period_dstn in self.IncShkDstn:
             if isinstance(period_dstn, (list, tuple)):
-                self.IncShkDstn_Q.append([make_Q_measure_dstn(d) for d in period_dstn])
+                self.IncShkDstn_Q.append(
+                    [make_Q_measure_dstn(d, warn=False) for d in period_dstn]
+                )
             else:
-                self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn))
+                self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn, warn=False))
+
+        # Recorded rather than warned: inspectable after the fact without
+        # costing anything on the healthy path.
+        self.Q_degenerate_periods = [
+            t
+            for t, (p, q) in enumerate(zip(self.IncShkDstn, self.IncShkDstn_Q))
+            if p is q
+        ]
 
         if not self._any_reweighting_happened():
             warnings.warn(
@@ -245,32 +359,15 @@ class DualMeasureMixin:
     def sim_one_period(self):
         """Run the P-pipeline, then the Q-pipeline before time advancement.
 
-        We cannot simply call ``super().sim_one_period()`` and append the
-        Q-step, because the base class increments ``t_age`` and ``t_cycle``
-        at the end.  The Q-pipeline needs these at their pre-increment values
-        (same as the P-pipeline used).  So we replicate the base-class logic
-        with the Q-step inserted before the time advancement.
+        Calling ``super().sim_one_period()`` and appending the Q-step does not
+        work: the base class advances ``t_age`` and ``t_cycle`` at the end,
+        and the Q-pipeline needs them at the pre-increment values the
+        P-pipeline used.  That is why the base class exposes the two halves
+        separately, so the Q-step can sit between them.  Everything before
+        and after it is the base class's own code, reached through the MRO,
+        not a copy of it living here.
         """
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. "
-                "To simulate, run the `solve()` method first."
-            )
-
-        # --- P-pipeline (mirrors AgentType.sim_one_period) ---
-        self.get_mortality()
-
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                pass
-
-        if self.read_shocks:
-            self.read_shocks_from_history()
-        else:
-            self.get_shocks()
+        self._sim_period_prologue()
         self.get_states()
         self.post_state_hook()
         self.get_controls()
@@ -280,10 +377,7 @@ class DualMeasureMixin:
         if self.dual_measure:
             self._step_Q_measure()
 
-        # --- Advance time (same as AgentType.sim_one_period) ---
-        self.t_age = self.t_age + 1
-        self.t_cycle = self.t_cycle + 1
-        self.t_cycle[self.t_cycle == self.T_cycle] = 0
+        self._sim_period_epilogue()
 
     # ------------------------------------------------------------------
     # Q-measure one-period pipeline
@@ -366,7 +460,15 @@ class DualMeasureMixin:
 
         for t in np.unique(self.t_cycle):
             idx = self.t_cycle == t
-            t_key = t - 1 if self.cycles == 1 else t
+            # t - 1 unconditionally, matching IndShockConsumerType.get_shocks
+            # (`t = s - 1`) and _draw_Q_shocks_markov (`IncShkDstn_Q[t - 1]`).
+            # This was `t - 1 if self.cycles == 1 else t`, which put Q one
+            # period ahead of P in both the shock distribution and the growth
+            # factor whenever cycles != 1 and T_cycle > 1 -- including
+            # cycles=0, this module's own documented usage. It was invisible
+            # because at T_cycle == 1 the list has one element and indices 0
+            # and -1 name it.
+            t_key = t - 1
             N = np.sum(idx)
             if N > 0:
                 IncShkDstnQ = self.IncShkDstn_Q[t_key]
@@ -409,11 +511,12 @@ class DualMeasureMixin:
         Newborns mirror ``MarkovConsumerType.get_shocks``: their permanent
         shock is redrawn from ``IncShkDstn[0][j]`` rather than being the
         deterministic ``PermGroFac[0][j]``, and ``TranShk`` is pinned to 1
-        only when ``NewbornTransShk`` is off.  ``get_shocks`` does not record
-        base uniforms for its newborn redraw, so the Q side draws its own
-        unless a key ``("newborn", j)`` appears in ``_base_shock_draws``;
-        newborn P and Q permanent shocks are therefore uncoupled, which
-        matters only in the first period of a cohort's life.
+        only when ``NewbornTransShk`` is off.  Under
+        ``_cache_base_shock_draws`` the newborn redraw records its uniforms
+        under ``("newborn", j)``, so newborn P and Q permanent shocks share
+        them like every other cell.  The independent draw below is the
+        fallback for when that key is absent, which is any run with the cache
+        off.
         """
         base_draws_dict = getattr(self, "_base_shock_draws", {})
         MrkvNow = self.shocks["Mrkv"]
@@ -624,8 +727,11 @@ class DualMeasureMixin:
             Steady-state ``E[p]``.  If None, estimated empirically from
             the P-measure history.
         pLvl_factor : np.ndarray or None
-            Shape ``(T,)`` scaling ``E[p_t]/E[p_ss]``.  If None, assumed
-            to be 1 for all periods (stationary economy).
+            Scaling ``E[p_t]/E[p_ss]``, one entry per simulated period.
+            Pass the full, un-burned series of length ``self.T_sim``: this
+            method applies ``[burn:]`` itself, so a pre-burned array of
+            length ``T_sim - burn`` would be trimmed a second time.  If
+            None, assumed to be 1 for all periods (stationary economy).
 
         Returns
         -------
@@ -654,6 +760,69 @@ class DualMeasureMixin:
 # ======================================================================
 # Standalone aggregation helpers
 # ======================================================================
+
+
+#: Names that mean "P-side" when read inside ``get_Rport``.  The Q pipeline
+#: mirrors ``shocks`` into ``shocks_Q`` and states into ``state_now_Q``, but
+#: nothing mirrors these, so a ``get_Rport`` that reads them returns the P
+#: agent's answer no matter which measure is asking.
+_P_SIDE_NAMES = frozenset({"state_prev", "state_now", "controls"})
+
+
+def _get_Rport_reads_p_side(fn, depth=2, seen=None):
+    """Names from ``_P_SIDE_NAMES`` that ``fn`` reads, following delegation.
+
+    Static inspection of ``co_names``, the same technique
+    ``HARK.simulation.normalization._warn_if_hook_unreachable`` uses to detect
+    a ``sim_one_period`` that never reaches ``post_state_hook``.  One level of
+    ``return OtherClass.get_Rport(self)`` is followed, because
+    ``KinkyPrefConsumerType`` is exactly that and inspecting only its own body
+    reports it clean.
+
+    This is a heuristic and is honest about being one: it sees names, not
+    dataflow, so a subclass that reaches P-side state through a helper several
+    frames down slips past.  It is a backstop against the compositions that
+    exist today, not a proof of safety for compositions that do not.
+    """
+    if seen is None:
+        seen = set()
+    if fn is None or depth < 0 or fn in seen:
+        return set()
+    seen.add(fn)
+    code = getattr(fn, "__code__", None)
+    if code is None:
+        return set()
+    names = set(code.co_names)
+    hits = names & _P_SIDE_NAMES
+    for name in names:
+        delegate = getattr(fn.__globals__.get(name), "get_Rport", None)
+        if delegate is not None:
+            hits |= _get_Rport_reads_p_side(delegate, depth - 1, seen)
+    return hits
+
+
+def _cohort_mass_normalizer(LivPrb, T_age):
+    """``(1 - LivPrb) / (1 - LivPrb**T_age)``, with the right limit at 1.
+
+    The share of a stationary population that is newborn, when survival is
+    ``LivPrb`` each period and everyone dies at ``T_age``.  Two callers need
+    it: ``compute_mean_pLvl`` as ``C_norm``, and ``compute_pLvl_factor`` as
+    ``delta_eff``, whose ``1 - (L - L**T)/(1 - L**T)`` is this rearranged.
+
+    Both ends are 0 at ``LivPrb == 1``, and the limit is ``1 / T_age``, not
+    0: with no mortality the cohorts are equally sized, so newborns are one
+    of ``T_age`` of them.  L'Hopital on ``(1 - L) / (1 - L**T)`` gives
+    ``1 / (T * L**(T-1))``, which is ``1 / T`` at ``L = 1``.
+
+    This is worth a shared function because the two call sites disagreed
+    about the degenerate case in opposite directions: one had no guard and
+    divided 0 by 0, the other guarded and returned ``1 - LivPrb``, which is
+    0 exactly where the answer is ``1 / T_age``.
+    """
+    L_T = LivPrb**T_age
+    if abs(1.0 - L_T) < 1e-12:
+        return 1.0 / T_age
+    return (1.0 - LivPrb) / (1.0 - L_T)
 
 
 def compute_mean_pLvl(agent, g=None):
@@ -694,12 +863,20 @@ def compute_mean_pLvl(agent, g=None):
 
     T_age = getattr(agent, "T_age", 400) or 400
 
+    # Aggregate pLvl over the stationary age distribution. A cohort of age a
+    # has survived a periods (mass LivPrb**a) and grown a times (factor g**a),
+    # so its contribution scales as (LivPrb * g)**a and the sum over ages
+    # 0..T_age-1 is geometric in Lg = LivPrb * g.
     Lg = LivPrb * g
     if abs(Lg - 1.0) < 1e-12:
+        # Removable singularity: at Lg == 1 every cohort contributes equally,
+        # so the sum is just the number of cohorts. The closed form below is
+        # 0/0 here and numerically unstable nearby.
         geo_sum = float(T_age)
     else:
         geo_sum = (1.0 - Lg**T_age) / (1.0 - Lg)
-    C_norm = (1.0 - LivPrb) / (1.0 - LivPrb**T_age)
+    # Divides out the total cohort mass, leaving a per-capita mean.
+    C_norm = _cohort_mass_normalizer(LivPrb, T_age)
 
     return E_pLvl_init * g * C_norm * geo_sum
 
@@ -746,11 +923,10 @@ def compute_pLvl_factor(agent, unemployment_path, g_base=None):
         LivPrb = LivPrb[0]
 
     T_age = getattr(agent, "T_age", 400) or 400
-    # Effective death rate accounting for forced death at T_age
-    L_T = LivPrb**T_age
-    delta_eff = (
-        1.0 - (LivPrb - L_T) / (1.0 - L_T) if abs(1 - L_T) > 1e-12 else 1.0 - LivPrb
-    )
+    # Effective death rate accounting for forced death at T_age.
+    # 1 - (L - L**T)/(1 - L**T) is (1 - L)/(1 - L**T) rearranged, so this is
+    # the same quantity compute_mean_pLvl calls C_norm.
+    delta_eff = _cohort_mass_normalizer(LivPrb, T_age)
 
     if g_base is None:
         g_base = (1.0 - u_path[0]) * G + u_path[0]

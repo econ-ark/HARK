@@ -160,6 +160,26 @@ class test_AgentType(unittest.TestCase):
         self.assertEqual(self.agent, agent2)
         self.assertNotEqual(self.agent, agent3)
 
+    def test_prologue_blanks_states_with_nan(self):
+        # The prologue clears every ndarray state so the period's own code
+        # must write it. Blanking with np.empty made a state nothing wrote
+        # hold the freed buffer's contents -- usually the previous period's
+        # values, so the gap read as plausible data. nan makes it visible.
+        agent = IndShockConsumerType(AgentCount=50, T_sim=5)
+        agent.solve()
+        agent.initialize_sim()
+        agent._sim_period_prologue()
+
+        blanked = [
+            var for var, val in agent.state_now.items() if isinstance(val, np.ndarray)
+        ]
+        self.assertTrue(blanked)
+        for var in blanked:
+            self.assertTrue(
+                np.all(np.isnan(agent.state_now[var])),
+                f"state_now[{var!r}] was not blanked to nan",
+            )
+
     def test_del_from_X(self):
         MyType = IndShockConsumerType()
         MyType.del_from_time_inv("DiscFac")
@@ -1601,3 +1621,30 @@ class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
         agent.make_shock_history(shuffle=True)
         self.assertTrue(seen["flag"])  # flag was on during the pre-draw
         self.assertFalse(agent.income_shuffle)  # and restored afterwards
+
+
+class test_get_states_arity(unittest.TestCase):
+    """get_states assigns by position, so arity mismatches matter."""
+
+    def _agent(self, returns):
+        agent = IndShockConsumerType(AgentCount=10, T_sim=2)
+        agent.solve()
+        agent.initialize_sim()
+        agent.transition = lambda: returns
+        return agent
+
+    def test_too_many_returned_values_raises(self):
+        # The loop iterates over state_now, so a transition() returning more
+        # values than there are states drops the tail with no signal.
+        n = len(self._agent(()).state_now) + 1
+        agent = self._agent(tuple(np.zeros(10) for _ in range(n)))
+        with self.assertRaises(ValueError) as cm:
+            agent.get_states()
+        self.assertIn("discarded", str(cm.exception))
+
+    def test_short_return_is_still_allowed(self):
+        # Deliberate and load-bearing: GenIncProcessConsumerType declares five
+        # states and returns three, picking up the tail in get_poststates. An
+        # equality assert here would break it.
+        agent = self._agent((np.zeros(10),))
+        agent.get_states()

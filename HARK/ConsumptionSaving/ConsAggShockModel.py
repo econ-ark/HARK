@@ -2836,9 +2836,16 @@ class KrusellSmithEconomy(Market):
 
     def make_MrkvArray(self):
         """
-        Construct the attributes MrkvAggArray and MrkvIndArray from the primitive
-        attributes DurMeanB, DurMeanG, SpellMeanB, SpellMeanG, UrateB, UrateG,
-        RelProbGB, and RelProbBG.
+        Construct the attributes MrkvAggArray, MrkvIndArray, MacroMrkvArray
+        (an alias of MrkvAggArray) and CondMrkvArrays (the block decomposition
+        of MrkvIndArray) from the primitive attributes DurMeanB, DurMeanG,
+        SpellMeanB, SpellMeanG, UrateB, UrateG, RelProbGB, and RelProbBG.
+
+        MacroMrkvArray and CondMrkvArrays exist for interface parity with
+        AggIndMrkvConsumerType and are distributed to agents through
+        market_vars. KrusellSmithType itself does not read them: it overrides
+        get_macro_markov_states and get_micro_markov_states with its own
+        exact-match permutation logic.
         """
         # Construct aggregate Markov transition probabilities
         ProbBG = 1.0 / self.DurMeanB

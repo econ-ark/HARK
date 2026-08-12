@@ -1194,7 +1194,9 @@ class MedShockConsumerType(PersistentShockConsumerType):
     ]
     time_inv_ = PersistentShockConsumerType.time_inv_ + ["CRRAmed", "qFunc"]
     shock_vars_ = PersistentShockConsumerType.shock_vars_ + ["MedShk"]
-    state_vars = PersistentShockConsumerType.state_vars + ["mLvl"]
+    # The parent list already contains "mLvl"; appending it again made
+    # state_vars longer than the set of distinct states it names.
+    state_vars = PersistentShockConsumerType.state_vars
     distributions = [
         "IncShkDstn",
         "PermShkDstn",
@@ -1279,6 +1281,7 @@ class MedShockConsumerType(PersistentShockConsumerType):
             - self.controls["cLvl"]
             - self.shocks["MedPrice"] * self.controls["MedLvl"]
         )
+        self.set_aNrm_from_levels()
 
 
 ###############################################################################
@@ -1897,5 +1900,6 @@ class MedExtMargConsumerType(PersistentShockConsumerType):
         self.state_now["aLvl"] = (
             self.state_now["mLvl"] - self.controls["cLvl"] - self.state_now["Med"]
         )
+        self.set_aNrm_from_levels()
         # Move now to prev
         AgentType.get_poststates(self)

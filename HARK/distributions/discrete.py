@@ -15,6 +15,38 @@ from scipy.stats._distn_infrastructure import rv_discrete_frozen
 from HARK.distributions.base import Distribution, allocate_remainder_slots
 
 
+def cdf_invert(base_draws, pmv):
+    """Map uniform draws to atom indices by inverting the CDF.
+
+    Lives here, next to the distribution it inverts, because four places
+    were spelling it out independently: ``DiscreteDistribution.draw_events``
+    itself, the base-draw-cache branches in ``IndShockConsumerType.get_shocks``
+    and ``MarkovConsumerType.get_shocks``, and ``HARK.dual_measure``'s Q-side
+    draws.  The P and Q pipelines have to agree on this map exactly -- the
+    whole shared-uniform design rests on inverting one recorded draw through
+    two different CDFs -- so it should not be four transcriptions that
+    happen to match.
+
+    Note the boundary convention is ``searchsorted``'s default ``side="left"``,
+    which all four copies used.  Changing it here changes which atom a draw
+    landing exactly on a cumulative boundary selects, in both measures at
+    once, which is the point.
+
+    Parameters
+    ----------
+    base_draws : np.ndarray of shape (N,)
+        Uniform [0, 1) random numbers.
+    pmv : np.ndarray
+        Probability mass vector.
+
+    Returns
+    -------
+    np.ndarray of int
+        Indices into the atom arrays.
+    """
+    return np.searchsorted(np.cumsum(pmv), base_draws)
+
+
 def _weighted_mean_var(var, pmv):
     """Compute weighted mean of a single DataArray over its ``atom`` dimension.
 
@@ -214,14 +246,9 @@ class DiscreteDistribution(Distribution):
             atom_indices = np.arange(J, dtype=int)
             return self.draw(N, shuffle=True, atoms=atom_indices)
 
-        # Generate a cumulative distribution
+        # Generate a cumulative distribution and invert it
         base_draws = self._rng.uniform(size=N)
-        cum_dist = np.cumsum(self.pmv)
-
-        # Convert the basic uniform draws into discrete draws
-        indices = cum_dist.searchsorted(base_draws)
-
-        return indices
+        return cdf_invert(base_draws, self.pmv)
 
     def _resolve_replicates(self, replicates: int, max_J_min: int = 10_000):
         """Compute N from replicates and the minimal full-coverage sample size.
@@ -273,10 +300,28 @@ class DiscreteDistribution(Distribution):
         denoms = [f.denominator for f in fracs]
         J_min = reduce(lambda a, b: a * b // gcd(a, b), denoms)
 
-        # Verify that J_min * p_j is an integer for every atom, and nonzero
-        # wherever the atom actually carries mass.  A zero-probability atom is
-        # legitimate (it just never gets drawn), so it is exempt from the
-        # positivity requirement rather than a reason to refuse the request.
+        # What this check does and does not establish, because the difference
+        # is easy to misread. J_min is the LCM of these fractions' own
+        # denominators, so `c.denominator != 1` is true by construction for
+        # every atom: that clause is the approximation validating itself and
+        # would pass for any P whatever. The clause with real content is
+        # `c == 0 and P[j] > 0`, which catches an atom whose probability
+        # limit_denominator rounded to zero.
+        #
+        # Tightening this to verify the rationals against P directly is not
+        # worth doing: for p in [0, 1] the approximation error is on the order
+        # of 1/(q * 1000000), so any threshold loose enough not to fire on
+        # ordinary input is one the error cannot reach either -- a second
+        # unfirable check rather than a repair of the first.
+        #
+        # Nothing downstream is wrong as a result. Whatever discrepancy
+        # survives is absorbed by allocate_remainder_slots, which distributes
+        # leftover slots by fractional remainder. The exactness claim in this
+        # method's docstring rests on that, not on the check below.
+        #
+        # A zero-probability atom is legitimate (it just never gets drawn), so
+        # it is exempt from the positivity requirement rather than a reason to
+        # refuse the request.
         counts = [J_min * f for f in fracs]
         bad = [
             (j, float(P[j]))
@@ -362,8 +407,12 @@ class DiscreteDistribution(Distribution):
             generally, the minimal sample size is the smallest N such that N*p_j is
             an integer for all j.  When replicates is given, shuffle is forced True.
 
-            A warning is issued if any 1/p_j is not close to an integer, since the
-            minimal sample may then be unexpectedly large.
+            A warning is issued when the minimal sample J_min is much larger
+            than the ceil(1/p_min) draws the rarest atom alone would require,
+            which is the signature of a joint distribution over several
+            independent shocks: the least common multiple of the component
+            grids grows far faster than any single atom's probability
+            suggests.  A J_min past max_J_min raises instead of warning.
 
         Returns
         -------
@@ -397,15 +446,14 @@ class DiscreteDistribution(Distribution):
             # MarkovProcess._draw_shuffled so the two cannot drift apart.
             K = allocate_remainder_slots(K_exact, K, M, self._rng)
 
-            # Make an array of atom indices based on the final slot counts
-            nested_events = [K[j] * [j] for j in range(J)]
-            # dtype is explicit because N=0 makes every sublist empty, and an
-            # empty list would otherwise produce a float64 array that cannot
-            # index atoms. N=0 is reachable: sim_birth runs every period, and
-            # draws no agents in a period with no deaths.
-            events = np.array(
-                [i for sublist in nested_events for i in sublist], dtype=int
-            )
+            # Make an array of atom indices based on the final slot counts:
+            # atom j repeated K[j] times, concatenated. np.repeat inherits
+            # np.arange's integer dtype, so the N=0 case (every count zero)
+            # still yields an int array rather than the float64 an empty
+            # Python list would have produced, which could not index atoms.
+            # N=0 is reachable: sim_birth runs every period, and draws no
+            # agents in a period with no deaths.
+            events = np.repeat(np.arange(J), K)
 
             # Draw a random permutation of the indices
             indices = self._rng.permutation(events)
