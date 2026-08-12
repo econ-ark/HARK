@@ -116,7 +116,12 @@ def _iter_unique_pairs(*positions):
     # by mask and do not depend on that order, but matching it keeps the
     # change bit-identical rather than merely equivalent.
     strides = [int(p.max()) + 1 if p.size else 1 for p in positions]
-    key = positions[0].astype(np.int64)
+    # copy=False: these come from np.searchsorted, so they are already intp
+    # (int64 on 64-bit) and the copy would be pure overhead in a hot path.
+    # Safe because key is never written in place -- `key = key * stride + pos`
+    # rebinds to a fresh array, and the single-axis case (the common one)
+    # skips the loop entirely and only reads key.
+    key = positions[0].astype(np.int64, copy=False)
     total = strides[0]
     for pos, stride in zip(positions[1:], strides[1:]):
         key = key * stride + pos
