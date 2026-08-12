@@ -88,6 +88,7 @@ import numpy as np
 
 __all__ = ["ShockNormalizationMixin", "PermanentIncomeNormalizationMixin"]
 
+
 def _stationary_distribution(transition_matrix):
     """Stationary distribution of a row-stochastic transition matrix.
 
