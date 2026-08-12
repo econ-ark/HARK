@@ -2255,8 +2255,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Parameters
         ----------
-        NewbornTransShk : boolean, optional
-            Whether Newborns have transitory shock. The default is False.
+        None
 
         Returns
         -------

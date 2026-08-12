@@ -3135,8 +3135,10 @@ class AgentPopulation:
         Return this agent's view of ``param``, dispatched by classification.
 
         Returns the sentinel ``_UNHANDLED`` for parameter values whose type or
-        ``DataArray`` layout is not recognized in the relevant branch; the
-        caller omits those keys and warns once per key.
+        ``DataArray`` layout is not recognized in the relevant branch. The
+        caller omits those keys, and warns once per key only for keys it
+        classified as ``time_var``; the ``time_inv`` and unclassified branches
+        drop the key silently, which is what the paragraph below is about.
 
         For the ``time_inv`` and unclassified branches this matches the
         pre-refactor behaviour, which assigned inside each ``elif`` and so left

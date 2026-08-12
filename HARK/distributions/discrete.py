@@ -362,8 +362,12 @@ class DiscreteDistribution(Distribution):
             generally, the minimal sample size is the smallest N such that N*p_j is
             an integer for all j.  When replicates is given, shuffle is forced True.
 
-            A warning is issued if any 1/p_j is not close to an integer, since the
-            minimal sample may then be unexpectedly large.
+            A warning is issued when the minimal sample J_min is much larger
+            than the ceil(1/p_min) draws the rarest atom alone would require,
+            which is the signature of a joint distribution over several
+            independent shocks: the least common multiple of the component
+            grids grows far faster than any single atom's probability
+            suggests.  A J_min past max_J_min raises instead of warning.
 
         Returns
         -------

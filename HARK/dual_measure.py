@@ -607,8 +607,11 @@ class DualMeasureMixin:
             Steady-state ``E[p]``.  If None, estimated empirically from
             the P-measure history.
         pLvl_factor : np.ndarray or None
-            Shape ``(T,)`` scaling ``E[p_t]/E[p_ss]``.  If None, assumed
-            to be 1 for all periods (stationary economy).
+            Scaling ``E[p_t]/E[p_ss]``, one entry per simulated period.
+            Pass the full, un-burned series of length ``self.T_sim``: this
+            method applies ``[burn:]`` itself, so a pre-burned array of
+            length ``T_sim - burn`` would be trimmed a second time.  If
+            None, assumed to be 1 for all periods (stationary economy).
 
         Returns
         -------

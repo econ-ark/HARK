@@ -275,7 +275,11 @@ class MarkovProcess(Distribution):
             When True, use deterministic target counts per source state
             (floor-plus-leftover algorithm) with random agent assignment.
             This eliminates sampling noise in state transition counts.
-            Falls back to iid when N_j * min(probs) < 1 for a source state.
+            Falls back to iid when N_j * min(probs[probs > 0]) < 1 for a
+            source state.  The minimum is taken over the strictly positive
+            entries: a row with a structural zero would otherwise have
+            min(probs) == 0 and fall back forever, however well supported
+            its reachable targets are.
         sort_key : np.array or None
             When provided (same length as state), agents within each source
             state are sorted by this key and assigned to target states via
@@ -404,7 +408,12 @@ class MarkovProcess(Distribution):
             probs = self.transition_matrix[j]
             sub_rng = np.random.default_rng(sub_seeds[j])
 
-            # Fall back to iid when population is too small for deterministic counts
+            # Fall back to iid when population is too small for deterministic
+            # counts. The minimum is over the strictly positive entries: a
+            # transition row with a structural zero has min(probs) == 0, so
+            # an unfiltered minimum would make this test true for every N_j
+            # and pin such rows to the iid path permanently, however well
+            # supported their reachable targets are.
             if N_j * np.min(probs[probs > 0]) < 1:
                 for idx in agents_in_j:
                     new_state[idx] = sub_rng.choice(J, p=probs)

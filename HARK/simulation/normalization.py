@@ -307,7 +307,10 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
     Within each age cohort ``k``, adjusts ``log(pLvl)`` so that its
     cross-sectional moments match analytical values. The affine transform
     in log space preserves the rank ordering of agents' permanent incomes,
-    so wealth-income correlations are unaffected. Normalized state
+    so within-cohort wealth-income correlations are unaffected. Each cohort
+    gets a different affine map, so a correlation pooled across ages is not
+    guaranteed to be preserved exactly where age is itself correlated with
+    wealth. Normalized state
     variables (``mNrm``, ``bNrm``) are rescaled inversely so that level
     quantities (``mLvl = mNrm * pLvl``) are preserved.
 
@@ -353,7 +356,9 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         """
         dstn = self.PermShkDstn[t]
         if isinstance(dstn, (list, tuple)):
-            weights = self._stationary_weights(len(dstn), t)
+            weights = self._stationary_weights(
+                len(dstn), t, context="a state-dependent PermShkDstn"
+            )
             first = np.zeros(len(dstn))
             second = np.zeros(len(dstn))
             for s, d in enumerate(dstn):
@@ -368,8 +373,15 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
             e2 = float(np.dot(dstn.pmv, log_atoms**2))
         return e1, max(e2 - e1**2, 0.0)
 
-    def _stationary_weights(self, n_states, t=0):
-        """Stationary weights over Markov states, or uniform if absent."""
+    def _stationary_weights(self, n_states, t=0, context="state-dependent growth"):
+        """Stationary weights over Markov states, or uniform if absent.
+
+        ``context`` names what was found to be state-dependent, since both
+        callers reach here for different reasons: a per-state ``PermGroFac``
+        and a per-state ``PermShkDstn`` each need state weights, and a model
+        can have either one without the other.  Naming the wrong one sends
+        the reader looking at a parameter that is in fact scalar.
+        """
         mrkv = getattr(self, "MrkvArray", None)
         if mrkv is not None:
             transition = mrkv[t] if isinstance(mrkv, (list, tuple)) else mrkv
@@ -379,7 +391,7 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         _warn_once(
             self,
             "no_mrkv_array",
-            "PermanentIncomeNormalizationMixin: state-dependent growth "
+            f"PermanentIncomeNormalizationMixin: {context} "
             "without a matching MrkvArray; using uniform state weights "
             "for the analytical pLvl drift.",
         )
@@ -397,7 +409,9 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         pgf = np.asarray(self.PermGroFac[t], dtype=float).flatten()
         if pgf.size == 1:
             return float(np.log(pgf[0]))
-        weights = self._stationary_weights(pgf.size, t)
+        weights = self._stationary_weights(
+            pgf.size, t, context="a state-dependent PermGroFac"
+        )
         return float(np.dot(weights, np.log(pgf)))
 
     def _log_pLvl_step_moments(self, t):
