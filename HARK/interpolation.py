@@ -116,25 +116,31 @@ def _iter_unique_pairs(*positions):
     # by mask and do not depend on that order, but matching it keeps the
     # change bit-identical rather than merely equivalent.
     strides = [int(p.max()) + 1 if p.size else 1 for p in positions]
-    # copy=False: these come from np.searchsorted, so they are already intp
-    # (int64 on 64-bit) and the copy would be pure overhead in a hot path.
-    # Safe because key is never written in place -- `key = key * stride + pos`
-    # rebinds to a fresh array, and the single-axis case (the common one)
-    # skips the loop entirely and only reads key.
-    key = positions[0].astype(np.int64, copy=False)
-    total = strides[0]
-    for pos, stride in zip(positions[1:], strides[1:]):
-        key = key * stride + pos
+
+    # Range check BEFORE any int64 arithmetic. The largest key the packing can
+    # produce is prod(strides) - 1, and strides are Python ints, so this
+    # product is computed at arbitrary precision and cannot itself wrap.
+    # Unreachable for grid indices; a wrapped key would merge distinct cells
+    # rather than fail, which is not a failure mode worth leaving open.
+    total = 1
+    for stride in strides:
         total *= stride
-    if total > np.iinfo(np.int64).max // 2:  # pragma: no cover - guard only
-        # Unreachable for grid indices, but a silently wrapped key would
-        # merge distinct cells rather than fail, so fall back instead.
+    if total - 1 > np.iinfo(np.int64).max:
         combos, inverse = np.unique(
             np.column_stack(positions), axis=0, return_inverse=True
         )
         for k, combo in enumerate(combos):
             yield (*(int(v) for v in combo), inverse == k)
         return
+
+    # copy=False: these come from np.searchsorted, so they are already intp
+    # (int64 on 64-bit) and the copy would be pure overhead in a hot path.
+    # Safe because key is never written in place -- `key = key * stride + pos`
+    # rebinds to a fresh array, and the single-axis case (the common one)
+    # skips the loop entirely and only reads key.
+    key = positions[0].astype(np.int64, copy=False)
+    for pos, stride in zip(positions[1:], strides[1:]):
+        key = key * stride + pos
 
     _, first, inverse = np.unique(key, return_index=True, return_inverse=True)
     inverse = inverse.reshape(-1)
