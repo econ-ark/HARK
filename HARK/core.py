@@ -1932,12 +1932,7 @@ class AgentType(Model):
         # Record the initial condition of the newborns created by
         # initialize_sim -> sim_births
         for var_name in self.state_vars:
-            # Check whether the state is idiosyncratic or an aggregate
-            idio = (
-                isinstance(self.state_now[var_name], np.ndarray)
-                and len(self.state_now[var_name]) == self.AgentCount
-            )
-            if idio:
+            if self._is_idio_state(var_name):
                 self.newborn_init_history[var_name][self.t_sim] = self.state_now[
                     var_name
                 ]
@@ -1956,12 +1951,7 @@ class AgentType(Model):
             # Initial conditions of newborns
             if self.who_dies.any():
                 for var_name in self.state_vars:
-                    # Check whether the state is idiosyncratic or an aggregate
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
+                    if self._is_idio_state(var_name):
                         self.newborn_init_history[var_name][t, self.who_dies] = (
                             self.state_now[var_name][self.who_dies]
                         )
