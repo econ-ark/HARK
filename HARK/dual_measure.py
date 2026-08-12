@@ -795,11 +795,19 @@ def compute_mean_pLvl(agent, g=None):
 
     T_age = getattr(agent, "T_age", 400) or 400
 
+    # Aggregate pLvl over the stationary age distribution. A cohort of age a
+    # has survived a periods (mass LivPrb**a) and grown a times (factor g**a),
+    # so its contribution scales as (LivPrb * g)**a and the sum over ages
+    # 0..T_age-1 is geometric in Lg = LivPrb * g.
     Lg = LivPrb * g
     if abs(Lg - 1.0) < 1e-12:
+        # Removable singularity: at Lg == 1 every cohort contributes equally,
+        # so the sum is just the number of cohorts. The closed form below is
+        # 0/0 here and numerically unstable nearby.
         geo_sum = float(T_age)
     else:
         geo_sum = (1.0 - Lg**T_age) / (1.0 - Lg)
+    # Divides out the total cohort mass, leaving a per-capita mean.
     C_norm = _cohort_mass_normalizer(LivPrb, T_age)
 
     return E_pLvl_init * g * C_norm * geo_sum

@@ -197,15 +197,20 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
             )
         super().read_shocks_from_history()
 
-    def _shock_group_labels(self):
-        """Integer group labels: agents sharing an income process and target."""
-        columns = [self._income_dstn_index()]
+    def _shock_group_labels(self, idx=None):
+        """Integer group labels: agents sharing an income process and target.
+
+        ``idx`` is the period index from :meth:`_income_dstn_index`, accepted
+        so a caller that already has it need not recompute it. Omitted, it is
+        computed here.
+        """
+        columns = [self._income_dstn_index() if idx is None else idx]
         if "Mrkv" in getattr(self, "shocks", {}):
             columns.append(np.asarray(self.shocks["Mrkv"]).astype(int))
         keys = np.column_stack(columns)
         return np.unique(keys, axis=0, return_inverse=True)[1].reshape(-1)
 
-    def _perm_shk_mean_target(self):
+    def _perm_shk_mean_target(self, idx=None):
         """Per-agent cross-sectional mean of ``shocks["PermShk"]``.
 
         This is ``PermGroFac`` for the period each agent drew from, because
@@ -214,11 +219,16 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         ``PermGroFac`` is missing or has a shape this mixin cannot resolve,
         in which case ``PermShk`` is left untouched rather than normalized
         to a guess.
+
+        ``idx`` is the period index from :meth:`_income_dstn_index`, accepted
+        so a caller that already has it need not recompute it. Omitted, it is
+        computed here.
         """
         PermGroFac = getattr(self, "PermGroFac", None)
         if PermGroFac is None:
             return None
-        idx = self._income_dstn_index()
+        if idx is None:
+            idx = self._income_dstn_index()
         mrkv = None
         if "Mrkv" in getattr(self, "shocks", {}):
             mrkv = np.asarray(self.shocks["Mrkv"]).astype(int)
@@ -248,10 +258,12 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         population size", and a silent skip would quietly break that promise.
         """
         shocks = getattr(self, "shocks", {})
-        labels = self._shock_group_labels()
+        # Both helpers need the period index; compute it once here.
+        dstn_index = self._income_dstn_index()
+        labels = self._shock_group_labels(dstn_index)
 
         targets = {"TranShk": np.ones(len(labels))}
-        perm_target = self._perm_shk_mean_target()
+        perm_target = self._perm_shk_mean_target(dstn_index)
         if perm_target is not None:
             targets["PermShk"] = perm_target
         elif "PermShk" in shocks:
@@ -325,6 +337,17 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         or ``"mean"`` force the respective behavior. See the module
         docstring for why mean-only is the safe default under
         state-dependent growth.
+    _pLvl_norm_adjust_vars : tuple of str
+        Normalized state variables rescaled by the inverse ``pLvl`` change,
+        so that the level quantities they imply are preserved. Default
+        ``("mNrm", "bNrm")``. Override on a model carrying a different set
+        of normalized states; a normalized state left out of this tuple
+        keeps its old value while its ``pLvl`` moves, which silently
+        changes the level it stands for.
+    _pLvl_norm_min_cohort : int
+        Smallest cohort that gets normalized. Default 5. Cohorts below it
+        are skipped and reported through the ``small_cohort`` warning,
+        whose text points here.
     """
 
     normalize_pLvl = False
@@ -512,6 +535,12 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
             return
 
         mode = self._resolved_moments_mode()
+        # Floor against log(0). Nothing in core.py or this module guarantees
+        # pLvl > 0, and this mixin is documented as composable onto any agent,
+        # so a future model with a zero PermGroFac period or a shock
+        # discretization carrying a zero atom would reach here with pLvl == 0.
+        # Not observed on any tested model; kept because "measured dead today"
+        # is a weaker claim than "positive by construction".
         log_p = np.log(np.maximum(self.state_now["pLvl"], 1e-16))
         T_cycle = int(getattr(self, "T_cycle", 1)) or 1
         t_cycle = np.asarray(self.t_cycle, dtype=int)
@@ -572,6 +601,9 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
 
         pLvl_old = self.state_now["pLvl"].copy()
         self.state_now["pLvl"][:] = np.exp(log_p)
+        # Same floor as above, here against division by zero: the normalized
+        # pLvl is exp(log_p), which underflows to 0.0 for log_p below about
+        # -745 even though log_p itself is finite.
         ratio = pLvl_old / np.maximum(self.state_now["pLvl"], 1e-16)
         for var in self._pLvl_norm_adjust_vars:
             if var in self.state_now and isinstance(self.state_now[var], np.ndarray):
