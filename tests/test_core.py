@@ -1563,3 +1563,41 @@ class test_post_state_hook(unittest.TestCase):
         agent.initialize_sim()
         agent.simulate()
         self.assertEqual(len(calls), 5)
+
+
+class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
+    """make_shock_history(shuffle=) thin wrapper: default delegates to the
+    unchanged original body; shuffle=True toggles the opt-in draw-mode
+    flags for the pre-draw and restores them."""
+
+    def test_default_history_stream_unchanged_golden(self):
+        # Golden captured on main at a25d3ae0 (pre-kwarg).
+        agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
+        agent.solve()
+        agent.make_shock_history()
+        np.testing.assert_allclose(
+            [float(x) for x in agent.shock_history["PermShk"][2][:4]],
+            [
+                1.0887560662509859,
+                0.9278094171517418,
+                0.9278094171517418,
+                1.1780702264015428,
+            ],
+            rtol=1e-10,
+        )
+
+    def test_shuffle_toggles_and_restores_flags(self):
+        agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
+        agent.solve()
+        agent.income_shuffle = False
+        seen = {}
+        orig = agent.get_shocks
+
+        def spy():
+            seen["flag"] = getattr(agent, "income_shuffle", None)
+            return orig()
+
+        agent.get_shocks = spy
+        agent.make_shock_history(shuffle=True)
+        self.assertTrue(seen["flag"])  # flag was on during the pre-draw
+        self.assertFalse(agent.income_shuffle)  # and restored afterwards
