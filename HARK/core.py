@@ -1861,7 +1861,40 @@ class AgentType(Model):
         """
         pass
 
-    def make_shock_history(self):
+    def make_shock_history(self, shuffle=False):
+        """
+        Makes a pre-specified history of shocks for the simulation, by
+        delegating to :meth:`_make_shock_history`.
+
+        Parameters
+        ----------
+        shuffle : bool
+            When True, temporarily enables the opt-in low-variance draw
+            modes (``income_shuffle`` and ``markov_shuffle``, where the
+            composed class defines them) while the history is pre-drawn,
+            restoring their prior values afterwards.  Default False: the
+            pre-drawn history is generated exactly as before.
+
+        Returns
+        -------
+        None
+        """
+        if not shuffle:
+            return self._make_shock_history()
+        saved = {
+            k: getattr(self, k)
+            for k in ("income_shuffle", "markov_shuffle")
+            if hasattr(self, k)
+        }
+        for k in saved:
+            setattr(self, k, True)
+        try:
+            return self._make_shock_history()
+        finally:
+            for k, v in saved.items():
+                setattr(self, k, v)
+
+    def _make_shock_history(self):
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset

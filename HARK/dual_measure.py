@@ -37,13 +37,13 @@ import numpy as np
 
 from HARK.distributions.discrete import DiscreteDistribution
 
-
 __all__ = [
     "make_Q_measure_dstn",
     "DualMeasureMixin",
     "compute_mean_pLvl",
     "compute_pLvl_factor",
 ]
+
 
 def make_Q_measure_dstn(dstn):
     """Reweight a DiscreteDistribution by psi/E[psi] (Harmenberg neutral measure).
@@ -119,6 +119,17 @@ class DualMeasureMixin:
         For each period's income shock distribution, the Q-measure reweights
         the probability mass by psi/E[psi].  The atoms (shock values) are
         unchanged; only their sampling probabilities differ.
+
+        Also turns on ``_cache_base_shock_draws`` so that ``get_shocks()``
+        records the uniforms the P-draw consumed, and registers
+        ``IncShkDstn_Q`` with ``self.distributions`` so ``reset_rng`` rewinds
+        it alongside the P-side.  Both are needed for the shared base draws
+        this class documents: without the flag the Q-side draws
+        independently, and without the registration the Q generators keep
+        advancing across ``initialize_sim()`` calls, so the coupling holds on
+        the first run and decays afterwards.  Set
+        ``_cache_base_shock_draws = False`` after this call to get
+        independent Q draws instead.
         """
         self.IncShkDstn_Q = []
         for period_dstn in self.IncShkDstn:
@@ -126,6 +137,9 @@ class DualMeasureMixin:
                 self.IncShkDstn_Q.append([make_Q_measure_dstn(d) for d in period_dstn])
             else:
                 self.IncShkDstn_Q.append(make_Q_measure_dstn(period_dstn))
+        if "IncShkDstn_Q" not in self.distributions:
+            self.distributions = list(self.distributions) + ["IncShkDstn_Q"]
+        self._cache_base_shock_draws = True
         self.dual_measure = True
 
     # ------------------------------------------------------------------
@@ -278,8 +292,8 @@ class DualMeasureMixin:
     def _draw_Q_shocks(self):
         """Draw Q-measure shocks using the base uniforms saved by get_shocks().
 
-        The P-pipeline's ``get_shocks()`` stores ``self._base_shock_draws``
-        — a dict whose keys are either scalar ``t_cycle`` values (IndShock)
+        The P-pipeline's ``get_shocks()`` stores ``self._base_shock_draws``,
+        a dict whose keys are either scalar ``t_cycle`` values (IndShock)
         or ``(t_cycle, mrkv_state)`` tuples (Markov).  We invert through the
         Q-CDF to get Q-shock indices.
         """

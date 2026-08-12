@@ -6,7 +6,9 @@ import unittest
 
 import numpy as np
 
+import HARK.ConsumptionSaving.ConsAggIndMarkovModel as agg_ind_mrkv_module
 from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
+    AggIndMrkvConsumerType,
     extract_cond_mrkv_arrays,
     make_hierarchical_mrkv_array,
 )
@@ -108,3 +110,23 @@ class testKSEconomyStoresHierarchicalPieces(unittest.TestCase):
             economy.MacroMrkvArray, economy.CondMrkvArrays
         )
         np.testing.assert_allclose(rebuilt, economy.MrkvIndArray)
+
+
+class testAggIndMrkvConsumerTypeBasics(unittest.TestCase):
+    """Direct tests of the rewritten hierarchical class (non-shuffle)."""
+
+    def test_from_combined_scalar_and_vector(self):
+        a = AggIndMrkvConsumerType.__new__(AggIndMrkvConsumerType)
+        a.num_micro_states = 3
+        self.assertEqual(a.macro_from_combined(7), 2)
+        self.assertIsInstance(a.macro_from_combined(7), int)
+        self.assertEqual(a.micro_from_combined(7), 1)
+        np.testing.assert_array_equal(
+            a.macro_from_combined(np.array([2, 7])), np.array([0, 2])
+        )
+        np.testing.assert_array_equal(
+            a.micro_from_combined(np.array([2, 7])), np.array([2, 1])
+        )
+
+    def test_old_name_is_gone(self):
+        self.assertFalse(hasattr(agg_ind_mrkv_module, "AggIndMarkovConsumerType"))

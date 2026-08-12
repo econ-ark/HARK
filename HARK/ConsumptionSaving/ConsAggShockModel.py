@@ -11,9 +11,7 @@ import numpy as np
 import scipy.stats as stats
 
 from HARK import AgentType, Market
-from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
-    AggIndMarkovConsumerType,
-)
+
 from HARK.Calibration.Income.IncomeProcesses import (
     construct_lognormal_income_process_unemployment,
     construct_markov_lognormal_income_process_unemployment,
@@ -31,6 +29,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_lognormal_pLvl_init_dstn,
 )
 from HARK.ConsumptionSaving.ConsAggIndMarkovModel import (
+    AggIndMrkvConsumerType,
     extract_cond_mrkv_arrays,
 )
 from HARK.distributions import (
@@ -1497,7 +1496,7 @@ init_KS_agents = {
 }
 
 
-class KrusellSmithType(AggIndMarkovConsumerType):
+class KrusellSmithType(AggIndMrkvConsumerType):
     """
     A class for representing agents in the seminal Krusell-Smith (1998) model from
     the paper "Income and Wealth Heterogeneity in the Macroeconomy".  All default
@@ -1507,7 +1506,7 @@ class KrusellSmithType(AggIndMarkovConsumerType):
     a function of previous aggregate capital.  This choice was made so that some
     of the code from HARK's other HA-macro models can be used.
 
-    This class inherits from AggIndMarkovConsumerType, which provides the
+    This class inherits from AggIndMrkvConsumerType, which provides the
     generic two-level hierarchical Markov state machinery: 2 macro states,
     bad (0) and good (1); 2 micro states, unemployed (0) and employed (1);
     combined index 0=BU, 1=BE, 2=GU, 3=GE.
@@ -1539,7 +1538,7 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         "Mgrid",
     ]
     time_vary_ = []
-    shock_vars_ = ["Mrkv"]
+    shock_vars_ = ["MrkvAgg"]
     state_vars = ["aNow", "mNow", "EmpNow"]
     market_vars = [
         "act_T",
@@ -1568,9 +1567,10 @@ class KrusellSmithType(AggIndMarkovConsumerType):
     def __init__(self, **kwds):
         temp = kwds.copy()
         temp["construct"] = False
-        AggIndMarkovConsumerType.__init__(
+        AggIndMrkvConsumerType.__init__(
             self, num_macro_states=2, num_micro_states=2, **temp
         )
+        self.global_markov = True
         self.construct("MgridBase")
 
         # Special case: this type *must* be initialized with construct=False
@@ -1589,8 +1589,12 @@ class KrusellSmithType(AggIndMarkovConsumerType):
     def market_action(self):
         self.simulate(1)
 
+    def sim_death(self):
+        """KS has no death - bypass MarkovConsumerType.sim_death."""
+        return np.zeros(self.AgentCount, dtype=bool)
+
     def initialize_sim(self):
-        self.shocks["Mrkv"] = self.MrkvInit
+        self.shocks["MrkvAgg"] = self.MrkvInit
         self.MacroMrkvNow = self.MrkvInit
         AgentType.initialize_sim(self)
         self.state_now["EmpNow"] = self.state_now["EmpNow"].astype(bool)
@@ -1601,18 +1605,19 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         Create newborn agents with randomly drawn employment states.  This will
         only ever be called by initialize_sim() at the start of a new simulation
         history, as the Krusell-Smith model does not have death and replacement.
-        The sim_death() method does not exist, as AgentType's default of "no death"
-        is the correct behavior for the model.
         """
         N = np.sum(which)
         if N == 0:
             return
 
-        S = self.shocks["Mrkv"]
-        Urate = [self.UrateB, self.UrateG]
-        unemp_N = int(np.round(Urate[S] * N))
+        MacroNow = int(self.shocks["MrkvAgg"])
+        if MacroNow == 0:
+            unemp_N = int(np.round(self.UrateB * N))
+        elif MacroNow == 1:
+            unemp_N = int(np.round(self.UrateG * N))
+        else:
+            raise ValueError("Illegal macroeconomic state")
         emp_N = self.AgentCount - unemp_N
-
         EmpNew = np.concatenate(
             [np.zeros(unemp_N, dtype=bool), np.ones(emp_N, dtype=bool)]
         )
@@ -1625,13 +1630,17 @@ class KrusellSmithType(AggIndMarkovConsumerType):
         """
         Two-step hierarchical Markov draw, then sync employment states.
 
-        Uses the AggIndMarkovConsumerType machinery:
-        1. Read macro state from economy (via self.shocks["Mrkv"])
+        Uses AggIndMrkvConsumerType machinery:
+        1. Read macro state from economy (via self.shocks["MrkvAgg"])
         2. Draw micro states via exact-match permutations
         3. Compute combined state index
         """
         self.get_markov_states()
         self.state_now["EmpNow"] = self.MicroMrkvNow.astype(bool)
+
+    def get_macro_markov_states(self):
+        """KS macro state is a single scalar shared by all agents."""
+        self.MacroMrkvNow = int(self.shocks["MrkvAgg"])
 
     def get_micro_markov_states(self):
         """
@@ -2773,9 +2782,9 @@ class KrusellSmithEconomy(Market):
             self,
             agents=agents,
             tolerance=tolerance,
-            sow_vars=["Mnow", "Aprev", "Mrkv", "Rnow", "Wnow"],
+            sow_vars=["Mnow", "Aprev", "MrkvAgg", "Rnow", "Wnow"],
             reap_vars=["aNow", "EmpNow"],
-            track_vars=["Mrkv", "Aprev", "Mnow", "Urate"],
+            track_vars=["MrkvAgg", "Aprev", "Mnow", "Urate"],
             dyn_vars=["AFunc"],
             **params,
         )
@@ -2814,7 +2823,7 @@ class KrusellSmithEconomy(Market):
         self.sow_init["Wnow"] = self.WSS
         self.PermShkAggNow_init = 1.0
         self.TranShkAggNow_init = 1.0
-        self.sow_init["Mrkv"] = 0
+        self.sow_init["MrkvAgg"] = 0
         self.make_MrkvArray()
 
     def reset(self):
