@@ -401,15 +401,14 @@ class DiscreteDistribution(Distribution):
             # MarkovProcess._draw_shuffled so the two cannot drift apart.
             K = allocate_remainder_slots(K_exact, K, M, self._rng)
 
-            # Make an array of atom indices based on the final slot counts
-            nested_events = [K[j] * [j] for j in range(J)]
-            # dtype is explicit because N=0 makes every sublist empty, and an
-            # empty list would otherwise produce a float64 array that cannot
-            # index atoms. N=0 is reachable: sim_birth runs every period, and
-            # draws no agents in a period with no deaths.
-            events = np.array(
-                [i for sublist in nested_events for i in sublist], dtype=int
-            )
+            # Make an array of atom indices based on the final slot counts:
+            # atom j repeated K[j] times, concatenated. np.repeat inherits
+            # np.arange's integer dtype, so the N=0 case (every count zero)
+            # still yields an int array rather than the float64 an empty
+            # Python list would have produced, which could not index atoms.
+            # N=0 is reachable: sim_birth runs every period, and draws no
+            # agents in a period with no deaths.
+            events = np.repeat(np.arange(J), K)
 
             # Draw a random permutation of the indices
             indices = self._rng.permutation(events)

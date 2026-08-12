@@ -471,19 +471,13 @@ class MarkovProcess(Distribution):
                 draws_j = draws[agents_in_j]
                 sort_order = np.argsort(draws_j)
                 sorted_agents = agents_in_j[sort_order]
-                offset = 0
-                for jp in range(J):
-                    if K[jp] == 0:
-                        continue
-                    new_state[sorted_agents[offset : offset + K[jp]]] = jp
-                    offset += int(K[jp])
+                # Target j repeated K[j] times, concatenated, is exactly the
+                # rank-to-target map described above: sum(K) == N_j, so the
+                # r-th entry is the target for the agent at rank r.
+                new_state[sorted_agents] = np.repeat(np.arange(J), K)
             else:
                 # Randomly assign agents to target states
-                perm = sub_rng.permutation(agents_in_j)
-                offset = 0
-                for jp in range(J):
-                    new_state[perm[offset : offset + K[jp]]] = jp
-                    offset += K[jp]
+                new_state[sub_rng.permutation(agents_in_j)] = np.repeat(np.arange(J), K)
 
         return new_state
 
