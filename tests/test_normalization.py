@@ -460,3 +460,46 @@ def test_zero_mean_guard_is_relative_to_shock_scale():
     assert np.allclose(agent.shocks["PermShk"], big), (
         "an ill-conditioned group was rescaled instead of skipped"
     )
+
+
+class _DualPNormAgent(
+    PermanentIncomeNormalizationMixin, DualMeasureMixin, IndShockConsumerType
+):
+    """The pLvl half of the same unsound composition."""
+
+
+def test_setup_Q_measure_refuses_pLvl_normalization():
+    # Same class of defect as normalize_shocks, different mechanism: the pLvl
+    # adjustment runs in post_state_hook and the Q pipeline does not mirror
+    # it. Measured at 1000 agents over 10 periods, turning it on moves the P
+    # history by 1.45e-2 and leaves the Q history bit-identical, so sd across
+    # seeds of the final-period mean pLvl falls 9.71e-3 -> 5.91e-4 for P while
+    # Q stays at 1.03e-2.
+    agent = _DualPNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.normalize_pLvl = True
+    agent.solve()
+    with pytest.raises(NotImplementedError, match="normalize_pLvl"):
+        agent.setup_Q_measure()
+
+
+def test_pLvl_normalization_refuses_when_dual_mode_set_afterwards():
+    # setup_Q_measure runs first, so its guard cannot see the flag.
+    agent = _DualPNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.solve()
+    agent.setup_Q_measure()
+    agent.normalize_pLvl = True
+    agent.initialize_sim()
+    with pytest.raises(NotImplementedError, match="normalize_pLvl"):
+        agent.simulate()
+
+
+def test_refusal_names_the_other_flag_as_not_a_workaround():
+    # The guard used to cover normalize_shocks only, and its message told the
+    # user to turn it off -- routing them to the sibling mixin, which had the
+    # same defect unguarded. Both messages now say so explicitly.
+    for flag in ("normalize_shocks", "normalize_pLvl"):
+        agent = _DualNormAgent(AgentCount=50, T_sim=2, quiet=True)
+        setattr(agent, flag, True)
+        agent.solve()
+        with pytest.raises(NotImplementedError, match="not a workaround"):
+            agent.setup_Q_measure()

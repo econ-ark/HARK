@@ -103,41 +103,70 @@ def make_Q_measure_dstn(dstn, warn=True):
     return DiscreteDistribution(Q_pmv, dstn.atoms, seed=dstn.seed)
 
 
-def _refuse_shock_normalization(agent):
-    """Refuse to set up dual mode on an agent that normalizes its shocks.
+#: Normalization flags that adjust the P side without a Q counterpart, with
+#: the mechanism each one uses. Both are refused by :func:`_refuse_normalization`.
+_NORMALIZATION_FLAGS = (
+    (
+        "normalize_shocks",
+        "rescales shocks['PermShk'] inside get_shocks, after the base uniforms "
+        "the Q pipeline inverts were recorded",
+    ),
+    (
+        "normalize_pLvl",
+        "adjusts state_now['pLvl'] in post_state_hook, which the Q pipeline "
+        "does not mirror",
+    ),
+)
 
-    ``ShockNormalizationMixin`` rescales ``shocks["PermShk"]`` in place inside
-    ``get_shocks``, which runs *after* the base uniforms were recorded and
-    *before* the Q pipeline reads them. The Q side reconstructs its own draws
-    by inverting the Q distribution at those uniforms, so it never sees the
-    rescale: P's cross-sectional shock mean is pinned exactly and Q's is left
-    with all of its sampling noise.
+
+def _refuse_normalization(agent):
+    """Refuse to set up dual mode on an agent that normalizes its P side.
+
+    Both mixins in :mod:`HARK.simulation.normalization` adjust P-side
+    quantities that the Q pipeline never sees, so P's sampling noise is
+    removed and Q's is left intact.
 
     That is not a coupling nit. Dual mode exists to show that the neutral
-    measure carries *less* noise than P, and the composition reverses the
-    comparison: measured over 12 seeds at 2000 agents, the cross-seed standard
-    deviation of the period-mean shock deviation is 2.03e-3 for both measures
-    with normalization off, and 6.1e-17 for P against 2.03e-3 for Q with it on.
-    A user stacking both variance-reduction features -- the natural thing to
-    try, since both are opt-in and neither documents a conflict -- would
+    measure carries *less* noise than P, and either composition reverses the
+    comparison. Measured cross-seed standard deviations:
+
+    ``normalize_shocks``, period-mean shock deviation, 12 seeds at 2000 agents
+        off: 2.03e-3 (P) against 2.03e-3 (Q).  on: 6.1e-17 (P) against
+        2.03e-3 (Q).
+    ``normalize_pLvl``, final-period mean pLvl, 10 seeds at 2000 agents
+        off: 9.71e-3 (P) against 1.03e-2 (Q).  on: 5.91e-4 (P) against
+        1.03e-2 (Q), with the Q history bit-identical either way.
+
+    A user stacking a variance-reduction feature onto dual mode -- the natural
+    thing to try, and what this module's own docstring example does -- would
     conclude the neutral measure increases variance.
 
-    Composing them properly means normalizing the Q draws to the Q measure's
-    own mean, ``PermGroFac * E[psi**2] / E[psi]**2`` rather than
-    ``PermGroFac``. That is a design decision about what shock normalization
+    The damage is not confined to the variance comparison. ``aggregate_Q``
+    multiplies a moment taken from the *P* history by a mean taken from the
+    *Q* history, so under either composition it combines a pinned half with an
+    unpinned one and the level estimate itself is biased. That closes the last
+    reading under which the combination is still useful: it is not merely the
+    comparison that breaks.
+
+    Composing them properly means normalizing the Q side to the Q measure's
+    own targets -- for shocks, ``PermGroFac * E[psi**2] / E[psi]**2`` rather
+    than ``PermGroFac``. That is a design decision about what normalization
     means under a change of measure, so this refuses rather than guessing.
     """
-    if getattr(agent, "normalize_shocks", False):
-        raise NotImplementedError(
-            f"{type(agent).__name__} sets normalize_shocks=True, which "
-            "rescales shocks['PermShk'] after the base uniforms the Q "
-            "pipeline reads have been recorded. P's shock mean would be "
-            "pinned exactly while Q kept its sampling noise, reversing the "
-            "variance comparison dual mode exists to demonstrate. Set "
-            "normalize_shocks=False to use the neutral measure, or drop "
-            "DualMeasureMixin to use shock normalization; normalizing the Q "
-            "draws to their own target is not implemented."
-        )
+    for flag, mechanism in _NORMALIZATION_FLAGS:
+        if getattr(agent, flag, False):
+            raise NotImplementedError(
+                f"{type(agent).__name__} sets {flag}=True, which {mechanism}. "
+                "The P side would be pinned while Q kept its sampling noise, "
+                "reversing the variance comparison dual mode exists to "
+                "demonstrate and biasing aggregate_Q, which mixes a P-side "
+                f"moment with a Q-side mean. Set {flag}=False to use the "
+                "neutral measure, or drop DualMeasureMixin to use "
+                "normalization; normalizing the Q side to its own targets is "
+                "not implemented. This applies to both normalize_shocks and "
+                "normalize_pLvl, so switching to the other one is not a "
+                "workaround."
+            )
 
 
 class DualMeasureMixin:
@@ -217,7 +246,7 @@ class DualMeasureMixin:
                 "need a Q-aware get_Rport before they can be composed."
             )
 
-        _refuse_shock_normalization(self)
+        _refuse_normalization(self)
 
         # warn=False here, and the degenerate periods are counted instead.
         # Mapping over a lifecycle hits legitimately degenerate periods as a

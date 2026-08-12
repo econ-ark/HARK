@@ -556,6 +556,22 @@ class PermanentIncomeNormalizationMixin(_NormalizationIndexMixin):
         if not getattr(self, "normalize_pLvl", False):
             return
 
+        # Mirrors the check in _normalize_shock_means; see
+        # dual_measure._refuse_normalization. The Q pipeline does not mirror
+        # this adjustment at all -- turning it on moves the P history and
+        # leaves the Q history bit-identical -- so the composition reverses
+        # dual mode's variance comparison and biases aggregate_Q, which
+        # multiplies a P-side moment by a Q-side mean.
+        if getattr(self, "dual_measure", False):
+            raise NotImplementedError(
+                f"{type(self).__name__} has dual_measure and normalize_pLvl "
+                "both set. The pLvl adjustment applies to P only, so P's "
+                "sampling noise is removed while Q keeps all of its, "
+                "reversing the variance comparison dual mode exists to "
+                "demonstrate. Turn off one of the two; normalize_shocks is "
+                "refused for the same reason and is not a workaround."
+            )
+
         mode = self._resolved_moments_mode()
         # Floor against log(0). Nothing in core.py or this module guarantees
         # pLvl > 0, and this mixin is documented as composable onto any agent,
