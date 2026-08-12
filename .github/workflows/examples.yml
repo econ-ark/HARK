@@ -1,9 +1,12 @@
-name: Test examples as a cron job
+name: Test examples
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
     cancel-in-progress: true
 
+# Runs pre-merge (push/PR against main) as well as nightly, so a PR that
+# breaks an example notebook is caught before merge rather than by the next
+# cron run.
 on:
   push:
     branches:
