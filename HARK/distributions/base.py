@@ -388,7 +388,16 @@ class MarkovProcess(Distribution):
                 "they specify mutually exclusive assignment modes."
             )
         state = np.asarray(state)
-        new_state = np.empty_like(state, dtype=int)
+        # Sentinel rather than np.empty: the loop below only writes agents
+        # whose source state is one of the matrix's rows, so an agent outside
+        # that range is never assigned. With np.empty it keeps whatever the
+        # freed buffer held, which in a running simulation is the previous
+        # period's Mrkv array -- in-range, plausible, and wrong. The
+        # unshuffled path raises IndexError on the same input, so silence
+        # here is also an inconsistency between the two paths. -1 cannot
+        # collide with a real assignment, which is always in range(J).
+        _UNSET = -1
+        new_state = np.full_like(state, _UNSET, dtype=int)
         J = self.transition_matrix.shape[1]
         J_src = self.transition_matrix.shape[0]
 
@@ -479,6 +488,17 @@ class MarkovProcess(Distribution):
                 # Randomly assign agents to target states
                 new_state[sub_rng.permutation(agents_in_j)] = np.repeat(np.arange(J), K)
 
+        unset = new_state == _UNSET
+        if np.any(unset):
+            bad = np.unique(state[unset])
+            raise IndexError(
+                f"source states {bad.tolist()} are outside the transition "
+                f"matrix's {J_src} rows, so {int(unset.sum())} of "
+                f"{state.size} agents were assigned no target state. "
+                "draw(..., shuffle=False) raises IndexError on the same "
+                "input; this is the shuffled path reporting it rather than "
+                "returning the uninitialized buffer."
+            )
         return new_state
 
 

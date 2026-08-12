@@ -1290,3 +1290,43 @@ class StreamInvarianceGoldens(unittest.TestCase):
             [float(x) for x in dr],
             [2.0, 3.0, 3.0, 1.0, 2.0, 1.0, 3.0, 2.0, 2.0, 1.0, 1.0, 3.0],
         )
+
+
+class testDrawShuffledRejectsUnknownSourceStates(unittest.TestCase):
+    """An agent whose source state has no row must not get a silent answer.
+
+    `_draw_shuffled` assigns agents by looping over the transition matrix's
+    rows, so an agent whose state is outside that range is matched by no
+    iteration and never written. The output buffer used to be `np.empty`, so
+    those agents came back holding whatever the freed buffer contained -- in a
+    running simulation, the previous period's Mrkv array, which is in range and
+    plausible. The values then index `solution[t].cFunc[j]` and reach history.
+    """
+
+    def setUp(self):
+        self.T = np.array([[0.6, 0.4], [0.3, 0.7]])
+
+    def test_state_past_the_last_row_raises(self):
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError) as cm:
+            mp.draw(np.array([0, 1, 0, 1, 2, 0]), shuffle=True)
+        self.assertIn("2", str(cm.exception))
+
+    def test_negative_sentinel_state_raises(self):
+        """-1 is ConsAggIndMarkovModel's _UNSET_MICRO, not 'the last state'."""
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError):
+            mp.draw(np.array([0, 1, -1, 1, 0, 0]), shuffle=True)
+
+    def test_the_error_names_how_many_agents_were_affected(self):
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError) as cm:
+            mp.draw(np.array([0, 1, 5, 5, 5, 0]), shuffle=True)
+        self.assertIn("3 of 6", str(cm.exception))
+
+    def test_valid_states_are_unaffected(self):
+        """The guard must not disturb the ordinary path."""
+        state = np.array([0, 1, 0, 1, 0, 1, 0, 1])
+        got = MarkovProcess(self.T, seed=7).draw(state, shuffle=True)
+        self.assertEqual(got.shape, state.shape)
+        self.assertTrue(np.all((got >= 0) & (got < 2)))
