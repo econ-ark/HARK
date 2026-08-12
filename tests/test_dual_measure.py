@@ -20,12 +20,17 @@ Covers:
 6. ``compute_mean_pLvl``: closed-form degenerate case.
 """
 
+import warnings
 from copy import deepcopy
 
 import numpy as np
 import pytest
 
-from HARK.ConsumptionSaving.ConsIndShockModel import IndShockConsumerType
+from HARK.ConsumptionSaving.ConsIndShockModel import (
+    IndShockConsumerType,
+    init_idiosyncratic_shocks,
+    init_lifecycle,
+)
 from HARK.ConsumptionSaving.ConsMarkovModel import (
     MarkovConsumerType,
     init_indshk_markov,
@@ -489,3 +494,335 @@ def test_initialize_sim_clears_stale_base_draws():
     assert agent._base_shock_draws == {}
     agent.simulate()
     assert agent._base_shock_draws == {}
+
+
+def test_markov_newborn_draws_reach_the_base_draw_cache():
+    """The newborn cell records its uniforms, like every other cell does.
+
+    ``MarkovConsumerType.get_shocks`` builds ``_base_shock_draws`` keyed
+    ``(t, j)`` for the main loop, and ``_draw_Q_shocks_markov`` looks up
+    ``("newborn", j)`` for the newborn cell.  Nothing wrote that key for a
+    while: the newborn block had only the ``income_shuffle`` and original-RNG
+    branches, so the lookup could never hit and Markov newborns silently drew
+    an independent Q shock instead of sharing the P uniforms.
+
+    Asserting on the keys rather than on the shocks is deliberate.  A test
+    that clears ``_base_shock_draws`` by hand and then checks the Q shocks
+    cannot tell a designed fallback from a cache that is never populated,
+    because both take the same branch.
+    """
+    agent = _markov_agent(DualMarkov, agent_count=600, t_sim=10)
+    agent.setup_Q_measure()
+    assert agent._cache_base_shock_draws, "setup_Q_measure should arm the cache"
+    agent.initialize_sim()
+    agent.simulate()
+
+    keys = agent._base_shock_draws.keys()
+    newborn_keys = sorted(k for k in keys if isinstance(k, tuple) and k[0] == "newborn")
+    assert newborn_keys, (
+        "no ('newborn', j) key was recorded, so _draw_Q_shocks_markov's "
+        f"lookup can never hit; keys present were {sorted(map(str, keys))}"
+    )
+    for _, draws in ((k, agent._base_shock_draws[k]) for k in newborn_keys):
+        assert draws.size > 0
+        assert np.all((draws >= 0.0) & (draws <= 1.0)), "not uniforms"
+
+
+def test_markov_base_draw_cache_leaves_the_p_stream_alone():
+    """Arming the cache must not perturb the P simulation.
+
+    The cache branch draws its uniforms and inverts them exactly as
+    ``draw_events`` does, so turning it on changes what is recorded but not
+    what is simulated.  Without this, the newborn branch added alongside the
+    cache could shift the RNG stream and every P value with it.
+    """
+    tracked = ["cNrm", "pLvl"]
+
+    def run(cache):
+        agent = _markov_agent(DualMarkov, agent_count=600, t_sim=10)
+        agent._cache_base_shock_draws = cache
+        agent.track_vars = list(tracked)
+        agent.initialize_sim()
+        agent.simulate()
+        return agent
+
+    off, on = run(False), run(True)
+    for var in tracked:
+        assert np.array_equal(off.history[var], on.history[var]), (
+            f"{var} differs with the base-draw cache on, so the cache branch "
+            "is not consuming the same randomness as the default path"
+        )
+    assert off.RNG.bit_generator.state == on.RNG.bit_generator.state
+
+
+def _cyclical_agent(cls, seed=4242, agent_count=4000, t_sim=8):
+    """An infinite-horizon agent with a genuinely 2-period cycle.
+
+    Every other fixture in this file has ``T_cycle == 1``, where
+    ``IncShkDstn`` is a one-element list and indices 0 and -1 name the same
+    object.  That makes any period-indexing error in the Q pipeline
+    unobservable.  The two periods here carry deliberately different
+    ``PermShkStd`` and ``PermGroFac``.
+
+    The ``PermGroFac`` asymmetry is the load-bearing one and must not be
+    simplified away. Both quantities differ, but the assertion in
+    ``test_q_draws_use_the_same_period_as_p_in_a_cyclical_model`` reads only
+    the cross-sectional MEAN, and only the growth channel moves it far
+    enough to leave the pass band. Measured: with the bug restored and
+    ``PermGroFac=[1.00, 1.50]`` the ratios are [0.6728, 1.5595] and the test
+    rejects; with ``PermGroFac=[1.0, 1.0]`` they are [1.0020, 1.0397] and it
+    does not. That test asserts the two differ, so this cannot rot silently.
+    """
+    params = deepcopy(init_idiosyncratic_shocks)
+    params.update(
+        T_cycle=2,
+        PermShkStd=[0.05, 0.20],
+        TranShkStd=[0.10, 0.10],
+        LivPrb=[0.98, 0.98],
+        PermGroFac=[1.00, 1.50],
+        Rfree=[1.03, 1.03],
+        AgentCount=agent_count,
+        T_sim=t_sim,
+        seed=seed,
+    )
+    agent = cls(**params)
+    agent.cycles = 0
+    agent.track_vars = ["cNrm", "pLvl"]
+    agent.solve()
+    return agent
+
+
+def test_q_draws_use_the_same_period_as_p_in_a_cyclical_model():
+    """P and Q must index the income process with the same offset.
+
+    `_draw_Q_shocks_indshock` used `t - 1 if cycles == 1 else t`, while the P
+    side (`IndShockConsumerType.get_shocks`) uses `t - 1` unconditionally and
+    so does the Markov Q path.  At `cycles=0, T_cycle=2` that put Q a period
+    ahead of P in both `IncShkDstn_Q` and `PermGroFac`, so the two measures
+    were drawing from different periods' income processes within the same
+    simulated period -- which also breaks the shared-base-draw coupling the
+    module exists for, since Q inverted period t-1's uniforms through period
+    t's CDF.
+
+    The two periods differ in PermGroFac (1.00 vs 1.50), so getting the offset
+    wrong shifts the Q permanent-shock mean by about 50%.
+    """
+    agent = _cyclical_agent(DualIndShock)
+    agent.setup_Q_measure()
+    agent.initialize_sim()
+
+    # Compared as a Q/P ratio rather than against PermGroFac[t - 1] directly.
+    # `t_cycle` is advanced by `_sim_period_epilogue` after the draw, so
+    # reconstructing the draw-time index from the post-step value is off by
+    # one -- and the ratio does not need it. Both sides fold in the same
+    # growth factor, so it cancels, leaving only the Q reweighting factor
+    # E[psi^2]/E[psi]^2. That is at most 1 + max(PermShkStd)^2 = 1.04 here.
+    # The bug made Q use the other period's factor, sending the ratio to
+    # 1.50 or 0.67.
+    # The two periods must differ in PermGroFac, not merely in PermShkStd.
+    # All of this test's power comes from the growth channel: with uniform
+    # growth the buggy ratios are [1.0020, 1.0397] (measured), entirely
+    # inside the band below, and the test goes silent. The PermShkStd
+    # asymmetry contributes nothing to the assertion, which reads only the
+    # mean.
+    assert agent.PermGroFac[0] != agent.PermGroFac[1], (
+        "this test detects the bug through the growth channel; with uniform "
+        "PermGroFac the buggy ratios sit inside the band"
+    )
+
+    worst = 0.0
+    for _ in range(6):
+        agent.sim_one_period()
+        for t in np.unique(agent.t_cycle):
+            cell = agent.t_cycle == t
+            if cell.sum() < 100:
+                continue
+            mean_p = np.mean(agent.shocks["PermShk"][cell])
+            mean_q = np.mean(agent.shocks_Q["PermShk"][cell])
+            ratio = mean_q / mean_p
+            worst = max(worst, abs(ratio - 1.0))
+            assert 0.95 < ratio < 1.15, (
+                f"t_cycle={t}: mean Q PermShk / mean P PermShk = {ratio:.4f}. "
+                "Both measures fold in the same PermGroFac, so this ratio can "
+                "only be the Q reweighting factor (<= 1.04 in this "
+                "calibration). A value near 1.5 or 0.67 means Q indexed a "
+                "different period's income process than P did."
+            )
+    # Guard against the assertion above passing vacuously on a calibration
+    # where the two periods happen to agree: the reweighting must be visible.
+    assert worst > 1e-3, (
+        "the Q reweighting is not measurable in this fixture, so the bound "
+        "above would pass even if Q and P shared no periods at all"
+    )
+
+
+def test_cohort_mass_normalizer_has_the_right_limit_at_no_mortality():
+    """(1 - L)/(1 - L**T) is 0/0 at L == 1, and the limit is 1/T, not 0.
+
+    Both callers got this wrong in opposite directions before it was shared:
+    `compute_mean_pLvl`'s C_norm had no guard and divided zero by zero, and
+    `compute_pLvl_factor`'s delta_eff guarded but returned `1 - LivPrb`,
+    which is exactly 0 where the answer is 1/T_age. LivPrb == 1 is a
+    reachable calibration -- it is what you set for no mortality.
+    """
+    from HARK.dual_measure import _cohort_mass_normalizer as norm
+
+    for T_age in (10, 50, 400):
+        got = norm(1.0, T_age)
+        assert np.isfinite(got), "LivPrb == 1 must not produce nan or inf"
+        assert got == pytest.approx(1.0 / T_age), (
+            "with no mortality every cohort is the same size, so newborns "
+            f"are 1/{T_age} of the population"
+        )
+
+    # Approaching the degenerate point must converge to the limit, which is
+    # what makes the guard a limit rather than a special case bolted on.
+    T_age = 50
+    for LivPrb in (0.99, 0.999, 0.9999, 0.99999):
+        assert norm(LivPrb, T_age) == pytest.approx(1.0 / T_age, abs=6e-3)
+    assert norm(0.99999, T_age) == pytest.approx(1.0 / T_age, abs=1e-4)
+
+
+def test_cohort_mass_normalizer_matches_the_formulas_it_replaced():
+    """Away from the degenerate point, nothing may move."""
+    from HARK.dual_measure import _cohort_mass_normalizer as norm
+
+    for T_age in (10, 50, 65, 400):
+        for LivPrb in (0.90, 0.95, 0.98, 0.99, 0.999):
+            old_C_norm = (1.0 - LivPrb) / (1.0 - LivPrb**T_age)
+            L_T = LivPrb**T_age
+            old_delta_eff = 1.0 - (LivPrb - L_T) / (1.0 - L_T)
+            got = norm(LivPrb, T_age)
+            assert got == pytest.approx(old_C_norm, rel=1e-15)
+            assert got == pytest.approx(old_delta_eff, rel=1e-15)
+
+
+def test_lifecycle_setup_does_not_warn_once_per_retirement_period():
+    """Degenerate periods are normal in a lifecycle, so they must not shout.
+
+    Retirement periods are built with ``n_approx_Perm = 1``, so the permanent
+    shock is a point mass and P equals Q there by construction, not by
+    accident. A stock ``init_lifecycle`` has 25 such periods out of 65, and
+    warning per period emitted 25 identical messages from a single
+    ``setup_Q_measure()`` call. The cost is not the noise itself: it buries
+    the aggregate warning, which is the one that means the caller enabled
+    dual mode and will get nothing for it.
+    """
+    agent = DualIndShock(**deepcopy(init_lifecycle))
+    agent.track_vars = ["cNrm"]
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        agent.setup_Q_measure()
+    degenerate_warnings = [
+        str(w.message) for w in caught if "no dispersion" in str(w.message)
+    ]
+    assert not degenerate_warnings, (
+        f"{len(degenerate_warnings)} per-period warnings on a stock lifecycle"
+    )
+
+    # The information is still available, just not shouted.
+    assert len(agent.Q_degenerate_periods) == 25
+    assert agent.Q_degenerate_periods == sorted(agent.Q_degenerate_periods)
+    # ...and 40 periods really did reweight, which is why the aggregate
+    # warning below must stay silent here.
+    assert agent._any_reweighting_happened()
+
+
+def test_make_q_measure_dstn_still_warns_by_default():
+    """Suppression is opt-in, so a direct caller keeps the diagnostic."""
+    dstn = DiscreteDistribution(
+        np.array([0.5, 0.5]), [np.array([1.0, 1.0]), np.array([0.7, 1.3])], seed=0
+    )
+    with pytest.warns(RuntimeWarning, match="no dispersion"):
+        make_Q_measure_dstn(dstn)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        make_Q_measure_dstn(dstn, warn=False)
+    assert not caught
+
+
+def test_setup_q_measure_refuses_models_whose_get_Rport_reads_p_side_state():
+    """A Q agent must not be priced at the P agent's portfolio return.
+
+    `_transition_Q` calls `self.get_Rport()`. That is sound when the return
+    depends only on model constants or on state both measures share, and
+    unsound when `get_Rport` reads state the Q pipeline never mirrors:
+
+      KinkedRconsumerType   picks Rboro vs Rsave from state_prev["aNrm"]
+      KinkyPrefConsumerType delegates to KinkedRconsumerType.get_Rport
+      ConsRiskyAssetModel   builds the return from controls["Share"], the
+                            P agent's realized portfolio choice, for which
+                            no Q-side counterpart exists at all
+
+    Composing any of those produces a wrong number rather than a degraded
+    one, so this refuses instead of warning. KinkyPref is in the list on
+    purpose: inspecting only its own one-line body reports it clean, which
+    is why the check follows one level of delegation.
+    """
+    from HARK.ConsumptionSaving.ConsIndShockModel import KinkedRconsumerType
+    from HARK.ConsumptionSaving.ConsPrefShockModel import KinkyPrefConsumerType
+    from HARK.ConsumptionSaving.ConsRiskyAssetModel import RiskyAssetConsumerType
+
+    for base in (KinkedRconsumerType, KinkyPrefConsumerType, RiskyAssetConsumerType):
+        cls = type("Dual" + base.__name__, (DualMeasureMixin, base), {})
+        agent = cls(AgentCount=50, T_sim=3, seed=1)
+        agent.track_vars = ["cNrm"]
+        agent.solve()
+        with pytest.raises(NotImplementedError, match="get_Rport"):
+            agent.setup_Q_measure()
+
+
+def test_setup_q_measure_admits_models_whose_get_Rport_is_measure_neutral():
+    """The guard must not shut out the models the mixin is built for."""
+    for agent in (
+        _small_agent(DualIndShock, t_sim=3),
+        _markov_agent(DualMarkov, 200, 3),
+    ):
+        agent.setup_Q_measure()
+        assert agent.dual_measure is True
+
+
+def test_dual_mode_on_leaves_the_p_history_and_rng_untouched():
+    """Enabling dual mode must not perturb the P measure at all.
+
+    `test_default_off_is_bit_identical_to_plain_agent` covers the mixin being
+    PRESENT but off. This covers it being ON, which is the configuration where
+    `_step_Q_measure` runs and where `sim_one_period` shares
+    `_sim_period_prologue` with the base class. The Q pipeline reads
+    `state_prev`, and the prologue is what populates it, so the two interact
+    precisely here.
+
+    That the P stream survives is not incidental: `setup_Q_measure` arms the
+    base-draw cache, and the Q side inverts the SAME recorded uniforms rather
+    than drawing its own. If it ever drew independently, the RNG would
+    advance and every P value after the first period would move. So this
+    pins the shared-uniform design, not just the delegation.
+    """
+    tracked = ["cNrm", "pLvl", "mNrm", "aNrm", "bNrm", "kNrm", "aLvl"]
+
+    def run(dual):
+        agent = DualIndShock(AgentCount=500, T_sim=20, seed=31382)
+        agent.track_vars = list(tracked)
+        agent.solve()
+        if dual:
+            agent.setup_Q_measure()
+        agent.initialize_sim()
+        agent.simulate()
+        return agent
+
+    off, on = run(False), run(True)
+    assert on.dual_measure is True and off.dual_measure is False
+
+    for var in tracked:
+        assert np.array_equal(off.history[var], on.history[var]), (
+            f"{var} moved when dual mode was enabled, so the Q pipeline is "
+            "consuming randomness the P pipeline used to get"
+        )
+    assert off.RNG.bit_generator.state == on.RNG.bit_generator.state, (
+        "the RNG ended in a different place with dual mode on, so a stream "
+        "was consumed or skipped even though the histories happen to match"
+    )
+    # Not vacuous: dual mode must actually have produced a Q history.
+    assert set(on.history_Q) == set(tracked)
+    assert np.isfinite(on.history_Q["cNrm"]).any()

@@ -1790,9 +1790,14 @@ class AgentType(Model):
         instead of duplicating the boilerplate.
 
         In the state-rotation loop, every entry is carried into ``state_prev``
-        but only ndarray entries are reset to empty. Non-array entries are
+        but only ndarray entries are blanked. Non-array entries are
         aggregates, probably being set by the Market, so leaving them in place
         is deliberate rather than an oversight.
+
+        Blanking fills with ``nan`` rather than ``np.empty``: a state that no
+        later step writes then surfaces as ``nan`` instead of as whatever the
+        freed buffer held, which is usually the previous period's values and so
+        reads as plausible data. See issue #1809.
         """
         if not hasattr(self, "solution"):
             raise Exception(
@@ -1803,7 +1808,7 @@ class AgentType(Model):
         for var in self.state_now:
             self.state_prev[var] = self.state_now[var]
             if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
+                self.state_now[var] = np.full(self.AgentCount, np.nan)
         if self.read_shocks:
             self.read_shocks_from_history()
         else:
@@ -1932,12 +1937,7 @@ class AgentType(Model):
         # Record the initial condition of the newborns created by
         # initialize_sim -> sim_births
         for var_name in self.state_vars:
-            # Check whether the state is idiosyncratic or an aggregate
-            idio = (
-                isinstance(self.state_now[var_name], np.ndarray)
-                and len(self.state_now[var_name]) == self.AgentCount
-            )
-            if idio:
+            if self._is_idio_state(var_name):
                 self.newborn_init_history[var_name][self.t_sim] = self.state_now[
                     var_name
                 ]
@@ -1956,12 +1956,7 @@ class AgentType(Model):
             # Initial conditions of newborns
             if self.who_dies.any():
                 for var_name in self.state_vars:
-                    # Check whether the state is idiosyncratic or an aggregate
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
+                    if self._is_idio_state(var_name):
                         self.newborn_init_history[var_name][t, self.who_dies] = (
                             self.state_now[var_name][self.who_dies]
                         )
@@ -2118,6 +2113,25 @@ class AgentType(Model):
         None
         """
         new_states = self.transition()
+
+        # States are assigned by POSITION, so the order of state_vars and the
+        # order of transition()'s return must agree. Reordering state_vars
+        # silently lands each value on a different state.
+        #
+        # A short return is deliberate and common: GenIncProcessConsumerType
+        # declares five states and returns three, leaving aLvl and aNrm to be
+        # written by name in get_poststates. So this cannot require equality.
+        # It can reject the opposite mistake, a return longer than the state
+        # list, whose tail the loop below would silently drop.
+        if len(new_states) > len(self.state_now):
+            raise ValueError(
+                f"{type(self).__name__}.transition() returned "
+                f"{len(new_states)} values but there are only "
+                f"{len(self.state_now)} states to assign them to, so the last "
+                f"{len(new_states) - len(self.state_now)} would be discarded. "
+                "States are assigned by position; check that the return order "
+                "matches state_vars."
+            )
 
         for i, var in enumerate(self.state_now):
             # a hack for now to deal with 'post-states'
@@ -3145,8 +3159,10 @@ class AgentPopulation:
         Return this agent's view of ``param``, dispatched by classification.
 
         Returns the sentinel ``_UNHANDLED`` for parameter values whose type or
-        ``DataArray`` layout is not recognized in the relevant branch; the
-        caller omits those keys and warns once per key.
+        ``DataArray`` layout is not recognized in the relevant branch. The
+        caller omits those keys, and warns once per key only for keys it
+        classified as ``time_var``; the ``time_inv`` and unclassified branches
+        drop the key silently, which is what the paragraph below is about.
 
         For the ``time_inv`` and unclassified branches this matches the
         pre-refactor behaviour, which assigned inside each ``elif`` and so left

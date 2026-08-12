@@ -36,6 +36,7 @@ from HARK.distributions import (
     MeanOneLogNormal,
     Uniform,
     add_discrete_outcome_constant_mean,
+    cdf_invert,
     combine_indep_dstns,
     expected,
 )
@@ -1190,6 +1191,7 @@ PerfForesightConsumerType_simulation_defaults = {
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
     "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
 }
 PerfForesightConsumerType_defaults = {}
@@ -1471,7 +1473,17 @@ class PerfForesightConsumerType(AgentType):
         for p in np.unique(DiePrb):
             group = np.where(DiePrb == p)[0]
             N_group = len(group)
-            # Floor-plus-remainder: unbiased expected death count
+            # Floor-plus-remainder: unbiased expected death count.
+            # This deliberately does not call
+            # HARK.distributions.base.allocate_remainder_slots, despite
+            # allocating a leftover slot. That function corrects a bias that
+            # only appears when two or more slots are handed out, and the
+            # die/survive split here can never produce more than one: its two
+            # fractional parts sum to an integer, so exactly one of them is
+            # nonzero. With a single slot, systematic sampling reduces to the
+            # Bernoulli draw below, and routing through the general helper
+            # would mean inventing a second atom for the survivors to make
+            # the shapes fit.
             K_exact = N_group * p
             how_many_die = int(np.floor(K_exact))
             remainder = K_exact - how_many_die
@@ -2244,8 +2256,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         Parameters
         ----------
-        NewbornTransShk : boolean, optional
-            Whether Newborns have transitory shock. The default is False.
+        None
 
         Returns
         -------
@@ -2281,9 +2292,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
                     # for dual-measure Q-CDF inversion.
                     base_draws = IncShkDstnNow._rng.uniform(size=N)
                     base_draws_dict[s] = base_draws
-                    EventDraws = np.searchsorted(
-                        np.cumsum(IncShkDstnNow.pmv), base_draws
-                    )
+                    EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
                     PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
                 else:
@@ -2311,7 +2320,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
             elif _cache:
                 base_draws = IncShkDstnNow._rng.uniform(size=N)
                 base_draws_dict["newborn"] = base_draws
-                EventDraws = np.searchsorted(np.cumsum(IncShkDstnNow.pmv), base_draws)
+                EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
                 PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                 TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
             else:

@@ -89,10 +89,11 @@ class test_(unittest.TestCase):
         fin_cont_agent.initialize_sim()
         fin_cont_agent.simulate()
 
-        # This type is the only AgentType subclass that overrides
-        # sim_one_period, so it is the only caller of _sim_period_prologue and
-        # _sim_period_epilogue outside the base class. Without these checks a
-        # reordered or dropped stage in either helper leaves the test green.
+        # This type and DualMeasureMixin are the two overrides of
+        # sim_one_period in HARK, and both reach _sim_period_prologue and
+        # _sim_period_epilogue rather than inlining them. This side of that
+        # contract is checked here: without these assertions a reordered or
+        # dropped stage in either helper leaves the test green.
         T_sim = self.par_finite["T_sim"]
         AgentCount = self.par_finite["AgentCount"]
         for var in ["cNrm", "Share", "aNrm"]:

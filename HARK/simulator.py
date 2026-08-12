@@ -1470,23 +1470,28 @@ class AgentSimulator:
         for var in self.types.keys():
             if var in skip:
                 continue
-            this_type = self.types[var]
-            if this_type is float:
-                self.data[var] = np.full((N,), np.nan)
-            elif this_type is bool:
-                self.data[var] = np.zeros((N,), dtype=bool)
-            elif this_type is int:
-                self.data[var] = np.zeros((N,), dtype=np.int32)
-            elif this_type is complex:
-                self.data[var] = np.full((N,), np.nan, dtype=complex)
-            else:
-                raise ValueError(
-                    "Type "
-                    + str(this_type)
-                    + " of variable "
-                    + var
-                    + " was not recognized!"
-                )
+            self.data[var] = self._blank_array(self.types[var], N, var)
+
+    @staticmethod
+    def _blank_array(this_type, N, var):
+        """A blank array of length ``N`` for a variable of type ``this_type``.
+
+        Float and complex blanks are ``nan`` rather than ``np.empty``, so a
+        variable that no later step writes stays visibly unset instead of
+        carrying whatever the freed buffer held. Integer and boolean arrays
+        have no such sentinel and get zeros.
+        """
+        if this_type is float:
+            return np.full((N,), np.nan)
+        if this_type is bool:
+            return np.zeros((N,), dtype=bool)
+        if this_type is int:
+            return np.zeros((N,), dtype=np.int32)
+        if this_type is complex:
+            return np.full((N,), np.nan, dtype=complex)
+        raise ValueError(
+            "Type " + str(this_type) + " of variable " + var + " was not recognized!"
+        )
 
     def mark_dead_agents(self):
         """
@@ -1512,13 +1517,16 @@ class AgentSimulator:
         self.initializer.N = N
         self.initializer.run()
 
-        # Set the initial arrival data for newborns and clear other variables
+        # Set the initial arrival data for newborns and clear other variables.
+        # "Clear" has to mean blank, not np.empty: the latter hands back the
+        # freed buffer, so a newborn variable no later step writes carries a
+        # dead agent's values instead of reading as unset.
         init_arrival = self.periods[0].arrival
         for var in self.types:
             self.data[var][newborns] = (
                 self.initializer.data[var]
                 if var in init_arrival
-                else np.empty(N, dtype=self.types[var])
+                else self._blank_array(self.types[var], N, var)
             )
 
         # Set newborns' period to 0

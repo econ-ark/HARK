@@ -106,13 +106,24 @@ def combine_IncShkDstn_and_RiskyDstn(T_cycle, RiskyDstn, IncShkDstn):
             combine_indep_dstns(IncShkDstn[t], RiskyDstn[t]) for t in range(T_cycle)
         ]
     except (TypeError, IndexError, KeyError, ValueError, AttributeError):
-        # Wide on purpose. This replaced a bare ``except:``, whose real fault
-        # was swallowing KeyboardInterrupt/SystemExit; those derive from
-        # BaseException and are excluded by any Exception tuple. Narrowing
-        # further would newly propagate the ValueError/AttributeError that
-        # combine_indep_dstns raises when RiskyDstn is subscriptable but its
-        # elements are not distributions, breaking inputs that used to fall
-        # through to the scalar-RiskyDstn path below.
+        # This replaced a bare ``except:``, whose real fault was swallowing
+        # KeyboardInterrupt/SystemExit; those derive from BaseException and
+        # are excluded by any Exception tuple.
+        #
+        # The tuple is the set that means "RiskyDstn is not a per-period
+        # sequence", which is the only condition the fallback below can
+        # actually repair: subscripting it raised, or its elements are not
+        # distributions.
+        #
+        # combine_indep_dstns raises two more that are deliberately NOT
+        # caught: NotImplementedError for a distribution of dimension > 1,
+        # and AssertionError from its own ``np.isclose(np.sum(P_out), 1)``
+        # check. Both say the distributions themselves are malformed, not
+        # that RiskyDstn has the wrong shape, so retrying the combination
+        # with a different second argument would either fail the same way or
+        # succeed while hiding an input whose probabilities do not sum to 1.
+        # The bare ``except:`` did swallow those and fall through; that was a
+        # bug, and letting them propagate is the point of narrowing.
         dstn_list = [
             combine_indep_dstns(IncShkDstn[t], RiskyDstn) for t in range(T_cycle)
         ]

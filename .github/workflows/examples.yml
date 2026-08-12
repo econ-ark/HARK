@@ -1,9 +1,12 @@
-name: Test examples as a cron job
+name: Test examples
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
     cancel-in-progress: true
 
+# Runs pre-merge (push/PR against main) as well as nightly, so a PR that
+# breaks an example notebook is caught before merge rather than by the next
+# cron run.
 on:
   push:
     branches:
@@ -22,17 +25,19 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.12", "3.13", "3.14"]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
+      # Single version on purpose. This job executes every example
+      # notebook, which is the most expensive thing in CI, and it exists
+      # to catch examples that have gone stale against the library, not
+      # to sweep the supported Python range -- hark.yml already does that.
+      # 3.13 matches the other two cron workflows, execute-notebooks.yml
+      # and weekly.yml, so all three agree on one interpreter.
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.13"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
