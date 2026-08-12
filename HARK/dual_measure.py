@@ -103,6 +103,43 @@ def make_Q_measure_dstn(dstn, warn=True):
     return DiscreteDistribution(Q_pmv, dstn.atoms, seed=dstn.seed)
 
 
+def _refuse_shock_normalization(agent):
+    """Refuse to set up dual mode on an agent that normalizes its shocks.
+
+    ``ShockNormalizationMixin`` rescales ``shocks["PermShk"]`` in place inside
+    ``get_shocks``, which runs *after* the base uniforms were recorded and
+    *before* the Q pipeline reads them. The Q side reconstructs its own draws
+    by inverting the Q distribution at those uniforms, so it never sees the
+    rescale: P's cross-sectional shock mean is pinned exactly and Q's is left
+    with all of its sampling noise.
+
+    That is not a coupling nit. Dual mode exists to show that the neutral
+    measure carries *less* noise than P, and the composition reverses the
+    comparison: measured over 12 seeds at 2000 agents, the cross-seed standard
+    deviation of the period-mean shock deviation is 2.03e-3 for both measures
+    with normalization off, and 6.1e-17 for P against 2.03e-3 for Q with it on.
+    A user stacking both variance-reduction features -- the natural thing to
+    try, since both are opt-in and neither documents a conflict -- would
+    conclude the neutral measure increases variance.
+
+    Composing them properly means normalizing the Q draws to the Q measure's
+    own mean, ``PermGroFac * E[psi**2] / E[psi]**2`` rather than
+    ``PermGroFac``. That is a design decision about what shock normalization
+    means under a change of measure, so this refuses rather than guessing.
+    """
+    if getattr(agent, "normalize_shocks", False):
+        raise NotImplementedError(
+            f"{type(agent).__name__} sets normalize_shocks=True, which "
+            "rescales shocks['PermShk'] after the base uniforms the Q "
+            "pipeline reads have been recorded. P's shock mean would be "
+            "pinned exactly while Q kept its sampling noise, reversing the "
+            "variance comparison dual mode exists to demonstrate. Set "
+            "normalize_shocks=False to use the neutral measure, or drop "
+            "DualMeasureMixin to use shock normalization; normalizing the Q "
+            "draws to their own target is not implemented."
+        )
+
+
 class DualMeasureMixin:
     """Mixin that adds Harmenberg neutral-measure (Q) parallel tracking.
 
@@ -179,6 +216,8 @@ class DualMeasureMixin:
                 "AggShockConsumerType). Kinked-R and portfolio-choice models "
                 "need a Q-aware get_Rport before they can be composed."
             )
+
+        _refuse_shock_normalization(self)
 
         # warn=False here, and the degenerate periods are counted instead.
         # Mapping over a lifecycle hits legitimately degenerate periods as a

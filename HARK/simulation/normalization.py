@@ -257,6 +257,20 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
         skipped with a warning: the class advertises exactness "regardless of
         population size", and a silent skip would quietly break that promise.
         """
+        # Also checked in dual_measure.setup_Q_measure, which fails faster.
+        # Repeated here because normalize_shocks can be set after that call,
+        # and the composition silently reverses dual mode's headline result
+        # (P pinned exactly, Q left noisy). See _refuse_shock_normalization.
+        if getattr(self, "dual_measure", False):
+            raise NotImplementedError(
+                f"{type(self).__name__} has dual_measure and normalize_shocks "
+                "both set. Normalization rescales shocks['PermShk'] after the "
+                "base uniforms the Q pipeline reads were recorded, so P's "
+                "shock mean is pinned exactly while Q keeps its sampling "
+                "noise, reversing the variance comparison dual mode exists to "
+                "demonstrate. Turn off one of the two."
+            )
+
         shocks = getattr(self, "shocks", {})
         # Both helpers need the period index; compute it once here.
         dstn_index = self._income_dstn_index()
@@ -296,7 +310,15 @@ class ShockNormalizationMixin(_NormalizationIndexMixin):
                     skipped += int(mask.sum())
                     continue
                 empirical_mean = float(np.mean(shock_arr[mask]))
-                if abs(empirical_mean) < 1e-16:
+                # Relative, not absolute: what makes the division unsafe is
+                # the mean being small next to the values it came from, since
+                # that is the rescale factor's magnitude. An absolute 1e-16
+                # cutoff is wrong at both ends -- it skips a group whose
+                # shocks are legitimately all around 1e-18, and it accepts a
+                # mean of 1e-10 among values of 1e6, where the rescale factor
+                # is order 1e16.
+                scale = float(np.mean(np.abs(shock_arr[mask])))
+                if abs(empirical_mean) <= 1e-12 * scale:
                     skipped += int(mask.sum())
                     continue
                 shock_arr[mask] *= float(np.mean(target[mask])) / empirical_mean

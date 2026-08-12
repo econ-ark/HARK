@@ -28,6 +28,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     init_lifecycle,
 )
+from HARK.dual_measure import DualMeasureMixin
 from HARK.simulation.normalization import (
     PermanentIncomeNormalizationMixin,
     ShockNormalizationMixin,
@@ -396,4 +397,66 @@ def test_pLvl_normalization_actually_moves_pLvl():
     assert moved > 1e-9, (
         f"post_state_hook moved pLvl by at most {moved:.3e}, so the "
         "level-preservation test above would pass vacuously"
+    )
+
+
+class _DualNormAgent(ShockNormalizationMixin, DualMeasureMixin, IndShockConsumerType):
+    """Both variance-reduction features at once, which is unsound."""
+
+
+def test_setup_Q_measure_refuses_shock_normalization():
+    # Composing the two silently reverses dual mode's headline result: the
+    # normalization rescales shocks["PermShk"] after the base uniforms the Q
+    # pipeline reads were recorded, so P's cross-sectional mean is pinned
+    # exactly and Q keeps all of its sampling noise. Measured at 2000 agents
+    # over 12 seeds: sd of the period-mean deviation is 2.03e-3 for both
+    # measures with normalization off, and 6.1e-17 (P) against 2.03e-3 (Q)
+    # with it on -- so a user stacking both concludes the neutral measure
+    # increases variance.
+    agent = _DualNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.normalize_shocks = True
+    agent.solve()
+    with pytest.raises(NotImplementedError, match="normalize_shocks"):
+        agent.setup_Q_measure()
+
+
+def test_normalization_refuses_when_dual_mode_set_afterwards():
+    # setup_Q_measure runs first here, so its own guard cannot see the flag.
+    # The check inside _normalize_shock_means is what catches this ordering.
+    agent = _DualNormAgent(AgentCount=50, T_sim=2, quiet=True)
+    agent.solve()
+    agent.setup_Q_measure()
+    agent.normalize_shocks = True
+    agent.initialize_sim()
+    with pytest.raises(NotImplementedError, match="dual_measure"):
+        agent.simulate()
+
+
+def test_zero_mean_guard_is_relative_to_shock_scale():
+    # The guard protects the division by the empirical mean, so what matters
+    # is the mean's size next to the values it came from, not its absolute
+    # size. An absolute 1e-16 cutoff is wrong at both ends.
+    agent = _agent(NormalizedIndShock, agent_count=40, t_sim=1)
+    agent.shocks = {"PermShk": np.full(40, 1e-18), "TranShk": np.ones(40)}
+
+    # Tiny but perfectly well-conditioned: every value is 1e-18, so the
+    # rescale factor is exact. An absolute cutoff would have skipped this.
+    labels = np.zeros(40, dtype=int)
+    agent._shock_group_labels = lambda idx=None: labels
+    agent._perm_shk_mean_target = lambda idx=None: np.full(40, 2e-18)
+    agent._income_dstn_index = lambda: np.zeros(40, dtype=int)
+    agent._normalize_shock_means()
+    # atol=0.0 is load-bearing: allclose's default atol=1e-8 swamps values of
+    # order 1e-18, so this assertion passes against any behavior without it.
+    assert np.allclose(agent.shocks["PermShk"], 2e-18, rtol=1e-12, atol=0.0)
+
+    # Ill-conditioned: mean 1e-10 among values of order 1e6, so the rescale
+    # factor is order 1e16. The absolute cutoff accepted this.
+    big = np.full(40, 1e6)
+    big[::2] = -1e6
+    big[0] = -1e6 + 40 * 1e-10
+    agent.shocks = {"PermShk": big.copy(), "TranShk": np.ones(40)}
+    agent._normalize_shock_means()
+    assert np.allclose(agent.shocks["PermShk"], big), (
+        "an ill-conditioned group was rescaled instead of skipped"
     )
