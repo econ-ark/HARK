@@ -651,6 +651,30 @@ class DualMeasureMixin:
 # ======================================================================
 
 
+def _cohort_mass_normalizer(LivPrb, T_age):
+    """``(1 - LivPrb) / (1 - LivPrb**T_age)``, with the right limit at 1.
+
+    The share of a stationary population that is newborn, when survival is
+    ``LivPrb`` each period and everyone dies at ``T_age``.  Two callers need
+    it: ``compute_mean_pLvl`` as ``C_norm``, and ``compute_pLvl_factor`` as
+    ``delta_eff``, whose ``1 - (L - L**T)/(1 - L**T)`` is this rearranged.
+
+    Both ends are 0 at ``LivPrb == 1``, and the limit is ``1 / T_age``, not
+    0: with no mortality the cohorts are equally sized, so newborns are one
+    of ``T_age`` of them.  L'Hopital on ``(1 - L) / (1 - L**T)`` gives
+    ``1 / (T * L**(T-1))``, which is ``1 / T`` at ``L = 1``.
+
+    This is worth a shared function because the two call sites disagreed
+    about the degenerate case in opposite directions: one had no guard and
+    divided 0 by 0, the other guarded and returned ``1 - LivPrb``, which is
+    0 exactly where the answer is ``1 / T_age``.
+    """
+    L_T = LivPrb**T_age
+    if abs(1.0 - L_T) < 1e-12:
+        return 1.0 / T_age
+    return (1.0 - LivPrb) / (1.0 - L_T)
+
+
 def compute_mean_pLvl(agent, g=None):
     """Analytical steady-state E[pLvl] for an infinite-horizon HARK agent.
 
@@ -694,7 +718,7 @@ def compute_mean_pLvl(agent, g=None):
         geo_sum = float(T_age)
     else:
         geo_sum = (1.0 - Lg**T_age) / (1.0 - Lg)
-    C_norm = (1.0 - LivPrb) / (1.0 - LivPrb**T_age)
+    C_norm = _cohort_mass_normalizer(LivPrb, T_age)
 
     return E_pLvl_init * g * C_norm * geo_sum
 
@@ -741,11 +765,10 @@ def compute_pLvl_factor(agent, unemployment_path, g_base=None):
         LivPrb = LivPrb[0]
 
     T_age = getattr(agent, "T_age", 400) or 400
-    # Effective death rate accounting for forced death at T_age
-    L_T = LivPrb**T_age
-    delta_eff = (
-        1.0 - (LivPrb - L_T) / (1.0 - L_T) if abs(1 - L_T) > 1e-12 else 1.0 - LivPrb
-    )
+    # Effective death rate accounting for forced death at T_age.
+    # 1 - (L - L**T)/(1 - L**T) is (1 - L)/(1 - L**T) rearranged, so this is
+    # the same quantity compute_mean_pLvl calls C_norm.
+    delta_eff = _cohort_mass_normalizer(LivPrb, T_age)
 
     if g_base is None:
         g_base = (1.0 - u_path[0]) * G + u_path[0]

@@ -633,3 +633,44 @@ def test_q_draws_use_the_same_period_as_p_in_a_cyclical_model():
         "the Q reweighting is not measurable in this fixture, so the bound "
         "above would pass even if Q and P shared no periods at all"
     )
+
+
+def test_cohort_mass_normalizer_has_the_right_limit_at_no_mortality():
+    """(1 - L)/(1 - L**T) is 0/0 at L == 1, and the limit is 1/T, not 0.
+
+    Both callers got this wrong in opposite directions before it was shared:
+    `compute_mean_pLvl`'s C_norm had no guard and divided zero by zero, and
+    `compute_pLvl_factor`'s delta_eff guarded but returned `1 - LivPrb`,
+    which is exactly 0 where the answer is 1/T_age. LivPrb == 1 is a
+    reachable calibration -- it is what you set for no mortality.
+    """
+    from HARK.dual_measure import _cohort_mass_normalizer as norm
+
+    for T_age in (10, 50, 400):
+        got = norm(1.0, T_age)
+        assert np.isfinite(got), "LivPrb == 1 must not produce nan or inf"
+        assert got == pytest.approx(1.0 / T_age), (
+            "with no mortality every cohort is the same size, so newborns "
+            f"are 1/{T_age} of the population"
+        )
+
+    # Approaching the degenerate point must converge to the limit, which is
+    # what makes the guard a limit rather than a special case bolted on.
+    T_age = 50
+    for LivPrb in (0.99, 0.999, 0.9999, 0.99999):
+        assert norm(LivPrb, T_age) == pytest.approx(1.0 / T_age, abs=6e-3)
+    assert norm(0.99999, T_age) == pytest.approx(1.0 / T_age, abs=1e-4)
+
+
+def test_cohort_mass_normalizer_matches_the_formulas_it_replaced():
+    """Away from the degenerate point, nothing may move."""
+    from HARK.dual_measure import _cohort_mass_normalizer as norm
+
+    for T_age in (10, 50, 65, 400):
+        for LivPrb in (0.90, 0.95, 0.98, 0.99, 0.999):
+            old_C_norm = (1.0 - LivPrb) / (1.0 - LivPrb**T_age)
+            L_T = LivPrb**T_age
+            old_delta_eff = 1.0 - (LivPrb - L_T) / (1.0 - L_T)
+            got = norm(LivPrb, T_age)
+            assert got == pytest.approx(old_C_norm, rel=1e-15)
+            assert got == pytest.approx(old_delta_eff, rel=1e-15)
