@@ -316,17 +316,12 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
     def get_macro_markov_states(self):
         """Read the aggregate Markov state.  Override in subclasses.
 
-        Default lookup order: ``self.EconomyMrkvNow``, then
-        ``self.shocks["MrkvAgg"]``, then derived from the combined state.
+        Reads ``self.shocks["MrkvAgg"]`` when the economy sows it, and
+        otherwise recovers the macro state from the combined index.
         """
-        if hasattr(self, "EconomyMrkvNow") and self.EconomyMrkvNow is not None:
-            self.MacroMrkvNow = int(self.EconomyMrkvNow) * np.ones(
-                self.AgentCount, dtype=int
-            )
-        elif "MrkvAgg" in self.shocks:
-            self.MacroMrkvNow = int(self.shocks["MrkvAgg"]) * np.ones(
-                self.AgentCount, dtype=int
-            )
+        if "MrkvAgg" in self.shocks:
+            macro = int(self.shocks["MrkvAgg"])
+            self.MacroMrkvNow = macro * np.ones(self.AgentCount, dtype=int)
         else:
             self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
 
