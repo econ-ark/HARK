@@ -751,6 +751,8 @@ init_indshk_markov = {
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": markov_constructor_dict,  # See dictionary above
+    "markov_shuffle": False,  # Quota-exact Markov transitions when True (see get_markov_states)
+    "balanced_transitions": False,  # With markov_shuffle: systematic sampling by pLvl
     "pseudo_terminal": False,  # Terminal period really does exist
     "global_markov": False,  # Whether the Markov state is shared across agents
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
@@ -986,7 +988,21 @@ class MarkovConsumerType(IndShockConsumerType):
                 self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
-            MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
+            # When balanced_transitions is enabled, pass pLvl as sort key
+            # so that agents selected for each transition are systematically
+            # sampled across the permanent income distribution.
+            # NOTE: Do NOT use aNrm or wealth as sort key - it creates a
+            # feedback loop where low-wealth agents are repeatedly selected
+            # for adverse transitions, trapping them in poverty.
+            if getattr(self, "balanced_transitions", False):
+                sort_key = self.state_prev["pLvl"][right_age]
+            else:
+                sort_key = None
+            MrkvNow[right_age] = markov_process.draw(
+                MrkvPrev[right_age],
+                shuffle=getattr(self, "markov_shuffle", False),
+                sort_key=sort_key,
+            )
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
 

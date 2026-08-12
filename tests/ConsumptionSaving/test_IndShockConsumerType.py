@@ -11,6 +11,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     init_lifecycle,
 )
 from HARK.ConsumptionSaving.ConsMarkovModel import MarkovConsumerType
+from HARK.distributions.base import MarkovProcess
 from HARK.utilities import plot_funcs, plot_funcs_der
 from tests import HARK_PRECISION
 
@@ -1410,3 +1411,185 @@ class testIncomeShuffleMarkov(unittest.TestCase):
             f"income_shuffle worst per-atom deviation {worst[True]:.5f} should be "
             f"well under the iid {worst[False]:.5f}; the flag looks ignored",
         )
+
+
+class testMarkovTransitionShuffle(unittest.TestCase):
+    """Tests for the markov_shuffle parameter on MarkovConsumerType."""
+
+    def test_markov_shuffle_state_counts(self):
+        """With markov_shuffle=True, state counts should match deterministic targets."""
+
+        TM = np.array([[0.95, 0.05], [0.5, 0.5]])
+        mp = MarkovProcess(TM, seed=42)
+
+        # Start with 9500 in state 0, 500 in state 1
+        state = np.array([0] * 9500 + [1] * 500)
+        new_state = mp.draw(state, shuffle=True)
+
+        # Expected: 9500*0.95=9025 stay in 0, 9500*0.05=475 go to 1
+        #           500*0.5=250 go to 0, 500*0.5=250 stay in 1
+        count_0_to_0 = np.sum((state == 0) & (new_state == 0))
+        count_0_to_1 = np.sum((state == 0) & (new_state == 1))
+        count_1_to_0 = np.sum((state == 1) & (new_state == 0))
+        count_1_to_1 = np.sum((state == 1) & (new_state == 1))
+
+        # With shuffle, counts should be within +/-1 of deterministic target
+        self.assertAlmostEqual(count_0_to_0, 9025, delta=1)
+        self.assertAlmostEqual(count_0_to_1, 475, delta=1)
+        self.assertAlmostEqual(count_1_to_0, 250, delta=1)
+        self.assertAlmostEqual(count_1_to_1, 250, delta=1)
+
+    def test_markov_shuffle_consistent_over_time(self):
+        """markov_shuffle=True produces correct counts over multiple periods."""
+
+        TM = np.array([[0.95, 0.05], [0.5, 0.5]])
+        mp = MarkovProcess(TM, seed=123)
+        state = np.zeros(10000, dtype=int)
+
+        for _ in range(100):
+            state = mp.draw(state, shuffle=True)
+            total = len(state)
+            n0 = np.sum(state == 0)
+            n1 = np.sum(state == 1)
+            self.assertEqual(n0 + n1, total)
+
+        # After 100 steps, should be near steady state: pi_0 = 0.5/0.55 is about 0.909
+        ss_0 = 0.5 / (0.05 + 0.5)
+        empirical_0 = np.sum(state == 0) / len(state)
+        np.testing.assert_allclose(empirical_0, ss_0, atol=0.02)
+
+    def test_markov_consumer_shuffle(self):
+        """MarkovConsumerType with markov_shuffle=True completes simulation."""
+
+        agent = MarkovConsumerType(
+            MrkvArray=[np.array([[0.9, 0.1], [0.1, 0.9]])],
+            AgentCount=1000,
+            T_sim=20,
+            markov_shuffle=True,
+        )
+        agent.cycles = 0
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(agent.shocks["Mrkv"].shape, (1000,))
+
+
+class testMarkovShuffleEndToEnd(unittest.TestCase):
+    """markov_shuffle and balanced_transitions, exercised through
+    ``get_markov_states`` rather than by calling ``MarkovProcess`` directly.
+
+    Both parameters could previously be deleted at their dispatch site with
+    the whole suite still green, because the only test that touched them
+    asserted on ``shocks["Mrkv"].shape``.
+
+    ``MrkvArray`` is assigned after construction on purpose.  It is a
+    constructed parameter on ``MarkovConsumerType``, so passing
+    ``MrkvArray=`` to ``__init__`` is silently overwritten by the
+    constructor and the agent runs on the default matrix instead.  The
+    calibration below is chosen so that ``N_j * P[j,k]`` is not an integer,
+    which is what makes the leftover-slot path run at all.
+    """
+
+    TM = np.array([[0.93, 0.07], [0.40, 0.60]])
+
+    def make_agent(self, **flags):
+        agent = MarkovConsumerType(
+            AgentCount=997,
+            T_sim=15,
+            seed=0,
+            LivPrb=[np.array([1.0, 1.0])],
+            Rfree=[np.array([1.03, 1.03])],
+            PermGroFac=[np.array([1.01, 1.01])],
+            track_vars=["Mrkv", "pLvl"],
+            **flags,
+        )
+        agent.MrkvArray = [self.TM]
+        agent.cycles = 0
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        return (
+            np.asarray(agent.history["Mrkv"], dtype=int),
+            np.asarray(agent.history["pLvl"], dtype=float),
+        )
+
+    def test_markov_shuffle_makes_simulated_counts_quota_exact(self):
+        """Realized transition counts must sit within one agent of the quota.
+
+        Nobody dies here (LivPrb=1), so period t's counts are a clean
+        transition out of period t-1's states.  Under iid the counts scatter
+        by roughly sqrt(N_j p (1-p)), which is about 9 agents for the rarer
+        target at this population; measured worst deviation without the flag
+        is 17.9 agents against 0.9 with it.
+        """
+        mrkv, _ = self.make_agent(markov_shuffle=True)
+
+        worst = 0.0
+        checked = 0
+        for t in range(1, mrkv.shape[0]):
+            src, tgt = mrkv[t - 1], mrkv[t]
+            for j in range(2):
+                in_j = src == j
+                N_j = int(in_j.sum())
+                if N_j == 0:
+                    continue
+                for k in range(2):
+                    count = int((in_j & (tgt == k)).sum())
+                    worst = max(worst, abs(count - N_j * self.TM[j, k]))
+                    checked += 1
+        self.assertGreater(checked, 20)
+        self.assertLessEqual(
+            worst,
+            1.0,
+            f"worst |count - N_j*P[j,k]| was {worst:.2f}; with markov_shuffle "
+            f"on, every transition count must be within one agent of its "
+            f"quota, and iid draws are not.",
+        )
+
+    def test_balanced_transitions_makes_movers_representative(self):
+        """The agents who change state must look like the ones who do not.
+
+        With balanced_transitions on, agents are sorted by permanent income
+        and the movers are systematically sampled across that order, so the
+        movers' mean pLvl tracks the source population's.  Under the plain
+        random permutation the movers are just a random subset and the gap
+        is roughly sd/sqrt(n_movers).
+
+        This is also the only regression test on the sort key itself.  The
+        key must come from ``state_prev``: ``_sim_period_prologue`` blanks
+        ``state_now`` with ``np.empty`` before ``get_shocks`` runs, so
+        reading pLvl from there sorts on uninitialized memory, which
+        scrambles the order and returns the gap to its unsorted size.
+
+        Measured over eight seeds: mean standardized gap at most 0.029 with
+        the flag and at least 0.071 without it, so 0.045 separates them with
+        no overlap.
+        """
+        gaps = {}
+        for label, flags in (
+            ("shuffle_only", dict(markov_shuffle=True)),
+            ("balanced", dict(markov_shuffle=True, balanced_transitions=True)),
+        ):
+            mrkv, plvl = self.make_agent(**flags)
+            seen = []
+            for t in range(1, mrkv.shape[0]):
+                src, tgt, key = mrkv[t - 1], mrkv[t], plvl[t - 1]
+                for j in range(2):
+                    in_j = src == j
+                    movers = in_j & (tgt != j)
+                    if movers.sum() >= 5:
+                        seen.append(
+                            abs(key[movers].mean() - key[in_j].mean()) / key[in_j].std()
+                        )
+            self.assertGreater(len(seen), 10)
+            gaps[label] = float(np.mean(seen))
+
+        self.assertLess(
+            gaps["balanced"],
+            0.045,
+            f"balanced_transitions should make the movers representative of "
+            f"their source population in pLvl; mean standardized gap was "
+            f"{gaps['balanced']:.4f} against {gaps['shuffle_only']:.4f} for "
+            f"the plain shuffle.",
+        )
+        self.assertLess(gaps["balanced"], 0.5 * gaps["shuffle_only"])
