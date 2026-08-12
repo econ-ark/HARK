@@ -107,6 +107,26 @@ class testPersistentShockConsumerType(unittest.TestCase):
         self.agent.initialize_sim()
         self.agent.simulate()
 
+    def test_aNrm_is_written_every_period(self):
+        # aNrm is declared in state_vars but this model works in levels, so
+        # only sim_birth used to write it. Continuing agents then reported
+        # whatever the per-period blanking left in the buffer -- values like
+        # 3.96e-319, i.e. subnormals read out of freed memory. Pin aNrm to
+        # its definition so a regression shows up as a mismatch rather than
+        # as plausible-looking noise.
+        self.agent.T_sim = 10
+        self.agent.AgentCount = 100
+        self.agent.track_vars = ["aNrm", "aLvl", "pLvl"]
+        self.agent.initialize_sim()
+        self.agent.simulate()
+
+        aNrm = self.agent.history["aNrm"]
+        implied = self.agent.history["aLvl"] / self.agent.history["pLvl"]
+
+        self.assertEqual(aNrm.size, 1000)
+        self.assertTrue(np.all(np.isfinite(aNrm)))
+        self.assertTrue(np.allclose(aNrm, implied, rtol=1e-12, atol=0.0))
+
     def test_cubic(self):
         CubicType = PersistentShockConsumerType(CubicBool=True)
         CubicType.solve()

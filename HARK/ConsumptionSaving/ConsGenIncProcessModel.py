@@ -903,6 +903,11 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         """
         self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvl"]
+        # aNrm is declared in state_vars but this model works in levels, so
+        # sim_birth is the only other place that touches it. Without this line
+        # it is never written for continuing agents and keeps whatever the
+        # per-period blanking left in the buffer.
+        self.state_now["aNrm"] = self.state_now["aLvl"] / self.state_now["pLvl"]
         # moves now to prev
         AgentType.get_poststates(self)
 
