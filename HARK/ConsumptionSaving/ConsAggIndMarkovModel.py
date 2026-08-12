@@ -47,6 +47,25 @@ from HARK.distributions.base import MarkovProcess
 _UNSET_MICRO = -1
 
 
+def _cond_mrkv_is_general(CondMrkvArrays):
+    """Whether ``CondMrkvArrays`` uses the general ``[i][j]`` format.
+
+    Simple format: one ``(N, N)`` matrix per destination macro state, so the
+    first element is a 2-D ndarray.  General format: conditioned on source
+    AND destination, so the first element is itself a sequence of matrices
+    (or an ndarray whose ``ndim`` is not 2).
+
+    One predicate on purpose.  Three places branch on this format, and the
+    contract they are branching on is a shape convention with no runtime
+    marker, so a divergence between two of them would not fail anywhere
+    near the copy that got it wrong.
+    """
+    first = CondMrkvArrays[0]
+    return isinstance(first, (list, tuple)) or (
+        isinstance(first, np.ndarray) and first.ndim != 2
+    )
+
+
 def _zero_transition_msg(macro_prev, macro_next, micro_prev, n_agents):
     """Message for a macro transition that carries agents but no probability.
 
@@ -115,15 +134,12 @@ def make_hierarchical_mrkv_array(MacroMrkvArray, CondMrkvArrays):
         ``combined = N * macro + micro``.
     """
     M = MacroMrkvArray.shape[0]
-    first = CondMrkvArrays[0]
-    general = isinstance(first, (list, tuple)) or (
-        isinstance(first, np.ndarray) and first.ndim != 2
-    )
+    general = _cond_mrkv_is_general(CondMrkvArrays)
 
     if general:
         N = CondMrkvArrays[0][0].shape[0]
     else:
-        N = first.shape[0]
+        N = CondMrkvArrays[0].shape[0]
 
     full_size = M * N
     MrkvArray = np.zeros((full_size, full_size))
@@ -314,6 +330,52 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         else:
             self.MacroMrkvNow = self.macro_from_combined(self.shocks["Mrkv"])
 
+    def _micro_transition_cells(self, general, macro_prev, macro_next, micro_prev, N):
+        """Yield ``(macro_prev, macro_next, micro_prev, cond, mask)`` per cell.
+
+        ``macro_prev`` is None in the simple format, which conditions only on
+        the destination; that is the value ``_zero_transition_msg`` expects
+        for the cell label it cannot report.
+
+        **Iteration order is load-bearing.** Every non-empty cell consumes
+        one draw from ``self.RNG`` for its ``MarkovProcess`` seed, so
+        reordering these changes every simulated value for a fixed seed.
+        The order here reproduces the two format-specific loops it replaced:
+        lexicographic in ``(macro_prev, macro_next)`` for the general format
+        (which is what ``np.unique(..., axis=0)`` returns), ascending in
+        ``macro_next`` for the simple one, and ascending in ``micro_prev``
+        within each. Empty cells are yielded and skipped by the caller
+        rather than filtered here, which keeps the skip and the RNG draw in
+        one place.
+        """
+        if general:
+            pairs = np.unique(np.column_stack([macro_prev, macro_next]), axis=0)
+            for mp, mn in pairs:
+                mp_i, mn_i = int(mp), int(mn)
+                cond = self.CondMrkvArrays[mp_i][mn_i]
+                cell_mask = (macro_prev == mp_i) & (macro_next == mn_i)
+                for mi in range(N):
+                    yield (
+                        mp_i,
+                        mn_i,
+                        mi,
+                        cond,
+                        np.logical_and(cell_mask, micro_prev == mi),
+                    )
+        else:
+            for mn in np.unique(macro_next):
+                mn_i = int(mn)
+                cond = self.CondMrkvArrays[mn_i]
+                cell_mask = macro_next == mn_i
+                for mi in range(N):
+                    yield (
+                        None,
+                        mn_i,
+                        mi,
+                        cond,
+                        np.logical_and(cell_mask, micro_prev == mi),
+                    )
+
     def get_micro_markov_states(self):
         """Draw micro states from ``CondMrkvArrays``.
 
@@ -348,10 +410,7 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         # the allocation into shocks["Mrkv"] and indexing the solution arrays.
         new_micro = np.full(self.AgentCount, _UNSET_MICRO, dtype=int)
 
-        first = self.CondMrkvArrays[0]
-        general = isinstance(first, (list, tuple)) or (
-            isinstance(first, np.ndarray) and first.ndim != 2
-        )
+        general = _cond_mrkv_is_general(self.CondMrkvArrays)
 
         if getattr(self, "markov_shuffle", False):
             # Resolved here rather than at the top of the method: the default
@@ -363,55 +422,28 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
             macro_next = np.asarray(self.MacroMrkvNow, dtype=int)
             macro_prev = self.macro_from_combined(self.shocks["Mrkv"])
 
-            if general:
-                pairs = np.unique(np.column_stack([macro_prev, macro_next]), axis=0)
-                for mp, mn in pairs:
-                    mp_i, mn_i = int(mp), int(mn)
-                    cond = self.CondMrkvArrays[mp_i][mn_i]
-                    pair_mask = (macro_prev == mp_i) & (macro_next == mn_i)
-                    for mi in range(N):
-                        mask = np.logical_and(pair_mask, micro_prev == mi)
-                        n = int(mask.sum())
-                        if n == 0:
-                            continue
-                        if cond[mi, :].sum() <= 0.0:
-                            raise ValueError(_zero_transition_msg(mp_i, mn_i, mi, n))
-                        mp_proc = MarkovProcess(
-                            cond, seed=int(self.RNG.integers(0, 2**31 - 1))
-                        )
-                        idx = np.flatnonzero(mask)
-                        sort_key = None
-                        if balanced:
-                            sort_key = np.asarray(pLvl_prev)[idx]
-                        new_micro[idx] = mp_proc.draw(
-                            np.full(n, mi, dtype=int),
-                            shuffle=True,
-                            sort_key=sort_key,
-                        )
-            else:
-                for mn in np.unique(macro_next):
-                    mn_i = int(mn)
-                    cond = self.CondMrkvArrays[mn_i]
-                    macro_mask = macro_next == mn_i
-                    for mi in range(N):
-                        mask = np.logical_and(macro_mask, micro_prev == mi)
-                        n = int(mask.sum())
-                        if n == 0:
-                            continue
-                        if cond[mi, :].sum() <= 0.0:
-                            raise ValueError(_zero_transition_msg(None, mn_i, mi, n))
-                        mp_proc = MarkovProcess(
-                            cond, seed=int(self.RNG.integers(0, 2**31 - 1))
-                        )
-                        idx = np.flatnonzero(mask)
-                        sort_key = None
-                        if balanced:
-                            sort_key = np.asarray(pLvl_prev)[idx]
-                        new_micro[idx] = mp_proc.draw(
-                            np.full(n, mi, dtype=int),
-                            shuffle=True,
-                            sort_key=sort_key,
-                        )
+            # One loop over both formats. The zero-transition guard and the
+            # draw used to appear once per format, and their two calls to
+            # _zero_transition_msg had already drifted apart in shape, which
+            # is what a validation branch looks like just before one copy
+            # stops matching the other.
+            cells = self._micro_transition_cells(
+                general, macro_prev, macro_next, micro_prev, N
+            )
+            for mp_i, mn_i, mi, cond, mask in cells:
+                n = int(mask.sum())
+                if n == 0:
+                    continue
+                if cond[mi, :].sum() <= 0.0:
+                    raise ValueError(_zero_transition_msg(mp_i, mn_i, mi, n))
+                mp_proc = MarkovProcess(cond, seed=int(self.RNG.integers(0, 2**31 - 1)))
+                idx = np.flatnonzero(mask)
+                sort_key = np.asarray(pLvl_prev)[idx] if balanced else None
+                new_micro[idx] = mp_proc.draw(
+                    np.full(n, mi, dtype=int),
+                    shuffle=True,
+                    sort_key=sort_key,
+                )
         else:
             for macro in np.unique(self.MacroMrkvNow):
                 macro_mask = self.MacroMrkvNow == macro
