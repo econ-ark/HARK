@@ -66,6 +66,37 @@ def _cond_mrkv_is_general(CondMrkvArrays):
     )
 
 
+def _cell_seed(base_entropy, macro_prev, macro_next, micro_prev):
+    """Seed for one transition cell, addressed by content, not by call order.
+
+    The seed a cell gets must depend only on which cell it is, never on how
+    many other cells happened to be occupied first.  Drawing it from
+    ``self.RNG`` inside the loop ties it to position: the number and order of
+    non-empty cells depends on the realized macro path, so a scenario that
+    perturbs a few agents shifts every later cell's seed and redraws micro
+    states for agents it never touched.  Measured at 15.5% of agents in one
+    such comparison.
+
+    That defeats the guarantee :meth:`MarkovProcess.draw` documents and goes
+    to some trouble to provide -- it spawns one sub-RNG per source state from
+    a single parent draw, precisely so an untouched row keeps its permutation
+    when a policy change alters a different row.  The isolation was being
+    undone one level up.
+
+    Hoisting the draw above the loop is not sufficient and is the tempting
+    wrong fix: drawing one seed per *occupied* cell still indexes by position.
+    The seed has to come from the cell's identity, which is what this does.
+    ``MarkovProcess.draw`` gets the same property by spawning over every
+    source state rather than every populated one.
+    """
+    # macro_prev is None in the simple format, which conditions only on the
+    # destination.  0 stands for "not applicable" and the real indices shift
+    # up by one so they cannot collide with it.
+    mp = 0 if macro_prev is None else int(macro_prev) + 1
+    entropy = [base_entropy, mp, int(macro_next) + 1, int(micro_prev) + 1]
+    return int(np.random.SeedSequence(entropy).generate_state(1, dtype=np.uint32)[0])
+
+
 def _zero_transition_msg(macro_prev, macro_next, micro_prev, n_agents):
     """Message for a macro transition that carries agents but no probability.
 
@@ -332,16 +363,19 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
         the destination; that is the value ``_zero_transition_msg`` expects
         for the cell label it cannot report.
 
-        **Iteration order is load-bearing.** Every non-empty cell consumes
-        one draw from ``self.RNG`` for its ``MarkovProcess`` seed, so
-        reordering these changes every simulated value for a fixed seed.
-        The order here reproduces the two format-specific loops it replaced:
-        lexicographic in ``(macro_prev, macro_next)`` for the general format
-        (which is what ``np.unique(..., axis=0)`` returns), ascending in
+        Iteration order does **not** affect the draws. Each cell's seed comes
+        from :func:`_cell_seed`, which derives it from the cell's own
+        ``(macro_prev, macro_next, micro_prev)`` identity, so a cell gets the
+        same seed no matter what else is or is not occupied. An earlier
+        version consumed one ``self.RNG`` draw per non-empty cell, which made
+        this order load-bearing and defeated common random numbers; see
+        ``get_micro_markov_states``.
+
+        The order below still reproduces the two format-specific loops it
+        replaced: lexicographic in ``(macro_prev, macro_next)`` for the
+        general format (what ``np.unique(..., axis=0)`` returns), ascending in
         ``macro_next`` for the simple one, and ascending in ``micro_prev``
-        within each. Empty cells are yielded and skipped by the caller
-        rather than filtered here, which keeps the skip and the RNG draw in
-        one place.
+        within each.
         """
         if general:
             pairs = np.unique(np.column_stack([macro_prev, macro_next]), axis=0)
@@ -422,6 +456,11 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
             # _zero_transition_msg had already drifted apart in shape, which
             # is what a validation branch looks like just before one copy
             # stops matching the other.
+            # One draw for the whole call, then a per-cell seed derived from
+            # the cell's identity. See _cell_seed for why the draw cannot go
+            # inside the loop, and why hoisting it alone would not be enough.
+            base_entropy = int(self.RNG.integers(0, 2**63 - 1))
+
             cells = self._micro_transition_cells(
                 general, macro_prev, macro_next, micro_prev, N
             )
@@ -431,7 +470,9 @@ class AggIndMrkvConsumerType(MarkovConsumerType):
                     continue
                 if cond[mi, :].sum() <= 0.0:
                     raise ValueError(_zero_transition_msg(mp_i, mn_i, mi, n))
-                mp_proc = MarkovProcess(cond, seed=int(self.RNG.integers(0, 2**31 - 1)))
+                mp_proc = MarkovProcess(
+                    cond, seed=_cell_seed(base_entropy, mp_i, mn_i, mi)
+                )
                 idx = np.flatnonzero(mask)
                 sort_key = np.asarray(pLvl_prev)[idx] if balanced else None
                 new_micro[idx] = mp_proc.draw(
