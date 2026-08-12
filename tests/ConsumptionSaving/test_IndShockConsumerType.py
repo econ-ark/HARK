@@ -921,7 +921,7 @@ class testInitShuffle(unittest.TestCase):
     kNrm and pLvl from the discretized init distributions using
     exact-marginal matching (floor-plus-leftover), instead of iid
     sampling.  This addresses the cross-sectional noise in the initial
-    wealth/permanent-income distribution — a residual noise source that
+    wealth/permanent-income distribution, a residual noise source that
     per-period shuffle flags (income_shuffle, markov_shuffle) cannot
     address, because sim_birth runs once per agent at initialize_sim
     before any period loop.
@@ -949,12 +949,12 @@ class testInitShuffle(unittest.TestCase):
         agent.solve()
         agent.initialize_sim()
         agent.simulate()
-        # Basic shape check — nothing broke
+        # Basic shape check: nothing broke
         self.assertEqual(agent.state_now["pLvl"].shape, (1500,))
 
     def test_init_shuffle_exact_frequencies(self):
         """Empirical pLvl frequencies should match the discretized dstn
-        within ±1 per atom (the floor-plus-leftover algorithm's worst case).
+        within +/-1 per atom (the floor-plus-leftover algorithm's worst case).
 
         Note: ``Lognormal.discretize(N, method='equiprobable')`` produces
         pmv = np.full(N, 1/N), and ``1/N`` is not exactly representable in
@@ -963,7 +963,7 @@ class testInitShuffle(unittest.TestCase):
         the floating-point residual.  What we *can* verify is that
         (a) every atom appears between ``floor(N/J)`` and ``ceil(N/J)+1``
         times, (b) the total count equals ``N`` exactly, and (c) the
-        sample mean equals the analytical mean to machine precision —
+        sample mean equals the analytical mean to machine precision,
         which is much stronger than iid sampling can achieve.
         """
         N = 1500  # = 15 * 100 (default pLvlInitCount = 15)
@@ -976,7 +976,7 @@ class testInitShuffle(unittest.TestCase):
         agent.solve()
         agent.initialize_sim()
 
-        # pLvl: check per-atom count is within ±1 of the ideal
+        # pLvl: check per-atom count is within +/-1 of the ideal
         n_pLvl_atoms = agent.pLvlInitDstn.atoms.shape[-1]
         ideal_per_atom = N / n_pLvl_atoms  # 100.0 exactly
         pLvl_atom_vals = np.sort(np.unique(agent.pLvlInitDstn.atoms.flatten()))
@@ -986,24 +986,24 @@ class testInitShuffle(unittest.TestCase):
         for val in pLvl_atom_vals:
             count = int(np.sum(np.isclose(pLvl_obs, val, rtol=1e-10)))
             total_counted += count
-            # Each count must be within ±1 of ideal (floor-plus-leftover bound)
+            # Each count must be within +/-1 of ideal (floor-plus-leftover bound)
             self.assertTrue(
                 abs(count - ideal_per_atom) <= 1,
-                f"pLvl atom {val}: count={count}, expected ≈ {ideal_per_atom} ±1",
+                f"pLvl atom {val}: count={count}, expected ~= {ideal_per_atom} +/-1",
             )
         self.assertEqual(total_counted, N, "All N draws must be accounted for")
 
         # Sample mean should equal analytical mean to machine precision.
         # This is the strongest guarantee shuffle gives for equiprobable
         # lognormal discretisations: the aggregate is exact even when
-        # individual atom counts deviate by ±1 due to float rounding.
+        # individual atom counts deviate by +/-1 due to float rounding.
         expected_mean = float(
             np.sum(agent.pLvlInitDstn.pmv * agent.pLvlInitDstn.atoms.flatten())
         )
         # At N divisible by 15 with exactly 100 per atom, the sample mean
         # would equal the analytical mean to floating-point precision.
-        # With ±1 slack from floating-point pmv rounding, the sample
-        # mean is off by at most (max_atom - min_atom)/N ≈ 0.002 at N=1500.
+        # With +/-1 slack from floating-point pmv rounding, the sample
+        # mean is off by at most (max_atom - min_atom)/N ~= 0.002 at N=1500.
         # That's still O(1/N), way tighter than O(1/sqrt(N)) from iid.
         self.assertAlmostEqual(float(np.mean(pLvl_obs)), expected_mean, delta=0.01)
 
@@ -1030,8 +1030,8 @@ class testInitShuffle(unittest.TestCase):
         is ``[1/15, ..., 1/15]`` in float64, and the floor-plus-leftover
         algorithm has to allocate ~1 leftover slot per call, which
         lands in a different atom for different seeds.  That produces
-        a tiny residual of order ``(atom_range)/N`` — vastly smaller
-        than the iid O(1/√N) but nonzero.
+        a tiny residual of order ``(atom_range)/N``, vastly smaller
+        than the iid O(1/sqrt(N)) but nonzero.
         """
         N = 1500
         n_seeds = 8
@@ -1071,7 +1071,7 @@ class testInitShuffle(unittest.TestCase):
         self.assertLess(
             sd_shuffle,
             sd_iid / 10.0,
-            f"shuffle SD {sd_shuffle:.6g} should be ≪ iid SD {sd_iid:.6g}",
+            f"shuffle SD {sd_shuffle:.6g} should be << iid SD {sd_iid:.6g}",
         )
 
         # All shuffle means should cluster tightly around the analytical mean
@@ -1079,7 +1079,7 @@ class testInitShuffle(unittest.TestCase):
             np.sum(agent_sh.pLvlInitDstn.pmv * agent_sh.pLvlInitDstn.atoms.flatten())
         )
         for m in means_shuffle:
-            # Much tighter than 1/sqrt(N) ≈ 0.008 for iid at this N
+            # Much tighter than 1/sqrt(N) ~= 0.008 for iid at this N
             self.assertAlmostEqual(m, expected_mean, delta=0.005)
 
     def test_init_shuffle_default_false(self):
