@@ -884,6 +884,106 @@ class LinearInterp(HARKinterpolator1D):
         default behavior of np.maximum(np.searchsorted(self.x_list[:-1], x), 1).
         WARNING: User is responsible for verifying that their custom indexer is
         actually correct versus default behavior.
+    decay_extrap_form : str
+        Functional form of the decay toward the limiting linear function when
+        ``intercept_limit`` and ``slope_limit`` are provided (irrelevant
+        otherwise). ``'exp'`` (default, the long-standing behavior): the gap
+        below the limiting line decays exponentially in ``x - x_list[-1]``.
+        ``'powerlaw'``: the gap decays as a power law,
+        ``gap(x) = A*((x + h)/(x_list[-1] + h))**(-Q)`` with pivot
+        ``h = intercept_limit/slope_limit`` and ``Q = B*(x_list[-1] + h)``.
+        Both forms match the level and the slope of the interpolant at the top
+        gridpoint, so neither needs parameters beyond the limiting line; over a
+        short span above the grid they coincide (the exponential is the
+        local linearization of the power law), but the power law is the
+        asymptotically correct tail for buffer-stock consumption functions,
+        whose gap below the perfect-foresight asymptote ``MPCmin*(x + hNrm)``
+        decays polynomially, not exponentially (``h`` is then human wealth).
+        ``'powerlaw'`` requires ``slope_limit > 0``, a top knot strictly below
+        the limiting line with slope strictly above ``slope_limit``, and
+        ``x_list[-1] + h > 0``; if violated it warns and disables decay
+        extrapolation (``decay_extrap == False``) rather than risk a divergent
+        tail.
+
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+        #   The power-law gap tail C*(x + h)**(-q) is the theorem's extrapolation
+        #   form of record for buffer-stock consumption functions; the
+        #   exponential form is not merely inaccurate but impossible as an
+        #   asymptotic form (Prop A0) — 'exp' stays only as the legacy default.
+    decay_extrap_Q : float or None (default), keyword-only
+        ``None``: byte-for-byte the behavior described above for both forms
+        (the power-law exponent is FITTED from the top two knots as
+        ``Q = B*(x_list[-1] + h)``). A positive float (requires
+        ``decay_extrap_form='powerlaw'``, else ``ValueError``): use this
+        EXPLICIT decay exponent instead of the fitted one. The gap amplitude
+        ``A`` stays the level gap at the top knot, so the tail is
+        level-matched (continuous) by construction, but its slope no longer
+        matches the interpolant's top-segment slope: the derivative just above
+        the top knot is ``slope_limit + Q*A/pivot``, i.e. a C1 kink of size
+        ``(Q_fit - Q)*A/pivot`` relative to the fitted tangent (tiny in
+        absolute terms when ``A`` is small and the pivot large, but
+        sign-indefinite). Because the exponent no longer needs to be inferred
+        from the top-segment slope, the slope-tangency part of the powerlaw
+        validity guard is relaxed: only ``slope_limit > 0``, a top knot
+        strictly below the limiting line, and a positive pivot are required —
+        in particular a top slope at or below ``slope_limit`` (fitted
+        ``B <= 0``, where the fitted form must disable decay) still attaches
+        an explicit-Q tail. ``self.decay_extrap_Q_source`` records
+        ``'explicit'`` vs ``'fitted'`` for introspection. The C1-kink
+        description above applies to the ONE-TERM variant
+        (``decay_extrap_terms=1``); the default two-term attachment is C1.
+
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+        #   The gap extrapolant g ~ C*(x + h)**(-q) with q = min(1, q*) is the
+        #   asymptotically correct form for buffer-stock consumption functions;
+        #   this keyword is the hook that lets callers pin the exponent to the
+        #   theory value (or any explicit value) instead of the 2-knot fit.
+    decay_extrap_terms : int, keyword-only (default 2)
+        Consulted only with ``decay_extrap_Q``. ``2`` (default): the C1
+        TWO-TERM attachment ``gap = A*z**(-Q) + A2*z**(-(Q+1))`` with
+        ``z = (x+h)/(x_top+h)``, level- AND slope-matched at the top knot
+        (``A2 = gap*(Q_fit - Q)``, ``A = gap - A2``, where ``Q_fit`` is the
+        2-knot fitted exponent); it carries the theory exponent as the
+        leading term, collapses EXACTLY to the one-term tail when
+        ``Q_fit == Q``, and preserves below-the-line, ``c' > slope_limit``,
+        and the leading exponent whenever it attaches. Guard: ``Q_fit >=
+        Q + 1`` (top segment locally steeper than theory+1 — a coarse or
+        non-converged grid top) warns and falls back to one term. ``1``: the
+        level-matched one-term tail with the documented C1 kink.
+
+        WHY the two-term default: it guards against Jacobian problems in
+        SSJ-type (sequence-space Jacobian) approaches. Policy derivatives
+        are primitive inputs to SSJ fake-news/Jacobian construction and to
+        automatic or numerical differentiation through the solution; a C1
+        kink at the attachment point makes those derivatives discontinuous
+        for queries crossing it, producing noisy or discontinuous Jacobian
+        rows for high-wealth states. The second exponent is ``Q + 1`` (NOT
+        the theory-subleading pair, whose spacing ``|q* - 1|`` vanishes at
+        the near-resonance calibrations and blows the amplitudes up): it is
+        an attachment (boundary-layer) term absorbing exactly the one-term
+        kink, not an asymptotic claim.
+
+        # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
+        #   F11: closed-form amplitudes B = G*(Q_fit - Q), A = G*(1+Q-Q_fit)
+        #   from the level+slope matching conditions; conditioning argument
+        #   for Q+1 over the theory-subleading pair; property proofs
+        #   (below-line, MPC floor, concavity condition, guard + fallback).
+    q_diagnostics : tuple or None (default), keyword-only
+        Opaque measurement-diagnostics rider for explicit-Q callers, stashed
+        verbatim as ``self.local_q_diag`` and never consulted by evaluation.
+        Convention (pinned to the downstream reference implementation this
+        keyword mirrors -- HAFiscal's ``PowerLawDecayLinearInterp``, whose
+        attach sites pass the local two-secant measurement): the tuple
+        ``(Q1, Q2, drift)`` of the two log-log secant exponents of the gap
+        in the shifted abscissa ``x + h`` over the top three knots, plus the
+        drift advisory ``Q2 - Q1``; ``decay_extrap_Q`` is then ``Q2`` (the
+        most local secant). Post-solve tools read the measurement off
+        converged slices via ``getattr(slice, "local_q_diag", None)``.
+        Present (default ``None``) whether or not decay engages, including
+        on the guard-disable path -- diagnostics must survive exactly the
+        cases one wants to inspect. Both spellings (keyword
+        ``q_diagnostics``, attribute ``local_q_diag``) are API: they are
+        the drop-in contract with the reference implementation.
     """
 
     distance_criteria = ["x_list", "y_list"]
@@ -897,6 +997,11 @@ class LinearInterp(HARKinterpolator1D):
         lower_extrap=False,
         pre_compute=False,
         indexer=None,
+        decay_extrap_form="exp",
+        *,
+        decay_extrap_Q=None,
+        decay_extrap_terms=2,
+        q_diagnostics=None,
     ):
         # Make the basic linear spline interpolation
         self.x_list = _coerce_1d_grid(x_list)
@@ -907,19 +1012,59 @@ class LinearInterp(HARKinterpolator1D):
         self.indexer = indexer
 
         # Make a decay extrapolation
+        if decay_extrap_form not in ("exp", "powerlaw"):
+            raise ValueError(
+                "decay_extrap_form must be 'exp' or 'powerlaw', got "
+                + repr(decay_extrap_form)
+            )
+        self.decay_extrap_form = decay_extrap_form
+        # Measurement-diagnostics rider (reference-implementation contract:
+        # both the keyword and the attribute spelling are API; see docstring).
+        # Stashed before any decay validation so it survives guard-disable.
+        self.local_q_diag = q_diagnostics
+        if decay_extrap_Q is not None:
+            if decay_extrap_form != "powerlaw":
+                raise ValueError(
+                    "decay_extrap_Q requires decay_extrap_form='powerlaw'"
+                )
+            if intercept_limit is None or slope_limit is None:
+                raise ValueError(
+                    "decay_extrap_Q requires intercept_limit and slope_limit"
+                )
+            decay_extrap_Q = float(decay_extrap_Q)
+            if not np.isfinite(decay_extrap_Q) or decay_extrap_Q <= 0.0:
+                raise ValueError(
+                    "decay_extrap_Q must be a positive finite float, got "
+                    + repr(decay_extrap_Q)
+                )
+        if isinstance(decay_extrap_terms, bool) or decay_extrap_terms not in (1, 2):
+            raise ValueError(
+                "decay_extrap_terms must be 1 or 2, got "
+                + repr(decay_extrap_terms)
+            )
         if intercept_limit is not None and slope_limit is not None:
             slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
             level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
             slope_diff = slope_limit - slope_at_top
+            if decay_extrap_Q is not None:
+                # Explicit-exponent power law: level-matched at the top knot,
+                # exponent supplied by the caller (relaxed guard; see docstring)
+                self.intercept_limit = intercept_limit
+                self.slope_limit = slope_limit
+                self._init_explicit_Q_decay(
+                    level_diff, slope_diff, decay_extrap_Q, decay_extrap_terms
+                )
             # If the model that can handle uncertainty has been calibrated with
             # with uncertainty set to zero, the 'extrapolation' will blow up
             # Guard against that and nearby problems by testing slope equality
-            if not np.isclose(slope_limit, slope_at_top, atol=1e-15):
+            elif not np.isclose(slope_limit, slope_at_top, atol=1e-15):
                 self.decay_extrap_A = level_diff
                 self.decay_extrap_B = -slope_diff / level_diff
                 self.intercept_limit = intercept_limit
                 self.slope_limit = slope_limit
                 self.decay_extrap = True
+                if decay_extrap_form == "powerlaw":
+                    self._init_powerlaw_decay(level_diff, slope_diff)
             else:
                 self.decay_extrap = False
         else:
@@ -931,6 +1076,132 @@ class LinearInterp(HARKinterpolator1D):
                 self.x_list[1:] - self.x_list[:-1]
             )
             self.intercepts = self.y_list[:-1] - self.slopes * self.x_list[:-1]
+
+    def _init_powerlaw_decay(self, level_diff, slope_diff):
+        """Set up the power-law decay tail, or fall back to no decay (with a
+        warning) if the required configuration does not hold.
+
+        The gap below the limiting line is
+        ``gap(x) = A * ((x + h)/(x_top + h))**(-Q)`` with pivot
+        ``h = intercept_limit/slope_limit`` and ``Q = B*(x_top + h)``, which
+        matches the level AND the slope of the interpolant at the top
+        gridpoint -- the same two conditions the exponential form matches, so
+        no parameters beyond (``intercept_limit``, ``slope_limit``) are
+        needed. A valid power-law tail requires the top knot strictly below
+        the limiting line (``level_diff > 0``) and approaching it (top slope
+        strictly above ``slope_limit``, i.e. ``B > 0``), plus
+        ``slope_limit > 0`` and a positive pivot ``x_top + h``. For a
+        converged consumption function these hold by Carroll-Kimball (1996)
+        concavity, so a violation signals bad inputs; decay is then disabled
+        outright rather than risk a divergent tail.
+
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+        #   Imported foundations L0–L2′: a converged buffer-stock consumption
+        #   function is strictly increasing and strictly concave (Carroll–Kimball
+        #   1996) and approaches its PF asymptote from below with slope falling
+        #   to the limiting MPC — hence level_diff > 0 and B > 0 at a valid knot.
+        """
+        x_top = self.x_list[-1]
+        ok = self.slope_limit > 0.0 and level_diff > 0.0 and self.decay_extrap_B > 0.0
+        if ok:
+            pivot = x_top + self.intercept_limit / self.slope_limit
+            ok = pivot > 0.0
+        if not ok:
+            warnings.warn(
+                "LinearInterp(decay_extrap_form='powerlaw'): the top knot is "
+                "not strictly below the limiting line with slope strictly "
+                f"above slope_limit (level_diff={level_diff:.6g}, "
+                f"slope_diff={slope_diff:.6g}, slope_limit={self.slope_limit:.6g}); "
+                "disabling decay extrapolation for this interpolant."
+            )
+            self.decay_extrap = False
+            return
+        self.decay_extrap_pivot = pivot
+        self.decay_extrap_Q = self.decay_extrap_B * pivot
+        self.decay_extrap_Q_source = "fitted"
+
+    def _init_explicit_Q_decay(self, level_diff, slope_diff, Q, terms=2):
+        """Set up the power-law decay tail with an EXPLICIT exponent ``Q``, or
+        fall back to no decay (with a warning) if the relaxed guard fails.
+
+        With ``terms=2`` (the default; see ``decay_extrap_terms``) the gap is
+        the C1 two-term attachment
+        ``gap(x) = A*z**(-Q) + A2*z**(-(Q+1))``, ``z = (x+h)/(x_top+h)``,
+        level- AND slope-matched at the top knot:
+        ``A2 = level_diff*(Q_fit - Q)``, ``A = level_diff - A2`` (F11 closed
+        forms; collapses to one term exactly when ``Q_fit == Q``); when the
+        fitted rate is theory-infeasibly steep (``Q_fit >= Q + 1``, where the
+        leading amplitude would turn negative) it warns and falls back to one
+        term. With ``terms=1`` the gap is the one-term
+        ``A * ((x + h)/(x_top + h))**(-Q)`` with ``A = level_diff``
+        (level-matched only; C1 kink ``(Q_fit - Q)*A/pivot`` at the knot).
+        Because ``Q`` is not inferred from the top-segment
+        slope, only ``slope_limit > 0``, ``level_diff > 0`` (top knot strictly
+        below the limiting line), and a positive pivot are required — NOT
+        ``decay_extrap_B > 0``: a top slope at or below ``slope_limit`` (where
+        the fitted form must disable decay) is exactly the rescue case an
+        explicit exponent exists to serve (the two-term rescue extends the
+        body smoothly; the one-term rescue kinks upward at the knot).
+        """
+        x_top = self.x_list[-1]
+        ok = self.slope_limit > 0.0 and level_diff > 0.0
+        pivot = None
+        if ok:
+            pivot = x_top + self.intercept_limit / self.slope_limit
+            ok = pivot > 0.0
+        if not ok:
+            warnings.warn(
+                "LinearInterp(decay_extrap_Q=...): explicit-exponent decay "
+                "requires slope_limit > 0, a top knot strictly below the "
+                f"limiting line, and a positive pivot (level_diff="
+                f"{level_diff:.6g}, slope_limit={self.slope_limit:.6g}); "
+                "disabling decay extrapolation for this interpolant."
+            )
+            self.decay_extrap = False
+            return
+        # fitted-rate diagnostic; also the slope input of the two-term form
+        self.decay_extrap_B = -slope_diff / level_diff
+        self.decay_extrap_pivot = pivot
+        self.decay_extrap_Q = Q
+        self.decay_extrap_Q_source = "explicit"
+        Q_fit = self.decay_extrap_B * pivot
+        A2 = level_diff * (Q_fit - Q) if np.isfinite(Q_fit) else np.nan
+        if terms == 2 and np.isfinite(Q_fit) and Q_fit < Q + 1.0 and A2 != 0.0:
+            # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
+            #   Level+slope matching with the theory exponent leading gives
+            #   A2 = G*(Q_fit - Q), A = G - A2; the second exponent Q+1 keeps
+            #   the system conditioned at near-resonance calibrations where
+            #   the theory-subleading pair collides. An EXACT collapse
+            #   (Q == Q_fit, A2 == 0) stores the one-term representation
+            #   below instead, so it is byte-identical to terms=1 including
+            #   derivatives; a non-finite Q_fit (degenerate top segment,
+            #   infinite pivot) falls back rather than attach a NaN tail.
+            self.decay_extrap_A2 = A2
+            self.decay_extrap_A = level_diff - self.decay_extrap_A2
+            self.decay_extrap_terms = 2
+        else:
+            if terms == 2 and not (np.isfinite(Q_fit) and Q_fit < Q + 1.0):
+                warnings.warn(
+                    "LinearInterp(decay_extrap_Q=..., decay_extrap_terms=2): "
+                    f"the fitted rate Q_fit={Q_fit:.4g} is not finite and "
+                    f"strictly below Q+1={Q + 1.0:.4g} (at or above it, the "
+                    "two-term leading amplitude would be non-positive; "
+                    "non-finite signals a degenerate top segment); falling "
+                    "back to the one-term level-matched tail (C1 kink at "
+                    "the knot). A steep fitted rate at a human-wealth-"
+                    "dominated grid top is usually coordinate "
+                    "amplification rather than anomalous decay (the two are "
+                    "separated by the diagnosis where available): remedies "
+                    "are (a) extend the grid top "
+                    f"toward Q*hNrm ~= {Q * (pivot - x_top):.4g} (the "
+                    "human-wealth-scale rule), or (b) wrap the body in "
+                    "DecayTailInterp(decay_extrap_form='moderation_tail') "
+                    "(C1 at any cut, no guard)."
+                )
+            self.decay_extrap_A = level_diff
+            self.decay_extrap_A2 = 0.0
+            self.decay_extrap_terms = 1
+        self.decay_extrap = True
 
     def _segment_index(self, x):
         """Return the bracketing right-endpoint index for each query in ``x``."""
@@ -978,14 +1249,53 @@ class LinearInterp(HARKinterpolator1D):
 
     def _apply_upper_decay(self, x, y, dydx):
         """In-place: replace queries above ``x_list[-1]`` with the limiting linear
-        plus exponential-decay envelope. ``y`` and ``dydx`` may each be ``None``
-        to skip; no-op when ``self.decay_extrap`` is False."""
+        function minus a decaying gap (exponential or power-law, per
+        ``decay_extrap_form``). ``y`` and ``dydx`` may each be ``None`` to
+        skip; no-op when ``self.decay_extrap`` is False."""
         if not self.decay_extrap or (y is None and dydx is None):
             return
         above = x > self.x_list[-1]
         if not np.any(above):
             return
         x_temp = x[above] - self.x_list[-1]
+        if getattr(self, "decay_extrap_form", "exp") == "powerlaw":
+            if getattr(self, "decay_extrap_terms", 1) == 2:
+                # C1 two-term attachment (F11): gap = A*z**(-Q) + A2*z**(-(Q+1))
+                # in z = (x+h)/(x_top+h); level- and slope-matched at the knot
+                # with the theory exponent leading. Same stable exp/log1p
+                # evaluation; both terms underflow to the line at depth.
+                lw = np.log1p(x_temp / self.decay_extrap_pivot)
+                w1 = np.exp(-self.decay_extrap_Q * lw)
+                w2 = np.exp(-(self.decay_extrap_Q + 1.0) * lw)
+                decay = self.decay_extrap_A * w1 + self.decay_extrap_A2 * w2
+                if y is not None:
+                    y[above] = (
+                        self.intercept_limit + self.slope_limit * x[above] - decay
+                    )
+                if dydx is not None:
+                    # d(-gap)/dx = +(Q*A*z**(-Q) + (Q+1)*A2*z**(-(Q+1)))/(x+h)
+                    dydx[above] = self.slope_limit + (
+                        self.decay_extrap_Q * self.decay_extrap_A * w1
+                        + (self.decay_extrap_Q + 1.0) * self.decay_extrap_A2 * w2
+                    ) / (x_temp + self.decay_extrap_pivot)
+                return
+            # gap = A * ((x + h)/(x_top + h))**(-Q), computed via exp/log1p for
+            # numerical stability. For x_temp << x_top + h it reduces to
+            # A*exp(-B*x_temp): the exponential form is the local linearization
+            # of this one, which is why fits over a short span above the grid
+            # cannot tell them apart while the tails differ materially.
+            decay = self.decay_extrap_A * np.exp(
+                -self.decay_extrap_Q * np.log1p(x_temp / self.decay_extrap_pivot)
+            )
+            if y is not None:
+                y[above] = self.intercept_limit + self.slope_limit * x[above] - decay
+            if dydx is not None:
+                # d(-gap)/dx = +(Q/(x + h))*gap, with x + h = x_temp + pivot
+                dydx[above] = (
+                    self.slope_limit
+                    + self.decay_extrap_Q / (x_temp + self.decay_extrap_pivot) * decay
+                )
+            return
         decay = self.decay_extrap_A * np.exp(-self.decay_extrap_B * x_temp)
         if y is not None:
             y[above] = self.intercept_limit + self.slope_limit * x[above] - decay
@@ -1043,6 +1353,1007 @@ class LinearInterp(HARKinterpolator1D):
         y, dydx = self._evalOrDer(x, True, True)
 
         return y, dydx
+
+
+class DecayTailInterp(HARKinterpolator1D):
+    """
+    A composable decay-tail wrapper over ANY 1D interpolant. At and below a
+    handoff point ``x_cut`` every query is delegated, unchanged, to the wrapped
+    interpolant (its own lower extrapolation and NaN semantics pass through);
+    above ``x_cut`` the function is the limiting linear function
+    ``intercept_limit + slope_limit*x`` minus a decaying gap -- the same tail
+    family ``LinearInterp`` builds in (exponential or power-law, fitted or
+    explicit exponent), with the same validity guards and the same numerically
+    stable evaluation, but sourced from the wrapped function's level (and, for
+    the fitted forms, slope) at ``x_cut`` instead of from the top two knots of
+    a grid.
+
+    This decouples the tail LAW from the in-grid REPRESENTATION. Previously
+    the decay machinery existed only baked into ``LinearInterp``
+    (``CubicInterp`` carries only the legacy exponential form, with no
+    power-law option and no explicit-exponent hook), so the asymptotically
+    correct power-law tail could not be attached to a cubic body, an
+    econforge interpolant, or a fitted functional form. With this wrapper the
+    body is swappable: anything callable on numpy arrays composes with the
+    same tail. Compare :class:`HARK.econforgeinterp.DecayInterp`, which wraps
+    N-dimensional econforge interpolants with ad-hoc decay-weight schemes
+    toward a general limit function but provides no derivatives and not the
+    power-law gap law; and ``ConsAggShockModel.make_cFunc_slice``, the policy
+    layer that chooses WHICH tail to attach to consumption slices -- this
+    class is the mechanism such policy layers can target.
+
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+    #   The power-law gap tail C*(x + h)**(-q) is the theorem's extrapolation
+    #   form of record for buffer-stock consumption functions, and it is a
+    #   property of the FUNCTION being approximated, not of the interpolation
+    #   scheme used inside the grid -- which is why the tail is factored out
+    #   here as a wrapper composable over any in-grid representation.
+
+    Parameters
+    ----------
+    interp : callable
+        The wrapped interpolant: any object mapping a numpy array of query
+        points to a numpy array of values (all HARK 1D interpolants qualify).
+        A ``derivative`` method is required by the FITTED tail forms
+        (``decay_extrap_Q=None``) and by the DEFAULT two-term explicit mode
+        (``decay_extrap_terms=2``), both of which read the slope at
+        ``x_cut``; the one-term explicit mode (``decay_extrap_terms=1``)
+        works on any bare callable.
+    intercept_limit : float
+        Intercept of the limiting linear function (required).
+    slope_limit : float
+        Slope of the limiting linear function (required).
+    x_cut : float or None (default)
+        The handoff point: queries strictly above it get the decay tail.
+        Defaults to ``interp.x_list[-1]`` when the wrapped interpolant exposes
+        a grid; otherwise it must be supplied. ``x_cut`` need not be a knot:
+        a cut above the body's grid composes the tail with the body's own
+        extrapolation (the level is read wherever the cut is), and a cut
+        below the body's top TRUNCATES the body there and replaces the rest
+        with the tail law -- useful for stopping a solved function at a
+        certified point without rebuilding it.
+    decay_extrap_form : str
+        ``'powerlaw'`` (default): the gap decays as
+        ``gap(x) = A*((x + h)/(x_cut + h))**(-Q)`` with pivot
+        ``h = intercept_limit/slope_limit``; the asymptotically correct tail
+        for buffer-stock consumption functions. ``'exp'``: the legacy
+        exponential ``gap(x) = A*exp(-B*(x - x_cut))``. The exponential form
+        is retained for parity with ``LinearInterp``'s long-standing default
+        and is DEPRECATED here (selecting it warns): it is not merely less
+        accurate but impossible as an asymptotic form for the consumption
+        gap, so new code should have no reason to choose it.
+
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/statement.md :: Proposition A0 (no exponential decay — GIC-free) :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+        #   Prop A0: the true gap below the perfect-foresight asymptote can
+        #   never decay faster than 1/x, so any exponential tail understates
+        #   it asymptotically -- the reason 'exp' is deprecated at birth in
+        #   this new API while remaining LinearInterp's untouched legacy
+        #   default.
+
+        ``'moderation_tail'``: tail-only use of the Method-of-Moderation
+        COORDINATES. The solved body is untouched, and this is NOT the full
+        Method of Moderation solution representation (see the
+        MethodOfModeration paper) -- it borrows MoM's coordinates for the
+        extrapolation region only. With ``mEx = x - x_min`` and
+        ``hEx = intercept_limit/slope_limit + x_min``, the gap is expressed
+        as ``omega = gap/(slope_limit*hEx)`` in (0, 1) -- the position
+        between the limiting ("optimist") line and the gap ceiling anchored
+        at ``x_min`` (the "pessimist" line) -- and, through
+        ``chi = log((1 - omega)/omega)`` and ``mu = log(mEx)``, the tail is
+
+            ``chi(mu) = chi_cut + Q*u + (chip_cut - Q)*(1 - exp(-u))``,
+            ``u = mu - mu_cut >= 0``.
+
+        The decay law is the POWER LAW ``gap ~ mEx**(-Q)``, asymptotically
+        the same law as ``'powerlaw'``; the logistic link is only the
+        coordinate system carrying it (this is NOT logistic or exponential
+        decay of the gap). Properties, each unit-tested: level- AND
+        slope-matched (C1) at ANY cut with NO guard -- the bounded
+        ``exp(-u)`` correction absorbs an arbitrarily steep local slope,
+        exactly the ``Q_fit >= Q + 1`` region where the two-term power-law
+        attachment must fall back to a kinked one-term tail; the gap stays
+        strictly inside ``(0, slope_limit*hEx)`` for all finite queries
+        (bounds by construction); and it collapses exactly to the
+        pinned-slope line when ``chip_cut == Q``. The derivative floor
+        ``f' > slope_limit`` holds wherever the gap is locally shrinking
+        (asymptotically always); at a cut where the body's gap is WIDENING
+        (``chip_cut < 0``, a configuration the fitted forms must refuse),
+        C1 fidelity necessarily continues the widening before the tail
+        bends toward the line -- the bounds still hold throughout. Requires
+        ``decay_extrap_Q`` (there is NO fitted mode: fitting the asymptotic
+        slope from the cut is definitionally the tangent extrapolation this
+        form exists to correct) and ``x_min``, and always reads the body's
+        derivative at the cut. Applicability violations RAISE (they signal
+        inconsistent inputs) instead of warn-and-disable: the body's level
+        at the cut must lie strictly between the pessimist and optimist
+        lines.
+    decay_extrap_Q : float or None (default), keyword-only
+        ``None``: the tail is FITTED -- level- and slope-matched at ``x_cut``
+        exactly as ``LinearInterp`` fits from its top two knots (the wrapped
+        interpolant's ``derivative(x_cut)`` supplies the slope). A positive
+        float (requires ``decay_extrap_form='powerlaw'``): use this EXPLICIT
+        decay exponent; the tail is level-matched (continuous) by
+        construction, and under the default ``decay_extrap_terms=2`` it is
+        slope-matched (C1) as well; only the one-term variant
+        (``decay_extrap_terms=1``) has the C1 kink whose size the
+        ``LinearInterp.decay_extrap_Q`` documentation derives.
+        The theory exponent for buffer-stock consumption functions is
+        ``min(1, q*)`` from :mod:`HARK.ConsumptionSaving.pf_decay`.
+    decay_extrap_terms : int, keyword-only (default 2)
+        Consulted only with ``decay_extrap_Q``. ``2`` (default): the C1
+        TWO-TERM attachment ``gap = A*z**(-Q) + A2*z**(-(Q+1))``, level- AND
+        slope-matched at ``x_cut`` with the theory exponent leading (F11
+        closed forms ``A2 = gap*(Q_fit - Q)``, ``A = gap - A2``; collapses
+        exactly to one term when the local fitted rate equals ``Q``; warns
+        and falls back to one term when ``Q_fit >= Q + 1``). ``1``: the
+        level-matched one-term tail (C1 kink; the only explicit mode
+        available to derivative-less bodies).
+
+        WHY the two-term default: it guards against Jacobian problems in
+        SSJ-type (sequence-space Jacobian) approaches -- policy derivatives
+        are primitive inputs to SSJ Jacobian/fake-news construction and to
+        differentiation through the solution, and a C1 kink at the
+        attachment point makes them discontinuous for queries crossing the
+        cut. The second exponent is ``Q + 1`` (an attachment term absorbing
+        exactly the one-term kink), NOT the theory-subleading pair, whose
+        spacing ``|q* - 1|`` vanishes at near-resonance calibrations.
+
+        # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
+        #   F11: derivation of the closed-form amplitudes, the conditioning
+        #   argument for Q+1, and the property proofs (below-line, MPC
+        #   floor, concavity condition, guard + one-term fallback).
+    x_min : float or None (default), keyword-only
+        The lower support point of the moderation coordinates (for
+        consumption functions: ``mNrmMin``, the "pessimist" bound anchoring
+        the gap ceiling; often <= 0 under a natural borrowing constraint).
+        REQUIRED by ``decay_extrap_form='moderation_tail'`` (which needs
+        ``mEx = x - x_min > 0`` at the cut and
+        ``hEx = intercept_limit/slope_limit + x_min > 0``). OPTIONAL with
+        ``'powerlaw'``: supplying it enriches the two-term guard-trip
+        warning with the exact steepness diagnosis (``s_mu``, the
+        coordinate amplification factor ``1 + hEx/mEx``, and the guard-safe
+        grid boundary ``mEx > Q*hEx``). Rejected with ``'exp'``.
+
+    Notes
+    -----
+    LEVEL CONTINUITY AT ``x_cut`` IS AN INVARIANT OF THIS CLASS: every tail
+    it can attach is level-matched to the wrapped function at the cut (the
+    amplitude is always the level gap read there), so the composed function
+    never jumps. There is deliberately no amplitude-override hook: imposing
+    an external amplitude (e.g. a closed-form boundary value) at a
+    pre-asymptotic cut forces a level discontinuity, which is never
+    acceptable. Under the default two-term attachment the composed function
+    is C1 at the cut as well; the one discontinuity the class can exhibit
+    is the documented C1 (derivative-only) kink of the one-term
+    explicit-exponent mode (``decay_extrap_terms=1``).
+
+    Validity guards mirror ``LinearInterp``: the fitted forms require the
+    level at ``x_cut`` strictly below the limiting line, approaching it
+    (slope above ``slope_limit``), ``slope_limit > 0``, and a positive pivot;
+    the explicit-exponent form relaxes the slope condition (its rescue case).
+    On guard failure the wrapper warns and DISABLES the tail, and queries
+    above ``x_cut`` simply delegate to the wrapped interpolant -- the
+    composable analog of ``LinearInterp`` falling back to its naive top-
+    segment extrapolation.
+
+    # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §2. Model, conditions, and the imported foundations :: Carroll–Kimball 1996 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+    #   Imported foundations L0-L2': a converged buffer-stock consumption
+    #   function is strictly increasing and strictly concave (Carroll-Kimball
+    #   1996) and approaches its PF asymptote from below with slope falling
+    #   to the limiting MPC -- the configuration the guards enforce at x_cut;
+    #   a violation signals bad inputs, so the tail is refused rather than
+    #   risk a divergent extrapolation.
+
+    ``distance_criteria`` recurses into the wrapped interpolant only: with
+    the limiting line and tail policy fixed, the tail parameters are
+    deterministic functions of the body, so successive-iterate distances
+    through the body control the total distance in solver convergence checks.
+
+    Fine print (adversarially established): the tail parameters are a
+    CONSTRUCTION-TIME snapshot -- mutating the wrapped interpolant afterward
+    moves the body but not the tail. Limiting-line parameters are coerced to
+    float64, so byte-parity with ``LinearInterp`` holds for float64/Python-
+    float inputs (exotic dtypes like float32 round differently in
+    LinearInterp's raw-dtype arithmetic). Parity also presumes a
+    non-degenerate top knot: on a grid whose last two x-values coincide,
+    LinearInterp's fitted tail is internally inconsistent (it level-matches a
+    knot value its own evaluator does not return), while this wrapper
+    level-matches what the body actually evaluates to at ``x_cut``.
+    """
+
+    distance_criteria = ["interp"]
+
+    def __init__(
+        self,
+        interp,
+        intercept_limit,
+        slope_limit,
+        x_cut=None,
+        decay_extrap_form="powerlaw",
+        *,
+        decay_extrap_Q=None,
+        decay_extrap_terms=2,
+        x_min=None,
+    ):
+        self.interp = interp
+        if decay_extrap_form not in ("exp", "powerlaw", "moderation_tail"):
+            raise ValueError(
+                "decay_extrap_form must be 'exp', 'powerlaw', or "
+                "'moderation_tail', got " + repr(decay_extrap_form)
+            )
+        if isinstance(decay_extrap_terms, bool) or decay_extrap_terms not in (1, 2):
+            raise ValueError(
+                "decay_extrap_terms must be 1 or 2, got "
+                + repr(decay_extrap_terms)
+            )
+        self.decay_extrap_form = decay_extrap_form
+        if intercept_limit is None or slope_limit is None:
+            raise ValueError(
+                "DecayTailInterp requires intercept_limit and slope_limit "
+                "(the limiting linear function is what the tail decays toward)"
+            )
+        if x_min is not None:
+            if decay_extrap_form == "exp":
+                raise ValueError(
+                    "x_min parameterizes the moderation coordinates (and the "
+                    "power-law guard diagnosis); it is meaningless with "
+                    "decay_extrap_form='exp'"
+                )
+            x_min = float(x_min)
+            if not np.isfinite(x_min):
+                raise ValueError("x_min must be finite, got " + repr(x_min))
+        self.decay_x_min = x_min
+        if decay_extrap_Q is not None:
+            if decay_extrap_form not in ("powerlaw", "moderation_tail"):
+                raise ValueError(
+                    "decay_extrap_Q requires decay_extrap_form='powerlaw' "
+                    "or 'moderation_tail'"
+                )
+            decay_extrap_Q = float(decay_extrap_Q)
+            if not np.isfinite(decay_extrap_Q) or decay_extrap_Q <= 0.0:
+                raise ValueError(
+                    "decay_extrap_Q must be a positive finite float, got "
+                    + repr(decay_extrap_Q)
+                )
+        if decay_extrap_form == "moderation_tail":
+            if decay_extrap_Q is None:
+                raise ValueError(
+                    "decay_extrap_form='moderation_tail' requires "
+                    "decay_extrap_Q (the explicit asymptotic exponent; the "
+                    "theory value is min(1, q*) from "
+                    "HARK.ConsumptionSaving.pf_decay) -- there is no fitted "
+                    "mode: fitting the asymptotic slope at the cut is the "
+                    "tangent extrapolation this form exists to correct"
+                )
+            if x_min is None:
+                raise ValueError(
+                    "decay_extrap_form='moderation_tail' requires x_min "
+                    "(the moderation coordinates' lower support point; "
+                    "mNrmMin for consumption functions)"
+                )
+            if decay_extrap_terms == 1:
+                raise ValueError(
+                    "decay_extrap_terms does not apply to "
+                    "decay_extrap_form='moderation_tail' (the form is C1 by "
+                    "construction); leave it at its default"
+                )
+        if x_cut is None:
+            x_list = getattr(interp, "x_list", None)
+            if x_list is None:
+                raise ValueError(
+                    "x_cut is required: the wrapped interpolant exposes no "
+                    "x_list grid to supply a default handoff point"
+                )
+            x_cut = x_list[-1]
+        self.x_cut = float(x_cut)
+        if not np.isfinite(self.x_cut):
+            raise ValueError(
+                "x_cut must be finite, got " + repr(x_cut)
+            )
+        if decay_extrap_form == "exp":
+            warnings.warn(
+                "DecayTailInterp(decay_extrap_form='exp'): the exponential "
+                "tail is retained only for parity with LinearInterp's legacy "
+                "default and is deprecated in this class; the power-law form "
+                "is the asymptotically correct tail (and the default).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        self.intercept_limit = float(intercept_limit)
+        self.slope_limit = float(slope_limit)
+
+        # Tail inputs, read from the wrapped function where LinearInterp
+        # reads its top two knots: the level at x_cut always; the slope at
+        # x_cut only for the fitted forms (explicit-Q needs none, so any
+        # bare callable composes).
+        level_at_cut = float(np.asarray(self.interp(np.array([self.x_cut]))).ravel()[0])
+        if not np.isfinite(level_at_cut):
+            raise ValueError(
+                "DecayTailInterp: the wrapped interpolant returns a non-finite "
+                f"level ({level_at_cut!r}) at x_cut={self.x_cut!r} -- x_cut is "
+                "outside its usable domain (e.g. below a lower_extrap=False "
+                "grid bottom); choose a cut where the body is defined"
+            )
+        # np.float64, NOT a Python float: LinearInterp's grid-sourced
+        # level_diff is a numpy scalar, so its fitted-B division by an
+        # exactly-zero gap yields inf/nan (exp form then correctly returns
+        # the line; powerlaw warn-disables) -- a Python float would raise
+        # ZeroDivisionError on the same reachable boundary configuration.
+        level_diff = np.float64(
+            self.intercept_limit + self.slope_limit * self.x_cut - level_at_cut
+        )
+        self.decay_extrap = False
+        if decay_extrap_form == "moderation_tail":
+            der = getattr(interp, "derivative", None)
+            if der is None:
+                raise ValueError(
+                    "DecayTailInterp: the moderation tail slope-matches at "
+                    "x_cut and needs the wrapped interpolant's derivative "
+                    "there; this interpolant has none"
+                )
+            slope_at_cut = float(
+                np.asarray(der(np.array([self.x_cut]))).ravel()[0]
+            )
+            if not np.isfinite(slope_at_cut):
+                raise ValueError(
+                    "DecayTailInterp: the wrapped interpolant returns a "
+                    f"non-finite derivative ({slope_at_cut!r}) at "
+                    f"x_cut={self.x_cut!r}; the moderation tail needs a "
+                    "finite slope there"
+                )
+            self._init_moderation_tail(level_diff, decay_extrap_Q, slope_at_cut)
+            return
+        if decay_extrap_Q is not None:
+            slope_at_cut = None
+            if decay_extrap_terms == 2:
+                der = getattr(interp, "derivative", None)
+                if der is None:
+                    raise ValueError(
+                        "DecayTailInterp: the default two-term (C1) tail "
+                        "slope-matches at x_cut and needs the wrapped "
+                        "interpolant's derivative there; this interpolant "
+                        "has none -- pass decay_extrap_terms=1 for the "
+                        "level-matched one-term tail"
+                    )
+                slope_at_cut = float(
+                    np.asarray(der(np.array([self.x_cut]))).ravel()[0]
+                )
+                if not np.isfinite(slope_at_cut):
+                    raise ValueError(
+                        "DecayTailInterp: the wrapped interpolant returns a "
+                        f"non-finite derivative ({slope_at_cut!r}) at "
+                        f"x_cut={self.x_cut!r}; the two-term tail needs a "
+                        "finite slope there -- fix the cut or pass "
+                        "decay_extrap_terms=1"
+                    )
+            self._init_explicit_tail(
+                level_diff, decay_extrap_Q, decay_extrap_terms, slope_at_cut
+            )
+            return
+        der = getattr(interp, "derivative", None)
+        if der is None:
+            raise ValueError(
+                "DecayTailInterp: the fitted decay forms infer the tail from "
+                "the wrapped interpolant's slope at x_cut, but this "
+                "interpolant has no derivative method; pass decay_extrap_Q "
+                "for a level-matched explicit-exponent tail instead"
+            )
+        slope_at_cut = float(np.asarray(der(np.array([self.x_cut]))).ravel()[0])
+        if not np.isfinite(slope_at_cut):
+            raise ValueError(
+                "DecayTailInterp: the wrapped interpolant returns a non-finite "
+                f"derivative ({slope_at_cut!r}) at x_cut={self.x_cut!r}; the "
+                "fitted decay forms need a finite slope there -- fix the cut "
+                "or pass decay_extrap_Q"
+            )
+        # Zero-uncertainty guard, exactly as in LinearInterp: a body already
+        # ON the limiting line has no gap to decay.
+        if not np.isclose(self.slope_limit, slope_at_cut, atol=1e-15):
+            slope_diff = self.slope_limit - slope_at_cut
+            self.decay_extrap_A = level_diff
+            self.decay_extrap_B = -slope_diff / level_diff
+            self.decay_extrap = True
+            if decay_extrap_form == "powerlaw":
+                self._init_powerlaw_fitted_tail(level_diff, slope_diff)
+
+    def _init_powerlaw_fitted_tail(self, level_diff, slope_diff):
+        """Fitted power-law tail setup, mirroring
+        ``LinearInterp._init_powerlaw_decay`` with the top knot replaced by
+        ``x_cut``: level- and slope-matched there, valid only when the body
+        sits strictly below the limiting line and approaches it; otherwise
+        warn and disable (queries above ``x_cut`` then delegate to the body).
+        """
+        ok = self.slope_limit > 0.0 and level_diff > 0.0 and self.decay_extrap_B > 0.0
+        if ok:
+            pivot = self.x_cut + self.intercept_limit / self.slope_limit
+            ok = pivot > 0.0
+        if not ok:
+            warnings.warn(
+                "DecayTailInterp(decay_extrap_form='powerlaw'): the wrapped "
+                "interpolant at x_cut is not strictly below the limiting "
+                "line with slope strictly above slope_limit (level_diff="
+                f"{level_diff:.6g}, slope_diff={slope_diff:.6g}, "
+                f"slope_limit={self.slope_limit:.6g}); disabling decay "
+                "extrapolation -- queries above x_cut delegate to the "
+                "wrapped interpolant."
+            )
+            self.decay_extrap = False
+            return
+        self.decay_extrap_pivot = pivot
+        self.decay_extrap_Q = self.decay_extrap_B * pivot
+        self.decay_extrap_Q_source = "fitted"
+
+    def _init_explicit_tail(self, level_diff, Q, terms, slope_at_cut):
+        """Explicit-exponent tail setup, mirroring
+        ``LinearInterp._init_explicit_Q_decay`` (relaxed guard: no slope
+        condition -- the rescue case an explicit exponent exists to serve).
+        Level-matched at the cut unconditionally (the class invariant); with
+        ``terms=2`` (default) also slope-matched (the F11 C1 attachment,
+        ``A2 = gap*(Q_fit - Q)``, ``A = gap - A2``), falling back to one
+        term with a warning when ``Q_fit >= Q + 1``."""
+        ok = self.slope_limit > 0.0 and level_diff > 0.0
+        pivot = None
+        if ok:
+            pivot = self.x_cut + self.intercept_limit / self.slope_limit
+            ok = pivot > 0.0
+        if not ok:
+            warnings.warn(
+                "DecayTailInterp(decay_extrap_Q=...): explicit-exponent decay "
+                "requires slope_limit > 0, a level at x_cut strictly below "
+                f"the limiting line, and a positive pivot (level_diff="
+                f"{level_diff:.6g}, slope_limit={self.slope_limit:.6g}); "
+                "disabling decay extrapolation -- queries above x_cut "
+                "delegate to the wrapped interpolant."
+            )
+            self.decay_extrap = False
+            return
+        self.decay_extrap_pivot = pivot
+        self.decay_extrap_Q = Q
+        self.decay_extrap_Q_source = "explicit"
+        if terms == 2:
+            # same expressions as LinearInterp's setup, sourced from the
+            # wrapped function's slope reading (byte-parity on HARK bodies)
+            slope_diff = self.slope_limit - slope_at_cut
+            self.decay_extrap_B = -slope_diff / level_diff
+            Q_fit = self.decay_extrap_B * pivot
+            A2 = level_diff * (Q_fit - Q) if np.isfinite(Q_fit) else np.nan
+            if np.isfinite(Q_fit) and Q_fit < Q + 1.0 and A2 != 0.0:
+                # THEOREM-REF[BufferStockTheory-Latest @ 3f4b021e :: theory/powerlaw-decay/grid_design_final_spec.md :: THE SPEC (owner-proposed scheme, sharpened by F1–F8) :: F11 — The C1 two-term attachment :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/grid-design-final-spec/]
+                #   F11 closed forms: level+slope matching with the theory
+                #   exponent leading; an EXACT collapse (A2 == 0) stores the
+                #   one-term representation (byte-identical to terms=1); a
+                #   non-finite Q_fit falls back rather than attach NaN.
+                self.decay_extrap_A2 = A2
+                self.decay_extrap_A = level_diff - self.decay_extrap_A2
+                self.decay_extrap_terms = 2
+                self.decay_extrap = True
+                return
+            if not (np.isfinite(Q_fit) and Q_fit < Q + 1.0):
+                hNrm = pivot - self.x_cut
+                diag = ""
+                if self.decay_x_min is not None and np.isfinite(Q_fit):
+                    hEx = hNrm + self.decay_x_min
+                    mEx_cut = self.x_cut - self.decay_x_min
+                    if mEx_cut > 0.0 and hEx > 0.0:
+                        # exact steepness decomposition:
+                        # Q_fit = s_mu * (1 + hEx/mEx); guard-safe boundary
+                        # mEx > Q*hEx (the human-wealth-scale rule)
+                        amp = 1.0 + hEx / mEx_cut
+                        diag = (
+                            f" Diagnosis (x_min={self.decay_x_min:.6g}): "
+                            f"s_mu={Q_fit / amp:.4g} times coordinate "
+                            f"amplification {amp:.4g}; guard-safe boundary "
+                            f"mEx_cut > Q*hEx = {Q * hEx:.4g}, vs mEx_cut = "
+                            f"{mEx_cut:.4g} here."
+                        )
+                warnings.warn(
+                    "DecayTailInterp(decay_extrap_Q=..., decay_extrap_terms="
+                    f"2): the fitted rate Q_fit={Q_fit:.4g} is not finite "
+                    f"and strictly below Q+1={Q + 1.0:.4g} (at or above it, "
+                    "the two-term leading amplitude would be non-positive; "
+                    "non-finite signals a degenerate reading); falling back "
+                    "to the one-term level-matched tail (C1 kink at the "
+                    "cut). A steep fitted rate at a human-wealth-dominated "
+                    "cut is usually coordinate amplification rather than "
+                    "anomalous decay (the diagnosis below separates the two "
+                    "when x_min is supplied): remedies are (a) extend the "
+                    "grid top toward Q*hNrm ~= "
+                    f"{Q * hNrm:.4g} (the human-wealth-scale rule), or (b) "
+                    "decay_extrap_form='moderation_tail' (C1 at any cut, no "
+                    f"guard; requires x_min).{diag}"
+                )
+        else:
+            # fitted-rate diagnostic is undefined without a body slope reading
+            self.decay_extrap_B = np.nan
+        self.decay_extrap_A = level_diff
+        self.decay_extrap_A2 = 0.0
+        self.decay_extrap_terms = 1
+        self.decay_extrap = True
+
+    def _init_moderation_tail(self, level_diff, Q, slope_at_cut):
+        """Moderation-coordinates C1 tail setup (tail-only; NOT the full
+        Method of Moderation -- see the class docstring). Level- and
+        slope-matched at ANY cut with no guard: the bounded ``exp(-u)``
+        correction absorbs an arbitrarily steep local slope, so there is no
+        analog of the two-term ``Q_fit >= Q + 1`` fallback. Violations of
+        the moderation premises signal INCONSISTENT INPUTS and raise
+        (unlike the fitted/explicit power-law guards, which warn and
+        disable): the wrapped body's level at the cut must lie strictly
+        between the limiting ("optimist") line and the gap ceiling anchored
+        at ``x_min`` (the "pessimist" line).
+
+        # THEOREM-REF[BufferStockTheory-Latest @ c181870f :: theory/powerlaw-decay/final_proof.md :: §7. The computational payoff: why the compactified core is the right presentation :: The extrapolation form of record :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/]
+        #   Same decay law as the power-law forms: chi(mu) asymptotically
+        #   linear with slope Q in mu = ln(x - x_min) is IDENTICALLY
+        #   gap ~ mEx**(-Q); the moderation coordinates change only the
+        #   ATTACHMENT (C1 at any cut, bounds built in), not the law.
+        """
+        x_min = self.decay_x_min
+        if not self.slope_limit > 0.0:
+            raise ValueError(
+                "moderation_tail requires slope_limit > 0, got "
+                f"{self.slope_limit!r}"
+            )
+        if not x_min < self.x_cut:
+            raise ValueError(
+                "moderation_tail requires x_min < x_cut, got "
+                f"x_min={x_min!r} >= x_cut={self.x_cut!r}"
+            )
+        hEx = self.intercept_limit / self.slope_limit + x_min
+        if not hEx > 0.0:
+            raise ValueError(
+                "moderation_tail requires hEx = intercept_limit/slope_limit "
+                "+ x_min > 0 (the optimist-pessimist gap ceiling scale), "
+                f"got hEx={hEx!r}"
+            )
+        ceiling = self.slope_limit * hEx
+        if not 0.0 < level_diff < ceiling:
+            raise ValueError(
+                "moderation_tail requires the body's level at x_cut "
+                "strictly between the pessimist and optimist lines: need "
+                "0 < level_diff < slope_limit*hEx, got level_diff="
+                f"{float(level_diff)!r} vs ceiling={float(ceiling)!r}"
+            )
+        mEx_cut = self.x_cut - x_min
+        omega_cut = float(level_diff) / ceiling
+        # chi and its mu-slope at the cut, from the body's own level and
+        # slope: chip = -mEx*g'/(g*(1-omega)) with g' = slope_limit - body'
+        slope_diff = self.slope_limit - slope_at_cut
+        self.decay_hEx = hEx
+        self.decay_gap_ceiling = ceiling
+        self.decay_mEx_cut = mEx_cut
+        self.decay_chi_cut = float(np.log((1.0 - omega_cut) / omega_cut))
+        self.decay_chip_cut = float(
+            -mEx_cut * slope_diff / (float(level_diff) * (1.0 - omega_cut))
+        )
+        self.decay_extrap_Q = Q
+        self.decay_extrap_Q_source = "explicit"
+        self.decay_extrap = True
+
+    def _body_y(self, x):
+        return np.asarray(self.interp(x), dtype=float)
+
+    def _body_der(self, x):
+        der = getattr(self.interp, "derivative", None)
+        if der is not None:
+            return np.asarray(der(x), dtype=float)
+        # finite-difference fallback on the BODY, mirroring the default
+        # HARKinterpolator1D._der (only reachable for derivative-less bodies,
+        # which require explicit-Q tails)
+        eps = 1e-8
+        return (
+            np.asarray(self.interp(x + eps), dtype=float)
+            - np.asarray(self.interp(x), dtype=float)
+        ) / eps
+
+    def _body_both(self, x):
+        ewd = getattr(self.interp, "eval_with_derivative", None)
+        if ewd is not None:
+            y, dydx = ewd(x)
+            return np.asarray(y, dtype=float), np.asarray(dydx, dtype=float)
+        return self._body_y(x), self._body_der(x)
+
+    def _tail_y_der(self, x_above, want_y, want_der):
+        """Tail level/derivative above ``x_cut``: the same formulas, in the
+        same numerically stable arrangement, as
+        ``LinearInterp._apply_upper_decay``."""
+        x_temp = x_above - self.x_cut
+        if self.decay_extrap_form == "moderation_tail":
+            # chi(mu) = chi_cut + Q*u + (chip_cut - Q)*(1 - e^-u): stable
+            # omega recovery via expm1 (chi clipped at 700, where omega has
+            # already underflowed to ~1e-304 and the tail IS the line);
+            # e^-u computed as the exact coordinate ratio mEx_cut/mEx.
+            mEx = x_above - self.decay_x_min
+            u = np.log1p(x_temp / self.decay_mEx_cut)
+            eu = self.decay_mEx_cut / mEx
+            chi = (
+                self.decay_chi_cut
+                + self.decay_extrap_Q * u
+                + (self.decay_chip_cut - self.decay_extrap_Q) * (1.0 - eu)
+            )
+            omega = 1.0 / (2.0 + np.expm1(np.minimum(chi, 700.0)))
+            y = (
+                self.intercept_limit + self.slope_limit * x_above
+                - self.decay_gap_ceiling * omega
+                if want_y
+                else None
+            )
+            dydx = (
+                self.slope_limit
+                + self.decay_gap_ceiling * omega * (1.0 - omega)
+                * (
+                    self.decay_extrap_Q
+                    + (self.decay_chip_cut - self.decay_extrap_Q) * eu
+                ) / mEx
+                if want_der
+                else None
+            )
+            return y, dydx
+        if self.decay_extrap_form == "powerlaw":
+            if getattr(self, "decay_extrap_terms", 1) == 2:
+                # C1 two-term attachment (F11); expressions identical to
+                # LinearInterp._apply_upper_decay's two-term branch
+                lw = np.log1p(x_temp / self.decay_extrap_pivot)
+                w1 = np.exp(-self.decay_extrap_Q * lw)
+                w2 = np.exp(-(self.decay_extrap_Q + 1.0) * lw)
+                decay = self.decay_extrap_A * w1 + self.decay_extrap_A2 * w2
+                y = (
+                    self.intercept_limit + self.slope_limit * x_above - decay
+                    if want_y
+                    else None
+                )
+                dydx = (
+                    self.slope_limit + (
+                        self.decay_extrap_Q * self.decay_extrap_A * w1
+                        + (self.decay_extrap_Q + 1.0) * self.decay_extrap_A2 * w2
+                    ) / (x_temp + self.decay_extrap_pivot)
+                    if want_der
+                    else None
+                )
+                return y, dydx
+            decay = self.decay_extrap_A * np.exp(
+                -self.decay_extrap_Q * np.log1p(x_temp / self.decay_extrap_pivot)
+            )
+            y = (
+                self.intercept_limit + self.slope_limit * x_above - decay
+                if want_y
+                else None
+            )
+            dydx = (
+                self.slope_limit
+                + self.decay_extrap_Q / (x_temp + self.decay_extrap_pivot) * decay
+                if want_der
+                else None
+            )
+            return y, dydx
+        decay = self.decay_extrap_A * np.exp(-self.decay_extrap_B * x_temp)
+        y = (
+            self.intercept_limit + self.slope_limit * x_above - decay
+            if want_y
+            else None
+        )
+        dydx = self.slope_limit + self.decay_extrap_B * decay if want_der else None
+        return y, dydx
+
+    def _evaluate(self, x):
+        x = np.asarray(x, dtype=float)
+        if not self.decay_extrap:
+            return self._body_y(x)
+        above = x > self.x_cut
+        if not np.any(above):
+            return self._body_y(x)
+        y = np.empty(x.shape, dtype=float)
+        body = ~above
+        if np.any(body):
+            y[body] = self._body_y(x[body])
+        y[above], _ = self._tail_y_der(x[above], True, False)
+        return y
+
+    def _der(self, x):
+        x = np.asarray(x, dtype=float)
+        if not self.decay_extrap:
+            return self._body_der(x)
+        above = x > self.x_cut
+        if not np.any(above):
+            return self._body_der(x)
+        dydx = np.empty(x.shape, dtype=float)
+        body = ~above
+        if np.any(body):
+            dydx[body] = self._body_der(x[body])
+        _, dydx[above] = self._tail_y_der(x[above], False, True)
+        return dydx
+
+    def _evalAndDer(self, x):
+        x = np.asarray(x, dtype=float)
+        if not self.decay_extrap:
+            return self._body_both(x)
+        above = x > self.x_cut
+        if not np.any(above):
+            return self._body_both(x)
+        y = np.empty(x.shape, dtype=float)
+        dydx = np.empty(x.shape, dtype=float)
+        body = ~above
+        if np.any(body):
+            yb, db = self._body_both(x[body])
+            y[body] = yb
+            dydx[body] = db
+        ya, da = self._tail_y_der(x[above], True, True)
+        y[above] = ya
+        dydx[above] = da
+        return y, dydx
+
+
+class KappaBarTailInterp(HARKinterpolator1D):
+    """
+    Constraint-end (maximal-MPC) tail wrapper over ANY 1D interpolant -- the
+    bottom-end member of the ``DecayTailInterp`` family. At and above a knot
+    ``x_knot`` every query is delegated, unchanged, to the wrapped
+    interpolant; below the knot (and above the binding minimum ``mNrmMin``)
+    the function is the Theorem CE constraint-end form
+
+        c(m) = MPCmax*me - K*me**(1.0 + CRRA),      me = m - mNrmMin,
+        K = (MPCmax*me_knot - y_knot)/me_knot**(1.0 + CRRA)   (value-matching),
+
+    so the composed function is continuous at the knot by construction (the
+    amplitude is always the knot's own gap below the ``MPCmax`` line -- the
+    same level-continuity invariant as ``DecayTailInterp``). Queries at or
+    below ``mNrmMin`` return 0.0 (consumption is zero at the constraint and
+    undefined below it).
+
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-thm-CE :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Theorem CE: the constraint-end approach exponent is the CRRA itself
+    #   (q_down = rho): c = kap_bar*me - K*me**(1+rho)*(1+o(1)) as me -> 0,
+    #   with NO log-periodic prefactor (the binding one-step map is the
+    #   deterministic worst-branch contraction lambda = wp**(1/rho)*Thorn_Gamma
+    #   < 1). No eigenvalue problem at this end: the exponent needs no
+    #   root-finder, unlike the high-wealth min(1, q*).
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-thm-CE-psi :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Theorem CE-psi (regime I): with permanent shocks the same q_down = rho
+    #   law holds under the uniform-contraction criterion
+    #   p_eff**(1/rho)*Thorn_Gamma < psi_min, with p_eff the worst-JOINT-atom
+    #   mass (exactly HARK's WorstIncPrb accounting); outside it (regime II)
+    #   q_down = min(rho, s*_+) and this form is NOT theorem-backed -- callers
+    #   should gate on ``HARK.ConsumptionSaving.pf_decay.ce_psi_regime``.
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-prop-C1-psi :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   kap_bar = 1 - p_eff**(1/rho)*Thorn_R (infinite horizon), psi-invariant
+    #   with p_eff the worst-JOINT-atom mass -- the psi==1 Prop C1 formula
+    #   read with the joint worst mass.
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-prop-C2 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Prop C2 (the finite-horizon kap_bar_t recursion, terminal anchor
+    #   kap_bar_T = 1): kap_bar_{T-n}**-1 = 1 +
+    #   p_eff**(1/rho)*Thorn_R*kap_bar_{T-n+1}**-1. HARK's ``calc_mpc_max``
+    #   computes exactly this step, so passing the solver's ``MPCmaxUnc`` /
+    #   ``solution.MPCmax`` is exact at ANY horizon (an infinite-horizon
+    #   solve iterates it to the Prop C1 fixed point).
+    # THEOREM-REF[BufferStockTheory-Latest @ 12b0b178 :: theory/powerlaw-decay/statement.md :: st-cor-C4 :: https://llorracc.github.io/BufferStockTheory-Latest/powerlaw-decay-theory/statement/]
+    #   Knot placement rule (the guard message below): the knot reads the
+    #   constraint asymptote to relative tolerance tol iff
+    #   me_knot <= (tol*kap_bar/K)**(1/rho) -- push the grid bottom below that
+    #   scale (``pf_decay.aXtraMin_from_tail_tol`` inverts it).
+
+    The MPC behavior is the theorem's content: c'(m) = MPCmax - (1 +
+    CRRA)*K*me**CRRA rises to MPCmax as me -> 0. This replaces (a) the EGM
+    bottom SECANT from the constraint corner to the first gridpoint, whose
+    slope understates MPCmax by exactly K*me_knot**CRRA, and (b) fitted-
+    tangent lower extrapolations, whose MPC can diverge (measured
+    Method-of-Moderation counterexample: MPC 3.56 at me = 1e-8).
+
+    Modes (``strict``) and the in-solve constructor (``try_make``)
+    ---------------------------------------------------------------
+    ``strict=True`` (default; post-solve attachment, where a violation is a
+    real diagnosis): requires the Theorem CE regime at the knot, ``K >= 0``
+    (knot at or below the MPCmax line) and ``K*me_knot**CRRA < MPCmax``
+    (positivity of c below the knot; monotone in me, so holding at the knot
+    certifies the whole tail). Violation raises ``ValueError`` with the
+    st-cor-C4 grid-rule message. ``strict=False`` admits the two-sided
+    bootstrap CORRIDOR ``|K|*me_knot**CRRA < MPCmax`` (a knot ABOVE the
+    MPCmax line -- K < 0 -- from a contaminated iterate or solve; the tail
+    then approaches the MPCmax line from above and the inherited bias decays
+    like (me/me_knot)**CRRA). ``in_regime`` records ``K >= 0``;
+    ``knot_rel_deficit = K*me_knot**CRRA/MPCmax`` is the SIGNED st-cor-C4
+    'tol' realized at the knot.
+
+    ``try_make`` is the guarded constructor for IN-SOLVE use (re-anchoring
+    each backward step): it returns ``None`` -- the caller keeps its default
+    assembly for that step -- unless the corridor holds AND the tail's MPC
+    over the exposed segment (0, me_knot] lies in ``(0, MPCmax]``:
+
+        MPC <= MPCmax  <=>  K >= 0,
+        MPC > 0 at the knot  <=>  (1 + CRRA)*K*me_knot**CRRA < MPCmax.
+
+    The MPC-range exposure gate closes the corridor's two recorded leaks (a
+    large-K corridor tail turns its MPC negative near the knot; a K < 0
+    corridor tail carries MPC above MPCmax throughout), so in-solve exposure
+    is always a theorem-shaped tail. Sign self-correction across iterations
+    is preserved by the FALLBACK, not by exposing K < 0 tails: a refused
+    iterate keeps HARK's bottom secant, which lies BELOW the true concave
+    consumption function and therefore biases the next iterate's knot back
+    below the MPCmax line (K > 0), re-activating the tail. (This differs
+    from the reference stack's crude ``c = m`` rail, whose MPC-1 bias has the
+    opposite sign and made a strict in-solve gate deadlock there.)
+
+    Parameters
+    ----------
+    interp : callable
+        The wrapped interpolant (any object mapping numpy query arrays to
+        value arrays; all HARK 1D interpolants qualify). Queries at or above
+        ``x_knot`` delegate to it; a ``derivative`` method is delegated to
+        where present.
+    MPCmax : float
+        The maximal MPC at the constraint end: the solver's ``MPCmaxUnc`` /
+        ``solution.MPCmax`` (the analytic Prop C2 recursion, exact at any
+        horizon; infinite-horizon fixed point 1 - wp**(1/CRRA)*Thorn_R).
+    CRRA : float
+        Relative risk aversion; ALSO the tail exponent (Theorem CE).
+    mNrmMin : float
+        The binding minimum of market resources (``solution.mNrmMin``); 0 for
+        zero-income-atom calibrations. Must lie strictly below ``x_knot``.
+        Attach ONLY when the NATURAL borrowing constraint binds: with an
+        artificially-constrained kink the constraint end has MPC 1 and no
+        kap_bar asymptote (HARK's ``MPCmaxNow = 1.0`` override branch).
+    x_knot : float
+        Market resources at the attachment knot -- the first EGM gridpoint
+        above the constraint corner (``m_for_interpolation[1]`` at the
+        solver's assembly site).
+    y_knot : float or None (default)
+        Consumption at the knot. ``None`` reads the wrapped interpolant at
+        ``x_knot`` (must be finite); the solver passes its own exact node
+        value ``c_for_interpolation[1]``.
+    strict : bool (default True)
+        See Modes above.
+    """
+
+    distance_criteria = ["interp"]
+
+    def __init__(self, interp, MPCmax, CRRA, mNrmMin, x_knot, y_knot=None,
+                 strict=True):
+        self.interp = interp
+        self.MPCmax = float(MPCmax)
+        self.CRRA = float(CRRA)
+        self.mNrmMin = float(mNrmMin)
+        self.x_knot = float(x_knot)
+        if not (np.isfinite(self.MPCmax) and self.MPCmax > 0.0):
+            raise ValueError(
+                "KappaBarTailInterp: MPCmax must be a positive finite float "
+                "(the solver's MPCmaxUnc / solution.MPCmax), got "
+                + repr(MPCmax)
+            )
+        if not (np.isfinite(self.CRRA) and self.CRRA > 0.0):
+            raise ValueError(
+                "KappaBarTailInterp: CRRA must be a positive finite float, "
+                "got " + repr(CRRA)
+            )
+        me_knot = self.x_knot - self.mNrmMin
+        if not (np.isfinite(me_knot) and me_knot > 0.0):
+            raise ValueError(
+                "KappaBarTailInterp: the knot must lie strictly above "
+                f"mNrmMin (x_knot={self.x_knot!r}, mNrmMin={self.mNrmMin!r})"
+            )
+        if y_knot is None:
+            y_knot = float(
+                np.asarray(self.interp(np.array([self.x_knot]))).ravel()[0]
+            )
+        self.y_knot = float(y_knot)
+        if not np.isfinite(self.y_knot):
+            raise ValueError(
+                "KappaBarTailInterp: non-finite consumption at the knot "
+                f"({self.y_knot!r} at x_knot={self.x_knot!r})"
+            )
+        # Value-matching amplitude (level continuity at the knot, the class
+        # invariant): K = (MPCmax*me - c)/me**(1+CRRA).
+        self.K = (self.MPCmax * me_knot - self.y_knot) / me_knot ** (
+            1.0 + self.CRRA
+        )
+        deficit = self.K * me_knot**self.CRRA  # signed st-cor-C4 'tol'
+        if strict:
+            if not (self.K >= 0.0 and deficit < self.MPCmax):
+                raise ValueError(
+                    "KappaBarTailInterp: knot outside the constraint-end "
+                    "regime -- enlarge the grid bottom (st-cor-C4: the knot "
+                    "obeys the asymptote to relative tolerance tol only for "
+                    "me_knot <= (tol*MPCmax/K)**(1/CRRA); K >= 0 requires "
+                    "y_knot <= MPCmax*me_knot, positivity requires "
+                    "K*me_knot**CRRA < MPCmax i.e. y_knot > 0; "
+                    "pf_decay.aXtraMin_from_tail_tol inverts the rule). "
+                    f"Got K={self.K:.6g}, me_knot={me_knot:.6g}, "
+                    f"MPCmax={self.MPCmax:.6g}. With permanent shocks or a "
+                    "positive worst atom also re-check MPCmax and mNrmMin "
+                    "(regime gate: pf_decay.ce_psi_regime, st-rem-CE-regime)."
+                )
+        else:
+            if not abs(deficit) < self.MPCmax:
+                raise ValueError(
+                    "KappaBarTailInterp(strict=False): knot outside even the "
+                    "bootstrap corridor |K|*me_knot**CRRA < MPCmax (relative "
+                    "distance of y_knot from the MPCmax line >= 100%) -- use "
+                    "try_make, which falls back instead of constructing this."
+                )
+        self.strict = bool(strict)
+        self.in_regime = bool(self.K >= 0.0)
+        self.knot_rel_deficit = float(deficit / self.MPCmax)
+        self.mpc_at_knot = float(self.MPCmax - (1.0 + self.CRRA) * deficit)
+
+    @classmethod
+    def try_make(cls, interp, MPCmax, CRRA, mNrmMin, x_knot, y_knot=None):
+        """Guarded constructor for IN-SOLVE use: returns ``None`` (the caller
+        keeps its default bottom assembly for that backward step) unless the
+        knot admits a corridor tail whose MPC over the exposed segment lies
+        in (0, MPCmax] -- the exposure gate described in the class docstring.
+        Never raises on out-of-regime knots; malformed scalar inputs
+        (non-positive MPCmax/CRRA, knot at or below mNrmMin, non-finite
+        y_knot) also return None so a transient broken iterate cannot abort
+        a solve."""
+        if MPCmax is None or not np.isfinite(float(MPCmax)) or float(MPCmax) <= 0.0:
+            return None
+        if not np.isfinite(float(CRRA)) or float(CRRA) <= 0.0:
+            return None
+        me_knot = float(x_knot) - float(mNrmMin)
+        if not (np.isfinite(me_knot) and me_knot > 0.0):
+            return None
+        if y_knot is None:
+            y_knot = float(np.asarray(interp(np.array([float(x_knot)]))).ravel()[0])
+        y_knot = float(y_knot)
+        if not np.isfinite(y_knot):
+            return None
+        K = (float(MPCmax) * me_knot - y_knot) / me_knot ** (1.0 + float(CRRA))
+        deficit = K * me_knot ** float(CRRA)
+        # bootstrap corridor + the MPC-in-(0, MPCmax] exposure gate
+        if not abs(deficit) < float(MPCmax):
+            return None
+        if not (K >= 0.0 and (1.0 + float(CRRA)) * deficit < float(MPCmax)):
+            return None
+        return cls(interp, MPCmax, CRRA, mNrmMin, x_knot, y_knot=y_knot,
+                   strict=True)
+
+    def _body_y(self, x):
+        return np.asarray(self.interp(x), dtype=float)
+
+    def _body_der(self, x):
+        der = getattr(self.interp, "derivative", None)
+        if der is not None:
+            return np.asarray(der(x), dtype=float)
+        eps = 1e-8
+        return (
+            np.asarray(self.interp(x + eps), dtype=float)
+            - np.asarray(self.interp(x), dtype=float)
+        ) / eps
+
+    def _tail_y(self, x_below):
+        me = np.maximum(x_below - self.mNrmMin, 0.0)
+        return self.MPCmax * me - self.K * me ** (1.0 + self.CRRA)
+
+    def _tail_der(self, x_below):
+        # MPC of the tail: -> MPCmax as me -> 0 (Theorem CE's content); the
+        # me <= 0 clip returns the limit MPCmax at/below the constraint.
+        me = np.maximum(x_below - self.mNrmMin, 0.0)
+        return self.MPCmax - (1.0 + self.CRRA) * self.K * me**self.CRRA
+
+    def _evaluate(self, x):
+        x = np.asarray(x, dtype=float)
+        below = x < self.x_knot
+        if not np.any(below):
+            return self._body_y(x)
+        y = np.empty(x.shape, dtype=float)
+        body = ~below
+        if np.any(body):
+            y[body] = self._body_y(x[body])
+        y[below] = self._tail_y(x[below])
+        return y
+
+    def _der(self, x):
+        x = np.asarray(x, dtype=float)
+        below = x < self.x_knot
+        if not np.any(below):
+            return self._body_der(x)
+        dydx = np.empty(x.shape, dtype=float)
+        body = ~below
+        if np.any(body):
+            dydx[body] = self._body_der(x[body])
+        dydx[below] = self._tail_der(x[below])
+        return dydx
+
+    def _evalAndDer(self, x):
+        return self._evaluate(x), self._der(x)
 
 
 class CubicInterp(HARKinterpolator1D):
