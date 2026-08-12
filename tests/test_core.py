@@ -160,6 +160,26 @@ class test_AgentType(unittest.TestCase):
         self.assertEqual(self.agent, agent2)
         self.assertNotEqual(self.agent, agent3)
 
+    def test_prologue_blanks_states_with_nan(self):
+        # The prologue clears every ndarray state so the period's own code
+        # must write it. Blanking with np.empty made a state nothing wrote
+        # hold the freed buffer's contents -- usually the previous period's
+        # values, so the gap read as plausible data. nan makes it visible.
+        agent = IndShockConsumerType(AgentCount=50, T_sim=5)
+        agent.solve()
+        agent.initialize_sim()
+        agent._sim_period_prologue()
+
+        blanked = [
+            var for var, val in agent.state_now.items() if isinstance(val, np.ndarray)
+        ]
+        self.assertTrue(blanked)
+        for var in blanked:
+            self.assertTrue(
+                np.all(np.isnan(agent.state_now[var])),
+                f"state_now[{var!r}] was not blanked to nan",
+            )
+
     def test_del_from_X(self):
         MyType = IndShockConsumerType()
         MyType.del_from_time_inv("DiscFac")
