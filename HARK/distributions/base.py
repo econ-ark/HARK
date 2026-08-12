@@ -445,6 +445,12 @@ class MarkovProcess(Distribution):
         base_entropy = int(self._rng.integers(0, 2**63 - 1))
         sub_seeds = np.random.SeedSequence(base_entropy).spawn(J_src)
 
+        # Aggregated rather than warned per source state: a run with many
+        # thin rows would otherwise emit one warning per row per period and
+        # bury the count that matters.
+        fell_back_states = []
+        fell_back_agents = 0
+
         for j in range(J_src):
             agents_in_j = np.where(state == j)[0]
             N_j = len(agents_in_j)
@@ -461,6 +467,8 @@ class MarkovProcess(Distribution):
             # and pin such rows to the iid path permanently, however well
             # supported their reachable targets are.
             if N_j * np.min(probs[probs > 0]) < 1:
+                fell_back_states.append(j)
+                fell_back_agents += N_j
                 for idx in agents_in_j:
                     new_state[idx] = sub_rng.choice(J, p=probs)
                 continue
@@ -524,6 +532,20 @@ class MarkovProcess(Distribution):
             else:
                 # Randomly assign agents to target states
                 new_state[sub_rng.permutation(agents_in_j)] = np.repeat(np.arange(J), K)
+
+        if fell_back_states:
+            warnings.warn(
+                f"MarkovProcess.draw(shuffle=True): source states "
+                f"{fell_back_states} have too few agents for deterministic "
+                f"counts (N_j * min positive transition probability < 1), so "
+                f"{fell_back_agents} of {state.size} agents were drawn iid "
+                "instead. Quota-exact transition counts are NOT in effect for "
+                "them, and neither is any variance reduction; raise "
+                "AgentCount or coarsen the state space if exactness is "
+                "needed. The other source states are unaffected.",
+                RuntimeWarning,
+                stacklevel=3,
+            )
 
         unset = new_state == _UNSET
         if np.any(unset):

@@ -2114,6 +2114,25 @@ class AgentType(Model):
         """
         new_states = self.transition()
 
+        # States are assigned by POSITION, so the order of state_vars and the
+        # order of transition()'s return must agree. Reordering state_vars
+        # silently lands each value on a different state.
+        #
+        # A short return is deliberate and common: GenIncProcessConsumerType
+        # declares five states and returns three, leaving aLvl and aNrm to be
+        # written by name in get_poststates. So this cannot require equality.
+        # It can reject the opposite mistake, a return longer than the state
+        # list, whose tail the loop below would silently drop.
+        if len(new_states) > len(self.state_now):
+            raise ValueError(
+                f"{type(self).__name__}.transition() returned "
+                f"{len(new_states)} values but there are only "
+                f"{len(self.state_now)} states to assign them to, so the last "
+                f"{len(new_states) - len(self.state_now)} would be discarded. "
+                "States are assigned by position; check that the return order "
+                "matches state_vars."
+            )
+
         for i, var in enumerate(self.state_now):
             # a hack for now to deal with 'post-states'
             if i < len(new_states):

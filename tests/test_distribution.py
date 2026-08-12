@@ -1367,3 +1367,26 @@ class testDrawShuffledRejectsUnknownSourceStates(unittest.TestCase):
         got = MarkovProcess(self.T, seed=7).draw(state, shuffle=True)
         self.assertEqual(got.shape, state.shape)
         self.assertTrue(np.all((got >= 0) & (got < 2)))
+
+
+class test_shuffle_iid_fallback_warns(unittest.TestCase):
+    """A source state too small for exact counts falls back to iid."""
+
+    def test_warns_and_names_the_affected_states(self):
+        # The fallback silently withdrew the quota-exactness the shuffled
+        # path advertises, for part of the population, while the rest kept
+        # it. Both normalization mixins warn on their analogous skips.
+        mrkv = MarkovProcess(np.array([[0.995, 0.005], [0.5, 0.5]]), seed=1)
+        state = np.zeros(100, dtype=int)  # 100 * 0.005 = 0.5 < 1
+        with self.assertWarns(RuntimeWarning) as cm:
+            mrkv.draw(state, shuffle=True)
+        msg = str(cm.warning)
+        self.assertIn("[0]", msg)
+        self.assertIn("100", msg)
+
+    def test_silent_when_every_state_supports_exact_counts(self):
+        mrkv = MarkovProcess(np.array([[0.5, 0.5], [0.5, 0.5]]), seed=1)
+        state = np.zeros(1000, dtype=int)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            mrkv.draw(state, shuffle=True)

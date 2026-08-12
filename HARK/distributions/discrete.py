@@ -300,10 +300,28 @@ class DiscreteDistribution(Distribution):
         denoms = [f.denominator for f in fracs]
         J_min = reduce(lambda a, b: a * b // gcd(a, b), denoms)
 
-        # Verify that J_min * p_j is an integer for every atom, and nonzero
-        # wherever the atom actually carries mass.  A zero-probability atom is
-        # legitimate (it just never gets drawn), so it is exempt from the
-        # positivity requirement rather than a reason to refuse the request.
+        # What this check does and does not establish, because the difference
+        # is easy to misread. J_min is the LCM of these fractions' own
+        # denominators, so `c.denominator != 1` is true by construction for
+        # every atom: that clause is the approximation validating itself and
+        # would pass for any P whatever. The clause with real content is
+        # `c == 0 and P[j] > 0`, which catches an atom whose probability
+        # limit_denominator rounded to zero.
+        #
+        # Tightening this to verify the rationals against P directly is not
+        # worth doing: for p in [0, 1] the approximation error is on the order
+        # of 1/(q * 1000000), so any threshold loose enough not to fire on
+        # ordinary input is one the error cannot reach either -- a second
+        # unfirable check rather than a repair of the first.
+        #
+        # Nothing downstream is wrong as a result. Whatever discrepancy
+        # survives is absorbed by allocate_remainder_slots, which distributes
+        # leftover slots by fractional remainder. The exactness claim in this
+        # method's docstring rests on that, not on the check below.
+        #
+        # A zero-probability atom is legitimate (it just never gets drawn), so
+        # it is exempt from the positivity requirement rather than a reason to
+        # refuse the request.
         counts = [J_min * f for f in fracs]
         bad = [
             (j, float(P[j]))

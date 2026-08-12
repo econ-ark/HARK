@@ -1621,3 +1621,30 @@ class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
         agent.make_shock_history(shuffle=True)
         self.assertTrue(seen["flag"])  # flag was on during the pre-draw
         self.assertFalse(agent.income_shuffle)  # and restored afterwards
+
+
+class test_get_states_arity(unittest.TestCase):
+    """get_states assigns by position, so arity mismatches matter."""
+
+    def _agent(self, returns):
+        agent = IndShockConsumerType(AgentCount=10, T_sim=2)
+        agent.solve()
+        agent.initialize_sim()
+        agent.transition = lambda: returns
+        return agent
+
+    def test_too_many_returned_values_raises(self):
+        # The loop iterates over state_now, so a transition() returning more
+        # values than there are states drops the tail with no signal.
+        n = len(self._agent(()).state_now) + 1
+        agent = self._agent(tuple(np.zeros(10) for _ in range(n)))
+        with self.assertRaises(ValueError) as cm:
+            agent.get_states()
+        self.assertIn("discarded", str(cm.exception))
+
+    def test_short_return_is_still_allowed(self):
+        # Deliberate and load-bearing: GenIncProcessConsumerType declares five
+        # states and returns three, picking up the tail in get_poststates. An
+        # equality assert here would break it.
+        agent = self._agent((np.zeros(10),))
+        agent.get_states()
