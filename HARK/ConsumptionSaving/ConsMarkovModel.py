@@ -74,10 +74,15 @@ def resolve_balanced_sort_key(agent):
 
     Reads ``state_prev``, never ``state_now``.  Every caller runs inside
     ``get_shocks``, which ``_sim_period_prologue`` invokes *after* blanking
-    each ndarray in ``state_now`` with ``np.empty``.  Sorting on
-    ``state_now["pLvl"]`` there sorts by uninitialized memory, which neither
-    raises nor produces NaN, so finding the key present in ``state_now``
-    is not evidence that its contents mean anything.
+    each ndarray in ``state_now``.  Sorting on ``state_now["pLvl"]`` there
+    sorts by a blank, so finding the key present in ``state_now`` is not
+    evidence that its contents mean anything.
+
+    The blank is ``nan`` since issue #1809; it was ``np.empty`` before, and
+    the earlier wording of this note leaned on that -- uninitialized memory
+    neither raises nor produces NaN, so the mistake was invisible.  A ``nan``
+    blank does propagate, which makes this easier to catch but no less wrong,
+    so the rule is unchanged.
 
     Do not substitute ``aNrm`` or wealth for ``pLvl`` here.  That creates a
     feedback loop in which low-wealth agents are repeatedly selected for
