@@ -180,6 +180,15 @@ class PowerLawDecayCubicHermiteInterp(CubicHermiteInterp):
     linear tail uses. This subclass replaces only the above-top functional
     form; interior evaluation and derivatives are inherited untouched (as is
     the scipy-deepcopy immunity of the base class).
+    
+
+    Base-class note: this subclasses ``CubicHermiteInterp`` (whose
+    coefficient rows are ``[intercept, slope, gap, slope/gap]``). A
+    field-tested vendored twin in HAFiscal subclasses the older
+    ``CubicInterp`` instead; the two were verified numerically
+    equivalent on the shared coeffs-row contract, and this class
+    inherits ``CubicHermiteInterp``'s scipy-independent
+    ``__getstate__``/``__setstate__`` immunity (PR #1802).
     """
 
     def __init__(
@@ -449,6 +458,123 @@ def retrofit_powerlaw(interp, decay_extrap_Q, q_diagnostics=None):
         interp.decay_extrap_form = "powerlaw"
         return True
     return False
+
+
+def measure_local_q(m, c, kappa_min, h, targets=(0.8, 0.64), min_span=0.05,
+                    gap_floor=1e-10):
+    """Measure the local power-law decay exponent ``Q`` from a solved policy's
+    own top knots — the estimation companion to :func:`retrofit_powerlaw`,
+    which *consumes* a ``Q`` but provides no way to obtain one.
+
+    Theory: a consumption function approaching its perfect-foresight bound
+    ``kappa_min * (m + h)`` from below does so (asymptotically) like a power
+    law, ``gap(x) ~ A * x**(-Q)`` with ``x = m + h`` — so ``Q`` is the
+    (negative) slope of ``log(gap)`` against ``log(x)``, measurable from the
+    solved knots themselves with no reference to how they were produced.
+
+    Method (two-secant, three knots): take the top knot plus the existing
+    knots nearest ``targets[0]*x_top`` and ``targets[1]*x_top``; form the two
+    log-log secant slopes ``Q1`` (lower) and ``Q2`` (upper). The attach
+    exponent is ``Q2`` (the most-asymptotic information available); the
+    difference per e-fold, ``drift = (Q2 - Q1) / (0.5 * ln(x_top/x_low))``, is
+    the convergence diagnostic — near zero when the tail has entered its
+    power-law regime, materially nonzero when the grid top is too shallow for
+    the measurement to be trusted. When at least four knots are available the
+    reported drift instead excludes the (endpoint-noisy) final knot — the same
+    two-secant pipeline over ``x[:-1]`` — falling back to the top-window drift
+    when that interior window is unusable; the ATTACH exponent always keeps
+    the endpoint-inclusive ``Q2``.
+
+    Parameters
+    ----------
+    m : array_like
+        Ascending solved market-resources knots (exclude any synthetic
+        bottom/borrowing-constraint point).
+    c : array_like
+        Consumption values at ``m``.
+    kappa_min : float
+        Asymptotic MPC bound (HARK's ``MPCmin``).
+    h : float
+        Human wealth (pivot offset; the PF line is ``kappa_min * (m + h)``).
+    targets : tuple of float, optional
+        Fractions of the top pivot at which the two lower knots are chosen.
+    min_span : float, optional
+        Minimum total ``ln(x)`` span across the selected knots (e-folds) for
+        the secants to be identified.
+    gap_floor : float, optional
+        Relative gap floor: knots with ``gap / c`` at or below this are
+        numerically ON the bound and carry no slope information.
+
+    Returns
+    -------
+    dict with keys ``ok`` (bool), ``Q`` (the attach exponent, = ``Q2``),
+    ``Q1``, ``Q2``, ``drift`` (per e-fold), ``reason`` (str; why ``ok`` is
+    False, else "").
+    """
+    m = np.asarray(m, dtype=float)
+    c = np.asarray(c, dtype=float)
+    x = m + h
+
+    def _bad(reason):
+        return {"ok": False, "Q": None, "Q1": None, "Q2": None,
+                "drift": None, "reason": reason}
+
+    def _select(xv):
+        n = len(xv)
+        if n < 3:
+            return None
+        itop = n - 1
+        i2 = int(np.argmin(np.abs(xv - targets[0] * xv[itop])))
+        i1 = int(np.argmin(np.abs(xv - targets[1] * xv[itop])))
+        if i2 >= itop:
+            i2 = itop - 1
+        if i1 >= i2:
+            i1 = i2 - 1
+        if i1 < 0:
+            # Targets fall below the lowest knot (top too shallow relative to
+            # h): fall back to the last three so the span check below delivers
+            # the informative verdict.
+            return itop - 2, itop - 1, itop
+        return i1, i2, itop
+
+    def _two_secant(x3, gap3):
+        lx, lg = np.log(x3), np.log(gap3)
+        q1 = -(lg[1] - lg[0]) / (lx[1] - lx[0])
+        q2 = -(lg[2] - lg[1]) / (lx[2] - lx[1])
+        return float(q1), float(q2), float((q2 - q1) / (0.5 * (lx[2] - lx[0])))
+
+    sel = _select(x)
+    if sel is None:
+        return _bad("fewer than three usable knots")
+    idx = np.array(sel)
+    x3 = x[idx]
+    span = np.log(x3[-1] / x3[0])
+    if span < min_span:
+        return _bad(
+            f"ln(x) span {span:.3f} < {min_span} (grid top too low relative "
+            "to h for local-Q identifiability)")
+    c3 = c[idx]
+    gap3 = kappa_min * x3 - c3
+    if np.any(gap3 <= 0.0) or np.any(gap3 / np.maximum(c3, 1e-300) <= gap_floor):
+        return _bad("non-positive or sub-floor gap at a selected knot")
+    q1, q2, drift_top = _two_secant(x3, gap3)
+    if q2 <= 0.0:
+        return _bad(f"non-positive upper-secant exponent Q2={q2:.4f}")
+    # Diagnostic drift from the interior window (final knot excluded) when a
+    # usable one exists; the attach exponent stays the endpoint-inclusive Q2.
+    drift = drift_top
+    seli = _select(x[:-1])
+    if seli is not None:
+        idxi = np.array(seli)
+        x3i = x[:-1][idxi]
+        if np.log(x3i[-1] / x3i[0]) >= min_span:
+            c3i = c[:-1][idxi]
+            gap3i = kappa_min * x3i - c3i
+            if not (np.any(gap3i <= 0.0)
+                    or np.any(gap3i / np.maximum(c3i, 1e-300) <= gap_floor)):
+                drift = _two_secant(x3i, gap3i)[2]
+    return {"ok": True, "Q": q2, "Q1": q1, "Q2": q2, "drift": drift,
+            "reason": ""}
 
 
 def chartify_in_place(interp, MPCmin, hNrm, interp_kind="hermite"):
