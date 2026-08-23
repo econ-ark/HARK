@@ -207,3 +207,48 @@ def test_retrofit_rejects_nonpositive_q():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+# ---------------------------------------------------------------------------
+# measure_local_q (the estimation companion: PR amendment 2026-08-23)
+# ---------------------------------------------------------------------------
+from HARK.tail_interpolation import measure_local_q
+
+
+def test_measure_local_q_recovers_exact_exponent():
+    # Exact power-law gap in the pivot coordinate xi = m + H (make_data's
+    # form): both secants equal Q_TRUE to fp precision, drift ~ 0.
+    m = np.geomspace(2.0, 40.0, 12)
+    xi = m + H
+    pivot = m[-1] + H
+    c = KAPPA * xi - A_TOP * (xi / pivot) ** (-Q_TRUE)
+    out = measure_local_q(m, c, KAPPA, H)
+    assert out["ok"], out["reason"]
+    np.testing.assert_allclose(out["Q"], Q_TRUE, rtol=1e-12)
+    assert abs(out["drift"]) < 1e-9
+
+
+def test_measure_local_q_rejects_shallow_span():
+    m = np.linspace(10.0, 10.2, 5)   # ln-span far below min_span
+    xi = m + H
+    c = KAPPA * xi - A_TOP * (xi / (m[-1] + H)) ** (-Q_TRUE)
+    out = measure_local_q(m, c, KAPPA, H)
+    assert not out["ok"]
+    assert "span" in out["reason"]
+
+
+def test_measure_then_retrofit_end_to_end():
+    # The full loop the PR previously could not close alone: measure Q from a
+    # solved-knot set (make_data's exact power-law tail), retrofit the
+    # interpolant with the MEASURED exponent, and match the closed form
+    # beyond the grid top — no externally supplied Q anywhere.
+    x, c, _ = make_data()
+    out = measure_local_q(x, c, KAPPA, H)
+    assert out["ok"], out["reason"]
+    np.testing.assert_allclose(out["Q"], Q_TRUE, rtol=1e-12)
+    assert abs(out["drift"]) < 1e-9
+    f = LinearInterp(x, c, intercept_limit=KAPPA * H, slope_limit=KAPPA)
+    ok = retrofit_powerlaw(f, out["Q"])
+    assert ok
+    c_ref, _ = closed_form(X_ABOVE, x[-1])
+    assert_allclose(f(X_ABOVE), c_ref, rtol=1e-10)
