@@ -45,7 +45,6 @@ from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
     calc_ShareLimit_for_CRRA,
 )
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
 
 
 class HabitFormationWealthInUtilityInverter:
@@ -460,7 +459,6 @@ def solve_one_period_WealthHabitPortfolio(
     BoroCnstArt,
     aXtraGrid,
     HabitGrid,
-    ShareGrid,
     ShareLimit,
     FOCinverter,
     HabitWgt,
@@ -500,8 +498,6 @@ def solve_one_period_WealthHabitPortfolio(
         Grid of "assets above minimum".
     HabitGrid : np.array
         Grid of consumption habit stocks on which to solve the problem.
-    ShareGrid : np.array
-        Grid of risky share values on [0,1].
     ShareLimit : float
         Merton-Samuelson limiting share as wealth -> infinity.
     FOCinverter : HabitFormationWealthInUtilityInverter
@@ -544,7 +540,6 @@ def solve_one_period_WealthHabitPortfolio(
         BoroCnstArt,
         aXtraGrid,
         HabitGrid,
-        ShareGrid,
         ShareLimit,
     )
 
@@ -741,7 +736,6 @@ WealthHabitPortfolio_constructors_default = (
 )
 WealthHabitPortfolio_additional_constructors = {
     "RiskyDstn": make_lognormal_RiskyDstn,
-    "ShareGrid": make_simple_ShareGrid,
     "ShareLimit": calc_ShareLimit_for_CRRA,
 }
 WealthHabitPortfolio_constructors_default.update(
@@ -754,16 +748,11 @@ WealthHabitPortfolio_RiskyDstn_default = {
     "RiskyCount": 5,
 }
 
-WealthHabitPortfolio_ShareGrid_default = {
-    "ShareCount": 26,
-}
-
 WealthHabitPortfolioConsumerType_defaults = WealthHabitConsumerType_defaults.copy()
 WealthHabitPortfolioConsumerType_defaults["constructors"] = (
     WealthHabitPortfolio_constructors_default
 )
 WealthHabitPortfolioConsumerType_defaults.update(WealthHabitPortfolio_RiskyDstn_default)
-WealthHabitPortfolioConsumerType_defaults.update(WealthHabitPortfolio_ShareGrid_default)
 
 
 class WealthHabitPortfolioConsumerType(WealthHabitConsumerType):
@@ -816,7 +805,7 @@ class WealthHabitPortfolioConsumerType(WealthHabitConsumerType):
         "track_vars": ["aNrm", "cNrm", "mNrm", "hNrm", "Share", "pLvl"],
     }
 
-    time_inv_ = WealthHabitConsumerType.time_inv_ + ["RiskyDstn", "ShareGrid"]
+    time_inv_ = WealthHabitConsumerType.time_inv_ + ["RiskyDstn"]
     time_vary_ = WealthHabitConsumerType.time_vary_ + ["ShareLimit"]
     shock_vars_ = WealthHabitConsumerType.shock_vars_ + ["Risky"]
     distributions = WealthHabitConsumerType.distributions + ["RiskyDstn"]

@@ -35,7 +35,6 @@ from HARK.Calibration.Assets.AssetProcesses import (
     make_lognormal_RiskyDstn,
     calc_ShareLimit_for_CRRA,
 )
-from HARK.ConsumptionSaving.ConsRiskyAssetModel import make_simple_ShareGrid
 
 
 def make_lognormal_habit_init_dstn(hLogInitMean, hLogInitStd, HabitInitCount, RNG):
@@ -515,7 +514,6 @@ def solve_optimal_share_habit(
     BoroCnstArt,
     aXtraGrid,
     HabitGrid,
-    ShareGrid,
     ShareLimit,
 ):
     """
@@ -542,8 +540,6 @@ def solve_optimal_share_habit(
         Grid of "assets above minimum".
     HabitGrid : np.array
         Grid of habit stock values.
-    ShareGrid : np.array
-        Grid of risky share values on [0,1].
     ShareLimit : float
         Merton-Samuelson limiting share as wealth -> infinity.
 
@@ -558,6 +554,8 @@ def solve_optimal_share_habit(
     """
     U = UtilityFuncCRRA(CRRA)
     DiscFacEff = DiscFac * LivPrb
+    ShareUB = 1.0
+    ShareLB = 0.0
 
     # Unpack next period's solution
     dvdkFunc_next = solution_next["dvdkFunc"]
@@ -586,47 +584,74 @@ def solve_optimal_share_habit(
     # Build 3D meshes (w, H, s). These are for mid-period state space points
     # combined with candidate risky share values
     wGrid = aXtraGrid + wNrmMin
-    wCount = wGrid.size
     HabitCount = HabitGrid.size
-    ShareCount = ShareGrid.size
-    wMesh, Hmesh, sMesh = np.meshgrid(wGrid, HabitGrid, ShareGrid, indexing="ij")
+    wMesh, Hmesh = np.meshgrid(wGrid, HabitGrid, indexing="ij")
 
-    # Compute expected marginal value of wealth, habit stock, and risky share for each (w,H,S)
-    dvds_mid = DiscFacEff * expected(
+    # Define a function to evaluate the FOC-s
+    eval_FOC_s = lambda w, H, s: expected(
         calc_mid_dvds,
         RiskyDstn,
-        args=(wMesh, Hmesh, sMesh, Rfree, dvdkFunc_next),
+        args=(w, H, s, Rfree, dvdkFunc_next),
     )
 
-    # For each (w, H), find optimal share where dvds == 0 by looking for a
-    # sign change: dvds goes from positive to negative
-    focs = dvds_mid
-    crossing = np.logical_and(focs[:, :, 1:] <= 0.0, focs[:, :, :-1] >= 0.0)
-    share_idx = np.argmax(crossing, axis=2)
+    # Initialize the array of optimal risky asset shares
+    ShareOpt = np.empty_like(wMesh)
+    these = np.ones_like(wMesh, dtype=bool)  # continue work on these
+    top_bound = ShareUB * np.ones_like(wMesh)
+    bot_bound = ShareLB * np.ones_like(wMesh)
 
-    # Find the optimal risky share by solving a linear equation for the FOC
-    # crossing point, given that we know upper and lower bounding points for it
-    w_idx, h_idx = np.meshgrid(np.arange(wCount), np.arange(HabitCount), indexing="ij")
-    bot_s = ShareGrid[share_idx]
-    top_s = ShareGrid[np.minimum(share_idx + 1, ShareCount - 1)]
-    bot_f = focs[w_idx, h_idx, share_idx]
-    top_f = focs[w_idx, h_idx, np.minimum(share_idx + 1, ShareCount - 1)]
-    alpha_interp = np.where(
-        (top_f - bot_f) != 0.0,
-        1.0 - top_f / (top_f - bot_f),
-        0.5,
-    )
-    Share_opt = (1.0 - alpha_interp) * bot_s + alpha_interp * top_s
+    # Check the first order condition at the upper bound of risky asset share
+    FOC_UB = eval_FOC_s(wMesh, Hmesh, top_bound)
+    constrained_top = FOC_UB > 0.0  # agent wants more than 100% in risky asset
+    ShareOpt[constrained_top] = ShareUB
+    these[constrained_top] = False
+    top_val = FOC_UB
 
-    # Handle corner solutions
-    constrained_top = focs[:, :, -1] > 0.0
-    constrained_bot = focs[:, :, 0] < 0.0
-    Share_opt[constrained_top] = 1.0
-    Share_opt[constrained_bot] = 0.0
+    # Check the first order condition at the lower bound of risky asset share
+    FOC_LB = eval_FOC_s(wMesh, Hmesh, bot_bound)
+    constrained_bot = FOC_LB < 0.0  # agent wants less than 0% in risky asset
+    ShareOpt[constrained_bot] = ShareLB
+    these[constrained_bot] = False
+    bot_val = FOC_LB
+
+    # Perform a bisection search until all risky shares converge (bracket is small)
+    eps = 32e-3
+    unconst = these.copy()
+    new_guess = np.empty_like(wMesh)
+    new_val = np.empty_like(wMesh)
+    diff = np.zeros_like(wMesh)
+    go = np.any(these)
+    n = 0
+    while go:
+        bot_s = bot_bound[these]
+        top_s = top_bound[these]
+        alpha = 0.5
+        new_guess[these] = (1.0 - alpha) * bot_s + alpha * top_s
+        new_val[these] = eval_FOC_s(wMesh[these], Hmesh[these], new_guess[these])
+        keep_top = np.logical_and(new_val > 0.0, these)  # this is a new lower bound
+        keep_bot = np.logical_and(new_val <= 0.0, these)  # this is a new upper bound
+        top_bound[keep_bot] = new_guess[keep_bot]
+        top_val[keep_bot] = new_val[keep_bot]
+        bot_bound[keep_top] = new_guess[keep_top]
+        bot_val[keep_top] = new_val[keep_top]
+        diff[these] = np.abs(top_bound[these] - bot_bound[these])
+        these[diff < eps] = False
+        n += 1
+        go = (
+            np.any(these) and n < 50
+        )  # check whether there are any unconverged brackets
+
+    # Now that all brackets have converged do one secant step
+    bot_s = bot_bound[unconst]
+    top_s = top_bound[unconst]
+    bot_f = bot_val[unconst]
+    top_f = top_val[unconst]
+    alpha = 1.0 - top_f / (top_f - bot_f)
+    ShareOpt[unconst] = (1.0 - alpha) * bot_s + alpha * top_s
 
     # Construct the share function over (w,H)
     ShareFunc_by_HNrm = [
-        LinearInterp(wGrid, Share_opt[:, j], ShareLimit, 0.0, lower_extrap=True)
+        LinearInterp(wGrid, ShareOpt[:, j], ShareLimit, 0.0, lower_extrap=True)
         for j in range(HabitCount)
     ]
     ShareFunc_mid = LinearInterpOnInterp1D(ShareFunc_by_HNrm, HabitGrid)
@@ -636,7 +661,7 @@ def solve_optimal_share_habit(
     dvdw_opt, dvdH_opt = DiscFacEff * expected(
         calc_mid_dvdx,
         RiskyDstn,
-        args=(wNrm, HNrm, Share_opt, Rfree, dvdkFunc_next, dvdhFunc_next),
+        args=(wNrm, HNrm, ShareOpt, Rfree, dvdkFunc_next, dvdhFunc_next),
     )
 
     # Build interpolant for mid-period marginal value of habit stock on (w, H) grid;
@@ -678,7 +703,6 @@ def solve_one_period_HabitPortfolio_modular(
     BoroCnstArt,
     aXtraGrid,
     HabitGrid,
-    ShareGrid,
     ShareLimit,
     FOCinverter,
     HabitWgt,
@@ -718,8 +742,6 @@ def solve_one_period_HabitPortfolio_modular(
         Grid of "assets above minimum".
     HabitGrid : np.array
         Grid of consumption habit stocks on which to solve the problem.
-    ShareGrid : np.array
-        Grid of risky share values on [0,1].
     ShareLimit : float
         Merton-Samuelson limiting share as wealth -> infinity.
     FOCinverter : HabitFormationInverter
@@ -759,7 +781,6 @@ def solve_one_period_HabitPortfolio_modular(
         BoroCnstArt,
         aXtraGrid,
         HabitGrid,
-        ShareGrid,
         ShareLimit,
     )
 
@@ -970,7 +991,6 @@ class HabitConsumerType(AgentType):
 HabitPortfolio_constructors_default = HabitConsumerType_constructors_default.copy()
 HabitPortfolio_additional_constructors = {
     "RiskyDstn": make_lognormal_RiskyDstn,
-    "ShareGrid": make_simple_ShareGrid,
     "ShareLimit": calc_ShareLimit_for_CRRA,
 }
 HabitPortfolio_constructors_default.update(HabitPortfolio_additional_constructors)
@@ -981,16 +1001,11 @@ HabitPortfolio_RiskyDstn_default = {
     "RiskyCount": 5,
 }
 
-HabitPortfolio_ShareGrid_default = {
-    "ShareCount": 26,
-}
-
 HabitPortfolioConsumerType_defaults = HabitConsumerType_defaults.copy()
 HabitPortfolioConsumerType_defaults["constructors"] = (
     HabitPortfolio_constructors_default
 )
 HabitPortfolioConsumerType_defaults.update(HabitPortfolio_RiskyDstn_default)
-HabitPortfolioConsumerType_defaults.update(HabitPortfolio_ShareGrid_default)
 
 
 class HabitPortfolioConsumerType(HabitConsumerType):
@@ -1042,7 +1057,7 @@ class HabitPortfolioConsumerType(HabitConsumerType):
         "track_vars": ["aNrm", "cNrm", "mNrm", "hNrm", "Share", "pLvl"],
     }
 
-    time_inv_ = HabitConsumerType.time_inv_ + ["RiskyDstn", "ShareGrid"]
+    time_inv_ = HabitConsumerType.time_inv_ + ["RiskyDstn"]
     time_vary_ = HabitConsumerType.time_vary_ + ["ShareLimit"]
     shock_vars_ = HabitConsumerType.shock_vars_ + ["Risky"]
     distributions = HabitConsumerType.distributions + ["RiskyDstn"]
