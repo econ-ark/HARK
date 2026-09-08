@@ -6,7 +6,7 @@ models from a human- and machine-readable model specification.
 from dataclasses import dataclass, field
 from copy import copy, deepcopy
 import numpy as np
-from numba import njit
+from HARK._numba import njit
 from sympy.utilities.lambdify import lambdify
 from sympy import symbols, IndexedBase
 from typing import Callable

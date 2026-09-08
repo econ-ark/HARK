@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from numba import njit
+from HARK._numba import njit
 
 
 @njit

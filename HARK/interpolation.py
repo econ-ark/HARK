@@ -14,7 +14,7 @@ import numpy as np
 from scipy.interpolate import CubicHermiteSpline
 from HARK.metric import MetricObject
 from HARK.rewards import CRRAutility, CRRAutilityP, CRRAutilityPP
-from numba import njit
+from HARK._numba import njit
 
 
 def _isscalar(x):
