@@ -85,8 +85,11 @@ try:
     )
 except ImportError as _fast_exc:  # pragma: no cover - only where numba is absent
     # The Fast variants need third-party `interpolation` and `quantecon`, which
-    # import numba themselves, so HARK._numba cannot cover them. Keep the names
-    # bound so `import HARK.ConsumptionSaving` still works, and explain on use.
+    # import numba themselves, so HARK._numba cannot cover them. Narrow by module
+    # name so a bug inside the Fast module is never reported as a missing dep.
+    if _fast_exc.name not in ("numba", "interpolation", "quantecon"):
+        raise
+
     def _fast_unavailable(*args, **kwargs):
         raise ImportError(
             "The Fast consumer types require the 'interpolation' and 'quantecon' "
