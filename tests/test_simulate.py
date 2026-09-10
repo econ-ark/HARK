@@ -6,6 +6,7 @@ simulator structure. Simulation tests for various HARK models are in the model t
 
 # Bring in modules we need
 import unittest
+import warnings
 import numpy as np
 from copy import deepcopy
 from HARK.utilities import make_grid_exp_mult, plot_SSJ
@@ -739,3 +740,90 @@ class testsForIncomeWeightedMeasure(unittest.TestCase):
         )
         self.assertEqual(J2.shape, (40, 40))
         self.assertTrue(np.all(np.isfinite(J2)))
+
+
+class testsForGridDiagnostics(unittest.TestCase):
+    """
+    The grid diagnostics of the model-file simulator: the closed-class count of the
+    transition chain, the mass at the ends of each continuous arrival grid, and the
+    warnings find_steady_state() and simulate_shock_by_grids() raise from them.
+    """
+
+    def _simulator(self, agent, kmax, N=201, norm="G"):
+        agent.initialize_sym()
+        X = agent._simulator
+        grids = {
+            "kNrm": {"min": 0.0, "max": kmax, "N": N, "nest": 3},
+            "cNrm": {"min": 0.0, "max": 5.0, "N": 201},
+        }
+        if "zPrev" in X.periods[0].arrival:
+            grids["zPrev"] = {"N": agent.MrkvArray[0].shape[0]}
+        X.make_transition_matrices(grids, norm=norm)
+        return X
+
+    def test_covering_grid_is_quiet(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-10)
+        agent.solve()
+        X = self._simulator(agent, kmax=40.0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            X.find_steady_state()
+        coverage = X.get_grid_coverage()
+        self.assertIn("kNrm", coverage)
+        self.assertLess(coverage["kNrm"]["top"], 1e-8)
+        self.assertLess(X.steady_state_residual, 1e-10)
+        n_closed, n_components, labels = X.check_irreducibility()
+        self.assertEqual(n_closed, 1)
+        self.assertEqual(labels.size, X.steady_state_dstn.size)
+
+    def test_binding_grid_top_warns(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-10)
+        agent.solve()
+        X = self._simulator(agent, kmax=1.0)
+        with self.assertWarns(UserWarning):
+            X.find_steady_state()
+        self.assertGreater(X.get_grid_coverage()["kNrm"]["top"], 1e-2)
+        # and the check can be switched off
+        X = self._simulator(agent, kmax=1.0)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            X.find_steady_state(grid_mass_tol=None)
+
+    def test_shock_past_the_grid_top_warns(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-10)
+        agent.solve()
+        X = self._simulator(agent, kmax=40.0)
+        X.find_steady_state()
+        with self.assertWarns(UserWarning):
+            X.simulate_shock_by_grids("cNrm", 5, shock="aNrm + 100")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            X.simulate_shock_by_grids("cNrm", 5, shock="aNrm + 0.01")
+
+    def test_reducible_chain_is_detected(self):
+        # two absorbing discrete states with no mortality: two closed classes
+        agent = MarkovConsumerType(
+            cycles=0,
+            Mrkv_p11=[1.0],
+            Mrkv_p22=[1.0],
+            LivPrb=[np.array([1.0, 1.0])],
+            PermGroFac=[np.array([1.0, 1.0])],
+            tolerance=1e-8,
+        )
+        agent.solve()
+        X = self._simulator(agent, kmax=40.0, N=101, norm=None)
+        with self.assertWarns(UserWarning):
+            X.find_steady_state()
+        n_closed, n_components, labels = X.check_irreducibility()
+        self.assertEqual(n_closed, 2)
+        # a mixing chain on the same grid has one
+        mixing = MarkovConsumerType(
+            cycles=0,
+            LivPrb=[np.array([1.0, 1.0])],
+            PermGroFac=[np.array([1.0, 1.0])],
+            tolerance=1e-8,
+        )
+        mixing.solve()
+        Y = self._simulator(mixing, kmax=40.0, N=101, norm=None)
+        Y.find_steady_state()
+        self.assertEqual(Y.check_irreducibility()[0], 1)
