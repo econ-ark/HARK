@@ -1049,10 +1049,12 @@ class MarkovConsumerType(IndShockConsumerType):
         # warning per element of T_cycle when pLvl is missing.
         pLvl_prev = resolve_balanced_sort_key(self)
 
-        # Draw new Markov states for each agent
+        # Agents with t_cycle == t are entering period t, so they move by
+        # MrkvArray[t - 1], the matrix the solver used for t - 1 -> t (as
+        # get_shocks reads IncShkDstn[t - 1]). At t == 0 the index wraps.
         for t in range(self.T_cycle):
             markov_process = MarkovProcess(
-                self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
+                self.MrkvArray[t - 1], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
             # Sorting by pLvl systematically samples the agents chosen for
@@ -1204,7 +1206,9 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = self.t_cycle == t
-            RfreeNow[these] = self.Rfree[t][self.shocks["Mrkv"][these]]
+            # Rfree[t - 1] is the return the solver applied to assets saved in
+            # period t - 1, which agents with t_cycle == t now receive.
+            RfreeNow[these] = self.Rfree[t - 1][self.shocks["Mrkv"][these]]
         return RfreeNow
 
     def get_controls(self):

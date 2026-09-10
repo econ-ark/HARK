@@ -27,6 +27,7 @@ Release Date: TBD
 
 #### Minor Changes
 
+- Fixes `MarkovConsumerType` simulating a time-varying `MrkvArray` or `Rfree` one period ahead of its solution: `get_markov_states` drew with `MrkvArray[t]` and `get_Rport` paid `Rfree[t]` to agents entering period `t`, where the solver uses index `t - 1` for that move (as `get_shocks` already does for `IncShkDstn` and `PermGroFac`). Invisible whenever both are time-invariant.
 - Fixes `HARK.dual_measure` indexing the Q income process one period ahead of P whenever `cycles != 1`: `_draw_Q_shocks_indshock` chose `IncShkDstn_Q[t]` where `get_shocks` uses `IncShkDstn[t - 1]`, so an infinite-horizon agent with `T_cycle > 1` drew the Q sample from the wrong period's distribution and scaled it by the wrong `PermGroFac`. Invisible until now because every fixture used `T_cycle == 1`, where indices 0 and -1 name the same element.
 - Fixes `MarkovProcess.draw(shuffle=True)` returning uninitialized memory for an agent whose source state has no row in the transition matrix. The output buffer is now sentinel-filled and verified, so those agents raise `IndexError` (as the unshuffled path already did) instead of silently inheriting the previous period's `Mrkv` values.
 - Fixes a division by zero at `LivPrb == 1` in `compute_mean_pLvl`, and a wrong limit in the corresponding guard in `compute_pLvl_factor`. Both compute the newborn share of a stationary population; it is now one shared helper returning `1 / T_age` at the no-mortality limit rather than `nan` or `0`.

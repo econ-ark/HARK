@@ -366,3 +366,73 @@ class testDeathShuffleMarkov(unittest.TestCase):
 
     def test_death_shuffle_default_false(self):
         self.assertFalse(MarkovConsumerType().death_shuffle)
+
+
+class testTimeVaryingSimulationTiming(unittest.TestCase):
+    """The simulator must use the period-(t - 1) MrkvArray and Rfree that the
+    solver used for the move from t - 1 to t, as it already does for
+    IncShkDstn and PermGroFac. Both are invisible when they are constant."""
+
+    T = 4
+
+    def _make_agent(self, MrkvArray, Rfree, cycles=1):
+        atom = DiscreteDistributionLabeled(
+            pmv=np.array([1.0]),
+            atoms=np.array([[1.0], [1.0]]),
+            var_names=["PermShk", "TranShk"],
+        )
+        params = deepcopy(init_indshk_markov)
+        params["constructors"] = dict(params["constructors"])
+        params["constructors"]["IncShkDstn"] = None
+        params["constructors"]["MrkvArray"] = None
+        T_cycle = len(MrkvArray)
+        params.update(
+            cycles=cycles,
+            T_cycle=T_cycle,
+            MrkvArray=MrkvArray,
+            IncShkDstn=[[atom, atom] for _ in range(T_cycle)],
+            Rfree=[np.array([R, R]) for R in Rfree],
+            LivPrb=[np.ones(2) for _ in range(T_cycle)],
+            PermGroFac=[np.ones(2) for _ in range(T_cycle)],
+            MrkvPrbsInit=np.array([1.0, 0.0]),
+            kLogInitMean=np.log(5.0),
+            AgentCount=3,
+            T_sim=self.T,
+            T_age=None,
+        )
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        return agent
+
+    def test_markov_transition_timing(self):
+        # Only MrkvArray[2] moves state 0 to state 1: the solver applies it
+        # between periods 2 and 3, so agents must switch entering period 3.
+        MrkvArray = [np.eye(2) for _ in range(self.T)]
+        MrkvArray[2] = np.array([[0.0, 1.0], [0.0, 1.0]])
+        agent = self._make_agent(MrkvArray, [1.02] * self.T)
+        agent.track_vars = ["Mrkv"]
+        agent.initialize_sim()
+        agent.simulate()
+        np.testing.assert_array_equal(agent.history["Mrkv"][:, 0], [0, 0, 0, 1])
+
+    def test_markov_transition_timing_cyclical(self):
+        # Infinite horizon with T_cycle = 2: MrkvArray[1] governs the move from
+        # period 1 back to period 0, so agents switch entering period 0 (t = 2).
+        MrkvArray = [np.eye(2), np.array([[0.0, 1.0], [0.0, 1.0]])]
+        agent = self._make_agent(MrkvArray, [1.02, 1.02], cycles=0)
+        agent.track_vars = ["Mrkv"]
+        agent.initialize_sim()
+        agent.simulate()
+        np.testing.assert_array_equal(agent.history["Mrkv"][:, 0], [0, 0, 1, 1])
+
+    def test_rfree_timing(self):
+        Rfree = [1.01 + 0.01 * t for t in range(self.T)]
+        agent = self._make_agent([np.eye(2) for _ in range(self.T)], Rfree)
+        agent.track_vars = ["aNrm", "mNrm", "TranShk", "PermShk"]
+        agent.initialize_sim()
+        agent.simulate()
+        h = agent.history
+        for s in range(1, self.T):
+            implied = (h["mNrm"][s] - h["TranShk"][s]) * h["PermShk"][s]
+            implied /= h["aNrm"][s - 1]
+            np.testing.assert_allclose(implied, Rfree[s - 1], rtol=1e-12)
