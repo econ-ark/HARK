@@ -10,7 +10,9 @@ import numpy as np
 from HARK._numba import njit
 
 
-def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):
+def _prepare_ssj_computation(
+    agent, outcomes, grids, norm, solved, verbose, newborn_growth=1.0
+):
     """
     Shared setup for make_basic_SSJ_matrices and calc_shock_response_manually.
     Validates the agent, normalizes outcomes, optionally solves the long run model,
@@ -30,6 +32,9 @@ def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):
         Whether the agent's model has already been solved.
     verbose : bool
         Whether to display timing/progress to screen.
+    newborn_growth : float
+        Growth factor of the normalizing level that newborns inherit (see
+        AgentSimulator.make_transition_matrices).
 
     Returns
     -------
@@ -77,7 +82,7 @@ def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):
     t0 = time()
     agent.initialize_sym()
     X = agent._simulator  # for easier referencing
-    X.make_transition_matrices(grids, norm)
+    X.make_transition_matrices(grids, norm, newborn_growth=newborn_growth)
     LR_trans = X.trans_arrays[0].copy()  # the transition matrix in LR model
     LR_period = X.periods[0]
     LR_outcomes = []
@@ -205,6 +210,7 @@ def make_basic_SSJ_matrices(
     construct=True,
     offset=False,
     verbose=False,
+    newborn_growth=None,
 ):
     """
     Constructs one or more sequence space Jacobian (SSJ) matrices for specified
@@ -239,9 +245,14 @@ def make_basic_SSJ_matrices(
         Size of the SSJ matrices: the maximum number of periods to consider.
         The default is 300.
     norm : str or None
-        Name of the model variable to normalize by for Harmenberg aggregation,
-        if any. For many HARK models, this should be 'PermShk', which enables
-        the grid over permanent income to be omitted as an explicit state.
+        Name of the model variable whose realized value weights the probability
+        masses, for Harmenberg (income-weighted) aggregation, if any. This lets
+        the grid over permanent income be omitted as an explicit state. For HARK's
+        permanent-income models name the growth factor of the *level*, 'G'
+        (PermGroFac * PermShk); the shock alone, 'PermShk', is exact only without
+        deterministic growth or without mortality, or when newborns inherit the
+        growth (see newborn_growth) -- otherwise the stationary distribution
+        overweights the young and normalized aggregates are biased.
     solved : bool
         Whether the agent's model has already been solved. If False (default),
         it will be solved as the very first step. Solving the agent's long run
@@ -264,6 +275,13 @@ def make_basic_SSJ_matrices(
         but it represents the value of R that will occur at the start of t+1.
     verbose : bool
         Whether to display timing/progress to screen. The default is False.
+    newborn_growth : float or None
+        Per-period growth factor of the normalizing level that newborns inherit
+        (a common trend); the weights under norm are divided by it. None (the
+        default) takes the agent's PermGroFacAgg, which is 1.0 for most HARK
+        agents: newborns arrive at a fixed level. Setting it equal to PermGroFac
+        makes all growth a trend that newborns inherit, under which weighting by
+        the shock alone is exact.
 
     Returns
     -------
@@ -271,7 +289,13 @@ def make_basic_SSJ_matrices(
         One or more sequence space Jacobian arrays over the outcome variables
         with respect to the named shock variable.
     """
-    setup = _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose)
+    if newborn_growth is None:
+        newborn_growth = float(
+            np.asarray(getattr(agent, "PermGroFacAgg", 1.0)).ravel()[0]
+        )
+    setup = _prepare_ssj_computation(
+        agent, outcomes, grids, norm, solved, verbose, newborn_growth
+    )
     outcomes = setup["outcomes"]
     no_list = setup["no_list"]
     simulator_backup = setup["simulator_backup"]
@@ -315,6 +339,7 @@ def make_basic_SSJ_matrices(
             T_max,
             outcomes,
             verbose,
+            newborn_growth,
         )
 
         J = len(outcomes)
@@ -350,6 +375,12 @@ def make_basic_SSJ_matrices(
         for t in range(1, T_max):
             SSJ_array[:, 1:, t] += SSJ_array[:, :-1, t - 1]
         SSJ_array /= eps
+        if norm is not None:
+            # The outcome arrays carry the growth of the normalizing level within
+            # the period, so the responses above are per unit of the arrival-state
+            # level; divide by the steady-state mass growth to express them per
+            # unit of the period's (post-growth) level, the Harmenberg aggregate.
+            SSJ_array /= float(np.sum(np.dot(SS_dstn, LR_outcomes[0])))
         SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
         _log_timing(verbose, "Constructing the sequence space Jacobians", t0, time())
 
@@ -418,6 +449,7 @@ def _build_finite_horizon_matrices(
     T_max,
     outcomes,
     verbose,
+    newborn_growth=1.0,
 ):
     t0 = time()
     agent.initialize_sym()
@@ -429,7 +461,9 @@ def _build_finite_horizon_matrices(
                 X.periods[-1].content[name] = LR_period.content[name]
         X.periods[-1].distribute_content()
         X.periods = X.periods[1:] + [period_T]
-    X.make_transition_matrices(grids, norm, fake_news_timing=True)
+    X.make_transition_matrices(
+        grids, norm, fake_news_timing=True, newborn_growth=newborn_growth
+    )
     TmX_trans = deepcopy(X.trans_arrays)
     TmX_outcomes = [
         [X.periods[t].matrices[var] for var in outcomes] for t in range(T_max)
@@ -892,6 +926,7 @@ def calc_shock_response_manually(
     construct=[],
     offset=False,
     verbose=False,
+    newborn_growth=None,
 ):
     """
     Compute an AgentType instance's timepath of outcome responses to learning at
@@ -933,9 +968,14 @@ def calc_shock_response_manually(
     T_max : int
         The length of the simulation for this exercise. The default is 300.
     norm : str or None
-        Name of the model variable to normalize by for Harmenberg aggregation,
-        if any. For many HARK models, this should be 'PermShk', which enables
-        the grid over permanent income to be omitted as an explicit state.
+        Name of the model variable whose realized value weights the probability
+        masses, for Harmenberg (income-weighted) aggregation, if any. This lets
+        the grid over permanent income be omitted as an explicit state. For HARK's
+        permanent-income models name the growth factor of the *level*, 'G'
+        (PermGroFac * PermShk); the shock alone, 'PermShk', is exact only without
+        deterministic growth or without mortality, or when newborns inherit the
+        growth (see newborn_growth) -- otherwise the stationary distribution
+        overweights the young and normalized aggregates are biased.
     solved : bool
         Whether the agent's model has already been solved. If False (default),
         it will be solved as the very first step.
@@ -957,7 +997,13 @@ def calc_shock_response_manually(
     dYdX : np.array or [np.array]
         One or more vectors of length T_max.
     """
-    setup = _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose)
+    if newborn_growth is None:
+        newborn_growth = float(
+            np.asarray(getattr(agent, "PermGroFacAgg", 1.0)).ravel()[0]
+        )
+    setup = _prepare_ssj_computation(
+        agent, outcomes, grids, norm, solved, verbose, newborn_growth
+    )
     outcomes = setup["outcomes"]
     no_list = setup["no_list"]
     simulator_backup = setup["simulator_backup"]
@@ -968,7 +1014,10 @@ def calc_shock_response_manually(
     SS_dstn = setup["SS_dstn"]
 
     SS_outcomes = [np.dot(mat.T, SS_dstn) for mat in LR_outcomes]
-    SS_avgs = [np.dot(ss, grid) for ss, grid in zip(SS_outcomes, outcome_grids)]
+    SS_avgs = [
+        np.dot(ss, grid) / (np.sum(ss) if norm is not None else 1.0)
+        for ss, grid in zip(SS_outcomes, outcome_grids)
+    ]
 
     try:
         # Make a temporary agent to construct the perturbed constructed objects
@@ -1031,7 +1080,7 @@ def calc_shock_response_manually(
         t0 = time()
         FH_agent.initialize_sym()
         FH_agent._simulator.make_transition_matrices(
-            grids, norm=norm, fake_news_timing=True
+            grids, norm=norm, fake_news_timing=True, newborn_growth=newborn_growth
         )
         t1 = time()
         if verbose:

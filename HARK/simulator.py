@@ -1072,7 +1072,9 @@ class SimBlock:
         master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
         return master_trans_array_X
 
-    def make_transition_matrices(self, grid_specs, twist=None, norm=None):
+    def make_transition_matrices(
+        self, grid_specs, twist=None, norm=None, newborn_growth=1.0
+    ):
         """
         Construct a transition matrix for this block, moving from a discretized
         grid of arrival variables to a discretized grid of end-of-block variables.
@@ -1105,8 +1107,19 @@ class SimBlock:
             arrival variables. When this is specified, additional output is created
             for the "full period" arrival-to-arrival transition matrix.
         norm : str or None
-            Name of the shock variable by which to normalize for Harmenberg
-            aggregation. By default, no normalization happens.
+            Name of the block variable whose realized value weights each blob's
+            probability mass, for Harmenberg (income-weighted) aggregation. By
+            default, no normalization happens. For a model normalized by permanent
+            income this should be the growth factor of the *level* being normalized
+            by -- ``'G'`` in HARK's model files, i.e. ``PermGroFac * PermShk`` --
+            not the shock alone. Weighting by ``'PermShk'`` is exact only when
+            there is no deterministic growth (``PermGroFac == 1``), no mortality,
+            or when newborns inherit the growth (see ``newborn_growth``).
+        newborn_growth : float
+            Per-period growth factor of the normalizing level that newborns
+            inherit (a common trend), by which the weights are divided. The
+            default of 1.0 means newborns arrive at a fixed level, which is HARK's
+            convention when ``PermGroFacAgg == 1``.
 
         Returns
         -------
@@ -1156,7 +1169,25 @@ class SimBlock:
         ]
 
         # Quasi-simulate this block
-        self.run_quasi_sim(state_init, norm=norm)
+        self.run_quasi_sim(state_init)
+
+        # Harmenberg-style normalization: weight each blob's probability mass by
+        # the realized value of the normalizing variable, relative to the growth
+        # that newborns inherit. Weighting after the block has run (rather than
+        # when the shock is drawn) lets the weight be any realized variable -- in
+        # particular the full growth factor of a normalized level, not only the
+        # drawn shock -- which is what makes the stationary distribution the
+        # income-weighted one when there is both mortality and growth.
+        if norm is not None:
+            if norm not in self.data:
+                raise ValueError(
+                    "The normalizing variable "
+                    + norm
+                    + " is not realized in this block!"
+                )
+            self.data["pmv_"] = self.data["pmv_"] * (
+                np.asarray(self.data[norm], dtype=float) / newborn_growth
+            )
 
         # Add survival to output if mortality is in the model
         if "dead" in self.data.keys():
@@ -1598,7 +1629,12 @@ class AgentSimulator:
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
 
     def make_transition_matrices(
-        self, grid_specs, norm=None, fake_news_timing=False, for_t=None
+        self,
+        grid_specs,
+        norm=None,
+        fake_news_timing=False,
+        for_t=None,
+        newborn_growth=1.0,
     ):
         """
         Build Markov-style transition matrices for each period of the model, as
@@ -1610,6 +1646,9 @@ class AgentSimulator:
                          This transition includes death (and replacement).
         - newborn_dstn : Stochastic vector as a NumPy array, representing the distribution
                          of arrival states for "newborns" who were just initialized.
+        - newborn_shares : Dictionary by period of the newborns' share of the normalized
+                         (income-weighted) mass from each arrival state, filled only when
+                         norm is given and the model has mortality; empty otherwise.
         - state_grids : Nested list of tuples representing the arrival state space for
                         each period. Each element corresponds to the discretized arrival
                         state space point with the same index in trans_arrays (and
@@ -1619,7 +1658,11 @@ class AgentSimulator:
                            state space to the grid of outcome variables, for each period.
                            Doing np.dot(state_dstn, outcome_arrays[t][var]) will yield
                            the discretized distribution of that outcome variable. Linked
-                           from periods[t].matrices.
+                           from periods[t].matrices. Under norm the arrays carry the
+                           growth of the normalizing level within the period, so that
+                           product sums to the mass growth factor rather than one; divide
+                           by its total (as get_long_run_dstn and the grid simulators do)
+                           to get the distribution per unit of the period's level.
         - outcome_grids : List of dictionaries of discretized outcomes in each period.
                           Keys are names of outcome variables, and entries are vectors
                           of discretized values that the outcome variable can take on.
@@ -1639,9 +1682,14 @@ class AgentSimulator:
             max if the variable is continuous. If the variable is discrete, the
             grid values are assumed to be 0,..,N.
         norm : str or None
-            Name of the variable for which Harmenberg normalization should be
-            applied, if any. This should be a variable that is directly drawn
-            from a distribution, not a "downstream" variable.
+            Name of the block variable whose realized value weights each
+            probability mass, for Harmenberg (income-weighted) aggregation. For a
+            model normalized by permanent income, name the growth factor of the
+            level -- ``'G'`` in HARK's model files (``PermGroFac * PermShk``).
+            ``'PermShk'`` alone is exact only without deterministic growth or
+            without mortality (or when newborns inherit the growth, see
+            ``newborn_growth``); otherwise it overweights the young at every age
+            and the stationary distribution is not the income-weighted one.
         fake_news_timing : bool
             Indicator for whether this call is part of the "fake news" algorithm
             for constructing sequence space Jacobians (SSJs). This should only
@@ -1653,6 +1701,14 @@ class AgentSimulator:
             Optional list of time indices for which the matrices should be built.
             When not specified, all periods are constructed. The most common use
             for this arg is during the "fake news" algorithm for lifecycle models.
+        newborn_growth : float
+            Per-period growth factor of the normalizing level that newborns
+            inherit (a common trend); the weights are divided by it. The default
+            of 1.0 is HARK's convention when ``PermGroFacAgg == 1`` (newborns
+            arrive at a fixed level). Setting it equal to ``PermGroFac`` means
+            all growth is a trend shared by newborns, under which weighting by the
+            shock alone is exact. Under ``norm`` with mortality, the per-period
+            newborn income-mass shares are stored in ``newborn_shares``.
 
         Returns
         -------
@@ -1695,11 +1751,15 @@ class AgentSimulator:
         for t in these_t:
             block = self.periods[t]
             block.make_transition_matrices(
-                grid_specs_other, twist=self.twist, norm=norm
+                grid_specs_other,
+                twist=self.twist,
+                norm=norm,
+                newborn_growth=newborn_growth,
             )
             block.reset()
         self.grid_specs = grid_specs_other
         self.norm = norm
+        self.newborn_growth = newborn_growth
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [self.periods[t].trans_array for t in these_t]
@@ -1716,17 +1776,45 @@ class AgentSimulator:
         else:
             T_set = []
         newborn_dstn = np.reshape(self.newborn_dstn, (1, K))
+        newborn_shares = {}
         for t in T_set:
             if t not in these_t:
                 continue
             if "dead" not in self.periods[t].matrices.keys():
                 continue
-            death_prbs = self.periods[t].matrices["dead"][:, 1]
-            p2p_trans_arrays[t] *= np.tile(np.reshape(1 - death_prbs, (K, 1)), (1, K))
-            p2p_trans_arrays[t] += np.reshape(death_prbs, (K, 1)) * newborn_dstn
+            if norm is None:
+                death_prbs = self.periods[t].matrices["dead"][:, 1]
+                p2p_trans_arrays[t] *= np.tile(
+                    np.reshape(1 - death_prbs, (K, 1)), (1, K)
+                )
+                p2p_trans_arrays[t] += np.reshape(death_prbs, (K, 1)) * newborn_dstn
+            else:
+                # Under an income-weighted measure, the mass that survives from an
+                # arrival state is the expected growth of the normalizing level
+                # among its survivors (relative to newborn_growth), not the
+                # survival probability; newborns take the complement. This makes
+                # the stationary distribution the income-weighted one. It reduces
+                # to the branch above whenever the weights average to one.
+                surv_mass = self.periods[t].matrices["dead"][:, 0]
+                deficit = 1.0 - surv_mass
+                if np.any(deficit < -1e-9):
+                    raise ValueError(
+                        "The surviving normalized mass exceeds one from some arrival "
+                        "state: growth of the normalizing variable "
+                        + norm
+                        + " outpaces mortality, so no stationary income-weighted "
+                        "distribution exists (the mean level is infinite). Lower the "
+                        "growth, raise mortality, or pass the trend that newborns "
+                        "inherit as newborn_growth."
+                    )
+                deficit = np.maximum(deficit, 0.0)
+                p2p_trans_arrays[t] *= np.reshape(surv_mass, (K, 1))
+                p2p_trans_arrays[t] += np.reshape(deficit, (K, 1)) * newborn_dstn
+                newborn_shares[t] = deficit
 
         # Store the transition arrays as attributes of self
         self.trans_arrays = p2p_trans_arrays
+        self.newborn_shares = newborn_shares
 
         # Build and store lists of state meshes, outcome arrays, and outcome grids
         self.state_grids = [self.periods[t].mesh for t in these_t]
@@ -1782,7 +1870,21 @@ class AgentSimulator:
         dstn = self.steady_state_dstn
         array = self.outcome_arrays[0][var]
         var_dstn = np.dot(dstn, array)
-        return var_dstn
+        return self._normalize_outcome_dstn(var_dstn)
+
+    def _normalize_outcome_dstn(self, var_dstn):
+        """
+        Under an income-weighted measure (norm given), the outcome arrays carry the
+        growth of the normalizing level realized within the period, so an outcome
+        distribution formed from an arrival-state distribution sums to the mass
+        growth factor rather than one. Dividing by its total expresses the outcome
+        per unit of the period's (post-growth) normalized level, which is the
+        Harmenberg aggregate. Without norm this is the identity.
+        """
+        if getattr(self, "norm", None) is None:
+            return var_dstn
+        total = np.sum(var_dstn, axis=0)
+        return var_dstn / total
 
     def get_long_run_average(self, var):
         """
@@ -2065,7 +2167,9 @@ class AgentSimulator:
         current_dstn = init_dstn.copy()
         for t in range(T):
             for name in outcomes:
-                this_dstn_t = np.dot(current_dstn, outcome_arrays_0[name])
+                this_dstn_t = self._normalize_outcome_dstn(
+                    np.dot(current_dstn, outcome_arrays_0[name])
+                )
                 history_avg[name][t] = np.dot(outcome_grids_0[name], this_dstn_t)
             current_dstn = current_dstn @ trans_array
         return history_avg
@@ -2080,7 +2184,9 @@ class AgentSimulator:
         history_avg = {}
         for name in outcomes:
             this_outcome = self.outcome_arrays[0][name]
-            this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
+            this_dstn = self._normalize_outcome_dstn(
+                np.dot(this_outcome.T, state_dstn_by_t)
+            )
             history_dstn[name] = this_dstn
             if calc_avg:
                 history_avg[name] = np.dot(self.outcome_grids[0][name], this_dstn)
@@ -2250,7 +2356,7 @@ class AgentSimulator:
     ):
         for name in outcomes:
             this_outcome = self.periods[t].matrices[name].transpose()
-            this_dstn = np.dot(this_outcome, current_dstn)
+            this_dstn = self._normalize_outcome_dstn(np.dot(this_outcome, current_dstn))
             if history_dstn is not None:
                 history_dstn[name].append(this_dstn)
             if history_avg is not None:
