@@ -1708,7 +1708,11 @@ class AgentSimulator:
             arrive at a fixed level). Setting it equal to ``PermGroFac`` means
             all growth is a trend shared by newborns, under which weighting by the
             shock alone is exact. Under ``norm`` with mortality, the per-period
-            newborn income-mass shares are stored in ``newborn_shares``.
+            newborn income-mass shares are stored in ``newborn_shares``. Without
+            mortality there are no newborns and only the cross-section relative
+            to the growth trend is stationary: each arrival state's transition is
+            then normalized by its own expected growth of the normalizing variable
+            (exact for a common growth factor).
 
         Returns
         -------
@@ -1796,6 +1800,17 @@ class AgentSimulator:
                 # the stationary distribution the income-weighted one. It reduces
                 # to the branch above whenever the weights average to one.
                 surv_mass = self.periods[t].matrices["dead"][:, 0]
+                death_mass = self.periods[t].matrices["dead"][:, 1]
+                if np.max(death_mass) <= 1e-12:
+                    # No mortality, so no newborns: the level of the normalizing
+                    # variable trends upward forever and only the cross-section
+                    # relative to that trend is stationary. The block's transition
+                    # is already conditioned on the (weighted) surviving mass, i.e.
+                    # normalized by each arrival state's expected growth of the
+                    # normalizing variable -- for a common growth factor exactly
+                    # the trend convention -- so it is used as it is.
+                    newborn_shares[t] = np.zeros(K)
+                    continue
                 deficit = 1.0 - surv_mass
                 if np.any(deficit < -1e-9):
                     raise ValueError(

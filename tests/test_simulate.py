@@ -681,6 +681,22 @@ class testsForIncomeWeightedMeasure(unittest.TestCase):
         self.assertLess(abs(a_fix - a_mc) / a_mc, 0.015)
         self.assertLess(abs(a_fix - a_mc), abs(a_old - a_mc))
 
+    def test_no_mortality_with_growth_uses_the_trend(self):
+        # without deaths there are no newborns; the cross-section is stationary
+        # relative to the growth trend, so norm='G' must reproduce the shock-only
+        # weighting (exact in that case) rather than raise
+        agent = IndShockConsumerType(
+            cycles=0, tolerance=1e-12, LivPrb=[1.0], PermGroFac=[1.01]
+        )
+        agent.solve()
+        X0 = self._matrices(deepcopy(agent), norm="PermShk")
+        X1 = self._matrices(deepcopy(agent), norm="G")
+        self.assertTrue(np.allclose(X0.trans_arrays[0], X1.trans_arrays[0], atol=1e-13))
+        self.assertAlmostEqual(
+            X0.get_long_run_average("cNrm"), X1.get_long_run_average("cNrm"), places=10
+        )
+        self.assertEqual(float(np.sum(X1.newborn_shares[0])), 0.0)
+
     def test_raises_when_growth_outpaces_mortality(self):
         agent = IndShockConsumerType(
             cycles=0, tolerance=1e-8, LivPrb=[0.995], PermGroFac=[1.01]
