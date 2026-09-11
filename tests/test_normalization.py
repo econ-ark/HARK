@@ -17,8 +17,7 @@ Covers:
 5. Markov (vector-growth) machinery: stationary-weighted drift, the
    automatic mean-only moments mode, and the scalar-ness of the targets
    (the shape regression that motivated the Markov generalization).
-6. Composition with DualMeasureMixin (skipped until HARK.dual_measure
-   is merged).
+6. Composition with DualMeasureMixin.
 """
 
 import numpy as np

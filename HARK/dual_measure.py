@@ -165,6 +165,18 @@ def _refuse_normalization(agent):
             )
 
 
+def _Q_equals_P(p_dstn, q_dstn):
+    """True when one period's Q distribution is its P distribution, unchanged.
+
+    ``make_Q_measure_dstn`` returns its argument when there is nothing to
+    reweight, so identity is an exact test. A Markov period holds one
+    distribution per state, and counts only when every state's is unchanged.
+    """
+    if isinstance(p_dstn, (list, tuple)):
+        return all(q is p for p, q in zip(p_dstn, q_dstn))
+    return q_dstn is p_dstn
+
+
 def _fill_Q_cell(mask, dstn, PermGroFac, base_draws, PermShkQ, TranShkQ):
     """Write the Q-measure shocks of the agents in ``mask`` from ``dstn``.
 
@@ -272,7 +284,7 @@ class DualMeasureMixin:
         self.Q_degenerate_periods = [
             t
             for t, (p, q) in enumerate(zip(self.IncShkDstn, self.IncShkDstn_Q))
-            if p is q
+            if _Q_equals_P(p, q)
         ]
 
         if not self._any_reweighting_happened():
@@ -292,18 +304,10 @@ class DualMeasureMixin:
         self.dual_measure = True
 
     def _any_reweighting_happened(self):
-        """True when at least one Q distribution differs from its P source.
-
-        ``make_Q_measure_dstn`` returns its argument unchanged when there is
-        nothing to reweight, so identity of the objects is an exact test.
-        """
-        for p_dstn, q_dstn in zip(self.IncShkDstn, self.IncShkDstn_Q):
-            if isinstance(p_dstn, (list, tuple)):
-                if any(q is not p for p, q in zip(p_dstn, q_dstn)):
-                    return True
-            elif q_dstn is not p_dstn:
-                return True
-        return False
+        """True when at least one Q distribution differs from its P source."""
+        return not all(
+            _Q_equals_P(p, q) for p, q in zip(self.IncShkDstn, self.IncShkDstn_Q)
+        )
 
     # ------------------------------------------------------------------
     # Initialization

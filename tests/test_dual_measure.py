@@ -729,6 +729,28 @@ def test_lifecycle_setup_does_not_warn_once_per_retirement_period():
     assert agent._any_reweighting_happened()
 
 
+def test_markov_degenerate_periods_are_recorded():
+    """A Markov period is degenerate when every state's Q equals its P.
+
+    Each Markov period holds a list with one distribution per state, and the
+    Q list is built anew, so comparing the two lists by identity never
+    recorded a Markov period. Period 0 has no dispersion in either state,
+    period 1 reweights one state, and period 2 reweights both.
+    """
+    agent = _markov_agent(DualMarkov)
+    reweighted = agent.IncShkDstn[0][0]
+    point_mass = DiscreteDistribution(np.ones(1), [np.ones(1), np.ones(1)], seed=0)
+    agent.IncShkDstn = [
+        [point_mass, point_mass],
+        [point_mass, reweighted],
+        [reweighted, reweighted],
+    ]
+    agent.setup_Q_measure()
+
+    assert agent.Q_degenerate_periods == [0]
+    assert agent._any_reweighting_happened()
+
+
 def test_make_q_measure_dstn_still_warns_by_default():
     """Suppression is opt-in, so a direct caller keeps the diagnostic."""
     dstn = DiscreteDistribution(
