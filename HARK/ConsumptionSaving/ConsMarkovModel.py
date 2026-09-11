@@ -691,7 +691,8 @@ def solve_one_period_ConsMarkov(
             for j in range(StateCountNext):
                 if possible_transitions[i, j]:
                     BegOfPrd_v_temp[j, :] = BegOfPrd_vFunc_list[j](aNrm_for_vFunc)
-            EndOfPrd_v = np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
+            # Survival is from the current state, as for EndOfPrd_vP above
+            EndOfPrd_v = LivPrb_list[i] * np.dot(MrkvArray[i, :], BegOfPrd_v_temp)
 
             # Calculate (normalized) value and marginal value at each gridpoint
             v_now = uFunc(cNrm_for_vFunc) + EndOfPrd_v
