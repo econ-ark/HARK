@@ -23,3 +23,11 @@ class testBasicHealthConsumerType(unittest.TestCase):
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_invalid(self):
+        ThisType = BasicHealthConsumerType()
+        ThisType.DeprRteMean = [0.05, 0.06]
+        self.assertRaises(ValueError, ThisType.construct)
+        ThisType.DeprRteMean = [0.05]
+        ThisType.DeprRteSpread = [0.05, 0.06]
+        self.assertRaises(ValueError, ThisType.construct)

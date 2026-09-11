@@ -1,0 +1,10 @@
+# The changelog is append-only: every branch adds its own bullet to the same
+# section, so a plain merge reports a conflict on essentially every pull
+# request even though the correct resolution is always "keep both bullets".
+# The union driver does exactly that and is built into git, needing no
+# configuration on anyone's machine.
+#
+# Resolving these by hand is not merely tedious, it has been wrong: diff3-style
+# conflicts add a `||||||| <sha>` base marker on top of the usual three, and two
+# of those reached main inside this file before anyone noticed.
+docs/CHANGELOG.md merge=union

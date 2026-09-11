@@ -1,6 +1,7 @@
 __all__ = [
     "DiscreteDistribution",
     "DiscreteDistributionLabeled",
+    "cdf_invert",
     "Distribution",
     "IndexDistribution",
     "Lognormal",
@@ -16,6 +17,7 @@ __all__ = [
     "make_markov_approx_to_normal_by_monte_carlo",
     "approx_lognormal_gauss_hermite",
     "calc_expectation",
+    "expected_with_loop",
     "calc_lognormal_style_pars_from_normal_pars",
     "calc_normal_style_pars_from_lognormal_pars",
     "combine_indep_dstns",
@@ -45,6 +47,7 @@ from HARK.distributions.discrete import (
     Bernoulli,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
+    cdf_invert,
 )
 from HARK.distributions.multivariate import MultivariateLogNormal, MultivariateNormal
 from HARK.distributions.utils import (
@@ -55,6 +58,7 @@ from HARK.distributions.utils import (
     make_markov_approx_to_normal_by_monte_carlo,
     approx_lognormal_gauss_hermite,
     calc_expectation,
+    expected_with_loop,
     calc_lognormal_style_pars_from_normal_pars,
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,

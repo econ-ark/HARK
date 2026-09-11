@@ -13,6 +13,7 @@ See NARK https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf for inf
 See HARK documentation for mathematical descriptions of the models being solved.
 """
 
+import warnings
 from copy import copy
 
 import numpy as np
@@ -35,6 +36,7 @@ from HARK.distributions import (
     MeanOneLogNormal,
     Uniform,
     add_discrete_outcome_constant_mean,
+    cdf_invert,
     combine_indep_dstns,
     expected,
 )
@@ -78,6 +80,9 @@ __all__ = [
     "init_kinked_R",
     "init_lifecycle",
     "init_cyclical",
+    "buffer_stock_lifecycle_unskilled",
+    "buffer_stock_lifecycle_operative",
+    "buffer_stock_lifecycle_manager",
 ]
 
 utility = CRRAutility
@@ -87,6 +92,31 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+def warn_if_shuffle_voids_base_draw_cache(agent):
+    """Warn when income_shuffle and the base-draw cache are both requested.
+
+    The shuffled path picks atom counts directly rather than inverting a
+    uniform per agent, so there are no base draws to record and the cache
+    comes back empty.  Anything reading it, the dual-measure Q-pipeline in
+    particular, then falls back to drawing independently, which is silent
+    and undoes the point of the cache.  Returns True when both are set.
+    """
+    if not getattr(agent, "_cache_base_shock_draws", False):
+        return False
+    if not getattr(agent, "income_shuffle", False):
+        return False
+    warnings.warn(
+        "income_shuffle=True and _cache_base_shock_draws=True are both set on "
+        f"{type(agent).__name__}. The shuffled draw records no base uniforms, "
+        "so _base_shock_draws will be empty and any consumer of it (such as "
+        "the dual-measure Q-pipeline) will draw independently instead of "
+        "sharing the P-measure draws. Turn one of the two off.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+    return True
 
 
 # =====================================================================
@@ -1162,6 +1192,8 @@ PerfForesightConsumerType_simulation_defaults = {
     # ADDITIONAL OPTIONAL PARAMETERS
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
+    "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
 }
 PerfForesightConsumerType_defaults = {}
 PerfForesightConsumerType_defaults.update(PerfForesightConsumerType_solving_defaults)
@@ -1247,13 +1279,13 @@ class PerfForesightConsumerType(AgentType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -1280,6 +1312,7 @@ class PerfForesightConsumerType(AgentType):
         "params": PerfForesightConsumerType_defaults,
         "solver": solve_one_period_ConsPF,
         "model": "ConsPerfForesight.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_vary_ = ["LivPrb", "PermGroFac", "Rfree"]
@@ -1326,13 +1359,24 @@ class PerfForesightConsumerType(AgentType):
     def initialize_sim(self):
         self.PermShkAggNow = self.PermGroFacAgg  # This never changes during simulation
         self.state_now["PlvlAgg"] = 1.0
+        # Drop base draws cached by an earlier run. They are keyed by
+        # t_cycle, so a consumer reading them after the flag is turned off,
+        # or after AgentCount changes, would silently pair this period's
+        # agents with a previous run's uniforms.
+        self._base_shock_draws = {}
         super().initialize_sim()
 
     def sim_birth(self, which_agents):
         """
         Makes new consumers for the given indices.  Initialized variables include aNrm and pLvl, as
         well as time variables t_age and t_cycle.  Normalized assets and permanent income levels
-        are drawn from lognormal distributions given by aNrmInitMean and aNrmInitStd (etc).
+        are drawn from lognormal distributions given by kLogInitMean and kLogInitStd (etc).
+
+        When ``init_shuffle`` is True (default False), draws from
+        ``kNrmInitDstn`` and ``pLvlInitDstn`` use exact-marginal matching
+        (``DiscreteDistribution.draw(N, shuffle=True)``) instead of iid
+        sampling, eliminating cross-sectional sampling noise in the
+        initial wealth/permanent-income distribution.
 
         Parameters
         ----------
@@ -1345,8 +1389,12 @@ class PerfForesightConsumerType(AgentType):
         """
         # Get and store states for newly born agents
         N = np.sum(which_agents)  # Number of new consumers to make
-        self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(N)
-        self.state_now["pLvl"][which_agents] = self.pLvlInitDstn.draw(N)
+        # Passing shuffle= only when enabled keeps duck-typed continuous
+        # init distributions (whose draw() lacks the kwarg) working at
+        # the default.
+        _kw = {"shuffle": True} if getattr(self, "init_shuffle", False) else {}
+        self.state_now["aNrm"][which_agents] = self.kNrmInitDstn.draw(N, **_kw)
+        self.state_now["pLvl"][which_agents] = self.pLvlInitDstn.draw(N, **_kw)
         self.state_now["pLvl"][which_agents] *= self.state_now["PlvlAgg"]
         self.t_age[which_agents] = 0  # How many periods since each agent was born
 
@@ -1389,13 +1437,62 @@ class PerfForesightConsumerType(AgentType):
         # they die.
         # See: https://github.com/econ-ark/HARK/pull/981
 
-        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
-            N=self.AgentCount
-        )
-        which_agents = DeathShks < DiePrb
+        if getattr(self, "death_shuffle", False):
+            which_agents = self._sim_death_shuffled(DiePrb)
+        else:
+            DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
+                N=self.AgentCount
+            )
+            which_agents = DeathShks < DiePrb
         if self.T_age is not None:  # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
             which_agents = np.logical_or(which_agents, too_old)
+        return which_agents
+
+    def _sim_death_shuffled(self, DiePrb):
+        """Deterministic death counts with random agent assignment.
+
+        For each unique death probability in DiePrb, compute the number
+        of deaths using floor-plus-remainder (so the expected count is
+        unbiased) and randomly select which agents in that group die.
+        This reduces binomial noise in death counts while preserving
+        the expected number of deaths exactly.
+
+        Parameters
+        ----------
+        DiePrb : float or np.array
+            Death probability for each agent (scalar or per-agent array).
+
+        Returns
+        -------
+        which_agents : np.array(bool)
+            Boolean array of size AgentCount indicating which agents die.
+        """
+        which_agents = np.zeros(self.AgentCount, dtype=bool)
+        DiePrb = np.broadcast_to(np.asarray(DiePrb), self.AgentCount)
+
+        for p in np.unique(DiePrb):
+            group = np.where(DiePrb == p)[0]
+            N_group = len(group)
+            # Floor-plus-remainder: unbiased expected death count.
+            # This deliberately does not call
+            # HARK.distributions.base.allocate_remainder_slots, despite
+            # allocating a leftover slot. That function corrects a bias that
+            # only appears when two or more slots are handed out, and the
+            # die/survive split here can never produce more than one: its two
+            # fractional parts sum to an integer, so exactly one of them is
+            # nonzero. With a single slot, systematic sampling reduces to the
+            # Bernoulli draw below, and routing through the general helper
+            # would mean inventing a second atom for the survivors to make
+            # the shapes fit.
+            K_exact = N_group * p
+            how_many_die = int(np.floor(K_exact))
+            remainder = K_exact - how_many_die
+            if remainder > 0 and self.RNG.random() < remainder:
+                how_many_die += 1
+            if how_many_die > 0:
+                die_indices = self.RNG.choice(group, size=how_many_die, replace=False)
+                which_agents[die_indices] = True
         return which_agents
 
     def get_shocks(self):
@@ -1514,6 +1611,39 @@ class PerfForesightConsumerType(AgentType):
         set_verbosity_level((4 - verbose) * 10)
         _log.info(message)
         self.bilt["conditions_report"] += message + "\n"
+
+    def _emit_conditions_report(self):
+        """Emit the accumulated conditions report unless ``self.quiet`` is set."""
+        if not self.quiet:
+            _log.info(self.bilt["conditions_report"])
+
+    def _setup_condition_check(self, verbose):
+        """Initialize the conditions report and run the supported-cycle gate.
+
+        Returns ``(verbose, should_continue)``: ``verbose`` is resolved against
+        the instance default, and ``should_continue`` is False when the model
+        is outside the infinite-horizon, single-period-cycle regime supported
+        by ``check_conditions``. In that case the trivial-skip message has
+        already been logged.
+        """
+        self.conditions = {}
+        self.bilt["conditions_report"] = ""
+        self.degenerate = False
+        verbose = self.verbose if verbose is None else verbose
+        if self.cycles != 0 or self.T_cycle > 1:
+            self.log_condition_result(
+                None,
+                None,
+                "No conditions report was produced because this functionality"
+                " is only supported for infinite horizon models with a cycle"
+                " length of 1.",
+                verbose,
+            )
+            self._emit_conditions_report()
+            return verbose, False
+        self.calc_limiting_values()
+        self.log_condition_result(None, None, self.describe_parameters(), verbose)
+        return verbose, True
 
     def check_AIC(self, verbose=None):
         """
@@ -1685,8 +1815,8 @@ class PerfForesightConsumerType(AgentType):
 
         # Generate the "Delta m = 0" function, which is used to find target market resources
         Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0]
-        aux_dict["Delta_mNrm_ZeroFunc"] = (
-            lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
+        aux_dict["Delta_mNrm_ZeroFunc"] = lambda m: (
+            (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
         )
 
         # Generate the "E[M_tp1 / M_t] = G" function, which is used to find balanced growth market resources
@@ -1719,24 +1849,9 @@ class PerfForesightConsumerType(AgentType):
         -------
         None
         """
-        self.conditions = {}
-        self.bilt["conditions_report"] = ""
-        self.degenerate = False
-        verbose = self.verbose if verbose is None else verbose
-
-        # This method only checks for the conditions for infinite horizon models
-        # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.cycles != 0 or self.T_cycle > 1:
-            trivial_message = "No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1."
-            self.log_condition_result(None, None, trivial_message, verbose)
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+        verbose, should_continue = self._setup_condition_check(verbose)
+        if not should_continue:
             return
-
-        # Calculate some useful quantities that will be used in the condition checks
-        self.calc_limiting_values()
-        param_desc = self.describe_parameters()
-        self.log_condition_result(None, None, param_desc, verbose)
 
         # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
@@ -1752,8 +1867,7 @@ class PerfForesightConsumerType(AgentType):
 
         # Exit now if verbose output was not requested.
         if not verbose:
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the degeneracy of the consumption function solution
@@ -1790,8 +1904,7 @@ class PerfForesightConsumerType(AgentType):
         if (
             degenerate
         ):  # All of the other checks are meaningless if the solution is degenerate
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the consequences of the Absolute Impatience Condition
@@ -1811,8 +1924,7 @@ class PerfForesightConsumerType(AgentType):
             # This can never be reached! If GICRaw and FHWC both fail, then the RIC also fails, and we would have exited by this point.
         self.log_condition_result(None, None, GIC_message, verbose)
 
-        if not self.quiet:
-            _log.info(self.bilt["conditions_report"])
+        self._emit_conditions_report()
 
     def calc_stable_points(self, force=False):
         """
@@ -1950,8 +2062,7 @@ IndShockConsumerType_solving_default = {
     "PermGroFac": [1.01],  # Permanent income growth factor
     "BoroCnstArt": 0.0,  # Artificial borrowing constraint
     "vFuncBool": False,  # Whether to calculate the value function during solution
-    "CubicBool": False,  # Whether to use cubic spline interpolation when True
-    # (Uses linear spline interpolation for cFunc when False)
+    "CubicBool": False,  # Whether to use cubic spline interpolation
 }
 IndShockConsumerType_simulation_default = {
     # PARAMETERS REQUIRED TO SIMULATE THE MODEL
@@ -1964,6 +2075,9 @@ IndShockConsumerType_simulation_default = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
+    "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
 
 IndShockConsumerType_defaults = {}
@@ -2066,13 +2180,13 @@ class IndShockConsumerType(PerfForesightConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -2102,6 +2216,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
         "params": IndShockConsumerType_defaults,
         "solver": solve_one_period_ConsIndShock,
         "model": "ConsIndShock.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = PerfForesightConsumerType.time_inv_ + [
@@ -2133,10 +2248,16 @@ class IndShockConsumerType(PerfForesightConsumerType):
         Gets permanent and transitory income shocks for this period.  Samples from IncShkDstn for
         each period in the cycle.
 
+        When ``income_shuffle`` is True (default False), draws use
+        ``DiscreteDistribution.draw(N, shuffle=True)`` (exact
+        floor-plus-leftover shock frequencies with random assignment),
+        eliminating cross-sectional sampling noise in the shock
+        composition.  The default path is the original iid RNG code,
+        preserved verbatim.
+
         Parameters
         ----------
-        NewbornTransShk : boolean, optional
-            Whether Newborns have transitory shock. The default is False.
+        None
 
         Returns
         -------
@@ -2148,12 +2269,12 @@ class IndShockConsumerType(PerfForesightConsumerType):
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
         newborn = self.t_age == 0
-        for t in np.unique(self.t_cycle):
-            idx = self.t_cycle == t
-
-            # temporary, see #1022
-            if self.cycles == 1:
-                t = t - 1
+        _cache = getattr(self, "_cache_base_shock_draws", False)
+        warn_if_shuffle_voids_base_draw_cache(self)
+        base_draws_dict = {}
+        for s in np.unique(self.t_cycle):
+            idx = self.t_cycle == s
+            t = s - 1
 
             N = np.sum(idx)
             if N > 0:
@@ -2161,13 +2282,27 @@ class IndShockConsumerType(PerfForesightConsumerType):
                 IncShkDstnNow = self.IncShkDstn[t]
                 # and permanent growth factor
                 PermGroFacNow = self.PermGroFac[t]
-                # Get random draws of income shocks from the discrete distribution
-                IncShks = IncShkDstnNow.draw(N)
-
-                PermShkNow[idx] = (
-                    IncShks[0, :] * PermGroFacNow
-                )  # permanent "shock" includes expected growth
-                TranShkNow[idx] = IncShks[1, :]
+                # Draw income shocks from the discrete distribution
+                if getattr(self, "income_shuffle", False):
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                elif _cache:
+                    # Same uniforms and same inversion as draw_events:
+                    # the P-stream is unchanged; the draws are recorded
+                    # for dual-measure Q-CDF inversion.
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[s] = base_draws
+                    EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
+                    PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                else:
+                    # Original RNG path, preserved bit-for-bit.
+                    IncShks = IncShkDstnNow.draw(N)
+                    PermShkNow[idx] = (
+                        IncShks[0, :] * PermGroFacNow
+                    )  # permanent "shock" includes expected growth
+                    TranShkNow[idx] = IncShks[1, :]
 
         # That procedure used the *last* period in the sequence for newborns, but that's not right
         # Redraw shocks for newborns, using the *first* period in the sequence.  Approximation.
@@ -2178,16 +2313,31 @@ class IndShockConsumerType(PerfForesightConsumerType):
             IncShkDstnNow = self.IncShkDstn[0]
             PermGroFacNow = self.PermGroFac[0]  # and permanent growth factor
 
-            # Get random draws of income shocks from the discrete distribution
-            EventDraws = IncShkDstnNow.draw_events(N)
-            PermShkNow[idx] = (
-                IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
-            )  # permanent "shock" includes expected growth
-            TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            # Draw income shocks from the discrete distribution
+            if getattr(self, "income_shuffle", False):
+                ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                TranShkNow[idx] = ShockDraws[1]
+            elif _cache:
+                base_draws = IncShkDstnNow._rng.uniform(size=N)
+                base_draws_dict["newborn"] = base_draws
+                EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
+                PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+            else:
+                # Original RNG path, preserved bit-for-bit.
+                EventDraws = IncShkDstnNow.draw_events(N)
+                PermShkNow[idx] = (
+                    IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                )  # permanent "shock" includes expected growth
+                TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
 
         #  Whether Newborns have transitory shock. The default is False.
         if not NewbornTransShk:
             TranShkNow[newborn] = 1.0
+
+        if _cache:
+            self._base_shock_draws = base_draws_dict
 
         # Store the shocks in self
         self.shocks["PermShk"] = PermShkNow
@@ -2453,8 +2603,8 @@ class IndShockConsumerType(PerfForesightConsumerType):
         # Generate the "Delta m = 0" function, which is used to find target market resources
         # This overwrites the function generated by the perfect foresight version
         Ex_Rnrm = self.Rfree[0] / self.PermGroFac[0] * Ex_PermShkInv
-        aux_dict["Delta_mNrm_ZeroFunc"] = (
-            lambda m: (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
+        aux_dict["Delta_mNrm_ZeroFunc"] = lambda m: (
+            (1.0 - 1.0 / Ex_Rnrm) * m + 1.0 / Ex_Rnrm
         )
 
         self.bilt = aux_dict
@@ -2569,24 +2719,9 @@ class IndShockConsumerType(PerfForesightConsumerType):
         -------
         None
         """
-        self.conditions = {}
-        self.bilt["conditions_report"] = ""
-        self.degenerate = False
-        verbose = self.verbose if verbose is None else verbose
-
-        # This method only checks for the conditions for infinite horizon models
-        # with a 1 period cycle. If these conditions are not met, we exit early.
-        if self.cycles != 0 or self.T_cycle > 1:
-            trivial_message = "No conditions report was produced because this functionality is only supported for infinite horizon models with a cycle length of 1."
-            self.log_condition_result(None, None, trivial_message, verbose)
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+        verbose, should_continue = self._setup_condition_check(verbose)
+        if not should_continue:
             return
-
-        # Calculate some useful quantities that will be used in the condition checks
-        self.calc_limiting_values()
-        param_desc = self.describe_parameters()
-        self.log_condition_result(None, None, param_desc, verbose)
 
         # Check individual conditions and add their results to the report
         self.check_AIC(verbose)
@@ -2603,8 +2738,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Exit now if verbose output was not requested.
         if not verbose:
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the degeneracy of the consumption function solution
@@ -2622,8 +2756,7 @@ class IndShockConsumerType(PerfForesightConsumerType):
 
         # Stop here if the solution is degenerate
         if degenerate:
-            if not self.quiet:
-                _log.info(self.bilt["conditions_report"])
+            self._emit_conditions_report()
             return
 
         # Report on the limiting behavior of the consumption function as m goes to infinity
@@ -2668,11 +2801,10 @@ class IndShockConsumerType(PerfForesightConsumerType):
         if self.conditions["GICHrm"]:
             GICHrm_message = "\nBecause the GICHrm is satisfied, there exists a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         else:
-            GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure.."
+            GICHrm_message = "\nBecause the GICHrm is violated, there does not exist a target ratio of the individual market resources to permanent income, under the permanent-income-neutral measure."
         self.log_condition_result(None, None, GICHrm_message, verbose)
 
-        if not self.quiet:
-            _log.info(self.bilt["conditions_report"])
+        self._emit_conditions_report()
 
 
 ###############################################################################
@@ -2803,13 +2935,13 @@ class KinkedRconsumerType(IndShockConsumerType):
         pLvl is the permanent income level
 
         who_dies is the array of which agents died
-    aNrmInitMean: float
+    kLogInitMean: float
         Mean of Log initial Normalized Assets.
-    aNrmInitStd: float
+    kLogInitStd: float
         Std of Log initial Normalized Assets.
-    pLvlInitMean: float
+    pLogInitMean: float
         Mean of Log initial permanent income.
-    pLvlInitStd: float
+    pLogInitStd: float
         Std of Log initial permanent income.
     PermGroFacAgg: float
         Aggregate permanent income growth factor (The portion of PermGroFac attributable to aggregate productivity growth).
@@ -2839,6 +2971,7 @@ class KinkedRconsumerType(IndShockConsumerType):
         "params": KinkedRconsumerType_defaults,
         "solver": solve_one_period_ConsKinkedR,
         "model": "ConsKinkedR.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl"],
     }
 
     time_inv_ = copy(IndShockConsumerType.time_inv_)
@@ -3015,3 +3148,53 @@ init_cyclical["TranShkStd"] = [0.1, 0.1, 0.1, 0.1]
 init_cyclical["LivPrb"] = 4 * [0.98]
 init_cyclical["Rfree"] = 4 * [1.03]
 init_cyclical["T_cycle"] = 4
+
+# Make dictionaries based on Carroll QJE (1997) lifecycle specifications
+buffer_stock_lifecycle_base = {
+    "CRRA": 2.0,
+    "DiscFac": 0.96,
+    "PermGroFacAgg": 1.02,
+    "kLogInitMean": -1000.0,
+    "kLogInitStd": 0.0,
+    "pLogInitStd": 0.0,
+    "Rfree": 49 * [1.00],
+    "PermShkStd": 40 * [0.1] + 9 * [0.0],
+    "TranShkStd": 40 * [0.1] + 9 * [0.0],
+    "UnempPrb": 0.005,
+    "IncUnemp": 0.0,
+    "UnempPrbRet": 0.0005,
+    "IncUnempRet": 0.0,
+    "LivPrb": 49 * [1.0],
+    "T_cycle": 49,
+    "T_retire": 40,
+    "T_age": 50,
+    "AgentCount": 10000,
+    "cycles": 1,
+}
+
+unskilled_update = {
+    "pLogInitMean": np.log(1 / 1.03),
+    "PermGroFac": 14 * [1.03] + 25 * [1.0] + [0.7] + 9 * [1.0],
+}
+
+operative_update = {
+    "pLogInitMean": np.log(1 / 1.025),
+    "PermGroFac": 24 * [1.025] + 15 * [1.01] + [0.7] + 9 * [1.0],
+}
+
+manager_update = {
+    "pLogInitMean": np.log(1 / 1.03),
+    "PermGroFac": 29 * [1.03] + 10 * [0.99] + [0.7] + 9 * [1.0],
+}
+
+# Carroll QJE (1997) life-cycle calibration for unskilled workers
+buffer_stock_lifecycle_unskilled = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_unskilled.update(unskilled_update)
+
+# Carroll QJE (1997) life-cycle calibration for operative workers
+buffer_stock_lifecycle_operative = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_operative.update(operative_update)
+
+# Carroll QJE (1997) life-cycle calibration for managerial workers
+buffer_stock_lifecycle_manager = copy(buffer_stock_lifecycle_base)
+buffer_stock_lifecycle_manager.update(manager_update)

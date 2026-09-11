@@ -3,6 +3,7 @@ This file implements unit tests for interpolation methods
 """
 
 from HARK.interpolation import (
+    _iter_unique_pairs,
     IdentityFunction,
     LinearInterp,
     CubicInterp,
@@ -26,10 +27,15 @@ from HARK.interpolation import (
     ValueFuncCRRA,
     MargValueFuncCRRA,
     MargMargValueFuncCRRA,
+    HARKinterpolator1D,
 )
 
 import numpy as np
+import pickle
 import unittest
+from copy import deepcopy
+
+from tests import HARK_PRECISION
 
 
 class TestInterp1D(unittest.TestCase):
@@ -72,20 +78,26 @@ class TestInterp1D(unittest.TestCase):
     def test_der(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivative(self.test_vals)
+        checks = HARKinterpolator1D._der(self.interpolant, self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_allclose(derivs, checks, 1e-5)
 
     def test_eval_and_der(self):
         if self.interpolant is None:
             return
         output = self.interpolant(self.test_vals)
         vals, ders = self.interpolant.eval_with_derivative(self.test_vals)
+        checks, d_checks = HARKinterpolator1D._evalAndDer(
+            self.interpolant, self.test_vals
+        )
         self.assertTrue(np.all(np.logical_not(np.isnan(ders))))
         self.assertTrue(np.all(np.logical_not(np.isinf(ders))))
         self.assertTrue(np.all(np.isclose(output, vals)))
+        np.testing.assert_almost_equal(ders, d_checks, HARK_PRECISION)
 
 
 class TestInterp2D(unittest.TestCase):
@@ -131,20 +143,26 @@ class TestInterp2D(unittest.TestCase):
     def test_derX(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeX(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derX(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
     def test_derY(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeY(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derY(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
 
 class TestInterp3D(TestInterp2D):
@@ -176,11 +194,14 @@ class TestInterp3D(TestInterp2D):
     def test_derZ(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeZ(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derZ(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
 
 class TestInterp4D(TestInterp3D):
@@ -196,7 +217,7 @@ class TestInterp4D(TestInterp3D):
 
     def setUp(self):
         """
-        The test function for 3D interpolators is f(x,y) = sqrt(4w + 3x + 5y + 2z)
+        The test function for 4D interpolators is f(x,y) = sqrt(4w + 3x + 5y + 2z)
         """
         f = lambda w, x, y, z: np.sqrt(4 * w + 3 * x + 5 * y + 2 * z)
         RNG = np.random.RandomState(seed=2222222)
@@ -214,11 +235,14 @@ class TestInterp4D(TestInterp3D):
     def test_derW(self):
         if self.interpolant is None:
             return
-        # Doesn't actually check values of derivative, just whether it runs
-        # and whether they are all real values
+
         derivs = self.interpolant.derivativeW(*self.test_vals)
+        base = type(self.interpolant).__bases__[-1]
+        checks = base._derW(self.interpolant, *self.test_vals)
+
         self.assertTrue(np.all(np.logical_not(np.isnan(derivs))))
         self.assertTrue(np.all(np.logical_not(np.isinf(derivs))))
+        np.testing.assert_almost_equal(derivs, checks, HARK_PRECISION)
 
 
 ###############################################################################
@@ -662,6 +686,54 @@ class testsCubicHermiteInterp(unittest.TestCase):
         self.assertEqual(cube(1.5), 2.25)
 
 
+class testsCubicHermiteInterpSerialization(unittest.TestCase):
+    """tests that CubicHermiteInterp deepcopies and pickles without relying
+    on scipy's spline internals being serializable: scipy 1.18.0 caches
+    array-namespace module objects on spline instances (scipy issue #25489),
+    and module objects cannot be pickled or deepcopied, so the class rebuilds
+    its scipy spline from the defining data on deserialization.
+    """
+
+    def setUp(self):
+        self.x = np.linspace(1.0, 10.0, 25)
+        self.y = np.log(self.x)
+        self.dydx = 1.0 / self.x
+        # points below, inside, and above the grid exercise the lower
+        # extrapolation branch, the scipy spline, and the upper decay
+        # extrapolation toward the limiting linear function
+        self.probe = np.linspace(0.25, 15.0, 301)
+
+    def make_interpolants(self):
+        return [
+            CubicHermiteInterp(self.x, self.y, self.dydx),
+            CubicHermiteInterp(self.x, self.y, self.dydx, lower_extrap=True),
+            CubicHermiteInterp(
+                self.x,
+                self.y,
+                self.dydx,
+                intercept_limit=3.0,
+                slope_limit=0.0,
+                lower_extrap=True,
+            ),
+        ]
+
+    def compare(self, original, clone):
+        np.testing.assert_array_equal(original(self.probe), clone(self.probe))
+        np.testing.assert_array_equal(
+            original.derivative(self.probe), clone.derivative(self.probe)
+        )
+        np.testing.assert_array_equal(original._chs.c, clone._chs.c)
+        self.assertIsNot(clone.x_list, original.x_list)
+
+    def test_deepcopy(self):
+        for original in self.make_interpolants():
+            self.compare(original, deepcopy(original))
+
+    def test_pickle(self):
+        for original in self.make_interpolants():
+            self.compare(original, pickle.loads(pickle.dumps(original)))
+
+
 class testsBilinearInterp(unittest.TestCase):
     """tests for BilinearInterp, currently tests for uneven length of
     x, y, f(x,y) with user input as arrays, arrays with column orientation
@@ -909,3 +981,184 @@ class TestMargMargValueFuncCRRA(unittest.TestCase):
         rho = self.vPPfunc.CRRA
         check = -rho * self.X ** (-rho - 1)
         self.assertTrue(np.all(np.isclose(output, check)))
+
+
+class TestInterpolation2DBroadcasting(unittest.TestCase):
+    """Test that 2D interpolation handles mixed scalar/array inputs."""
+
+    def test_linear_interp_on_interp1d_array_scalar(self):
+        """
+        Minimal example demonstrating the bug with LinearInterpOnInterp1D.
+
+        This test fails without the broadcast fix:
+        IndexError: boolean index did not match indexed array along dimension 0
+        """
+        y_list = np.array([0.8, 1.0, 1.2])
+        x_interps = [
+            LinearInterp([0, 1, 2, 5], [0, 0.8, 1.6, 4.0]),
+            LinearInterp([0, 1, 2, 5], [0, 1.0, 2.0, 5.0]),
+            LinearInterp([0, 1, 2, 5], [0, 1.2, 2.4, 6.0]),
+        ]
+        lioi = LinearInterpOnInterp1D(x_interps, y_list)
+
+        x = np.array([1.0, 2.0])
+
+        # This should work: both inputs are arrays of same length
+        result_array = lioi(x, np.array([1.0, 1.0]))
+
+        # This was failing with IndexError before the fix
+        result_scalar = lioi(x, 1.0)
+
+        np.testing.assert_array_almost_equal(result_scalar, result_array)
+        np.testing.assert_array_almost_equal(result_scalar, [1.0, 2.0])
+
+    def test_variable_lower_bound_func2d_array_scalar(self):
+        """Test VariableLowerBoundFunc2D with (array, scalar) inputs."""
+        y_list = np.array([0.8, 1.0, 1.2])
+        x_interps = [
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+        ]
+        lioi = LinearInterpOnInterp1D(x_interps, y_list)
+        lower_bound = LinearInterp(y_list, np.array([0.0, 0.0, 0.0]))
+        vlbf = VariableLowerBoundFunc2D(lioi, lower_bound)
+
+        x = np.array([1.0, 2.0, 5.0])
+
+        result_scalar = vlbf(x, 1.0)
+        result_array = vlbf(x, np.array([1.0, 1.0, 1.0]))
+
+        np.testing.assert_array_almost_equal(result_scalar, result_array)
+
+    def test_lower_envelope2d_nested_array_scalar(self):
+        """Test LowerEnvelope2D with nested interpolators and (array, scalar)."""
+        # Build complex nested structure like consumption-saving solvers
+        y_list = np.array([0.8, 1.0, 1.2])
+        x_interps = [
+            LinearInterp([0, 1, 2, 5, 10], [0, 0.8, 1.6, 4.0, 8.0]),
+            LinearInterp([0, 1, 2, 5, 10], [0, 1.0, 2.0, 5.0, 10.0]),
+            LinearInterp([0, 1, 2, 5, 10], [0, 1.2, 2.4, 6.0, 12.0]),
+        ]
+        lioi = LinearInterpOnInterp1D(x_interps, y_list)
+        lower_bound = LinearInterp(y_list, np.array([0.0, 0.0, 0.0]))
+        vlbf = VariableLowerBoundFunc2D(lioi, lower_bound)
+
+        x_list = np.array([0.0, 1.0, 2.0, 5.0, 10.0])
+        y_list_bi = np.array([0.8, 1.0, 1.2])
+        z_array = np.outer(x_list, y_list_bi)
+        bi = BilinearInterp(z_array, x_list, y_list_bi)
+
+        env = LowerEnvelope2D(vlbf, bi)
+
+        x = np.array([1.0, 2.0, 5.0])
+
+        result_scalar = env(x, 1.0)
+        result_array = env(x, np.array([1.0, 1.0, 1.0]))
+
+        np.testing.assert_array_almost_equal(result_scalar, result_array)
+
+    def test_derivative_x_array_scalar(self):
+        """Test derivativeX with (array, scalar) inputs."""
+        y_list = np.array([0.8, 1.0, 1.2])
+        x_interps = [
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+        ]
+        lioi = LinearInterpOnInterp1D(x_interps, y_list)
+
+        x = np.array([1.0, 2.0])
+
+        dx_scalar = lioi.derivativeX(x, 1.0)
+        dx_array = lioi.derivativeX(x, np.array([1.0, 1.0]))
+
+        np.testing.assert_array_almost_equal(dx_scalar, dx_array)
+
+    def test_derivative_y_array_scalar(self):
+        """Test derivativeY with (array, scalar) inputs."""
+        y_list = np.array([0.8, 1.0, 1.2])
+        x_interps = [
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+        ]
+        lioi = LinearInterpOnInterp1D(x_interps, y_list)
+
+        x = np.array([1.0, 2.0])
+
+        dy_scalar = lioi.derivativeY(x, 1.0)
+        dy_array = lioi.derivativeY(x, np.array([1.0, 1.0]))
+
+        np.testing.assert_array_almost_equal(dy_scalar, dy_array)
+
+    def test_scalar_array_reversed(self):
+        """Test (scalar, array) inputs - reversed order."""
+        y_list = np.array([0.8, 1.0, 1.2])
+        x_interps = [
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+            LinearInterp([0, 1, 2, 5], [0, 1, 2, 5]),
+        ]
+        lioi = LinearInterpOnInterp1D(x_interps, y_list)
+
+        y = np.array([0.8, 1.0, 1.2])
+
+        result_scalar = lioi(2.0, y)
+        result_array = lioi(np.array([2.0, 2.0, 2.0]), y)
+
+        np.testing.assert_array_almost_equal(result_scalar, result_array)
+
+
+class TestIterUniquePairs(unittest.TestCase):
+    """The integer packing in _iter_unique_pairs and its overflow fallback."""
+
+    @staticmethod
+    def _collect(*positions):
+        return sorted(
+            (tuple(idx), tuple(np.flatnonzero(mask)))
+            for *idx, mask in _iter_unique_pairs(*positions)
+        )
+
+    @staticmethod
+    def _reference(*positions):
+        """What np.unique(axis=0) produced before the packing was introduced."""
+        combos, inverse = np.unique(
+            np.column_stack(positions), axis=0, return_inverse=True
+        )
+        inverse = inverse.reshape(-1)
+        return sorted(
+            (tuple(int(v) for v in combo), tuple(np.flatnonzero(inverse == k)))
+            for k, combo in enumerate(combos)
+        )
+
+    def test_matches_unique_axis0_on_one_two_and_three_axes(self):
+        rng = np.random.default_rng(0)
+        for n_axes in (1, 2, 3):
+            pos = [rng.integers(0, 7, size=500) for _ in range(n_axes)]
+            self.assertEqual(self._collect(*pos), self._reference(*pos), n_axes)
+
+    def test_empty_and_single_cell(self):
+        self.assertEqual(self._collect(np.array([], dtype=int)), [])
+        self.assertEqual(self._collect(np.zeros(4, dtype=int)), [((0,), (0, 1, 2, 3))])
+
+    def test_overflow_falls_back_and_stays_correct(self):
+        # Constructed so the packed key genuinely COLLIDES without the guard,
+        # not merely so the guard's condition is true. With three axes of
+        # stride 2**22, key = a * 2**44 + b * 2**22 + c, so the row
+        # (2**20, 0, 0) packs to 2**64, which wraps to exactly 0 and merges
+        # with (0, 0, 0). An earlier version of this test used rows whose
+        # wrapped keys stayed distinct, so it passed with the guard removed.
+        top = 2**22 - 1  # present in each axis, so every stride is 2**22
+        pos = [
+            np.array([0, 2**20, top]),
+            np.array([0, 0, top]),
+            np.array([0, 0, top]),
+        ]
+        self.assertGreater(2**66 - 1, np.iinfo(np.int64).max)
+
+        got = self._collect(*pos)
+        self.assertEqual(got, self._reference(*pos))
+        # Three distinct rows must remain three distinct cells; under the
+        # wrapped key the first two merge into one.
+        self.assertEqual(len(got), 3)

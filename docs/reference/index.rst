@@ -8,6 +8,7 @@ API Reference
    tools/core
    tools/dcegm
    tools/distribution
+   tools/dual_measure
    tools/econforgeinterp
    tools/estimation
    tools/helpers
@@ -24,9 +25,11 @@ API Reference
    :caption: Models
    :maxdepth: 1
 
+   ConsumptionSaving/ConsAggIndMarkovModel
    ConsumptionSaving/ConsAggShockModel
    ConsumptionSaving/ConsBequestModel
    ConsumptionSaving/ConsGenIncProcessModel
+   ConsumptionSaving/ConsHabitModel
    ConsumptionSaving/ConsHealthModel
    ConsumptionSaving/ConsIndShockModel
    ConsumptionSaving/ConsIndShockModelFast

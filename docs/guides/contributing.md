@@ -23,27 +23,23 @@ If you have any questions, please feel free to @
 or otherwise reach out to project leaders [Chris] and [Matt].
 If you prefer to connect through email,
 you can send it to **econ-ark at jhuecon dot org**.
-We have a [Gitter chat room][Gitter] you are welcome to meet us in,
-as well as a [Discord channel][Discord]
-listed under the channel for the Scientific Python community!
+We also have a (rarely used) [Discord channel][Discord].
 
 [Chris]: https://github.com/llorracc
 [Matt]: https://github.com/mnwhite
 [Gitter]: https://gitter.im/econ-ark/community
-[Discord]: https://discord.com/channels/786703927705862175/1057710158639267990
+[Discord]: https://discord.gg/RwHg7sZrPY
 
 ## How to Contribute
 
-We're open to all kinds of contributions,
-from bug reports to help with our docs to suggestions on how to improve our code.
-The best way to figure out if the contribution you'd like to make
-is something we'd merge or otherwise accept,
-is to open up an issue in our issue tracker.
-Please create an issue rather than immediately submitting pull request,
-unless the change you'd like to make is so minor
-you won't mind if the pull request is rejected.
-For bigger contributions, we want to proactively talk things through,
-so that we don't end up wasting your time.
+We're open to all kinds of contributions, from bug reports to help with our
+docs to suggestions on how to improve our code. The best way to figure out
+if the contribution you'd like to make is something we'd merge or otherwise
+accept, is to open up an issue in our issue tracker. Please create an issue
+rather than immediately submitting a pull request, unless the change you'd like
+to make is so minor you won't mind if the pull request is rejected. For
+bigger contributions, we want to proactively talk things through, so that we
+don't end up wasting your time.
 
 While we're thrilled to receive all kinds of contributions,
 there are a few key areas we'd especially like help with:
@@ -178,10 +174,11 @@ NOTE: If closing a bug, also add "Fixes #1480" where 1480 is the issue number.
 ### Build environment setup
 
 Once you've cloned your fork of the HARK repository,
-you should set up a Python development environment tailored for HARK. Currently, we recommend version 3.10.
+you should set up a Python development environment tailored for HARK.
+HARK currently supports Python 3.10 to 3.13; we recommend version 3.13.
 You may choose the environment manager of your choice.
 Here we provide instructions for two popular environment managers:
-`venv` (pip based) and `conda` (Anaconda or Miniconda).
+`venv` (pip-based) and `conda` (Anaconda or Miniconda).
 
 #### venv
 
@@ -196,7 +193,6 @@ source econ-dev/bin/activate
 # Build and install HARK from source with developer requirements
 pip install -e ".[dev]"
 # Test your installation
-pip install pytest
 pytest HARK/
 ```
 
@@ -206,13 +202,12 @@ When using conda, you may find the following bash commands useful
 
 ```bash
 # Create a conda environment named ``econ-dev``
-conda create -n econ-dev python=3.10
+conda create -n econ-dev python=3.13
 # Activate it
 conda activate econ-dev
 # Build and install HARK from source with developer requirements
 pip install -e ".[dev]"
 # Test your installation
-pip install pytest
 pytest HARK/
 ```
 
@@ -223,80 +218,122 @@ pytest HARK/
   [standard](https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard)
   as NumPy and SciPy.
 - All changes are reviewed.
+- [`ruff`][Ruff] is used to handle code style requirements.
 
-### Stylistic Guidelines
-
-- We use `black <https://black.readthedocs.io>` for styling of code
-
-```bash
-# install black
-pip install black
-# run black on the changed files
-black path_to_changed_file.py
-```
+[Ruff]: https://docs.astral.sh/ruff/
 
 ### Naming Conventions
 
-Object naming conventions in HARK are fairly different than existing standards,
-and differ somewhat between tool modules vs model or application modules.
 The following conventions apply throughout HARK:
 
-- Functions and methods are always in ''camel case'': no underscores,
-  first letter is lower case, first letter of each subsequent word is capitalized.
-  E.g. **_approxLognormal_**.
+- Functions and methods are always in ''snake case'': underscores separating
+  each word in the name; capital letters only for abbreviations (e.g. `SS`
+  for "steady state") or when referring to a variable name.
 
 - Function and method names should accurately and concisely describe what the function does;
-  the first word in the name _must be a verb_
+  the first word in the name _must be a verb_ in the imperative tense
+  (e.g. `make_assets_grid`).
 
 - Variable and class names _should not_ have a verb as their first word.
 
 - Class names should use no underscores and capitalize the first letter of each word;
-  moreover, a class name _must include a noun_.
-  E.g. **_ConsPerfForesightSolver_**.
+  moreover, a class name _must include a noun_, e.g. **_ConsumerSolution_**.
 
-When naming variables in model modules,
-the HARK team strongly discourages using single letter names, like **_c_** for consumption.
-Instead, we encourage contributors to use longer,
-more descriptive variable names using additional words and common abbreviations to specify the variable more precisely.
-In [NARK](https://github.com/econ-ark/HARK/blob/master/docs/NARK/NARK.pdf),
-we list standard single letter variable ''bases'' and an array of prefixes and suffixes to adjust them.
-Economic variables in model modules should (usually) not use underscores,
-instead using camel case to the greatest extent possible.
-For ''non-economic'' variables that are only used temporarily, underscores are permissible.
-The development team prefers this standard
-so that users can translate between Python code and LaTeX script with minimal work.
+When naming variables in model modules, the HARK team strongly discourages
+using single letter names, like `c` for consumption. Likewise, you should
+generally not use variable names that are simply the math symbol for that
+variable, like `theta`. The primary exception to this rule is when writing
+small functions (2-5 lines) whose purpose is clear in context: the function's
+name is descriptive, and when it is actually called, "properly named"
+variables are passed to it.
 
-Conventions for naming variables in HARK's tool modules are significantly closer to more commonly used standards.
-Variable names should be in all lower case, with underscores between words, e.g. **_data_to_match_**.
-The functions and classes in these modules are more general
-and almost surely do not have any inherent ''economic content'';
-they are numerical or algorithmic objects,
-not variables that might appear in an equation in an article for a (non-computational) economics journal.
-Variable names in application modules (e.g. the files that execute the **_cstwMPC_** estimations)
-are a mix of the conventions for tool and model files,
-as appropriate for each variable.
-That is, variables that are directly related to ''economic variables'' in model modules should follow those conventions,
-while objects created solely for data manipulation or reporting should use the style of tool modules.
+In general, we encourage contributors to use longer, more descriptive variable
+names using additional words and common abbreviations to specify the variable
+more precisely. You may find it useful to look through HARK's code to get a
+sense of the variable naming style, but here are some commonly used abbreviations:
+
+- `k` : capital holdings at the very beginning of a period
+- `c` : consumption
+- `m` : market resources (cash on hand)
+- `a` : end-of-period assets (after all actions are accomplished)
+- `b` : bank balances after interest but before labor income
+- `y` : labor income
+- `p` : permanent/persistent income or productivity
+- `h` : human wealth (usually) OR health
+- `v` : value (in the Bellman sense)
+- `t` : time generally; can refer to "this period" when used as `_t`
+- `T` : terminal period, or the count of periods in some sense
+- `Lvl` : absolute level
+- `Nrm` : normalized by permanent/persistent income level
+- `Now` : pertaining to the current period
+- `Next` : pertaining to the succeeding period
+- `Prev` : pertaining to the prior period
+- `Func` : function
+- `P` : "prime" as a shorthand for first derivative of a univariate function
+- `PP` : "prime prime" as a shorthand for second derivative of a univariate function
+- `Nvrs` : "pseudo-inverse", values decurved by the inverse (marginal) utility function
+- `Xtra` : quantity above the minimum allowable for something
+- `Dstn` : distribution
+- `Shk` : shock or random variable
+- `Cnst` : constrained or constraint
+- `Unc` : un-constrained
+- `Perm` : pertaining to the permanent or persistent component of income
+- `Trans` : pertaining to the transitory component of income
+- `Prb` : probability
+- `Ex` : expected or expectation
+- `Avg` : average or mean (is often `Mean`)
+- `Std` : standard deviation
+- `Var` : variance
+- `Val` : values (as in numeric quantities)
+- `Init` : initial, as in "at the moment the model starts"
+- `MPC` : marginal propensity to consume
+- `Min` : minimum, lower bound, or infimum
+- `Max` : maximum, upper bound, or supremum
+- `SS` : steady state
+- `PF` : perfect foresight
+- `EndOfPrd` : end-of-period
+- `Fac` : factor
+- `Rte` : rate
+- `Liv` : live or survive
+- `Boro` : borrow
+
+These abbreviations are usually combined to make short but descriptive names.
+For example, the consumption function when ignoring the borrowing constraint
+is `cFuncUnc`; normalized market resources that might be achieved next period
+are `mNrmNext`; and the marginal marginal value function this period is `vPPfuncNow`.
+Additional descriptors beyond abbreviations like this usually use underscores,
+e.g. `vFunc_before_PrefShk`.
+
+Variable naming conventions within functions in HARK's numeric tool modules
+(like `HARK.interpolation`) is significantly looser than in the model files in
+`HARK.ConsumptionSaving`. We want the economic code to be as clear and specific
+as reasonably possible: exactly what consumption do you mean here? In contrast,
+the numeric methods employed within the numeric tool modules are usually well
+known. As long as your code is well commented and variable names are reasonable
+in context, it's probably fine.
+
+We strongly encourage you to be liberal with code comments. For each section of
+code that does something mathematically or economically describable, put a
+comment above it that says what it does, and leave a line break between such
+snippets. If there is an "unusual" line of code that deals with an unexpected
+issue or complication, leave a short comment in-line.
 
 ### Documentation Convention
 
 The HARK team wants the toolKit to be as accessible to users as possible;
 our greatest fear (other than spiders, of course) is that a new user will open up our code,
-get hopelessly confused trying to read it,
-and then never look at HARK again.
+get hopelessly confused trying to read it, and then never look at HARK again.
 To prevent this tragic outcome, we have tried hard to provide comprehensive,
 accurate documentation and comments within the code describing our methods.
-Moreover,
-HARK uses the Sphinx utility
-to generate a website with [online documentation](https://docs.econ-ark.org/)
-for all of our tool and model modules,
-so that users can learn about what's available in HARK without digging through the source code.
-When making contributions to HARK,
-the development team asks users
-to format their inline documentation to work with Sphinx by following a few simple rules.
+HARK uses the Sphinx utility to generate a website with [online documentation](https://docs.econ-ark.org/)
+for all of our tool and model modules, so that users can learn about what's
+available in HARK without digging through the source code. Moreover, many of the
+example notebooks are automatically rendered to the website. When making contributions
+to HARK, the development team asks users to format their inline documentation to
+work with Sphinx by following a few simple rules.
 
-- The top of every module should begin with a ''docstring'' providing a clear description of the contents of the module.
-  The first sentence should concisely summarize the file,
+- The top of every module should begin with a docstring providing a clear description
+  of the contents of the module. The first sentence should concisely summarize the file,
   as it may appear in an index or summary of all modules without the remaining sentences.
   A docstring at the top of a module should be formatted as:
 
@@ -318,42 +355,55 @@ Your bank account routing number.
   For functions and methods, the docstring should be formatted as:
 
 ```python
-def functionName(input1, input2):
+def function_name(input1, input2):
     """
-    Concise description of the function.  More details about what
+    Concise description of the function. More details about what
     the function does, options or modes available, and maybe mathematical
-    methods used.  Credit to a source if you poached their algorithm.
+    methods used. Credit to a source if you poached their algorithm.
 
     Parameters
-    --------------------
+    ----------
 
     input1: type
-    Description of what input1 represents.
+        Description of what input1 represents.
     input2: type
-    Description of what input2 represents.
+        Description of what input2 represents.
 
     Returns
-    --------------
+    -------
     output_name: type
-    Description of the output(s) of the function.  Might have
-    multiple entries.  If no output, this is just "None".
+        Description of the output(s) of the function.  Might have
+        multiple entries.  If no output, this is just "None".
     """
 ```
 
-- Provide ample comments within a function or method
-  so that a relatively intelligent reader can follow along with your algorithm.
-  Short comments can follow at the end of a line,
-  longer comments (or descriptions of the step or task about to be performed)
-  should precede a block of code on the line(s) above it.
+- Provide ample comments within a function or method so that a relatively
+  intelligent reader can follow along with your algorithm. Short comments can
+  follow at the end of a line, longer comments (or descriptions of the step
+  or task about to be performed) should precede a block of code on the line(s) above it.
 
-Finally, if you write a new model module,
-the HARK team asks that you also provide a short mathematical writeup of the model as a PDF.
-This document does not need
-to go into great detail about the solution method for the model or the functions and classes included in the module,
-merely specify the economic model and provide a summary of how it is solved.
-See [ConsumptionSavingModels.pdf](https://github.com/econ-ark/HARK/blob/master/docs/ConsumptionSavingModels.pdf) for an example of this.
+Finally, if you write a new model, the HARK team asks that you also provide
+a writeup of the model in a Jupyter notebook. The notebook should be put into
+`/examples/ModuleName/` and named `AgentTypeSubclassName.ipynb`,
+e.g. `/examples/ConsIndShockModel/IndShockConsumerType.ipynb`.
+This document does not need to go into great detail about the solution method for
+the model or the functions and classes included in the module, but it should:
 
-#### Contributing to documentation
+- Provide a brief textual description of the model, focusing on the feature(s) that
+  make it different from other models in HARK.
+- Specify the problem mathematically in Bellman form.
+- (Optional) Explain how the problem is solved, in broad strokes.
+- Provide a mapping from model symbols to names in code.
+- (Optional) Describe or summarize the default constructors used.
+- Solve one or more examples of the model, maybe just using default parameters, and display policy and/or value functions.
+
+The docstring for an `AgentType` subclass should be substantial and include the following:
+
+- A brief textual description of the model, noting the feature(s) that make it different from other models in HARK.
+- The one-period problem stated mathematically in Bellman form.
+- (Optional) Describe or summarize the default constructors used.
+
+#### Contributing to Documentation
 
 Econ-ARK's documentation is managed with [Sphinx](https://www.sphinx-doc.org/).
 The documentation is written in [reStructuredText](https://www.restructuredtext.org) and
@@ -384,7 +434,7 @@ To test your changes to the documentation locally, you can render as follows:
 
 #### Adding examples to the documentation
 
-HARK's example notebooks are stored in the HARK/examples file.
+HARK's example notebooks are stored in the `examples/` directory.
 Every pull request to HARK automatically reruns every example notebook
 to keep them up to date.
 
@@ -394,7 +444,7 @@ the format `../../examples/AAA/BBB.ipynb`. Then add a link to the notebook
 in the `docs/example_notebooks/Include_list.txt` file. It should have
 the format `examples/AAA/BBB.ipynb`.
 
-Sphinx requires it's example notebooks to have a title, and headings in order of
+Sphinx requires its example notebooks to have a title, and headings in order of
 decreasing size. Make sure the notebook you added has those qualities before you push.
 Otherwise sphinx will fail to build.
 
@@ -414,15 +464,13 @@ Otherwise it won't show the warnings again, and you won't be able to check if th
 
 ### Testing
 
-`HARK` has a test suite that ensures correct
-execution on your system.
-The test suite has to pass before a pull
-request can be merged, and tests should be added to cover any
-modifications to the code base.
+`HARK` has a test suite that ensures correct execution on your system.
+The test suite has to pass before a pull request can be merged, and tests should
+be added to cover any modifications to the code base.
 
 We make use of the [pytest](https://docs.pytest.org/en/latest/) and unittests
-testing framework, with tests located in the various
-`HARK/submodule/tests` folders.
+testing framework, with all tests located in `/tests/` and its subdirectories,
+which match the subdirectory structure of `/HARK/`.
 
 To use `pytest`, ensure that the library is installed in development mode
 
@@ -448,63 +496,63 @@ Or tests from a specific file
 $ pytest HARK/ConsumptionSaving/tests/test_ConsAggShockModel.py
 ```
 
-### Pre-commit hooks
+To view current coverage of HARK's tests, see [here](https://remote-unzip.deno.dev/econ-ark/HARK/main), which is also
+linked from the front page of the GitHub repo. The Pytest coverage is automatically
+re-run and re-published every Sunday. Some sections of code are hard or
+impossible to reach within `pytest` and are thus exempted; this includes platform-specific
+code and all `numba` functions that are marked for compilation with `@jit`, as well
+as very unusual exceptions that are difficult to build tests for.
 
-`HARK` uses [pre-commit](https://pre-commit.com/) to ensure that all code is well organized and formatted,
-as well as to ensure the integrity of example notebooks.
-To install pre-commit, run
+### Pre-commit Hooks
+
+`HARK` uses [pre-commit](https://pre-commit.com/) to ensure that all code is well
+organized and formatted, as well as to ensure the integrity of example notebooks.
+To install `pre-commit`, run
 
 ```bash
 $ pip install pre-commit
 $ pre-commit install
 ```
 
-Once you do this, it will run the pre-commit hooks on every commit while only affecting modified files.
-If you want to run the pre-commit hooks manually on every file, run
+Once you do this, it will run the pre-commit hooks on every commit while only
+affecting modified files. If you want to run the pre-commit hooks manually on every
+file, run
 
 ```bash
 $ pre-commit run --all-files
 ```
 
 Because this is an optional feature, it does not come installed with `HARK` by default.
-This is to avoid overhead for new users and contributors who might be new to github and software development in general.
+This is to avoid overhead for new users and contributors who might be new to GitHub
+and software development in general.
 
-If you are having issues with pre-commit,
-and just want to commit your changes, you can use the `--no-verify` flag to bypass the pre-commit hooks.
+If you are having issues with pre-commit, and just want to commit your changes, you can
+use the `--no-verify` flag to bypass the pre-commit hooks.
 
 ```bash
 $ git commit -m "commit message" --no-verify
 ```
 
-If you do this,
-please alert one of the core developers
-so that we can review your changes to make sure that there are no issues and that your code is formatted correctly.
+If you do this, please alert one of the core developers so that we can review your
+changes to make sure that there are no issues and that your code is formatted correctly.
 
 The following pre-commit hooks are currently configured:
 
-- [jupytext] sync, clean up, and execute jupyter notebooks
-- [black] format code
-- [pyupgrade] update small python snippets as we drop older versions of python
-- [blacken-docs] format documentation
-- [isort] sort imports on .py files
-- [mirrors-prettier] clean up and format other types of files in codebase
-- [pre-commit-hooks] other small clean-up/formatting
+- [ruff] file formatting
+- [pre-commit-hooks] fix end-of-file, trailing whitespace, and requirements.txt
 
-If you are interested in using pre-commit,
-please see the [pre-commit documentation](https://pre-commit.com/) for more information.
+If you are interested in using pre-commit, please see the [pre-commit documentation](https://pre-commit.com/) for more information.
 
-### Pull request codes
+### Pull Request Codes
 
 When you submit a pull request to GitHub, GitHub will ask you for a summary.
-If
-your code is not ready to merge, but you want to get feedback, please consider
-using `WIP: experimental optimization` or similar for the title of your pull
-request.
-That way we will all know that it's not yet ready to merge and that
+If your code is not ready to merge, but you want to get feedback, please consider
+using `[WIP] experimental optimization` or similar for the title of your pull
+request. That way we will all know that it's not yet ready to merge and that
 you may be interested in more fundamental comments about design.
 
 When you think the pull request is ready to merge, change the title (using the
-_Edit_ button) to remove the `WIP:`.
+_Edit_ button) to remove the `[WIP]`.
 
 ### Bugs
 

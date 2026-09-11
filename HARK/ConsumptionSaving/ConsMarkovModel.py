@@ -5,6 +5,8 @@ include a Markov state; the interest factor, permanent growth factor, and income
 distribution can vary with the discrete state.
 """
 
+import warnings
+
 import numpy as np
 
 from HARK import AgentType, NullFunc
@@ -19,8 +21,15 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
+    warn_if_shuffle_voids_base_draw_cache,
 )
-from HARK.distributions import MarkovProcess, Uniform, expected, DiscreteDistribution
+from HARK.distributions import (
+    cdf_invert,
+    MarkovProcess,
+    Uniform,
+    expected,
+    DiscreteDistribution,
+)
 from HARK.interpolation import (
     CubicInterp,
     LinearInterp,
@@ -52,6 +61,59 @@ utilityP_inv = CRRAutilityP_inv
 utility_invP = CRRAutility_invP
 utility_inv = CRRAutility_inv
 utilityP_invP = CRRAutilityP_invP
+
+
+def resolve_balanced_sort_key(agent):
+    """The pLvl array to systematically sample Markov transitions by, or None.
+
+    ``None`` means draw unbalanced, and covers two cases: ``balanced_transitions``
+    is off, or it is on but the agent has no ``pLvl`` to sort by.  The second
+    warns rather than raising.  Falling back to an unbalanced shuffle still
+    simulates the right model, it just keeps the sampling noise that
+    ``balanced_transitions`` exists to remove, so refusing to run would be a
+    harsher response than the situation calls for.
+
+    Reads ``state_prev``, never ``state_now``.  Every caller runs inside
+    ``get_shocks``, which ``_sim_period_prologue`` invokes *after* blanking
+    each ndarray in ``state_now``.  Sorting on ``state_now["pLvl"]`` there
+    sorts by a blank, so finding the key present in ``state_now`` is not
+    evidence that its contents mean anything.
+
+    The blank is ``nan`` since issue #1809; it was ``np.empty`` before, and
+    the earlier wording of this note leaned on that -- uninitialized memory
+    neither raises nor produces NaN, so the mistake was invisible.  A ``nan``
+    blank does propagate, which makes this easier to catch but no less wrong,
+    so the rule is unchanged.
+
+    Do not substitute ``aNrm`` or wealth for ``pLvl`` here.  That creates a
+    feedback loop in which low-wealth agents are repeatedly selected for
+    adverse transitions and get trapped there.
+
+    Parameters
+    ----------
+    agent : AgentType
+        The agent whose ``balanced_transitions`` flag and ``state_prev`` are
+        consulted.
+
+    Returns
+    -------
+    np.ndarray or None
+        The full per-agent ``pLvl`` array; callers index it with their own
+        cell mask.  ``None`` to draw unbalanced.
+    """
+    if not getattr(agent, "balanced_transitions", False):
+        return None
+    pLvl_prev = getattr(agent, "state_prev", {}).get("pLvl")
+    if pLvl_prev is None:
+        warnings.warn(
+            "balanced_transitions=True, but state_prev has no 'pLvl' to sort "
+            f"on for {type(agent).__name__}; Markov transitions fall back to "
+            "unbalanced shuffling. Set balanced_transitions=False to silence "
+            "this, or use an agent type that tracks pLvl.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+    return pLvl_prev
 
 
 ###############################################################################
@@ -749,6 +811,8 @@ init_indshk_markov = {
     "cycles": 1,  # Finite, non-cyclic model
     "T_cycle": 1,  # Number of periods in the cycle for this agent type
     "constructors": markov_constructor_dict,  # See dictionary above
+    "markov_shuffle": False,  # Quota-exact Markov transitions when True (see get_markov_states)
+    "balanced_transitions": False,  # With markov_shuffle: systematic sampling by pLvl
     "pseudo_terminal": False,  # Terminal period really does exist
     "global_markov": False,  # Whether the Markov state is shared across agents
     # PRIMITIVE RAW PARAMETERS REQUIRED TO SOLVE THE MODEL
@@ -772,6 +836,9 @@ init_indshk_markov = {
     "PerfMITShk": False,  # Do Perfect Foresight MIT Shock
     # (Forces Newborns to follow solution path of the agent they replaced if True)
     "neutral_measure": False,  # Whether to use permanent income neutral measure (see Harmenberg 2021)
+    "init_shuffle": False,  # Exact-marginal initial-state draws when True (see sim_birth)
+    "death_shuffle": False,  # Deterministic death counts when True (see sim_death)
+    "income_shuffle": False,  # Exact per-period shock frequencies when True (see get_shocks)
 }
 init_indshk_markov.update(default_IncShkDstn_params)
 init_indshk_markov.update(default_aXtraGrid_params)
@@ -797,6 +864,7 @@ class MarkovConsumerType(IndShockConsumerType):
         "params": init_indshk_markov,
         "solver": solve_one_period_ConsMarkov,
         "model": "ConsMarkov.yaml",
+        "track_vars": ["aNrm", "cNrm", "mNrm", "pLvl", "Mrkv"],
     }
     distributions = [
         "IncShkDstn",
@@ -859,7 +927,7 @@ class MarkovConsumerType(IndShockConsumerType):
         # at a particular point in time.
         for IncShkDstn_t in self.IncShkDstn:
             if not isinstance(IncShkDstn_t, list):
-                raise ValueError(
+                raise TypeError(
                     "self.IncShkDstn is time varying and so must be a list"
                     + "of lists of Distributions, one per Markov State. Found "
                     + f"{self.IncShkDstn} instead"
@@ -918,10 +986,13 @@ class MarkovConsumerType(IndShockConsumerType):
             self.t_cycle - 1, self.shocks["Mrkv"]
         ]  # Time has already advanced, so look back one
         DiePrb = 1.0 - LivPrb
-        DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
-            N=self.AgentCount
-        )
-        which_agents = DeathShks < DiePrb
+        if getattr(self, "death_shuffle", False):
+            which_agents = self._sim_death_shuffled(DiePrb)
+        else:
+            DeathShks = Uniform(seed=self.RNG.integers(0, 2**31 - 1)).draw(
+                N=self.AgentCount
+            )
+            which_agents = DeathShks < DiePrb
         if self.T_age is not None:  # Kill agents that have lived for too many periods
             too_old = self.t_age >= self.T_age
             which_agents = np.logical_or(which_agents, too_old)
@@ -947,7 +1018,12 @@ class MarkovConsumerType(IndShockConsumerType):
         # Markov state is not changed if it is set at the global level
         if not self.global_markov:
             N = np.sum(which_agents)
-            self.state_now["Mrkv"][which_agents] = self.MrkvInitDstn.draw(N)
+            _kw = {"shuffle": True} if getattr(self, "init_shuffle", False) else {}
+            MrkvInit = self.MrkvInitDstn.draw(N, **_kw)
+            self.state_now["Mrkv"][which_agents] = MrkvInit
+            # get_markov_states keeps newborns at their shocks["Mrkv"] value, so
+            # the draw is written there too or MrkvPrbsInit never takes effect.
+            self.shocks["Mrkv"][which_agents] = MrkvInit
 
     def get_markov_states(self):
         """
@@ -971,13 +1047,29 @@ class MarkovConsumerType(IndShockConsumerType):
         MrkvPrev = self.shocks["Mrkv"]
         MrkvNow = np.zeros(self.AgentCount, dtype=int)
 
-        # Draw new Markov states for each agent
+        # Resolved once rather than per period: the answer cannot change
+        # inside the loop, and asking per period would emit one identical
+        # warning per element of T_cycle when pLvl is missing.
+        pLvl_prev = resolve_balanced_sort_key(self)
+
+        # Agents with t_cycle == t are entering period t, so they move by
+        # MrkvArray[t - 1], the matrix the solver used for t - 1 -> t (as
+        # get_shocks reads IncShkDstn[t - 1]). At t == 0 the index wraps.
         for t in range(self.T_cycle):
             markov_process = MarkovProcess(
-                self.MrkvArray[t], seed=self.RNG.integers(0, 2**31 - 1)
+                self.MrkvArray[t - 1], seed=self.RNG.integers(0, 2**31 - 1)
             )
             right_age = self.t_cycle == t
-            MrkvNow[right_age] = markov_process.draw(MrkvPrev[right_age])
+            # Sorting by pLvl systematically samples the agents chosen for
+            # each transition across the permanent income distribution
+            # instead of clumping them.  See resolve_balanced_sort_key for
+            # why the key is pLvl, and why it is read from state_prev.
+            sort_key = None if pLvl_prev is None else pLvl_prev[right_age]
+            MrkvNow[right_age] = markov_process.draw(
+                MrkvPrev[right_age],
+                shuffle=getattr(self, "markov_shuffle", False),
+                sort_key=sort_key,
+            )
         if not self.global_markov:
             MrkvNow[dont_change] = MrkvPrev[dont_change]
 
@@ -1002,6 +1094,9 @@ class MarkovConsumerType(IndShockConsumerType):
         # Now get income shocks for each consumer, by cycle-time and discrete state
         PermShkNow = np.zeros(self.AgentCount)  # Initialize shock arrays
         TranShkNow = np.zeros(self.AgentCount)
+        _cache = getattr(self, "_cache_base_shock_draws", False)
+        warn_if_shuffle_voids_base_draw_cache(self)
+        base_draws_dict = {}
         for t in range(self.T_cycle):
             for j in range(self.MrkvArray[t].shape[0]):
                 these = np.logical_and(t == self.t_cycle, j == MrkvNow)
@@ -1014,15 +1109,71 @@ class MarkovConsumerType(IndShockConsumerType):
                         j
                     ]  # and permanent growth factor
 
-                    # Get random draws of income shocks from the discrete distribution
+                    # Draw income shocks from the discrete distribution
+                    if getattr(self, "income_shuffle", False):
+                        ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                        PermShkNow[these] = ShockDraws[0] * PermGroFacNow
+                        TranShkNow[these] = ShockDraws[1]
+                    elif _cache:
+                        # Same uniforms and inversion as draw_events:
+                        # P-stream unchanged; draws recorded for the
+                        # dual-measure Q-CDF inversion, keyed (t, j).
+                        base_draws = IncShkDstnNow._rng.uniform(size=N)
+                        base_draws_dict[(t, j)] = base_draws
+                        EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+                    else:
+                        # Original RNG path, preserved bit-for-bit.
+                        EventDraws = IncShkDstnNow.draw_events(N)
+                        PermShkNow[these] = (
+                            IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                        )  # permanent "shock" includes expected growth
+                        TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
+
+        # Fix shocks for newborns
+        newborn = self.t_age == 0
+        if np.any(newborn):
+            for j in range(self.MrkvArray[0].shape[0]):
+                idx = np.logical_and(j == MrkvNow, newborn)
+                if not np.any(idx):
+                    continue
+                N = np.sum(idx)
+
+                # set current income distribution
+                IncShkDstnNow = self.IncShkDstn[0][j]
+                PermGroFacNow = self.PermGroFac[0][j]  # and permanent growth factor
+
+                # Draw income shocks from the discrete distribution
+                if getattr(self, "income_shuffle", False):
+                    ShockDraws = IncShkDstnNow.draw(N, shuffle=True)
+                    PermShkNow[idx] = ShockDraws[0] * PermGroFacNow
+                    TranShkNow[idx] = ShockDraws[1]
+                elif _cache:
+                    # Same uniforms and inversion as draw_events:
+                    # P-stream unchanged; draws recorded for the
+                    # dual-measure Q-CDF inversion, keyed ("newborn", j)
+                    # to match the (t, j) convention of the main loop.
+                    base_draws = IncShkDstnNow._rng.uniform(size=N)
+                    base_draws_dict[("newborn", j)] = base_draws
+                    EventDraws = cdf_invert(base_draws, IncShkDstnNow.pmv)
+                    PermShkNow[idx] = IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+                else:
+                    # Original RNG path, preserved bit-for-bit.
                     EventDraws = IncShkDstnNow.draw_events(N)
-                    PermShkNow[these] = (
+                    PermShkNow[idx] = (
                         IncShkDstnNow.atoms[0][EventDraws] * PermGroFacNow
                     )  # permanent "shock" includes expected growth
-                    TranShkNow[these] = IncShkDstnNow.atoms[1][EventDraws]
-        newborn = self.t_age == 0
-        PermShkNow[newborn] = 1.0
-        TranShkNow[newborn] = 1.0
+                    TranShkNow[idx] = IncShkDstnNow.atoms[1][EventDraws]
+        if _cache:
+            self._base_shock_draws = base_draws_dict
+
+        if not self.NewbornTransShk:
+            TranShkNow[newborn] = 1.0
+
         self.shocks["PermShk"] = PermShkNow
         self.shocks["TranShk"] = TranShkNow
 
@@ -1058,7 +1209,9 @@ class MarkovConsumerType(IndShockConsumerType):
         RfreeNow = np.zeros(self.AgentCount)
         for t in range(self.T_cycle):
             these = self.t_cycle == t
-            RfreeNow[these] = self.Rfree[t][self.shocks["Mrkv"][these]]
+            # Rfree[t - 1] is the return the solver applied to assets saved in
+            # period t - 1, which agents with t_cycle == t now receive.
+            RfreeNow[these] = self.Rfree[t - 1][self.shocks["Mrkv"][these]]
         return RfreeNow
 
     def get_controls(self):
@@ -1098,51 +1251,9 @@ class MarkovConsumerType(IndShockConsumerType):
         self.state_now["Mrkv"] = self.shocks["Mrkv"].copy()
 
     def calc_bounding_values(self):  # pragma: nocover
-        """
-        Calculate human wealth plus minimum and maximum MPC in an infinite
-        horizon model with only one period repeated indefinitely.  Store results
-        as attributes of self.  Human wealth is the present discounted value of
-        expected future income after receiving income this period, ignoring mort-
-        ality.  The maximum MPC is the limit of the MPC as m --> mNrmMin.  The
-        minimum MPC is the limit of the MPC as m --> infty.  Results are all
-        np.array with elements corresponding to each Markov state.
-
-        NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
         raise NotImplementedError()
 
     def make_euler_error_func(self, mMax=100, approx_inc_dstn=True):  # pragma: nocover
-        """
-        Creates a "normalized Euler error" function for this instance, mapping
-        from market resources to "consumption error per dollar of consumption."
-        Stores result in attribute eulerErrorFunc as an interpolated function.
-        Has option to use approximate income distribution stored in self.IncShkDstn
-        or to use a (temporary) very dense approximation.
-
-        NOT YET IMPLEMENTED FOR THIS CLASS
-
-        Parameters
-        ----------
-        mMax : float
-            Maximum normalized market resources for the Euler error function.
-        approx_inc_dstn : Boolean
-            Indicator for whether to use the approximate discrete income distri-
-            bution stored in self.IncShkDstn[0], or to use a very accurate
-            discrete approximation instead.  When True, uses approximation in
-            IncShkDstn; when False, makes and uses a very dense approximation.
-
-        Returns
-        -------
-        None
-        """
         raise NotImplementedError()
 
     def check_conditions(self, verbose=None):  # pragma: nocover

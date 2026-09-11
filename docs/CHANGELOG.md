@@ -8,13 +8,182 @@ For more information on HARK, see [our Github organization](https://github.com/e
 
 ## Changes
 
-### 0.16.2
+### 0.17.3 (dev)
 
-Release Date: January 3, 2026
+Release Date: TBD
 
 #### Release Notes
 
-This release has many small improvements and fixes to existing HARK capabilities, listed below under Minor Changes. It also includes expanded and improved documentation/learning materials in examples/Gentle-Intro. To copy those example notebooks into a local working directory for easy use, simply execute these two commands and then follow the prompts:
+(None yet)
+
+#### Major Changes
+
+- Raises the minimum supported Python to 3.12 and adds 3.14, following [SPEC 0](https://scientific-python.org/specs/spec-0000/), which drops a Python version three years after release. Python 3.11 left that window in October 2025, and numpy and scipy both already require 3.12 or newer, so installing HARK on 3.10 or 3.11 resolved a dependency stack from two years ago rather than the one HARK is developed against. The CI matrix now sweeps 3.12, 3.13 and 3.14 on Linux and covers 3.13 on macOS and Windows.
+- **Breaking:** `ConsAggIndMarkovModel` is rewritten: `AggIndMrkvConsumerType(MarkovConsumerType)` replaces the former `AggIndMarkovConsumerType(AgentType)` (hierarchical macro+micro Markov states via `shocks["Mrkv"]`, overridable `get_macro_markov_states`/`get_micro_markov_states`, pure-`MarkovConsumerType` fallback when the hierarchical counts are unset). The old name is **removed, not aliased** - the old class's contract (`MrkvCombined`, `AgentType` base) differed enough that a silent alias would mislead; imports fail loudly instead. `KrusellSmithType` reparents onto the new class (with a no-op `sim_death` preserving its no-mortality RNG stream); its default simulation path is unchanged, evidenced by the untouched seeded KS test suite. [#1798](https://github.com/econ-ark/HARK/pull/1798)
+- **Breaking (Krusell-Smith only):** the aggregate Markov state key on `KrusellSmithType` and `KrusellSmithEconomy` is renamed `"Mrkv"` → `"MrkvAgg"` (`shock_vars_`, `shocks`, `sow_vars`, `track_vars`, `sow_init`, and `economy.history`). This frees the `"Mrkv"` name for the *idiosyncratic* Markov state in the hierarchical-Markov refactor and removes the collision between agent-level and aggregate-level state keys. `AggShockMarkovConsumerType` and the Cobb-Douglas Markov economies are unchanged. Migration: replace `history["Mrkv"]`/`shocks["Mrkv"]` with `"MrkvAgg"` in KS-based code. [#1797](https://github.com/econ-ark/HARK/pull/1797)
+- future item
+- future item
+- future item
+
+#### Minor Changes
+
+- Speeds up multi-dimensional interpolation by replacing `np.unique(..., axis=0)` in `_iter_unique_pairs` with a packed integer key. The old form built a void-dtype view of the rows and lexsorted it, which dominated solver time: profiling the slowest test in the suite, `argsort` accounted for 71.3s of 143.7s. Most callers pass a single position array, where the row-lexsort machinery was being paid to sort one column. Measured on the same machine: that test 147.62s to 70.11s (2.11x), and the full test suite 413.02s to 242.46s (1.70x). Results are unchanged; the helper is shared by the 2D/3D/4D interpolators, so any model doing multi-dimensional interpolation benefits. [#1817](https://github.com/econ-ark/HARK/pull/1817)
+- Fixes `MrkvPrbsInit` never reaching a `MarkovConsumerType` simulation: `sim_birth` drew each newborn's initial state into `state_now["Mrkv"]`, while `get_markov_states` keeps newborns at their `shocks["Mrkv"]` value, so every agent started in state 0 and every agent born after a death inherited the state of the agent it replaced. `sim_birth` now writes the draw to `shocks["Mrkv"]` as well. Models with `global_markov` already worked, since `initialize_sim` writes their single draw into `shocks["Mrkv"]`.
+- Fixes `MarkovConsumerType` simulating a time-varying `MrkvArray` or `Rfree` one period ahead of its solution: `get_markov_states` drew with `MrkvArray[t]` and `get_Rport` paid `Rfree[t]` to agents entering period `t`, where the solver uses index `t - 1` for that move (as `get_shocks` already does for `IncShkDstn` and `PermGroFac`). Invisible whenever both are time-invariant.
+- Fixes `HARK.dual_measure` indexing the Q income process one period ahead of P whenever `cycles != 1`: `_draw_Q_shocks_indshock` chose `IncShkDstn_Q[t]` where `get_shocks` uses `IncShkDstn[t - 1]`, so an infinite-horizon agent with `T_cycle > 1` drew the Q sample from the wrong period's distribution and scaled it by the wrong `PermGroFac`. Invisible until now because every fixture used `T_cycle == 1`, where indices 0 and -1 name the same element.
+- Fixes `MarkovProcess.draw(shuffle=True)` returning uninitialized memory for an agent whose source state has no row in the transition matrix. The output buffer is now sentinel-filled and verified, so those agents raise `IndexError` (as the unshuffled path already did) instead of silently inheriting the previous period's `Mrkv` values.
+- Fixes a division by zero at `LivPrb == 1` in `compute_mean_pLvl`, and a wrong limit in the corresponding guard in `compute_pLvl_factor`. Both compute the newborn share of a stationary population; it is now one shared helper returning `1 / T_age` at the no-mortality limit rather than `nan` or `0`.
+- `MarkovConsumerType.get_shocks` now records newborn base draws under `("newborn", j)`, the key `HARK.dual_measure` already looked up and nothing wrote, so Markov newborns share their uniforms with the Q measure like every other cell. The P stream is unchanged.
+- `setup_Q_measure` refuses, rather than silently mispricing, a composition whose `get_Rport` reads P-side state (`KinkedRconsumerType`, `KinkyPrefConsumerType`, and the `ConsRiskyAssetModel` branch, which would give the Q agent the P agent's realized portfolio share).
+- `setup_Q_measure` no longer emits one degenerate-distribution warning per period; a stock `init_lifecycle` produced 25, which buried the aggregate warning that matters. The periods are recorded in `Q_degenerate_periods` instead.
+- `MarkovConsumerType.get_markov_states` warns and falls back when `balanced_transitions` is set without a `pLvl` to sort on, matching `AggIndMrkvConsumerType` instead of raising a bare `KeyError`; both now share one helper.
+- `DualMeasureMixin.sim_one_period` calls `AgentType._sim_period_prologue`/`_sim_period_epilogue` instead of hand-copying them, so a future change to the prologue cannot silently skip dual mode. Verified bit-identical.
+- Declares `init_shuffle` in `PerfForesightConsumerType_simulation_defaults` and `init_indshk_markov`, where its readers live; it was declared only on `IndShockConsumerType` and worked through a `getattr` fallback.
+- Restores ruff's default file discovery (`extend-include` rather than `include`), so `ruff check <dir>` no longer reports "All checks passed" after inspecting zero Python files.
+- `AgentType.get_states` now raises when `transition()` returns more values than there are states. States are assigned by position, so the loop silently dropped the tail. A return *shorter* than the state list stays legal, because it is deliberate: `GenIncProcessConsumerType` declares five states and returns three, writing the rest by name in `get_poststates`. The comment there now also records that reordering `state_vars` silently reassigns every value, which is how three models came to declare an `aNrm` that nothing wrote.
+- `MarkovProcess.draw(shuffle=True)` now warns when a source state has too few agents for deterministic counts and falls back to iid. The exact transition counts the shuffled path advertises were silently withdrawn for those agents while the rest of the population kept them; both normalization mixins already warn on their analogous skips. Aggregated into one warning naming the affected source states, rather than one per state per period.
+- `AgentType._sim_period_prologue` now blanks each period's ndarray states with `nan` instead of `np.empty`. A state that no later step writes previously held whatever was in the freed buffer, which in practice is usually the previous period's values, so the gap read as plausible data rather than as a defect; it now surfaces as `nan` rather than as plausible numbers. The same change in `AgentSimulator`'s newborn path (`HARK.simulator`) replaces an `np.empty` under a comment promising to "clear" the variable; both now route through one type-dispatching blank helper, which was already `nan`-filling elsewhere in that file. [#1809](https://github.com/econ-ark/HARK/issues/1809)
+- Fixes three models reporting an uninitialized `aNrm`: `GenIncProcessConsumerType`, `MedShockConsumerType`, and `MedExtMargConsumerType`. The variable is declared in `state_vars` but these models work in levels, so nothing in `transition` writes it and only `sim_birth` ever touched it; every continuing agent carried whatever the per-period blanking left behind. On a 100-agent, 10-period `GenIncProcess` run, 998 of 1000 tracked cells disagreed with `aLvl / pLvl`, taking values like `3.96e-319` -- subnormals, i.e. freed memory. `MedShockConsumerType` was worse: all 1600 cells of a 200-agent, 8-period run. The definition now lives in one place, `GenIncProcessConsumerType.set_aNrm_from_levels`, which the two `get_poststates` overrides call, so a further override cannot silently reopen it. Found because the `nan` blanking above made the second and third instances visible.
+- Removes a duplicate `"mLvl"` from `MedShockConsumerType.state_vars`, which appended a name the inherited list already contained.
+- `setup_Q_measure` now also refuses an agent with `normalize_pLvl=True`, and `PermanentIncomeNormalizationMixin` refuses an agent already in dual mode. Same class of defect as `normalize_shocks` below by a different mechanism: the per-cohort `pLvl` adjustment runs in `post_state_hook` and the Q pipeline does not mirror it at all. Measured at 1000 agents over 10 periods, enabling it moves the P history by 1.45e-2 and leaves the Q history *bit-identical*; across 10 seeds at 2000 agents the standard deviation of the final-period mean `pLvl` falls from 9.71e-3 to 5.91e-4 for P while Q stays at 1.03e-2. Both refusal messages now say the other flag is not a workaround, since the previous one-sided guard told users to turn off `normalize_shocks` and the module's own docstring example enables both.
+- `setup_Q_measure` now refuses an agent with `normalize_shocks=True`, and `ShockNormalizationMixin` refuses an agent already in dual mode. Composing the two variance-reduction features reversed the result dual mode exists to demonstrate: normalization rescales `shocks["PermShk"]` in place after the base uniforms were recorded and before the Q pipeline inverts them, so P's cross-sectional shock mean was pinned exactly while Q kept all of its sampling noise. Measured over 12 seeds at 2000 agents, the cross-seed standard deviation of the period-mean deviation is 2.03e-3 for both measures with normalization off, and 6.1e-17 for P against 2.03e-3 for Q with it on -- so a user enabling both, which nothing warned against, would have concluded the neutral measure increases variance. Making them genuinely composable requires normalizing the Q draws to the Q measure's own mean, `PermGroFac * E[psi^2] / E[psi]^2`, which is a design decision rather than a fix, so this refuses instead of guessing.
+- `ShockNormalizationMixin`'s zero-mean guard is now relative to the shock scale rather than an absolute `1e-16`. The guard protects a division by the empirical mean, so what matters is the mean's size next to the values it came from: the absolute form skipped a group whose shocks were legitimately all near `1e-18`, and accepted a mean of `1e-10` among values of order `1e6`, where the rescale factor is order `1e16`. No shipped calibration reaches either end; the simulation fingerprint is unchanged.
+- Removes the unreachable first branch of `AggIndMrkvConsumerType.get_macro_markov_states`. Its docstring advertised `self.EconomyMrkvNow` as the primary lookup, but nothing in HARK assigns that attribute, so the `hasattr` guard always fell through to `shocks["MrkvAgg"]`.
+- Renames the `examples` workflow from "Test examples as a cron job" to "Test examples", which is what it does: besides the nightly run it also fires on every push to `main` and every PR against `main`. Those pre-merge runs are the ones that catch a change breaking an example notebook, so the name was corrected rather than the triggers.
+- Declares the public API of the recently added modules: `__all__` for `HARK.simulation.normalization` and `HARK.ConsumptionSaving.ConsAggIndMarkovModel`, and an API-reference section for `HARK.simulation.normalization` on the Simulation tools page. [#1811](https://github.com/econ-ark/HARK/pull/1811)
+- Excludes scipy 1.18.0, whose `PPoly`-family objects (e.g. `CubicHermiteSpline`) cannot be `deepcopy`-ed (`TypeError: cannot pickle 'module' object`), breaking `ValueFuncCRRA` construction and the existing test suite wherever that scipy version is resolved. [#1788](https://github.com/econ-ark/HARK/pull/1788)
+- Adds opt-in `markov_shuffle` and `balanced_transitions` parameters to `MarkovConsumerType.get_markov_states`: quota-exact Markov transitions via `MarkovProcess.draw(shuffle=True)`, optionally with systematic sampling by pLvl. Default False; the default call is unchanged. [#1793](https://github.com/econ-ark/HARK/pull/1793)
+- Adds opt-in low-variance draw modes to the distributions layer: `MarkovProcess.draw(shuffle=, sort_key=, draws=)` (quota-exact state transitions with optional stratified rank assignment), `DiscreteDistribution.draw_events(shuffle=)`, and `DiscreteDistribution.draw(replicates=)` (exact full-coverage samples). The leftover-slot allocation that all of these share now lives in one function, `HARK.distributions.base.allocate_remainder_slots`, rather than being written out once per call site: the two earlier copies diverged, with the `MarkovProcess` one still allocating leftovers proportional to the transition row instead of to the fractional remainders, which overweighted the modal target by up to 6.5% and starved the rarest by 15% whenever `N_j * P[j,k]` was not an integer. `replicates` now rejects non-positive values instead of silently returning an empty sample, accepts zero-probability atoms, and warns only when the minimal sample is larger than the rarest atom alone requires. `sort_key=`/`draws=` warn when passed with `shuffle=False` rather than being silently ignored. Every default path is textually identical to the previous code and pinned by RNG-stream golden tests. [#1786](https://github.com/econ-ark/HARK/pull/1786)
+- Adds `HARK.simulation.normalization`: opt-in mixins that pin simulated cross-sectional moments to their analytical values, removing sampling noise from aggregates without requiring special population sizes. `ShockNormalizationMixin` rescales each period's drawn shocks so their cross-sectional means are exact; because HARK stores `psi * PermGroFac` in `shocks["PermShk"]` (growth is folded into the permanent "shock"), the target for `PermShk` is `PermGroFac`, not 1.0 - normalizing it to 1.0 would delete permanent income growth rather than sampling noise. `PermanentIncomeNormalizationMixin` pins per-cohort log-`pLvl` moments; a cohort reading `t_age == k` inside `post_state_hook` has already taken `k + 1` permanent shocks (newborns are not exempt: `get_shocks` redraws a random `PermShk` for them and pins only `TranShk`), and the targets accumulate period by period over each cohort's realized income-process history, so life-cycle calibrations with age-varying `PermGroFac` or `PermShkStd` get the right age profile instead of period 0's parameters extrapolated. Both are Markov-capable, with per-state targets and an automatic mean-only mode under state-dependent growth, and both warn rather than degrade silently when they cannot deliver exactness (small groups or cohorts, `read_shocks` replay, staggered entry, a model whose `sim_one_period` never reaches `post_state_hook`). Wiring is through `AgentType.post_state_hook` rather than an overridden `sim_one_period`, so models with their own simulation pipeline are not shadowed. Purely additive: defaults change no behavior and no existing file is modified. [#1784](https://github.com/econ-ark/HARK/pull/1784)
+- `make_hierarchical_mrkv_array` auto-detects a general nested `[i][j]` conditional-matrix format (source-and-destination conditioning, Krusell-Smith style) alongside the existing flat destination-conditioned format (unchanged for existing callers); adds its inverse `extract_cond_mrkv_arrays`; `KrusellSmithEconomy.make_MrkvArray` now also stores `MacroMrkvArray`/`CondMrkvArrays` and the KS agent's `market_vars` distributes them (additive plumbing for the hierarchical refactor). `extract_cond_mrkv_arrays` validates its input: it raises `ValueError` if `MrkvIndArray` is not `(M*N) x (M*N)`, or if any block is not the macro probability times a row-stochastic matrix, which is the necessary and sufficient condition for the extracted arrays to be transition matrices. [#1796](https://github.com/econ-ark/HARK/pull/1796)
+- Adds an opt-in `init_shuffle` parameter (`PerfForesightConsumerType.sim_birth`, mirrored for `MarkovConsumerType`'s initial Markov states): exact-marginal initial-state draws via `DiscreteDistribution.draw(shuffle=True)`, removing sampling noise in the initial cross-section. Default False; the kwarg is passed only when enabled, so duck-typed continuous init distributions keep working; pinned by a behavior-golden test. [#1791](https://github.com/econ-ark/HARK/pull/1791)
+- Makes `CubicHermiteInterp` `deepcopy`-able and picklable independent of scipy internals: the wrapped scipy spline is excluded from serialized state and deterministically rebuilt on restore, so attribute caching like scipy 1.18.0's unpicklable module objects (scipy issue #25489) can no longer break serialization of HARK solutions. [#1802](https://github.com/econ-ark/HARK/pull/1802)
+- Removes the `!=1.18.0` scipy exclusion added in [#1788](https://github.com/econ-ark/HARK/pull/1788), which was a stopgap for the deepcopy failure the entry above fixes at its root. Note that pickles written by this version cannot be loaded by earlier HARK, since `_chs` is no longer stored in serialized state. [#1802](https://github.com/econ-ark/HARK/pull/1802)
+- Restores `calc_expectation` as a `DeprecationWarning`-bearing alias of `expected_with_loop` (renamed in 0.17.2), preserving import compatibility for downstream code pinned to earlier versions - including frozen reproduction archives that cannot be edited. Slated for removal in a future release. [#1800](https://github.com/econ-ark/HARK/pull/1800)
+- Exports `KrusellSmithType`, `KrusellSmithEconomy`, `init_KS_agents`, `init_KS_economy` in `HARK.ConsumptionSaving.ConsAggShockModel.__all__` (they were defined but unlisted); fixes a stale sentence in the KrusellSmithType example notebook. [#1795](https://github.com/econ-ark/HARK/pull/1795)
+- Adds `AgentType.post_state_hook()`: a no-op extension point invoked by `sim_one_period` between `get_states()` and `get_controls()`, for mixins that adjust states before controls are computed (e.g. variance-reduction normalization). Default behavior is bit-identical (pinned by a behavior-golden test). [#1787](https://github.com/econ-ark/HARK/pull/1787)
+- Adds an opt-in `death_shuffle` parameter (`PerfForesightConsumerType.sim_death`, mirrored in `MarkovConsumerType`): for each distinct death probability, the number of deaths is set by floor-plus-remainder and the agents who die are drawn uniformly at random from that group. Each agent's marginal death probability is still `DiePrb` and the expected number of deaths is unchanged; deaths within a group become negatively correlated (`-1/(N-1)`), which is what removes the binomial noise. The reduction scales with `N_group * DiePrb`, so it is exact only for a single large group with `T_age=None` (death count constant at every period) and partial otherwise: on a 65-age lifecycle calibration the variance falls 34% at `AgentCount=1000` and 96% at `AgentCount=20000`, and with `T_age` set, old-age deaths are added afterward and are not de-noised. Default False; the default RNG path is preserved verbatim and pinned by a behavior-golden test. [#1790](https://github.com/econ-ark/HARK/pull/1790)
+- Fixes `DiscreteDistribution.draw(shuffle=True)`, which distributed the leftover slots after `floor(N*pmv)` in proportion to `pmv` itself rather than to the fractional remainders, so `E[count_j]` was not `N*pmv[j]`. The remainder is now allocated by systematic sampling, whose inclusion probability is exactly the remainder. The error was `O(M/N)`: invisible at population-sized draws, and large for the small cohorts `sim_birth` redraws, where the rarest atom came out about half as often as it should. `draw(0, shuffle=True)` also raised rather than returning an empty array, which `sim_birth` hits in any period with no deaths. Because `ConsAggShockModel` draws shuffled income shocks, the simulated Krusell-Smith economy changes slightly and `AFunc[0].slope` in `testAggShockMarkovConsumerType` moves from 1.05654 to 1.06030.
+- Adds `HARK.dual_measure`: opt-in Harmenberg neutral-measure (Q) parallel tracking via `DualMeasureMixin`, plus standalone aggregation helpers (`compute_mean_pLvl`, `compute_pLvl_factor`). Purely additive: no existing class or default behavior changes, and the default-off path is bit-identical to the plain agent including RNG stream position. `simulate()` delegates each period's P-measure recording to `AgentType.simulate` instead of reimplementing its loop, so enabling dual mode cannot change what the P pipeline records; an earlier draft dropped the base loop's `getattr` fall-through and left `history["MPCnow"]` all-NaN whenever `dual_measure` was on. `_transition_Q` stores `kNrm` and `bNrm` rather than computing `bNrm` and discarding it, and `_lag_Q_states` blanks with `np.nan` rather than `np.empty`, so a Q state nobody writes reads back as NaN instead of as recycled buffer contents that are finite and in range for the variable they are standing in for. Markov newborns redraw their Q permanent shock from `IncShkDstn_Q[0][j]` and gate `TranShk` on `NewbornTransShk`, matching `MarkovConsumerType.get_shocks` rather than pinning psi to 1. `make_Q_measure_dstn` and `setup_Q_measure` warn when the permanent shock is degenerate, instead of quietly handing back a Q measure equal to P. [#1783](https://github.com/econ-ark/HARK/pull/1783)
+- `AgentType.make_shock_history` gains an opt-in `shuffle=` keyword (default False): the pre-drawn shock history can be generated with the low-variance draw modes temporarily enabled. The original body survives verbatim as `_make_shock_history`; the default path delegates to it unchanged and is pinned by a stream-golden test. [#1794](https://github.com/econ-ark/HARK/pull/1794)
+- `AggIndMrkvConsumerType.get_micro_markov_states` gains the opt-in `markov_shuffle` branch: quota-exact micro-state transitions per (macro, source-micro) cell via `MarkovProcess.draw(shuffle=True)`, supporting both conditional-matrix formats, with `balanced_transitions` (systematic sampling by pLvl) available. Default remains iid `RNG.choice`, unchanged. A macro transition that carries agents but has zero probability under `MacroMrkvArray` now raises `ValueError` naming the `(macro_prev, macro_next)` cell, instead of leaving those agents with uninitialised micro states; `balanced_transitions=True` without a `pLvl` in `state_now` now warns rather than silently falling back to unbalanced shuffling. [#1801](https://github.com/econ-ark/HARK/pull/1801)
+- Extends `income_shuffle` to `MarkovConsumerType.get_shocks` (per-state and newborn draws). Default False; original RNG paths preserved verbatim. [#1792](https://github.com/econ-ark/HARK/pull/1792)
+- Adds an opt-in `income_shuffle` parameter to `IndShockConsumerType.get_shocks`: exact floor-plus-leftover shock frequencies per period (via `DiscreteDistribution.draw(shuffle=True)`) instead of iid sampling. Default False; the default RNG path is preserved verbatim and pinned by a stream-golden test. [#1789](https://github.com/econ-ark/HARK/pull/1789)
+- Wires `HARK.dual_measure`'s base-draw cache through `IndShockConsumerType.get_shocks` and `MarkovConsumerType.get_shocks`: under the `_cache_base_shock_draws` flag, income-shock uniforms are recorded for Q-CDF inversion using the same draws and the same inversion as the default path; the P-stream is bit-identical with the flag on or off (tested). `setup_Q_measure` now turns the flag on and registers `IncShkDstn_Q` with `self.distributions`, so the shared base draws the module documents actually happen and survive repeated `initialize_sim()` calls; pass `_cache_base_shock_draws = False` afterwards for independent Q draws. Setting `income_shuffle` and the cache together records no uniforms, and now warns instead of silently decoupling P from Q (this covers the `income_shuffle` collision specifically, not every way P and Q can decouple; see the `normalize_shocks` entry below for the other one). `initialize_sim` clears `_base_shock_draws` so a later run cannot consume a previous run's uniforms. [#1799](https://github.com/econ-ark/HARK/pull/1799)
+- future item
+- future item
+- future item
+
+
+### 0.17.2
+
+Release Date: May 1, 2026
+
+#### Release Notes
+
+This is a moderately sized release with several exciting new features, as well as many small improvements and fixes.
+Most of the breaking changes (see below) are very small adjustments to parameter names or formats; two functions also had their name change.
+The only significant breaking change is a reworking of the interaction between `AgentType` instances and their associated `Market` with respect to aggregate-level parameters.
+
+The new features are headlined by the addition of two models with consumption habits in the new `ConsHabitModel` module.
+Additionally, HARK's automatic HA-SSJ construction method has been extended to life-cycle models, rather than only infinite horizon models.
+
+There are some breaking changes:
+
+- `AgentType` subclasses that had a `get_economy_data` method now use the general `AgentType.get_market_params` method, which exactly replicates their prior operation. See #1719
+- As a consequence of the above, random seeds on the distributions of some `AgentType` subclasses will change because the order in which they are created during instantiation has changed.
+- Parameter `PortfolioBool` has been deprecated. To allow portfolio choice for `RiskyAssetConsumerType`, just set `RiskyShareFixed=None`. #1740
+- The parameter `BeqCRRA` has been deprecated; agents with a warm glow bequest motive must use the same CRRA as their ordinary utility function. #1758
+- "Terminal bequest parameters" have been deprecated; agents have the same bequest motive in period T as they do in all other periods. #1758
+- `calc_expectation` has been renamed to `expected_with_loop`; use `expected` and pass `vectorized=False` for this functionality. #1763
+- The argument `dist` in `expected` has been renamed to `dstn`. #1763
+- The function `make_exponential_grid` has been renamed to `make_polynomial_grid` to reduce confusion with `make_grid_exp_mult`. #1762
+
+#### Major Changes
+
+- The new way to set up `AgentType` instances with an associated `Market` is to create them (with the agents in the `Market`'s `agents` attribute), then invoke the `Market`'s new `give_agent_params()` method. #1719
+- The above method calls each `agent`'s `get_market_params()` method, which references the `market_vars` class attribute for the names of objects to take from the associated `Market`.
+- All interpolator classes now have default derivative methods using finite differences. These are fallback methods, and are already overridden by most subclasses. #1723
+- New consumption-saving model with habit formation has been added; extends IndShockConsumerType model. #1739
+- Added habit-formation model with portfolio allocation, along with example notebooks. #1748
+- Simulator class has new method `simulate_shock_by_grids` to perturb the steady state distribution and then simulate by matrix transition methods. #1754
+- Simplify parameters in `ConsBequestModel.py` to eliminate "terminal" bequest parameters and different CRRA for bequests than consumption. #1758
+- The `make_basic_SSJ` method can now handle life-cycle models (`cycles=1`) as well as standard infinite horizon models. #1718
+
+#### Minor Changes
+
+- The special constructor `get_it_from` can now interpret the referenced attribute being a single value (any numeric or string) and will simply copy it to the new name. #1719
+- A `Market`'s `calc_dynamics` function/method can now use arguments other than those named in `track_vars`; HARK will look for those names as attributes of the `Market`. #1719
+- The _derY method for `LowerEnvelope2D` and `LowerEnvelope3D` were previously bugged and returned nonsense, now fixed. #1723
+- Updated syntax in a few places that tried to convert singleton array to a float, to ensure compatibility with NumPy 2.4+ #1725
+- Add new income shock constructor that incorporates Velasquez-Giraldo's representation of medical expenses as negative transitory income shocks. #1724
+- Add parameter dictionary with Fulford and Low's estimates for *all* expenses (not just medical) for use by MedShockConsumerType. #1724
+- Refactoring of representative agent model solver and the "labeled" submodule. #1727
+- Example notebooks for all models with portfolio choice have been significantly expanded and improved. #1740
+- Example notebooks for models in `ConsAggShockModel.py` have been improved and expanded from their prior form. #1738
+- The `labels` argument now works as intended with `distribution.expected`. #1742
+- Example notebook `Transition_Matrix_Example.ipynb` has been cleaned up and expanded. #1744
+- `AggIndMarkovConsumerType` added for models with both aggregate (shared) and idiosyncratic discrete states; `KrusellSmithType` refactored to extend it. #1747
+- Light safety fixes to the new `HabitConsumerType`. #1753
+- Example notebooks for models in `ConsBequestModel.py` have been improved and expanded from their prior form. #1754
+- Example notebooks for KinkedRconsumerType, MarkovConsumerType, LaborIntMargConsumerType, and TractableBufferStockConsumerType have been improved and expanded. #1743
+- Handling of income shocks for model "newborns" has been made consistent across models, with transitory shocks optional. #1760
+- Tests added to handle a variety of unusual corner cases. #1761
+- Computing expectations now always uses `expected`; if the function cannot accept vector arguments, pass `vectorized=False`. #1763
+- Matrix transition methods (including HA-SSJ) now support multi-exponential grids, as well as fully custom grids. #1762
+- `HARK.interpolation` refactored to reduce repetition and code clutter. #1765
+- Small documentation notebook for life-cycle HA-SSJ construction has been added. #1718
+- `HARK.simulator` and experimental Monte Carlo submodule refactored to reduce repetition. #1766
+- `HARK.distributions` refactored to reduce repetition and improve structures. #1767
+- Additional refactoring in `Labeled`, `SSJutils`, `utilities`, and `metric` to reduce code repetition. #1768
+
+
+### 0.17.1
+
+Release Date: February 2, 2026
+
+#### Release Notes
+
+This is a relatively small release that includes various adjustments and improvements (see Minor Changes), as well as several new features and an algebraic revision to some models (Major Changes).
+
+There are some breaking changes:
+
+- The `exact_match` option for `DiscreteDistribution.draw` has been renamed to `shuffle`, and its behavior has changed slightly. See #1691.
+- Both `AgentType` subclasses in ConsPrefShockModel have had their utility function adjusted, moving the preference shock inside the CRRA term. See #1708.
+- If `calc_expectation` is used with a `DiscreteDistributionLabeled`, the function must reference indices of the distribution by name, not position number. See #1713.
+- Method `NewKeynesianConsumerType.compute_steady_state` has been renamed to `compute_pe_steady_state`. See #1711.
+
+#### Major Changes
+
+- Added `find_target` method to `AgentType`, automating search for target value of state variables. [#1698](https://github.com/econ-ark/HARK/pull/1698)
+- Utility function for `PrefShockConsumerType` and `KinkyPrefConsumerType` was algebraically rearranged. There is no functional difference, but the scale of preference shocks that yields a given level of consumption variation will be different. [#1708](https://github.com/econ-ark/HARK/pull/1708/)
+- The format of the utility function for `MedShockConsumerType` has been revised; prior distributions of MedShk will need to be adjusted. See #1706.
+- The policy function representation for `MedShockConsumerType` has been revised, and old classes have been moved to LegacyOOsolvers.
+- The utility function for `MedShockConsumerType` has been algebraically rearranged, moving MedShk inside of the second CRRA term and adding a new parameter MedShift (default near zero). [#1706](https://github.com/econ-ark/HARK/pull/1706)
+- Function `plot_func_slices` has been added to `HARK.utilities` for convenient in-line plotting of multivariate functions [#1695](https://github.com/econ-ark/HARK/pull/1695)
+- New method `AgentType.export_to_df` added to flexibly export simulated `history` to a `pandas.DataFrame`. [#1712](https://github.com/econ-ark/HARK/pull/1712)
+
+#### Minor Changes
+
+- Revised `exact_match` option for `DiscreteDistribution.draw` to `shuffle` to be more robust to population draw size. [#1691](https://github.com/econ-ark/HARK/pull/1691)
+- multi_thread_commands[_fake] no longer requires empty parentheses to be included with each method name (now optional). [#1692](https://github.com/econ-ark/HARK/pull/1692)
+- Added __repr__ method for DiscreteDistribution (and subclasses) to display basic information about itself.
+- All AgentTypes now have sensible defaults for track_vars if none is provided. [#1693](https://github.com/econ-ark/HARK/pull/1693)
+- `AgentType.unpack` and the new simulation structure appropriately handle solutions represented as dictionaries. [#1709](https://github.com/econ-ark/HARK/pull/1709)
+- `calc_expectation` now works with `DiscreteDistributionLabeled` instances when `func` references RVs by name, but *not* by position numbers. [#1713](https://github.com/econ-ark/HARK/pull/1713)
+- Repository now includes AI prompts to aid users when updating their project code from one version of HARK to another. [#1696](https://github.com/econ-ark/HARK/pull/1696)
+- 2D, 3D, and 4D interpolator classes no longer require that their arguments have the same size/shape; now they must only be jointly broadcastable. [#1701](https://github.com/econ-ark/HARK/pull/1701)
+- Method name change for `NewKeynesianConsumerType`: `compute_steady_state` is now `compute_pe_steady_state`. [#1711](https://github.com/econ-ark/HARK/pull/1711)
+- Life-cycle parameter calibrations from Carroll 1997 (QJE) have been added to `ConsIndShockModel`. [#1715](https://github.com/econ-ark/HARK/pull/1715)
+
+
+### 0.17.0
+
+Release Date: January 4, 2026
+
+#### Release Notes
+
+This release has many small improvements and fixes to existing HARK capabilities, listed below under Minor Changes. It also includes expanded and improved documentation/learning materials in examples/Gentle-Intro. To copy those example notebooks into a local working directory for easy use, simply execute these two commands in a Python environment and then follow the prompts:
 
 `from HARK import install_examples`
 `install_examples()`
@@ -31,7 +200,6 @@ There are some breaking changes:
 - Simulation method get_Rfree() has been renamed to get_Rport(), but no functional changes; see #1646.
 - The parameter DeprFac has been renamed to DeprRte to reflect its actual usage.
 - All distributions now default to using a random seed if none is provided. If your code relied on HARK defaulting to a specific seed, it will not reproduce exactly. See #1641.
-- HARK.parallel has been deprecated and its contents moved to HARK.core. See #1614.
 - The function apply_flat_income_tax has been removed, but it has not been used at all since 2016.
 - Content from ConsLabeledModel has been split up into files in the Labeled submodule. See #1684.
 

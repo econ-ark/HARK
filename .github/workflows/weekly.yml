@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: Install dependencies and editable install
         run: |
           python -m pip install --upgrade pip

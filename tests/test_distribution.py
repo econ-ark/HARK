@@ -1,10 +1,12 @@
 import unittest
+import warnings
 
 import numpy as np
 import xarray as xr
 
 from HARK.distributions import (
     Bernoulli,
+    calc_expectation,
     DiscreteDistribution,
     DiscreteDistributionLabeled,
     IndexDistribution,
@@ -14,12 +16,12 @@ from HARK.distributions import (
     Normal,
     Uniform,
     Weibull,
-    calc_expectation,
     calc_lognormal_style_pars_from_normal_pars,
     calc_normal_style_pars_from_lognormal_pars,
     combine_indep_dstns,
     distr_of_function,
     expected,
+    expected_with_loop,
     approx_beta,
     make_markov_approx_to_normal,
     make_markov_approx_to_normal_by_monte_carlo,
@@ -43,20 +45,32 @@ class DiscreteDistributionTests(unittest.TestCase):
             0,
         )
 
+    def test_draw_events_shuffle_matches_shuffle_draw_indices(self):
+        """draw_events(..., shuffle=True) returns the same multiset of indices as draw(..., shuffle=True)."""
+        pmv = np.array([0.95, 0.05])
+        atoms = np.array([0.0, 1.0])
+        d = DiscreteDistribution(pmv, atoms, seed=12345)
+        N = 10_000
+        idx_shuffle = d.draw_events(N, shuffle=True)
+        draws = d.draw(N, shuffle=True, atoms=np.arange(2, dtype=int))
+        self.assertTrue(np.array_equal(np.sort(idx_shuffle), np.sort(draws)))
+        self.assertEqual(np.bincount(idx_shuffle, minlength=2)[0], 9500)
+        self.assertEqual(np.bincount(idx_shuffle, minlength=2)[1], 500)
+
     def test_distr_of_function(self):
         # Function 1 -> 1
         # Approximate the lognormal expectation
         sig = 0.05
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = distr_of_function(norm, func=lambda x: np.exp(x))
-        exp = calc_expectation(my_logn)
-        self.assertAlmostEqual(float(exp), 1.0)
+        exp = expected(None, my_logn)
+        self.assertAlmostEqual(exp[0], 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
         norm = Normal(mu=0.0, sigma=1.0).discretize(5, method="hermite")
         moments = distr_of_function(norm, lambda x: np.array([x, x**2]))
-        exp = calc_expectation(moments).flatten()
+        exp = expected(None, moments).flatten()
         self.assertAlmostEqual(exp[0], 0.0)
         self.assertAlmostEqual(exp[1], 1.0)
 
@@ -68,7 +82,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm_b = Normal(mu=mu_b, sigma=si_b).discretize(5, method="hermite")
         binorm = combine_indep_dstns(norm_a, norm_b)
         mysum = distr_of_function(binorm, lambda x: np.sum(x))
-        exp = calc_expectation(mysum)
+        exp = expected(None, mysum)
         self.assertAlmostEqual(exp[0], mu_a + mu_b)
 
         # Function n -> m
@@ -77,39 +91,42 @@ class DiscreteDistributionTests(unittest.TestCase):
             binorm,
             lambda x: np.array([x[0], (x[0] - mu_a) ** 2, x[1], (x[1] - mu_b) ** 2]),
         )
-        exp = calc_expectation(moments)
+        exp = expected(None, moments)
         self.assertAlmostEqual(exp[0], mu_a)
         self.assertAlmostEqual(exp[1], si_a**2)
         self.assertAlmostEqual(exp[2], mu_b)
         self.assertAlmostEqual(exp[3], si_b**2)
 
-    def test_calc_expectation(self):
+    def test_expected_with_loop(self):
         dd_0_1_20 = Normal().discretize(20, method="hermite")
         dd_1_1_40 = Normal(mu=1).discretize(40, method="hermite")
         dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100, method="hermite")
 
-        ce1 = calc_expectation(dd_0_1_20)
-        ce2 = calc_expectation(dd_1_1_40)
-        ce3 = calc_expectation(dd_10_10_100)
+        ce1 = expected(None, dd_0_1_20, vectorized=False)
+        ce2 = expected(None, dd_1_1_40, vectorized=False)
+        ce3 = expected(None, dd_10_10_100, vectorized=False)
 
         self.assertAlmostEqual(ce1[0], 0.0)
         self.assertAlmostEqual(ce2[0], 1.0)
         self.assertAlmostEqual(ce3[0], 10.0)
 
-        ce4 = calc_expectation(dd_0_1_20, lambda x: 2**x)
+        ce4 = expected(lambda x: 2**x, dd_0_1_20, vectorized=False)
 
         self.assertAlmostEqual(ce4[0], 1.27154, places=HARK_PRECISION)
 
-        ce5 = calc_expectation(dd_1_1_40, lambda x: 2 * x)
+        ce5 = expected(lambda x: 2 * x, dd_1_1_40, vectorized=False)
 
         self.assertAlmostEqual(ce5[0], 2.0)
 
-        ce6 = calc_expectation(dd_10_10_100, lambda x, y: 2 * x + y, 20)
+        ce6 = expected(lambda x, y: 2 * x + y, dd_10_10_100, 20, vectorized=False)
 
         self.assertAlmostEqual(ce6[0], 40.0)
 
-        ce7 = calc_expectation(
-            dd_0_1_20, lambda x, y: x + y, np.hstack(np.array([0, 1, 2, 3, 4, 5]))
+        ce7 = expected(
+            lambda x, y: x + y,
+            dd_0_1_20,
+            np.hstack(np.array([0, 1, 2, 3, 4, 5])),
+            vectorized=False,
         )
 
         self.assertAlmostEqual(ce7.flat[3], 3.0)
@@ -118,15 +135,18 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = calc_expectation(IncShkDstn, lambda atoms: atoms[0] + atoms[1])
+        ce8 = expected(lambda atoms: atoms[0] + atoms[1], IncShkDstn, vectorized=False)
 
         self.assertAlmostEqual(ce8, 2.0)
 
-        ce9 = calc_expectation(
-            IncShkDstn,
+        ce9 = expected(
             lambda atoms, a, r: r / atoms[0] * a + atoms[1],
-            np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
-            1.05,  # an interest rate?
+            IncShkDstn,
+            (
+                np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
+                1.05,
+            ),  # an interest rate?
+            vectorized=False,
         )
 
         self.assertAlmostEqual(ce9[3], 9.51802, places=HARK_PRECISION)
@@ -136,9 +156,9 @@ class DiscreteDistributionTests(unittest.TestCase):
         dd_1_1_40 = Normal(mu=1).discretize(40, method="hermite")
         dd_10_10_100 = Normal(mu=10, sigma=10).discretize(100, method="hermite")
 
-        ce1 = expected(dist=dd_0_1_20)
-        ce2 = expected(dist=dd_1_1_40)
-        ce3 = expected(dist=dd_10_10_100)
+        ce1 = expected(dstn=dd_0_1_20)
+        ce2 = expected(dstn=dd_1_1_40)
+        ce3 = expected(dstn=dd_10_10_100)
 
         self.assertAlmostEqual(ce1[0], 0.0)
         self.assertAlmostEqual(ce2[0], 1.0)
@@ -148,7 +168,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         self.assertAlmostEqual(ce4[0], 1.27154, places=HARK_PRECISION)
 
-        ce5 = expected(func=lambda x: 2 * x, dist=dd_1_1_40)
+        ce5 = expected(func=lambda x: 2 * x, dstn=dd_1_1_40)
 
         self.assertAlmostEqual(ce5[0], 2.0)
 
@@ -158,7 +178,7 @@ class DiscreteDistributionTests(unittest.TestCase):
 
         ce7 = expected(
             func=lambda x, y: x + y,
-            dist=dd_0_1_20,
+            dstn=dd_0_1_20,
             args=(np.hstack([0, 1, 2, 3, 4, 5])),
         )
 
@@ -168,13 +188,13 @@ class DiscreteDistributionTests(unittest.TestCase):
         TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
         IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
 
-        ce8 = expected(lambda atoms: atoms[0] + atoms[1], dist=IncShkDstn)
+        ce8 = expected(lambda atoms: atoms[0] + atoms[1], dstn=IncShkDstn)
 
         self.assertAlmostEqual(ce8, 2.0)
 
         ce9 = expected(
             func=lambda atoms, a, r: r / atoms[0] * a + atoms[1],
-            dist=IncShkDstn,
+            dstn=IncShkDstn,
             args=(
                 np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
                 1.05,  # an interest rate?
@@ -190,7 +210,7 @@ class DiscreteDistributionTests(unittest.TestCase):
         norm = Normal(mu=-(sig**2) / 2, sigma=sig).discretize(131, method="hermite")
         my_logn = norm.dist_of_func(lambda x: np.exp(x))
         exp = my_logn.expected()
-        self.assertAlmostEqual(float(exp), 1.0)
+        self.assertAlmostEqual(exp[0], 1.0)
 
         # Function 1 -> n
         # Mean and variance of the normal
@@ -224,6 +244,89 @@ class DiscreteDistributionTests(unittest.TestCase):
         self.assertAlmostEqual(exp[2], mu_b)
         self.assertAlmostEqual(exp[3], si_b**2)
 
+    def test_shuffle(self):
+        X = np.arange(5)
+        P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
+        F = DiscreteDistribution(P, X, seed=0)
+        data = F.draw(1000, shuffle=True)
+
+        counts = np.zeros(5)
+        for j in range(5):
+            counts[j] = np.sum(data == j)
+
+        self.assertTrue(counts[0] == 100)
+        self.assertTrue(counts[1] == 200)
+        self.assertTrue(counts[2] >= 233)
+        self.assertTrue(counts[3] >= 233)
+        self.assertTrue(counts[4] >= 233)
+        self.assertTrue(counts[2] <= 234)
+        self.assertTrue(counts[3] <= 234)
+        self.assertTrue(counts[4] <= 234)
+
+    def test_shuffle_unbiased_at_small_N(self):
+        """Shuffled draws must satisfy E[count_j] == N * pmv[j] at every N.
+
+        The test above draws N=1000, where floor(N*P) already allocates
+        almost every slot and any error in distributing the remainder is
+        invisible. The error is O(M/N), so it only shows up when N is small
+        relative to the number of atoms, which is the regime sim_birth hits
+        when it redraws a cohort of newly born agents.
+        """
+        P = np.array([0.55, 0.25, 0.15, 0.05])
+        X = np.arange(4)
+        N, reps = 6, 6000
+
+        F = DiscreteDistribution(P, X, seed=0)
+        counts = np.zeros(4)
+        for _ in range(reps):
+            data = F.draw(N, shuffle=True)
+            for j in range(4):
+                counts[j] += np.sum(data == j)
+
+        realized = counts / counts.sum()
+        # 0.01 is roughly 5 standard errors here, and the failure this guards
+        # against is about 0.023, so the gap is not a matter of tuning.
+        for j in range(4):
+            self.assertAlmostEqual(realized[j], P[j], delta=0.01)
+
+    def test_shuffle_draws_nothing_when_N_is_zero(self):
+        """N=0 must return an empty array rather than raising.
+
+        sim_birth runs every period and asks for zero draws in any period
+        where nobody died, so this is reachable in ordinary simulation.
+        """
+        F = DiscreteDistribution(np.array([0.7, 0.2, 0.1]), np.arange(3), seed=0)
+        for zero in (0, np.int64(0)):
+            data = F.draw(zero, shuffle=True)
+            self.assertEqual(data.shape, (0,))
+
+    def test_repr(self):
+        X = np.arange(5)
+        P = np.array([0.1, 0.2, 7 / 30, 7 / 30, 7 / 30])
+        F = DiscreteDistribution(P, X, seed=0)
+
+        desc = str(F)
+        self.assertTrue(
+            desc == "DiscreteDistribution with 5 atoms, inf=0, sup=4, seed=0"
+        )
+
+    def test_calc_exp_labeled(self):
+        F = DiscreteDistributionLabeled(
+            atoms=np.array([[1.0, 2.0, 3.0, 4.0, 5.0], [0.3, 0.8, -0.2, 0.0, 9.0]]),
+            pmv=np.array([0.2, 0.2, 0.2, 0.2, 0.2]),
+            name="test distribution",
+            var_names=["x", "y"],
+        )
+
+        def my_func(S, z):
+            return S["x"] + 2 * S["y"] + 3 * z
+
+        self.assertAlmostEqual(
+            expected(my_func, F, z=3.0),
+            expected(my_func, F, z=3.0, vectorized=False),
+            places=HARK_PRECISION,
+        )
+
 
 class MatrixDiscreteDistributionTests(unittest.TestCase):
     """
@@ -256,7 +359,7 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
 
     def test_expected(self):
         # Expectation without transformation
-        exp = calc_expectation(self.mat_distr)
+        exp = expected(None, self.mat_distr)
 
         # Check the expectation is of the shape we want
         self.assertTrue(exp.shape[0] == self.draw_1.shape[0])
@@ -266,7 +369,7 @@ class MatrixDiscreteDistributionTests(unittest.TestCase):
         self.assertTrue(np.allclose(exp, 0.0))
 
         # Expectation of the sum
-        exp = calc_expectation(self.mat_distr, func=np.sum)
+        exp = expected(np.sum, self.mat_distr, vectorized=False)
         self.assertTrue(float(exp) == 0.0)
 
     def test_distr_of_fun(self):
@@ -379,7 +482,7 @@ class DistributionClassTests(unittest.TestCase):
         Uniform().draw(1)[0]
 
         self.assertAlmostEqual(
-            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            expected(None, uni.discretize(10, method="equiprobable"))[0],
             0.5,
         )
 
@@ -388,7 +491,7 @@ class DistributionClassTests(unittest.TestCase):
         self.assertEqual(uni_discrete.atoms[0][0], 0.0)
         self.assertEqual(uni_discrete.atoms[0][-1], 1.0)
         self.assertAlmostEqual(
-            float(calc_expectation(uni.discretize(10, method="equiprobable"))),
+            expected(None, uni.discretize(10, method="equiprobable"))[0],
             0.5,
         )
 
@@ -491,6 +594,253 @@ class MarkovProcessTests(unittest.TestCase):
         new_state = mp.draw(new_state)
 
         self.assertEqual(new_state.sum(), 45)
+
+    def test_shuffle_crn_across_matrices(self):
+        """Source states with identical transition rows should produce
+        identical draws across two calls with the same seed, even when
+        other source states have different rows that consume different
+        amounts of RNG state.
+
+        This is the common-random-numbers guarantee needed for scenario
+        comparison experiments (e.g., counterfactual policy evaluation):
+        agents whose transition probabilities are unchanged between two
+        matrices must see identical state assignments so that the
+        treatment-effect variance is driven only by the rows that
+        actually differ.
+
+        The test uses row 0 probabilities that produce different
+        leftover-slot counts and different permutation consumption
+        between the two matrices, then checks that row 1's output (with
+        identical probabilities) is identical across multiple seeds.
+        Without per-source-state sub-RNG isolation, row 0's RNG drift
+        contaminates row 1's permutation and this assertion fails for
+        most seeds.
+        """
+        # 7 agents in each source state - small enough to exercise
+        # leftover-slot assignment, large enough that the permutation
+        # drift is clearly visible across seeds.
+        state = np.array([0] * 7 + [1] * 7, dtype=int)
+
+        # Row 0 differs between matrices (TM_a: K=[3,3] M=1;
+        # TM_b: K=[5,2] M=0).  Row 1 is identical in both.
+        TM_a = np.array([[0.50, 0.50], [0.30, 0.70]])
+        TM_b = np.array([[5.0 / 7.0, 2.0 / 7.0], [0.30, 0.70]])
+
+        # Check across multiple seeds - the naive implementation fails
+        # for the majority of seeds, while the sub-RNG-isolated
+        # implementation passes for all of them.
+        for seed in range(20):
+            mp_a = MarkovProcess(TM_a, seed=seed)
+            mp_b = MarkovProcess(TM_b, seed=seed)
+            new_a = mp_a.draw(state, shuffle=True)
+            new_b = mp_b.draw(state, shuffle=True)
+            source_1 = state == 1
+            np.testing.assert_array_equal(
+                new_a[source_1],
+                new_b[source_1],
+                err_msg=(
+                    f"seed={seed}: source-1 draws differ between two "
+                    f"calls with identical row-1 probabilities. This "
+                    f"indicates that RNG state from row 0's processing "
+                    f"contaminated row 1's permutation (CRN violation)."
+                ),
+            )
+
+    def test_shuffle_with_draws_converges_to_iid(self):
+        """The new draws= argument should produce per-agent assignments
+        that converge to per-agent iid as N -> infinity (Glivenko-
+        Cantelli).  At N=10000 with a 2-state chain, per-agent match
+        rate between iid and draws=-shuffle should be > 99%.
+
+        The default shuffle (no draws=) uses a random permutation
+        independent of any per-agent input, so agent-by-agent it
+        does NOT match iid even at large N - typically agreeing only
+        on the trivial "stay-in-same-target" mass.
+        """
+        P = np.array([[0.95, 0.05], [0.30, 0.70]])
+        N = 10_000
+        rng = np.random.default_rng(seed=42)
+        # Half emp, half unemp - exercises both rows of P.
+        state = np.repeat([0, 1], N // 2)
+        u = rng.uniform(size=N)
+
+        # Per-agent iid via searchsorted on cumulative cond_mrkv.
+        cdf = np.cumsum(P, axis=1)
+        new_iid = np.empty(N, dtype=int)
+        for j in range(2):
+            mask = state == j
+            new_iid[mask] = np.searchsorted(cdf[j, :], u[mask])
+
+        # New mode: rank-based stratified inverse-CDF with shared draws.
+        mp_strat = MarkovProcess(P, seed=42)
+        new_strat = mp_strat.draw(state, shuffle=True, draws=u)
+
+        match_strat = (new_iid == new_strat).mean()
+        self.assertGreater(
+            match_strat,
+            0.99,
+            f"draws=-shuffle should match iid agent-by-agent at >99% "
+            f"for N={N}; got {match_strat:.4f}",
+        )
+
+    def test_shuffle_with_draws_preserves_quotas(self):
+        """The new draws= argument must preserve the quota-exact
+        target counts that are the original purpose of shuffle.  Each
+        per-source-state target count K[j,k] should equal
+        floor(N_j * P[j,k]) plus at most +/-1 from leftover allocation.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 1000
+        rng = np.random.default_rng(seed=1)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        mp = MarkovProcess(P, seed=0)
+        new_state = mp.draw(state, shuffle=True, draws=u)
+
+        for j in range(2):
+            N_j = (state == j).sum()
+            for k in range(2):
+                count = int(((state == j) & (new_state == k)).sum())
+                expected = N_j * P[j, k]
+                self.assertLessEqual(
+                    abs(count - expected),
+                    1,
+                    f"source {j} -> target {k}: count {count} not within "
+                    f"+/-1 of expected quota {expected:.1f}",
+                )
+
+    def test_shuffle_draws_and_sort_key_mutually_exclusive(self):
+        """draws= and sort_key= specify mutually exclusive assignment
+        modes; passing both should raise ValueError.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 100
+        rng = np.random.default_rng(seed=0)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        mp = MarkovProcess(P, seed=0)
+        with self.assertRaises(ValueError):
+            mp.draw(state, shuffle=True, draws=u, sort_key=u)
+
+    def test_shuffle_unbiased_when_quotas_are_fractional(self):
+        """Shuffled transitions must satisfy E[count_k] == N_j * P[j,k].
+
+        The quota tests above all use populations where N_j * P[j,k] is
+        already an integer, so ``floor`` allocates every slot, M is zero and
+        the leftover-allocation path never runs.  That is exactly the regime
+        where the two implementations of the floor-plus-leftover algorithm
+        agreed, and it is why a biased allocator lived in
+        ``_draw_shuffled`` while the copy in ``DiscreteDistribution.draw``
+        was being fixed.  Allocating the leftover proportional to P instead
+        of to the fractional remainders overweights the modal target and
+        starves the rare one.
+
+        N=13 against [0.7, 0.2, 0.1] is analytic rather than noisy: K =
+        [9, 2, 1] leaves exactly M=1 slot, whose correct destination
+        probabilities are the remainders [0.1, 0.6, 0.3].  Allocating it
+        proportional to P instead sends it to state 0 with probability
+        0.696, giving E[count_0] = 9.696 against a target of 9.1.  The
+        tolerance below is far tighter than that 0.6 error and far looser
+        than the Monte Carlo standard error at this many repetitions.
+        """
+        row = np.array([0.7, 0.2, 0.1])
+        N, reps = 13, 6000
+        TM = np.tile(row, (len(row), 1))
+
+        mp = MarkovProcess(TM, seed=0)
+        state = np.zeros(N, dtype=int)
+        total = np.zeros(len(row))
+        for _ in range(reps):
+            total += np.bincount(mp.draw(state, shuffle=True), minlength=len(row))
+
+        realized = total / reps
+        np.testing.assert_allclose(realized, N * row, atol=0.06)
+
+    def test_shuffle_ignored_arguments_warn(self):
+        """sort_key= and draws= do nothing without shuffle=True.
+
+        Silently ignoring them lets a caller believe a variance reduction is
+        in effect when the draw is plain iid, which is the failure mode that
+        is hardest to notice: the run completes and the numbers look fine.
+        """
+        P = np.array([[0.7, 0.3], [0.4, 0.6]])
+        N = 50
+        rng = np.random.default_rng(seed=0)
+        state = (rng.uniform(size=N) > 0.5).astype(int)
+        u = rng.uniform(size=N)
+
+        for kwargs in ({"sort_key": u}, {"draws": u}, {"sort_key": u, "draws": u}):
+            mp = MarkovProcess(P, seed=0)
+            with self.assertWarns(UserWarning):
+                mp.draw(state, **kwargs)
+
+        # The default path must stay silent.
+        mp = MarkovProcess(P, seed=0)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            mp.draw(state)
+        self.assertEqual([str(w.message) for w in caught], [])
+
+
+class ReplicatesTests(unittest.TestCase):
+    """Tests for DiscreteDistribution.draw(replicates=...)."""
+
+    def test_replicates_gives_exact_counts(self):
+        P = np.array([1 / 3, 1 / 6, 1 / 2])
+        dstn = DiscreteDistribution(P, np.arange(3), seed=0)
+        drawn = dstn.draw(replicates=2)
+        self.assertEqual(len(drawn), 12)
+        counts = np.bincount(drawn.astype(int), minlength=3)
+        np.testing.assert_array_equal(counts, [4, 2, 6])
+
+    def test_replicates_allows_zero_probability_atoms(self):
+        """A zero-mass atom is legitimate and must not be refused.
+
+        It simply gets zero slots.  Requiring every atom count to be
+        strictly positive rejected the whole request instead.
+        """
+        P = np.array([0.5, 0.0, 0.5])
+        dstn = DiscreteDistribution(P, np.arange(3), seed=0)
+        drawn = dstn.draw(replicates=3)
+        counts = np.bincount(drawn.astype(int), minlength=3)
+        np.testing.assert_array_equal(counts, [3, 0, 3])
+
+    def test_replicates_must_be_a_positive_integer(self):
+        """Zero or negative replicates used to return an empty array."""
+        dstn = DiscreteDistribution(np.array([0.25, 0.75]), np.arange(2), seed=0)
+        for bad in (0, -1, 1.5):
+            with self.assertRaises(ValueError):
+                dstn.draw(replicates=bad)
+
+    def test_replicates_rejects_N_and_replicates_together(self):
+        dstn = DiscreteDistribution(np.array([0.25, 0.75]), np.arange(2), seed=0)
+        with self.assertRaises(ValueError):
+            dstn.draw(4, replicates=1)
+
+    def test_replicates_warns_only_when_J_min_exceeds_the_rarest_atom(self):
+        """The warning must key on something that means what it says.
+
+        Covering an atom of probability p_min needs ceil(1/p_min) draws no
+        matter what, so a two-point [0.05, 0.95] needing J_min=20 is
+        arithmetic, not a surprise.  An earlier version warned whenever some
+        1/p_j was non-integral, which is true of nearly every non-uniform
+        pmv, so it fired on essentially every realistic income grid.  The
+        case worth flagging is the LCM blowing up past that floor.
+        """
+        quiet = DiscreteDistribution(np.array([0.05, 0.95]), np.arange(2), seed=0)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            quiet.draw(replicates=1)
+        self.assertEqual([str(w.message) for w in caught], [])
+
+        # 0.07 unemployment crossed with 7 equiprobable employed states:
+        # the rarest atom needs 100 draws, but the LCM needs 700.
+        P = np.concatenate([[0.07], np.full(7, 0.93 / 7)])
+        loud = DiscreteDistribution(P, np.arange(8), seed=0)
+        with self.assertWarns(UserWarning):
+            loud.draw(replicates=1)
 
 
 class LogNormalToNormalTests(unittest.TestCase):
@@ -610,14 +960,14 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
 
         ce1 = expected(
             func=lambda dist: 1 / dist["perm_shk"] + dist["tran_shk"],
-            dist=IncShkDstn,
+            dstn=IncShkDstn,
         )
 
         self.assertAlmostEqual(ce1, 3.70413, places=HARK_PRECISION)
 
         ce2 = expected(
             func=lambda dist, a, r: r / dist["perm_shk"] * a + dist["tran_shk"],
-            dist=IncShkDstn,
+            dstn=IncShkDstn,
             args=(
                 np.array([0, 1, 2, 3, 4, 5]),  # an aNrmNow grid?
                 1.05,  # an interest rate?
@@ -625,6 +975,48 @@ class DiscreteDistributionLabeledTests(unittest.TestCase):
         )
 
         self.assertAlmostEqual(ce2[3], 9.51802, places=HARK_PRECISION)
+
+    def test_labels_parameter(self):
+        """Test that labels=True uses dict indexing and labels=False uses integer indexing."""
+        PermShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        TranShkDstn = MeanOneLogNormal().discretize(200, method="equiprobable")
+        IncShkDstn = combine_indep_dstns(PermShkDstn, TranShkDstn)
+        IncShkDstn = DiscreteDistributionLabeled.from_unlabeled(
+            IncShkDstn,
+            name="Income shocks",
+            var_names=["perm_shk", "tran_shk"],
+        )
+
+        # labels=True (default): func receives dict with named keys
+        ce_labeled = IncShkDstn.expected(lambda d: d["perm_shk"] + d["tran_shk"])
+
+        # labels=True explicit: same result
+        ce_labeled_explicit = IncShkDstn.expected(
+            lambda d: d["perm_shk"] + d["tran_shk"], labels=True
+        )
+
+        # labels=False: func receives raw numpy atoms (integer indexing)
+        ce_unlabeled = IncShkDstn.expected(lambda x: x[0] + x[1], labels=False)
+
+        self.assertAlmostEqual(ce_labeled, ce_labeled_explicit, places=HARK_PRECISION)
+        self.assertAlmostEqual(ce_labeled, ce_unlabeled, places=HARK_PRECISION)
+
+        # labels=False with args
+        ce_with_args = IncShkDstn.expected(
+            lambda x, k: x[0] * k + x[1], 2.0, labels=False
+        )
+        ce_with_args_labeled = IncShkDstn.expected(
+            lambda d, k: d["perm_shk"] * k + d["tran_shk"], 2.0, labels=True
+        )
+        self.assertAlmostEqual(
+            ce_with_args, ce_with_args_labeled, places=HARK_PRECISION
+        )
+
+        # labels parameter should not leak to func (issue #1487)
+        ce_no_leak = IncShkDstn.expected(
+            lambda d: d["perm_shk"] + d["tran_shk"], labels=True
+        )
+        self.assertAlmostEqual(ce_no_leak, ce_labeled, places=HARK_PRECISION)
 
     def test_getters_setters(self):
         # Create some dummy dsnt
@@ -735,9 +1127,6 @@ class labeled_transition_tests(unittest.TestCase):
         exp1 = base_dist.expected(transition, state=state_grid)
         # Expectation after transformation
         new_state_dstn = base_dist.dist_of_func(transition, state=state_grid)
-        # TODO: needs a cluncky identity function with an extra argument because
-        # DDL.expected() behavior is very different with and without kwargs.
-        # Fix!
         exp2 = new_state_dstn.expected(lambda x, unused: x, unused=0)
 
         assert np.all(exp1["m"] == exp2["m"]).item()
@@ -842,18 +1231,162 @@ class test_MVNormalApprox(unittest.TestCase):
         self.dist3D_approx = self.dist3D.discretize(N, method="hermite")
 
     def test_means(self):
-        mu_2D = calc_expectation(self.dist2D_approx)
+        mu_2D = expected(None, self.dist2D_approx)
         self.assertTrue(np.allclose(mu_2D, self.mu2, rtol=1e-5))
 
-        mu_3D = calc_expectation(self.dist3D_approx)
+        mu_3D = expected(None, self.dist3D_approx)
         self.assertTrue(np.allclose(mu_3D, self.mu3, rtol=1e-5))
 
     def test_VCOV(self):
         def vcov_fun(X, mu):
             return np.outer(X - mu, X - mu)
 
-        Sig_2D = calc_expectation(self.dist2D_approx, vcov_fun, self.mu2)
+        Sig_2D = expected(vcov_fun, self.dist2D_approx, self.mu2, vectorized=False)
         self.assertTrue(np.allclose(Sig_2D, self.Sigma2, rtol=1e-5))
 
-        Sig_3D = calc_expectation(self.dist3D_approx, vcov_fun, self.mu3)
+        Sig_3D = expected(vcov_fun, self.dist3D_approx, self.mu3, vectorized=False)
         self.assertTrue(np.allclose(Sig_3D, self.Sigma3, rtol=1e-5))
+
+
+class CalcExpectationDeprecatedAlias(unittest.TestCase):
+    """calc_expectation (renamed in 0.17.2) survives as a warning-bearing
+    alias that delegates exactly to expected_with_loop."""
+
+    def test_alias_delegates_and_warns(self):
+        dd = DiscreteDistribution(np.array([0.25, 0.75]), np.array([2.0, 4.0]), seed=0)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            got = calc_expectation(dd, lambda x: x * x)
+        self.assertTrue(any(issubclass(w.category, DeprecationWarning) for w in caught))
+        expected = expected_with_loop(dd, lambda x: x * x)
+        np.testing.assert_allclose(got, expected)
+
+
+class StreamInvarianceGoldens(unittest.TestCase):
+    """Default-path RNG-stream pins captured on main at a25d3ae0, before
+    the shuffle/draws/replicates additions.
+
+    These sequences must never change while the new parameters keep their
+    defaults: downstream reproducibility depends on the exact draw stream,
+    not just its distribution (cf. the #1719 release note).
+    """
+
+    def test_markov_process_default_stream_unchanged(self):
+        mp = MarkovProcess(np.array([[0.7, 0.3], [0.4, 0.6]]), seed=12345)
+        states = np.array([0, 1, 0, 1, 0, 0, 1, 1, 0, 1])
+        seq1 = mp.draw(states.copy())
+        seq2 = mp.draw(seq1.copy())
+        self.assertEqual(list(seq1), [0, 0, 1, 1, 0, 0, 1, 0, 0, 1])
+        self.assertEqual(list(seq2), [0, 1, 1, 0, 0, 1, 1, 0, 1, 0])
+
+    def test_discrete_distribution_default_streams_unchanged(self):
+        dd = DiscreteDistribution(
+            np.array([0.2, 0.3, 0.5]), np.array([1.0, 2.0, 3.0]), seed=98765
+        )
+        ev = dd.draw_events(12)
+        dr = dd.draw(12)
+        self.assertEqual(list(ev), [0, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 1])
+        self.assertEqual(
+            [float(x) for x in dr],
+            [2.0, 3.0, 3.0, 1.0, 2.0, 1.0, 3.0, 2.0, 2.0, 1.0, 1.0, 3.0],
+        )
+
+
+class testDrawShuffledRejectsUnknownSourceStates(unittest.TestCase):
+    """An agent whose source state has no row must not get a silent answer.
+
+    `_draw_shuffled` assigns agents by looping over the transition matrix's
+    rows, so an agent whose state is outside that range is matched by no
+    iteration and never written. The output buffer used to be `np.empty`, so
+    those agents came back holding whatever the freed buffer contained -- in a
+    running simulation, the previous period's Mrkv array, which is in range and
+    plausible. The values then index `solution[t].cFunc[j]` and reach history.
+    """
+
+    def setUp(self):
+        self.T = np.array([[0.6, 0.4], [0.3, 0.7]])
+
+    def test_state_past_the_last_row_raises(self):
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError) as cm:
+            mp.draw(np.array([0, 1, 0, 1, 2, 0]), shuffle=True)
+        self.assertIn("2", str(cm.exception))
+
+    def test_negative_sentinel_state_raises(self):
+        """-1 is ConsAggIndMarkovModel's _UNSET_MICRO, not 'the last state'."""
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError):
+            mp.draw(np.array([0, 1, -1, 1, 0, 0]), shuffle=True)
+
+    def test_the_error_names_how_many_agents_were_affected(self):
+        mp = MarkovProcess(self.T, seed=0)
+        with self.assertRaises(IndexError) as cm:
+            mp.draw(np.array([0, 1, 5, 5, 5, 0]), shuffle=True)
+        self.assertIn("3 of 6", str(cm.exception))
+
+    def test_the_iid_path_rejects_the_same_inputs(self):
+        """The default path must not silently wrap a negative state.
+
+        `shuffle=False` indexes `transition_matrix[state]` directly, and numpy
+        raises for a state past the last row but NOT for a negative one: -1
+        resolves to the last row. Those agents were transitioned from a
+        different Markov state's row, in range and plausible, with nothing to
+        distinguish them -- and unlike the shuffled path's uninitialized
+        memory, it can never come back out of range and blow up downstream.
+
+        Measured on [[0.99, 0.01], [0.50, 0.50]]: agents marked -1 moved to
+        state 1 at frequency 0.50, the last row's rate, where their own row 0
+        gives 0.01.
+        """
+        for bad_state in (2, -1, -3):
+            state = np.array([0, 1, 0, bad_state, 1])
+            with self.assertRaises(IndexError, msg=f"state {bad_state}"):
+                MarkovProcess(self.T, seed=0).draw(state)
+
+    def test_both_paths_reject_identical_inputs(self):
+        """Whether a source state is legal must not depend on `shuffle`."""
+        for state in ([0, 1, 0, 1], [0, 1, 2], [0, 1, -1], [0, -2, 1]):
+            arr = np.array(state)
+            outcomes = []
+            for shuffle in (False, True):
+                try:
+                    MarkovProcess(self.T, seed=0).draw(arr, shuffle=shuffle)
+                    outcomes.append("ok")
+                except IndexError:
+                    outcomes.append("IndexError")
+            self.assertEqual(
+                outcomes[0],
+                outcomes[1],
+                f"state {state}: shuffle=False gave {outcomes[0]} but "
+                f"shuffle=True gave {outcomes[1]}",
+            )
+
+    def test_valid_states_are_unaffected(self):
+        """The guard must not disturb the ordinary path."""
+        state = np.array([0, 1, 0, 1, 0, 1, 0, 1])
+        got = MarkovProcess(self.T, seed=7).draw(state, shuffle=True)
+        self.assertEqual(got.shape, state.shape)
+        self.assertTrue(np.all((got >= 0) & (got < 2)))
+
+
+class test_shuffle_iid_fallback_warns(unittest.TestCase):
+    """A source state too small for exact counts falls back to iid."""
+
+    def test_warns_and_names_the_affected_states(self):
+        # The fallback silently withdrew the quota-exactness the shuffled
+        # path advertises, for part of the population, while the rest kept
+        # it. Both normalization mixins warn on their analogous skips.
+        mrkv = MarkovProcess(np.array([[0.995, 0.005], [0.5, 0.5]]), seed=1)
+        state = np.zeros(100, dtype=int)  # 100 * 0.005 = 0.5 < 1
+        with self.assertWarns(RuntimeWarning) as cm:
+            mrkv.draw(state, shuffle=True)
+        msg = str(cm.warning)
+        self.assertIn("[0]", msg)
+        self.assertIn("100", msg)
+
+    def test_silent_when_every_state_supports_exact_counts(self):
+        mrkv = MarkovProcess(np.array([[0.5, 0.5], [0.5, 0.5]]), seed=1)
+        state = np.zeros(1000, dtype=int)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            mrkv.draw(state, shuffle=True)

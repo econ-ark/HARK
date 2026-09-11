@@ -782,6 +782,7 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         "params": GenIncProcessConsumerType_default,
         "solver": solve_one_period_ConsGenIncProcess,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }
 
     def pre_solve(self):
@@ -903,8 +904,30 @@ class GenIncProcessConsumerType(IndShockConsumerType):
         None
         """
         self.state_now["aLvl"] = self.state_now["mLvl"] - self.controls["cLvl"]
+        self.set_aNrm_from_levels()
         # moves now to prev
         AgentType.get_poststates(self)
+
+    def set_aNrm_from_levels(self):
+        """Define ``aNrm`` from the level states, as ``aLvl / pLvl``.
+
+        ``aNrm`` is declared in ``state_vars`` but this model works in
+        levels, so nothing in ``transition`` writes it and ``sim_birth`` is
+        the only other place that touches it. A subclass that overrides
+        ``get_poststates`` and does not call this leaves ``aNrm`` unwritten
+        for every continuing agent; it is a separate method so such an
+        override can pick it up in one line.
+
+        ``pLvl`` is positive on every model HARK ships, but a user-supplied
+        ``pLvlNextFunc`` could return zero, and ``AgentType.simulate`` runs
+        the period inside ``np.errstate(invalid="ignore")``, so an
+        unguarded divide would produce a silent ``inf``. Yield ``nan``
+        there instead, which is at least visible.
+        """
+        pLvl = self.state_now["pLvl"]
+        self.state_now["aNrm"] = np.where(
+            pLvl > 0.0, self.state_now["aLvl"] / pLvl, np.nan
+        )
 
     def check_conditions(self, verbose=None):
         raise NotImplementedError()  # pragma: nocover
@@ -1126,6 +1149,7 @@ class IndShockExplicitPermIncConsumerType(GenIncProcessConsumerType):
         "params": init_explicit_perm_inc,
         "solver": solve_one_period_ConsGenIncProcess,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }
 
 
@@ -1322,4 +1346,5 @@ class PersistentShockConsumerType(GenIncProcessConsumerType):
         "params": init_persistent_shocks,
         "solver": solve_one_period_ConsGenIncProcess,
         "model": "ConsGenIncProcess.yaml",
+        "track_vars": ["aLvl", "cLvl", "mLvl", "pLvl"],
     }

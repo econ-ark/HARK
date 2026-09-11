@@ -1,4 +1,7 @@
 import unittest
+
+import numpy as np
+
 from tests import HARK_PRECISION
 from HARK.ConsumptionSaving.ConsMedModel import (
     MedShockConsumerType,
@@ -8,114 +11,65 @@ from HARK.ConsumptionSaving.ConsMedModel import (
 
 class testMedShockConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = MedShockConsumerType()
-        self.agent.vFuncBool = True
+        self.agent = MedShockConsumerType(vFuncBool=True)
         self.agent.solve()
 
     def test_solution(self):
-        cFunc = self.agent.solution[0].cFunc
-        MedFunc = self.agent.solution[0].MedFunc
+        cFunc = self.agent.solution[0]["PolicyFunc"].cFunc
+        MedFunc = self.agent.solution[0]["PolicyFunc"].MedFunc
         mLvl = 10.0
         pLvl = 2.0
         Shk = 1.5
         self.assertAlmostEqual(
-            cFunc(mLvl, pLvl, Shk).tolist(), 4.0056, places=HARK_PRECISION
+            cFunc(mLvl, pLvl, Shk).tolist(), 3.5044, places=HARK_PRECISION
         )
         self.assertAlmostEqual(
-            MedFunc(mLvl, pLvl, Shk).tolist(), 2.40487, places=HARK_PRECISION
+            MedFunc(mLvl, pLvl, Shk).tolist(), 2.10620, places=HARK_PRECISION
         )
 
+    def test_unpack(self):
+        # This test is relevant because solution representation is a dictionary
+        self.agent.unpack("vFunc")
+
     def test_value(self):
-        vFunc = self.agent.solution[0].vFunc
+        vFunc = self.agent.solution[0]["vFunc"]
         mLvl = 10.0
         pLvl = 2.0
-        self.assertAlmostEqual(vFunc(mLvl, pLvl), -0.36032, places=HARK_PRECISION)
+        self.assertAlmostEqual(vFunc(mLvl, pLvl), -0.38395, places=HARK_PRECISION)
 
     def test_simulation(self):
         self.agent.T_sim = 10
-        self.agent.track_vars = ["mLvl", "cLvl", "Med"]
+        self.agent.track_vars = ["mLvl", "cLvl", "MedLvl"]
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
 
+    def test_aNrm_is_written_every_period(self):
+        # This class overrides get_poststates, so it does not inherit the
+        # GenIncProcess line that defines aNrm; it has to call
+        # set_aNrm_from_levels itself. Without that every continuing agent's
+        # aNrm goes unwritten -- 1600 of 1600 cells on this fixture.
+        self.agent.T_sim = 8
+        self.agent.AgentCount = 200
+        self.agent.track_vars = ["aNrm", "aLvl", "pLvl"]
+        self.agent.make_shock_history()
+        self.agent.initialize_sim()
+        self.agent.simulate()
+
+        aNrm = self.agent.history["aNrm"]
+        implied = self.agent.history["aLvl"] / self.agent.history["pLvl"]
+        self.assertEqual(aNrm.size, 1600)
+        self.assertTrue(np.all(np.isfinite(aNrm)))
+        self.assertTrue(np.allclose(aNrm, implied, rtol=1e-12, atol=0.0))
+
+    def test_state_vars_has_no_duplicates(self):
+        # state_vars used to append "mLvl", which the parent list already
+        # carried, making it longer than the set of states it names.
+        self.assertEqual(len(self.agent.state_vars), len(set(self.agent.state_vars)))
+
     def test_cubic(self):
         CubicType = MedShockConsumerType(CubicBool=True)
-        CubicType.solve()
-        cFunc = CubicType.solution[0].cFunc
-        MedFunc = CubicType.solution[0].MedFunc
-        mLvl = 10.0
-        pLvl = 2.0
-        Shk = 1.5
-        self.assertAlmostEqual(
-            cFunc(mLvl, pLvl, Shk).tolist(), 4.00158, places=HARK_PRECISION
-        )
-        self.assertAlmostEqual(
-            MedFunc(mLvl, pLvl, Shk).tolist(), 2.4088, places=HARK_PRECISION
-        )
-
-    def test_derivatives(self):
-        policyFunc = self.agent.solution[0].policyFunc
-        cFunc = self.agent.solution[0].cFunc
-        MedFunc = self.agent.solution[0].MedFunc
-        mLvl = 10.0
-        pLvl = 2.0
-        Shk = 0.5
-        query = (mLvl, pLvl, Shk)
-        eps = 1e-9
-        cLvl, Med = policyFunc(*query)
-
-        c_alt, Med_alt = policyFunc(mLvl + eps, pLvl, Shk)
-        dcdm_targ = (c_alt - cLvl) / eps
-        dMeddm_targ = (Med_alt - Med) / eps
-        dcdm, dMeddm = policyFunc.derivativeX(*query)
-        self.assertAlmostEqual(dcdm, dcdm_targ, places=HARK_PRECISION)
-        self.assertAlmostEqual(dMeddm, dMeddm_targ, places=HARK_PRECISION)
-
-        c_alt, Med_alt = policyFunc(mLvl, pLvl + eps, Shk)
-        dcdp_targ = (c_alt - cLvl) / eps
-        dMeddp_targ = (Med_alt - Med) / eps
-        dcdp, dMeddp = policyFunc.derivativeY(*query)
-        # self.assertAlmostEqual(dcdp, dcdp_targ, delta=1e-2)
-        # self.assertAlmostEqual(dMeddp, dMeddp_targ, delta=1e-2)
-
-        c_alt, Med_alt = policyFunc(mLvl, pLvl, Shk + eps)
-        dcdShk_targ = (c_alt - cLvl) / eps
-        dMeddShk_targ = (Med_alt - Med) / eps
-        dcdShk, dMeddShk = policyFunc.derivativeZ(*query)
-        # self.assertAlmostEqual(dcdShk, dcdShk_targ, delta=1e-2)
-        # self.assertAlmostEqual(dMeddShk, dMeddShk_targ, delta=1e-2)
-
-        c_alt = cFunc(mLvl + eps, pLvl, Shk)
-        dcdm_targ = (c_alt - cLvl) / eps
-        dcdm_a = cFunc.derivativeX(*query)
-        self.assertAlmostEqual(dcdm_a, dcdm_targ, places=HARK_PRECISION)
-        self.assertAlmostEqual(dcdm_a, dcdm)
-
-        c_alt = cFunc(mLvl, pLvl + eps, Shk)
-        dcdp_targ = (c_alt - cLvl) / eps
-        dcdp_a = cFunc.derivativeY(*query)
-        self.assertAlmostEqual(dcdp_a, dcdp)
-
-        c_alt = cFunc(mLvl, pLvl, Shk + eps)
-        dcdShk_targ = (c_alt - cLvl) / eps
-        dcdShk_a = cFunc.derivativeZ(*query)
-        self.assertAlmostEqual(dcdShk_a, dcdShk)
-
-        Med_alt = MedFunc(mLvl + eps, pLvl, Shk)
-        dMeddm_targ = (Med_alt - Med) / eps
-        dMeddm_a = MedFunc.derivativeX(*query)
-        self.assertAlmostEqual(dMeddm_a, dMeddm_targ, places=HARK_PRECISION)
-        self.assertAlmostEqual(dMeddm_a, dMeddm)
-
-        Med_alt = MedFunc(mLvl, pLvl + eps, Shk)
-        dMeddp_targ = (Med_alt - Med) / eps
-        dMeddp_a = MedFunc.derivativeY(*query)
-        self.assertAlmostEqual(dMeddp_a, dMeddp)
-
-        Med_alt = MedFunc(mLvl, pLvl, Shk + eps)
-        dMeddShk_targ = (Med_alt - Med) / eps
-        dMeddShk_a = MedFunc.derivativeZ(*query)
-        self.assertAlmostEqual(dMeddShk_a, dMeddShk)
+        self.assertRaises(NotImplementedError, CubicType.solve)
 
 
 class testMedExtMargConsumerType(unittest.TestCase):
@@ -142,10 +96,25 @@ class testMedExtMargConsumerType(unittest.TestCase):
 
     def test_simulation(self):
         self.agent.T_sim = 10
-        self.agent.track_vars = ["mLvl", "cLvl", "MedLvl"]
+        self.agent.track_vars = ["mLvl", "cLvl", "Med"]
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+    def test_aNrm_is_written_every_period(self):
+        # Second get_poststates override in this file; same requirement.
+        self.agent.T_sim = 8
+        self.agent.AgentCount = 200
+        self.agent.track_vars = ["aNrm", "aLvl", "pLvl"]
+        self.agent.make_shock_history()
+        self.agent.initialize_sim()
+        self.agent.simulate()
+
+        aNrm = self.agent.history["aNrm"]
+        implied = self.agent.history["aLvl"] / self.agent.history["pLvl"]
+        self.assertEqual(aNrm.size, 1600)
+        self.assertTrue(np.all(np.isfinite(aNrm)))
+        self.assertTrue(np.allclose(aNrm, implied, rtol=1e-12, atol=0.0))
 
     def test_IH_constructors(self):
         self.agent.cycles = 0

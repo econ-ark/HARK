@@ -57,7 +57,7 @@ from HARK.ConsumptionSaving.ConsRiskyAssetModel import (
     init_risky_asset,
     make_AdjustDstn,
 )
-from HARK.distributions import calc_expectation
+from HARK.distributions import expected
 from HARK.interpolation import BilinearInterp  # 2D interpolator
 from HARK.interpolation import (
     ConstantFunction,  # Interpolator-like class that returns constant value
@@ -602,8 +602,8 @@ def m_nrm_next(shocks, aNrm, Share, Rfree, PermGroFac):
 
     """
     # Extract shocks
-    perm_shk = shocks[0]
-    tran_shk = shocks[1]
+    perm_shk = shocks["PermShk"]
+    tran_shk = shocks["TranShk"]
 
     m_nrm_tp1 = Rfree * aNrm / (perm_shk * PermGroFac) + (1.0 - Share) * tran_shk
 
@@ -618,11 +618,11 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
 
     Parameters
     ----------
-    shocks : np.array
-        Length-3 array with the stochastic shocks that get realized between the
-        end of the current period and the start of next period. Their order is
-        (0) permanent income shock, (1) transitory income shock, (2) risky
-        asset return.
+    shocks : dict
+        Dictionary with the stochastic shocks that get realized between the
+        end of the current period and the start of next period: "PermShk" is the
+        permanent income shock, "TranShk" is the transitory income shock, and
+        "Risky" is the risky asset return.
     nNrm : float
         End-of-period risky asset balances.
     Share : float
@@ -638,9 +638,9 @@ def n_nrm_next(shocks, nNrm, Share, PermGroFac):
     """
 
     # Extract shocks
-    perm_shk = shocks[0]
-    tran_shk = shocks[1]
-    R_risky = shocks[2]
+    perm_shk = shocks["PermShk"]
+    tran_shk = shocks["TranShk"]
+    R_risky = shocks["Risky"]
 
     n_nrm_tp1 = R_risky * nNrm / (perm_shk * PermGroFac) + Share * tran_shk
 
@@ -796,8 +796,8 @@ def solve_RiskyContrib_Cns(
         # as functions of those and the contribution share
 
         def post_return_derivs(inc_shocks, b_aux, g_aux, s):
-            perm_shk = inc_shocks[0]
-            tran_shk = inc_shocks[1]
+            perm_shk = inc_shocks["PermShk"]
+            tran_shk = inc_shocks["TranShk"]
 
             temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
             temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
@@ -845,8 +845,11 @@ def solve_RiskyContrib_Cns(
 
         # Find end of period derivatives and value as expectations of (discounted)
         # next period's derivatives and value.
-        pr_derivs = calc_expectation(
-            IncShkDstn, post_return_derivs, b_aux_tiled, g_aux_tiled, Share_tiled
+        pr_derivs = expected(
+            post_return_derivs,
+            IncShkDstn,
+            (b_aux_tiled, g_aux_tiled, Share_tiled),
+            vectorized=False,
         )
 
         # Unpack results and create interpolators
@@ -927,11 +930,11 @@ def solve_RiskyContrib_Cns(
 
             Parameters
             ----------
-            shocks : np.array
-                Length-3 array with the stochastic shocks that get realized between the
-                end of the current period and the start of next period. Their order is
-                (0) permanent income shock, (1) transitory income shock, (2) risky
-                asset return.
+            shocks : dict
+                Dictionary with the stochastic shocks that get realized between the
+                end of the current period and the start of next period: "PermShk" is the
+                permanent income shock, "TranShk" is the transitory income shock, and
+                "Risky" is the risky asset return.
             a : float
                 end-of-period risk-free assets.
             nTil : float
@@ -939,8 +942,12 @@ def solve_RiskyContrib_Cns(
             s : float
                 end-of-period income deduction share.
             """
-            temp_fac_A = utilityP(shocks[0] * PermGroFac, CRRA)
-            temp_fac_B = (shocks[0] * PermGroFac) ** (1.0 - CRRA)
+            perm_shk = shocks["PermShk"]
+            tran_shk = shocks["TranShk"]
+            risky = shocks["Risky"]
+
+            temp_fac_A = utilityP(perm_shk * PermGroFac, CRRA)
+            temp_fac_B = (perm_shk * PermGroFac) ** (1.0 - CRRA)
 
             # Find next-period asset balances
             m_next = m_nrm_next(shocks, a, s, Rfree, PermGroFac)
@@ -949,10 +956,10 @@ def solve_RiskyContrib_Cns(
             # Interpolate next-period-value derivatives
             dvdm_tp1 = dvdm_next(m_next, n_next, s)
             dvdn_tp1 = dvdn_next(m_next, n_next, s)
-            if shocks[1] == 0:
+            if tran_shk == 0:
                 dvds_tp1 = dvds_next(m_next, n_next, s)
             else:
-                dvds_tp1 = shocks[1] * (dvdn_tp1 - dvdm_tp1) + dvds_next(
+                dvds_tp1 = tran_shk * (dvdn_tp1 - dvdm_tp1) + dvds_next(
                     m_next, n_next, s
                 )
 
@@ -961,7 +968,7 @@ def solve_RiskyContrib_Cns(
             # Liquid resources
             end_of_prd_dvda = DiscFac * Rfree * LivPrb * temp_fac_A * dvdm_tp1
             # Iliquid resources
-            end_of_prd_dvdn = DiscFac * shocks[2] * LivPrb * temp_fac_A * dvdn_tp1
+            end_of_prd_dvdn = DiscFac * risky * LivPrb * temp_fac_A * dvdn_tp1
             # Contribution share
             end_of_prd_dvds = DiscFac * LivPrb * temp_fac_B * dvds_tp1
 
@@ -988,12 +995,11 @@ def solve_RiskyContrib_Cns(
 
     # Find end of period derivatives and value as expectations of (discounted)
     # next period's derivatives and value.
-    eop_derivs = calc_expectation(
-        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+    eop_derivs = expected(
         end_of_period_derivs,
-        aNrm_tiled,
-        nNrm_tiled,
-        Share_tiled,
+        RiskyDstn if IndepDstnBool and not joint_dist_solver else ShockDstn,
+        (aNrm_tiled, nNrm_tiled, Share_tiled),
+        vectorized=False,
     )
 
     # Unpack results
@@ -1773,7 +1779,11 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         "Share",
     ]
     shock_vars_ = RiskyAssetConsumerType.shock_vars_
-    default_ = {"params": init_risky_contrib, "solver": solveRiskyContrib}
+    default_ = {
+        "params": init_risky_contrib,
+        "solver": solveRiskyContrib,
+        "track_vars": ["aNrm", "cNrm", "mNrm", "nNrm", "dfrac", "Share", "pLvl"],
+    }
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
@@ -1840,44 +1850,12 @@ class RiskyContribConsumerType(RiskyAssetConsumerType):
         -------
         None
         """
-
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method of the class first."
-            )
-
-        # Mortality adjusts the agent population
-        self.get_mortality()  # Replace some agents with "newborns"
-
-        # Make state_now into state_prev, clearing state_now
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
-
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
-
-        if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.read_shocks_from_history()
-        else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.get_shocks()
-
-        # Sequentially get states and controls of every stage
+        self._sim_period_prologue()
         for s in self.stages:
             self.get_states[s]()
             self.get_controls[s]()
-
         self.get_post_states()
-
-        # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = (
-            0  # Resetting to zero for those who have reached the end
-        )
+        self._sim_period_epilogue()
 
     def get_states_Reb(self):
         """

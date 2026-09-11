@@ -511,9 +511,7 @@ LaborIntMargConsumerType_aXtraGrid_default = {
 
 # Default parameter to make LbrCost using make_log_polynomial_LbrCost
 LaborIntMargConsumerType_LbrCost_default = {
-    "LbrCostCoeffs": [
-        -1.0
-    ]  # Polynomial coefficients (for age) on log labor utility cost
+    "LbrCostCoeffs": [-1.0]  # Polynomial age coeffs on log labor utility cost
 }
 
 # Make a dictionary to specify an intensive margin labor supply choice consumer type
@@ -687,6 +685,7 @@ class LaborIntMargConsumerType(IndShockConsumerType):
         "params": LaborIntMargConsumerType_default,
         "solver": solve_ConsLaborIntMarg,
         "model": "ConsLaborIntMarg.yaml",
+        "track_vars": ["aNrm", "cNrm", "Lbr", "mNrm", "pLvl"],
     }
 
     time_vary_ = copy(IndShockConsumerType.time_vary_)

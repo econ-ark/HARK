@@ -70,7 +70,11 @@ class testNonIndeptRiskyAssetConsumerType(unittest.TestCase):
 
 class testPortChoiceConsumerType(unittest.TestCase):
     def setUp(self):
-        self.agent = IndShockRiskyAssetConsumerType(vFuncBool=True, PortfolioBool=True)
+        self.agent = IndShockRiskyAssetConsumerType(
+            vFuncBool=True,
+            RiskyShareFixed=None,
+            ShareAugFac=2,
+        )
         self.agent.solve()
 
     def test_solution(self):
@@ -95,7 +99,7 @@ class testNonIndepPortChoiceConsumerType(unittest.TestCase):
     def setUp(self):
         self.agent = IndShockRiskyAssetConsumerType(
             IndepDstnBool=False,
-            PortfolioBool=True,
+            RiskyShareFixed=None,
             vFuncBool=True,
         )
         self.agent.solve()
@@ -116,3 +120,73 @@ class testNonIndepPortChoiceConsumerType(unittest.TestCase):
         self.agent.make_shock_history()
         self.agent.initialize_sim()
         self.agent.simulate()
+
+
+class testZeroIncShkPortChoiceConsumerType(unittest.TestCase):
+    def setUp(self):
+        self.agent = IndShockRiskyAssetConsumerType(
+            RiskyShareFixed=None,
+            CubicBool=True,
+            IncUnemp=0.0,
+        )
+        self.agent.solve()
+
+        self.agent_alt = IndShockRiskyAssetConsumerType(
+            RiskyShareFixed=None,
+            CubicBool=True,
+            IncUnemp=0.0,
+            IndepDstnBool=False,
+        )
+        self.agent.solve()
+        self.agent_alt.solve()
+
+    def test_solution(self):
+        cFunc = self.agent.solution[0].cFunc
+        mNrm = 2.0
+        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.43258, places=HARK_PRECISION)
+
+    def test_solution_alt(self):
+        cFunc = self.agent_alt.solution[0].cFunc
+        mNrm = 2.0
+        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.43258, places=HARK_PRECISION)
+
+
+class testZeroIncShkRiskyAssetConsumerType(unittest.TestCase):
+    def setUp(self):
+        self.agent = IndShockRiskyAssetConsumerType(
+            CubicBool=True,
+            IncUnemp=0.0,
+        )
+        self.agent.solve()
+
+        self.agent_alt = IndShockRiskyAssetConsumerType(
+            CubicBool=True,
+            IncUnemp=0.0,
+            IndepDstnBool=False,
+        )
+        self.agent.solve()
+        self.agent_alt.solve()
+
+    def test_solution(self):
+        cFunc = self.agent.solution[0].cFunc
+        mNrm = 2.0
+        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.43258, places=HARK_PRECISION)
+
+    def test_solution_alt(self):
+        cFunc = self.agent_alt.solution[0].cFunc
+        mNrm = 2.0
+        self.assertAlmostEqual(cFunc(mNrm).tolist(), 1.43258, places=HARK_PRECISION)
+
+
+class testInvalidRiskyAssetType(unittest.TestCase):
+    def test_BoroCnstArt(self):
+        agent = IndShockRiskyAssetConsumerType(BoroCnstArt=-1.0)
+        self.assertRaises(ValueError, agent.solve)
+
+        agent = IndShockRiskyAssetConsumerType(BoroCnstArt=-1.0, RiskyShareFixed=None)
+        self.assertRaises(ValueError, agent.solve)
+
+    def test_constructors(self):
+        self.assertRaises(
+            AttributeError, IndShockRiskyAssetConsumerType, AdjustPrb=[0.8, 0.9]
+        )

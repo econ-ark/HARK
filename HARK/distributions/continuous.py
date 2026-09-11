@@ -14,6 +14,33 @@ from scipy.stats._distn_infrastructure import rv_continuous_frozen
 from HARK.distributions.base import Distribution
 from HARK.distributions.discrete import DiscreteDistribution
 
+
+def _hermite_discretize(distribution, N, endpoints, atoms_transform, lower_endpoint):
+    """Gauss-Hermite quadrature discretization shared by Normal/Lognormal.
+
+    ``atoms_transform`` maps the linear ``sqrt(2)*sigma*x + mu`` grid to the
+    distribution's support (identity for Normal, ``np.exp`` for Lognormal).
+    ``lower_endpoint`` is the value prepended when ``endpoints=True``.
+    """
+    x, w = np.polynomial.hermite.hermgauss(N)
+    pmv = w * np.pi**-0.5
+    atoms = atoms_transform(np.sqrt(2.0) * distribution.sigma * x + distribution.mu)
+    if endpoints:
+        atoms = np.r_[lower_endpoint, atoms, np.inf]
+        pmv = np.r_[0.0, pmv, 0.0]
+    return DiscreteDistribution(
+        pmv,
+        atoms,
+        seed=distribution.random_seed(),
+        limit={
+            "dist": distribution,
+            "method": "hermite",
+            "N": N,
+            "endpoints": endpoints,
+        },
+    )
+
+
 # CONTINUOUS DISTRIBUTIONS
 
 
@@ -121,25 +148,7 @@ class Normal(ContinuousFrozenDistribution):
         DiscreteDistribution
             Discrete approximation of this distribution.
         """
-
-        x, w = np.polynomial.hermite.hermgauss(N)
-        # normalize w
-        pmv = w * np.pi**-0.5
-        # correct x
-        atoms = np.sqrt(2.0) * self.sigma * x + self.mu
-
-        if endpoints:
-            atoms = np.r_[-np.inf, atoms, np.inf]
-            pmv = np.r_[0.0, pmv, 0.0]
-
-        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
-
-        return DiscreteDistribution(
-            pmv,
-            atoms,
-            seed=self.random_seed(),
-            limit=limit,
-        )
+        return _hermite_discretize(self, N, endpoints, lambda v: v, -np.inf)
 
     def _approx_equiprobable(self, N, endpoints=False):
         """
@@ -387,24 +396,7 @@ class Lognormal(ContinuousFrozenDistribution):
             Discrete approximation of this distribution.
         """
 
-        x, w = np.polynomial.hermite.hermgauss(N)
-        # normalize w
-        pmv = w * np.pi**-0.5
-        # correct x
-        atoms = np.exp(np.sqrt(2.0) * self.sigma * x + self.mu)
-
-        if endpoints:
-            atoms = np.r_[0.0, atoms, np.inf]
-            pmv = np.r_[0.0, pmv, 0.0]
-
-        limit = {"dist": self, "method": "hermite", "N": N, "endpoints": endpoints}
-
-        return DiscreteDistribution(
-            pmv,
-            atoms,
-            seed=self.random_seed(),
-            limit=limit,
-        )
+        return _hermite_discretize(self, N, endpoints, np.exp, 0.0)
 
     @classmethod
     def from_mean_std(cls, mean, std, seed=None):

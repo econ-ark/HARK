@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, Un
 from warnings import warn
 import multiprocessing
 from joblib import Parallel, delayed
+from pandas import DataFrame
 
 import numpy as np
 import pandas as pd
@@ -32,9 +33,10 @@ from HARK.utilities import NullFunc, get_arg_names, get_it_from
 from HARK.simulator import make_simulator_from_agent
 from HARK.SSJutils import (
     make_basic_SSJ_matrices,
+    make_flat_LC_SSJ_matrices,
     calc_shock_response_manually,
 )
-from HARK.metric import MetricObject
+from HARK.metric import MetricObject, distance_metric
 
 __all__ = [
     "AgentType",
@@ -142,16 +144,24 @@ class Parameters:
         # Apply explicit overrides
         for param in time_inv_override:
             if param in self._parameters:
-                self._invariant_params.add(param)
-                self._varying_params.discard(param)
+                self._mark_invariant(param)
 
         for param in time_vary_override:
             if param in self._parameters:
-                self._varying_params.add(param)
-                self._invariant_params.discard(param)
+                self._mark_varying(param)
 
         # Freeze if requested
         self._frozen = frozen
+
+    def _mark_invariant(self, key: str) -> None:
+        """Tag ``key`` as time-invariant; ensure it is not also marked varying."""
+        self._invariant_params.add(key)
+        self._varying_params.discard(key)
+
+    def _mark_varying(self, key: str) -> None:
+        """Tag ``key`` as time-varying; ensure it is not also marked invariant."""
+        self._varying_params.add(key)
+        self._invariant_params.discard(key)
 
     def __getitem__(self, item_or_key: Union[int, str]) -> Union["Parameters", Any]:
         """
@@ -242,11 +252,9 @@ class Parameters:
         # Check for 2D numpy arrays with time-varying first dimension
         if isinstance(value, np.ndarray) and value.ndim >= 2:
             if value.shape[0] == self._length:
-                self._varying_params.add(key)
-                self._invariant_params.discard(key)
+                self._mark_varying(key)
             else:
-                self._invariant_params.add(key)
-                self._varying_params.discard(key)
+                self._mark_invariant(key)
         elif isinstance(
             value,
             (
@@ -260,20 +268,16 @@ class Parameters:
                 MetricObject,
             ),
         ):
-            self._invariant_params.add(key)
-            self._varying_params.discard(key)
+            self._mark_invariant(key)
         elif isinstance(value, (list, tuple)):
             if len(value) == 1:
                 value = value[0]
-                self._invariant_params.add(key)
-                self._varying_params.discard(key)
+                self._mark_invariant(key)
             elif self._length is None or self._length == 1:
                 self._length = len(value)
-                self._varying_params.add(key)
-                self._invariant_params.discard(key)
+                self._mark_varying(key)
             elif len(value) == self._length:
-                self._varying_params.add(key)
-                self._invariant_params.discard(key)
+                self._mark_varying(key)
             else:
                 raise ValueError(
                     f"Parameter {key} must have length 1 or {self._length}, not {len(value)}"
@@ -435,8 +439,7 @@ class Parameters:
         """
         for param in params:
             if param in self._parameters:
-                self._varying_params.add(param)
-                self._invariant_params.discard(param)
+                self._mark_varying(param)
             else:
                 warn(
                     f"Parameter '{param}' does not exist and cannot be added to time_vary."
@@ -453,8 +456,7 @@ class Parameters:
         """
         for param in params:
             if param in self._parameters:
-                self._invariant_params.add(param)
-                self._varying_params.discard(param)
+                self._mark_invariant(param)
             else:
                 warn(
                     f"Parameter '{param}' does not exist and cannot be added to time_inv."
@@ -702,6 +704,204 @@ class Model:
         if hasattr(self, param_name):
             delattr(self, param_name)
 
+    def _gather_constructor_args(self, key, constructor):
+        """
+        Gather all arguments needed to call the given constructor.
+
+        Handles both the special ``get_it_from`` case and normal callables.
+        For a normal callable the method inspects the function signature to
+        find every required argument, then resolves each argument from the
+        instance namespace (``self.<arg>``) or from ``self.parameters``.
+        Arguments that have a default value are silently skipped when they
+        cannot be found; required arguments that cannot be resolved are
+        recorded as missing.
+
+        Parameters
+        ----------
+        key : str
+            The name of the constructed object (used to record missing pairs).
+        constructor : callable or get_it_from
+            The constructor to be called.
+
+        Returns
+        -------
+        temp_dict : dict
+            Keyword arguments to pass to the constructor.
+        any_missing : bool
+            True when at least one required argument could not be resolved.
+        missing_args : list of str
+            Names of unresolved required arguments.
+        missing_key_data : list of tuple
+            ``(key, arg)`` pairs for every unresolved required argument.
+        """
+        missing_key_data = []
+
+        # SPECIAL: if the constructor is get_it_from, handle it separately
+        if isinstance(constructor, get_it_from):
+            try:
+                parent = getattr(self, constructor.name)
+                query = key
+                any_missing = False
+                missing_args = []
+            except AttributeError:
+                parent = None
+                query = None
+                any_missing = True
+                missing_args = [constructor.name]
+            temp_dict = {"parent": parent, "query": query}
+            return temp_dict, any_missing, missing_args, missing_key_data
+
+        # Normal constructor: inspect signature and gather arguments
+        args_needed = get_arg_names(constructor)
+        has_no_default = {
+            k: v.default is inspect.Parameter.empty
+            for k, v in inspect.signature(constructor).parameters.items()
+        }
+        temp_dict = {}
+        any_missing = False
+        missing_args = []
+        for this_arg in args_needed:
+            if hasattr(self, this_arg):
+                temp_dict[this_arg] = getattr(self, this_arg)
+            else:
+                try:
+                    temp_dict[this_arg] = self.parameters[this_arg]
+                except KeyError:
+                    if has_no_default[this_arg]:
+                        # Record missing key-data pair
+                        any_missing = True
+                        missing_key_data.append((key, this_arg))
+                        missing_args.append(this_arg)
+
+        return temp_dict, any_missing, missing_args, missing_key_data
+
+    def _attempt_construct(self, key, i, keys_complete, backup, errors, force):
+        """
+        Attempt to construct the object for a single key.
+
+        The method looks up the constructor, gathers its arguments, runs it,
+        and records any errors.  It also handles the ``None``-constructor case
+        (restore from backup) and the missing-args case (record and defer).
+
+        Parameters
+        ----------
+        key : str
+            The name of the object to construct.
+        i : int
+            Index of *key* inside the ``keys`` array (used to update
+            ``keys_complete``).
+        keys_complete : np.ndarray of bool
+            Boolean array indicating which keys have been completed; mutated
+            in place when this key succeeds.
+        backup : dict
+            Dictionary of pre-construction attribute values.
+        errors : dict
+            ``self._constructor_errors``; mutated in place.
+        force : bool
+            When True, swallow exceptions and continue; when False, re-raise.
+
+        Returns
+        -------
+        accomplished : bool
+            True when the key was completed (constructor ran or was None).
+        missing_key_data : list of tuple
+            ``(key, arg)`` pairs recorded for missing required arguments.
+        """
+        missing_key_data = []
+
+        # Look up the constructor for this key
+        try:
+            constructor = self.constructors[key]
+        except Exception as not_found:
+            errors[key] = "No constructor found for " + str(not_found)
+            if force:
+                return False, missing_key_data
+            else:
+                raise KeyError("No constructor found for " + key) from None
+
+        # If the constructor is None, restore from backup and mark complete
+        if constructor is None:
+            if key in backup.keys():
+                setattr(self, key, backup[key])
+                self.parameters[key] = backup[key]
+            keys_complete[i] = True
+            return True, missing_key_data
+
+        # Gather arguments for the constructor
+        temp_dict, any_missing, missing_args, missing_key_data = (
+            self._gather_constructor_args(key, constructor)
+        )
+
+        # If all required data was found, run the constructor and store the result
+        if not any_missing:
+            try:
+                temp = constructor(**temp_dict)
+            except Exception as problem:
+                errors[key] = str(type(problem)) + ": " + str(problem)
+                self.del_param(key)
+                if force:
+                    return False, missing_key_data
+                else:
+                    raise
+            setattr(self, key, temp)
+            self.parameters[key] = temp
+            if key in errors:
+                del errors[key]
+            keys_complete[i] = True
+            return True, missing_key_data
+
+        # Some required arguments were missing; record and defer
+        msg = "Missing required arguments: " + ", ".join(missing_args)
+        errors[key] = msg
+        self.del_param(key)
+        # Never raise exceptions here, as the arguments might be filled in later
+        return False, missing_key_data
+
+    def _construct_pass(self, keys, keys_complete, backup, errors, force):
+        """
+        Perform one full sweep over all incomplete keys.
+
+        Calls ``_attempt_construct`` for every key that has not yet been
+        completed and accumulates results.
+
+        Parameters
+        ----------
+        keys : sequence of str
+            All keys requested for construction.
+        keys_complete : np.ndarray of bool
+            Boolean array indicating which keys have been completed; mutated
+            in place by ``_attempt_construct``.
+        backup : dict
+            Dictionary of pre-construction attribute values.
+        errors : dict
+            ``self._constructor_errors``; mutated in place.
+        force : bool
+            Passed through to ``_attempt_construct``.
+
+        Returns
+        -------
+        anything_accomplished : bool
+            True when at least one key was completed during this pass.
+        missing_key_data : list of tuple
+            Accumulated ``(key, arg)`` pairs for all unresolved required
+            arguments across every incomplete key.
+        """
+        anything_accomplished = False
+        missing_key_data = []
+
+        for i, key in enumerate(keys):
+            if keys_complete[i]:
+                continue  # This key has already been built
+
+            accomplished, key_missing = self._attempt_construct(
+                key, i, keys_complete, backup, errors, force
+            )
+            if accomplished:
+                anything_accomplished = True
+            missing_key_data.extend(key_missing)
+
+        return anything_accomplished, missing_key_data
+
     def construct(self, *args, force=False):
         """
         Top-level method for building constructed inputs. If called without any
@@ -766,103 +966,11 @@ class Model:
         any_keys_incomplete = np.any(np.logical_not(keys_complete))
         go = any_keys_incomplete
         while go:
-            anything_accomplished_this_pass = False  # Nothing done yet!
-            missing_key_data = []  # Keep this up-to-date on each pass
-
-            # Loop over keys to be constructed
-            for i in range(N_keys):
-                if keys_complete[i]:
-                    continue  # This key has already been built
-
-                # Get this key and its constructor function
-                key = keys[i]
-                try:
-                    constructor = self.constructors[key]
-                except Exception as not_found:
-                    errors[key] = "No constructor found for " + str(not_found)
-                    if force:
-                        continue
-                    else:
-                        raise KeyError("No constructor found for " + key) from None
-
-                # If this constructor is None, do nothing and mark it as completed;
-                # this includes restoring the previous value if it exists
-                if constructor is None:
-                    if key in backup.keys():
-                        setattr(self, key, backup[key])
-                        self.parameters[key] = backup[key]
-                    keys_complete[i] = True
-                    anything_accomplished_this_pass = True  # We did something!
-                    continue
-
-                # SPECIAL: if the constructor is get_it_from, handle it separately
-                if isinstance(constructor, get_it_from):
-                    try:
-                        parent = getattr(self, constructor.name)
-                        query = key
-                        any_missing = False
-                        missing_args = []
-                    except AttributeError:
-                        parent = None
-                        query = None
-                        any_missing = True
-                        missing_args = [constructor.name]
-                    temp_dict = {"parent": parent, "query": query}
-
-                # Get the names of arguments for this constructor and try to gather them
-                else:  # (if it's not the special case of get_it_from)
-                    args_needed = get_arg_names(constructor)
-                    has_no_default = {
-                        k: v.default is inspect.Parameter.empty
-                        for k, v in inspect.signature(constructor).parameters.items()
-                    }
-                    temp_dict = {}
-                    any_missing = False
-                    missing_args = []
-                    for j in range(len(args_needed)):
-                        this_arg = args_needed[j]
-                        if hasattr(self, this_arg):
-                            temp_dict[this_arg] = getattr(self, this_arg)
-                        else:
-                            try:
-                                temp_dict[this_arg] = self.parameters[this_arg]
-                            except KeyError:
-                                if has_no_default[this_arg]:
-                                    # Record missing key-data pair
-                                    any_missing = True
-                                    missing_key_data.append((key, this_arg))
-                                    missing_args.append(this_arg)
-
-                # If all of the required data was found, run the constructor and
-                # store the result in parameters (and on self)
-                if not any_missing:
-                    try:
-                        temp = constructor(**temp_dict)
-                    except Exception as problem:
-                        errors[key] = str(type(problem)) + ": " + str(problem)
-                        self.del_param(key)
-                        if force:
-                            continue
-                        else:
-                            raise
-                    setattr(self, key, temp)
-                    self.parameters[key] = temp
-                    if key in errors:
-                        del errors[key]
-                    keys_complete[i] = True
-                    anything_accomplished_this_pass = True  # We did something!
-                else:
-                    msg = "Missing required arguments:"
-                    for arg in missing_args:
-                        msg += " " + arg + ","
-                    msg = msg[:-1]
-                    errors[key] = msg
-                    self.del_param(key)
-                    # Never raise exceptions here, as the arguments might be filled in later
-
-            # Check whether another pass should be performed
+            anything_accomplished, missing_key_data = self._construct_pass(
+                keys, keys_complete, backup, errors, force
+            )
             any_keys_incomplete = np.any(np.logical_not(keys_complete))
-            go = any_keys_incomplete and anything_accomplished_this_pass
+            go = any_keys_incomplete and anything_accomplished
 
         # Store missing key-data pairs and exit
         self._missing_key_data = missing_key_data
@@ -962,8 +1070,8 @@ class Model:
         return
 
     # This is a "synonym" method so that old calls to update() still work
-    def update(self, *args):
-        self.construct(*args)
+    def update(self, *args, **kwargs):
+        self.construct(*args, **kwargs)
 
 
 class AgentType(Model):
@@ -1030,6 +1138,7 @@ class AgentType(Model):
     shock_vars_ = []
     state_vars = []
     poststate_vars = []
+    market_vars = []
     distributions = []
     default_ = {"params": {}, "solver": NullFunc()}
 
@@ -1058,6 +1167,12 @@ class AgentType(Model):
             constructors.update(kwds["constructors"])
         params["constructors"] = constructors
 
+        # Set default track_vars
+        if "track_vars" in self.default_.keys() and use_defaults:
+            self.track_vars = copy(self.default_["track_vars"])
+        else:
+            self.track_vars = []
+
         # Set model file name if possible
         try:
             self.model_file = copy(self.default_["model"])
@@ -1075,7 +1190,6 @@ class AgentType(Model):
         self.verbose = verbose
         self.quiet = quiet
         self.seed = seed  # NOQA
-        self.track_vars = []  # NOQA
         self.state_now = {sv: None for sv in self.state_vars}
         self.state_prev = self.state_now.copy()
         self.controls = {}
@@ -1163,7 +1277,7 @@ class AgentType(Model):
             if param in self.time_inv:
                 self.time_inv.remove(param)
 
-    def unpack(self, parameter):
+    def unpack(self, name):
         """
         Unpacks an attribute from a solution object for easier access.
         After the model has been solved, its components (like consumption function)
@@ -1173,7 +1287,7 @@ class AgentType(Model):
 
         Parameters
         ----------
-        parameter: str
+        name: str
             Name of the attribute to unpack from the solution
 
         Returns
@@ -1181,12 +1295,11 @@ class AgentType(Model):
         none
         """
         # Use list comprehension for better performance instead of loop with append
-        setattr(
-            self,
-            parameter,
-            [solution_t.__dict__[parameter] for solution_t in self.solution],
-        )
-        self.add_to_time_vary(parameter)
+        if type(self.solution[0]) is dict:
+            setattr(self, name, [soln_t[name] for soln_t in self.solution])
+        else:
+            setattr(self, name, [soln_t.__dict__[name] for soln_t in self.solution])
+        self.add_to_time_vary(name)
 
     def solve(
         self,
@@ -1320,6 +1433,35 @@ class AgentType(Model):
         """
         return None
 
+    def get_market_params(self, mkt, construct=True):
+        """
+        Fetch data named in class attribute market_vars and assign it as attributes
+        (and parameters) of self. By default, the construct method is run within
+        this method, because the market parameters often have information needed to
+        "complete" the microeconomic problem.
+
+        This method is called automatically by the Market.give_agent_params()
+        method for all agents.
+
+        Parameters
+        ----------
+        mkt : Market
+            Market to which this AgentType belongs.
+        construct : bool
+            Indicator for whether constructed attributes should be updated after
+            fetching data / parameters from mkt (default True)
+
+        Returns
+        -------
+        None
+        """
+        temp_dict = {}
+        for name in self.market_vars:
+            temp_dict[name] = copy(getattr(mkt, name))
+        self.assign_parameters(**temp_dict)
+        if construct:
+            self.construct()
+
     def initialize_sym(self, **kwargs):
         """
         Use the new simulator structure to build a simulator from the agents'
@@ -1328,6 +1470,27 @@ class AgentType(Model):
         self.reset_rng()  # ensure seeds are set identically each time
         self._simulator = make_simulator_from_agent(self, **kwargs)
         self._simulator.reset()
+
+    def find_target(self, target_var, force_list=False, **kwargs):
+        r"""
+        Find the "target" level of a named variable such that $E[\Delta x] = 0$,
+        with $E[\Delta x-\epsilon] > 0$ and $E[\Delta x+\epsilon] < 0$ (locally stable).
+        Returns a single real value if there is only one target, and a list if multiple;
+        returns np.nan if no target is found. Pass force_list=True to always get a list.
+        See documentation for HARK.simulator.find_target_state for more options.
+        """
+        if not hasattr(self, "solution"):
+            raise AttributeError("Model must be solved before using find_target!")
+        temp_simulator = make_simulator_from_agent(self)
+        target_vals = temp_simulator.find_target_state(target_var, **kwargs)
+        if force_list:
+            return target_vals
+        if len(target_vals) == 0:
+            return np.nan
+        elif len(target_vals) == 1:
+            return target_vals[0]
+        else:
+            return target_vals
 
     def initialize_sim(self):
         """
@@ -1374,13 +1537,7 @@ class AgentType(Model):
             for var_name in self.state_now:
                 # Check that we are actually given a value for the variable
                 if var_name in self.newborn_init_history.keys():
-                    # Copy only array-like idiosyncratic states. Aggregates should
-                    # not be set by newborns
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
+                    if self._is_idio_state(var_name):
                         self.state_now[var_name] = self.newborn_init_history[var_name][
                             0
                         ]
@@ -1395,7 +1552,273 @@ class AgentType(Model):
                     )
 
         self.clear_history()
-        return None
+
+    def _export_single_var_by_time(self, history, var, t, dtype):
+        """
+        Mode 1a: single variable, by_age=False.
+
+        Returns a DataFrame whose columns are simulation periods (t_sim) and
+        whose rows are agent indices.  When t is None all T_sim periods are
+        included; when t is an array only those periods are included.
+        """
+        try:
+            data = history[var]
+        except KeyError:
+            raise KeyError("Variable named " + var + " not found in simulated data!")
+
+        if t is None:
+            cols = [str(i) for i in range(self.T_sim)]
+            df = DataFrame(data=data.T, columns=cols, dtype=dtype)
+        else:
+            cols = [str(t_val) for t_val in t]
+            df = DataFrame(data=data[t, :].T, columns=cols, dtype=dtype)
+        return df
+
+    def _export_single_var_by_age(self, history, var, age, t, dtype, sym):
+        """
+        Mode 1b: single variable, by_age=True.
+
+        Returns a DataFrame whose columns are within-agent model ages (t_age)
+        and whose rows are individual agent lifetimes.  Observations after
+        death (or before birth) are NaN.  When t is None all ages up to
+        max(t_age) are included; when t is an array only those ages are used.
+        The sym flag controls newborn detection: age == 0 when sym is True,
+        age == 1 when sym is False.
+        """
+        try:
+            data = history[var]
+        except KeyError:
+            raise KeyError("Variable named " + var + " not found in simulated data!")
+
+        # Determine which ages to include and mark qualifying observations
+        if t is None:
+            age_set = np.arange(np.max(age) + 1)
+            in_age_set = np.ones_like(data, dtype=bool)
+        else:
+            age_set = t
+            in_age_set = np.zeros_like(data, dtype=bool)
+            for j in age_set:
+                these = age == j
+                in_age_set[these] = True
+
+        # Locate newborns to determine the number of individual lifetimes (rows)
+        newborns = age == 0 if sym else age == 1
+        T = age_set.size  # number of age columns
+        N = np.sum(newborns)  # number of agent lifetimes (rows)
+        out = np.full((N, T), np.nan)
+
+        # Extract each individual's sequence and place it into the output array
+        n = 0
+        for i in range(self.AgentCount):
+            data_i = data[:, i]
+            births = np.where(newborns[:, i])[0]
+            K = births.size
+            for k in range(K):
+                start = births[k]
+                stop = births[k + 1] if (k < K - 1) else self.T_sim
+                use = in_age_set[start:stop, i]
+                temp = data_i[start:stop][use]
+                out[n, : temp.size] = temp
+                n += 1
+
+        cols = [str(a) for a in age_set]
+        df = DataFrame(data=out, columns=cols, dtype=dtype)
+        return df
+
+    def _export_single_t_by_time(self, history, var_list, t, dtype):
+        """
+        Mode 2a: single time period, by_age=False.
+
+        Returns a DataFrame with one row per agent and one column per variable,
+        drawn from the absolute simulation period t (i.e. history[name][t, :]).
+        """
+        K = len(var_list)
+        N = self.AgentCount
+        out = np.full((N, K), np.nan)
+        for k, name in enumerate(var_list):
+            out[:, k] = history[name][t, :]
+        df = DataFrame(data=out, columns=var_list, dtype=dtype)
+        return df
+
+    def _export_single_t_by_age(self, history, var_list, age, t, dtype):
+        """
+        Mode 2b: single time period, by_age=True.
+
+        Returns a DataFrame with one row per agent-period at which t_age == t
+        and one column per variable.
+        """
+        right_age = age == t
+        N = np.sum(right_age)
+        K = len(var_list)
+        out = np.full((N, K), np.nan)
+        for k, name in enumerate(var_list):
+            out[:, k] = history[name][right_age]
+        df = DataFrame(data=out, columns=var_list, dtype=dtype)
+        return df
+
+    def export_to_df(self, var=None, t=None, by_age=False, dtype=None, sym=False):
+        """
+        Export an AgentType instance's simulated data to a pandas dataframe object.
+        There are four construction modes depending on the arguments passed:
+
+        1a) If exactly one simulated variable is named as var and by_age is False,
+            then the dataframe will contain T_sim columns, each representing one
+            simulated period in absolute simulation time t_sim. Each row of the
+            dataframe will represent one *agent index* of the population, with death
+            and replacement occurring within a row. Optionally, argument t can be
+            provided as an array to specify which periods to include (default all).
+
+        1b) If exactly one simulated variable is named as var and by_age is True,
+            then the dataframe's columns will correspond to within-agent model age
+            t_age. Each row of the dataframe will represent one specific agent from
+            model entry (t_age=0) to model death. All observations after death will
+            be NaN. Optionally, argument t can be provided as an array to specify
+            which ages to include (default all). Number of columns in dataframe will
+            depend on max(t_age) and/or argument t.
+
+        2a) If an integer is provided as t and by_age is False, then each column of
+            the dataframe will represent a different simulated variable, using the
+            value for the specified absolute simulated period t=t_sim. Optionally,
+            the var argument can be provided as a list of strings naming which var-
+            iables should be included in the dataframe (default all).
+
+        2b) If an integer is provided as t and by_age is True, then each column of
+            the dataframe will represent a different simulated variable, taken from
+            all agent-periods at which t == t_age, within-agent model age. Optionally,
+            the var argument can be provided as a list of strings naming which var-
+            iables should be included in the dataframe (default all).
+
+        In summary, *either* var should be a single string *or* t should be an integer.
+        Any other combination of var and t will raise an exception.
+
+        Parameters
+        ----------
+        var : str or [str] or None
+            If a single string is provided, it represents the name of the one simulated
+            variable to export. If a list of strings, then the argument t must also be
+            provided to indicate which time period the dataframe will represent. Name(s)
+            must correspond to a key for history or hystory dictionary (i.e. named in track_vars).
+            If not provided, then all keys in history or hystory are included.
+        t : int or np.array or None
+            If an integer, indicates which one period will be included in the dataframe.
+            When by_age is False (default), t refers to absolute simulated time t_sim:
+            literally the t-th row of history[key]. When by_age is True, t refers to
+            within-agent model age t_age; the dataframe will include all agent-periods
+            where the agent has exactly t_age==t. If var is a single string, then t is
+            an optional input as an array of periods (or ages) to include (default all).
+        by_age : bool
+            Indicator for whether observation selection should be on the basis of absolute
+            simulated time t_sim or within-agent model age t_age. If True, then t_age
+            must be in track_vars so that it appears in the simulated data. Additionally,
+            argument dtype should *not* be provided when by_age is True, as this will
+            result in NaNs being cast to a datatype that doesn't necessarily support them.
+        dtype : type or None
+            Optional data type to cast the dataframe. By default, uses the datatype from
+            the entry in history or hystory.
+        sym : bool
+            Indicator for whether the dataframe should look for simulated data in the
+            history (False, default) or hystory (True) dictionary attribute. This option
+            will be deprecated in the future when legacy simulation methods are removed.
+
+        Returns
+        -------
+        df : pandas.DataFrame
+            The requested dataframe, constructed from this instance's simulated data.
+        """
+        # Validate arguments
+        single_var = type(var) is str
+        single_t = isinstance(t, (int, np.integer))
+        if not (single_var ^ single_t):
+            raise ValueError(
+                "Either var must be a single string, or t must be a single integer!"
+            )
+        if dtype is not None and by_age:
+            raise ValueError(
+                "Can't specify dtype when using by_age is True because of potential incompatibility with representing NaN"
+            )
+
+        # Get the relevant history dictionary (deprecate in future)
+        history = self.hystory if sym else self.history
+
+        # Retrieve age array once if needed (raises a clear error when missing)
+        if by_age:
+            try:
+                age = history["t_age"]
+            except KeyError:
+                raise KeyError(
+                    "t_age must be in track_vars if by_age=True will be used!"
+                )
+
+        # Route to the appropriate private method
+        if single_var and not by_age:
+            return self._export_single_var_by_time(history, var, t, dtype)
+        elif single_var and by_age:
+            return self._export_single_var_by_age(history, var, age, t, dtype, sym)
+        else:  # single_t
+            # Build and validate the variable list
+            if var is None:
+                var_list = list(history.keys())
+            else:
+                var_list = copy(var)
+                sim_keys = list(history.keys())
+                for name in var_list:
+                    if name not in sim_keys:
+                        raise KeyError(
+                            "Variable called " + name + " not found in simulation data!"
+                        )
+            if by_age:
+                return self._export_single_t_by_age(history, var_list, age, t, dtype)
+            else:
+                return self._export_single_t_by_time(history, var_list, t, dtype)
+
+    def _is_idio_state(self, var_name):
+        """Whether ``state_now[var_name]`` is a per-agent (idiosyncratic) array.
+
+        Anything that is not an ndarray of length ``self.AgentCount`` counts as
+        aggregate here (typically a scalar set by the Market or shared across
+        agents, but the check admits any non-ndarray value); only idiosyncratic
+        state arrays should be replaced from newborn histories.
+        """
+        value = self.state_now[var_name]
+        return isinstance(value, np.ndarray) and len(value) == self.AgentCount
+
+    def _sim_period_prologue(self):
+        """Shared ``sim_one_period`` setup: validate, mortality, rotate states, shocks.
+
+        Subclasses with a non-default state/control structure (e.g. staged
+        models) call this prologue and the matching ``_sim_period_epilogue``
+        instead of duplicating the boilerplate.
+
+        In the state-rotation loop, every entry is carried into ``state_prev``
+        but only ndarray entries are blanked. Non-array entries are
+        aggregates, probably being set by the Market, so leaving them in place
+        is deliberate rather than an oversight.
+
+        Blanking fills with ``nan`` rather than ``np.empty``: a state that no
+        later step writes then surfaces as ``nan`` instead of as whatever the
+        freed buffer held, which is usually the previous period's values and so
+        reads as plausible data. See issue #1809.
+        """
+        if not hasattr(self, "solution"):
+            raise Exception(
+                "Model instance does not have a solution stored. To simulate,"
+                " it is necessary to run the `solve()` method first."
+            )
+        self.get_mortality()
+        for var in self.state_now:
+            self.state_prev[var] = self.state_now[var]
+            if isinstance(self.state_now[var], np.ndarray):
+                self.state_now[var] = np.full(self.AgentCount, np.nan)
+        if self.read_shocks:
+            self.read_shocks_from_history()
+        else:
+            self.get_shocks()
+
+    def _sim_period_epilogue(self):
+        """Advance ``t_age``/``t_cycle`` after ``sim_one_period`` body finishes."""
+        self.t_age = self.t_age + 1
+        self.t_cycle = self.t_cycle + 1
+        self.t_cycle[self.t_cycle == self.T_cycle] = 0
 
     def sim_one_period(self):
         """
@@ -1412,41 +1835,71 @@ class AgentType(Model):
         -------
         None
         """
-        if not hasattr(self, "solution"):
-            raise Exception(
-                "Model instance does not have a solution stored. To simulate, it is necessary"
-                " to run the `solve()` method first."
-            )
+        self._sim_period_prologue()
+        self.get_states()
+        self.post_state_hook()  # Extension point: adjust states before controls
+        self.get_controls()
+        self.get_poststates()
+        self._sim_period_epilogue()
 
-        # Mortality adjusts the agent population
-        self.get_mortality()  # Replace some agents with "newborns"
+    def post_state_hook(self):
+        """
+        Extension point invoked by sim_one_period() between get_states() and
+        get_controls().  The default implementation does nothing.
 
-        # state_{t-1}
-        for var in self.state_now:
-            self.state_prev[var] = self.state_now[var]
+        Mixins and subclasses can override this to adjust state variables
+        after they are determined but before controls are computed (e.g.
+        cross-sectional moment normalization for variance reduction).
 
-            if isinstance(self.state_now[var], np.ndarray):
-                self.state_now[var] = np.empty(self.AgentCount)
-            else:
-                # Probably an aggregate variable. It may be getting set by the Market.
-                pass
+        Note: classes that override sim_one_period() itself without calling
+        super() (e.g. ConsRiskyContribModel, the Monte Carlo simulators) do
+        not invoke this hook; overrides intended for such classes must be
+        wired into their own pipelines.
 
-        if self.read_shocks:  # If shock histories have been pre-specified, use those
-            self.read_shocks_from_history()
-        else:  # Otherwise, draw shocks as usual according to subclass-specific method
-            self.get_shocks()
-        self.get_states()  # Determine each agent's state at decision time
-        self.get_controls()  # Determine each agent's choice or control variables based on states
-        self.get_poststates()  # Calculate variables that come *after* decision-time
+        Parameters
+        ----------
+        None
 
-        # Advance time for all agents
-        self.t_age = self.t_age + 1  # Age all consumers by one period
-        self.t_cycle = self.t_cycle + 1  # Age all consumers within their cycle
-        self.t_cycle[self.t_cycle == self.T_cycle] = (
-            0  # Resetting to zero for those who have reached the end
-        )
+        Returns
+        -------
+        None
+        """
+        pass
 
-    def make_shock_history(self):
+    def make_shock_history(self, shuffle=False):
+        """
+        Makes a pre-specified history of shocks for the simulation, by
+        delegating to :meth:`_make_shock_history`.
+
+        Parameters
+        ----------
+        shuffle : bool
+            When True, temporarily enables the opt-in low-variance draw
+            modes (``income_shuffle`` and ``markov_shuffle``, where the
+            composed class defines them) while the history is pre-drawn,
+            restoring their prior values afterwards.  Default False: the
+            pre-drawn history is generated exactly as before.
+
+        Returns
+        -------
+        None
+        """
+        if not shuffle:
+            return self._make_shock_history()
+        saved = {
+            k: getattr(self, k)
+            for k in ("income_shuffle", "markov_shuffle")
+            if hasattr(self, k)
+        }
+        for k in saved:
+            setattr(self, k, True)
+        try:
+            return self._make_shock_history()
+        finally:
+            for k, v in saved.items():
+                setattr(self, k, v)
+
+    def _make_shock_history(self):
         """
         Makes a pre-specified history of shocks for the simulation.  Shock variables should be named
         in self.shock_vars, a list of strings that is subclass-specific.  This method runs a subset
@@ -1484,12 +1937,7 @@ class AgentType(Model):
         # Record the initial condition of the newborns created by
         # initialize_sim -> sim_births
         for var_name in self.state_vars:
-            # Check whether the state is idiosyncratic or an aggregate
-            idio = (
-                isinstance(self.state_now[var_name], np.ndarray)
-                and len(self.state_now[var_name]) == self.AgentCount
-            )
-            if idio:
+            if self._is_idio_state(var_name):
                 self.newborn_init_history[var_name][self.t_sim] = self.state_now[
                     var_name
                 ]
@@ -1508,12 +1956,7 @@ class AgentType(Model):
             # Initial conditions of newborns
             if self.who_dies.any():
                 for var_name in self.state_vars:
-                    # Check whether the state is idiosyncratic or an aggregate
-                    idio = (
-                        isinstance(self.state_now[var_name], np.ndarray)
-                        and len(self.state_now[var_name]) == self.AgentCount
-                    )
-                    if idio:
+                    if self._is_idio_state(var_name):
                         self.newborn_init_history[var_name][t, self.who_dies] = (
                             self.state_now[var_name][self.who_dies]
                         )
@@ -1559,13 +2002,7 @@ class AgentType(Model):
             if who_dies.any():
                 for var_name in self.state_now:
                     if var_name in self.newborn_init_history.keys():
-                        # Copy only array-like idiosyncratic states. Aggregates should
-                        # not be set by newborns
-                        idio = (
-                            isinstance(self.state_now[var_name], np.ndarray)
-                            and len(self.state_now[var_name]) == self.AgentCount
-                        )
-                        if idio:
+                        if self._is_idio_state(var_name):
                             self.state_now[var_name][who_dies] = (
                                 self.newborn_init_history[var_name][
                                     self.t_sim, who_dies
@@ -1676,6 +2113,25 @@ class AgentType(Model):
         None
         """
         new_states = self.transition()
+
+        # States are assigned by POSITION, so the order of state_vars and the
+        # order of transition()'s return must agree. Reordering state_vars
+        # silently lands each value on a different state.
+        #
+        # A short return is deliberate and common: GenIncProcessConsumerType
+        # declares five states and returns three, leaving aLvl and aNrm to be
+        # written by name in get_poststates. So this cannot require equality.
+        # It can reject the opposite mistake, a return longer than the state
+        # list, whose tail the loop below would silently drop.
+        if len(new_states) > len(self.state_now):
+            raise ValueError(
+                f"{type(self).__name__}.transition() returned "
+                f"{len(new_states)} values but there are only "
+                f"{len(self.state_now)} states to assign them to, so the last "
+                f"{len(new_states) - len(self.state_now)} would be discarded. "
+                "States are assigned by position; check that the return order "
+                "matches state_vars."
+            )
 
         for i, var in enumerate(self.state_now):
             # a hack for now to deal with 'post-states'
@@ -1837,10 +2293,18 @@ class AgentType(Model):
         """
         Construct and return sequence space Jacobian matrices for specified outcomes
         with respect to specified "shock" variable. This "basic" method only works
-        for "one period infinite horizon" models (cycles=0, T_cycle=1). See documen-
-        tation for simulator.make_basic_SSJ_matrices for more information.
+        for "one period infinite horizon" models (cycles=0, T_cycle=1) and for life-
+        cycle models (cycles=1). See documentation for simulator.make_basic_SSJ_matrices
+        and simulator.make_flat_LC_SSJ_matrices for more information.
         """
-        return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
+        if (self.cycles == 0) and (self.T_cycle == 1):
+            return make_basic_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
+        elif self.cycles == 1:
+            return make_flat_LC_SSJ_matrices(self, shock, outcomes, grids, **kwargs)
+        else:
+            raise ValueError(
+                "Can only make HA-SSJ matrices for infinite horizon or life-cycle models!"
+            )
 
     def calc_impulse_response_manually(self, shock, outcomes, grids, **kwargs):
         """
@@ -1915,7 +2379,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         solution_now = solution_cycle[0]
         if infinite_horizon:
             if completed_cycles > 0:
-                solution_distance = solution_now.distance(solution_last)
+                solution_distance = distance_metric(solution_now, solution_last)
                 agent.solution_distance = (
                     solution_distance  # Add these attributes so users can
                 )
@@ -1945,7 +2409,7 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
                     "Finished cycle #"
                     + str(completed_cycles)
                     + " in "
-                    + str(t_now - t_last)
+                    + "{:.6f}".format(t_now - t_last)
                     + " seconds, solution distance = "
                     + str(solution_distance)
                 )
@@ -1968,6 +2432,40 @@ def solve_agent(agent, verbose, from_solution=None, from_t=None):
         )
 
     return solution
+
+
+def _resolve_solve_one_period(agent, k):
+    """
+    Resolve which single-period solver and argument list apply at period ``k``.
+
+    Returns ``(solve_one_period, these_args)``.  When ``agent.solve_one_period``
+    is itself a sequence of solvers (one per period), ``solve_one_period[k]``
+    is selected; otherwise the same callable is reused for every period.
+    """
+    if hasattr(agent.solve_one_period, "__getitem__"):
+        solve_one_period = agent.solve_one_period[k]
+    else:
+        solve_one_period = agent.solve_one_period
+
+    if hasattr(solve_one_period, "solver_args"):
+        these_args = solve_one_period.solver_args
+    else:
+        these_args = get_arg_names(solve_one_period)
+    return solve_one_period, these_args
+
+
+def _cycle_period_indices(T, cycles):
+    """
+    Return the order in which periods within one cycle should be solved.
+
+    One-shot lifecycle (``cycles == 1``): solve from ``T - 1`` down to ``0``.
+    Otherwise, which covers both ``cycles == 0`` (infinite horizon) and
+    ``cycles > 1`` (a finite sequence experienced more than once): solve
+    period ``0`` first, then ``T - 1`` down to ``1``.
+    """
+    if cycles == 1:
+        return range(T - 1, -1, -1)
+    return [0] + list(range(T - 1, 0, -1))
 
 
 def solve_one_cycle(agent, solution_last, from_t):
@@ -1996,84 +2494,49 @@ def solve_one_cycle(agent, solution_last, from_t):
         microeconomic model.
     """
 
-    # Check if the agent has a 'Parameters' attribute of the 'Parameters' class
-    # if so, take advantage of it. Else, use the old method
-    if hasattr(agent, "parameters") and isinstance(agent.parameters, Parameters):
+    use_parameters_obj = hasattr(agent, "parameters") and isinstance(
+        agent.parameters, Parameters
+    )
+
+    if use_parameters_obj:
         T = agent.parameters._length if from_t is None else from_t
-
-        # Initialize the solution for this cycle, then iterate on periods
-        solution_cycle = []
-        solution_next = solution_last
-
-        cycles_range = [0] + list(range(T - 1, 0, -1))
-        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-            # Update which single period solver to use (if it depends on time)
-            if hasattr(agent.solve_one_period, "__getitem__"):
-                solve_one_period = agent.solve_one_period[k]
-            else:
-                solve_one_period = agent.solve_one_period
-
-            if hasattr(solve_one_period, "solver_args"):
-                these_args = solve_one_period.solver_args
-            else:
-                these_args = get_arg_names(solve_one_period)
-
-            # Make a temporary dictionary for this period
-            temp_pars = agent.parameters[k]
-            temp_dict = {
-                name: solution_next if name == "solution_next" else temp_pars[name]
-                for name in these_args
-            }
-
-            # Solve one period, add it to the solution, and move to the next period
-            solution_t = solve_one_period(**temp_dict)
-            solution_cycle.insert(0, solution_t)
-            solution_next = solution_t
-
+        solve_dict = None
     else:
-        # Calculate number of periods per cycle, defaults to 1 if all variables are time invariant
+        # Calculate number of periods per cycle, defaults to 1 if all variables
+        # are time invariant.
         if len(agent.time_vary) > 0:
             T = agent.T_cycle if from_t is None else from_t
         else:
             T = 1
-
         solve_dict = {
             parameter: agent.__dict__[parameter] for parameter in agent.time_inv
         }
         solve_dict.update({parameter: None for parameter in agent.time_vary})
 
-        # Initialize the solution for this cycle, then iterate on periods
-        solution_cycle = []
-        solution_next = solution_last
+    solution_cycle = []
+    solution_next = solution_last
 
-        cycles_range = [0] + list(range(T - 1, 0, -1))
-        for k in range(T - 1, -1, -1) if agent.cycles == 1 else cycles_range:
-            # Update which single period solver to use (if it depends on time)
-            if hasattr(agent.solve_one_period, "__getitem__"):
-                solve_one_period = agent.solve_one_period[k]
-            else:
-                solve_one_period = agent.solve_one_period
+    for k in _cycle_period_indices(T, agent.cycles):
+        solve_one_period, these_args = _resolve_solve_one_period(agent, k)
 
-            if hasattr(solve_one_period, "solver_args"):
-                these_args = solve_one_period.solver_args
-            else:
-                these_args = get_arg_names(solve_one_period)
-
-            # Update time-varying single period inputs
+        if use_parameters_obj:
+            temp_pars = agent.parameters[k]
+            temp_dict = {
+                name: solution_next if name == "solution_next" else temp_pars[name]
+                for name in these_args
+            }
+        else:
             for name in agent.time_vary:
                 if name in these_args:
                     solve_dict[name] = agent.__dict__[name][k]
             solve_dict["solution_next"] = solution_next
-
-            # Make a temporary dictionary for this period
             temp_dict = {name: solve_dict[name] for name in these_args}
 
-            # Solve one period, add it to the solution, and move to the next period
-            solution_t = solve_one_period(**temp_dict)
-            solution_cycle.insert(0, solution_t)
-            solution_next = solution_t
+        # Solve one period, add it to the solution, and move to the next period.
+        solution_t = solve_one_period(**temp_dict)
+        solution_cycle.insert(0, solution_t)
+        solution_next = solution_t
 
-    # Return the list of per-period solutions
     return solution_cycle
 
 
@@ -2206,6 +2669,24 @@ class Market(Model):
         # Print the error associated with calling the parallel method
         # "solve_agents" one time. If set to false, the error will never
         # print. See "solve_agents" for why this prints once or never.
+
+    def give_agent_params(self, construct=True):
+        """
+        Distribute relevant market-level parameters to each AgentType in self.agents
+        by having them call their get_market_params method.
+
+        Parameters
+        ----------
+        construct : bool, optional
+            Whether agents should run their construct method after fetching market
+            data (default True).
+
+        Returns
+        -------
+        None
+        """
+        for agent in self.agents:
+            agent.get_market_params(self, construct)
 
     def solve_agents(self):
         """
@@ -2462,7 +2943,11 @@ class Market(Model):
         arg_names = list(get_arg_names(self.calc_dynamics))
         if "self" in arg_names:
             arg_names.remove("self")
-        update_dict = {name: self.history[name] for name in arg_names}
+        update_dict = {}
+        for name in arg_names:
+            update_dict[name] = (
+                self.history[name] if name in self.track_vars else getattr(self, name)
+            )
         # Calculate a new dynamic rule and distribute it to the agents in agent_list
         dynamics = self.calc_dynamics(**update_dict)  # User-defined dynamics calculator
         for var_name in self.dyn_vars:
@@ -2632,6 +3117,89 @@ class AgentPopulation:
 
         self.__infer_counts__()
 
+    @staticmethod
+    def _slice_list_param(param, agent):
+        """
+        Slice a list parameter for one agent.
+
+        If ``param`` is a list of lists, return the sub-list for ``agent``;
+        otherwise return ``param`` unchanged (treated as shared across agents
+        or as a per-period series that is not agent-specific).
+        """
+        if isinstance(param[0], list):
+            return param[agent]
+        return param
+
+    _UNHANDLED = object()
+
+    @classmethod
+    def _slice_dataarray_param(cls, param, agent):
+        """
+        Slice an ``xarray.DataArray`` parameter for one agent.
+
+        Dispatches on the leading dimension: ``"agent"`` returns the agent's
+        slice (as a list when an ``"age"`` axis is present, otherwise as a
+        scalar); ``"age"`` returns the shared per-period list. Returns the
+        ``_UNHANDLED`` sentinel if the layout is unrecognized.
+
+        The sentinel is returned rather than ``None`` because ``.item()`` on an
+        object-dtype array legitimately yields ``None``; conflating the two
+        would silently drop a parameter whose value really is ``None``.
+        """
+        if param.dims[0] == "agent":
+            if len(param.dims) > 1 and param.dims[-1] == "age":
+                return param[agent].values.tolist()
+            return param[agent].item()
+        if param.dims[0] == "age":
+            return param.values.tolist()
+        return cls._UNHANDLED
+
+    def _extract_param_for_agent(self, key, param, agent):
+        """
+        Return this agent's view of ``param``, dispatched by classification.
+
+        Returns the sentinel ``_UNHANDLED`` for parameter values whose type or
+        ``DataArray`` layout is not recognized in the relevant branch. The
+        caller omits those keys, and warns once per key only for keys it
+        classified as ``time_var``; the ``time_inv`` and unclassified branches
+        drop the key silently, which is what the paragraph below is about.
+
+        For the ``time_inv`` and unclassified branches this matches the
+        pre-refactor behaviour, which assigned inside each ``elif`` and so left
+        an unrecognized value unassigned. The ``time_var`` branch differs
+        deliberately: the original assigned a shared local unconditionally
+        after its ``if``/``elif`` chain, so an unrecognized value either raised
+        ``UnboundLocalError`` or silently reused the value computed for a
+        previous key. Omitting the key is a deliberate change from that.
+        """
+        if key in self.time_var:
+            # Parameters that vary over time must be expanded to length term_age.
+            if isinstance(param, (int, float)):
+                return [param] * self.term_age
+            if isinstance(param, list):
+                return self._slice_list_param(param, agent)
+            if isinstance(param, DataArray):
+                return self._slice_dataarray_param(param, agent)
+            return self._UNHANDLED
+
+        if key in self.time_inv:
+            if isinstance(param, (int, float)):
+                return param
+            if isinstance(param, list):
+                return self._slice_list_param(param, agent)
+            if isinstance(param, DataArray) and param.dims[0] == "agent":
+                return param[agent].item()
+            return self._UNHANDLED
+
+        # Unclassified: infer from the value structure.
+        if isinstance(param, (int, float)):
+            return param  # assume time inv
+        if isinstance(param, list):
+            return self._slice_list_param(param, agent)
+        if isinstance(param, DataArray):
+            return self._slice_dataarray_param(param, agent)
+        return self._UNHANDLED
+
     def __parse_parameters__(self) -> None:
         """
         Creates distributed dictionaries of parameters for each ex-ante
@@ -2640,60 +3208,30 @@ class AgentPopulation:
         the parameters for one agent. Expands parameters that vary over time
         to a list of length `term_age`.
         """
-
-        population_parameters = []  # container for dictionaries of each agent subgroup
+        population_parameters = []
+        dropped_keys = set()
         for agent in range(self.agent_type_count):
             agent_parameters = {}
             for key, param in self.parameters.items():
-                if key in self.time_var:
-                    # parameters that vary over time have to be repeated
-                    if isinstance(param, (int, float)):
-                        parameter_per_t = [param] * self.term_age
-                    elif isinstance(param, list):
-                        if isinstance(param[0], list):
-                            parameter_per_t = param[agent]
-                        else:
-                            parameter_per_t = param
-                    elif isinstance(param, DataArray):
-                        if param.dims[0] == "agent":
-                            if len(param.dims) > 1 and param.dims[-1] == "age":
-                                parameter_per_t = param[agent].values.tolist()
-                            else:
-                                parameter_per_t = param[agent].item()
-                        elif param.dims[0] == "age":
-                            parameter_per_t = param.values.tolist()
-
-                    agent_parameters[key] = parameter_per_t
-
-                elif key in self.time_inv:
-                    if isinstance(param, (int, float)):
-                        agent_parameters[key] = param
-                    elif isinstance(param, list):
-                        if isinstance(param[0], list):
-                            agent_parameters[key] = param[agent]
-                        else:
-                            agent_parameters[key] = param
-                    elif isinstance(param, DataArray) and param.dims[0] == "agent":
-                        agent_parameters[key] = param[agent].item()
-
+                value = self._extract_param_for_agent(key, param, agent)
+                if value is self._UNHANDLED:
+                    dropped_keys.add(key)
                 else:
-                    if isinstance(param, (int, float)):
-                        agent_parameters[key] = param  # assume time inv
-                    elif isinstance(param, list):
-                        if isinstance(param[0], list):
-                            agent_parameters[key] = param[agent]  # assume agent vary
-                        else:
-                            agent_parameters[key] = param  # assume time vary
-                    elif isinstance(param, DataArray):
-                        if param.dims[0] == "agent":
-                            if len(param.dims) > 1 and param.dims[-1] == "age":
-                                agent_parameters[key] = param[agent].values.tolist()
-                            else:
-                                agent_parameters[key] = param[agent].item()
-                        elif param.dims[0] == "age":
-                            agent_parameters[key] = param.values.tolist()
-
+                    agent_parameters[key] = value
             population_parameters.append(agent_parameters)
+
+        # Warn only for time_var, the one branch whose behaviour changed. The
+        # time_inv and unclassified branches always omitted unhandled keys
+        # silently, and warning on those would flag unchanged behaviour and
+        # bury the case that matters in noise.
+        for key in sorted(dropped_keys):
+            if key in self.time_var:
+                warn(
+                    f"Parameter '{key}' was declared time-varying, but its "
+                    f"type ({type(self.parameters[key]).__name__}) or "
+                    "DataArray layout is not supported; it was omitted from "
+                    "every agent's parameter dictionary."
+                )
 
         self.population_parameters = population_parameters
 
@@ -2810,8 +3348,11 @@ def multi_thread_commands_fake(
     """
     for agent in agent_list:
         for command in command_list:
-            # TODO: Code should be updated to pass in the method name instead of method()
-            getattr(agent, command[:-2])()
+            # Can pass method names with or without parentheses
+            if command[-2:] == "()":
+                getattr(agent, command[:-2])()
+            else:
+                getattr(agent, command)()
 
 
 def multi_thread_commands(agent_list: List, command_list: List, num_jobs=None) -> None:
@@ -2868,6 +3409,9 @@ def run_commands(agent: Any, command_list: List) -> Any:
         The same AgentType instance passed as input, after running the commands.
     """
     for command in command_list:
-        # TODO: Code should be updated to pass in the method name instead of method()
-        getattr(agent, command[:-2])()
+        # Can pass method names with or without parentheses
+        if command[-2:] == "()":
+            getattr(agent, command[:-2])()
+        else:
+            getattr(agent, command)()
     return agent

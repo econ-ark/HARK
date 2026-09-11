@@ -4,6 +4,10 @@ This file implements unit tests for core HARK functionality.
 
 import unittest
 
+# HARK exports a callable named `warnings`, which shadows the stdlib module
+# at this module's scope, so the standard library is bound under an alias.
+import warnings as std_warnings
+
 import numpy as np
 import pytest
 from copy import deepcopy
@@ -155,6 +159,26 @@ class test_AgentType(unittest.TestCase):
 
         self.assertEqual(self.agent, agent2)
         self.assertNotEqual(self.agent, agent3)
+
+    def test_prologue_blanks_states_with_nan(self):
+        # The prologue clears every ndarray state so the period's own code
+        # must write it. Blanking with np.empty made a state nothing wrote
+        # hold the freed buffer's contents -- usually the previous period's
+        # values, so the gap read as plausible data. nan makes it visible.
+        agent = IndShockConsumerType(AgentCount=50, T_sim=5)
+        agent.solve()
+        agent.initialize_sim()
+        agent._sim_period_prologue()
+
+        blanked = [
+            var for var, val in agent.state_now.items() if isinstance(val, np.ndarray)
+        ]
+        self.assertTrue(blanked)
+        for var in blanked:
+            self.assertTrue(
+                np.all(np.isnan(agent.state_now[var])),
+                f"state_now[{var!r}] was not blanked to nan",
+            )
 
     def test_del_from_X(self):
         MyType = IndShockConsumerType()
@@ -1361,3 +1385,266 @@ class TestAgentPopulationParseParameters(unittest.TestCase):
 
         self.assertEqual(agent_pop.agent_type_count, 5)
         self.assertIn("CRRA", agent_pop.discrete_distributions)
+
+    def test_time_var_unhandled_type_is_omitted_with_warning(self):
+        """A time_var value of an unsupported type is dropped, and says so.
+
+        Before the helpers were extracted, the time_var branch assigned a
+        shared local unconditionally after its if/elif chain, so this input
+        raised UnboundLocalError or silently reused the previous key's value.
+        Omitting the key is a deliberate change, so it must be announced.
+        """
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        # ndarray falls past the int/float, list and DataArray branches.
+        params["Rfree"] = np.array([1.02, 1.03])
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with pytest.warns(UserWarning, match="Rfree.*declared time-varying"):
+            agent_pop.__parse_parameters__()
+
+        for agent_params in agent_pop.population_parameters:
+            self.assertNotIn("Rfree", agent_params)
+
+    def test_time_var_unhandled_dataarray_dims_is_omitted_with_warning(self):
+        """A DataArray whose leading dim is neither agent nor age is dropped."""
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+        params["Rfree"] = DataArray([1.02, 1.03], dims=("mrkv",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with pytest.warns(UserWarning, match="Rfree.*declared time-varying"):
+            agent_pop.__parse_parameters__()
+
+        for agent_params in agent_pop.population_parameters:
+            self.assertNotIn("Rfree", agent_params)
+
+    def test_unclassified_unhandled_value_is_omitted_silently(self):
+        """Unclassified keys fall through by design and must not warn.
+
+        Ordinary parameters such as constructors (a dict) and unset options
+        (None) hit this path on every run, so warning here would bury the
+        time_var case in noise.
+        """
+        params = init_idiosyncratic_shocks.copy()
+        params["CRRA"] = DataArray([2.0, 3.0], dims=("agent",))
+
+        agent_pop = AgentPopulation(IndShockConsumerType, params)
+        with std_warnings.catch_warnings(record=True) as caught:
+            std_warnings.simplefilter("always")
+            agent_pop.__parse_parameters__()
+
+        omitted = [
+            key
+            for key in params
+            if key not in agent_pop.population_parameters[0]
+            and key not in agent_pop.time_var
+        ]
+        self.assertTrue(omitted, "expected at least one unclassified fall-through")
+        self.assertEqual(
+            [
+                str(w.message)
+                for w in caught
+                if "omitted from every agent" in str(w.message)
+            ],
+            [],
+        )
+
+    def test_slice_dataarray_distinguishes_none_from_unhandled(self):
+        """A legitimate None value must not be read as an unrecognized layout."""
+        sentinel = AgentPopulation._UNHANDLED
+
+        legitimate_none = DataArray(
+            np.array([None, 5.0], dtype=object), dims=("agent",)
+        )
+        self.assertIsNone(AgentPopulation._slice_dataarray_param(legitimate_none, 0))
+
+        unrecognized = DataArray(np.zeros((2, 3)), dims=("wrong", "dims"))
+        self.assertIs(AgentPopulation._slice_dataarray_param(unrecognized, 0), sentinel)
+
+
+class test_export_to_df(unittest.TestCase):
+    def setUp(self):
+        self.agent = IndShockConsumerType(
+            cycles=0,
+            seed=0,
+            track_vars=["mNrm", "aNrm", "cNrm", "t_age"],
+            AgentCount=1000,
+            T_sim=100,
+        )
+        self.agent.solve()
+        self.agent.initialize_sym()
+        self.agent.symulate()
+
+    def test_one_var_by_time(self):
+        df = self.agent.export_to_df(var="aNrm", sym=True)
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], self.agent.T_sim)
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+        df = self.agent.export_to_df(
+            var="aNrm", t=np.array([5, 10, 15, 20, 25]), sym=True
+        )
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 5)
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+    def test_one_var_by_age(self):
+        df = self.agent.export_to_df(var="aNrm", by_age=True, sym=True)
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], np.max(self.agent.hystory["t_age"]) + 1)
+        self.assertTrue(np.any(np.isnan(df.values)))  # should be missing data
+
+        df = self.agent.export_to_df(
+            var="aNrm", by_age=True, t=np.array([5, 10, 15, 20, 25]), sym=True
+        )
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 5)
+        self.assertTrue(np.any(np.isnan(df.values)))  # should be missing data
+
+    def test_one_t_by_time(self):
+        df = self.agent.export_to_df(t=10, sym=True)
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 4)  # 4 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+        df = self.agent.export_to_df(var=["aNrm", "cNrm"], t=10, sym=True)
+        self.assertEqual(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 2)  # 2 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+    def test_one_t_by_age(self):
+        df = self.agent.export_to_df(t=10, by_age=True, sym=True)
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 4)  # 4 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+        df = self.agent.export_to_df(var=["aNrm", "cNrm"], by_age=True, t=10, sym=True)
+        self.assertGreater(df.shape[0], self.agent.AgentCount)
+        self.assertEqual(df.shape[1], 2)  # 2 tracked variables
+        self.assertFalse(np.any(np.isnan(df.values)))  # no missing data
+
+    def test_invalid(self):
+        self.assertRaises(ValueError, self.agent.export_to_df, sym=True)
+        self.assertRaises(KeyError, self.agent.export_to_df, var="boop", sym=True)
+        self.assertRaises(
+            KeyError, self.agent.export_to_df, t=5, var=["boop"], sym=True
+        )
+        self.assertRaises(
+            ValueError, self.agent.export_to_df, var="aNrm", t=10, sym=True
+        )
+
+        self.agent.track_vars = ["mNrm", "aNrm", "cNrm"]
+        self.agent.initialize_sym()
+        self.agent.symulate()
+        self.assertRaises(
+            KeyError, self.agent.export_to_df, var="aNrm", by_age=True, sym=True
+        )
+
+
+class test_post_state_hook(unittest.TestCase):
+    """The sim_one_period extension point added between get_states() and
+    get_controls(): default is a no-op; overrides fire at the right moment."""
+
+    def test_default_behavior_unchanged_golden(self):
+        # Behavior golden captured on main at a25d3ae0 (pre-hook): the
+        # default no-op hook must leave simulations bit-identical.
+        agent = IndShockConsumerType(AgentCount=200, T_sim=8, seed=555)
+        agent.track_vars = ["cNrm", "pLvl"]
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        np.testing.assert_allclose(
+            [float(x) for x in agent.history["cNrm"][3, :4]],
+            [
+                1.1070787532288362,
+                0.9087055494949798,
+                1.1694416325917305,
+                0.9579870570215201,
+            ],
+            rtol=1e-10,
+        )
+        self.assertAlmostEqual(
+            float(np.nansum(agent.history["cNrm"])), 1582.2122805244605, places=9
+        )
+
+    def test_override_fires_between_states_and_controls(self):
+        calls = []
+
+        class HookedAgent(IndShockConsumerType):
+            def post_state_hook(self):
+                # states for this period are already populated at call time
+                assert isinstance(self.state_now["pLvl"], np.ndarray)
+                assert np.isfinite(self.state_now["pLvl"]).all()
+                calls.append(self.t_sim)
+
+        agent = HookedAgent(AgentCount=25, T_sim=5, seed=7)
+        agent.solve()
+        agent.initialize_sim()
+        agent.simulate()
+        self.assertEqual(len(calls), 5)
+
+
+class test_make_shock_history_shuffle_kwarg(unittest.TestCase):
+    """make_shock_history(shuffle=) thin wrapper: default delegates to the
+    unchanged original body; shuffle=True toggles the opt-in draw-mode
+    flags for the pre-draw and restores them."""
+
+    def test_default_history_stream_unchanged_golden(self):
+        # Golden captured on main at a25d3ae0 (pre-kwarg).
+        agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
+        agent.solve()
+        agent.make_shock_history()
+        np.testing.assert_allclose(
+            [float(x) for x in agent.shock_history["PermShk"][2][:4]],
+            [
+                1.0887560662509859,
+                0.9278094171517418,
+                0.9278094171517418,
+                1.1780702264015428,
+            ],
+            rtol=1e-10,
+        )
+
+    def test_shuffle_toggles_and_restores_flags(self):
+        agent = IndShockConsumerType(AgentCount=50, T_sim=6, seed=99)
+        agent.solve()
+        agent.income_shuffle = False
+        seen = {}
+        orig = agent.get_shocks
+
+        def spy():
+            seen["flag"] = getattr(agent, "income_shuffle", None)
+            return orig()
+
+        agent.get_shocks = spy
+        agent.make_shock_history(shuffle=True)
+        self.assertTrue(seen["flag"])  # flag was on during the pre-draw
+        self.assertFalse(agent.income_shuffle)  # and restored afterwards
+
+
+class test_get_states_arity(unittest.TestCase):
+    """get_states assigns by position, so arity mismatches matter."""
+
+    def _agent(self, returns):
+        agent = IndShockConsumerType(AgentCount=10, T_sim=2)
+        agent.solve()
+        agent.initialize_sim()
+        agent.transition = lambda: returns
+        return agent
+
+    def test_too_many_returned_values_raises(self):
+        # The loop iterates over state_now, so a transition() returning more
+        # values than there are states drops the tail with no signal.
+        n = len(self._agent(()).state_now) + 1
+        agent = self._agent(tuple(np.zeros(10) for _ in range(n)))
+        with self.assertRaises(ValueError) as cm:
+            agent.get_states()
+        self.assertIn("discarded", str(cm.exception))
+
+    def test_short_return_is_still_allowed(self):
+        # Deliberate and load-bearing: GenIncProcessConsumerType declares five
+        # states and returns three, picking up the tail in get_poststates. An
+        # equality assert here would break it.
+        agent = self._agent((np.zeros(10),))
+        agent.get_states()

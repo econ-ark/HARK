@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from HARK._numba import njit
 
 from HARK.rewards import (
     CRRAutility_X,
@@ -23,37 +23,16 @@ vNvrsSlope = njit(vNvrsSlope_py, cache=True)
 
 
 @njit(cache=True, error_model="numpy")
-def _interp_decay(
-    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+def _decay_extrap_coeffs(
+    x_list, y_list, intercept_limit, slope_limit
 ):  # pragma: no cover
-    # Make a decay extrapolation
+    # Coefficients for decay extrapolation toward the line y = slope*x + intercept.
     slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
     level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
     slope_diff = slope_limit - slope_at_top
-
     decay_extrap_A = level_diff
     decay_extrap_B = -slope_diff / level_diff
-    intercept_limit = intercept_limit
-    slope_limit = slope_limit
-
-    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
-    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
-
-    if not lower_extrap:
-        below_lower_bound = x0 < x_list[0]
-        y0[below_lower_bound] = np.nan
-
-    above_upper_bound = x0 > x_list[-1]
-    x_temp = x0[above_upper_bound] - x_list[-1]
-
-    y0[above_upper_bound] = (
-        intercept_limit
-        + slope_limit * x0[above_upper_bound]
-        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
-    )
-
-    return y0
+    return decay_extrap_A, decay_extrap_B
 
 
 @njit(cache=True, error_model="numpy")
@@ -66,6 +45,34 @@ def _interp_linear(x0, x_list, y_list, lower_extrap):  # pragma: no cover
         below_lower_bound = x0 < x_list[0]
         y0[below_lower_bound] = np.nan
 
+    return y0
+
+
+@njit(cache=True, error_model="numpy")
+def _apply_y_decay_extrap(
+    x0, y0, x_list, intercept_limit, slope_limit, decay_extrap_A, decay_extrap_B
+):  # pragma: no cover
+    above_upper_bound = x0 > x_list[-1]
+    x_temp = x0[above_upper_bound] - x_list[-1]
+    y0[above_upper_bound] = (
+        intercept_limit
+        + slope_limit * x0[above_upper_bound]
+        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
+    )
+    return above_upper_bound, x_temp
+
+
+@njit(cache=True, error_model="numpy")
+def _interp_decay(
+    x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
+):  # pragma: no cover
+    decay_extrap_A, decay_extrap_B = _decay_extrap_coeffs(
+        x_list, y_list, intercept_limit, slope_limit
+    )
+    y0 = _interp_linear(x0, x_list, y_list, lower_extrap)
+    _apply_y_decay_extrap(
+        x0, y0, x_list, intercept_limit, slope_limit, decay_extrap_A, decay_extrap_B
+    )
     return y0
 
 
@@ -100,39 +107,16 @@ def _interp_linear_deriv(x0, x_list, y_list, lower_extrap):  # pragma: no cover
 def _interp_decay_deriv(
     x0, x_list, y_list, intercept_limit, slope_limit, lower_extrap
 ):  # pragma: no cover
-    # Make a decay extrapolation
-    slope_at_top = (y_list[-1] - y_list[-2]) / (x_list[-1] - x_list[-2])
-    level_diff = intercept_limit + slope_limit * x_list[-1] - y_list[-1]
-    slope_diff = slope_limit - slope_at_top
-
-    decay_extrap_A = level_diff
-    decay_extrap_B = -slope_diff / level_diff
-    intercept_limit = intercept_limit
-    slope_limit = slope_limit
-
-    i = np.maximum(np.searchsorted(x_list[:-1], x0), 1)
-    alpha = (x0 - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-    y0 = (1.0 - alpha) * y_list[i - 1] + alpha * y_list[i]
-    dydx = (y_list[i] - y_list[i - 1]) / (x_list[i] - x_list[i - 1])
-
-    if not lower_extrap:
-        below_lower_bound = x0 < x_list[0]
-        y0[below_lower_bound] = np.nan
-        dydx[below_lower_bound] = np.nan
-
-    above_upper_bound = x0 > x_list[-1]
-    x_temp = x0[above_upper_bound] - x_list[-1]
-
-    y0[above_upper_bound] = (
-        intercept_limit
-        + slope_limit * x0[above_upper_bound]
-        - decay_extrap_A * np.exp(-decay_extrap_B * x_temp)
+    decay_extrap_A, decay_extrap_B = _decay_extrap_coeffs(
+        x_list, y_list, intercept_limit, slope_limit
     )
-
+    y0, dydx = _interp_linear_deriv(x0, x_list, y_list, lower_extrap)
+    above_upper_bound, x_temp = _apply_y_decay_extrap(
+        x0, y0, x_list, intercept_limit, slope_limit, decay_extrap_A, decay_extrap_B
+    )
     dydx[above_upper_bound] = slope_limit + decay_extrap_B * decay_extrap_A * np.exp(
         -decay_extrap_B * x_temp
     )
-
     return y0, dydx
 
 
@@ -186,48 +170,38 @@ def _spline_decay(
     m = len(x_init)
     pos = np.searchsorted(x_list, x_init)
     y = np.zeros(m)
-    if y.size > 0:
+    dydx = np.zeros(m)
+
+    if m > 0:
         out_bot = pos == 0
         out_top = pos == n
         in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
 
-        # Do the "in bounds" evaluation points
+        # In-bounds evaluation
         i = pos[in_bnds]
         coeffs_in = coeffs[i, :]
-        alpha = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-        y[in_bnds] = coeffs_in[:, 0] + alpha * (
-            coeffs_in[:, 1] + alpha * (coeffs_in[:, 2] + alpha * coeffs_in[:, 3])
+        alpha_in = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
+        y[in_bnds] = coeffs_in[:, 0] + alpha_in * (
+            coeffs_in[:, 1] + alpha_in * (coeffs_in[:, 2] + alpha_in * coeffs_in[:, 3])
         )
+        dydx[in_bnds] = (
+            coeffs_in[:, 1]
+            + alpha_in * (2 * coeffs_in[:, 2] + alpha_in * 3 * coeffs_in[:, 3])
+        ) / (x_list[i] - x_list[i - 1])
 
-        # Do the "out of bounds" evaluation points
+        # Out-of-bounds: bottom
         y[out_bot] = coeffs[0, 0] + coeffs[0, 1] * (x_init[out_bot] - x_list[0])
-        alpha = x_init[out_top] - x_list[n - 1]
+        dydx[out_bot] = coeffs[0, 1]
+
+        # Out-of-bounds: top
+        alpha_top = x_init[out_top] - x_list[n - 1]
         y[out_top] = (
             coeffs[n, 0]
             + x_init[out_top] * coeffs[n, 1]
-            - coeffs[n, 2] * np.exp(alpha * coeffs[n, 3])
+            - coeffs[n, 2] * np.exp(alpha_top * coeffs[n, 3])
         )
-
-    dydx = np.zeros(m)
-    if dydx.size > 0:
-        out_bot = pos == 0
-        out_top = pos == n
-        in_bnds = np.logical_not(np.logical_or(out_bot, out_top))
-
-        # Do the "in bounds" evaluation points
-        i = pos[in_bnds]
-        coeffs_in = coeffs[i, :]
-        alpha = (x_init[in_bnds] - x_list[i - 1]) / (x_list[i] - x_list[i - 1])
-        dydx[in_bnds] = (
-            coeffs_in[:, 1]
-            + alpha * (2 * coeffs_in[:, 2] + alpha * 3 * coeffs_in[:, 3])
-        ) / (x_list[i] - x_list[i - 1])
-
-        # Do the "out of bounds" evaluation points
-        dydx[out_bot] = coeffs[0, 1]
-        alpha = x_init[out_top] - x_list[n - 1]
         dydx[out_top] = coeffs[n, 1] - coeffs[n, 2] * coeffs[n, 3] * np.exp(
-            alpha * coeffs[n, 3]
+            alpha_top * coeffs[n, 3]
         )
 
     return y, dydx

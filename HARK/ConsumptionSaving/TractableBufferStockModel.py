@@ -337,7 +337,11 @@ class TractableConsumerType(AgentType):
     shock_vars_ = ["eState"]
     state_vars = ["bNrm", "mNrm", "aNrm"]
     poststate_vars = ["aNrm", "eState"]  # For simulation
-    default_ = {"params": init_tractable, "solver": add_to_stable_arm_points}
+    default_ = {
+        "params": init_tractable,
+        "solver": add_to_stable_arm_points,
+        "track_vars": ["mNrm", "eState", "cNrm", "aNrm"],
+    }
 
     def pre_solve(self):
         """
@@ -388,9 +392,9 @@ class TractableConsumerType(AgentType):
         PatFacGrowth = (Rfree * DiscFac) ** (1.0 / CRRA) / PermGroFacCmp
         PatFacReturn = (Rfree * DiscFac) ** (1.0 / CRRA) / Rfree
         if PatFacReturn >= 1.0:
-            raise Exception("Employed consumer not return impatient, cannot solve!")
+            raise ValueError("Employed consumer not return impatient, cannot solve!")
         if PatFacGrowth >= 1.0:
-            raise Exception("Employed consumer not growth impatient, cannot solve!")
+            raise ValueError("Employed consumer not growth impatient, cannot solve!")
 
         # Find target money and consumption
         # See TBS Appendix "B.2 A Target Always Exists When Human Wealth Is Infinite"

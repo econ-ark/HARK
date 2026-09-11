@@ -1,13 +1,105 @@
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from copy import deepcopy
+from fractions import Fraction
+from math import gcd
+from functools import reduce
+import warnings
+
 import numpy as np
 import xarray as xr
 from scipy import stats
 from scipy.stats import rv_discrete
 from scipy.stats._distn_infrastructure import rv_discrete_frozen
 
-from HARK.distributions.base import Distribution
+from HARK.distributions.base import Distribution, allocate_remainder_slots
+
+
+def cdf_invert(base_draws, pmv):
+    """Map uniform draws to atom indices by inverting the CDF.
+
+    Lives here, next to the distribution it inverts, because four places
+    were spelling it out independently: ``DiscreteDistribution.draw_events``
+    itself, the base-draw-cache branches in ``IndShockConsumerType.get_shocks``
+    and ``MarkovConsumerType.get_shocks``, and ``HARK.dual_measure``'s Q-side
+    draws.  The P and Q pipelines have to agree on this map exactly -- the
+    whole shared-uniform design rests on inverting one recorded draw through
+    two different CDFs -- so it should not be four transcriptions that
+    happen to match.
+
+    Note the boundary convention is ``searchsorted``'s default ``side="left"``,
+    which all four copies used.  Changing it here changes which atom a draw
+    landing exactly on a cumulative boundary selects, in both measures at
+    once, which is the point.
+
+    Parameters
+    ----------
+    base_draws : np.ndarray of shape (N,)
+        Uniform [0, 1) random numbers.
+    pmv : np.ndarray
+        Probability mass vector.
+
+    Returns
+    -------
+    np.ndarray of int
+        Indices into the atom arrays.
+    """
+    return np.searchsorted(np.cumsum(pmv), base_draws)
+
+
+def _weighted_mean_var(var, pmv):
+    """Compute weighted mean of a single DataArray over its ``atom`` dimension.
+
+    If *var* is not an :class:`xr.DataArray` or lacks an ``atom`` dimension it
+    is returned unchanged.  This pass-through is intentional: variables without
+    an atom dimension (e.g. scalar metadata or grid coordinates) are preserved
+    as-is when called from :func:`_weighted_mean`.
+    """
+    if not isinstance(var, xr.DataArray) or "atom" not in var.dims:
+        return var
+    atom_axis = var.dims.index("atom")
+    avg = np.tensordot(pmv, var.values, axes=([0], [atom_axis]))
+    remaining_dims = tuple(d for d in var.dims if d != "atom")
+    if remaining_dims:
+        remaining_coords = {d: var.coords[d] for d in remaining_dims if d in var.coords}
+        return xr.DataArray(avg, dims=remaining_dims, coords=remaining_coords)
+    return float(avg) if np.ndim(avg) == 0 else avg
+
+
+def _weighted_mean(data, pmv):
+    """Compute weighted mean over the ``atom`` dimension using numpy.
+
+    Used in the kwargs path of ``DDL.expected()`` when the caller passes
+    xarray-compatible keyword arguments.  Replaces the slow
+    ``Dataset.weighted(prob).mean("atom")`` with ``np.tensordot`` per
+    variable.  The common no-kwargs path uses a separate ``np.dot`` on
+    the cached ``_wrapped_atoms`` dict and does not call this function.
+
+    Returns an :class:`xr.Dataset` when *data* is a Dataset or dict,
+    an :class:`xr.DataArray` or scalar when *data* is a DataArray.
+    Raises :class:`TypeError` for other types.
+    """
+    if isinstance(data, xr.Dataset):
+        return xr.Dataset(
+            {name: _weighted_mean_var(var, pmv) for name, var in data.data_vars.items()}
+        )
+    elif isinstance(data, dict):
+        return xr.Dataset(
+            {
+                name: _weighted_mean_var(val, pmv)
+                if isinstance(val, xr.DataArray)
+                else val
+                for name, val in data.items()
+            }
+        )
+    elif isinstance(data, xr.DataArray):
+        return _weighted_mean_var(data, pmv)
+    raise TypeError(
+        f"_weighted_mean: unsupported data type '{type(data).__name__}'. "
+        "Expected xr.Dataset, xr.DataArray, or dict. "
+        "Ensure the function passed to expected() returns one of these types "
+        "when keyword arguments are used."
+    )
 
 
 class DiscreteFrozenDistribution(rv_discrete_frozen, Distribution):
@@ -116,76 +208,255 @@ class DiscreteDistribution(Distribution):
                 + "The length of the pmv must be equal to that of atoms's last dimension."
             )
 
+    def __repr__(self):
+        out = self.__class__.__name__ + " with " + str(self.pmv.size) + " atoms, "
+        if self.atoms.shape[0] > 1:
+            out += "inf=" + str(tuple(self.limit["infimum"])) + ", "
+            out += "sup=" + str(tuple(self.limit["supremum"])) + ", "
+        else:
+            out += "inf=" + str(self.limit["infimum"][0]) + ", "
+            out += "sup=" + str(self.limit["supremum"][0]) + ", "
+        out += "seed=" + str(self.seed)
+        return out
+
     def dim(self) -> int:
         """
         Last dimension of self.atoms indexes "atom."
         """
         return self.atoms.shape[:-1]
 
-    def draw_events(self, N: int) -> np.ndarray:
+    def draw_events(self, N: int, shuffle: bool = False) -> np.ndarray:
         """
         Draws N 'events' from the distribution PMF.
         These events are indices into atoms.
+
+        Parameters
+        ----------
+        N : int
+            Number of draws.
+        shuffle : bool
+            When True, use the same floor-plus-leftover construction as
+            :meth:`draw` with ``shuffle=True``, returning a permutation of
+            index values whose histogram matches the PMF as closely as
+            possible (for rational probabilities).  When False (default),
+            independent inverse-CDF draws (original behavior).
         """
-        # Generate a cumulative distribution
+        if shuffle:
+            J = self.pmv.size
+            atom_indices = np.arange(J, dtype=int)
+            return self.draw(N, shuffle=True, atoms=atom_indices)
+
+        # Generate a cumulative distribution and invert it
         base_draws = self._rng.uniform(size=N)
-        cum_dist = np.cumsum(self.pmv)
+        return cdf_invert(base_draws, self.pmv)
 
-        # Convert the basic uniform draws into discrete draws
-        indices = cum_dist.searchsorted(base_draws)
+    def _resolve_replicates(self, replicates: int, max_J_min: int = 10_000):
+        """Compute N from replicates and the minimal full-coverage sample size.
 
-        return indices
+        The minimal sample size J_min is the smallest positive integer such
+        that ``J_min * p_j`` is an integer for every atom j, and a positive
+        integer for every atom that carries mass.  This equals the LCM of the
+        denominators when each probability is expressed as a fraction in
+        lowest terms.  Atoms with ``p_j == 0`` are legitimate and simply get
+        zero slots.
+
+        For a joint distribution built from independent shocks, J_min equals
+        the product of the inverse conditional probabilities at each level.
+        For example, with unemployment probability 0.05 and 3 x 3 equiprobable
+        employment shocks: J_min = LCM(20, 180) = 180 = 20 x 3 x 3.
+
+        Parameters
+        ----------
+        replicates : int
+            Number of copies of the minimal full-coverage sample.  Must be
+            a positive integer.
+        max_J_min : int
+            Maximum allowed J_min.  If the computed J_min exceeds this,
+            a ValueError is raised; this indicates that at least one
+            conditional shock probability is finer than 1/max_J_min
+            (e.g. < 0.01%), making shuffled draws impractical.
+
+        Returns
+        -------
+        N : int
+            Total number of draws (replicates * J_min).
+        shuffle : bool
+            Always True (replicates implies shuffle).
+        """
+        if int(replicates) != replicates or replicates < 1:
+            raise ValueError(
+                f"replicates must be a positive integer; got {replicates!r}. "
+                f"A non-positive value would silently return an empty sample."
+            )
+
+        P = self.pmv
+
+        # Convert each probability to an exact fraction and compute
+        # J_min = LCM of all denominators (= product of inverse conditional
+        # probabilities for hierarchically independent shocks).
+        # Use a large limit_denominator for precision; the max_J_min bound
+        # is enforced separately on the resulting J_min.
+        fracs = [Fraction(p).limit_denominator(1_000_000) for p in P]
+        denoms = [f.denominator for f in fracs]
+        J_min = reduce(lambda a, b: a * b // gcd(a, b), denoms)
+
+        # What this check does and does not establish, because the difference
+        # is easy to misread. J_min is the LCM of these fractions' own
+        # denominators, so `c.denominator != 1` is true by construction for
+        # every atom: that clause is the approximation validating itself and
+        # would pass for any P whatever. The clause with real content is
+        # `c == 0 and P[j] > 0`, which catches an atom whose probability
+        # limit_denominator rounded to zero.
+        #
+        # Tightening this to verify the rationals against P directly is not
+        # worth doing: for p in [0, 1] the approximation error is on the order
+        # of 1/(q * 1000000), so any threshold loose enough not to fire on
+        # ordinary input is one the error cannot reach either -- a second
+        # unfirable check rather than a repair of the first.
+        #
+        # Nothing downstream is wrong as a result. Whatever discrepancy
+        # survives is absorbed by allocate_remainder_slots, which distributes
+        # leftover slots by fractional remainder. The exactness claim in this
+        # method's docstring rests on that, not on the check below.
+        #
+        # A zero-probability atom is legitimate (it just never gets drawn), so
+        # it is exempt from the positivity requirement rather than a reason to
+        # refuse the request.
+        counts = [J_min * f for f in fracs]
+        bad = [
+            (j, float(P[j]))
+            for j, c in enumerate(counts)
+            if c.denominator != 1 or (c == 0 and P[j] > 0)
+        ]
+        if bad:
+            raise ValueError(
+                f"Could not find exact integer atom counts with J_min={J_min}. "
+                f"Offending (atom index, probability) pairs: {bad}. "
+                f"The distribution's probabilities may not be cleanly "
+                f"representable as rational numbers. Consider using "
+                f"equiprobable shock approximations."
+            )
+
+        # Guard against impractically large minimum sample sizes.
+        # A large J_min means at least one conditional shock probability
+        # is very small (< 1/max_J_min), requiring huge populations.
+        if J_min > max_J_min:
+            raise ValueError(
+                f"Minimum full-coverage sample size J_min={J_min} exceeds "
+                f"max_J_min={max_J_min}. This means at least one conditional "
+                f"shock dimension has a probability finer than "
+                f"1/{max_J_min} = {1 / max_J_min:.2%}. "
+                f"Consider using equiprobable shock approximations, or pass "
+                f"a larger max_J_min to _resolve_replicates if this is "
+                f"intentional."
+            )
+
+        # Warn only when J_min is much larger than the rarest atom alone
+        # requires.  Covering an atom of probability p_min needs at least
+        # ceil(1/p_min) draws no matter what, so that part is arithmetic and
+        # not worth a warning: an earlier version warned whenever some 1/p_j
+        # was non-integral, which is true of nearly every non-uniform pmv and
+        # so fired on essentially every realistic income grid.  What is worth
+        # flagging is the LCM blowing up beyond that floor, which is the
+        # actual signature of a joint distribution over several shocks.
+        positive = P[P > 0]
+        if positive.size:
+            floor_N = int(np.ceil(1.0 / positive.min()))
+            if J_min > 2 * floor_N:
+                warnings.warn(
+                    f"Minimal full-coverage sample J_min={J_min} is much "
+                    f"larger than the {floor_N} draws the rarest atom "
+                    f"(p={positive.min():.4g}) requires on its own, so each "
+                    f"replicate is bigger than the atom probabilities alone "
+                    f"suggest. This is the expected signature of a joint "
+                    f"distribution over several independent shocks.",
+                    stacklevel=3,
+                )
+
+        return int(replicates * J_min), True
 
     def draw(
         self,
-        N: int,
+        N: Optional[int] = None,
         atoms: Union[None, int, np.ndarray] = None,
-        exact_match: bool = False,
+        shuffle: bool = False,
+        replicates: Optional[int] = None,
     ) -> np.ndarray:
         """
         Simulates N draws from a discrete distribution with probabilities P and outcomes atoms.
 
         Parameters
         ----------
-        N : int
-            Number of draws to simulate.
+        N : int, optional
+            Number of draws to simulate.  Either N or replicates must be given.
         atoms : None, int, or np.array
             If None, then use this distribution's atoms for point values.
             If an int, then the index of atoms for the point values.
             If an np.array, use the array for the point values.
-        exact_match : boolean
-            Whether the draws should "exactly" match the discrete distribution (as
-            closely as possible given finite draws).  When True, returned draws are
-            a random permutation of the N-length list that best fits the discrete
-            distribution.  When False (default), each draw is independent from the
-            others and the result could deviate from the input.
+        shuffle : boolean
+            Whether the draws should "shuffle" the discrete distribution, matching
+            proportions of outcomes as closely as possible to the probabilities given
+            finite draws.  When True, returned draws are a random permutation of the
+            N-length list that best fits the discrete distribution. When False
+            (default), each draw is independent from the others and the result could
+            deviate from the probabilities.
+        replicates : int, optional
+            Number of replicates of the minimal sample that achieves full coverage
+            of the distribution.  For an equiprobable distribution with J outcomes,
+            the minimal sample is J, so replicates=k gives N = k*J draws.  More
+            generally, the minimal sample size is the smallest N such that N*p_j is
+            an integer for all j.  When replicates is given, shuffle is forced True.
+
+            A warning is issued when the minimal sample J_min is much larger
+            than the ceil(1/p_min) draws the rarest atom alone would require,
+            which is the signature of a joint distribution over several
+            independent shocks: the least common multiple of the component
+            grids grows far faster than any single atom's probability
+            suggests.  A J_min past max_J_min raises instead of warning.
 
         Returns
         -------
         draws : np.array
             An array of draws from the discrete distribution; each element is a value in atoms.
         """
+        if replicates is not None:
+            if N is not None:
+                raise ValueError(
+                    "Cannot specify both N and replicates; use one or the other."
+                )
+            N, shuffle = self._resolve_replicates(replicates)
+
+        if N is None:
+            raise ValueError("Must specify either N or replicates.")
+
         if atoms is None:
             atoms = self.atoms
         elif isinstance(atoms, int):
             atoms = self.atoms[atoms]
 
-        if exact_match:
-            events = np.arange(self.pmv.size)  # just a list of integers
-            cutoffs = np.round(np.cumsum(self.pmv) * N).astype(
-                int
-            )  # cutoff points between discrete outcomes
-            top = 0
+        # "Shuffle" an almost-exact population of draws based on the pmv
+        if shuffle:
+            P = self.pmv
+            K_exact = N * P  # slots per outcome in real numbers
+            K = np.floor(K_exact).astype(int)  # number of slots allocated to each atom
+            M = N - np.sum(K)  # number of unallocated slots
+            J = P.size
 
-            # Make a list of event indices that closely matches the discrete distribution
-            event_list = []
-            for j in range(events.size):
-                bot = top
-                top = cutoffs[j]
-                event_list += (top - bot) * [events[j]]
+            # Unbiased allocation of the leftover slots; shared with
+            # MarkovProcess._draw_shuffled so the two cannot drift apart.
+            K = allocate_remainder_slots(K_exact, K, M, self._rng)
 
-            # Randomly permute the event indices
-            indices = self._rng.permutation(event_list)
+            # Make an array of atom indices based on the final slot counts:
+            # atom j repeated K[j] times, concatenated. np.repeat inherits
+            # np.arange's integer dtype, so the N=0 case (every count zero)
+            # still yields an int array rather than the float64 an empty
+            # Python list would have produced, which could not index atoms.
+            # N=0 is reachable: sim_birth runs every period, and draws no
+            # agents in a period with no deaths.
+            events = np.repeat(np.arange(J), K)
+
+            # Draw a random permutation of the indices
+            indices = self._rng.permutation(events)
 
         # Draw event indices randomly from the discrete distribution
         else:
@@ -224,11 +495,9 @@ class DiscreteDistribution(Distribution):
             This function should take the full array of distribution values
             and return either arrays of arbitrary shape or scalars.
             It may also take other arguments \\*args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consider `distribution.calc_expectation`.
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
@@ -241,18 +510,24 @@ class DiscreteDistribution(Distribution):
         """
 
         if func is None:
-            f_query = self.atoms
-        else:
+            return np.dot(self.atoms, self.pmv)
+        return self._dot_with_pmv(func, self.atoms, args)
+
+    def _dot_with_pmv(self, func, source, args):
+        """Apply ``func`` to ``source`` and the broadcast-prepared ``*args``,
+        then take the dot product with ``self.pmv``.
+
+        This helper centralizes the broadcast-expansion step used by
+        ``expected`` before weighting the result by the distribution's
+        probability mass vector.
+        """
+        if args:
             args = [
                 np.expand_dims(arg, -1) if isinstance(arg, np.ndarray) else arg
                 for arg in args
             ]
-
-            f_query = func(self.atoms, *args)
-
-        f_exp = np.dot(f_query, self.pmv)
-
-        return f_exp
+            return np.dot(func(source, *args), self.pmv)
+        return np.dot(func(source), self.pmv)
 
     def dist_of_func(
         self, func: Callable[..., float] = lambda x: x, *args: Any
@@ -340,8 +615,7 @@ class DiscreteDistribution(Distribution):
 
 class DiscreteDistributionLabeled(DiscreteDistribution):
     """
-    A representation of a discrete probability distribution
-    stored in an underlying `xarray.Dataset`.
+    A representation of a discrete probability distribution stored in an underlying `xarray.Dataset`.
 
     Parameters
     ----------
@@ -362,7 +636,6 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         Names of the variables in the distribution.
     var_attrs : list of dict
         Attributes of the variables in the distribution.
-
     """
 
     def __init__(
@@ -427,6 +700,10 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         # a DataArray with dimension "atom"
         self.probability = xr.DataArray(self.pmv, dims=("atom"))
 
+        # cache for fast labeled access in expected()
+        self._var_names = var_names
+        self._wrapped_atoms = dict(zip(var_names, self.atoms))
+
     @classmethod
     def from_unlabeled(
         cls,
@@ -459,17 +736,38 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             ldd.dataset = xr.Dataset({x_obj.name: x_obj})
         elif isinstance(x_obj, dict):
             ldd.dataset = xr.Dataset(x_obj)
+        else:
+            raise TypeError(
+                f"from_dataset: 'x_obj' must be an xr.Dataset, xr.DataArray, "
+                f"or dict, got {type(x_obj).__name__}."
+            )
 
         ldd.probability = pmf
+        ldd.pmv = np.asarray(pmf)
+        ldd._var_names = list(ldd.dataset.data_vars)
+
+        # Derive atoms from dataset variables that have the "atom" dimension.
+        atom_vars = [
+            v
+            for v in ldd._var_names
+            if "atom" in ldd.dataset[v].dims and ldd.dataset[v].ndim == 1
+        ]
+        if atom_vars:
+            ldd.atoms = np.stack([ldd.dataset[v].values for v in atom_vars])
+        else:
+            ldd.atoms = np.atleast_2d(np.zeros(len(ldd.pmv)))
+
+        ldd.limit = {
+            "infimum": np.min(ldd.atoms, axis=-1),
+            "supremum": np.max(ldd.atoms, axis=-1),
+        }
+        # No seed argument available; default to 0 for consistency.
+        ldd.seed = 0
+        ldd._rng = np.random.default_rng(0)
+        # cache for fast labeled access in expected()
+        ldd._wrapped_atoms = dict(zip(atom_vars, ldd.atoms))
 
         return ldd
-
-    @property
-    def _weighted(self):
-        """
-        Returns a DatasetWeighted object for the distribution.
-        """
-        return self.dataset.weighted(self.probability)
 
     @property
     def variables(self):
@@ -550,22 +848,23 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
         ----------
         func : function
             The function to be evaluated.
-            This function should take the full array of distribution values
-            and return either arrays of arbitrary shape or scalars.
+            By default, func receives a dict mapping variable names to numpy
+            arrays, e.g. ``{"perm_shk": array(...), "tran_shk": array(...)}``.
+            When ``labels=False``, func receives the raw numpy atoms array
+            instead (integer indexing, like ``DiscreteDistribution``).
+            When extra keyword arguments are passed, func receives the full
+            ``xr.Dataset``.
             It may also take other arguments \\*args.
-            This function differs from the standalone `calc_expectation`
-            method in that it uses numpy's vectorization and broadcasting
-            rules to avoid costly iteration.
             Note: If you need to use a function that acts on single outcomes
-            of the distribution, consider `distribution.calc_expectation`.
+            of the distribution, manipulates arrays, or uses branching or logical
+            indexing, use `expected(func, dstn, vectorized=False)` instead.
         \\*args :
             Other inputs for func, representing the non-stochastic arguments.
             The the expectation is computed at ``f(dstn, *args)``.
-        labels : bool
-            If True, the function should use labeled indexing instead of integer
-            indexing using the distribution's underlying rv coordinates. For example,
-            if `dims = ('rv', 'x')` and `coords = {'rv': ['a', 'b'], }`, then
-            the function can be `lambda x: x["a"] + x["b"]`.
+        labels : bool, optional
+            If True (default), func receives a dict of labeled arrays.
+            If False, func receives the raw numpy atoms array, making DDL
+            compatible with functions written for ``DiscreteDistribution``.
 
         Returns
         -------
@@ -573,24 +872,18 @@ class DiscreteDistributionLabeled(DiscreteDistribution):
             The expectation of the function at the queried values.
             Scalar if only one value.
         """
+        labels = kwargs.pop("labels", True)
 
-        def func_wrapper(x, *args):
-            """
-            Wrapper function for `func` that handles labeled indexing.
-            """
-
-            idx = self.variables.keys()
-            wrapped = dict(zip(idx, x))
-
-            return func(wrapped, *args)
-
-        if len(kwargs):
-            f_query = func(self.dataset, *args, **kwargs)
-            ldd = DiscreteDistributionLabeled.from_dataset(f_query, self.probability)
-
-            return ldd._weighted.mean("atom")
-        else:
+        if kwargs:
             if func is None:
-                return super().expected()
-            else:
-                return super().expected(func_wrapper, *args)
+                return _weighted_mean(self.dataset, self.pmv)
+            f_query = func(self.dataset, *args, **kwargs)
+            return _weighted_mean(f_query, self.pmv)
+
+        if func is None:
+            return np.dot(self.atoms, self.pmv)
+        # labels=False: pass raw numpy atoms, like DiscreteDistribution.
+        # Otherwise use cached _wrapped_atoms (a {var_name: np.ndarray} dict)
+        # to avoid xarray overhead in the hot path.
+        source = self.atoms if not labels else self._wrapped_atoms
+        return self._dot_with_pmv(func, source, args)

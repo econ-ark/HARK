@@ -27,7 +27,7 @@ Overview
    ../../examples/SequenceSpaceJacobians/SSJ_explanation.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-tutorial.ipynb
    ../../examples/SequenceSpaceJacobians/SSJ-advanced-examples.ipynb
-   ../../examples/Journeys/Journey-PhD.ipynb
+   ../../examples/SequenceSpaceJacobians/SSJ-lifecycle.ipynb
 
 .. nbgallery::
    :caption: Consumption-Saving Models
@@ -41,9 +41,18 @@ Overview
    ../../examples/ConsMarkovModel/MarkovConsumerType.ipynb
    ../../examples/ConsGenIncProcessModel/GenIncProcessConsumerType.ipynb
    ../../examples/ConsAggShockModel/AggShockConsumerType.ipynb
+   ../../examples/ConsAggShockModel/AggShockMarkovConsumerType.ipynb
+   ../../examples/ConsAggShockModel/KrusellSmithType.ipynb
+   ../../examples/ConsBequestModel/BequestWarmGlowConsumerType.ipynb
+   ../../examples/ConsBequestModel/BequestWarmGlowPortfolioType.ipynb
+   ../../examples/ConsWealthUtilityModel/WealthUtilityConsumerType.ipynb
+   ../../examples/ConsWealthUtilityModel/CapitalistSpiritConsumerType.ipynb
+   ../../examples/ConsHabitModel/HabitConsumerType.ipynb
    ../../examples/ConsPortfolioModel/RiskyAssetConsumerType.ipynb
    ../../examples/ConsPortfolioModel/PortfolioConsumerType.ipynb
+   ../../examples/ConsWealthPortfolioModel/WealthPortfolioConsumerType.ipynb
    ../../examples/ConsPortfolioModel/SequentialPortfolioConsumerType.ipynb
+   ../../examples/ConsHabitModel/HabitPortfolioConsumerType.ipynb
    ../../examples/ConsLaborModel/LaborIntMargConsumerType.ipynb
    ../../examples/ConsPrefShockModel/PrefShockConsumerType.ipynb
    ../../examples/ConsHealthModel/BasicHealthConsumerType.ipynb
@@ -60,6 +69,7 @@ Overview
    ../../examples/SequenceSpaceJacobians/Jacobian_Example.ipynb
    ../../examples/SequenceSpaceJacobians/KS-HARK-presentation.ipynb
    ../../examples/SequenceSpaceJacobians/HANKFiscal_example.ipynb
+   ../../examples/Journeys/Journey-PhD.ipynb
 
 
 .. toctree::
