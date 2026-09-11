@@ -42,6 +42,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     calc_boro_const_nat,
     calc_m_nrm_min,
+    calc_v_scales,
+    decurve_value,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
     IndShockConsumerType,
@@ -241,18 +243,16 @@ def calc_dvdm_next(shocks, a_nrm, G, R, rho, vp_func):
     return perm_shk_fac ** (-rho) * vp_func(m_nrm)
 
 
-def calc_v_next(shocks, a_nrm, G, R, rho, v_func, v_scale_next=1.0):
+def calc_v_next(shocks, a_nrm, G, R, rho, v_func):
     """
     Evaluate realizations of value of market resources next period, based on the
-    income distribution S and values of end-of-period assets a_nrm. v_scale_next
-    is next period's value scale (see ValueFuncCRRA.vScale), used only with log
-    utility.
+    income distribution S and values of end-of-period assets a_nrm.
     """
     m_nrm = calc_m_nrm_next(shocks, a_nrm, G, R)
     v_next = v_func(m_nrm)
     if rho == 1.0:
         # With log utility, permanent income growth adds a level term to value
-        return v_next + v_scale_next * np.log(shocks["PermShk"] * G)
+        return v_next + v_func.vScale * np.log(shocks["PermShk"] * G)
     return (shocks["PermShk"] * G) ** (1.0 - rho) * v_next
 
 
@@ -380,20 +380,16 @@ def solve_one_period_WealthUtility(
 
     # Add the value function if requested
     if vFuncBool:
-        # Scales of value next period and now (see ValueFuncCRRA.vScale). With log
-        # utility the composite of consumption and wealth adds log(P) to value each
-        # period. The solution carries no MPCmin, so the scale follows its recursion.
-        vScaleNext = vFuncNext.vScale
-        vScaleNow = 1.0 + DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+        # Scale of value now (see ValueFuncCRRA.vScale). With log utility the
+        # composite of consumption and wealth adds log(P) to value each period.
+        _, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
         EndOfPrd_v = expected(
-            calc_v_next,
-            IncShkDstn,
-            args=(a_temp, PermGroFac, Rfree, CRRA, vFuncNext, vScaleNext),
+            calc_v_next, IncShkDstn, args=(a_temp, PermGroFac, Rfree, CRRA, vFuncNext)
         )
         EndOfPrd_v *= DiscFacEff
         u_now = CRRAWealthUtility(c_temp, a_temp, CRRA, WealthShare, WealthShift)
         v_now = u_now + EndOfPrd_v
-        vNvrs_now = np.insert(uFunc.inverse(v_now / vScaleNow), 0, 0.0)
+        vNvrs_now = np.insert(decurve_value(uFunc, v_now, vScaleNow), 0, 0.0)
         vNvrsFunc = LinearInterp(np.insert(m_temp, 0, mNrmMinNow), vNvrs_now)
         vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA, vScale=vScaleNow)
     else:
@@ -750,9 +746,13 @@ def solve_one_period_CapitalistSpirit(
     CRRAwealth = CRRA * WealthCurve
     uFuncWealth = lambda a: WealthFac * CRRAutility(a + WealthShift, rho=CRRAwealth)
 
-    if vFuncBool and (CRRA >= 1.0) and (CRRAwealth < 1.0):
+    # With CRRA > 1 > CRRAwealth value can be positive, where the pseudo-inverse of
+    # CRRA utility is undefined. Log utility's pseudo-inverse is defined everywhere.
+    if vFuncBool and (CRRA > 1.0) and (CRRAwealth < 1.0):
         raise ValueError(
-            "Can't construct a good representation of value function when rho > 1 > nu!"
+            "Can't construct the value function when CRRA > 1 > CRRA * WealthCurve, "
+            "because value can then be positive, where the pseudo-inverse of CRRA "
+            "utility is undefined!"
         )
 
     # Unpack next period's income shock distribution
@@ -773,6 +773,15 @@ def solve_one_period_CapitalistSpirit(
     vPfuncNext = solution_next.vPfunc
     mLvlMinNext = solution_next.mLvlMin
     hLvlNext = solution_next.hLvl
+
+    # Scales of end-of-period value and value now (see ValueFuncCRRA.vScale). The
+    # pseudo-terminal value is zero, so it has no scale, and its end-of-period value
+    # function is replaced by that constant below.
+    is_empty = isinstance(vFuncNext, ConstantFunction)
+    vScaleNext = 0.0 if (is_empty or not vFuncBool) else vFuncNext.vScale
+    EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)
+    if is_empty:
+        EndOfPrdvScale = 1.0
 
     # Define some functions for calculating future expectations
     def calc_pLvl_next(S, p):
@@ -868,8 +877,9 @@ def solve_one_period_CapitalistSpirit(
         EndOfPrd_v *= DiscFacEff
 
         # Transformed value through inverse utility function to "decurve" it
-        EndOfPrd_vNvrs = uFuncCon.inv(EndOfPrd_v)
-        EndOfPrd_vNvrsP = EndOfPrd_vP * uFuncCon.derinv(EndOfPrd_v, order=(0, 1))
+        EndOfPrd_vNvrs, EndOfPrd_vNvrsP = decurve_value(
+            uFuncCon, EndOfPrd_v, EndOfPrdvScale, vP=EndOfPrd_vP
+        )
 
         # Add points at mLvl=zero
         EndOfPrd_vNvrs = np.concatenate(
@@ -912,7 +922,7 @@ def solve_one_period_CapitalistSpirit(
         EndOfPrd_vNvrsFunc = VariableLowerBoundFunc2D(
             EndOfPrd_vNvrsFuncBase, BoroCnstNat
         )
-        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA)
+        EndOfPrd_vFunc = ValueFuncCRRA(EndOfPrd_vNvrsFunc, CRRA, vScale=EndOfPrdvScale)
         if isinstance(vFuncNext, ConstantFunction):
             EndOfPrd_vFunc = ConstantFunction(vFuncNext.value)
 
@@ -986,8 +996,7 @@ def solve_one_period_CapitalistSpirit(
         vP_temp = uFuncCon.der(cLvl_temp)
 
         # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
-        vNvrs_temp = uFuncCon.inv(v_temp)  # value transformed through inverse utility
-        vNvrsP_temp = vP_temp * uFuncCon.derinv(v_temp, order=(0, 1))
+        vNvrs_temp, vNvrsP_temp = decurve_value(uFuncCon, v_temp, vScaleNow, vP=vP_temp)
 
         # Add data at the lower bound of m
         mLvl_temp = np.concatenate(
@@ -1015,7 +1024,7 @@ def solve_one_period_CapitalistSpirit(
         vNvrsFuncNow = VariableLowerBoundFunc2D(vNvrsFuncBase, mLvlMinNow)
 
         # "Re-curve" the pseudo-inverse value function into the value function
-        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFuncNow, CRRA, vScale=vScaleNow)
 
     else:
         vFuncNow = NullFunc()

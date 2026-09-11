@@ -10,7 +10,9 @@ from HARK import NullFunc
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    calc_v_scale,
+    calc_v_scales,
+    calc_vNvrs_slope_at_min,
+    decurve_value,
     make_basic_CRRA_solution_terminal,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
@@ -41,7 +43,7 @@ from HARK.interpolation import (
     MargValueFuncCRRA,
     ValueFuncCRRA,
 )
-from HARK.rewards import UtilityFuncCRRA, vNvrsSlope
+from HARK.rewards import UtilityFuncCRRA
 from HARK.utilities import make_assets_grid
 
 ###############################################################################
@@ -716,9 +718,11 @@ def solve_one_period_ConsPortChoice(
     PatFac = (DiscFacEff * R_adj) ** (1.0 / CRRA)
     MPCminNow = 1.0 / (1.0 + PatFac / solution_next.MPCmin)
 
-    # Scales of next period's value and of end-of-period value (see ValueFuncCRRA.vScale)
-    vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
-    EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+    # Scales of value next period, at the end of this period and now (see
+    # ValueFuncCRRA.vScale), which exist only when value functions are requested
+    if vFuncBool:
+        vScaleNext = vFunc_next.vScale
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)
 
     # Also perform an alternate calculation for human wealth under risky returns
     def calc_hNrm(S):
@@ -860,7 +864,7 @@ def solve_one_period_ConsPortChoice(
             v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext))
 
             # Construct the "intermediate value function" for this period
-            vNvrs_intermed = uFunc.inv(v_intermed / vScaleNext)
+            vNvrs_intermed = decurve_value(uFunc, v_intermed, vScaleNext)
             vNvrsFunc_intermed = LinearInterp(bNrmGrid, vNvrs_intermed)
             vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA, vScale=vScaleNext)
 
@@ -877,7 +881,7 @@ def solve_one_period_ConsPortChoice(
             EndOfPrd_v = DiscFacEff * expected(
                 calc_EndOfPrd_v, RiskyDstn, args=(aNrmNow, ShareNext)
             )
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
+            EndOfPrd_vNvrs = decurve_value(uFunc, EndOfPrd_v, EndOfPrdvScale)
 
             # Now make an end-of-period value function over aNrm and Share
             EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
@@ -958,13 +962,9 @@ def solve_one_period_ConsPortChoice(
             EndOfPrd_v = DiscFacEff * expected(
                 calc_EndOfPrd_v, ShockDstn, args=(aNrmNow, ShareNext)
             )
-            EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
-
             # value transformed through inverse utility
-            EndOfPrd_vNvrsP = (
-                EndOfPrd_dvda
-                * uFunc.derinv(EndOfPrd_v / EndOfPrdvScale, order=(0, 1))
-                / EndOfPrdvScale
+            EndOfPrd_vNvrs, EndOfPrd_vNvrsP = decurve_value(
+                uFunc, EndOfPrd_v, EndOfPrdvScale, EndOfPrd_dvda
             )
 
             # Construct the end-of-period value function
@@ -1097,12 +1097,8 @@ def solve_one_period_ConsPortChoice(
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFunc_now(mNrm_temp)
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vScaleNow = calc_v_scale(CRRA, MPCminNow)
-        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
-        vNvrsP_temp = (
-            uFunc.der(cNrm_temp)
-            * uFunc.inverse(v_temp / vScaleNow, order=(0, 1))
-            / vScaleNow
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
         )
         vNvrsFunc = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
@@ -1304,9 +1300,11 @@ def solve_one_period_ConsIndShockRiskyAsset(
         np.array([mNrmMinNow, mNrmMinNow + 1.0]), np.array([0.0, 1.0])
     )
 
-    # Scales of next period's value and of end-of-period value (see ValueFuncCRRA.vScale)
-    vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
-    EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+    # Scales of value next period, at the end of this period and now (see
+    # ValueFuncCRRA.vScale), which exist only when value functions are requested
+    if vFuncBool:
+        vScaleNext = vFuncNext.vScale
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)
 
     # Big methodological split here: whether the income and return distributions are independent.
     # Calculation of end-of-period marginal (marginal) value uses different approaches
@@ -1387,11 +1385,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
         if vFuncBool:
             vFacEff = PermGroFac ** (1.0 - CRRA)
             Intermed_v = vFacEff * expected(calc_vNext, IncShkDstn, args=(bNrmNow))
-            Intermed_vNvrs = uFunc.inv(Intermed_v / vScaleNext)
-            Intermed_vNvrsP = (
-                Intermed_vP
-                * uFunc.derinv(Intermed_v / vScaleNext, order=(0, 1))
-                / vScaleNext
+            Intermed_vNvrs, Intermed_vNvrsP = decurve_value(
+                uFunc, Intermed_v, vScaleNext, Intermed_vP
             )
             if BoroCnstNat_iszero:
                 Intermed_vNvrs = np.insert(Intermed_vNvrs, 0, 0.0)
@@ -1448,11 +1443,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
         if vFuncBool:
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
             EndOfPrdv = DiscFacEff * expected(calc_vNext, RiskyDstn, args=(aNrmNow))
-            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv / EndOfPrdvScale)
-            EndOfPrdvNvrsP = (
-                EndOfPrdvP
-                * uFunc.derinv(EndOfPrdv / EndOfPrdvScale, order=(0, 1))
-                / EndOfPrdvScale
+            EndOfPrdvNvrs, EndOfPrdvNvrsP = decurve_value(
+                uFunc, EndOfPrdv, EndOfPrdvScale, EndOfPrdvP
             )
 
             # Construct the end-of-period value function
@@ -1537,11 +1529,8 @@ def solve_one_period_ConsIndShockRiskyAsset(
             # Calculate end-of-period value, its derivative, and their pseudo-inverse
             vFacEff = DiscFacEff * PermGroFac ** (1.0 - CRRA)
             EndOfPrdv = vFacEff * expected(calc_vNext, ShockDstn, args=(aNrmNow))
-            EndOfPrdvNvrs = uFunc.inv(EndOfPrdv / EndOfPrdvScale)
-            EndOfPrdvNvrsP = (
-                EndOfPrdvP
-                * uFunc.derinv(EndOfPrdv / EndOfPrdvScale, order=(0, 1))
-                / EndOfPrdvScale
+            EndOfPrdvNvrs, EndOfPrdvNvrsP = decurve_value(
+                uFunc, EndOfPrdv, EndOfPrdvScale, EndOfPrdvP
             )
 
             # Construct the end-of-period value function
@@ -1602,13 +1591,9 @@ def solve_one_period_ConsIndShockRiskyAsset(
         vP_temp = uFunc.der(cNrm_temp)
 
         # Construct the beginning-of-period value function
-        vScaleNow = calc_v_scale(CRRA, MPCminNow)
-        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
-        vNvrsP_temp = (
-            vP_temp * uFunc.derinv(v_temp / vScaleNow, order=(0, 1)) / vScaleNow
-        )
-        vNvrsSlopeMax = vNvrsSlope(
-            MPCmaxEff, CRRA, vNvrs_temp[0], mNrm_temp[0] - mNrmMinNow
+        vNvrs_temp, vNvrsP_temp = decurve_value(uFunc, v_temp, vScaleNow, vP_temp)
+        vNvrsSlopeMax = calc_vNvrs_slope_at_min(
+            CRRA, MPCmaxEff, vNvrs_temp[0], mNrm_temp[0] - mNrmMinNow
         )
         mNrm_temp = np.insert(mNrm_temp, 0, mNrmMinNow)
         vNvrs_temp = np.insert(vNvrs_temp, 0, 0.0)

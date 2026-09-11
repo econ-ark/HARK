@@ -22,6 +22,8 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     calc_v_next,
+    calc_v_scales,
+    decurve_value,
     make_basic_CRRA_solution_terminal,
     make_EndOfPrd_vFunc,
     make_lognormal_kNrm_init_dstn,
@@ -407,18 +409,17 @@ def solve_one_period_ConsWarmBequest(
 
     # Construct this period's value function if requested
     if vFuncBool:
-        # Scales of value next period, now, and at the end of the period (see
-        # ValueFuncCRRA.vScale). With log utility the bequest adds BeqFacEff * log(P)
-        # to value, so the scale is not 1 / MPCmin.
-        vScaleNext = vFuncNext.vScale
-        vScaleNow = 1.0 + DiscFacEff * vScaleNext + BeqFacEff if CRRA == 1.0 else 1.0
-        EndOfPrdvScale = vScaleNow - 1.0 if CRRA == 1.0 else 1.0
+        # Scales of end-of-period value and of value now (see ValueFuncCRRA.vScale).
+        # With log utility the bequest adds BeqFacEff * log(P) to value.
+        EndOfPrdvScale, vScaleNow = calc_v_scales(
+            CRRA, DiscFacEff, vFuncNext.vScale, BeqFacEff
+        )
 
         # Calculate end-of-period value and make the end-of-period value function
         EndOfPrdv = DiscFacEff * expected(
             calc_v_next,
             IncShkDstn,
-            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext, vScaleNext),
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
         )
         EndOfPrdv += warm_glow(aNrmNow)
         EndOfPrd_vFunc = make_EndOfPrd_vFunc(
@@ -739,12 +740,12 @@ def solve_one_period_ConsPortfolioWarmGlow(
 
     # Make the end-of-period value function if the value function is requested
     if vFuncBool:
-        # Scales of value next period, now, and at the end of the period (see
-        # ValueFuncCRRA.vScale). With log utility the bequest adds BeqFacEff * log(P)
-        # to value, so the scale is not 1 / MPCmin.
+        # Scales of value next period, at the end of this period and now (see
+        # ValueFuncCRRA.vScale). With log utility the bequest adds BeqFacEff * log(P).
         vScaleNext = vFuncAdj_next.vScale
-        vScaleNow = 1.0 + DiscFacEff * vScaleNext + BeqFacEff if CRRA == 1.0 else 1.0
-        EndOfPrdvScale = vScaleNow - 1.0 if CRRA == 1.0 else 1.0
+        EndOfPrdvScale, vScaleNow = calc_v_scales(
+            CRRA, DiscFacEff, vScaleNext, BeqFacEff
+        )
 
         def calc_v_intermed(S, b, z):
             """
@@ -771,7 +772,7 @@ def solve_one_period_ConsPortfolioWarmGlow(
         v_intermed = expected(calc_v_intermed, IncShkDstn, args=(bNrmNext, ShareNext))
 
         # Construct the "intermediate value function" for this period
-        vNvrs_intermed = uFunc.inv(v_intermed / vScaleNext)
+        vNvrs_intermed = decurve_value(uFunc, v_intermed, vScaleNext)
         vNvrsFunc_intermed = BilinearInterp(vNvrs_intermed, bNrmGrid, ShareGrid)
         vFunc_intermed = ValueFuncCRRA(vNvrsFunc_intermed, CRRA, vScale=vScaleNext)
 
@@ -793,7 +794,7 @@ def solve_one_period_ConsPortfolioWarmGlow(
             calc_EndOfPrd_v, RiskyDstn, args=(aNrmNow, ShareNext)
         )
         EndOfPrd_v += warm_glow(aNrmNow)
-        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
+        EndOfPrd_vNvrs = decurve_value(uFunc, EndOfPrd_v, EndOfPrdvScale)
 
         # Now make an end-of-period value function over aNrm and Share
         EndOfPrd_vNvrsFunc = BilinearInterp(EndOfPrd_vNvrs, aNrmGrid, ShareGrid)
@@ -922,11 +923,8 @@ def solve_one_period_ConsPortfolioWarmGlow(
         aNrm_temp = mNrm_temp - cNrm_temp
         Share_temp = ShareFuncAdj_now(mNrm_temp)
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
-        vNvrsP_temp = (
-            uFunc.der(cNrm_temp)
-            * uFunc.inverse(v_temp / vScaleNow, order=(0, 1))
-            / vScaleNow
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
         )
         vNvrsFuncAdj = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
@@ -941,11 +939,8 @@ def solve_one_period_ConsPortfolioWarmGlow(
         cNrm_temp = cFuncFxd_now(mNrm_temp, Share_temp)
         aNrm_temp = mNrm_temp - cNrm_temp
         v_temp = uFunc(cNrm_temp) + EndOfPrd_vFunc(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
-        vNvrsP_temp = (
-            uFunc.der(cNrm_temp)
-            * uFunc.inverse(v_temp / vScaleNow, order=(0, 1))
-            / vScaleNow
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, uFunc.der(cNrm_temp)
         )
         vNvrsFuncFxd_by_Share = []
         for j in range(ShareCount):

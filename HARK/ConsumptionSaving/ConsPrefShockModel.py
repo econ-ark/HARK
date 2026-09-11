@@ -15,7 +15,7 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     IndShockConsumerType,
     KinkedRconsumerType,
     calc_v_next,
-    calc_v_scale,
+    calc_v_scales,
     make_assets_grid,
     make_EndOfPrd_vFunc,
     make_lognormal_kNrm_init_dstn,
@@ -344,13 +344,12 @@ def solve_one_period_ConsPrefShock(
     # Construct this period's value function if requested
     if vFuncBool:
         # Calculate end-of-period value and make the end-of-period value function
-        vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
         EndOfPrdv = DiscFacEff * expected(
             calc_v_next,
             IncShkDstn,
-            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext, vScaleNext),
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
         )
-        EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
         EndOfPrd_vFunc = make_EndOfPrd_vFunc(
             uFunc,
             aNrmNow,
@@ -387,7 +386,7 @@ def solve_one_period_ConsPrefShock(
             MPCmaxEff,
             MPCminNow,
             hNrmNow,
-            calc_v_scale(CRRA, MPCminNow),
+            vScaleNow,
             interpolator=CubicInterp,
         )
 
@@ -653,13 +652,12 @@ def solve_one_period_ConsKinkyPref(
     # Construct this period's value function if requested
     if vFuncBool:
         # Calculate end-of-period value and make the end-of-period value function
-        vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
         EndOfPrdv = DiscFacEff * expected(
             calc_v_next,
             IncShkDstn,
-            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext, vScaleNext),
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
         )
-        EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
         EndOfPrd_vFunc = make_EndOfPrd_vFunc(
             uFunc,
             aNrmNow,
@@ -696,7 +694,7 @@ def solve_one_period_ConsKinkyPref(
             MPCmaxEff,
             MPCminNow,
             hNrmNow,
-            calc_v_scale(CRRA, MPCminNow),
+            vScaleNow,
             interpolator=CubicInterp,
         )
 

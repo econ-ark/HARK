@@ -246,42 +246,6 @@ def CRRAutilityP_invP(uP, rho):
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
-def vNvrsSlope(MPC, rho, vNvrs=None, dist=None):
-    """
-    Slope of the pseudo-inverse value function at a limit where consumption is
-    linear in market resources with slope MPC.
-
-    Parameters
-    ----------
-    MPC : float
-        Marginal propensity to consume at the limit.
-    rho : float
-        Coefficient of relative risk aversion.
-    vNvrs : float
-        Pseudo-inverse value at the node nearest the limit. Used only when
-        rho == 1.
-    dist : float
-        Distance from that node to the point where the limiting line of the
-        pseudo-inverse value function reaches zero: m + hNrm at the upper limit,
-        m - mNrmMin at the lower one. Used only when rho == 1.
-
-    Returns
-    -------
-    float
-        MPC ** (-rho / (1 - rho)) when rho != 1. With log utility the
-        pseudo-inverse is exp(v / vScale) (see ValueFuncCRRA.vScale), whose
-        slope depends on the level of value as well as on the MPC, so it is
-        measured as vNvrs / dist. That is exact where consumption is linear in
-        m + hNrm, and a secant at the lower limit, where the true slope is
-        infinite.
-    """
-    if rho == 1.0:
-        if vNvrs is None or dist is None:
-            raise ValueError("vNvrsSlope needs vNvrs and dist when rho == 1.")
-        return vNvrs / dist
-    return MPC ** (-rho / (1.0 - rho))
-
-
 ###############################################################################
 
 # Define legacy versions of CRRA utility functions with no decorator.
@@ -393,7 +357,7 @@ def StoneGearyCRRAutilityPP(c, rho, shifter, factor=1.0):
 
 
 def StoneGearyCRRAutility_inv(u, rho, shifter, factor=1.0):
-    if np.isclose(rho, 1.0):
+    if rho == 1.0:
         return np.exp(u / factor) - shifter
     return (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho)) - shifter
 
@@ -403,7 +367,7 @@ def StoneGearyCRRAutilityP_inv(uP, rho, shifter, factor=1.0):
 
 
 def StoneGearyCRRAutility_invP(u, rho, shifter, factor=1.0):
-    if np.isclose(rho, 1.0):
+    if rho == 1.0:
         return np.exp(u / factor) / factor
     # Derivative: dc/du = (1/factor) * (u * (1-rho) / factor)^(1/(1-rho) - 1)
     return (1.0 / factor) * (u * (1.0 - rho) / factor) ** (1.0 / (1.0 - rho) - 1.0)
@@ -812,7 +776,7 @@ def CDutilityPc_inv(uc, d, c_share, d_bar):
 
 
 def CRRACDutility(c, d, c_share, d_bar, CRRA):
-    if np.isclose(CRRA, 1.0):
+    if CRRA == 1.0:
         return np.log(CDutility(c, d, c_share, d_bar))
     return CDutility(c, d, c_share, d_bar) ** (1 - CRRA) / (1 - CRRA)
 
@@ -866,7 +830,7 @@ def CRRAWealthUtility(c, a, CRRA, share=0.0, intercept=0.0):
     """
     w = a + intercept
     composite = c ** (1 - share) * w**share
-    if np.isclose(CRRA, 1.0):
+    if CRRA == 1.0:
         return np.log(composite)
     return composite ** (1 - CRRA) / (1 - CRRA)
 
@@ -893,7 +857,7 @@ def CRRAWealthUtilityP(c, a, CRRA, share=0.0, intercept=0.0):
     float or np.ndarray
         Marginal utility of consumption
     """
-    if np.isclose(CRRA, 1.0):
+    if CRRA == 1.0:
         return (1 - share) / c
     u = CRRAWealthUtility(c, a, CRRA, share, intercept)
     return u * (1 - CRRA) * (1 - share) / c

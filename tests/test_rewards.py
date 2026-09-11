@@ -27,7 +27,6 @@ from HARK.rewards import (
     UtilityFuncCobbDouglasCRRA,
     UtilityFuncConstElastSubs,
     UtilityFunction,
-    vNvrsSlope,
     StoneGearyCRRAutility,
     StoneGearyCRRAutility_inv,
     StoneGearyCRRAutility_invP,
@@ -277,36 +276,6 @@ class testsForUtilityFunction(unittest.TestCase):
         self.assertRaises(NotImplementedError, U.inv, -x)
 
 
-class testsForVNvrsSlope(unittest.TestCase):
-    """Tests for vNvrsSlope, the slope of the pseudo-inverse value function."""
-
-    def test_log_utility_case(self):
-        """With log utility the slope is measured from a node: vNvrs / dist."""
-        self.assertEqual(vNvrsSlope(0.5, 1.0, 3.0, 2.0), 1.5)
-        with self.assertRaises(ValueError):
-            vNvrsSlope(0.5, 1.0)
-
-    def test_standard_crra_case(self):
-        """Test standard CRRA formula for rho != 1."""
-        # For rho=2: MPC^(-2/(1-2)) = MPC^2
-        self.assertAlmostEqual(vNvrsSlope(0.5, 2.0), 0.25)
-        self.assertAlmostEqual(vNvrsSlope(0.3, 2.0), 0.09)
-
-        # For rho=0.5: MPC^(-0.5/(1-0.5)) = MPC^(-1) = 1/MPC
-        self.assertAlmostEqual(vNvrsSlope(0.5, 0.5), 2.0)
-        self.assertAlmostEqual(vNvrsSlope(0.25, 0.5), 4.0)
-
-    def test_array_input(self):
-        """Test that array inputs work correctly."""
-        MPC_array = np.array([0.3, 0.5, 0.7])
-        np.testing.assert_array_almost_equal(vNvrsSlope(MPC_array, 2.0), MPC_array**2)
-
-    def test_mpc_equals_one(self):
-        """MPC = 1 gives slope 1 for any CRRA other than 1."""
-        self.assertEqual(vNvrsSlope(1.0, 2.0), 1.0)
-        self.assertEqual(vNvrsSlope(1.0, 0.5), 1.0)
-
-
 class testsForCRRAWealthUtility(unittest.TestCase):
     """Tests for CRRAWealthUtility and CRRAWealthUtilityP functions."""
 
@@ -441,12 +410,3 @@ class testsForCRRACDutility(unittest.TestCase):
             expected = cd ** (1 - CRRA) / (1 - CRRA)
             actual = CRRACDutility(c, d, c_share, d_bar, CRRA)
             self.assertAlmostEqual(actual, expected, places=10)
-
-    def test_near_one_uses_log(self):
-        """Test that values very close to CRRA=1 use log formula."""
-        c, d, c_share, d_bar = 2.0, 3.0, 0.7, 0.1
-        cd = CDutility(c, d, c_share, d_bar)
-        expected = np.log(cd)
-        # Value within np.isclose tolerance
-        actual = CRRACDutility(c, d, c_share, d_bar, 1.0 + 1e-10)
-        self.assertAlmostEqual(actual, expected, places=5)

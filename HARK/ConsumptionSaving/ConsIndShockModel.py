@@ -58,7 +58,6 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
     UtilityFuncCRRA,
-    vNvrsSlope,
 )
 from HARK.utilities import make_assets_grid
 from scipy.optimize import newton
@@ -329,17 +328,61 @@ def calc_mpc_min(mpc_min_next, pat_fac):
     return 1.0 / (1.0 + pat_fac / mpc_min_next)
 
 
-def calc_v_scale(crra, mpc_min):
-    """Calculate the scale of the value function (see ValueFuncCRRA.vScale).
+def calc_v_scales(crra, disc_fac_eff, v_scale_next, extra=0.0):
+    """Calculate the scales of end-of-period value and of value now.
 
-    With log utility V(M, P) = v(m) + log(P) / MPCmin, so the scale is
-    1 / MPCmin. Any other CRRA gives 1.
+    With log utility V(M, P) = v(m) + vScale * log(P) (see ValueFuncCRRA.vScale).
+    Value now carries log(P) once through consumption, disc_fac_eff * v_scale_next
+    times through next period's value, and extra times through anything else, such
+    as a warm-glow bequest. Any other CRRA gives scales of 1.
 
     Args:
         crra (float): Coefficient of relative risk aversion.
-        mpc_min (float): Lower bound of the marginal propensity to consume.
+        disc_fac_eff (float): Effective discount factor, including survival.
+        v_scale_next (float): Scale of next period's value function.
+        extra (float): Weight on log(P) of other end-of-period terms.
+
+    Returns:
+        (float, float): Scale of end-of-period value, and of value now.
     """
-    return 1.0 / mpc_min if crra == 1.0 else 1.0
+    if crra != 1.0:
+        return 1.0, 1.0
+    EndOfPrdvScale = disc_fac_eff * v_scale_next + extra
+    return EndOfPrdvScale, 1.0 + EndOfPrdvScale
+
+
+def decurve_value(uFunc, v, vScale, vP=None):
+    """Calculate pseudo-inverse value u_inv(v / vScale), inverting ValueFuncCRRA.
+
+    Args:
+        uFunc (UtilityFuncCRRA): Utility function.
+        v (np.ndarray): Value.
+        vScale (float): Scale of the value function (see ValueFuncCRRA.vScale).
+        vP (np.ndarray, optional): Marginal value. If given, the derivative of
+            pseudo-inverse value is returned too.
+    """
+    v_scaled = v / vScale
+    vNvrs = uFunc.inv(v_scaled)
+    if vP is None:
+        return vNvrs
+    return vNvrs, vP * uFunc.derinv(v_scaled, order=(0, 1)) / vScale
+
+
+def calc_vNvrs_slope_at_min(crra, mpc_max, vNvrs_first, dist_first):
+    """Calculate the slope of pseudo-inverse value at the minimum of market resources.
+
+    With CRRA != 1 it is MPCmax ** (-CRRA / (1 - CRRA)). With log utility the true
+    slope is infinite, so it is the secant to the first gridpoint.
+
+    Args:
+        crra (float): Coefficient of relative risk aversion.
+        mpc_max (float): Marginal propensity to consume at the minimum.
+        vNvrs_first (float): Pseudo-inverse value at the first gridpoint.
+        dist_first (float): Distance from the minimum to the first gridpoint.
+    """
+    if crra == 1.0:
+        return vNvrs_first / dist_first
+    return mpc_max ** (-crra / (1.0 - crra))
 
 
 def solve_one_period_ConsPF(
@@ -405,8 +448,9 @@ def solve_one_period_ConsPF(
     mNrmNext = solution_next.cFunc.x_list[:-1]
     cNrmNext = solution_next.cFunc.y_list[:-1]
     vFuncNvrsNext = solution_next.vFunc.vFuncNvrs.y_list[:-1]
-    vNextAtKinks = solution_next.vFunc.vScale * uFunc(vFuncNvrsNext)
-    vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
+    vScaleNext = solution_next.vFunc.vScale
+    vNextAtKinks = vScaleNext * uFunc(vFuncNvrsNext)
+    vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)[1]
     if CRRA == 1.0:
         EndOfPrdv = DiscFacEff * (vNextAtKinks + vScaleNext * np.log(PermGroFac))
     else:
@@ -421,22 +465,21 @@ def solve_one_period_ConsPF(
 
     # Calculate (pseudo-inverse) value at each consumption kink point
     vNow = uFunc(cNrmNow) + EndOfPrdv
-    vScaleNow = calc_v_scale(CRRA, MPCminNow)
-    vNvrsNow = uFunc.inverse(vNow / vScaleNow)
+    vNvrsNow = decurve_value(uFunc, vNow, vScaleNow)
 
     def calc_vNvrs_log(mNrm, cNrm):
         # Pseudo-inverse value of consuming cNrm at mNrm, from the Bellman
-        # equation. Log utility has no closed-form slope above the top kink.
+        # equation, which gives the slope of vNvrs above the top kink
         mNrmNext = Rfree / PermGroFac * (mNrm - cNrm) + 1.0
         vNext = solution_next.vFunc(mNrmNext) + vScaleNext * np.log(PermGroFac)
-        return uFunc.inverse((uFunc(cNrm) + DiscFacEff * vNext) / vScaleNow)
+        return decurve_value(uFunc, uFunc(cNrm) + DiscFacEff * vNext, vScaleNow)
 
     if CRRA == 1.0:
         mNrmXtra = mNrmNow[-1] + 1.0
         vNvrsXtra = calc_vNvrs_log(mNrmXtra, cNrmNow[-1] + MPCminNow)
         vNvrsSlopeMin = vNvrsXtra - vNvrsNow[-1]
     else:
-        vNvrsSlopeMin = vNvrsSlope(MPCminNow, CRRA)
+        vNvrsSlopeMin = MPCminNow ** (-CRRA / (1.0 - CRRA))
 
     # Add an additional point to the list of gridpoints for the extrapolation,
     # using the new value of the lower bound of the MPC.
@@ -492,7 +535,7 @@ def solve_one_period_ConsPF(
             else:
                 vNextCrit = PermGroFac ** (1.0 - CRRA) * solution_next.vFunc(mNextCrit)
             vCrit = uFunc(cCrit) + DiscFacEff * vNextCrit
-            vNvrsCrit = uFunc.inverse(vCrit / vScaleNow)
+            vNvrsCrit = decurve_value(uFunc, vCrit, vScaleNow)
             if CRRA == 1.0:
                 vNvrsXtra = calc_vNvrs_log(mCrit + 1.0, cCrit + MPCminNow)
                 vNvrsSlopeMin = vNvrsXtra - vNvrsCrit
@@ -616,7 +659,7 @@ def calc_m_nrm_next(shock, a, rfree, perm_gro_fac):
     return rfree / (perm_gro_fac * shock["PermShk"]) * a + shock["TranShk"]
 
 
-def calc_v_next(shock, a, rfree, crra, perm_gro_fac, vfunc_next, v_scale_next=1.0):
+def calc_v_next(shock, a, rfree, crra, perm_gro_fac, vfunc_next):
     """Calculate continuation value function with respect to
     end-of-period assets.
 
@@ -626,14 +669,13 @@ def calc_v_next(shock, a, rfree, crra, perm_gro_fac, vfunc_next, v_scale_next=1.
         rfree (float): Risk free interest factor.
         crra (float): Coefficient of relative risk aversion.
         perm_gro_fac (float): Permanent income growth factor.
-        vfunc_next (Callable): Value function next period.
-        v_scale_next (float): Next period's value scale, from calc_v_scale.
-            Used only with log utility, where V(M, P) = v(m) + v_scale * log(P)
-            makes permanent income growth an additive term.
+        vfunc_next (ValueFuncCRRA): Value function next period. With log utility
+            V(M, P) = v(m) + vScale * log(P), so permanent income growth adds
+            vfunc_next.vScale * log(PermShk * perm_gro_fac).
     """
     m_nrm_next = calc_m_nrm_next(shock, a, rfree, perm_gro_fac)
     if crra == 1.0:
-        return vfunc_next(m_nrm_next) + v_scale_next * np.log(
+        return vfunc_next(m_nrm_next) + vfunc_next.vScale * np.log(
             shock["PermShk"] * perm_gro_fac
         )
     return (
@@ -659,10 +701,7 @@ def make_EndOfPrd_vFunc(
         interpolator (type): Cubic interpolator class. The default needs a
             strictly increasing grid; HARK.interpolation.CubicInterp does not.
     """
-    EndOfPrdvNvrs = uFunc.inv(EndOfPrdv / vScale)
-    EndOfPrdvNvrsP = (
-        EndOfPrdvP * uFunc.derinv(EndOfPrdv / vScale, order=(0, 1)) / vScale
-    )
+    EndOfPrdvNvrs, EndOfPrdvNvrsP = decurve_value(uFunc, EndOfPrdv, vScale, EndOfPrdvP)
     # Copying the first slope is a very good approximation: vNvrsPP = 0 at the minimum
     EndOfPrdvNvrsFunc = interpolator(
         np.insert(aNrm, 0, BoroCnstNat),
@@ -678,9 +717,9 @@ def make_vFunc_from_values(
     """Make the value function from value and marginal value on a grid of m.
 
     The pseudo-inverse u_inv(v / vScale) is interpolated with a cubic spline,
-    pinned to zero at mNrmMin. Above the grid it approaches the closed-form
-    perfect foresight limit; log utility has none, so there it is extrapolated
-    linearly from the top gridpoint.
+    pinned to zero at mNrmMin. Above the grid it approaches the perfect foresight
+    limit. With log utility that limit is not tracked, so the spline is
+    extrapolated linearly from the top gridpoint.
 
     Args:
         uFunc (UtilityFuncCRRA): Utility function.
@@ -695,13 +734,12 @@ def make_vFunc_from_values(
         interpolator (type): Cubic interpolator class, as in make_EndOfPrd_vFunc.
     """
     CRRA = uFunc.CRRA
-    vNvrs = uFunc.inv(v / vScale)
-    vNvrsP = vP * uFunc.derinv(v / vScale, order=(0, 1)) / vScale
-    vNvrsSlopeMax = vNvrsSlope(MPCmax, CRRA, vNvrs[0], mNrm[0] - mNrmMin)
+    vNvrs, vNvrsP = decurve_value(uFunc, v, vScale, vP)
+    vNvrsSlopeMax = calc_vNvrs_slope_at_min(CRRA, MPCmax, vNvrs[0], mNrm[0] - mNrmMin)
     if CRRA == 1.0:
         vNvrsLimit = ()
     else:
-        MPCminNvrs = vNvrsSlope(MPCmin, CRRA)
+        MPCminNvrs = MPCmin ** (-CRRA / (1.0 - CRRA))
         vNvrsLimit = (MPCminNvrs * hNrm, MPCminNvrs)
     vNvrsFunc = interpolator(
         np.insert(mNrm, 0, mNrmMin),
@@ -906,14 +944,13 @@ def solve_one_period_ConsIndShock(
     # Construct this period's value function if requested
     if vFuncBool:
         # Calculate end-of-period value and make the end-of-period value function.
-        # With log utility it grows like DiscFacEff * log(a) / MPCmin next period.
-        vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
+        # With log utility it grows like EndOfPrdvScale * log(a).
         EndOfPrdv = DiscFacEff * expected(
             calc_v_next,
             IncShkDstn,
-            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext, vScaleNext),
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
         )
-        EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
         EndOfPrd_vFunc = make_EndOfPrd_vFunc(
             uFunc, aNrmNow, EndOfPrdv, EndOfPrdvP, BoroCnstNat, EndOfPrdvScale
         )
@@ -933,7 +970,7 @@ def solve_one_period_ConsIndShock(
             MPCmaxNow,
             MPCminNow,
             hNrmNow,
-            calc_v_scale(CRRA, MPCminNow),
+            vScaleNow,
         )
     else:
         vFuncNow = NullFunc()  # Dummy object
@@ -1161,14 +1198,13 @@ def solve_one_period_ConsKinkedR(
     # Construct this period's value function if requested
     if vFuncBool:
         # Calculate end-of-period value and make the end-of-period value function.
-        # With log utility it grows like DiscFacEff * log(a) / MPCmin next period.
-        vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
+        # With log utility it grows like EndOfPrdvScale * log(a).
         EndOfPrdv = DiscFacEff * expected(
             calc_v_next,
             IncShkDstn,
-            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext, vScaleNext),
+            args=(aNrmNow, Rfree, CRRA, PermGroFac, vFuncNext),
         )
-        EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
         EndOfPrdvFunc = make_EndOfPrd_vFunc(
             uFunc, aNrmNow, EndOfPrdv, EndOfPrdvP, BoroCnstNat, EndOfPrdvScale
         )
@@ -1188,7 +1224,7 @@ def solve_one_period_ConsKinkedR(
             MPCmaxNow,
             MPCminNow,
             hNrmNow,
-            calc_v_scale(CRRA, MPCminNow),
+            vScaleNow,
         )
     else:
         vFuncNow = NullFunc()  # Dummy object

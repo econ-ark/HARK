@@ -33,6 +33,8 @@ from HARK.ConsumptionSaving.ConsWealthUtilityModel import (
     make_ChiFromOmega_function,
 )
 from HARK.ConsumptionSaving.ConsIndShockModel import (
+    calc_v_scales,
+    decurve_value,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -80,6 +82,9 @@ def calc_med_v(shocks, b_nrm, perm_gro_fac, crra, v_func):
     """
     m_nrm = calc_m_nrm_next(shocks, b_nrm, perm_gro_fac)
     v_next = v_func(m_nrm)
+    if crra == 1.0:
+        # With log utility, permanent income growth adds a level term to value
+        return v_next + v_func.vScale * np.log(shocks["PermShk"] * perm_gro_fac)
     return (shocks["PermShk"] * perm_gro_fac) ** (1.0 - crra) * v_next
 
 
@@ -322,15 +327,20 @@ def solve_one_period_WealthPortfolio(
 
     # Add the value function if requested
     if vFuncBool:
+        # Scales of value next period, at the end of the period, and now (see
+        # ValueFuncCRRA.vScale)
+        vScaleNext = v_func_next.vScale
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vScaleNext)
+
         # Calculate intermediate value by taking expectations over income shocks
         med_v = expected(
             calc_med_v, IncShkDstn, args=(bNrmNext, PermGroFac, CRRA, v_func_next)
         )
 
         # Construct the "intermediate value function" for this period
-        med_v_nvrs = uFunc.inv(med_v)
+        med_v_nvrs = decurve_value(uFunc, med_v, vScaleNext)
         med_v_nvrs_func = LinearInterp(bNrmGrid, med_v_nvrs)
-        med_v_func = ValueFuncCRRA(med_v_nvrs_func, CRRA)
+        med_v_func = ValueFuncCRRA(med_v_nvrs_func, CRRA, vScale=vScaleNext)
 
         # Calculate end-of-period value by taking expectations
         end_v = DiscFacEff * expected(
@@ -338,11 +348,11 @@ def solve_one_period_WealthPortfolio(
             RiskyDstn,
             args=(aNrmNow, ShareNext, Rfree, med_v_func),
         )
-        end_v_nvrs = uFunc.inv(end_v)
+        end_v_nvrs = decurve_value(uFunc, end_v, EndOfPrdvScale)
 
         # Now make an end-of-period value function over aNrm and Share
         end_v_nvrs_func = BilinearInterp(end_v_nvrs, aNrmGrid, ShareGrid)
-        end_v_func = ValueFuncCRRA(end_v_nvrs_func, CRRA)
+        end_v_func = ValueFuncCRRA(end_v_nvrs_func, CRRA, vScale=EndOfPrdvScale)
         # This will be used later to make the value function for this period
 
         # Create the value functions for this period, defined over market resources
@@ -355,15 +365,16 @@ def solve_one_period_WealthPortfolio(
         aNrm_temp = np.maximum(mNrm_temp - cNrm_temp, 0.0)  # Fix tiny violations
         Share_temp = ShareFuncNow(mNrm_temp)
         v_temp = uFunc(cNrm_temp) + end_v_func(aNrm_temp, Share_temp)
-        vNvrs_temp = uFunc.inv(v_temp)
-        vNvrsP_temp = uFunc.der(cNrm_temp) * uFunc.inverse(v_temp, order=(0, 1))
+        vNvrs_temp, vNvrsP_temp = decurve_value(
+            uFunc, v_temp, vScaleNow, vP=uFunc.der(cNrm_temp)
+        )
         vNvrsFunc = CubicInterp(
             np.insert(mNrm_temp, 0, 0.0),  # x_list
             np.insert(vNvrs_temp, 0, 0.0),  # f_list
             np.insert(vNvrsP_temp, 0, vNvrsP_temp[0]),  # dfdx_list
         )
         # Re-curve the pseudo-inverse value function
-        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA)
+        vFuncNow = ValueFuncCRRA(vNvrsFunc, CRRA, vScale=vScaleNow)
 
     else:  # If vFuncBool is False, fill in dummy values
         vFuncNow = NullFunc()

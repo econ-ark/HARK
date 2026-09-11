@@ -22,7 +22,8 @@ from HARK.Calibration.Income.IncomeProcesses import (
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
-    calc_v_scale,
+    calc_v_scales,
+    decurve_value,
     make_lognormal_kNrm_init_dstn,
     make_lognormal_pLvl_init_dstn,
 )
@@ -50,7 +51,6 @@ from HARK.rewards import (
     CRRAutilityP_invP,
     CRRAutilityPP,
     UtilityFuncCRRA,
-    vNvrsSlope,
 )
 from HARK.utilities import make_assets_grid
 
@@ -300,14 +300,10 @@ def solve_one_period_ConsGenIncProcess(
         EndOfPrd_v *= DiscFacEff
 
         # Transformed value through inverse utility function to "decurve" it. With
-        # log utility it grows like DiscFacEff * log(aLvl) / MPCmin next period.
-        vScaleNext = calc_v_scale(CRRA, solution_next.MPCmin)
-        EndOfPrdvScale = DiscFacEff * vScaleNext if CRRA == 1.0 else 1.0
-        EndOfPrd_vNvrs = uFunc.inv(EndOfPrd_v / EndOfPrdvScale)
-        EndOfPrd_vNvrsP = (
-            EndOfPrd_vP
-            * uFunc.derinv(EndOfPrd_v / EndOfPrdvScale, order=(0, 1))
-            / EndOfPrdvScale
+        # log utility it grows like EndOfPrdvScale * log(aLvl).
+        EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFacEff, vFuncNext.vScale)
+        EndOfPrd_vNvrs, EndOfPrd_vNvrsP = decurve_value(
+            uFunc, EndOfPrd_v, EndOfPrdvScale, EndOfPrd_vP
         )
 
         # Add points at mLvl=zero
@@ -481,11 +477,7 @@ def solve_one_period_ConsGenIncProcess(
         vP_temp = uFunc.der(cLvl_temp)
 
         # Calculate pseudo-inverse value and its first derivative (wrt mLvl)
-        vScaleNow = calc_v_scale(CRRA, MPCminNow)
-        vNvrs_temp = uFunc.inv(v_temp / vScaleNow)
-        vNvrsP_temp = (
-            vP_temp * uFunc.derinv(v_temp / vScaleNow, order=(0, 1)) / vScaleNow
-        )
+        vNvrs_temp, vNvrsP_temp = decurve_value(uFunc, v_temp, vScaleNow, vP_temp)
 
         # Add data at the lower bound of m
         mLvl_temp = np.concatenate(
@@ -506,7 +498,7 @@ def solve_one_period_ConsGenIncProcess(
             )
             MPCminNvrs = np.exp(v_at_one[0] / vScaleNow)
         else:
-            MPCminNvrs = vNvrsSlope(MPCminNow, CRRA)
+            MPCminNvrs = MPCminNow ** (-CRRA / (1.0 - CRRA))
         m_temp = np.reshape(mLvl_temp[:, 0], (aNrmCount + 1, 1))
         mLvl_temp = np.concatenate((m_temp, mLvl_temp), axis=1)
         vNvrs_temp = np.concatenate((MPCminNvrs * m_temp, vNvrs_temp), axis=1)

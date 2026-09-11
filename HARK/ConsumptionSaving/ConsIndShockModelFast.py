@@ -26,7 +26,6 @@ from HARK.ConsumptionSaving.ConsIndShockModel import (
     ConsumerSolution,
     IndShockConsumerType,
     PerfForesightConsumerType,
-    calc_v_scale,
     init_perfect_foresight,
     init_idiosyncratic_shocks,
 )
@@ -1210,6 +1209,27 @@ class ConsIndShockSolverFast(ConsIndShockSolverBasicFast):
 # ============================================================================
 
 
+def check_crra_for_fast_solver(CRRA):
+    """
+    Refuse a CRRA within floating point tolerance of 1 without being exactly 1,
+    where the numba solver's CRRA != 1 formulas overflow, and warn for a CRRA in
+    (0.99, 1.01) that is not that close.
+    """
+    if np.isclose(CRRA, 1.0) and CRRA != 1.0:
+        raise ValueError(
+            f"CRRA={CRRA} is too close to 1 for the numba-optimized solver. "
+            "Use CRRA=1 exactly for log utility."
+        )
+    if 0.99 < CRRA < 1.01 and not np.isclose(CRRA, 1.0):
+        warnings.warn(
+            f"CRRA={CRRA} is very close to 1, which may cause numerical "
+            "instability. Consider using the standard solver or a CRRA value "
+            "further from 1.",
+            UserWarning,
+            stacklevel=3,
+        )
+
+
 init_perfect_foresight_fast = init_perfect_foresight.copy()
 perf_foresight_constructor_dict = init_perfect_foresight["constructors"].copy()
 perf_foresight_constructor_dict["solution_terminal"] = make_solution_terminal_fast
@@ -1244,20 +1264,7 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
             If CRRA is very close to 1 (between 0.99 and 1.01), which may cause
             numerical instability.
         """
-        if np.isclose(self.CRRA, 1.0) and self.CRRA != 1.0:
-            raise ValueError(
-                f"CRRA={self.CRRA} is too close to 1 for the numba-optimized solver. "
-                "Use CRRA=1 exactly for log utility."
-            )
-        # Warn for CRRA values that are close to 1 but not caught by np.isclose
-        if 0.99 < self.CRRA < 1.01 and not np.isclose(self.CRRA, 1.0):
-            warnings.warn(
-                f"CRRA={self.CRRA} is very close to 1, which may cause numerical "
-                "instability. Consider using the standard solver or a CRRA value "
-                "further from 1.",
-                UserWarning,
-                stacklevel=2,
-            )
+        check_crra_for_fast_solver(self.CRRA)
         # Call parent's pre_solve
         super().pre_solve()
 
@@ -1294,9 +1301,9 @@ class PerfForesightConsumerTypeFast(PerfForesightConsumerType):
                 np.array([solution.mNrmMin, solution.mNrmMin + 1.0]),
                 np.array([0.0, solution.vFuncNvrsSlope]),
             )
-            vFunc = ValueFuncCRRA(
-                vFuncNvrs, self.CRRA, vScale=calc_v_scale(self.CRRA, solution.MPCmin)
-            )
+            # With log utility the value scale is 1 / MPCmin, as in the solver
+            vScale = 1.0 / solution.MPCmin if self.CRRA == 1.0 else 1.0
+            vFunc = ValueFuncCRRA(vFuncNvrs, self.CRRA, vScale=vScale)
             vPfunc = MargValueFuncCRRA(cFunc, self.CRRA)
 
             consumer_solution = ConsumerSolution(
@@ -1374,20 +1381,7 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
             If CRRA is very close to 1 (between 0.99 and 1.01), which may cause
             numerical instability.
         """
-        if np.isclose(self.CRRA, 1.0) and self.CRRA != 1.0:
-            raise ValueError(
-                f"CRRA={self.CRRA} is too close to 1 for the numba-optimized solver. "
-                "Use CRRA=1 exactly for log utility."
-            )
-        # Warn for CRRA values that are close to 1 but not caught by np.isclose
-        if 0.99 < self.CRRA < 1.01 and not np.isclose(self.CRRA, 1.0):
-            warnings.warn(
-                f"CRRA={self.CRRA} is very close to 1, which may cause numerical "
-                "instability. Consider using the standard solver or a CRRA value "
-                "further from 1.",
-                UserWarning,
-                stacklevel=2,
-            )
+        check_crra_for_fast_solver(self.CRRA)
         # Call parent's pre_solve
         super().pre_solve()
 
@@ -1465,11 +1459,9 @@ class IndShockConsumerTypeFast(IndShockConsumerType, PerfForesightConsumerTypeFa
                     vNvrsFuncNow = CubicInterp(
                         solution.mNrmGrid, solution.vNvrs, solution.vNvrsP, *vNvrsLimit
                     )
-                    vFuncNow = ValueFuncCRRA(
-                        vNvrsFuncNow,
-                        self.CRRA,
-                        vScale=calc_v_scale(self.CRRA, solution.MPCmin),
-                    )
+                    # With log utility the value scale is 1 / MPCmin, as in the solver
+                    vScale = 1.0 / solution.MPCmin if self.CRRA == 1.0 else 1.0
+                    vFuncNow = ValueFuncCRRA(vNvrsFuncNow, self.CRRA, vScale=vScale)
 
                     consumer_solution.vFunc = vFuncNow
 

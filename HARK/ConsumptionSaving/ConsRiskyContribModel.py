@@ -27,6 +27,7 @@ https://econ-ark.org/materials/riskycontrib
 import numpy as np
 
 from HARK import NullFunc  # Basic HARK features
+from HARK.ConsumptionSaving.ConsIndShockModel import calc_v_scales
 from HARK.ConsumptionSaving.ConsIndShockModel import utility  # CRRA utility function
 from HARK.ConsumptionSaving.ConsIndShockModel import (
     utility_inv,  # Inverse CRRA utility function
@@ -757,6 +758,12 @@ def solve_RiskyContrib_Cns(
     dvdnFunc_Reb_Fxd_next = solution_next.dvdnFunc_Fxd
     dvdsFunc_Reb_Fxd_next = solution_next.dvdsFunc_Fxd
 
+    # Scales of next period's value, end-of-period value, and value now (see
+    # ValueFuncCRRA.vScale). With log utility permanent income growth adds
+    # vScaleNext * log(PermShk * PermGroFac) to value.
+    vScaleNext = vFunc_Reb_Adj_next.vScale if vFuncBool else 1.0
+    EndOfPrdvScale, vScaleNow = calc_v_scales(CRRA, DiscFac * LivPrb, vScaleNext)
+
     # STEP ONE
     # Find end-of-period (continuation) value function and its derivatives.
 
@@ -828,6 +835,9 @@ def solve_RiskyContrib_Cns(
             # End of period value function, if needed
             if vFuncBool:
                 pr_v = temp_fac_B * v_next(m_next, n_next, s)
+                if CRRA == 1.0:
+                    # With log utility, permanent income growth adds a level term
+                    pr_v = pr_v + vScaleNext * np.log(perm_shk * PermGroFac)
                 return np.stack([pr_dvda, pr_dvdn, pr_dvds, pr_v])
             else:
                 return np.stack([pr_dvda, pr_dvdn, pr_dvds])
@@ -865,8 +875,11 @@ def solve_RiskyContrib_Cns(
 
         if vFuncBool:
             pr_vFunc = ValueFuncCRRA(
-                TrilinearInterp(uInv(pr_derivs[3]), b_aux_grid, g_aux_grid, ShareGrid),
+                TrilinearInterp(
+                    uInv(pr_derivs[3] / vScaleNext), b_aux_grid, g_aux_grid, ShareGrid
+                ),
                 CRRA,
+                vScale=vScaleNext,
             )
 
         # Now construct a function that produces end-of-period derivatives
@@ -975,6 +988,12 @@ def solve_RiskyContrib_Cns(
             # End of period value function, i11f needed
             if vFuncBool:
                 end_of_prd_v = DiscFac * LivPrb * temp_fac_B * v_next(m_next, n_next, s)
+                if CRRA == 1.0:
+                    # With log utility, permanent income growth adds a level term
+                    end_of_prd_v = (
+                        end_of_prd_v
+                        + DiscFac * LivPrb * vScaleNext * np.log(perm_shk * PermGroFac)
+                    )
                 return np.stack(
                     [end_of_prd_dvda, end_of_prd_dvdn, end_of_prd_dvds, end_of_prd_v]
                 )
@@ -1007,11 +1026,13 @@ def solve_RiskyContrib_Cns(
     eop_dvdnNvrs = uPinv(eop_derivs[1])
     eop_dvds = eop_derivs[2]
     if vFuncBool:
-        eop_vNvrs = uInv(eop_derivs[3])
+        eop_vNvrs = uInv(eop_derivs[3] / EndOfPrdvScale)
 
         # Construct an interpolator for eop_V. It will be used later.
         eop_vFunc = ValueFuncCRRA(
-            TrilinearInterp(eop_vNvrs, aNrmGrid, nNrmGrid, ShareGrid), CRRA
+            TrilinearInterp(eop_vNvrs, aNrmGrid, nNrmGrid, ShareGrid),
+            CRRA,
+            vScale=EndOfPrdvScale,
         )
 
     # STEP TWO:
@@ -1120,9 +1141,9 @@ def solve_RiskyContrib_Cns(
         # Consumption in the regular grid
         aNrm_reg = mNrm_tiled - c_vals
         vCns = u(c_vals) + eop_vFunc(aNrm_reg, nNrm_tiled, Share_tiled)
-        vNvrsCns = uInv(vCns)
+        vNvrsCns = uInv(vCns / vScaleNow)
         vNvrsFunc_Cns = TrilinearInterp(vNvrsCns, mNrmGrid, nNrmGrid, ShareGrid)
-        vFunc_Cns = ValueFuncCRRA(vNvrsFunc_Cns, CRRA)
+        vFunc_Cns = ValueFuncCRRA(vNvrsFunc_Cns, CRRA, vScale=vScaleNow)
     else:
         vFunc_Cns = NullFunc()
 
@@ -1281,7 +1302,7 @@ def solve_RiskyContrib_Sha(
     # Value function if needed
     if vFuncBool:
         vNvrsFunc_Sha = BilinearInterp(vNvrsSha, mNrmGrid, nNrmGrid)
-        vFunc_Sha = ValueFuncCRRA(vNvrsFunc_Sha, CRRA)
+        vFunc_Sha = ValueFuncCRRA(vNvrsFunc_Sha, CRRA, vScale=vFunc_Cns_next.vScale)
     else:
         vFunc_Sha = NullFunc()
 
@@ -1475,7 +1496,7 @@ def solve_RiskyContrib_Reb(
     if vFuncBool:
         vNvrs_Adj = vFunc_Adj_next.vFuncNvrs(mtil_opt, ntil_opt)
         vNvrsFunc_Adj = BilinearInterp(vNvrs_Adj, mNrmGrid, nNrmGrid)
-        vFunc_Adj = ValueFuncCRRA(vNvrsFunc_Adj, CRRA)
+        vFunc_Adj = ValueFuncCRRA(vNvrsFunc_Adj, CRRA, vScale=vFunc_Adj_next.vScale)
     else:
         vFunc_Adj = NullFunc()
 
