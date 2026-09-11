@@ -119,32 +119,45 @@ class testIndShockConsumerType(unittest.TestCase):
         TestType = IndShockConsumerType(cycles=0, CRRA=1.0)
         TestType.check_conditions()
 
-    def test_CRRA_equals_one_solves(self):
+    def test_value_one_period_before_terminal(self):
         """
-        Test that IndShockConsumerType solves correctly with CRRA=1 (log utility).
+        Value one period before the end matches the Bellman equation on the income draws.
 
-        This tests fix for issue #75 where CRRA=1 would cause ZeroDivisionError
-        due to expressions like MPC ** (-CRRA / (1.0 - CRRA)).
+        Terminal value is u(m), so with m' = R * a / (PermGroFac * psi) + theta the
+        value is u(c) + beta * E[(PermGroFac * psi)**(1 - CRRA) * u(m')]. With log
+        utility the growth factor enters additively instead, as
+        u(c) + beta * E[log(m') + log(PermGroFac * psi)] (issue #75).
         """
-        agent = IndShockConsumerType(cycles=0, CRRA=1.0)
-        # Should not raise any errors
+        for CRRA in (1.0, 2.0):
+            agent = IndShockConsumerType(cycles=1, CRRA=CRRA, vFuncBool=True)
+            agent.solve()
+            solution = agent.solution[0]
+            PermShk, TranShk = agent.IncShkDstn[0].atoms
+            growth = agent.PermGroFac[0] * PermShk
+            beta = agent.DiscFac * agent.LivPrb[0]
+            m = solution.mNrmMin + np.array([0.5, 2.0, 10.0, 19.0])
+            c = solution.cFunc(m)
+            mNext = agent.Rfree[0] * (m - c)[:, None] / growth + TranShk
+            if CRRA == 1.0:
+                vNext = np.log(mNext) + np.log(growth)
+                v = np.log(c) + beta * vNext @ agent.IncShkDstn[0].pmv
+            else:
+                vNext = growth ** (1.0 - CRRA) * mNext ** (1.0 - CRRA) / (1.0 - CRRA)
+                v = (
+                    c ** (1.0 - CRRA) / (1.0 - CRRA)
+                    + beta * vNext @ agent.IncShkDstn[0].pmv
+                )
+            np.testing.assert_allclose(solution.vFunc(m), v, rtol=0, atol=2e-6)
+
+    def test_log_utility_value_satisfies_envelope_condition(self):
+        """With log utility, v'(m) = 1 / c(m) on the grid and beyond its top."""
+        agent = IndShockConsumerType(cycles=0, CRRA=1.0, vFuncBool=True)
         agent.solve()
-
-        # Verify the solution exists and is reasonable
-        self.assertIsNotNone(agent.solution[0].cFunc)
-
-        # Consumption at m=5 should be positive
-        c_at_5 = agent.solution[0].cFunc(5.0)
-        self.assertGreater(c_at_5, 0.0)
-
-        # Consumption should be less than resources
-        self.assertLess(c_at_5, 5.0)
-
-        # MPC at bottom should be 1.0 (consume everything at constraint)
-        mpc_at_min = agent.solution[0].cFunc.derivativeX(
-            agent.solution[0].mNrmMin + 0.0001
-        )
-        self.assertAlmostEqual(mpc_at_min, 1.0, places=2)
+        solution = agent.solution[0]
+        m = np.array([0.5, 1.0, 5.0, 15.0, 40.0])
+        step = 1e-5
+        vP = (solution.vFunc(m + step) - solution.vFunc(m - step)) / (2 * step)
+        np.testing.assert_allclose(vP * solution.cFunc(m), 1.0, rtol=0.05)
 
     def test_invalid_beta(self):
         TestType = IndShockConsumerType(DiscFac=-0.1, cycles=0)

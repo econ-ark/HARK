@@ -278,18 +278,13 @@ class testsForUtilityFunction(unittest.TestCase):
 
 
 class testsForVNvrsSlope(unittest.TestCase):
-    """
-    Tests for the vNvrsSlope function that handles CRRA=1 (log utility) case.
-
-    This tests the fix for issue #75 where CRRA=1 would cause ZeroDivisionError
-    due to expressions like MPC ** (-CRRA / (1.0 - CRRA)).
-    """
+    """Tests for vNvrsSlope, the slope of the pseudo-inverse value function."""
 
     def test_log_utility_case(self):
-        """Test that rho=1 (log utility) returns MPC directly."""
-        self.assertEqual(vNvrsSlope(0.5, 1.0), 0.5)
-        self.assertEqual(vNvrsSlope(0.3, 1.0), 0.3)
-        self.assertEqual(vNvrsSlope(1.0, 1.0), 1.0)
+        """With log utility the slope is measured from a node: vNvrs / dist."""
+        self.assertEqual(vNvrsSlope(0.5, 1.0, 3.0, 2.0), 1.5)
+        with self.assertRaises(ValueError):
+            vNvrsSlope(0.5, 1.0)
 
     def test_standard_crra_case(self):
         """Test standard CRRA formula for rho != 1."""
@@ -301,46 +296,15 @@ class testsForVNvrsSlope(unittest.TestCase):
         self.assertAlmostEqual(vNvrsSlope(0.5, 0.5), 2.0)
         self.assertAlmostEqual(vNvrsSlope(0.25, 0.5), 4.0)
 
-    def test_near_one_uses_limit(self):
-        """Test that values very close to 1 use the log utility formula."""
-        # Values within np.isclose tolerance should use MPC directly
-        result = vNvrsSlope(0.5, 1.0 + 1e-10)
-        self.assertAlmostEqual(result, 0.5, places=5)
-
     def test_array_input(self):
         """Test that array inputs work correctly."""
         MPC_array = np.array([0.3, 0.5, 0.7])
-
-        # Log utility case
-        result = vNvrsSlope(MPC_array, 1.0)
-        np.testing.assert_array_almost_equal(result, MPC_array)
-
-        # Standard CRRA case (rho=2)
-        result = vNvrsSlope(MPC_array, 2.0)
-        expected = MPC_array**2
-        np.testing.assert_array_almost_equal(result, expected)
+        np.testing.assert_array_almost_equal(vNvrsSlope(MPC_array, 2.0), MPC_array**2)
 
     def test_mpc_equals_one(self):
-        """Test edge case where MPC=1."""
-        # For any rho, MPC=1 should give slope=1
-        self.assertEqual(vNvrsSlope(1.0, 1.0), 1.0)
+        """MPC = 1 gives slope 1 for any CRRA other than 1."""
         self.assertEqual(vNvrsSlope(1.0, 2.0), 1.0)
         self.assertEqual(vNvrsSlope(1.0, 0.5), 1.0)
-
-    def test_continuity_near_one(self):
-        """Verify the function approaches MPC as rho approaches 1 from both sides."""
-        MPC = 0.5
-        # The standard formula diverges, but the limit should approach MPC
-        # Test that values very close to 1 give results close to MPC
-        for rho in [0.99, 0.999, 0.9999]:
-            # As rho -> 1 from below, formula goes to infinity, so we skip exact check
-            # The important thing is that rho=1 returns MPC exactly
-            pass
-        # At exactly 1, should return MPC
-        self.assertEqual(vNvrsSlope(MPC, 1.0), MPC)
-        # Very close to 1 (within np.isclose tolerance) should also return MPC
-        self.assertAlmostEqual(vNvrsSlope(MPC, 1.0 + 1e-10), MPC, places=5)
-        self.assertAlmostEqual(vNvrsSlope(MPC, 1.0 - 1e-10), MPC, places=5)
 
 
 class testsForCRRAWealthUtility(unittest.TestCase):

@@ -149,26 +149,26 @@ class testPerfForesightConsumerType(unittest.TestCase):
             constrained_agent.solution[0].mNrmStE, constrained_agent.solution[0].mNrmTrg
         )
 
-    def test_CRRA_equals_one(self):
+    def test_value_function_matches_closed_form(self):
         """
-        Test that CRRA=1 (log utility) works correctly.
+        Unconstrained infinite-horizon value matches its closed form, log utility included.
 
-        This tests fix for issue #75 where CRRA=1 would cause ZeroDivisionError
-        due to expressions like MPC ** (-CRRA / (1.0 - CRRA)).
+        Consumption is c = MPC * (m + hNrm) with MPC = 1 - (beta * R)**(1 / CRRA) / R,
+        where beta includes LivPrb. Value is u(c) / MPC when CRRA != 1. With log
+        utility it is log(c) / MPC + beta * log(beta * R) / MPC**2 (issue #75).
         """
-        # Test with CRRA = 1.0 (log utility)
-        log_utility_agent = PerfForesightConsumerType(cycles=0)
-        log_utility_agent.CRRA = 1.0
-
-        # This should not raise ZeroDivisionError
-        log_utility_agent.solve()
-
-        # Verify the solution exists and is reasonable
-        self.assertIsNotNone(log_utility_agent.solution[0].cFunc)
-
-        # Consumption at m=5 should be positive
-        c_at_5 = log_utility_agent.solution[0].cFunc(5.0)
-        self.assertGreater(c_at_5, 0.0)
-
-        # Consumption should be less than resources (can't consume more than you have)
-        self.assertLess(c_at_5, 5.0)
+        m = np.array([0.0, 1.0, 5.0, 50.0])
+        for CRRA in (1.0, 2.0):
+            agent = PerfForesightConsumerType(cycles=0, CRRA=CRRA, BoroCnstArt=None)
+            agent.solve()
+            solution = agent.solution[0]
+            beta = agent.DiscFac * agent.LivPrb[0]
+            R = agent.Rfree[0]
+            MPC = 1.0 - (beta * R) ** (1.0 / CRRA) / R
+            c = MPC * (m + solution.hNrm)
+            if CRRA == 1.0:
+                v = np.log(c) / MPC + beta * np.log(beta * R) / MPC**2
+            else:
+                v = c ** (1.0 - CRRA) / (1.0 - CRRA) / MPC
+            np.testing.assert_allclose(solution.cFunc(m), c, rtol=1e-10)
+            np.testing.assert_allclose(solution.vFunc(m), v, rtol=1e-10)

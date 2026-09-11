@@ -3570,14 +3570,20 @@ class ValueFuncCRRA(MetricObject):
         If provided, value to return for "out-of-bounds" inputs that return NaN
         from the pseudo-inverse value function. Most common choice is -np.inf,
         which makes the outcome infinitely bad.
+    vScale : float, optional
+        Multiplies the re-curved value, so vFunc = vScale * u(vFuncNvrs). It is
+        1 except with log utility, where value is vScale * log(c) + constant at
+        high resources, vScale = 1 / MPCmin, and u_inv(vFunc / vScale) is the
+        transform that is linear there.
     """
 
     distance_criteria = ["func", "CRRA"]
 
-    def __init__(self, vFuncNvrs, CRRA, illegal_value=None):
+    def __init__(self, vFuncNvrs, CRRA, illegal_value=None, vScale=1.0):
         self.vFuncNvrs = deepcopy(vFuncNvrs)
         self.CRRA = CRRA
         self.illegal_value = illegal_value
+        self.vScale = vScale
 
         if hasattr(vFuncNvrs, "grid_list"):
             self.grid_list = vFuncNvrs.grid_list
@@ -3601,17 +3607,17 @@ class ValueFuncCRRA(MetricObject):
             same size as the state inputs.
         """
         temp = self.vFuncNvrs(*vFuncArgs)
-        v = CRRAutility(temp, self.CRRA)
+        v = self.vScale * CRRAutility(temp, self.CRRA)
         if self.illegal_value is not None:
             illegal = np.isnan(temp)
             v[illegal] = self.illegal_value
         return v
 
     def gradient(self, *args):
-        # V(s) = u(vFuncNvrs(s)), so by the chain rule
-        # dV/ds_i = u'(vFuncNvrs(s)) * d vFuncNvrs / ds_i.
+        # V(s) = vScale * u(vFuncNvrs(s)), so by the chain rule
+        # dV/ds_i = vScale * u'(vFuncNvrs(s)) * d vFuncNvrs / ds_i.
         NvrsGrad = self.vFuncNvrs.gradient(*args)
-        marg_u = CRRAutilityP(self.vFuncNvrs(*args), self.CRRA)
+        marg_u = self.vScale * CRRAutilityP(self.vFuncNvrs(*args), self.CRRA)
         grad = [g * marg_u for g in NvrsGrad]
         return grad
 

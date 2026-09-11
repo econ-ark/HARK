@@ -246,45 +246,39 @@ def CRRAutilityP_invP(uP, rho):
     return (-1.0 / rho) * uP ** (-1.0 / rho - 1.0)
 
 
-def vNvrsSlope(MPC, rho):
+def vNvrsSlope(MPC, rho, vNvrs=None, dist=None):
     """
-    Computes the slope of the pseudo-inverse value function for CRRA utility.
-
-    For CRRA utility, this is used to determine the asymptotic behavior of the
-    pseudo-inverse value function vNvrs = u^(-1)(v) as resources become large.
-
-    For rho ≠ 1: The slope is MPC^(-rho/(1-rho))
-    For rho = 1 (log utility): The slope is simply MPC
-
-    This function provides the proper limiting behavior for log utility, where
-    the standard formula MPC^(-rho/(1-rho)) is undefined.
+    Slope of the pseudo-inverse value function at a limit where consumption is
+    linear in market resources with slope MPC.
 
     Parameters
     ----------
-    MPC : float or np.ndarray
-        Marginal propensity to consume value(s).
+    MPC : float
+        Marginal propensity to consume at the limit.
     rho : float
-        Coefficient of relative risk aversion (CRRA).
+        Coefficient of relative risk aversion.
+    vNvrs : float
+        Pseudo-inverse value at the node nearest the limit. Used only when
+        rho == 1.
+    dist : float
+        Distance from that node to the point where the limiting line of the
+        pseudo-inverse value function reaches zero: m + hNrm at the upper limit,
+        m - mNrmMin at the lower one. Used only when rho == 1.
 
     Returns
     -------
-    float or np.ndarray
-        Slope of the pseudo-inverse value function
-
-    Notes
-    -----
-    For log utility (rho=1), the derivation is as follows:
-    - u(c) = log(c), so u^(-1)(v) = exp(v)
-    - The pseudo-inverse value function is vNvrs(m) = exp(v(m))
-    - By the chain rule: d/dm vNvrs = exp(v) * dv/dm
-    - Since dv/dm = u'(c) * dc/dm = u'(c) * MPC (where MPC = dc/dm)
-    - For log utility: d/dm vNvrs = exp(v) * (1/c) * MPC = c * (1/c) * MPC = MPC
-
-    The expression MPC^(-rho/(1-rho)) diverges as rho → 1, but the properly
-    derived formula for log utility gives MPC directly.
+    float
+        MPC ** (-rho / (1 - rho)) when rho != 1. With log utility the
+        pseudo-inverse is exp(v / vScale) (see ValueFuncCRRA.vScale), whose
+        slope depends on the level of value as well as on the MPC, so it is
+        measured as vNvrs / dist. That is exact where consumption is linear in
+        m + hNrm, and a secant at the lower limit, where the true slope is
+        infinite.
     """
-    if np.isclose(rho, 1.0):
-        return MPC
+    if rho == 1.0:
+        if vNvrs is None or dist is None:
+            raise ValueError("vNvrsSlope needs vNvrs and dist when rho == 1.")
+        return vNvrs / dist
     return MPC ** (-rho / (1.0 - rho))
 
 
