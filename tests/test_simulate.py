@@ -7,6 +7,7 @@ simulator structure. Simulation tests for various HARK models are in the model t
 # Bring in modules we need
 import unittest
 import numpy as np
+from copy import deepcopy
 from HARK.utilities import make_grid_exp_mult, plot_SSJ
 from HARK.Calibration.Income.IncomeTools import (
     Cagetti_income,
@@ -600,3 +601,228 @@ class testMarkovEvents(unittest.TestCase):
         Mrkv_hist = self.agent.hystory["Mrkv"]
         for t in range(self.agent.T_sim):
             self.assertTrue(np.all(Mrkv_hist[t, :] == Mrkv_hist[t, 0]))
+
+
+class testsForIncomeWeightedMeasure(unittest.TestCase):
+    """
+    The Harmenberg (income-weighted) measure under mortality with permanent income
+    growth: weighting by the growth of the normalized level (norm='G') with newborns
+    entering at the complement of the surviving mass. Closed-form, identity, option,
+    Monte Carlo and error-path tests.
+    """
+
+    def setUp(self):
+        self.agent = IndShockConsumerType(cycles=0, tolerance=1e-12)
+        self.agent.solve()
+        self.grid_specs = {
+            "kNrm": {"min": 0.0, "max": 40.0, "N": 301, "order": 2.5},
+            "cNrm": {"min": 0.0, "max": 3.0, "N": 201},
+        }
+
+    def _matrices(self, agent, **kwargs):
+        agent.initialize_sym()
+        X = agent._simulator
+        X.make_transition_matrices(self.grid_specs, **kwargs)
+        X.find_steady_state()
+        return X
+
+    def test_newborn_share_matches_closed_form(self):
+        # With survival L and growth G, the newborns' share of the stationary
+        # income-weighted mass is 1 - L*G, whatever the grid.
+        X = self._matrices(self.agent, norm="G")
+        share = np.dot(X.steady_state_dstn, X.newborn_shares[0])
+        L = float(self.agent.LivPrb[0])
+        G = float(self.agent.PermGroFac[0])
+        self.assertAlmostEqual(share, 1.0 - L * G, places=10)
+        self.assertTrue(np.all(np.isclose(np.sum(X.trans_arrays[0], axis=1), 1.0)))
+
+    def test_long_run_dstn_is_stochastic_under_norm(self):
+        X = self._matrices(self.agent, norm="G")
+        self.assertAlmostEqual(np.sum(X.get_long_run_dstn("cNrm")), 1.0, places=12)
+
+    def test_norm_G_equals_PermShk_without_growth(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-12, PermGroFac=[1.0])
+        agent.solve()
+        X0 = self._matrices(deepcopy(agent), norm="PermShk")
+        X1 = self._matrices(deepcopy(agent), norm="G")
+        self.assertTrue(np.allclose(X0.trans_arrays[0], X1.trans_arrays[0], atol=1e-14))
+        self.assertAlmostEqual(
+            X0.get_long_run_average("cNrm"), X1.get_long_run_average("cNrm"), places=12
+        )
+
+    def test_trend_option_reproduces_shock_only_weighting(self):
+        # When newborns inherit all of the growth, weighting by the shock alone is
+        # exact and newborn_growth=PermGroFac must reproduce it.
+        G = float(self.agent.PermGroFac[0])
+        X0 = self._matrices(deepcopy(self.agent), norm="PermShk")
+        X1 = self._matrices(deepcopy(self.agent), norm="G", newborn_growth=G)
+        self.assertTrue(np.allclose(X0.trans_arrays[0], X1.trans_arrays[0], atol=1e-14))
+        self.assertAlmostEqual(
+            X0.get_long_run_average("aNrm"), X1.get_long_run_average("aNrm"), places=10
+        )
+
+    def test_income_weighted_mean_matches_monte_carlo(self):
+        # Ground truth: simulate the population, weight each agent by its permanent
+        # income. The fixed measure matches; weighting by the shock alone is biased.
+        X_fix = self._matrices(deepcopy(self.agent), norm="G")
+        X_old = self._matrices(deepcopy(self.agent), norm="PermShk")
+        a_fix = X_fix.get_long_run_average("aNrm")
+        a_old = X_old.get_long_run_average("aNrm")
+        sim = deepcopy(self.agent)
+        sim.AgentCount = 10000
+        sim.T_sim = 300
+        sim.seed = 31415
+        sim.track_vars = ["pLvl", "aNrm"]
+        sim.initialize_sim()
+        sim.simulate()
+        P = sim.history["pLvl"][-100:]
+        A = sim.history["aNrm"][-100:]
+        a_mc = np.sum(P * A) / np.sum(P)
+        self.assertLess(abs(a_fix - a_mc) / a_mc, 0.015)
+        self.assertLess(abs(a_fix - a_mc), abs(a_old - a_mc))
+
+    def test_no_mortality_with_growth_uses_the_trend(self):
+        # without deaths there are no newborns; the cross-section is stationary
+        # relative to the growth trend, so norm='G' must reproduce the shock-only
+        # weighting (exact in that case) rather than raise
+        agent = IndShockConsumerType(
+            cycles=0, tolerance=1e-12, LivPrb=[1.0], PermGroFac=[1.01]
+        )
+        agent.solve()
+        X0 = self._matrices(deepcopy(agent), norm="PermShk")
+        X1 = self._matrices(deepcopy(agent), norm="G")
+        self.assertTrue(np.allclose(X0.trans_arrays[0], X1.trans_arrays[0], atol=1e-13))
+        self.assertAlmostEqual(
+            X0.get_long_run_average("cNrm"), X1.get_long_run_average("cNrm"), places=10
+        )
+        self.assertEqual(float(np.sum(X1.newborn_shares[0])), 0.0)
+
+    def test_raises_when_growth_outpaces_mortality(self):
+        agent = IndShockConsumerType(
+            cycles=0, tolerance=1e-8, LivPrb=[0.995], PermGroFac=[1.01]
+        )
+        agent.solve()
+        agent.initialize_sym()
+        with self.assertRaises(ValueError):
+            agent._simulator.make_transition_matrices(self.grid_specs, norm="G")
+
+    def test_basic_SSJ_under_norm_G(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-12, PermGroFac=[1.0])
+        agent.solve()
+        J0 = deepcopy(agent).make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs,
+            T_max=40,
+            norm="PermShk",
+            offset=True,
+            solved=True,
+        )
+        J1 = deepcopy(agent).make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs,
+            T_max=40,
+            norm="G",
+            offset=True,
+            solved=True,
+        )
+        self.assertTrue(np.allclose(J0, J1, atol=1e-10))
+        J2 = deepcopy(self.agent).make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs,
+            T_max=40,
+            norm="G",
+            offset=True,
+            solved=True,
+        )
+        self.assertEqual(J2.shape, (40, 40))
+        self.assertTrue(np.all(np.isfinite(J2)))
+
+
+class testsForGhostRun(unittest.TestCase):
+    """
+    The ghost option of make_basic_SSJ: differencing the perturbed finite-horizon
+    chain against an unperturbed chain of the same length instead of against the
+    long run solution, which removes the long run solve's residual from the SSJ.
+    """
+
+    def setUp(self):
+        self.grid_specs = {
+            "kNrm": {"min": 0.0, "max": 60.0, "N": 201, "nest": 3},
+            "cNrm": {"min": 0.0, "max": 4.0, "N": 201},
+        }
+        # a patient household (growth-patience factor 0.9997): the long run solve
+        # at the default tolerance leaves a residual that the backward chain keeps
+        # converging away from
+        self.patient = dict(cycles=0, DiscFac=0.99, LivPrb=[0.98], PermGroFac=[1.0])
+
+    def _ssj(self, agent, ghost, T_max=100):
+        return deepcopy(agent).make_basic_SSJ(
+            "Rfree",
+            "cNrm",
+            self.grid_specs,
+            T_max=T_max,
+            norm="G",
+            offset=True,
+            solved=True,
+            ghost=ghost,
+        )
+
+    def test_ghost_is_identity_when_long_run_is_converged(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-12)
+        agent.solve()
+        J0 = self._ssj(agent, False)
+        J1 = self._ssj(agent, True)
+        self.assertLess(np.max(np.abs(J1 - J0)) / np.max(np.abs(J0)), 1e-8)
+
+    def test_ghost_removes_the_long_run_residual(self):
+        loose = IndShockConsumerType(tolerance=1e-6, **self.patient)
+        loose.solve()
+        tight = IndShockConsumerType(tolerance=1e-10, **self.patient)
+        tight.solve()
+        J_ref = self._ssj(tight, False)
+        J_naive = self._ssj(loose, False)
+        J_ghost = self._ssj(loose, True)
+        scale = np.max(np.abs(J_ref))
+        # without the ghost the residual, divided by eps, dominates the far-horizon columns
+        self.assertGreater(np.max(np.abs(J_naive - J_ref)) / scale, 0.1)
+        # with it the loosely converged long run gives the tightly converged answer
+        self.assertLess(np.max(np.abs(J_ghost - J_ref)) / scale, 1e-3)
+
+    def test_manual_response_with_ghost(self):
+        # the manual (one-column) path with a ghost: a loosely converged long run
+        # reproduces the tightly converged manual path, and matches the ghost SSJ
+        # at date 50 (where HARK's own manual-vs-SSJ check compares them; the two
+        # constructions differ at early dates independently of the ghost)
+        loose = IndShockConsumerType(tolerance=1e-6, **self.patient)
+        loose.solve()
+        tight = IndShockConsumerType(tolerance=1e-10, **self.patient)
+        tight.solve()
+        kw = dict(s=50, T_max=100, norm="G", offset=True, solved=True)
+        ref = deepcopy(tight).calc_impulse_response_manually(
+            "Rfree", "cNrm", self.grid_specs, ghost=False, **kw
+        )
+        naive = deepcopy(loose).calc_impulse_response_manually(
+            "Rfree", "cNrm", self.grid_specs, ghost=False, **kw
+        )
+        ghost = deepcopy(loose).calc_impulse_response_manually(
+            "Rfree", "cNrm", self.grid_specs, ghost=True, **kw
+        )
+        scale = np.max(np.abs(ref))
+        self.assertGreater(np.max(np.abs(naive - ref)) / scale, 0.1)
+        self.assertLess(np.max(np.abs(ghost - ref)) / scale, 1e-3)
+        # and it stays consistent with the fake-news column: the two constructions
+        # differ by ~1e-3 at interior dates on this household with or without the
+        # ghost (a pre-existing property of the manual path), so the bound is loose
+        J_ghost = self._ssj(loose, True)
+        self.assertLess(np.max(np.abs(ghost - J_ghost[:, 50])) / scale, 1e-2)
+
+    def test_lifecycle_builder_refuses_ghost(self):
+        agent = IndShockConsumerType(**init_lifecycle)
+        agent.solve()
+        with self.assertRaises(NotImplementedError):
+            agent.make_basic_SSJ(
+                "Rfree", "cNrm", self.grid_specs, T_max=20, norm="G", ghost=True
+            )
