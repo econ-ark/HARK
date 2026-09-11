@@ -7,7 +7,7 @@ AgentType itself.
 from time import time
 from copy import deepcopy
 import numpy as np
-from numba import njit
+from HARK._numba import njit
 
 
 def _prepare_ssj_computation(agent, outcomes, grids, norm, solved, verbose):

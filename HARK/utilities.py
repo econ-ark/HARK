@@ -8,10 +8,12 @@ import cProfile
 import os
 import pstats
 import re
+import shutil
 
-import numba
 import numpy as np  # Python's numeric library, abbreviated "np"
 from scipy.interpolate import interp1d
+
+from HARK._numba import njit, prange
 
 from inspect import signature
 
@@ -546,7 +548,7 @@ def make_polynomial_params(coeffs, T, offset=0.0, step=1.0):
     return np.polyval(coeffs[::-1], X)
 
 
-@numba.njit
+@njit
 def jump_to_grid_1D(m_vals, probs, Dist_mGrid):  # pragma: nocover
     """
     Distributes values onto a predefined grid, maintaining the means.
@@ -601,7 +603,7 @@ def jump_to_grid_1D(m_vals, probs, Dist_mGrid):  # pragma: nocover
     return probGrid.flatten()
 
 
-@numba.njit
+@njit
 def jump_to_grid_2D(
     m_vals, perm_vals, probs, dist_mGrid, dist_pGrid
 ):  # pragma: nocover
@@ -718,7 +720,7 @@ def jump_to_grid_2D(
     return probGrid.flatten()
 
 
-@numba.njit(parallel=True)
+@njit(parallel=True)
 def gen_tran_matrix_1D(
     dist_mGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
 ):  # pragma: nocover
@@ -760,7 +762,7 @@ def gen_tran_matrix_1D(
     """
 
     TranMatrix = np.zeros((len(dist_mGrid), len(dist_mGrid)))
-    for i in numba.prange(len(dist_mGrid)):
+    for i in prange(len(dist_mGrid)):
         mNext_ij = (
             bNext[i] / perm_shks + tran_shks
         )  # Compute next period's market resources given todays bank balances bnext[i]
@@ -771,7 +773,7 @@ def gen_tran_matrix_1D(
     return TranMatrix
 
 
-@numba.njit(parallel=True)
+@njit(parallel=True)
 def gen_tran_matrix_2D(
     dist_mGrid, dist_pGrid, bNext, shk_prbs, perm_shks, tran_shks, LivPrb, NewBornDist
 ):  # pragma: nocover
@@ -813,8 +815,8 @@ def gen_tran_matrix_2D(
     TranMatrix = np.zeros(
         (len(dist_mGrid) * len(dist_pGrid), len(dist_mGrid) * len(dist_pGrid))
     )
-    for i in numba.prange(len(dist_mGrid)):
-        for j in numba.prange(len(dist_pGrid)):
+    for i in prange(len(dist_mGrid)):
+        for j in prange(len(dist_pGrid)):
             mNext_ij = (
                 bNext[i] / perm_shks + tran_shks
             )  # Compute next period's market resources given todays bank balances bnext[i]
@@ -1151,11 +1153,9 @@ def test_latex_installation(pf):  # pragma: no cover
         otherwise ImportError raised to direct user to install latex manually
     """
     # Test whether latex is installed (some of the figures require it)
-    from distutils.spawn import find_executable
-
     latexExists = False
 
-    if find_executable("latex"):
+    if shutil.which("latex"):
         latexExists = True
         return True
 

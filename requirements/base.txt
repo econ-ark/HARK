@@ -1,16 +1,17 @@
-interpolation>=2.2.3
+interpolation>=2.2.3; sys_platform != 'emscripten'
 joblib>=1.2
 legacy-cgi; python_version >= '3.13'
 matplotlib>=3.6
 networkx>=3
-numba
+numba; sys_platform != 'emscripten'
 numpy
 optimagic
 pandas>=1.5
 pyyaml>=6.0
-quantecon
+quantecon; sys_platform != 'emscripten'
 scipy>=1.10
 seaborn>=0.12
 sequence-jacobian
 statsmodels>=0.14.2
+sympy
 xarray>=2023
