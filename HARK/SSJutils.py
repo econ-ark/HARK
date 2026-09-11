@@ -50,6 +50,9 @@ def _prepare_ssj_computation(
         - LR_outcomes : [np.array]   outcome matrices in the long run model
         - outcome_grids : [np.array] outcome grids in the long run model
         - SS_dstn : np.array         steady state distribution
+        - LR_shares : np.array or None  newborns' share of the income-weighted mass from
+                                    each arrival state under norm with mortality; None otherwise
+        - newborn_dstn : np.array   distribution of arrival states at birth
     """
     if (agent.cycles > 0) or (agent.T_cycle != 1):
         raise ValueError(
@@ -118,6 +121,7 @@ def _prepare_ssj_computation(
             + " seconds."
         )
 
+    LR_shares = getattr(X, "newborn_shares", {}).get(0)
     return {
         "outcomes": outcomes,
         "no_list": no_list,
@@ -129,6 +133,8 @@ def _prepare_ssj_computation(
         "LR_outcomes": LR_outcomes,
         "outcome_grids": outcome_grids,
         "SS_dstn": SS_dstn,
+        "LR_shares": None if LR_shares is None else np.asarray(LR_shares).copy(),
+        "newborn_dstn": np.asarray(X.newborn_dstn).copy(),
     }
 
 
@@ -212,6 +218,8 @@ def make_basic_SSJ_matrices(
     verbose=False,
     newborn_growth=None,
     ghost=False,
+    income_mass=True,
+    return_mass_response=False,
 ):
     """
     Constructs one or more sequence space Jacobian (SSJ) matrices for specified
@@ -296,12 +304,36 @@ def make_basic_SSJ_matrices(
         removes it exactly, at the cost of one extra finite-horizon solve and
         matrix build. Its drift from the long run solution is reported when
         verbose is True.
+    income_mass : bool
+        Under norm with mortality, whether to carry the response of the total
+        income mass alongside the distribution (default True). A shock that
+        changes the survivors' income-mass growth -- to survival, to permanent
+        income growth, or to transitions among states that differ in either --
+        moves the level of the normalizing variable, and in a perpetual-youth
+        model the move persists until the affected cohorts have been replaced.
+        The transition matrices keep each row stochastic by injecting newborns at
+        the row's deficit, which is exact in the steady state but not along such
+        a response, where the newborn injection is fixed and the whole
+        distribution is renormalized instead. With income_mass the Jacobians are
+        built on the augmented state (distribution, normalized income mass) with
+        that recurrence linearized; for shocks that leave the income-mass growth
+        unchanged (the interest factor, the discount factor, transitory income)
+        the result is identical to the row-stochastic construction, which False
+        reproduces. Without mortality there are no newborns and the option does
+        not apply.
+    return_mass_response : bool
+        If True, also return the T_max by T_max Jacobian of the normalized
+        income mass -- the total level of the normalizing variable relative to
+        its steady state -- with respect to the shock (None when income_mass
+        does not apply). The default is False.
 
     Returns
     -------
     SSJ : np.array or [np.array]
         One or more sequence space Jacobian arrays over the outcome variables
         with respect to the named shock variable.
+    mass_response : np.array or None
+        Only when return_mass_response is True: the income-mass Jacobian.
     """
     if newborn_growth is None:
         newborn_growth = float(
@@ -319,6 +351,14 @@ def make_basic_SSJ_matrices(
     LR_outcomes = setup["LR_outcomes"]
     outcome_grids = setup["outcome_grids"]
     SS_dstn = setup["SS_dstn"]
+    LR_shares = setup["LR_shares"]
+    newborn_dstn = setup["newborn_dstn"]
+    use_mass = (
+        income_mass
+        and (norm is not None)
+        and (LR_shares is not None)
+        and (float(np.dot(SS_dstn, LR_shares)) > 0.0)
+    )
 
     try:
         base_shock_value, shock_is_list = _perturb_shock(agent, shock)
@@ -342,7 +382,7 @@ def make_basic_SSJ_matrices(
             Tm1_soln,
             verbose,
         )
-        TmX_trans, TmX_outcomes = _build_finite_horizon_matrices(
+        TmX_trans, TmX_outcomes, TmX_shares = _build_finite_horizon_matrices(
             agent,
             period_Tm1,
             period_T,
@@ -409,19 +449,46 @@ def make_basic_SSJ_matrices(
                 verbose,
             )
 
-        FN = _build_fake_news(
-            T_max,
-            J,
-            K,
-            dY_news_array,
-            D_dstn_array,
-            LR_trans,
-            LR_outcomes,
-            outcome_grids,
-            verbose,
-        )
+        if use_mass:
+            # The income-mass recurrence: the news changes the surviving income
+            # mass (Phi_news) and, with a fixed newborn injection, the arrival
+            # distribution is renormalized rather than topped up with newborns.
+            Phi_news = _income_mass_news(T_max, TmX_shares, LR_shares, SS_dstn)
+            D_true = D_dstn_array + np.outer(Phi_news, newborn_dstn - SS_dstn)
+            E_mat = np.array(
+                [np.dot(LR_outcomes[j], outcome_grids[j]) for j in range(J)]
+            )
+            t0 = time()
+            FN = make_fake_news_matrices_income_mass(
+                T_max,
+                J,
+                dY_news_array,
+                D_true,
+                Phi_news,
+                LR_trans,
+                LR_shares,
+                SS_dstn,
+                newborn_dstn,
+                E_mat,
+            )
+            _log_timing(
+                verbose, "Constructing the fake news matrices (income mass)", t0, time()
+            )
+        else:
+            FN = _build_fake_news(
+                T_max,
+                J,
+                K,
+                dY_news_array,
+                D_dstn_array,
+                LR_trans,
+                LR_outcomes,
+                outcome_grids,
+                verbose,
+            )
 
-        # Construct the SSJ matrices, one for each outcome variable
+        # Construct the SSJ matrices, one for each outcome variable (and, under
+        # the income-mass recurrence, one more for the income mass itself)
         t0 = time()
         SSJ_array = FN.copy()
         for t in range(1, T_max):
@@ -432,14 +499,15 @@ def make_basic_SSJ_matrices(
             # the period, so the responses above are per unit of the arrival-state
             # level; divide by the steady-state mass growth to express them per
             # unit of the period's (post-growth) level, the Harmenberg aggregate.
-            SSJ_array /= float(np.sum(np.dot(SS_dstn, LR_outcomes[0])))
+            SSJ_array[:J] /= float(np.sum(np.dot(SS_dstn, LR_outcomes[0])))
         SSJ = [SSJ_array[j, :, :] for j in range(J)]  # unpack into a list of arrays
+        mass_response = SSJ_array[J, :, :] if use_mass else None
         _log_timing(verbose, "Constructing the sequence space Jacobians", t0, time())
 
-        if no_list:
-            return SSJ[0]
-        else:
-            return SSJ
+        out = SSJ[0] if no_list else SSJ
+        if return_mass_response:
+            return out, mass_response
+        return out
 
     finally:
         _restore_agent(agent, LR_soln, simulator_backup)
@@ -520,13 +588,14 @@ def _build_finite_horizon_matrices(
     TmX_outcomes = [
         [X.periods[t].matrices[var] for var in outcomes] for t in range(T_max)
     ]
+    TmX_shares = [getattr(X, "newborn_shares", {}).get(t) for t in range(T_max)]
     _log_timing(
         verbose,
         "Constructing transition arrays for the finite horizon model",
         t0,
         time(),
     )
-    return TmX_trans, TmX_outcomes
+    return TmX_trans, TmX_outcomes, TmX_shares
 
 
 def _compute_finite_horizon_derivatives(
@@ -602,7 +671,7 @@ def _run_ghost_chain(
         Tm1_soln,
         False,
     )
-    ghost_trans, ghost_outcomes = _build_finite_horizon_matrices(
+    ghost_trans, ghost_outcomes, _ = _build_finite_horizon_matrices(
         agent,
         period_Tm1,
         period_T,
@@ -685,6 +754,128 @@ def _compute_finite_horizon_derivatives_vs_ghost(
     return D_dstn_array, dY_news_array
 
 
+def _income_mass_news(T_max, TmX_shares, LR_shares, SS_dstn):
+    """
+    The change in the income mass that survives the news period, per news date:
+    the steady state distribution times the change in the survivors' income-mass
+    growth from each arrival state (one minus the newborn share). Indexed like
+    the distribution news, s = T_max - 1 - t.
+    """
+    news = np.zeros(T_max)
+    for t in range(T_max):
+        shares_t = TmX_shares[t]
+        if shares_t is None:
+            continue
+        news[T_max - 1 - t] = -np.dot(SS_dstn, np.asarray(shares_t) - LR_shares)
+    return news
+
+
+def make_fake_news_matrices_income_mass(
+    T, J, dY, D_dstn, Phi_news, LR_trans, LR_shares, SS_dstn, newborn_dstn, E
+):
+    """
+    Fake news array under the income-mass recurrence. The state is the normalized
+    income-weighted distribution f (a stochastic vector over arrival nodes) and
+    the total income mass Phi relative to its steady state; with a fixed newborn
+    injection nu_bar * newborn_dstn per unit of steady-state mass and survivors'
+    income-mass growth r_bar(x) = 1 - LR_shares(x) from arrival state x,
+
+        Phi' = Phi * (f . r_t) + nu_bar,
+        f'   = (f M_t + (nu_bar / Phi) newborn_dstn) / (f . r_t + nu_bar / Phi),
+
+    where M_t is the survivor kernel. Linearized at (f_bar, 1), the pair
+    (df, dPhi) evolves by a fixed linear map, so the expectation vectors of the
+    fake news algorithm carry one extra scalar: for an outcome with node values
+    a_0 = E and steady-state level b_0 = E . f_bar,
+
+        a_{k+1} = M_bar a_k + (b_k - a_k . f_bar) r_bar,
+        b_{k+1} = m_bar b_k - nu_bar a_k . (newborn_dstn - f_bar),
+
+    with m_bar = 1 - nu_bar, and the level response at date t to news at s is
+    a_{t-1} . dD_1^s + b_{t-1} dPhi_1^s. Entry J of the first axis is the income
+    mass itself (a_0 = 0, b_0 = 1).
+
+    Parameters
+    ----------
+    T : int
+        Maximum time horizon.
+    J : int
+        Number of outcomes.
+    dY : np.array
+        (T, J) policy news: change in average outcome in the news period.
+    D_dstn : np.array
+        (T, K) distribution news dD_1^s under the recurrence (renormalized, not
+        topped up with newborns).
+    Phi_news : np.array
+        (T,) income-mass news dPhi_1^s.
+    LR_trans : np.array
+        (K, K) long run transition matrix (rows = from), row-stochastic.
+    LR_shares : np.array
+        (K,) newborns' share of the income-weighted mass from each arrival state.
+    SS_dstn : np.array
+        (K,) steady state distribution f_bar.
+    newborn_dstn : np.array
+        (K,) distribution of arrival states at birth.
+    E : np.array
+        (J, K) expectation vectors: each outcome's average by arrival node.
+
+    Returns
+    -------
+    FN : np.array
+        Fake news array of shape (J + 1, T, T).
+    """
+    K = SS_dstn.size
+    shares = np.asarray(LR_shares, dtype=float)
+    r_bar = 1.0 - shares
+    M_bar = np.asarray(LR_trans, dtype=float) - np.outer(shares, newborn_dstn)
+    nu_bar = float(np.dot(SS_dstn, shares))
+    m_bar = 1.0 - nu_bar
+    pi_minus_f = newborn_dstn - SS_dstn
+    FN = np.zeros((J + 1, T, T))
+    FN[:J, 0, :] = dY.T
+    a = np.vstack([np.asarray(E, dtype=float), np.zeros((1, K))])
+    b = np.concatenate([np.dot(np.asarray(E, dtype=float), SS_dstn), [1.0]])
+    for t in range(1, T):
+        FN[:, t, :] = np.dot(a, D_dstn.T) + np.outer(b, Phi_news)
+        a_dot_f = np.dot(a, SS_dstn)
+        a_next = np.dot(a, M_bar.T) + np.outer(b - a_dot_f, r_bar)
+        b_next = m_bar * b - nu_bar * np.dot(a, pi_minus_f)
+        a, b = a_next, b_next
+    return FN
+
+
+def _simulate_levels_with_income_mass(X, outcomes, SS_dstn, LR_shares, newborn_dstn):
+    """
+    Move the steady state distribution through a finite-horizon simulator's
+    per-period matrices under the income-mass recurrence (a fixed newborn
+    injection, the distribution renormalized each period, the income mass Phi
+    carried alongside), and return each outcome's level path Phi_t times the
+    average of the outcome under the arrival distribution -- the object whose
+    derivative the fake news SSJ computes under income_mass.
+    """
+    T_seq = len(X.periods)
+    nu_bar = float(np.dot(SS_dstn, LR_shares))
+    f = np.asarray(SS_dstn, dtype=float).copy()
+    Phi = 1.0
+    paths = {var: np.empty(T_seq) for var in outcomes}
+    for t in range(T_seq):
+        for var in outcomes:
+            paths[var][t] = Phi * float(
+                np.dot(np.dot(f, X.periods[t].matrices[var]), X.periods[t].grids[var])
+            )
+        if t == T_seq - 1:
+            break
+        shares_t = np.asarray(X.newborn_shares[t], dtype=float)
+        M_t = np.asarray(X.trans_arrays[t], dtype=float) - np.outer(
+            shares_t, newborn_dstn
+        )
+        numerator = np.dot(f, M_t) + (nu_bar / Phi) * newborn_dstn
+        gamma = float(np.sum(numerator))
+        f = numerator / gamma
+        Phi = Phi * gamma
+    return paths
+
+
 def _build_fake_news(
     T_max,
     J,
@@ -729,6 +920,8 @@ def make_flat_LC_SSJ_matrices(
     offset=False,
     verbose=False,
     ghost=False,
+    income_mass=True,
+    return_mass_response=False,
 ):
     """
     Constructs one or more sequence space Jacobian (SSJ) matrices for specified
@@ -838,6 +1031,11 @@ def make_flat_LC_SSJ_matrices(
         raise NotImplementedError(
             "ghost=True applies to the infinite-horizon builder only; a life-cycle "
             "solution has no fixed-point residual for a ghost run to remove."
+        )
+    if return_mass_response:
+        raise NotImplementedError(
+            "return_mass_response applies to the infinite-horizon builder only; the "
+            "life-cycle builder carries cohorts and their trends explicitly."
         )
     if agent.cycles != 1:
         raise ValueError("This function is only compatible with life-cycle models!")
@@ -1120,6 +1318,7 @@ def calc_shock_response_manually(
     verbose=False,
     newborn_growth=None,
     ghost=False,
+    income_mass=True,
 ):
     """
     Compute an AgentType instance's timepath of outcome responses to learning at
@@ -1195,6 +1394,11 @@ def calc_shock_response_manually(
         Whether to difference the perturbed path against an unperturbed finite-
         horizon path of the same length (a "ghost run") rather than against the
         long run averages; see make_basic_SSJ_matrices. The default is False.
+    income_mass : bool
+        Under norm with mortality, whether to move the population forward with
+        the income-mass recurrence (a fixed newborn injection and a renormalized
+        distribution, the total income mass carried alongside) rather than with
+        the row-stochastic matrices; see make_basic_SSJ_matrices. Default True.
 
     Returns
     -------
@@ -1216,6 +1420,14 @@ def calc_shock_response_manually(
     LR_outcomes = setup["LR_outcomes"]
     outcome_grids = setup["outcome_grids"]
     SS_dstn = setup["SS_dstn"]
+    LR_shares = setup["LR_shares"]
+    newborn_dstn = setup["newborn_dstn"]
+    use_mass = (
+        income_mass
+        and (norm is not None)
+        and (LR_shares is not None)
+        and (float(np.dot(SS_dstn, LR_shares)) > 0.0)
+    )
 
     SS_outcomes = [np.dot(mat.T, SS_dstn) for mat in LR_outcomes]
     SS_avgs = [
@@ -1313,7 +1525,22 @@ def calc_shock_response_manually(
         # Use grid simulation to find the timepath of requested variables, and compute
         # the derivative with respect to baseline outcomes
         t0 = time()
-        FH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
+        if use_mass:
+            # levels under the income-mass recurrence, per unit of steady-state
+            # (post-growth) income like the SSJ
+            g_bar = [float(np.sum(ss)) for ss in SS_outcomes]
+            level_paths = _simulate_levels_with_income_mass(
+                FH_agent._simulator, outcomes, SS_dstn, LR_shares, newborn_dstn
+            )
+            FH_agent._simulator.history_avg = {
+                var: level_paths[var] / g_bar[j] for j, var in enumerate(outcomes)
+            }
+            SS_avgs = [
+                np.dot(ss, grid) / g
+                for ss, grid, g in zip(SS_outcomes, outcome_grids, g_bar)
+            ]
+        else:
+            FH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
         baselines = SS_avgs
         if ghost:
             # The ghost run: the same finite horizon agent with no perturbation,
@@ -1340,8 +1567,18 @@ def calc_shock_response_manually(
             GH_agent._simulator.make_transition_matrices(
                 grids, norm=norm, fake_news_timing=True, newborn_growth=newborn_growth
             )
-            GH_agent._simulator.simulate_cohort_by_grids(outcomes, from_dstn=SS_dstn)
-            baselines = [GH_agent._simulator.history_avg[var] for var in outcomes]
+            if use_mass:
+                ghost_paths = _simulate_levels_with_income_mass(
+                    GH_agent._simulator, outcomes, SS_dstn, LR_shares, newborn_dstn
+                )
+                baselines = [
+                    ghost_paths[var] / g_bar[j] for j, var in enumerate(outcomes)
+                ]
+            else:
+                GH_agent._simulator.simulate_cohort_by_grids(
+                    outcomes, from_dstn=SS_dstn
+                )
+                baselines = [GH_agent._simulator.history_avg[var] for var in outcomes]
             del GH_agent
         dYdX = []
         for j, var in enumerate(outcomes):

@@ -874,3 +874,95 @@ class testsForManualResponseDating(unittest.TestCase):
             deepcopy(self.agent).calc_impulse_response_manually(
                 "DiscFac", "cNrm", self.grid_specs, s=0, T_max=20, norm="G", solved=True
             )
+
+
+class testsForIncomeMassRecurrence(unittest.TestCase):
+    """
+    Under norm with mortality, the SSJ carries the response of the total income
+    mass: a shock to survival, to growth, or to transitions among states that
+    differ in either moves the level of the normalizing variable, and the
+    distribution is renormalized rather than topped up with newborns.
+    """
+
+    def setUp(self):
+        self.grid_specs = {
+            "kNrm": {"min": 0.0, "max": 60.0, "N": 201, "nest": 3},
+            "cNrm": {"min": 0.0, "max": 4.0, "N": 201},
+        }
+
+    def test_mass_response_has_the_closed_form_with_one_state(self):
+        # one state: a growth shock realized at date s raises the surviving income
+        # mass at date s+1 by LivPrb (per unit shock) and the excess then decays
+        # at m_bar = LivPrb * PermGroFac per period, as the affected cohorts die
+        # and are replaced by newborns at the fixed level
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-10)
+        agent.solve()
+        L = float(agent.LivPrb[0])
+        G = float(agent.PermGroFac[0])
+        T = 60
+        J, dPhi = deepcopy(agent).make_basic_SSJ(
+            "PermGroFac",
+            "cNrm",
+            self.grid_specs,
+            T_max=T,
+            norm="G",
+            offset=True,
+            solved=True,
+            return_mass_response=True,
+        )
+        self.assertEqual(dPhi.shape, (T, T))
+        for s in (0, 10):
+            self.assertTrue(np.all(np.abs(dPhi[: s + 1, s]) < 1e-9))
+            expected = L * (L * G) ** np.arange(T - s - 1)
+            np.testing.assert_allclose(dPhi[s + 1 :, s], expected, rtol=1e-6, atol=1e-9)
+
+    def test_no_change_when_income_mass_growth_is_unaffected(self):
+        # state-dependent growth, but a discount-factor shock leaves the
+        # income-weighted mass growth alone: the recurrence changes nothing
+        agent = MarkovConsumerType(cycles=0, tolerance=1e-8)
+        agent.solve()
+        grids = dict(self.grid_specs, zPrev={"N": 2})
+        kw = dict(T_max=40, norm="G", offset=False, solved=True)
+        J1 = deepcopy(agent).make_basic_SSJ(
+            "DiscFac", "cNrm", grids, income_mass=True, **kw
+        )
+        J0 = deepcopy(agent).make_basic_SSJ(
+            "DiscFac", "cNrm", grids, income_mass=False, **kw
+        )
+        self.assertLess(np.max(np.abs(J1 - J0)) / np.max(np.abs(J0)), 1e-9)
+
+    def test_manual_path_agrees_for_growth_and_survival_shocks(self):
+        agent = IndShockConsumerType(cycles=0, tolerance=1e-10)
+        agent.solve()
+        for shock, offset in (("PermGroFac", True), ("LivPrb", False)):
+            kw = dict(T_max=60, norm="G", offset=offset, solved=True)
+            J = deepcopy(agent).make_basic_SSJ(shock, "cNrm", self.grid_specs, **kw)
+            for s in (0, 5):
+                col = deepcopy(agent).calc_impulse_response_manually(
+                    shock, "cNrm", self.grid_specs, s=s, **kw
+                )
+                gap = np.max(np.abs(col - J[:, s])) / np.max(np.abs(J[:, s]))
+                self.assertLess(gap, 1e-3, msg=f"{shock} s={s}: {gap:.2e}")
+
+    def test_chain_shock_with_state_dependent_growth(self):
+        # a transition-probability shock moves income mass between states with
+        # different growth: the recurrence matters, and the fake-news column
+        # agrees with the manual path that forwards the exact recurrence (both
+        # ghosted, so that the long run residual -- see testsForGhostRun -- does
+        # not enter the comparison at this tolerance)
+        agent = MarkovConsumerType(cycles=0, tolerance=1e-8)
+        agent.solve()
+        grids = dict(self.grid_specs, zPrev={"N": 2})
+        kw = dict(T_max=40, norm="G", offset=True, solved=True, ghost=True)
+        J1 = deepcopy(agent).make_basic_SSJ(
+            "Mrkv_p11", "cNrm", grids, income_mass=True, **kw
+        )
+        J0 = deepcopy(agent).make_basic_SSJ(
+            "Mrkv_p11", "cNrm", grids, income_mass=False, **kw
+        )
+        self.assertGreater(np.max(np.abs(J1 - J0)) / np.max(np.abs(J1)), 1e-4)
+        col = deepcopy(agent).calc_impulse_response_manually(
+            "Mrkv_p11", "cNrm", grids, s=0, construct=["MrkvArray"], **kw
+        )
+        gap = np.max(np.abs(col - J1[:, 0])) / np.max(np.abs(J1[:, 0]))
+        self.assertLess(gap, 1e-4, msg=f"Mrkv_p11 s=0: {gap:.2e}")
