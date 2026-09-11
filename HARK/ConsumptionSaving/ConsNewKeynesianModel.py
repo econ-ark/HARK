@@ -326,16 +326,16 @@ class NewKeynesianConsumerType(IndShockConsumerType):
             tran_shks = shk_dstn[0].atoms[1]  # Transitory shocks
             perm_shks = shk_dstn[0].atoms[0]  # Permanent shocks
             LivPrb = self.LivPrb[0]  # Update probability of staying alive
+            PermGroFac = float(np.asarray(self.PermGroFac[0]).ravel()[0])
+            surv_growth = self._neutral_measure_surv_growth(PermGroFac, LivPrb)
 
-            # New borns have this distribution (assumes start with no assets and permanent income=1)
-            NewBornDist = jump_to_grid_2D(
-                tran_shks, np.ones_like(tran_shks), shk_prbs, dist_mGrid, dist_pGrid
-            )
-
+            # Newborns start with no assets and permanent income one, then draw
+            # their first period's shocks like everyone else: they arrive at the
+            # decision with market resources equal to their transitory income
+            # draw and permanent income PermGroFac * PermShk (HARK's simulators
+            # place them there), not at m = 1, p = 1.
             if len(dist_pGrid) == 1:
-                NewBornDist = jump_to_grid_1D(
-                    np.ones_like(tran_shks), shk_prbs, dist_mGrid
-                )
+                NewBornDist = jump_to_grid_1D(tran_shks, shk_prbs, dist_mGrid)
                 # Compute Transition Matrix given shocks and grids.
                 self.tran_matrix = gen_tran_matrix_1D(
                     dist_mGrid,
@@ -345,12 +345,14 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                     tran_shks,
                     LivPrb,
                     NewBornDist,
+                    PermGroFac,
+                    surv_growth,
                 )
 
             else:
                 NewBornDist = jump_to_grid_2D(
-                    np.ones_like(tran_shks),
-                    np.ones_like(tran_shks),
+                    tran_shks,
+                    PermGroFac * perm_shks,
                     shk_prbs,
                     dist_mGrid,
                     dist_pGrid,
@@ -367,6 +369,7 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                     tran_shks,
                     LivPrb,
                     NewBornDist,
+                    PermGroFac,
                 )
 
         elif self.cycles > 1:
@@ -410,12 +413,12 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                 perm_shks = shk_dstn[k].atoms[0]
                 # Update probability of staying alive this period
                 LivPrb = self.LivPrb[k]
+                PermGroFac = float(np.asarray(self.PermGroFac[k]).ravel()[0])
+                surv_growth = self._neutral_measure_surv_growth(PermGroFac, LivPrb)
 
                 if len(dist_pGrid) == 1:
-                    # New borns have this distribution (assumes start with no assets and permanent income=1)
-                    NewBornDist = jump_to_grid_1D(
-                        np.ones_like(tran_shks), shk_prbs, dist_mGrid
-                    )
+                    # Newborns arrive at their first income draw (see above)
+                    NewBornDist = jump_to_grid_1D(tran_shks, shk_prbs, dist_mGrid)
                     # Compute Transition Matrix given shocks and grids.
                     TranMatrix_M = gen_tran_matrix_1D(
                         dist_mGrid,
@@ -425,13 +428,15 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                         tran_shks,
                         LivPrb,
                         NewBornDist,
+                        PermGroFac,
+                        surv_growth,
                     )
                     self.tran_matrix.append(TranMatrix_M)
 
                 else:
                     NewBornDist = jump_to_grid_2D(
-                        np.ones_like(tran_shks),
-                        np.ones_like(tran_shks),
+                        tran_shks,
+                        PermGroFac * perm_shks,
                         shk_prbs,
                         dist_mGrid,
                         dist_pGrid,
@@ -446,8 +451,33 @@ class NewKeynesianConsumerType(IndShockConsumerType):
                         tran_shks,
                         LivPrb,
                         NewBornDist,
+                        PermGroFac,
                     )
                     self.tran_matrix.append(TranMatrix)
+
+    def _neutral_measure_surv_growth(self, PermGroFac, LivPrb):
+        """
+        The factor by which surviving income-weighted mass grows relative to the
+        newborn cohort under the Harmenberg neutral measure: PermGroFac divided
+        by PermGroFacAgg (the trend newborns inherit). It is 1.0 outside the
+        neutral measure. Survivors then carry mass LivPrb times this factor and
+        newborns the complement, so that the ergodic distribution is the
+        income-weighted one under mortality with permanent income growth.
+        """
+        if not getattr(self, "neutral_measure", False):
+            return 1.0
+        newborn_growth = float(
+            np.asarray(getattr(self, "PermGroFacAgg", 1.0)).ravel()[0]
+        )
+        surv_growth = PermGroFac / newborn_growth
+        if float(LivPrb) * surv_growth > 1.0 + 1e-9:
+            raise ValueError(
+                "LivPrb * PermGroFac / PermGroFacAgg exceeds one: permanent income "
+                "growth outpaces mortality, so no stationary income-weighted "
+                "distribution exists (mean permanent income is infinite) and the "
+                "neutral measure cannot be used."
+            )
+        return surv_growth
 
     def calc_ergodic_dist(self, transition_matrix=None):
         """
