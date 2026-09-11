@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from HARK._numba import njit
 
 from HARK.rewards import (
     CRRAutility_X,

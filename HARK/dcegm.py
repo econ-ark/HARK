@@ -9,7 +9,7 @@ Example can be found in https://github.com/econ-ark/DemARK/blob/master/notebooks
 
 import numpy as np
 from interpolation import interp
-from numba import njit
+from HARK._numba import njit
 
 
 @njit("Tuple((float64,float64))(float64[:], float64[:], float64[:])", cache=True)

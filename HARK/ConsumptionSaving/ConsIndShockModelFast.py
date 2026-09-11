@@ -18,7 +18,7 @@ from copy import deepcopy
 
 import numpy as np
 from interpolation import interp
-from numba import njit
+from HARK._numba import njit
 from quantecon.optimize import newton_secant
 
 from HARK import make_one_period_oo_solver

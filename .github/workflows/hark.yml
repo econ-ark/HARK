@@ -70,3 +70,32 @@ jobs:
       - name: Test with pytest
         run: |
           pytest -n auto
+
+  # With numba installed, CI never executes the HARK._numba fallback, so a
+  # divergence in the pure-Python path would reach a browser user unseen.
+  # Removing numba plus the two packages requiring it gives the wasm dep set.
+  no-numba:
+    name: Test with numba absent (browser install)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install without numba
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[dev]"
+          pip uninstall -y numba interpolation quantecon
+      - name: Confirm numba is genuinely absent
+        run: |
+          if python -c "import numba" 2>/dev/null; then
+            echo "numba still importable; this job would pass for the wrong reason"
+            exit 1
+          fi
+      - name: Test with pytest
+        run: |
+          pytest -n auto --ignore=tests/test_dcegm.py \
+                         --ignore=tests/test_econforgeinterp.py \
+                         --ignore=tests/ConsumptionSaving/test_IndShockConsumerTypeFast.py \
+                         --ignore=tests/ConsumptionSaving/test_PerfForesightFastConsumerType.py

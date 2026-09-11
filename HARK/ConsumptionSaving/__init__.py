@@ -77,10 +77,29 @@ from HARK.ConsumptionSaving.ConsWealthPortfolioModel import WealthPortfolioConsu
 from HARK.ConsumptionSaving.ConsLaborModel import LaborIntMargConsumerType
 from HARK.ConsumptionSaving.ConsHealthModel import BasicHealthConsumerType
 from HARK.ConsumptionSaving.ConsRiskyContribModel import RiskyContribConsumerType
-from HARK.ConsumptionSaving.ConsIndShockModelFast import (
-    IndShockConsumerTypeFast,
-    PerfForesightConsumerTypeFast,
-)
+
+try:
+    from HARK.ConsumptionSaving.ConsIndShockModelFast import (
+        IndShockConsumerTypeFast,
+        PerfForesightConsumerTypeFast,
+    )
+except ImportError as _fast_exc:  # pragma: no cover - only where numba is absent
+    # The Fast variants need third-party `interpolation` and `quantecon`, which
+    # import numba themselves, so HARK._numba cannot cover them. Narrow by module
+    # name so a bug inside the Fast module is never reported as a missing dep.
+    if _fast_exc.name not in ("numba", "interpolation", "quantecon"):
+        raise
+
+    def _fast_unavailable(*args, **kwargs):
+        raise ImportError(
+            "The Fast consumer types require the 'interpolation' and 'quantecon' "
+            "packages, which import numba. numba is unavailable on this platform "
+            "(for example stock Pyodide), so use IndShockConsumerType or "
+            "PerfForesightConsumerType instead."
+        ) from _fast_exc
+
+    IndShockConsumerTypeFast = _fast_unavailable
+    PerfForesightConsumerTypeFast = _fast_unavailable
 from HARK.ConsumptionSaving.ConsHabitModel import (
     HabitConsumerType,
     HabitPortfolioConsumerType,
