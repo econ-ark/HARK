@@ -794,13 +794,12 @@ class testsForGhostRun(unittest.TestCase):
     def test_manual_response_with_ghost(self):
         # the manual (one-column) path with a ghost: a loosely converged long run
         # reproduces the tightly converged manual path, and matches the ghost SSJ
-        # at date 50 (where HARK's own manual-vs-SSJ check compares them; the two
-        # constructions differ at early dates independently of the ghost)
+        # at date 0, the hardest date for the two constructions to agree on
         loose = IndShockConsumerType(tolerance=1e-6, **self.patient)
         loose.solve()
         tight = IndShockConsumerType(tolerance=1e-10, **self.patient)
         tight.solve()
-        kw = dict(s=50, T_max=100, norm="G", offset=True, solved=True)
+        kw = dict(s=0, T_max=100, norm="G", offset=True, solved=True)
         ref = deepcopy(tight).calc_impulse_response_manually(
             "Rfree", "cNrm", self.grid_specs, ghost=False, **kw
         )
@@ -813,11 +812,9 @@ class testsForGhostRun(unittest.TestCase):
         scale = np.max(np.abs(ref))
         self.assertGreater(np.max(np.abs(naive - ref)) / scale, 0.1)
         self.assertLess(np.max(np.abs(ghost - ref)) / scale, 1e-3)
-        # and it stays consistent with the fake-news column: the two constructions
-        # differ by ~1e-3 at interior dates on this household with or without the
-        # ghost (a pre-existing property of the manual path), so the bound is loose
+        # and it is consistent with the fake-news column
         J_ghost = self._ssj(loose, True)
-        self.assertLess(np.max(np.abs(ghost - J_ghost[:, 50])) / scale, 1e-2)
+        self.assertLess(np.max(np.abs(ghost - J_ghost[:, 0])) / scale, 1e-3)
 
     def test_lifecycle_builder_refuses_ghost(self):
         agent = IndShockConsumerType(**init_lifecycle)
@@ -825,4 +822,55 @@ class testsForGhostRun(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             agent.make_basic_SSJ(
                 "Rfree", "cNrm", self.grid_specs, T_max=20, norm="G", ghost=True
+            )
+
+
+class testsForManualResponseDating(unittest.TestCase):
+    """
+    calc_impulse_response_manually reproduces the columns of make_basic_SSJ at
+    the early shock dates, offset and non-offset alike, and accepts scalar shocks.
+    """
+
+    def setUp(self):
+        self.agent = IndShockConsumerType(cycles=0, tolerance=1e-12)
+        self.agent.solve()
+        self.grid_specs = {
+            "kNrm": {"min": 0.0, "max": 60.0, "N": 201, "nest": 3},
+            "cNrm": {"min": 0.0, "max": 4.0, "N": 201},
+        }
+
+    def _compare(self, shock, offset, dates, construct=None, tol=1e-4):
+        kw = dict(T_max=100, norm="G", offset=offset, solved=True)
+        J = deepcopy(self.agent).make_basic_SSJ(shock, "cNrm", self.grid_specs, **kw)
+        for s in dates:
+            col = deepcopy(self.agent).calc_impulse_response_manually(
+                shock,
+                "cNrm",
+                self.grid_specs,
+                s=s,
+                construct=[] if construct is None else construct,
+                **kw,
+            )
+            gap = np.max(np.abs(col - J[:, s])) / np.max(np.abs(J[:, s]))
+            self.assertLess(gap, tol, msg=f"{shock} s={s}: {gap:.2e}")
+
+    def test_offset_shock_at_early_dates(self):
+        self._compare("Rfree", True, (0, 1, 2, 20))
+
+    def test_constructed_offset_shock_at_early_dates(self):
+        self._compare("PermShkStd", True, (0, 1), construct=["IncShkDstn"])
+
+    def test_non_offset_shock_at_early_dates(self):
+        self._compare("LivPrb", False, (0, 1, 20))
+
+    def test_scalar_shock(self):
+        # a scalar parameter (not a singleton list) used to raise TypeError
+        self._compare("CRRA", False, (0, 5))
+
+    def test_parameter_the_model_cannot_vary_raises_clearly(self):
+        # IndShockConsumerType keeps DiscFac a scalar (check_restrictions compares
+        # it to zero), so the per-period sequence the manual path needs is rejected
+        with self.assertRaises(ValueError):
+            deepcopy(self.agent).calc_impulse_response_manually(
+                "DiscFac", "cNrm", self.grid_specs, s=0, T_max=20, norm="G", solved=True
             )

@@ -1128,8 +1128,14 @@ def calc_shock_response_manually(
     the fake news algorithm. This function can be used to verify and/or debug the
     output of the fake news SSJ algorithm.
 
-    Important: Mortality (or death and replacement generally) should be turned
-    off in the model (via parameter values) for this to work properly. Or does it?
+    Dating: the news arrives at reported date 0 and the perturbed value is the one
+    in force at reported date s, with the same convention as make_basic_SSJ_matrices
+    -- for an offset variable (one the solver indexes by t+1, like Rfree), date s
+    is the period in which the perturbed value is realized. Internally the finite
+    horizon agent's first period is then a long run period (its policy is the long
+    run policy) and is dropped from the output, so that nobody responds before the
+    news. Mortality is handled by the transition matrices (see
+    AgentSimulator.make_transition_matrices).
 
     Parameters
     ----------
@@ -1244,6 +1250,8 @@ def calc_shock_response_manually(
         FH_agent.add_to_time_vary(*construct)
         finite_dict = {"T_cycle": T_max, "cycles": 1}
         for var in FH_agent.time_vary:
+            if var == shock:
+                continue  # set below from its scalar base value
             if var in construct:
                 sequence = [deepcopy(getattr(agent, var)[0]) for t in range(T_max)]
                 sequence[s] = deepcopy(getattr(temp_agent, var)[0])
@@ -1264,7 +1272,22 @@ def calc_shock_response_manually(
 
         # Solve the finite horizon agent
         t0 = time()
-        FH_agent.solve(from_solution=LR_soln)
+        try:
+            FH_agent.solve(from_solution=LR_soln)
+        except TypeError as exc:
+            raise ValueError(
+                "The manual response needs "
+                + shock
+                + " to vary period by period, and the agent's model rejected a "
+                "time-varying value for it (see the chained error); the fake news "
+                "method in make_basic_SSJ does not have this requirement."
+            ) from exc
+        if offset:
+            # The output drops the first simulated period so that reported date 0
+            # is the period in which an offset perturbation is first realized; the
+            # policy in that dropped period must then be the long run policy, or
+            # households would respond one period before the news.
+            FH_agent.solution[0] = deepcopy(LR_soln)
         t1 = time()
         if verbose:
             print(
@@ -1305,10 +1328,14 @@ def calc_shock_response_manually(
             GH_agent.add_to_time_vary(*construct)
             ghost_dict = {"T_cycle": T_max, "cycles": 1}
             for var in GH_agent.time_vary:
+                if var == shock:
+                    continue
                 ghost_dict[var] = T_max * [deepcopy(getattr(agent, var)[0])]
             ghost_dict[shock] = T_max * [base_shock_value]
             GH_agent.assign_parameters(**ghost_dict)
             GH_agent.solve(from_solution=LR_soln)
+            if offset:
+                GH_agent.solution[0] = deepcopy(LR_soln)
             GH_agent.initialize_sym()
             GH_agent._simulator.make_transition_matrices(
                 grids, norm=norm, fake_news_timing=True, newborn_growth=newborn_growth
