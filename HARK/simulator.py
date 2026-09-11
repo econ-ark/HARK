@@ -13,7 +13,9 @@ from typing import Callable
 from HARK.utilities import NullFunc, make_polynomial_grid, make_grid_exp_mult
 from HARK.distributions import Distribution
 from scipy.sparse import csr_matrix, csc_matrix
+from scipy.sparse.csgraph import connected_components
 from scipy.sparse.linalg import eigs
+import warnings
 from scipy.optimize import brentq
 from itertools import product
 import importlib.resources
@@ -1072,7 +1074,9 @@ class SimBlock:
         master_trans_array_X = master_trans_array_X[..., 0] / survival_probs
         return master_trans_array_X
 
-    def make_transition_matrices(self, grid_specs, twist=None, norm=None):
+    def make_transition_matrices(
+        self, grid_specs, twist=None, norm=None, newborn_growth=1.0
+    ):
         """
         Construct a transition matrix for this block, moving from a discretized
         grid of arrival variables to a discretized grid of end-of-block variables.
@@ -1105,8 +1109,19 @@ class SimBlock:
             arrival variables. When this is specified, additional output is created
             for the "full period" arrival-to-arrival transition matrix.
         norm : str or None
-            Name of the shock variable by which to normalize for Harmenberg
-            aggregation. By default, no normalization happens.
+            Name of the block variable whose realized value weights each blob's
+            probability mass, for Harmenberg (income-weighted) aggregation. By
+            default, no normalization happens. For a model normalized by permanent
+            income this should be the growth factor of the *level* being normalized
+            by -- ``'G'`` in HARK's model files, i.e. ``PermGroFac * PermShk`` --
+            not the shock alone. Weighting by ``'PermShk'`` is exact only when
+            there is no deterministic growth (``PermGroFac == 1``), no mortality,
+            or when newborns inherit the growth (see ``newborn_growth``).
+        newborn_growth : float
+            Per-period growth factor of the normalizing level that newborns
+            inherit (a common trend), by which the weights are divided. The
+            default of 1.0 means newborns arrive at a fixed level, which is HARK's
+            convention when ``PermGroFacAgg == 1``.
 
         Returns
         -------
@@ -1156,7 +1171,25 @@ class SimBlock:
         ]
 
         # Quasi-simulate this block
-        self.run_quasi_sim(state_init, norm=norm)
+        self.run_quasi_sim(state_init)
+
+        # Harmenberg-style normalization: weight each blob's probability mass by
+        # the realized value of the normalizing variable, relative to the growth
+        # that newborns inherit. Weighting after the block has run (rather than
+        # when the shock is drawn) lets the weight be any realized variable -- in
+        # particular the full growth factor of a normalized level, not only the
+        # drawn shock -- which is what makes the stationary distribution the
+        # income-weighted one when there is both mortality and growth.
+        if norm is not None:
+            if norm not in self.data:
+                raise ValueError(
+                    "The normalizing variable "
+                    + norm
+                    + " is not realized in this block!"
+                )
+            self.data["pmv_"] = self.data["pmv_"] * (
+                np.asarray(self.data[norm], dtype=float) / newborn_growth
+            )
 
         # Add survival to output if mortality is in the model
         if "dead" in self.data.keys():
@@ -1598,7 +1631,12 @@ class AgentSimulator:
         self.data["t_seq"] = np.argmax(self.t_seq_bool_array, axis=0).astype(int)
 
     def make_transition_matrices(
-        self, grid_specs, norm=None, fake_news_timing=False, for_t=None
+        self,
+        grid_specs,
+        norm=None,
+        fake_news_timing=False,
+        for_t=None,
+        newborn_growth=1.0,
     ):
         """
         Build Markov-style transition matrices for each period of the model, as
@@ -1610,6 +1648,9 @@ class AgentSimulator:
                          This transition includes death (and replacement).
         - newborn_dstn : Stochastic vector as a NumPy array, representing the distribution
                          of arrival states for "newborns" who were just initialized.
+        - newborn_shares : Dictionary by period of the newborns' share of the normalized
+                         (income-weighted) mass from each arrival state, filled only when
+                         norm is given and the model has mortality; empty otherwise.
         - state_grids : Nested list of tuples representing the arrival state space for
                         each period. Each element corresponds to the discretized arrival
                         state space point with the same index in trans_arrays (and
@@ -1619,7 +1660,11 @@ class AgentSimulator:
                            state space to the grid of outcome variables, for each period.
                            Doing np.dot(state_dstn, outcome_arrays[t][var]) will yield
                            the discretized distribution of that outcome variable. Linked
-                           from periods[t].matrices.
+                           from periods[t].matrices. Under norm the arrays carry the
+                           growth of the normalizing level within the period, so that
+                           product sums to the mass growth factor rather than one; divide
+                           by its total (as get_long_run_dstn and the grid simulators do)
+                           to get the distribution per unit of the period's level.
         - outcome_grids : List of dictionaries of discretized outcomes in each period.
                           Keys are names of outcome variables, and entries are vectors
                           of discretized values that the outcome variable can take on.
@@ -1639,9 +1684,14 @@ class AgentSimulator:
             max if the variable is continuous. If the variable is discrete, the
             grid values are assumed to be 0,..,N.
         norm : str or None
-            Name of the variable for which Harmenberg normalization should be
-            applied, if any. This should be a variable that is directly drawn
-            from a distribution, not a "downstream" variable.
+            Name of the block variable whose realized value weights each
+            probability mass, for Harmenberg (income-weighted) aggregation. For a
+            model normalized by permanent income, name the growth factor of the
+            level -- ``'G'`` in HARK's model files (``PermGroFac * PermShk``).
+            ``'PermShk'`` alone is exact only without deterministic growth or
+            without mortality (or when newborns inherit the growth, see
+            ``newborn_growth``); otherwise it overweights the young at every age
+            and the stationary distribution is not the income-weighted one.
         fake_news_timing : bool
             Indicator for whether this call is part of the "fake news" algorithm
             for constructing sequence space Jacobians (SSJs). This should only
@@ -1653,6 +1703,18 @@ class AgentSimulator:
             Optional list of time indices for which the matrices should be built.
             When not specified, all periods are constructed. The most common use
             for this arg is during the "fake news" algorithm for lifecycle models.
+        newborn_growth : float
+            Per-period growth factor of the normalizing level that newborns
+            inherit (a common trend); the weights are divided by it. The default
+            of 1.0 is HARK's convention when ``PermGroFacAgg == 1`` (newborns
+            arrive at a fixed level). Setting it equal to ``PermGroFac`` means
+            all growth is a trend shared by newborns, under which weighting by the
+            shock alone is exact. Under ``norm`` with mortality, the per-period
+            newborn income-mass shares are stored in ``newborn_shares``. Without
+            mortality there are no newborns and only the cross-section relative
+            to the growth trend is stationary: each arrival state's transition is
+            then normalized by its own expected growth of the normalizing variable
+            (exact for a common growth factor).
 
         Returns
         -------
@@ -1695,11 +1757,15 @@ class AgentSimulator:
         for t in these_t:
             block = self.periods[t]
             block.make_transition_matrices(
-                grid_specs_other, twist=self.twist, norm=norm
+                grid_specs_other,
+                twist=self.twist,
+                norm=norm,
+                newborn_growth=newborn_growth,
             )
             block.reset()
         self.grid_specs = grid_specs_other
         self.norm = norm
+        self.newborn_growth = newborn_growth
 
         # Extract the master transition matrices into a single list
         p2p_trans_arrays = [self.periods[t].trans_array for t in these_t]
@@ -1716,29 +1782,85 @@ class AgentSimulator:
         else:
             T_set = []
         newborn_dstn = np.reshape(self.newborn_dstn, (1, K))
+        newborn_shares = {}
         for t in T_set:
             if t not in these_t:
                 continue
             if "dead" not in self.periods[t].matrices.keys():
                 continue
-            death_prbs = self.periods[t].matrices["dead"][:, 1]
-            p2p_trans_arrays[t] *= np.tile(np.reshape(1 - death_prbs, (K, 1)), (1, K))
-            p2p_trans_arrays[t] += np.reshape(death_prbs, (K, 1)) * newborn_dstn
+            if norm is None:
+                death_prbs = self.periods[t].matrices["dead"][:, 1]
+                p2p_trans_arrays[t] *= np.tile(
+                    np.reshape(1 - death_prbs, (K, 1)), (1, K)
+                )
+                p2p_trans_arrays[t] += np.reshape(death_prbs, (K, 1)) * newborn_dstn
+            else:
+                # Under an income-weighted measure, the mass that survives from an
+                # arrival state is the expected growth of the normalizing level
+                # among its survivors (relative to newborn_growth), not the
+                # survival probability; newborns take the complement. This makes
+                # the stationary distribution the income-weighted one. It reduces
+                # to the branch above whenever the weights average to one.
+                surv_mass = self.periods[t].matrices["dead"][:, 0]
+                death_mass = self.periods[t].matrices["dead"][:, 1]
+                if np.max(death_mass) <= 1e-12:
+                    # No mortality, so no newborns: the level of the normalizing
+                    # variable trends upward forever and only the cross-section
+                    # relative to that trend is stationary. The block's transition
+                    # is already conditioned on the (weighted) surviving mass, i.e.
+                    # normalized by each arrival state's expected growth of the
+                    # normalizing variable -- for a common growth factor exactly
+                    # the trend convention -- so it is used as it is.
+                    newborn_shares[t] = np.zeros(K)
+                    continue
+                deficit = 1.0 - surv_mass
+                if np.any(deficit < -1e-9):
+                    raise ValueError(
+                        "The surviving normalized mass exceeds one from some arrival "
+                        "state: growth of the normalizing variable "
+                        + norm
+                        + " outpaces mortality, so no stationary income-weighted "
+                        "distribution exists (the mean level is infinite). Lower the "
+                        "growth, raise mortality, or pass the trend that newborns "
+                        "inherit as newborn_growth."
+                    )
+                deficit = np.maximum(deficit, 0.0)
+                p2p_trans_arrays[t] *= np.reshape(surv_mass, (K, 1))
+                p2p_trans_arrays[t] += np.reshape(deficit, (K, 1)) * newborn_dstn
+                newborn_shares[t] = deficit
 
         # Store the transition arrays as attributes of self
         self.trans_arrays = p2p_trans_arrays
+        self.newborn_shares = newborn_shares
 
         # Build and store lists of state meshes, outcome arrays, and outcome grids
         self.state_grids = [self.periods[t].mesh for t in these_t]
         self.outcome_grids = [self.periods[t].grids for t in these_t]
         self.outcome_arrays = [self.periods[t].matrices for t in these_t]
 
-    def find_steady_state(self):
+    def find_steady_state(self, check=True, grid_mass_tol=1e-4):
         """
         Calculates the steady state distribution of arrival states for a "one period
         infinite horizon" model, storing the result to the attribute steady_state_dstn.
         Should only be run after make_transition_matrices(), and only if T_total = 1
-        and the model is infinite horizon.
+        and the model is infinite horizon. Also stores steady_state_residual, the
+        largest entry of |dstn @ trans - dstn|.
+
+        Parameters
+        ----------
+        check : bool
+            Whether to run two grid diagnostics after solving (default True), each
+            of which warns rather than raises: check_irreducibility(), because a
+            transition chain with more than one closed class has no unique steady
+            state and the eigenvector solve then returns an arbitrary mixture; and
+            get_grid_coverage(), because a grid whose top binds piles the mass that
+            belongs above it onto its last node (a truncation error that grows with
+            the household's patience).
+        grid_mass_tol : float or None
+            Stationary mass on the top node of a continuous arrival grid above which
+            the coverage check warns. The default 1e-4 corresponds to a grid top at
+            the (1 - 1e-4) quantile of the stationary distribution. None disables
+            the coverage check.
         """
         if self.T_total != 1:
             raise ValueError(
@@ -1759,6 +1881,135 @@ class AgentSimulator:
         D = V[:, 0]
         SS_dstn = (D / np.sum(D)).real
         self.steady_state_dstn = SS_dstn
+
+        # Verify that it is a clean fixed point: a stochastic vector with a small
+        # residual. Both fail when the chain has several closed classes.
+        resid = float(np.max(np.abs(np.dot(SS_dstn, self.trans_arrays[0]) - SS_dstn)))
+        self.steady_state_residual = resid
+        min_entry = float(np.min(SS_dstn))
+        if (min_entry < -1e-8) or (resid > 1e-8):
+            warnings.warn(
+                "The steady state distribution is not a clean fixed point (smallest "
+                "entry {:.2e}, residual {:.2e}). The transition chain may have more "
+                "than one closed class; see check_irreducibility().".format(
+                    min_entry, resid
+                )
+            )
+        if check:
+            n_closed, n_comp, _ = self.check_irreducibility()
+            if n_closed != 1:
+                warnings.warn(
+                    "The transition chain has "
+                    + str(n_closed)
+                    + " closed classes (among "
+                    + str(n_comp)
+                    + " strongly connected components), so the steady state is not "
+                    "unique: the eigenvector solve returned an arbitrary mixture of "
+                    "the stationary distributions. This usually means parts of the "
+                    "grid never communicate -- the grid is too coarse for the shocks "
+                    "or the model's discrete states do not mix."
+                )
+            if grid_mass_tol is not None:
+                coverage = self.get_grid_coverage()
+                binding = {
+                    var: cov["top"]
+                    for var, cov in coverage.items()
+                    if cov["top"] > grid_mass_tol
+                }
+                if binding:
+                    warnings.warn(
+                        "The grid top is binding: stationary mass on the last node is "
+                        + ", ".join(
+                            var + " {:.2e}".format(mass)
+                            for var, mass in binding.items()
+                        )
+                        + " (tolerance {:.0e}). Mass that belongs above the top is piled "
+                        "onto it, biasing every average; raise the grid max (see "
+                        "get_grid_coverage()).".format(grid_mass_tol)
+                    )
+
+    def check_irreducibility(self, t=0):
+        """
+        Count the closed classes of the arrival-state transition chain of period t:
+        the strongly connected components of the transition graph that no edge
+        leaves. A chain has a unique stationary distribution when and only when it
+        has exactly one closed class (transient states are harmless). More than one
+        means parts of the state space never communicate, so find_steady_state()
+        returns an arbitrary mixture: typically the grid is too coarse relative to
+        the shocks for the lottery to connect neighboring nodes, or the model's
+        discrete states form separate blocks. Should be run after
+        make_transition_matrices().
+
+        Parameters
+        ----------
+        t : int
+            Period whose transition array is examined. The default is 0.
+
+        Returns
+        -------
+        n_closed : int
+            Number of closed classes.
+        n_components : int
+            Number of strongly connected components (closed or not).
+        labels : np.array
+            Component label of each arrival state node.
+        """
+        graph = csr_matrix(self.trans_arrays[t] > 0.0)
+        n_components, labels = connected_components(
+            graph, directed=True, connection="strong"
+        )
+        i, j = graph.nonzero()
+        leaves = labels[i] != labels[j]
+        is_open = np.zeros(n_components, dtype=bool)
+        is_open[labels[i][leaves]] = True
+        n_closed = int(np.sum(~is_open))
+        return n_closed, int(n_components), labels
+
+    def get_grid_coverage(self, dstn=None, t=0):
+        """
+        Mass at the ends of each continuous arrival grid under a distribution of
+        arrival states: how much of the population sits on the bottom node and on
+        the top node. Mass on the top node is a truncation error whenever the model
+        lets the variable exceed the grid max -- the lottery piles it onto the last
+        node -- so a top that covers the distribution shows a negligible number
+        there. Mass on the bottom node can be genuine (a borrowing constraint puts
+        households at zero assets), so it is reported but not judged. Should be run
+        after make_transition_matrices() and, if dstn is None, find_steady_state().
+
+        Parameters
+        ----------
+        dstn : np.array or None
+            Distribution over arrival state nodes to examine. By default the
+            steady state distribution.
+        t : int
+            Period whose arrival grids are used. The default is 0.
+
+        Returns
+        -------
+        coverage : dict
+            Maps each continuous arrival variable to {"bottom": mass, "top": mass}.
+        """
+        if dstn is None:
+            if not hasattr(self, "steady_state_dstn"):
+                raise ValueError(
+                    "No distribution was given and find_steady_state() has not been run!"
+                )
+            dstn = self.steady_state_dstn
+        arrival = self.periods[t].arrival
+        mesh = np.asarray(self.state_grids[t], dtype=float)
+        coverage = {}
+        for k, var in enumerate(arrival):
+            grid = self.periods[t].grids[var]
+            if grid is None:
+                continue
+            grid = np.asarray(grid)
+            if (grid.size < 2) or (not np.issubdtype(grid.dtype, np.floating)):
+                continue
+            coverage[var] = {
+                "bottom": float(np.sum(dstn[mesh[:, k] == grid[0]])),
+                "top": float(np.sum(dstn[mesh[:, k] == grid[-1]])),
+            }
+        return coverage
 
     def get_long_run_dstn(self, var):
         """
@@ -1782,7 +2033,21 @@ class AgentSimulator:
         dstn = self.steady_state_dstn
         array = self.outcome_arrays[0][var]
         var_dstn = np.dot(dstn, array)
-        return var_dstn
+        return self._normalize_outcome_dstn(var_dstn)
+
+    def _normalize_outcome_dstn(self, var_dstn):
+        """
+        Under an income-weighted measure (norm given), the outcome arrays carry the
+        growth of the normalizing level realized within the period, so an outcome
+        distribution formed from an arrival-state distribution sums to the mass
+        growth factor rather than one. Dividing by its total expresses the outcome
+        per unit of the period's (post-growth) normalized level, which is the
+        Harmenberg aggregate. Without norm this is the identity.
+        """
+        if getattr(self, "norm", None) is None:
+            return var_dstn
+        total = np.sum(var_dstn, axis=0)
+        return var_dstn / total
 
     def get_long_run_average(self, var):
         """
@@ -2065,7 +2330,9 @@ class AgentSimulator:
         current_dstn = init_dstn.copy()
         for t in range(T):
             for name in outcomes:
-                this_dstn_t = np.dot(current_dstn, outcome_arrays_0[name])
+                this_dstn_t = self._normalize_outcome_dstn(
+                    np.dot(current_dstn, outcome_arrays_0[name])
+                )
                 history_avg[name][t] = np.dot(outcome_grids_0[name], this_dstn_t)
             current_dstn = current_dstn @ trans_array
         return history_avg
@@ -2080,7 +2347,9 @@ class AgentSimulator:
         history_avg = {}
         for name in outcomes:
             this_outcome = self.outcome_arrays[0][name]
-            this_dstn = np.dot(this_outcome.T, state_dstn_by_t)
+            this_dstn = self._normalize_outcome_dstn(
+                np.dot(this_outcome.T, state_dstn_by_t)
+            )
             history_dstn[name] = this_dstn
             if calc_avg:
                 history_avg[name] = np.dot(self.outcome_grids[0][name], this_dstn)
@@ -2094,6 +2363,7 @@ class AgentSimulator:
         from_dstn=None,
         calc_dstn=False,
         calc_avg=True,
+        grid_mass_tol=1e-4,
     ):
         """
         Generate the time series of population outcomes in response to an unexpected
@@ -2134,6 +2404,11 @@ class AgentSimulator:
         calc_avg : bool, optional
             Whether to store the population average of the outcomes over time in
             history_avg. The default is True.
+        grid_mass_tol : float or None, optional
+            Warn if the shocked initial distribution puts more than this mass on
+            the top node of a continuous arrival grid (the shock pushed households
+            past the grid max, where the lottery piles them up). The default is
+            1e-4; None disables the check.
 
         Returns
         -------
@@ -2144,6 +2419,21 @@ class AgentSimulator:
         init_dstn = self._resolve_initial_dstn(from_dstn)
         event_strings = self._build_shock_event_strings(shock)
         init_dstn = self._apply_shock_block(init_dstn, event_strings)
+        if grid_mass_tol is not None:
+            binding = {
+                var: cov["top"]
+                for var, cov in self.get_grid_coverage(init_dstn).items()
+                if cov["top"] > grid_mass_tol
+            }
+            if binding:
+                warnings.warn(
+                    "The shocked initial distribution puts mass on the top node of "
+                    + ", ".join(
+                        var + " ({:.2e})".format(mass) for var, mass in binding.items()
+                    )
+                    + ": the shock pushed households past the grid max, where the "
+                    "lottery piles them up. Raise the grid max or shrink the shock."
+                )
 
         trans_array = csc_matrix(self.trans_arrays[0])
         if calc_dstn:
@@ -2250,7 +2540,7 @@ class AgentSimulator:
     ):
         for name in outcomes:
             this_outcome = self.periods[t].matrices[name].transpose()
-            this_dstn = np.dot(this_outcome, current_dstn)
+            this_dstn = self._normalize_outcome_dstn(np.dot(this_outcome, current_dstn))
             if history_dstn is not None:
                 history_dstn[name].append(this_dstn)
             if history_avg is not None:
