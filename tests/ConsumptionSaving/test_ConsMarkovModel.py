@@ -239,11 +239,50 @@ class test_make_EndOfPrdvFuncCond(unittest.TestCase):
 
 
 class testMarkovValueFunc(unittest.TestCase):
+    def test_value_discounts_by_survival(self):
+        """
+        Value one period before the end matches the Bellman equation, survival included.
+
+        With terminal value u(m), value in state i is u(c) + DiscFac * LivPrb[i]
+        * sum_j MrkvArray[i, j] * E[(PermGroFac[j] * psi)**(1 - CRRA) * u(m'_j)],
+        where LivPrb[i] is the survival probability from the current state.
+        """
+        params = deepcopy(init_indshk_markov)
+        params["MrkvArray"] = [np.array([[0.9, 0.1], [0.3, 0.7]])]
+        params["constructors"] = dict(params["constructors"])
+        params["constructors"]["MrkvArray"] = None
+        params.update(
+            cycles=1,
+            vFuncBool=True,
+            LivPrb=[np.array([0.90, 0.95])],
+            Rfree=[np.array([1.03, 1.03])],
+            PermGroFac=[np.array([1.01, 0.99])],
+        )
+        agent = MarkovConsumerType(**params)
+        agent.solve()
+        solution = agent.solution[0]
+        CRRA = agent.CRRA
+        for i in range(2):
+            m = solution.mNrmMin[i] + np.array([0.5, 2.0, 10.0])
+            c = solution.cFunc[i](m)
+            vNext = np.zeros_like(m)
+            for j in range(2):
+                PermShk, TranShk = agent.IncShkDstn[0][j].atoms
+                growth = agent.PermGroFac[0][j] * PermShk
+                mNext = agent.Rfree[0][j] * (m - c)[:, None] / growth + TranShk
+                uNext = growth ** (1.0 - CRRA) * mNext ** (1.0 - CRRA) / (1.0 - CRRA)
+                vNext += agent.MrkvArray[0][i, j] * uNext @ agent.IncShkDstn[0][j].pmv
+            v = (
+                c ** (1.0 - CRRA) / (1.0 - CRRA)
+                + agent.DiscFac * agent.LivPrb[0][i] * vNext
+            )
+            np.testing.assert_allclose(solution.vFunc[i](m), v, rtol=0, atol=1e-2)
+
     def test_vFunc(self):
         agent = MarkovConsumerType(cycles=0, vFuncBool=True)
         agent.solve()
-        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -30.78459, places=4)
-        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -30.37644, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[0](5.0), -18.15152, places=4)
+        self.assertAlmostEqual(agent.solution[0].vFunc[1](5.0), -17.91514, places=4)
 
 
 class testRatchet(unittest.TestCase):
